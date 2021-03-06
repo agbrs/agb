@@ -5,26 +5,28 @@ use crate::{
 use bitflags::bitflags;
 use core::convert::TryInto;
 
-const DISPLAY_CONTROL: MemoryMapped<u16> = MemoryMapped::new(0x0400_0000);
-const DISPLAY_STATUS: MemoryMapped<u16> = MemoryMapped::new(0x0400_0004);
-const VCOUNT: MemoryMapped<u16> = MemoryMapped::new(0x0400_0006);
+const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
+const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
+const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
-const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> = MemoryMapped1DArray::new(0x0500_0000);
-const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> = MemoryMapped1DArray::new(0x0500_0200);
+const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
+    unsafe { MemoryMapped1DArray::new(0x0500_0000) };
+const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
+    unsafe { MemoryMapped1DArray::new(0x0500_0200) };
 
 const BITMAP_MODE_3: MemoryMapped2DArray<u16, { WIDTH as usize }, { HEIGHT as usize }> =
-    MemoryMapped2DArray::new(0x600_0000);
+    unsafe { MemoryMapped2DArray::new(0x600_0000) };
 
 const BITMAP_PAGE_FRONT_MODE_4: MemoryMapped2DArray<
     u16,
     { (WIDTH / 2) as usize },
     { HEIGHT as usize },
-> = MemoryMapped2DArray::new(0x600_0000);
+> = unsafe { MemoryMapped2DArray::new(0x600_0000) };
 const BITMAP_PAGE_BACK_MODE_4: MemoryMapped2DArray<
     u16,
     { (WIDTH / 2) as usize },
     { HEIGHT as usize },
-> = MemoryMapped2DArray::new(0x600_A000);
+> = unsafe { MemoryMapped2DArray::new(0x600_A000) };
 
 pub const WIDTH: i32 = 240;
 pub const HEIGHT: i32 = 160;
@@ -64,14 +66,8 @@ pub struct Display {
     in_mode: Single,
 }
 
-impl Default for Display {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Display {
-    pub(crate) const fn new() -> Self {
+    pub(crate) const unsafe fn new() -> Self {
         Display {
             in_mode: Single::new(),
         }

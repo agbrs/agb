@@ -3,7 +3,7 @@ pub struct MemoryMapped<T> {
 }
 
 impl<T> MemoryMapped<T> {
-    pub const fn new(address: usize) -> Self {
+    pub const unsafe fn new(address: usize) -> Self {
         MemoryMapped {
             address: address as *mut T,
         }
@@ -24,7 +24,7 @@ pub struct MemoryMapped1DArray<T, const N: usize> {
 
 #[allow(dead_code)]
 impl<T, const N: usize> MemoryMapped1DArray<T, N> {
-    pub const fn new(address: usize) -> Self {
+    pub const unsafe fn new(address: usize) -> Self {
         MemoryMapped1DArray {
             array: address as *mut [T; N],
         }
@@ -42,7 +42,7 @@ pub struct MemoryMapped2DArray<T, const X: usize, const Y: usize> {
 }
 
 impl<T, const X: usize, const Y: usize> MemoryMapped2DArray<T, X, Y> {
-    pub const fn new(address: usize) -> Self {
+    pub const unsafe fn new(address: usize) -> Self {
         MemoryMapped2DArray {
             array: address as *mut [[T; X]; Y],
         }

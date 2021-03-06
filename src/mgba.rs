@@ -12,12 +12,12 @@ pub enum DebugLevel {
 }
 
 const OUTPUT: *mut u8 = 0x04FF_F600 as *mut u8;
-const ENABLE: MemoryMapped<u16> = MemoryMapped::new(0x04FF_F780);
+const ENABLE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F780) };
 
 const ENABLE_HANDSHAKE_IN: u16 = 0xC0DE;
 const ENABLE_HANDSHAKE_OUT: u16 = 0x1DEA;
 
-const DEBUG_LEVEL: MemoryMapped<u16> = MemoryMapped::new(0x04FF_F700);
+const DEBUG_LEVEL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F700) };
 const DEBUG_FLAG_CODE: u16 = 0x0100;
 
 fn is_running_in_mgba() -> bool {

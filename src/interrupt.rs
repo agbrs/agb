@@ -17,8 +17,8 @@ pub enum Interrupt {
     Gamepak,
 }
 
-const ENABLED_INTERRUPTS: MemoryMapped<u16> = MemoryMapped::new(0x04000200);
-const INTERRUPTS_ENABLED: MemoryMapped<u16> = MemoryMapped::new(0x04000208);
+const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
+const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
 pub fn enable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();

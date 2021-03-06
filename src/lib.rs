@@ -24,7 +24,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(Gba::single_new());
+static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { Gba::single_new() });
 
 pub struct Gba {
     pub display: display::Display,
@@ -35,7 +35,7 @@ impl Gba {
         unsafe { GBASINGLE.take() }
     }
 
-    const fn single_new() -> Self {
+    const unsafe fn single_new() -> Self {
         Self {
             display: display::Display::new(),
         }
