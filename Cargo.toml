@@ -1,0 +1,19 @@
+[package]
+name = "gba"
+version = "0.1.0"
+authors = ["Corwin Kuiper <corwin@kuiper.dev>"]
+edition = "2018"
+
+[profile.dev]
+panic = "abort"
+lto = true
+
+[profile.release]
+panic = "abort"
+lto = true
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitflags = "1.0"
