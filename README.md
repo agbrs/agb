@@ -14,3 +14,8 @@ examples as documentation.
 * Devkitarm.
 
 This is probably easiest to do in a container.
+
+## Makefile
+
+The Makefile is written such that `make d-{example name}` runs the debug build
+of the example, and `make r-{example name}` runs the release build.
