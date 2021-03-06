@@ -37,7 +37,7 @@ cargo-debug-%: $(RUSTFILES) out/crt0.o
 	@rustup run nightly cargo xbuild --target=gba.json --example=$${OUTNAME}
 
 out/crt0.o: crt0.s interrupt_simple.s
-	@mkdir $(dir $@)
+	@mkdir -p $(dir $@)
 	@$(CC) $(ARCH) -o out/crt0.o crt0.s
 
 clippy:
