@@ -1,6 +1,6 @@
 use crate::memory_mapped::MemoryMapped;
 
-pub(crate) enum Interrupt {
+pub enum Interrupt {
     VBlank,
     HBlank,
     VCounter,
@@ -20,21 +20,21 @@ pub(crate) enum Interrupt {
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
 const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
-pub(crate) fn enable(interrupt: Interrupt) {
+pub fn enable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() | (1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub(crate) fn disable(interrupt: Interrupt) {
+pub fn disable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() & !(1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub(crate) struct Disable {}
+pub struct Disable {}
 
 impl Drop for Disable {
     fn drop(&mut self) {
@@ -42,12 +42,12 @@ impl Drop for Disable {
     }
 }
 
-pub(crate) fn temporary_interrupt_disable() -> Disable {
+pub fn temporary_interrupt_disable() -> Disable {
     disable_interrupts();
     Disable {}
 }
 
-pub(crate) fn enable_interrupts() {
+pub fn enable_interrupts() {
     INTERRUPTS_ENABLED.set(1);
 }
 
