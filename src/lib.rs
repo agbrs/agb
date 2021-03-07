@@ -5,8 +5,8 @@
 use core::fmt::Write;
 pub mod display;
 pub mod input;
-pub mod interrupt;
 
+mod interrupt;
 mod memory_mapped;
 mod mgba;
 mod single;
