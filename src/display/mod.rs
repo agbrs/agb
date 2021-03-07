@@ -1,11 +1,14 @@
-use crate::{memory_mapped::MemoryMapped, single::Single};
+use crate::{
+    memory_mapped::MemoryMapped,
+    single::{Single, SingleToken},
+};
 use bitflags::bitflags;
 
 use bitmap3::Bitmap3;
 use bitmap4::Bitmap4;
 
-mod bitmap3;
-mod bitmap4;
+pub mod bitmap3;
+pub mod bitmap4;
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
 const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
@@ -42,12 +45,14 @@ pub enum DisplayMode {
 
 pub struct Display {
     in_mode: Single,
+    vblank: Single,
 }
 
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
             in_mode: Single::new(),
+            vblank: Single::new(),
         }
     }
 
@@ -64,6 +69,15 @@ impl Display {
                 .take()
                 .expect("Cannot create new mode as mode already taken"),
         )
+    }
+    pub fn get_vblank(&self) -> VBlank {
+        unsafe {
+            VBlank::new(
+                self.vblank
+                    .take()
+                    .expect("Cannot create another vblank handler"),
+            )
+        }
     }
 }
 
@@ -85,18 +99,49 @@ pub fn set_graphics_settings(settings: GraphicsSettings) {
 }
 
 #[allow(non_snake_case)]
+/// Waits until vblank using a busy wait loop, this should almost never be used.
+/// I only say almost because whilst I don't believe there to be a reason to use
+/// this I can't rule it out.
 pub fn busy_wait_for_VBlank() {
     while VCOUNT.get() >= 160 {}
     while VCOUNT.get() < 160 {}
 }
 
+pub struct VBlank<'a> {
+    _got: SingleToken<'a>,
+}
+
+impl<'a> VBlank<'a> {
+    unsafe fn new(a: SingleToken<'a>) -> Self {
+        crate::interrupt::enable_interrupts();
+        crate::interrupt::enable(crate::interrupt::Interrupt::VBlank);
+        enable_VBlank_interrupt();
+        VBlank { _got: a }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn wait_for_VBlank(&self) {
+        crate::syscall::wait_for_VBlank();
+    }
+}
+
+impl<'a> Drop for VBlank<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            disable_VBlank_interrupt();
+            crate::interrupt::disable(crate::interrupt::Interrupt::VBlank);
+        }
+    }
+}
+
 #[allow(non_snake_case)]
-pub fn enable_VBlank_interrupt() {
+unsafe fn enable_VBlank_interrupt() {
     let status = DISPLAY_STATUS.get() | (1 << 3);
     DISPLAY_STATUS.set(status);
 }
 
 #[allow(non_snake_case)]
-pub fn wait_for_VBlank() {
-    crate::syscall::wait_for_VBlank();
+unsafe fn disable_VBlank_interrupt() {
+    let status = DISPLAY_STATUS.get() & !(1 << 3);
+    DISPLAY_STATUS.set(status);
 }
