@@ -15,7 +15,7 @@ const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
 bitflags! {
-    pub struct GraphicsSettings: u16 {
+    struct GraphicsSettings: u16 {
         const PAGE_SELECT = 1 << 0x4;
         const OAM_HBLANK = 1 << 0x5;
         const SPRITE1_D = 1 << 0x6;
@@ -31,10 +31,12 @@ bitflags! {
     }
 }
 
+/// Width of the Gameboy advance screen in pixels
 pub const WIDTH: i32 = 240;
+/// Height of the Gameboy advance screen in pixels
 pub const HEIGHT: i32 = 160;
 
-pub enum DisplayMode {
+enum DisplayMode {
     Tiled0 = 0,
     Tiled1 = 1,
     Tiled2 = 2,
@@ -43,6 +45,7 @@ pub enum DisplayMode {
     Bitmap5 = 5,
 }
 
+/// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
     in_mode: Single,
     vblank: Single,
@@ -56,20 +59,29 @@ impl Display {
         }
     }
 
+    /// Bitmap mode that provides a 16-bit colour framebuffer
     pub fn bitmap3(&self) -> Bitmap3 {
-        Bitmap3::new(
-            self.in_mode
-                .take()
-                .expect("Cannot create new mode as mode already taken"),
-        )
+        unsafe {
+            Bitmap3::new(
+                self.in_mode
+                    .take()
+                    .expect("Cannot create new mode as mode already taken"),
+            )
+        }
     }
+
+    /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
     pub fn bitmap4(&self) -> Bitmap4 {
-        bitmap4::Bitmap4::new(
-            self.in_mode
-                .take()
-                .expect("Cannot create new mode as mode already taken"),
-        )
+        unsafe {
+            bitmap4::Bitmap4::new(
+                self.in_mode
+                    .take()
+                    .expect("Cannot create new mode as mode already taken"),
+            )
+        }
     }
+
+    /// Gets a vblank handle where only one can be obtained at a time
     pub fn get_vblank(&self) -> VBlank {
         unsafe {
             VBlank::new(
@@ -81,7 +93,7 @@ impl Display {
     }
 }
 
-fn set_graphics_mode(mode: DisplayMode) {
+unsafe fn set_graphics_mode(mode: DisplayMode) {
     let current = DISPLAY_CONTROL.get();
     let current = current & (!0b111);
     let s = current | (mode as u16 & 0b111);
@@ -89,7 +101,7 @@ fn set_graphics_mode(mode: DisplayMode) {
     DISPLAY_CONTROL.set(s);
 }
 
-pub fn set_graphics_settings(settings: GraphicsSettings) {
+unsafe fn set_graphics_settings(settings: GraphicsSettings) {
     let current = DISPLAY_CONTROL.get();
     // preserve display mode
     let current = current & 0b111;
@@ -107,6 +119,8 @@ pub fn busy_wait_for_VBlank() {
     while VCOUNT.get() < 160 {}
 }
 
+/// Once obtained, this guarentees that interrupts are enabled and set up to
+/// allow for waiting for vblank
 pub struct VBlank<'a> {
     _got: SingleToken<'a>,
 }
@@ -120,6 +134,8 @@ impl<'a> VBlank<'a> {
     }
 
     #[allow(non_snake_case)]
+    /// Waits for VBlank using interrupts. This is the preferred method for
+    /// waiting until the next frame.
     pub fn wait_for_VBlank(&self) {
         crate::syscall::wait_for_VBlank();
     }

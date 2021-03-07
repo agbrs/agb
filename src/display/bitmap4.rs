@@ -31,12 +31,15 @@ pub struct Bitmap4<'a> {
 }
 
 impl<'a> Bitmap4<'a> {
-    pub(crate) fn new(in_mode: SingleToken<'a>) -> Self {
+    pub(crate) unsafe fn new(in_mode: SingleToken<'a>) -> Self {
         set_graphics_mode(DisplayMode::Bitmap4);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
         Bitmap4 { _in_mode: in_mode }
     }
 
+    /// Draws point on specified page at (x, y) coordinates with colour index
+    /// whose colour is specified in the background palette. Panics if (x, y) is
+    /// out of the bounds of the screen.
     pub fn draw_point_page(&self, x: i32, y: i32, colour: u8, page: Page) {
         let addr = match page {
             Page::Front => BITMAP_PAGE_FRONT_MODE_4,
@@ -54,22 +57,29 @@ impl<'a> Bitmap4<'a> {
         }
     }
 
+    /// Draws point on the non-current page at (x, y) coordinates with colour
+    /// index whose colour is specified in the background palette. Panics if (x,
+    /// y) is out of the bounds of the screen.
     pub fn draw_point(&self, x: i32, y: i32, colour: u8) {
         let disp = DISPLAY_CONTROL.get();
 
+        // get other page
         let page = if disp & GraphicsSettings::PAGE_SELECT.bits() != 0 {
-            Page::Back
-        } else {
             Page::Front
+        } else {
+            Page::Back
         };
 
         self.draw_point_page(x, y, colour, page)
     }
 
+    /// Sets the colour of colour index in the background palette.
     pub fn set_palette_entry(&self, entry: u32, colour: u16) {
         PALETTE_BACKGROUND.set(entry as usize, colour);
     }
 
+    /// Flips page, changing the Gameboy advance to draw the contents of the
+    /// other page
     pub fn flip_page(&self) {
         let disp = DISPLAY_CONTROL.get();
         let swapped = disp ^ GraphicsSettings::PAGE_SELECT.bits();

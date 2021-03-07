@@ -14,11 +14,14 @@ pub struct Bitmap3<'a> {
 }
 
 impl<'a> Bitmap3<'a> {
-    pub(crate) fn new(in_mode: SingleToken<'a>) -> Self {
+    pub(crate) unsafe fn new(in_mode: SingleToken<'a>) -> Self {
         set_graphics_mode(DisplayMode::Bitmap3);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
         Bitmap3 { _in_mode: in_mode }
     }
+
+    /// Draws point to screen at (x, y) coordinates with colour and panics if
+    /// (x, y) is out of the bounds of the screen.
     pub fn draw_point(&self, x: i32, y: i32, colour: u16) {
         let x = x.try_into().unwrap();
         let y = y.try_into().unwrap();

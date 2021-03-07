@@ -42,3 +42,6 @@ out/crt0.o: crt0.s interrupt_simple.s
 
 clippy:
 	rustup run nightly cargo xclippy --target=gba.json
+
+doc:
+	rustup run nightly cargo xdoc --target=gba.json
