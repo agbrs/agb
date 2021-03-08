@@ -1,20 +1,20 @@
 use crate::memory_mapped::MemoryMapped;
 
 pub enum Interrupt {
-    VBlank,
-    HBlank,
-    VCounter,
-    Timer0,
-    Timer1,
-    Timer2,
-    Timer3,
-    Serial,
-    Dma0,
-    Dma1,
-    Dma2,
-    Dma3,
-    Keypad,
-    Gamepak,
+    VBlank = 0,
+    HBlank = 1,
+    VCounter = 2,
+    Timer0 = 3,
+    Timer1 = 4,
+    Timer2 = 5,
+    Timer3 = 6,
+    Serial = 7,
+    Dma0 = 8,
+    Dma1 = 9,
+    Dma2 = 10,
+    Dma3 = 11,
+    Keypad = 12,
+    Gamepak = 13,
 }
 
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
