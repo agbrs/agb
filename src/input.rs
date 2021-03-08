@@ -30,8 +30,6 @@ bitflags! {
     }
 }
 
-const KEY_MASK: u16 = 0b1111111111;
-
 const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 
 // const BUTTON_INTURRUPT: *mut u16 = (0x04000132) as *mut u16;
@@ -57,7 +55,7 @@ impl ButtonController {
 
     pub fn update(&mut self) {
         self.previous = self.current;
-        self.current = unsafe { BUTTON_INPUT.read_volatile() } ^ KEY_MASK;
+        self.current = !unsafe { BUTTON_INPUT.read_volatile() };
     }
 
     pub fn x_tri(&self) -> Tri {
