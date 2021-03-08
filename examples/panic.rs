@@ -9,7 +9,7 @@ use gba::display;
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut gba = gba::Gba::new();
 
-    let mut bitmap = gba.display.bitmap3();
+    let mut bitmap = gba.display.video.bitmap3();
     let mut input = gba::input::ButtonController::new();
 
     loop {
