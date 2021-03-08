@@ -1,15 +1,14 @@
-use crate::{
-    memory_mapped::MemoryMapped,
-    single::{Single, SingleToken},
-};
+use crate::memory_mapped::MemoryMapped;
 use bitflags::bitflags;
 
-use bitmap3::Bitmap3;
-use bitmap4::Bitmap4;
+use vblank::VBlankGiver;
+use video::Video;
 
 pub mod bitmap3;
 pub mod bitmap4;
 pub mod tiled0;
+pub mod vblank;
+pub mod video;
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
 const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
@@ -52,30 +51,6 @@ pub struct Display {
     pub video: Video,
     pub vblank: VBlankGiver,
 }
-#[non_exhaustive]
-pub struct Video {}
-
-#[non_exhaustive]
-pub struct VBlankGiver {}
-
-impl Video {
-    /// Bitmap mode that provides a 16-bit colour framebuffer
-    pub fn bitmap3(&mut self) -> Bitmap3 {
-        unsafe { Bitmap3::new() }
-    }
-
-    /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
-    pub fn bitmap4(&mut self) -> Bitmap4 {
-        unsafe { bitmap4::Bitmap4::new() }
-    }
-}
-
-impl VBlankGiver {
-    /// Gets a vblank handle where only one can be obtained at a time
-    pub fn get(&mut self) -> VBlank {
-        unsafe { VBlank::new() }
-    }
-}
 
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
@@ -110,45 +85,4 @@ unsafe fn set_graphics_settings(settings: GraphicsSettings) {
 pub fn busy_wait_for_VBlank() {
     while VCOUNT.get() >= 160 {}
     while VCOUNT.get() < 160 {}
-}
-
-/// Once obtained, this guarentees that interrupts are enabled and set up to
-/// allow for waiting for vblank
-pub struct VBlank {}
-
-impl VBlank {
-    unsafe fn new() -> Self {
-        crate::interrupt::enable_interrupts();
-        crate::interrupt::enable(crate::interrupt::Interrupt::VBlank);
-        enable_VBlank_interrupt();
-        VBlank {}
-    }
-
-    #[allow(non_snake_case)]
-    /// Waits for VBlank using interrupts. This is the preferred method for
-    /// waiting until the next frame.
-    pub fn wait_for_VBlank(&self) {
-        crate::syscall::wait_for_VBlank();
-    }
-}
-
-impl Drop for VBlank {
-    fn drop(&mut self) {
-        unsafe {
-            disable_VBlank_interrupt();
-            crate::interrupt::disable(crate::interrupt::Interrupt::VBlank);
-        }
-    }
-}
-
-#[allow(non_snake_case)]
-unsafe fn enable_VBlank_interrupt() {
-    let status = DISPLAY_STATUS.get() | (1 << 3);
-    DISPLAY_STATUS.set(status);
-}
-
-#[allow(non_snake_case)]
-unsafe fn disable_VBlank_interrupt() {
-    let status = DISPLAY_STATUS.get() & !(1 << 3);
-    DISPLAY_STATUS.set(status);
 }

@@ -24,7 +24,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
 fn bitmap3_mode(
     bitmap: &mut display::bitmap3::Bitmap3,
-    vblank: &mut display::VBlank,
+    vblank: &mut display::vblank::VBlank,
     input: &mut gba::input::ButtonController,
 ) {
     let mut pos = Vector2D {
@@ -51,7 +51,7 @@ fn bitmap3_mode(
 
 fn bitmap4_mode(
     bitmap: &mut display::bitmap4::Bitmap4,
-    vblank: &mut display::VBlank,
+    vblank: &mut display::vblank::VBlank,
     input: &mut gba::input::ButtonController,
 ) {
     bitmap.set_palette_entry(1, 0x001F);
