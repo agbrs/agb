@@ -1,5 +1,3 @@
-use core::cell::Cell;
-
 pub struct Singleton<T> {
     single: Option<T>,
 }
@@ -15,27 +13,25 @@ impl<T> Singleton<T> {
 }
 
 pub struct Single {
-    is_taken: Cell<bool>,
+    is_taken: bool,
 }
 
 pub struct SingleToken<'a> {
-    cell: &'a Cell<bool>,
+    cell: &'a mut bool,
 }
 
 impl Single {
     pub const fn new() -> Self {
-        Single {
-            is_taken: Cell::new(false),
-        }
+        Single { is_taken: false }
     }
 
-    pub fn take(&self) -> Result<SingleToken, &'static str> {
-        if self.is_taken.get() {
+    pub fn take(&mut self) -> Result<SingleToken, &'static str> {
+        if self.is_taken {
             Err("Already taken")
         } else {
-            self.is_taken.set(true);
+            self.is_taken = true;
             Ok(SingleToken {
-                cell: &self.is_taken,
+                cell: &mut self.is_taken,
             })
         }
     }
@@ -43,6 +39,6 @@ impl Single {
 
 impl Drop for SingleToken<'_> {
     fn drop(&mut self) {
-        self.cell.set(false);
+        (*self.cell) = false;
     }
 }

@@ -1,7 +1,4 @@
-use crate::{
-    memory_mapped::{MemoryMapped1DArray, MemoryMapped2DArray},
-    single::SingleToken,
-};
+use crate::memory_mapped::{MemoryMapped1DArray, MemoryMapped2DArray};
 
 use super::{
     set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, DISPLAY_CONTROL,
@@ -26,21 +23,19 @@ pub enum Page {
     Back = 1,
 }
 
-pub struct Bitmap4<'a> {
-    _in_mode: SingleToken<'a>,
-}
+pub struct Bitmap4 {}
 
-impl<'a> Bitmap4<'a> {
-    pub(crate) unsafe fn new(in_mode: SingleToken<'a>) -> Self {
+impl Bitmap4 {
+    pub(crate) unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Bitmap4);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
-        Bitmap4 { _in_mode: in_mode }
+        Bitmap4 {}
     }
 
     /// Draws point on specified page at (x, y) coordinates with colour index
     /// whose colour is specified in the background palette. Panics if (x, y) is
     /// out of the bounds of the screen.
-    pub fn draw_point_page(&self, x: i32, y: i32, colour: u8, page: Page) {
+    pub fn draw_point_page(&mut self, x: i32, y: i32, colour: u8, page: Page) {
         let addr = match page {
             Page::Front => BITMAP_PAGE_FRONT_MODE_4,
             Page::Back => BITMAP_PAGE_BACK_MODE_4,
@@ -60,7 +55,7 @@ impl<'a> Bitmap4<'a> {
     /// Draws point on the non-current page at (x, y) coordinates with colour
     /// index whose colour is specified in the background palette. Panics if (x,
     /// y) is out of the bounds of the screen.
-    pub fn draw_point(&self, x: i32, y: i32, colour: u8) {
+    pub fn draw_point(&mut self, x: i32, y: i32, colour: u8) {
         let disp = DISPLAY_CONTROL.get();
 
         // get other page
@@ -74,13 +69,13 @@ impl<'a> Bitmap4<'a> {
     }
 
     /// Sets the colour of colour index in the background palette.
-    pub fn set_palette_entry(&self, entry: u32, colour: u16) {
+    pub fn set_palette_entry(&mut self, entry: u32, colour: u16) {
         PALETTE_BACKGROUND.set(entry as usize, colour);
     }
 
     /// Flips page, changing the Gameboy advance to draw the contents of the
     /// other page
-    pub fn flip_page(&self) {
+    pub fn flip_page(&mut self) {
         let disp = DISPLAY_CONTROL.get();
         let swapped = disp ^ GraphicsSettings::PAGE_SELECT.bits();
         DISPLAY_CONTROL.set(swapped);

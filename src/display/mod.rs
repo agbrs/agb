@@ -9,6 +9,7 @@ use bitmap4::Bitmap4;
 
 pub mod bitmap3;
 pub mod bitmap4;
+pub mod tiled0;
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
 const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
@@ -45,50 +46,42 @@ enum DisplayMode {
     Bitmap5 = 5,
 }
 
+#[non_exhaustive]
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
-    in_mode: Single,
-    vblank: Single,
+    pub video: Video,
+    pub vblank: VBlankGiver,
+}
+#[non_exhaustive]
+pub struct Video {}
+
+#[non_exhaustive]
+pub struct VBlankGiver {}
+
+impl Video {
+    /// Bitmap mode that provides a 16-bit colour framebuffer
+    pub fn bitmap3(&mut self) -> Bitmap3 {
+        unsafe { Bitmap3::new() }
+    }
+
+    /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
+    pub fn bitmap4(&mut self) -> Bitmap4 {
+        unsafe { bitmap4::Bitmap4::new() }
+    }
+}
+
+impl VBlankGiver {
+    /// Gets a vblank handle where only one can be obtained at a time
+    pub fn get(&mut self) -> VBlank {
+        unsafe { VBlank::new() }
+    }
 }
 
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            in_mode: Single::new(),
-            vblank: Single::new(),
-        }
-    }
-
-    /// Bitmap mode that provides a 16-bit colour framebuffer
-    pub fn bitmap3(&self) -> Bitmap3 {
-        unsafe {
-            Bitmap3::new(
-                self.in_mode
-                    .take()
-                    .expect("Cannot create new mode as mode already taken"),
-            )
-        }
-    }
-
-    /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
-    pub fn bitmap4(&self) -> Bitmap4 {
-        unsafe {
-            bitmap4::Bitmap4::new(
-                self.in_mode
-                    .take()
-                    .expect("Cannot create new mode as mode already taken"),
-            )
-        }
-    }
-
-    /// Gets a vblank handle where only one can be obtained at a time
-    pub fn get_vblank(&self) -> VBlank {
-        unsafe {
-            VBlank::new(
-                self.vblank
-                    .take()
-                    .expect("Cannot create another vblank handler"),
-            )
+            video: Video {},
+            vblank: VBlankGiver {},
         }
     }
 }
@@ -121,16 +114,14 @@ pub fn busy_wait_for_VBlank() {
 
 /// Once obtained, this guarentees that interrupts are enabled and set up to
 /// allow for waiting for vblank
-pub struct VBlank<'a> {
-    _got: SingleToken<'a>,
-}
+pub struct VBlank {}
 
-impl<'a> VBlank<'a> {
-    unsafe fn new(a: SingleToken<'a>) -> Self {
+impl VBlank {
+    unsafe fn new() -> Self {
         crate::interrupt::enable_interrupts();
         crate::interrupt::enable(crate::interrupt::Interrupt::VBlank);
         enable_VBlank_interrupt();
-        VBlank { _got: a }
+        VBlank {}
     }
 
     #[allow(non_snake_case)]
@@ -141,7 +132,7 @@ impl<'a> VBlank<'a> {
     }
 }
 
-impl<'a> Drop for VBlank<'a> {
+impl Drop for VBlank {
     fn drop(&mut self) {
         unsafe {
             disable_VBlank_interrupt();

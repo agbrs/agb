@@ -12,9 +12,9 @@ struct Vector2D {
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let gba = gba::Gba::new();
-    let bitmap = gba.display.bitmap3();
-    let vblank = gba.display.get_vblank();
+    let mut gba = gba::Gba::new();
+    let mut bitmap = gba.display.video.bitmap3();
+    let vblank = gba.display.vblank.get();
 
     let mut input = gba::input::ButtonController::new();
     let mut pos = Vector2D {
