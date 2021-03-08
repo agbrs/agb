@@ -1,4 +1,4 @@
-use super::{bitmap3::Bitmap3, bitmap4::Bitmap4};
+use super::{bitmap3::Bitmap3, bitmap4::Bitmap4, tiled0::Tiled0};
 
 #[non_exhaustive]
 pub struct Video {}
@@ -12,5 +12,9 @@ impl Video {
     /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
     pub fn bitmap4(&mut self) -> Bitmap4 {
         unsafe { Bitmap4::new() }
+    }
+
+    pub fn tiled0(&mut self) -> Tiled0 {
+        unsafe { Tiled0::new() }
     }
 }

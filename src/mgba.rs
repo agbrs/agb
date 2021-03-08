@@ -1,7 +1,7 @@
-use crate::memory_mapped::MemoryMapped;
+use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
+use core::fmt::Write;
 
 #[derive(Eq, PartialEq, Clone, Copy)]
-#[repr(u16)]
 #[allow(dead_code)]
 pub enum DebugLevel {
     Fatal = 0,
@@ -11,8 +11,9 @@ pub enum DebugLevel {
     Debug = 4,
 }
 
-const OUTPUT: *mut u8 = 0x04FF_F600 as *mut u8;
-const ENABLE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F780) };
+const OUTPUT_STRING: MemoryMapped1DArray<u8, 256> =
+    unsafe { MemoryMapped1DArray::new(0x04FF_F600) };
+const DEBUG_ENABLE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F780) };
 
 const ENABLE_HANDSHAKE_IN: u16 = 0xC0DE;
 const ENABLE_HANDSHAKE_OUT: u16 = 0x1DEA;
@@ -21,8 +22,8 @@ const DEBUG_LEVEL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F700) }
 const DEBUG_FLAG_CODE: u16 = 0x0100;
 
 fn is_running_in_mgba() -> bool {
-    ENABLE.set(ENABLE_HANDSHAKE_IN);
-    ENABLE.get() == ENABLE_HANDSHAKE_OUT
+    DEBUG_ENABLE.set(ENABLE_HANDSHAKE_IN);
+    DEBUG_ENABLE.get() == ENABLE_HANDSHAKE_OUT
 }
 
 pub struct Mgba {
@@ -37,6 +38,16 @@ impl Mgba {
             None
         }
     }
+
+    pub fn print(
+        &mut self,
+        output: core::fmt::Arguments,
+        level: DebugLevel,
+    ) -> Result<(), core::fmt::Error> {
+        write!(self, "{}", output)?;
+        self.set_level(level);
+        Ok(())
+    }
 }
 
 impl Mgba {
@@ -48,18 +59,14 @@ impl Mgba {
 
 impl core::fmt::Write for Mgba {
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
-        unsafe {
-            let mut current_location = OUTPUT.add(self.bytes_written);
-            let mut str_iter = s.bytes();
-            while self.bytes_written < 255 {
-                match str_iter.next() {
-                    Some(byte) => {
-                        current_location.write(byte);
-                        current_location = current_location.offset(1);
-                        self.bytes_written += 1;
-                    }
-                    None => return Ok(()),
+        let mut str_iter = s.bytes();
+        while self.bytes_written < 255 {
+            match str_iter.next() {
+                Some(byte) => {
+                    OUTPUT_STRING.set(self.bytes_written, byte);
+                    self.bytes_written += 1;
                 }
+                None => return Ok(()),
             }
         }
         Ok(())

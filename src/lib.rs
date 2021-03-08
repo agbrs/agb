@@ -8,7 +8,7 @@ pub mod input;
 
 mod interrupt;
 mod memory_mapped;
-mod mgba;
+pub mod mgba;
 mod single;
 
 pub mod syscall;

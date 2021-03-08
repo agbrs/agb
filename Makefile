@@ -20,12 +20,12 @@ out/release/%.gba: cargo-release-%
 
 d-%: out/debug/%.gba
 	@OUTNAME=$(patsubst d-%,%,$@)
-	@mgba-qt $<
+	@mgba-qt -l 31 -d -C logToStdout=1 $<
 	@rm -f out/debug/$${OUTNAME}.sav
 
 r-%: out/release/%.gba
 	@OUTNAME=$(patsubst r-%,%,$@)
-	@mgba-qt $<
+	@mgba-qt -l 31 -d -C logToStdout=1 $<
 	@rm -f out/release/$${OUTNAME}.sav
 	
 cargo-release-%: $(RUSTFILES) out/crt0.o
