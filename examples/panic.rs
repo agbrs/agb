@@ -18,5 +18,9 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         if input.is_just_pressed(gba::input::Button::A) {
             bitmap.draw_point(display::WIDTH, 0, 0x05);
         }
+        if input.is_just_pressed(gba::input::Button::B) {
+            #[allow(arithmetic_overflow)]
+            let p = core::i32::MAX + 1;
+        }
     }
 }
