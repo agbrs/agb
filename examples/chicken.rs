@@ -2,11 +2,10 @@
 #![feature(start)]
 
 extern crate gba;
-use core::convert::{Into, TryInto};
+use core::convert::TryInto;
 use gba::{
     display::{object::ObjectStandard, tiled0, HEIGHT, WIDTH},
     input::Button,
-    number::Num,
 };
 
 #[derive(PartialEq, Eq)]
@@ -134,7 +133,7 @@ fn update_chicken_object(chicken: &mut Character, state: State, frame_count: u32
     } else if chicken.velocity.x < -1 {
         chicken.object.set_hflip(true);
     }
-    match (state) {
+    match state {
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken
