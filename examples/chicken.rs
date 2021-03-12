@@ -5,8 +5,16 @@ extern crate gba;
 use core::convert::{Into, TryInto};
 use gba::{
     display::{object::ObjectStandard, tiled0, HEIGHT, WIDTH},
+    input::Button,
     number::Num,
 };
+
+#[derive(PartialEq, Eq)]
+enum State {
+    Ground,
+    Upwards,
+    Flapping,
+}
 
 struct Character {
     object: ObjectStandard,
@@ -19,12 +27,23 @@ struct Vector2D {
     y: i32,
 }
 
+fn tile_is_collidable(tile: u16) -> bool {
+    let masked = tile & 0b0000001111111111;
+    masked == 0 || masked == 4
+}
+
 fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u32 {
     ((count / delay) % (end + 1 - start)) + start
 }
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
+    let map_as_grid: &[[u16; 32]; 32] = unsafe {
+        (&MAP_MAP as *const [u16; 1024] as *const [[u16; 32]; 32])
+            .as_ref()
+            .unwrap()
+    };
+
     let mut gba = gba::Gba::new();
     let mut gfx = gba.display.video.tiled0();
     let vblank = gba.display.vblank.get();
@@ -54,8 +73,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut chicken = Character {
         object: unsafe { object.get_object(0) },
         position: Vector2D {
-            x: 20 << 8,
-            y: 20 << 8,
+            x: (6 * 8) << 8,
+            y: ((7 * 8) - 4) << 8,
         },
         velocity: Vector2D { x: 0, y: 0 },
     };
@@ -69,8 +88,13 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         .set_y((chicken.position.y >> 8).try_into().unwrap());
     chicken.object.commit();
 
-    let acceleration = 1 << 8;
+    let acceleration = 1 << 4;
+    let gravity = 1 << 4;
+    let flapping_gravity = gravity / 3;
+    let jump_velocity = 1 << 9;
     let mut frame_count = 0;
+
+    let terminal_velocity = (1 << 8) / 2;
 
     loop {
         vblank.wait_for_VBlank();
@@ -80,43 +104,131 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
         // Horizontal movement
         chicken.velocity.x += (input.x_tri() as i32) * acceleration;
-        chicken.velocity.x = 10 * chicken.velocity.x / 16;
+        chicken.velocity.x = 61 * chicken.velocity.x / 64;
 
-        // Update position based on velocity
-        chicken.position.x += chicken.velocity.x;
-        chicken.position.y += chicken.velocity.y;
+        // Update position based on collision detection
+        let state = handle_collision(
+            &mut chicken,
+            map_as_grid,
+            gravity,
+            flapping_gravity,
+            terminal_velocity,
+        );
 
-        // Ensure the chicken remains within bounds
-        chicken.position.x = chicken.position.x.clamp(0, (WIDTH - 8) << 8);
-        chicken.position.y = chicken.position.y.clamp(0, (HEIGHT - 8) << 8);
-
-        // Update direction the chicken is facing
-        if chicken.velocity.x > 1 {
-            chicken.object.set_hflip(false);
-        } else if chicken.velocity.x < -1 {
-            chicken.object.set_hflip(true);
+        // Jumping code
+        if state == State::Ground && input.is_just_pressed(Button::A) {
+            chicken.velocity.y = -jump_velocity;
         }
 
-        // Update the frame of the chicken
-        if (chicken.velocity.x != 0) {
-            chicken
-                .object
-                .set_tile_id(frame_ranger(frame_count, 1, 3, 10));
-        } else {
-            chicken.object.set_tile_id(0);
-        }
-
-        // Update the position of the chicken
-        chicken
-            .object
-            .set_x((chicken.position.x >> 8).try_into().unwrap());
-        chicken
-            .object
-            .set_y((chicken.position.y >> 8).try_into().unwrap());
+        restrict_to_screen(&mut chicken);
+        update_chicken_object(&mut chicken, state, frame_count);
 
         // Commit the chicken to vram
         chicken.object.commit();
     }
+}
+
+fn update_chicken_object(chicken: &mut Character, state: State, frame_count: u32) {
+    if chicken.velocity.x > 1 {
+        chicken.object.set_hflip(false);
+    } else if chicken.velocity.x < -1 {
+        chicken.object.set_hflip(true);
+    }
+    match (state) {
+        State::Ground => {
+            if chicken.velocity.x.abs() > 1 << 4 {
+                chicken
+                    .object
+                    .set_tile_id(frame_ranger(frame_count, 1, 3, 10));
+            } else {
+                chicken.object.set_tile_id(0);
+            }
+        }
+        State::Upwards => {}
+        State::Flapping => {
+            chicken
+                .object
+                .set_tile_id(frame_ranger(frame_count, 4, 5, 5));
+        }
+    }
+
+    let x: u8 = (chicken.position.x >> 8).try_into().unwrap();
+    let y: u8 = (chicken.position.y >> 8).try_into().unwrap();
+
+    chicken.object.set_x(x - 4);
+    chicken.object.set_y(y - 4);
+}
+
+fn restrict_to_screen(chicken: &mut Character) {
+    if chicken.position.x > (WIDTH - 8 + 4) << 8 {
+        chicken.velocity.x = 0;
+        chicken.position.x = (WIDTH - 8 + 4) << 8;
+    } else if chicken.position.x < 4 << 8 {
+        chicken.velocity.x = 0;
+        chicken.position.x = 4 << 8;
+    }
+    if chicken.position.y > (HEIGHT - 8 + 4) << 8 {
+        chicken.velocity.y = 0;
+        chicken.position.y = (HEIGHT - 8 + 4) << 8;
+    } else if chicken.position.y < 4 << 8 {
+        chicken.velocity.y = 0;
+        chicken.position.y = 4 << 8;
+    }
+}
+
+fn handle_collision(
+    chicken: &mut Character,
+    map_as_grid: &[[u16; 32]; 32],
+    gravity: i32,
+    flapping_gravity: i32,
+    terminal_velocity: i32,
+) -> State {
+    let mut new_chicken_x = chicken.position.x + chicken.velocity.x;
+    let mut new_chicken_y = chicken.position.y + chicken.velocity.y;
+
+    let tile_x = ((new_chicken_x >> 8) / 8) as usize;
+    let tile_y = ((new_chicken_y >> 8) / 8) as usize;
+
+    let left = (((new_chicken_x >> 8) - 4) / 8) as usize;
+    let right = (((new_chicken_x >> 8) + 4) / 8) as usize;
+    let top = (((new_chicken_y >> 8) - 4) / 8) as usize;
+    let bottom = (((new_chicken_y >> 8) + 4) / 8) as usize;
+
+    if chicken.velocity.x < 0 && tile_is_collidable(map_as_grid[tile_y][left]) {
+        new_chicken_x = (((left + 1) * 8 + 4) << 8) as i32;
+        chicken.velocity.x = 0;
+    } else if chicken.velocity.x > 0 && tile_is_collidable(map_as_grid[tile_y][right]) {
+        new_chicken_x = ((right * 8 - 4) << 8) as i32;
+        chicken.velocity.x = 0;
+    }
+
+    if chicken.velocity.y < 0 && tile_is_collidable(map_as_grid[top][tile_x]) {
+        new_chicken_y = ((((top + 1) * 8 + 4) << 8) + 4) as i32;
+        chicken.velocity.y = 0;
+    } else if chicken.velocity.y > 0 && tile_is_collidable(map_as_grid[bottom][tile_x]) {
+        new_chicken_y = ((bottom * 8 - 4) << 8) as i32;
+        chicken.velocity.y = 0;
+    }
+
+    let mut air_animation = State::Ground;
+
+    if !tile_is_collidable(map_as_grid[bottom][tile_x]) {
+        if chicken.velocity.y < 0 {
+            air_animation = State::Upwards;
+            chicken.velocity.y += gravity;
+        } else {
+            air_animation = State::Flapping;
+            chicken.velocity.y += flapping_gravity;
+            if chicken.velocity.y > terminal_velocity {
+                chicken.velocity.y = terminal_velocity;
+            }
+        }
+    }
+
+    chicken.position.x = new_chicken_x;
+    chicken.position.y = new_chicken_y;
+
+    air_animation
 }
 
 // Below is the data for the sprites
