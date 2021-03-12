@@ -2,12 +2,25 @@
 #![feature(start)]
 
 extern crate gba;
+use core::convert::{Into, TryInto};
+use gba::{
+    display::{object::ObjectStandard, tiled0, HEIGHT, WIDTH},
+    number::Num,
+};
 
-use gba::display::tiled0;
+struct Character {
+    object: ObjectStandard,
+    position: Vector2D,
+    velocity: Vector2D,
+}
 
 struct Vector2D {
     x: i32,
     y: i32,
+}
+
+fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u32 {
+    ((count / delay) % (end + 1 - start)) + start
 }
 
 #[start]
@@ -15,6 +28,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut gba = gba::Gba::new();
     let mut gfx = gba.display.video.tiled0();
     let vblank = gba.display.vblank.get();
+    let mut input = gba::input::ButtonController::new();
 
     gfx.set_sprite_palette(&CHICKEN_PALETTE);
     gfx.set_sprite_tilemap(&CHICKEN_TILES);
@@ -33,8 +47,75 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     gfx.background_0.set_screen_base_block(1);
     gfx.copy_to_map(1, &MAP_MAP);
 
+    let mut object = gfx.object;
+
+    object.enable();
+    unsafe { object.clear_objects() };
+    let mut chicken = Character {
+        object: object.get_object(0),
+        position: Vector2D {
+            x: 20 << 8,
+            y: 20 << 8,
+        },
+        velocity: Vector2D { x: 0, y: 0 },
+    };
+
+    chicken.object.set_tile_id(0);
+    chicken
+        .object
+        .set_x((chicken.position.x >> 8).try_into().unwrap());
+    chicken
+        .object
+        .set_y((chicken.position.y >> 8).try_into().unwrap());
+    chicken.object.commit();
+
+    let acceleration = 1 << 8;
+    let mut frame_count = 0;
+
     loop {
         vblank.wait_for_VBlank();
+        frame_count += 1;
+
+        input.update();
+
+        // Horizontal movement
+        chicken.velocity.x += (input.x_tri() as i32) * acceleration;
+        chicken.velocity.x = 10 * chicken.velocity.x / 16;
+
+        // Update position based on velocity
+        chicken.position.x += chicken.velocity.x;
+        chicken.position.y += chicken.velocity.y;
+
+        // Ensure the chicken remains within bounds
+        chicken.position.x = chicken.position.x.clamp(0, (WIDTH - 8) << 8);
+        chicken.position.y = chicken.position.y.clamp(0, (HEIGHT - 8) << 8);
+
+        // Update direction the chicken is facing
+        if chicken.velocity.x > 1 {
+            chicken.object.set_hflip(false);
+        } else if chicken.velocity.x < -1 {
+            chicken.object.set_hflip(true);
+        }
+
+        // Update the frame of the chicken
+        if (chicken.velocity.x != 0) {
+            chicken
+                .object
+                .set_tile_id(frame_ranger(frame_count, 1, 3, 10));
+        } else {
+            chicken.object.set_tile_id(0);
+        }
+
+        // Update the position of the chicken
+        chicken
+            .object
+            .set_x((chicken.position.x >> 8).try_into().unwrap());
+        chicken
+            .object
+            .set_y((chicken.position.y >> 8).try_into().unwrap());
+
+        // Commit the chicken to vram
+        chicken.object.commit();
     }
 }
 

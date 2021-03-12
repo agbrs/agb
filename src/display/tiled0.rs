@@ -3,7 +3,7 @@ use core::convert::TryInto;
 use crate::memory_mapped::MemoryMapped1DArray;
 
 use super::{
-    object::Object, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
+    object::ObjectControl, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
     DISPLAY_CONTROL,
 };
 
@@ -102,7 +102,7 @@ pub struct Tiled0 {
     pub background_1: Background,
     pub background_2: Background,
     pub background_3: Background,
-    pub object: Object,
+    pub object: ObjectControl,
 }
 
 impl Tiled0 {
@@ -114,7 +114,7 @@ impl Tiled0 {
             background_1: Background { layer: 1 },
             background_2: Background { layer: 2 },
             background_3: Background { layer: 3 },
-            object: Object::new(),
+            object: ObjectControl::new(),
         }
     }
 
