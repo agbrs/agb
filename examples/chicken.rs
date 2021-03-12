@@ -27,8 +27,10 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         .set_background_size(tiled0::BackgroundSize::S32x32);
     gfx.background_0
         .set_colour_mode(tiled0::ColourMode::FourBitPerPixel);
-    gfx.background_0.set_screen_base_block(1);
 
+    // This interface is not yet safe, as this can easily clobber the tiles.
+    // Not sure how to make this interface safe to use
+    gfx.background_0.set_screen_base_block(1);
     gfx.copy_to_map(1, &MAP_MAP);
 
     loop {
