@@ -3,7 +3,8 @@ use core::convert::TryInto;
 use crate::memory_mapped::MemoryMapped1DArray;
 
 use super::{
-    set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, DISPLAY_CONTROL,
+    object::Object, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
+    DISPLAY_CONTROL,
 };
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
@@ -101,6 +102,7 @@ pub struct Tiled0 {
     pub background_1: Background,
     pub background_2: Background,
     pub background_3: Background,
+    pub object: Object,
 }
 
 impl Tiled0 {
@@ -112,6 +114,7 @@ impl Tiled0 {
             background_1: Background { layer: 1 },
             background_2: Background { layer: 2 },
             background_3: Background { layer: 3 },
+            object: Object::new(),
         }
     }
 
