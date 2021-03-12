@@ -52,7 +52,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     object.enable();
     unsafe { object.clear_objects() };
     let mut chicken = Character {
-        object: object.get_object(0),
+        object: unsafe { object.get_object(0) },
         position: Vector2D {
             x: 20 << 8,
             y: 20 << 8,

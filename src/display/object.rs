@@ -102,7 +102,7 @@ impl ObjectControl {
     }
 
     /// # Safety
-    /// Temporary
+    /// Temporary, do not call if you currently hold an object
     pub unsafe fn clear_objects(&mut self) {
         let mut o = ObjectAttributeStandard::new();
         o.set_mode(Mode::Hidden);
@@ -124,7 +124,9 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
-    pub fn get_object(&self, id: usize) -> ObjectStandard {
+    /// # Safety
+    /// Temporary function, you must not get multiple objects with the same id
+    pub unsafe fn get_object(&self, id: usize) -> ObjectStandard {
         assert!(id < 128, "object id must be less than 128");
         ObjectStandard {
             attributes: ObjectAttributeStandard::new(),
