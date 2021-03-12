@@ -13,6 +13,7 @@ pub mod input;
 mod interrupt;
 mod memory_mapped;
 pub mod mgba;
+pub mod number;
 mod single;
 
 pub mod syscall;
