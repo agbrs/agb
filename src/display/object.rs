@@ -20,10 +20,7 @@ pub enum Mode {
 
 impl ObjectStandard {
     pub fn commit(&self) {
-        unsafe {
-            (&mut (*OBJECT_MEMORY_STANDARD)[self.id] as *mut ObjectAttributeStandard)
-                .write_volatile(self.attributes)
-        }
+        unsafe { self.attributes.commit(self.id) }
     }
 
     pub fn set_x(&mut self, x: u8) {
@@ -48,6 +45,11 @@ pub struct ObjectAttributeStandard {
 }
 
 impl ObjectAttributeStandard {
+    unsafe fn commit(&self, index: usize) {
+        (&mut (*OBJECT_MEMORY_STANDARD)[index] as *mut ObjectAttributeStandard)
+            .write_volatile(*self)
+    }
+
     pub fn set_hflip(&mut self, hflip: bool) {
         let mask = (1 << 0xC) << 16;
         let attr = self.low;
@@ -107,8 +109,7 @@ impl ObjectControl {
         let mut o = ObjectAttributeStandard::new();
         o.set_mode(Mode::Hidden);
         for index in 0..(*OBJECT_MEMORY_STANDARD).len() {
-            (&mut (*OBJECT_MEMORY_STANDARD)[index] as *mut ObjectAttributeStandard)
-                .write_volatile(o);
+            o.commit(index);
         }
     }
 
