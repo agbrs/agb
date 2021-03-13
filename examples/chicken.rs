@@ -92,6 +92,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let flapping_gravity = gravity / 3;
     let jump_velocity = 1 << 9;
     let mut frame_count = 0;
+    let mut frames_off_ground = 0;
 
     let terminal_velocity = (1 << 8) / 2;
 
@@ -114,8 +115,15 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
             terminal_velocity,
         );
 
+        if state != State::Ground {
+            frames_off_ground += 1;
+        } else {
+            frames_off_ground = 0;
+        }
+
         // Jumping code
-        if state == State::Ground && input.is_just_pressed(Button::A) {
+        if frames_off_ground < 10 && input.is_just_pressed(Button::A) {
+            frames_off_ground = 200;
             chicken.velocity.y = -jump_velocity;
         }
 
