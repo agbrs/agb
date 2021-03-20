@@ -1,6 +1,6 @@
 use core::{
     fmt::Display,
-    ops::{Add, Div, Mul, Neg, Sub},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -19,10 +19,22 @@ impl<const N: usize> Add for Num<N> {
     }
 }
 
+impl<const N: usize> AddAssign for Num<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0
+    }
+}
+
 impl<const N: usize> Sub for Num<N> {
     type Output = Self;
     fn sub(self, rhs: Num<N>) -> Self::Output {
         Num(self.0 - rhs.0)
+    }
+}
+
+impl<const N: usize> SubAssign for Num<N> {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0
     }
 }
 
@@ -37,6 +49,16 @@ impl<const N: usize> Mul for Num<N> {
     }
 }
 
+impl<const N: usize> MulAssign for Num<N> {
+    fn mul_assign(&mut self, rhs: Self) {
+        if N % 2 == 0 {
+            self.0 = (self.0 >> (N / 2)) * (rhs.0 >> (N / 2))
+        } else {
+            self.0 = (self.0 >> (1 + N / 2)) * (rhs.0 >> (N / 2))
+        }
+    }
+}
+
 impl<const N: usize> Div for Num<N> {
     type Output = Self;
     fn div(self, rhs: Num<N>) -> Self::Output {
@@ -44,6 +66,16 @@ impl<const N: usize> Div for Num<N> {
             Num((self.0 << (N / 2)) / (rhs.0 >> (N / 2)))
         } else {
             Num((self.0 << (1 + N / 2)) / (rhs.0 >> (N / 2)))
+        }
+    }
+}
+
+impl<const N: usize> DivAssign for Num<N> {
+    fn div_assign(&mut self, rhs: Self) {
+        if N % 2 == 0 {
+            self.0 = (self.0 << (N / 2)) / (rhs.0 >> (N / 2))
+        } else {
+            self.0 = (self.0 << (1 + N / 2)) / (rhs.0 >> (N / 2))
         }
     }
 }
@@ -61,6 +93,14 @@ impl<const N: usize> Num<N> {
     }
     pub fn min() -> Self {
         Num(i32::MIN)
+    }
+
+    pub fn int(&self) -> i32 {
+        self.0 >> N
+    }
+
+    pub fn new(integral: i32) -> Self {
+        Self(integral << N)
     }
 }
 
