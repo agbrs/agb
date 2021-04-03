@@ -30,18 +30,18 @@ r-%: out/release/%.gba
 	
 cargo-release-%: $(RUSTFILES) out/crt0.o
 	@OUTNAME=$(patsubst cargo-release-%,%, $@)
-	@rustup run nightly cargo xbuild --release --target=gba.json --example=$${OUTNAME}
+	@rustup run nightly cargo build --release --target=gba.json --example=$${OUTNAME}
 
 cargo-debug-%: $(RUSTFILES) out/crt0.o
 	@OUTNAME=$(patsubst cargo-debug-%,%, $@)
-	@rustup run nightly cargo xbuild --target=gba.json --example=$${OUTNAME}
+	@rustup run nightly cargo build --target=gba.json --example=$${OUTNAME}
 
 out/crt0.o: crt0.s interrupt_simple.s
 	@mkdir -p $(dir $@)
 	@$(CC) $(ARCH) -o out/crt0.o crt0.s
 
 clippy:
-	rustup run nightly cargo xclippy --target=gba.json
+	rustup run nightly cargo clippy --target=gba.json
 
 doc:
-	rustup run nightly cargo xdoc --target=gba.json
+	rustup run nightly cargo doc --target=gba.json

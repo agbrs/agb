@@ -12,7 +12,6 @@ examples as documentation.
 
 * Nightly rust, probably quite a recent version.
 * Devkitarm.
-* Cargo-xbuild is used too.
 
 This is probably easiest to do in a container, the `start-dev.sh` script creates
 and runs a development environment in a docker container.
