@@ -20,8 +20,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
-        target: thumbv4t-none-eabi
         components: clippy, rust-src
+        override: true
 
     - name: Cache
       uses: actions/cache@v2.1.1
