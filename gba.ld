@@ -15,7 +15,7 @@ SECTIONS {
     . = __text_start;
 
     .crt0 : {
-		KEEP (*(.crt0));
+		KEEP (crt0.o(.text));
 		. = ALIGN(4);
     } > rom
 
