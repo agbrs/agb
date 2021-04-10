@@ -14,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install build tools
-      run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi mgba-qt -y
+      run: sudo apt-get update && sudo apt-get install xvfb build-essential binutils-arm-none-eabi mgba-qt -y
     - uses: actions/checkout@v2
     - name: Nightly rust with required components
       uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
+        target: thumbv4t-none-eabi
         components: clippy, rust-src
 
     - name: Cache
