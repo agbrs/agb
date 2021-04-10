@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install build tools
-      run: apt-get install binutils-arm-none-eabi -y
+      run: sudo apt-get install binutils-arm-none-eabi -y
     - uses: actions/checkout@v2
     - name: Nightly rust with required components
       uses: actions-rs/toolchain@v1
