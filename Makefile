@@ -1,7 +1,3 @@
-BINUTILS_PREFIX=arm-none-eabi-
-CC=$(BINUTILS_PREFIX)as
-ARCH = -mthumb-interwork -mthumb
-
 RUSTFILES=$(shell find . -name '*.rs')
 
 .ONESHELL:
@@ -28,20 +24,13 @@ r-%: out/release/%.gba
 	@mgba-qt -l 31 -d -C logToStdout=1 $<
 	@rm -f out/release/$${OUTNAME}.sav
 	
-cargo-release-%: $(RUSTFILES) out/crt0.o
+cargo-release-%: $(RUSTFILES)
 	@OUTNAME=$(patsubst cargo-release-%,%, $@)
 	@rustup run nightly cargo build --release --example=$${OUTNAME}
 
-cargo-debug-%: $(RUSTFILES) out/crt0.o
+cargo-debug-%: $(RUSTFILES)
 	@OUTNAME=$(patsubst cargo-debug-%,%, $@)
 	@rustup run nightly cargo build --example=$${OUTNAME}
-
-out/crt0.o: crt0.s interrupt_simple.s
-	@mkdir -p $(dir $@)
-	@$(CC) $(ARCH) -o out/crt0.o crt0.s
-
-clippy:
-	rustup run nightly cargo clippy
 
 doc:
 	rustup run nightly cargo doc
