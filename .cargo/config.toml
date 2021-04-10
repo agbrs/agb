@@ -1,10 +1,10 @@
 [unstable]
-build-std = ["core", "compiler_builtins", "alloc"]
+build-std = ["core"]
 build-std-features = ["compiler-builtins-mem"]
 
 [build]
 target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
-runner = "mgba-qt -l 31 -d -C logToStdout=1"
 rustflags = ["-Clink-arg=-Tgba.ld"]
+runner = "mgba-test-runner"
