@@ -1,13 +1,14 @@
-FROM docker.io/devkitpro/devkitarm:20190212
+FROM docker.io/ubuntu:latest
 
 RUN apt-get update && \
-    apt-get install -y build-essential && \
+    apt-get install -y build-essential binutils-arm-none-eabi curl && \
     apt-get clean
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
 RUN . "$HOME/.cargo/env" && \
     rustup component add rust-src
 
-RUN echo 'export PATH=$PATH:$DEVKITARM/bin' >> $HOME/.bashrc
+RUN . "$HOME/.cargo/env" && \
+    cargo install gbafix
 
 CMD /bin/bash
