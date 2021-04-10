@@ -1,0 +1,37 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    - name: Install build tools
+      run: apt-get install binutils-arm-none-eabi -y
+    - uses: actions/checkout@v2
+    - name: Nightly rust with required components
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        components: clippy, rust-src
+
+    - name: Cache
+      uses: actions/cache@v2.1.1
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust_install.outputs.rustc_hash }}
+
+    - name: Build
+      run: cargo build --verbose
+    - name: Run Clippy
+      run: cargo clippy --verbose
+
+    
