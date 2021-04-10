@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install build tools
-      run: sudo apt-get install binutils-arm-none-eabi -y
+      run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi mgba-qt -y
     - uses: actions/checkout@v2
     - name: Nightly rust with required components
       uses: actions-rs/toolchain@v1
@@ -31,9 +31,11 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust_install.outputs.rustc_hash }}
 
+    - name: install mgba-test-runner
+      run: cargo install --git https://github.com/corwinkuiper/mgba-test-runner.git
     - name: Build
       run: cargo build --verbose
+    - name: Run Tests
+      run: cargo test --verbose
     - name: Run Clippy
       run: cargo clippy --verbose
-
-    
