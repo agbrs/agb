@@ -3,7 +3,7 @@ use core::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Num<const N: usize>(i32);
 
 impl<const N: usize> From<i32> for Num<N> {
@@ -102,6 +102,24 @@ impl<const N: usize> Num<N> {
     pub fn new(integral: i32) -> Self {
         Self(integral << N)
     }
+}
+
+#[test_case]
+fn test_numbers(gba: &mut super::Gba) {
+    // test addition
+    let n: Num<8> = 1.into();
+    assert_eq!(n + 2.into(), 3.into(), "testing that 1 + 2 == 3");
+
+    // test multiplication
+    let n: Num<8> = 5.into();
+    assert_eq!(n * 3.into(), 15.into(), "testing that 5 * 3 == 15");
+
+    // test division
+    let n: Num<8> = 30.into();
+    let p: Num<8> = 3.into();
+    assert_eq!(n / 20.into(), p / 2.into(), "testing that 30 / 20 == 3 / 2");
+
+    assert_ne!(n, p, "testing that 30 != 3");
 }
 
 impl<const N: usize> Display for Num<N> {
