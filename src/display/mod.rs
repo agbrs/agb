@@ -36,6 +36,7 @@ pub const WIDTH: i32 = 240;
 /// Height of the Gameboy advance screen in pixels
 pub const HEIGHT: i32 = 160;
 
+#[allow(dead_code)]
 enum DisplayMode {
     Tiled0 = 0,
     Tiled1 = 1,
