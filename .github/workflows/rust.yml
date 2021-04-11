@@ -42,6 +42,8 @@ jobs:
       run: cargo install --git https://github.com/corwinkuiper/mgba-test-runner.git
     - name: Build
       run: cargo build --verbose
+    - name: Run Clippy
+      run: cargo clippy --verbose
     - name: Run Tests
       run: pulseaudio -D && cargo test --verbose
       
