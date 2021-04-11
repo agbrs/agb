@@ -105,7 +105,7 @@ impl<const N: usize> Num<N> {
 }
 
 #[test_case]
-fn test_numbers(gba: &mut super::Gba) {
+fn test_numbers(_gba: &mut super::Gba) {
     // test addition
     let n: Num<8> = 1.into();
     assert_eq!(n + 2.into(), 3.into(), "testing that 1 + 2 == 3");
