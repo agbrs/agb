@@ -1,8 +1,6 @@
 #![no_std]
 #![feature(start)]
 
-use gba::display::vblank;
-
 extern crate gba;
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
