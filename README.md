@@ -15,9 +15,6 @@ examples as documentation.
     * Alpine: binutils-arm-none-eabi
     * Arch Linux and derivatives: arm-none-eabi-binutils
 
-This is probably easiest to do in a container, the `start-dev.sh` script creates
-and runs a development environment in a docker container.
-
 ## Stability
 
 0% stable, I have no problems making drastic changes in the API in order to make
