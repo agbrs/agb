@@ -1,12 +1,12 @@
 #![no_std]
-#![no_main]
+// This appears to be needed for testing to work
+#![cfg_attr(test, no_main)]
 #![feature(asm)]
 #![deny(clippy::all)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use core::fmt::Write;
 pub mod display;
 pub mod input;
 
@@ -16,6 +16,9 @@ pub mod mgba;
 mod single;
 
 pub mod syscall;
+
+#[cfg(not(test))]
+use core::fmt::Write;
 
 #[cfg(not(test))]
 #[panic_handler]
@@ -58,7 +61,7 @@ impl Default for Gba {
 }
 
 pub trait Testable {
-    fn run(&self, gba: &mut Gba) -> ();
+    fn run(&self, gba: &mut Gba);
 }
 
 impl<T> Testable for T
@@ -70,9 +73,11 @@ where
         mgba.print(
             format_args!("{}...", core::any::type_name::<T>()),
             mgba::DebugLevel::Info,
-        );
+        )
+        .unwrap();
         self(gba);
-        mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info);
+        mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
+            .unwrap();
     }
 }
 
@@ -80,8 +85,10 @@ where
 #[cfg(test)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     if let Some(mut mgba) = mgba::Mgba::new() {
-        mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
-        mgba.print(format_args!("Error: {}", info), mgba::DebugLevel::Fatal);
+        mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error)
+            .unwrap();
+        mgba.print(format_args!("Error: {}", info), mgba::DebugLevel::Fatal)
+            .unwrap();
     }
 
     loop {}
@@ -92,7 +99,8 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     mgba.print(
         format_args!("Running {} tests", tests.len()),
         mgba::DebugLevel::Info,
-    );
+    )
+    .unwrap();
 
     let mut gba = unsafe { Gba::single_new() };
 
@@ -103,7 +111,8 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     mgba.print(
         format_args!("Tests finished successfully"),
         mgba::DebugLevel::Info,
-    );
+    )
+    .unwrap();
 }
 
 #[no_mangle]
