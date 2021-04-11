@@ -44,5 +44,4 @@ jobs:
       run: cargo build --verbose
     - name: Run Tests
       run: pulseaudio -D && cargo test --verbose
-    - name: Run Clippy
-      run: cargo clippy --verbose
+      
