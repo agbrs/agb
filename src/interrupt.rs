@@ -1,5 +1,6 @@
 use crate::memory_mapped::MemoryMapped;
 
+#[allow(dead_code)]
 pub enum Interrupt {
     VBlank = 0,
     HBlank = 1,
