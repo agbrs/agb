@@ -8,7 +8,4 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
 RUN . "$HOME/.cargo/env" && \
     rustup component add rust-src
 
-RUN . "$HOME/.cargo/env" && \
-    cargo install gbafix
-
 CMD /bin/bash
