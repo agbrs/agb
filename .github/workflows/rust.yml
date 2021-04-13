@@ -19,7 +19,7 @@ jobs:
       run: |
        curl -L https://github.com/mgba-emu/mgba/releases/download/0.9.0/mGBA-0.9.0-ubuntu64-focal.tar.xz -o mgba.tar.xz && \
        tar -xf mgba.tar.xz && \
-       sudo apt-get install libzip5 ./mGBA-0.9.0-ubuntu64-focal/* -y && \
+       sudo apt-get install libzip5 ./mGBA-0.9.0-ubuntu64-focal/libmgba.deb -y && \
        rm -rf mgba.tar.xz mGBA-0.9.0-ubuntu64-focal
     - uses: actions/checkout@v2
     - name: Nightly rust with required components
