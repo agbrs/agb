@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(start)]
+#![no_main]
 
 extern crate gba;
 use core::convert::TryInto;
@@ -35,8 +35,8 @@ fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u32 {
     ((count / delay) % (end + 1 - start)) + start
 }
 
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub extern "C" fn main() -> ! {
     let map_as_grid: &[[u16; 32]; 32] = unsafe {
         (&MAP_MAP as *const [u16; 1024] as *const [[u16; 32]; 32])
             .as_ref()

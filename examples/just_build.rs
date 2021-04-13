@@ -10,7 +10,7 @@ fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
 // https://coranac.com/tonc/text/first.htm
 
 #[no_mangle]
-pub fn main() -> ! {
+pub extern "C" fn main() -> ! {
     unsafe {
         *(0x0400_0000 as *mut u32) = 0x0403;
         let video = 0x0600_0000 as *mut u16;

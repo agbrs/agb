@@ -1,12 +1,12 @@
 #![no_std]
-#![feature(start)]
+#![no_main]
 
 extern crate gba;
 
 use gba::display;
 
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub extern "C" fn main() -> ! {
     let mut gba = gba::Gba::new();
 
     let mut bitmap = gba.display.video.bitmap3();
