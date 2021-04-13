@@ -42,10 +42,6 @@ SECTIONS {
         . = ALIGN(4);
     } > iwram
 
-    .stack 0x80000 : {
-        *(.stack)
-    }
-
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }
 }
