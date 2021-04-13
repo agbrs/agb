@@ -7,4 +7,4 @@ target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
 rustflags = ["-Clink-arg=-Tgba.ld"]
-runner = "mgba-test-runner"
+runner = "xvfb-run mgba-test-runner"
