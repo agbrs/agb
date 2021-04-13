@@ -4,9 +4,9 @@ OUTPUT_ARCH(arm)
 ENTRY(__start)
 
 MEMORY {
-    ewram (w!x) : ORIGIN = 0x2000000, LENGTH = 256K
-    iwram (w!x) : ORIGIN = 0x3000000, LENGTH = 32K
-    rom (rx)    : ORIGIN = 0x8000000, LENGTH = 32M
+    ewram (w!x) : ORIGIN = 0x02000000, LENGTH = 256K
+    iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K
+    rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
 }
 
 __text_start = ORIGIN(rom);
