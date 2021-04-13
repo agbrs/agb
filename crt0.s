@@ -27,5 +27,6 @@ __start:
     @ load main and branch
     ldr r0, =main
     bx  r0
+.pool
 
 .include "interrupt_simple.s"
