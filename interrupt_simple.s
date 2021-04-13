@@ -15,3 +15,4 @@ InterruptHandlerSimple:
     strh r1, [r2] @ acknowlege bios requests
     
     bx lr @ return to bios
+.pool
