@@ -30,17 +30,27 @@ SECTIONS {
         . = ALIGN(4);
     } > rom
 
-    __data_start = .;
-    .data : {
+    __iwram_rom_start = .;
+    .iwram : {
+        __iwram_data_start = ABSOLUTE(.);
+
         *(.data .data.*);
         . = ALIGN(4);
-    } > iwram
-    __data_end = .;
+
+        *(.text_iwram .text_iwram.*);
+        . = ALIGN(4);
+
+        __iwram_data_end = ABSOLUTE(.);
+    } > iwram AT>rom
+    
 
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
     } > iwram
+
+    __iwram_rom_length_bytes = __iwram_data_end - __iwram_data_start;
+    __iwram_rom_length_halfwords = (__iwram_rom_length_bytes + 1) / 2;
 
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }
