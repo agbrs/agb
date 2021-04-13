@@ -33,11 +33,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-#[cfg(not(test))]
 static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { Gba::single_new() });
-
-#[cfg(test)]
-static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::empty();
 
 pub struct Gba {
     pub display: display::Display,
@@ -103,7 +99,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     )
     .unwrap();
 
-    let mut gba = unsafe { Gba::single_new() };
+    let mut gba = Gba::new();
 
     for test in tests {
         test.run(&mut gba);
