@@ -9,6 +9,7 @@
 
 pub mod display;
 pub mod input;
+pub mod sound;
 
 mod interrupt;
 mod memory_mapped;
@@ -37,6 +38,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 
 pub struct Gba {
     pub display: display::Display,
+    pub sound: sound::Sound,
 }
 
 impl Gba {
@@ -47,6 +49,7 @@ impl Gba {
     const unsafe fn single_new() -> Self {
         Self {
             display: display::Display::new(),
+            sound: sound::Sound::new(),
         }
     }
 }
