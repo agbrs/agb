@@ -1,13 +1,13 @@
 #![no_std]
 #![feature(start)]
 
-extern crate gba;
+extern crate agb;
 
-use gba::sound;
+use agb::sound;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let gba = gba::Gba::new();
+    let gba = agb::Gba::new();
 
     gba.sound.enable();
 
