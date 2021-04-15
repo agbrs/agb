@@ -17,7 +17,6 @@ examples as documentation.
 ## Test Requirements
 
 * need a recent mgba (known to work on 0.8.4+)
-* xvfb
 * [corwinkuiper/mgba-test-runner](https://github.com/corwinkuiper/mgba-test-runner)
     * `cargo install --git https://github.com/corwinkuiper/mgba-test-runner.git`
 
