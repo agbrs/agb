@@ -1,5 +1,5 @@
 [package]
-name = "gba"
+name = "agb"
 version = "0.1.0"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>"]
 edition = "2018"
