@@ -30,6 +30,7 @@ impl Sound {
     pub fn enable(&self) {
         MASTER_SOUND_STATUS.set_bits(1, 1, 7);
 
+        #[allow(clippy::unusual_byte_groupings)] // I've split these like this for a reason
         MASTER_SOUND_VOLUME_ENABLE.set(0b1111_1111_0_111_0_111);
         MASTER_SOUND_VOLUME_MIXING.set(0b10);
     }
