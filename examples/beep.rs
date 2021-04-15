@@ -3,16 +3,16 @@
 
 extern crate gba;
 
-use gba::display;
+use gba::sound;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut gba = gba::Gba::new();
-    let mut bitmap = gba.display.video.bitmap3();
-    let vblank = gba.display.vblank.get();
 
     gba.sound.enable();
-    gba.sound.channel1().play_sound();
+
+    let sweep_settings = gba::sound::SweepSettings::new(3, false, 7);
+    gba.sound.channel1().play_sound(&sweep_settings);
 
     loop {}
 }
