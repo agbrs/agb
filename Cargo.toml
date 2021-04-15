@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>"]
 edition = "2018"
 description = "Library for Game Boy Advance Development"
-license = "MPLv2"
+license = "MPL-2.0"
 
 [profile.dev]
 opt-level = 2
