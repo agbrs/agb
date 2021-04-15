@@ -1,4 +1,4 @@
-use core::convert::TryInto;
+use core::{cell::Cell, convert::TryInto};
 
 use crate::memory_mapped::MemoryMapped1DArray;
 
@@ -46,12 +46,49 @@ pub enum BackgroundSize {
 }
 
 #[non_exhaustive]
-pub struct Background {
-    layer: usize,
+pub struct Background<'a> {
+    layer: u32,
+    map_block: Option<u8>,
+    blocks: &'a Cell<u32>,
 }
 
-impl Background {
+impl<'a> Background<'a> {
+    unsafe fn new(layer: u32, blocks: &'a Cell<u32>) -> Self {
+        Background {
+            layer,
+            map_block: None,
+            blocks,
+        }
+    }
+}
+
+impl Background<'_> {
+    pub fn set_map(&mut self, block: u8) {
+        assert!(block < 32, "block must be less than 32");
+
+        let request_block = 1 << block;
+        let current_avail = self.blocks.get();
+        assert!(
+            request_block & current_avail != 0,
+            "requested map is already used"
+        );
+        let previously_used = if let Some(b) = self.map_block {
+            1 << b
+        } else {
+            0
+        };
+        let now_avail = current_avail & !request_block | previously_used;
+        self.blocks.set(now_avail);
+
+        self.map_block = Some(block);
+        unsafe { self.set_bits(0x08, 5, block as u16) }
+    }
+
     pub fn enable(&mut self) {
+        assert!(
+            self.map_block.is_some(),
+            "need to specify a map block before enabling layer"
+        );
         let mode = DISPLAY_CONTROL.get();
         let new_mode = mode | (1 << (self.layer + 0x08));
         DISPLAY_CONTROL.set(new_mode);
@@ -86,34 +123,26 @@ impl Background {
     pub fn set_background_size(&mut self, size: BackgroundSize) {
         unsafe { self.set_bits(0x0E, 2, size as u16) }
     }
-
-    pub fn set_screen_base_block(&mut self, block: u32) {
-        assert!(
-            block < 32,
-            "screen base block must be in range 0 to 31 inclusive"
-        );
-        unsafe { self.set_bits(0x08, 5, block as u16) }
-    }
 }
 
 #[non_exhaustive]
-pub struct Tiled0 {
-    pub background_0: Background,
-    pub background_1: Background,
-    pub background_2: Background,
-    pub background_3: Background,
+pub struct Tiled0<'a> {
+    pub background_0: Background<'a>,
+    pub background_1: Background<'a>,
+    pub background_2: Background<'a>,
+    pub background_3: Background<'a>,
     pub object: ObjectControl,
 }
 
-impl Tiled0 {
-    pub(crate) unsafe fn new() -> Self {
+impl<'a> Tiled0<'a> {
+    pub(crate) unsafe fn new(blocks: &'a Cell<u32>) -> Self {
         set_graphics_settings(GraphicsSettings::empty());
         set_graphics_mode(DisplayMode::Tiled0);
         Tiled0 {
-            background_0: Background { layer: 0 },
-            background_1: Background { layer: 1 },
-            background_2: Background { layer: 2 },
-            background_3: Background { layer: 3 },
+            background_0: Background::new(0, blocks),
+            background_1: Background::new(1, blocks),
+            background_2: Background::new(2, blocks),
+            background_3: Background::new(3, blocks),
             object: ObjectControl::new(),
         }
     }

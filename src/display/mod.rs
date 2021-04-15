@@ -57,7 +57,7 @@ pub struct Display {
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            video: Video {},
+            video: Video::new(),
             vblank: VBlankGiver {},
         }
     }
