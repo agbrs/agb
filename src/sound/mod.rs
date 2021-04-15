@@ -31,9 +31,43 @@ impl Sound {
 #[non_exhaustive]
 pub struct Channel1 {}
 
+pub struct SweepSettings {
+    number_of_sweep_shifts: u8,
+    increase_sweep: bool,
+    sweep_time: u8,
+}
+
+impl SweepSettings {
+    pub fn new(number_of_sweep_shifts: u8, increase_sweep: bool, sweep_time: u8) -> Self {
+        assert!(
+            number_of_sweep_shifts < 8,
+            "Number of sweep shifts must be less than 8"
+        );
+        assert!(sweep_time < 8, "Sweep time must be less than 8");
+
+        SweepSettings {
+            number_of_sweep_shifts,
+            increase_sweep,
+            sweep_time,
+        }
+    }
+
+    fn as_bits(&self) -> u16 {
+        ((self.number_of_sweep_shifts as u16) & 0b111)
+            | ((self.increase_sweep as u16) << 3)
+            | ((self.sweep_time as u16) & 0b111) << 4
+    }
+}
+
+impl Default for SweepSettings {
+    fn default() -> Self {
+        SweepSettings::new(0, true, 0)
+    }
+}
+
 impl Channel1 {
-    pub fn play_sound(&self) {
-        CHANNEL_1_SWEEP.set(0b00000000_111_0_010);
+    pub fn play_sound(&self, sweep_settings: &SweepSettings) {
+        CHANNEL_1_SWEEP.set(sweep_settings.as_bits());
         CHANNEL_1_LENGTH_DUTY_ENVELOPE.set(0b111_1_001_01_111111);
         CHANNEL_1_FREQUENCY_CONTROL.set(0b1_0_000_01000000000);
     }
