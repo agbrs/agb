@@ -1,3 +1,5 @@
+use core::ops;
+
 pub struct MemoryMapped<T> {
     address: *mut T,
 }
@@ -15,6 +17,24 @@ impl<T> MemoryMapped<T> {
 
     pub fn set(&self, val: T) {
         unsafe { self.address.write_volatile(val) }
+    }
+}
+
+impl<T> MemoryMapped<T>
+where
+    T: From<u8>
+        + Copy
+        + ops::Shl<Output = T>
+        + ops::BitAnd<Output = T>
+        + ops::Sub<Output = T>
+        + ops::BitOr<Output = T>
+        + ops::Not<Output = T>,
+{
+    pub fn set_bits(&self, value: T, length: T, shift: T) {
+        let one: T = 1u8.into();
+        let mask: T = (one << length) - one;
+        let current_val = self.get();
+        self.set((current_val & !(mask << shift)) | ((value & mask) << shift));
     }
 }
 
