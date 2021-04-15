@@ -1,9 +1,9 @@
 #![no_std]
 #![feature(start)]
 
-extern crate gba;
+extern crate agb;
 
-use gba::display;
+use agb::display;
 
 struct Vector2D {
     x: i32,
@@ -12,9 +12,9 @@ struct Vector2D {
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut gba = gba::Gba::new();
+    let mut gba = agb::Gba::new();
     let mut vblank = gba.display.vblank.get();
-    let mut input = gba::input::ButtonController::new();
+    let mut input = agb::input::ButtonController::new();
 
     loop {
         bitmap3_mode(&mut gba.display.video.bitmap3(), &mut vblank, &mut input);
@@ -25,7 +25,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 fn bitmap3_mode(
     bitmap: &mut display::bitmap3::Bitmap3,
     vblank: &mut display::vblank::VBlank,
-    input: &mut gba::input::ButtonController,
+    input: &mut agb::input::ButtonController,
 ) {
     let mut pos = Vector2D {
         x: display::WIDTH / 2,
@@ -36,7 +36,7 @@ fn bitmap3_mode(
         vblank.wait_for_VBlank();
 
         input.update();
-        if input.is_just_pressed(gba::input::Button::B) {
+        if input.is_just_pressed(agb::input::Button::B) {
             break;
         }
 
@@ -52,7 +52,7 @@ fn bitmap3_mode(
 fn bitmap4_mode(
     bitmap: &mut display::bitmap4::Bitmap4,
     vblank: &mut display::vblank::VBlank,
-    input: &mut gba::input::ButtonController,
+    input: &mut agb::input::ButtonController,
 ) {
     bitmap.set_palette_entry(1, 0x001F);
     bitmap.set_palette_entry(2, 0x03E0);
@@ -75,7 +75,7 @@ fn bitmap4_mode(
         vblank.wait_for_VBlank();
 
         input.update();
-        if input.is_just_pressed(gba::input::Button::B) {
+        if input.is_just_pressed(agb::input::Button::B) {
             break;
         }
 

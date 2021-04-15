@@ -1,9 +1,9 @@
 #![no_std]
 #![feature(start)]
 
-extern crate gba;
+extern crate agb;
 
-use gba::display;
+use agb::display;
 
 struct Vector2D {
     x: i32,
@@ -12,11 +12,11 @@ struct Vector2D {
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut gba = gba::Gba::new();
+    let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap3();
     let vblank = gba.display.vblank.get();
 
-    let mut input = gba::input::ButtonController::new();
+    let mut input = agb::input::ButtonController::new();
     let mut pos = Vector2D {
         x: display::WIDTH / 2,
         y: display::HEIGHT / 2,
