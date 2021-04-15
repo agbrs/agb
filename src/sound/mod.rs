@@ -46,10 +46,26 @@ impl SoundDirection {
 }
 
 impl Channel1 {
-    pub fn play_sound(&self, sweep_settings: &SweepSettings) {
+    pub fn play_sound(
+        &self,
+        frequency: u16,
+        length: Option<u8>,
+        sweep_settings: &SweepSettings,
+        envelope_settings: &EnvelopeSettings,
+        duty_cycle: DutyCycle,
+    ) {
         CHANNEL_1_SWEEP.set(sweep_settings.as_bits());
-        CHANNEL_1_LENGTH_DUTY_ENVELOPE.set(0b111_1_001_01_111111);
-        CHANNEL_1_FREQUENCY_CONTROL.set(0b1_0_000_01000000000);
+        let length_bits = length.unwrap_or(0) as u16;
+        assert!(length_bits < 64, "Length must be less than 64");
+
+        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let initial: u16 = 1 << 15;
+
+        assert!(frequency < 2048, "Frequency must be less than 2048");
+
+        CHANNEL_1_LENGTH_DUTY_ENVELOPE
+            .set(envelope_settings.as_bits() | duty_cycle.as_bits() | length_bits);
+        CHANNEL_1_FREQUENCY_CONTROL.set(frequency | length_flag | initial);
     }
 }
 
@@ -88,5 +104,55 @@ impl SweepSettings {
 impl Default for SweepSettings {
     fn default() -> Self {
         SweepSettings::new(0, SoundDirection::Increase, 0)
+    }
+}
+
+pub struct EnvelopeSettings {
+    step_time: u8,
+    direction: SoundDirection,
+    initial_volume: u8,
+}
+
+impl EnvelopeSettings {
+    pub fn new(step_time: u8, direction: SoundDirection, initial_volume: u8) -> Self {
+        assert!(step_time < 8, "Step time must be less than 8");
+        assert!(initial_volume < 16, "Initial volume must be less that 16");
+        EnvelopeSettings {
+            step_time,
+            direction,
+            initial_volume,
+        }
+    }
+
+    fn as_bits(&self) -> u16 {
+        (self.step_time as u16) << 8
+            | (self.direction.as_bits() << 11)
+            | ((self.initial_volume as u16) << 12)
+    }
+}
+
+impl Default for EnvelopeSettings {
+    fn default() -> Self {
+        EnvelopeSettings::new(0, SoundDirection::Increase, 15)
+    }
+}
+
+pub enum DutyCycle {
+    OneEighth,
+    OneQuarter,
+    Half,
+    ThreeQuarters,
+}
+
+impl DutyCycle {
+    fn as_bits(&self) -> u16 {
+        use DutyCycle::*;
+
+        match &self {
+            OneEighth => 0,
+            OneQuarter => 1,
+            Half => 2,
+            ThreeQuarters => 3,
+        }
     }
 }
