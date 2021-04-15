@@ -20,5 +20,12 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         sound::DutyCycle::Half,
     );
 
+    gba.sound.channel2().play_sound(
+        1524,
+        Some(0),
+        &sound::EnvelopeSettings::default(),
+        sound::DutyCycle::Half,
+    );
+
     loop {}
 }

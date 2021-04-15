@@ -4,6 +4,9 @@ const CHANNEL_1_SWEEP: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_006
 const CHANNEL_1_LENGTH_DUTY_ENVELOPE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0062) };
 const CHANNEL_1_FREQUENCY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0064) };
 
+const CHANNEL_2_LENGTH_DUTY_ENVELOPE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0068) };
+const CHANNEL_2_FREQUENCY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_006c) };
+
 const MASTER_SOUND_VOLUME_ENABLE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0080) };
 const MASTER_SOUND_VOLUME_MIXING: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0082) };
 const MASTER_SOUND_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0084) };
@@ -20,6 +23,10 @@ impl Sound {
         Channel1 {}
     }
 
+    pub fn channel2(&self) -> Channel2 {
+        Channel2 {}
+    }
+
     pub fn enable(&self) {
         MASTER_SOUND_STATUS.set_bits(1, 1, 7);
 
@@ -30,20 +37,6 @@ impl Sound {
 
 #[non_exhaustive]
 pub struct Channel1 {}
-
-pub enum SoundDirection {
-    Increase,
-    Decrease,
-}
-
-impl SoundDirection {
-    fn as_bits(&self) -> u16 {
-        match &self {
-            SoundDirection::Increase => 1,
-            SoundDirection::Decrease => 0,
-        }
-    }
-}
 
 impl Channel1 {
     pub fn play_sound(
@@ -66,6 +59,45 @@ impl Channel1 {
         CHANNEL_1_LENGTH_DUTY_ENVELOPE
             .set(envelope_settings.as_bits() | duty_cycle.as_bits() | length_bits);
         CHANNEL_1_FREQUENCY_CONTROL.set(frequency | length_flag | initial);
+    }
+}
+
+#[non_exhaustive]
+pub struct Channel2 {}
+
+impl Channel2 {
+    pub fn play_sound(
+        &self,
+        frequency: u16,
+        length: Option<u8>,
+        envelope_settings: &EnvelopeSettings,
+        duty_cycle: DutyCycle,
+    ) {
+        let length_bits = length.unwrap_or(0) as u16;
+        assert!(length_bits < 64, "Length must be less than 64");
+
+        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let initial: u16 = 1 << 15;
+
+        assert!(frequency < 2048, "Frequency must be less than 2048");
+
+        CHANNEL_2_LENGTH_DUTY_ENVELOPE
+            .set(envelope_settings.as_bits() | duty_cycle.as_bits() | length_bits);
+        CHANNEL_2_FREQUENCY_CONTROL.set(frequency | length_flag | initial);
+    }
+}
+
+pub enum SoundDirection {
+    Increase,
+    Decrease,
+}
+
+impl SoundDirection {
+    fn as_bits(&self) -> u16 {
+        match &self {
+            SoundDirection::Increase => 1,
+            SoundDirection::Decrease => 0,
+        }
     }
 }
 
