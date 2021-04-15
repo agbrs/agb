@@ -11,9 +11,8 @@ examples as documentation.
 
 * Nightly rust, probably quite a recent version.
 * arm eabi binutils 
-    * Debian and derivatives: binutils-arm-none-eabi
-    * Alpine: binutils-arm-none-eabi
-    * Arch Linux and derivatives: arm-none-eabi-binutils
+    * Debian and derivatives: `sudo apt install binutils-arm-none-eabi`
+    * Arch Linux and derivatives: `pacman -S arm-none-eabi-binutils`
 
 ## Test Requirements
 
