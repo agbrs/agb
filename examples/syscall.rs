@@ -1,12 +1,12 @@
 #![no_std]
 #![feature(start)]
 
-extern crate gba;
-use gba::{display, syscall};
+extern crate agb;
+use agb::{display, syscall};
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut gba = gba::Gba::new();
+    let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap3();
 
     for x in 0..display::WIDTH {

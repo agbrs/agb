@@ -1,11 +1,11 @@
 #![no_std]
 #![feature(start)]
 
-extern crate gba;
+extern crate agb;
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut gba = gba::Gba::new();
-    let mut mgba = gba::mgba::Mgba::new().unwrap();
+    let mut gba = agb::Gba::new();
+    let mut mgba = agb::mgba::Mgba::new().unwrap();
 
     let vblank = gba.display.vblank.get();
 
@@ -15,7 +15,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
         mgba.print(
             format_args!("Hello, world, frame = {}", count),
-            gba::mgba::DebugLevel::Info,
+            agb::mgba::DebugLevel::Info,
         )
         .unwrap();
 
