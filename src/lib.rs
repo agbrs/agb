@@ -146,11 +146,18 @@ mod test {
     #[test_case]
     fn ewram_static_test(_gba: &mut Gba) {
         unsafe {
-            let content = (&EWRAM_TEST as *const u32).read_volatile();
+            let ewram_ptr = &mut EWRAM_TEST as *mut u32;
+            let content = ewram_ptr.read_volatile();
             assert_eq!(content, 5, "expected data in ewram to be 5");
-            (&mut EWRAM_TEST as *mut u32).write_volatile(content + 1);
-            let content = (&EWRAM_TEST as *const u32).read_volatile();
-            assert_eq!(content, 6, "expected data to have increased by one")
+            ewram_ptr.write_volatile(content + 1);
+            let content = ewram_ptr.read_volatile();
+            assert_eq!(content, 6, "expected data to have increased by one");
+            let address = ewram_ptr as usize;
+            assert!(
+                address >= 0x0200_0000 && address < 0x0204_0000,
+                "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
+                address
+            );
         }
     }
 }
