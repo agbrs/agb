@@ -163,4 +163,43 @@ mod test {
             );
         }
     }
+
+    #[link_section = ".iwram"]
+    static mut IWRAM_EXPLICIT: u32 = 9;
+    #[test_case]
+    fn iwram_explicit_test(_gba: &mut Gba) {
+        unsafe {
+            let iwram_ptr = &mut IWRAM_EXPLICIT as *mut u32;
+            let address = iwram_ptr as usize;
+            assert!(
+                address >= 0x0300_0000 && address < 0x0300_8000,
+                "iwram is located beween 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
+                address
+            );
+            let c = iwram_ptr.read_volatile();
+            assert_eq!(c, 9, "exctected content to be 9");
+            iwram_ptr.write_volatile(u32::MAX);
+            let c = iwram_ptr.read_volatile();
+            assert_eq!(c, u32::MAX, "expected content to be {}", u32::MAX);
+        }
+    }
+
+    static mut IWRAM_IMPLICIT: u32 = 9;
+    #[test_case]
+    fn iwram_implicit_test(_gba: &mut Gba) {
+        unsafe {
+            let iwram_ptr = &mut IWRAM_IMPLICIT as *mut u32;
+            let address = iwram_ptr as usize;
+            assert!(
+                address >= 0x0300_0000 && address < 0x0300_8000,
+                "iwram is located beween 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
+                address
+            );
+            let c = iwram_ptr.read_volatile();
+            assert_eq!(c, 9, "exctected content to be 9");
+            iwram_ptr.write_volatile(u32::MAX);
+            let c = iwram_ptr.read_volatile();
+            assert_eq!(c, u32::MAX, "expected content to be {}", u32::MAX);
+        }
+    }
 }
