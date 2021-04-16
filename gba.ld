@@ -34,6 +34,9 @@ SECTIONS {
     .iwram : {
         __iwram_data_start = ABSOLUTE(.);
 
+        *(.iwram .iwram.*);
+        . = ALIGN(4);
+
         *(.data .data.*);
         . = ALIGN(4);
 
