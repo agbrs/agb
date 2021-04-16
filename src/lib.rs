@@ -122,20 +122,38 @@ pub extern "C" fn main() -> ! {
     loop {}
 }
 
-#[test_case]
-fn trivial_test(_gba: &mut Gba) {
-    assert_eq!(1, 1);
-}
+#[cfg(test)]
+mod test {
+    use super::Gba;
 
-#[test_case]
-fn wait_30_frames(gba: &mut Gba) {
-    let vblank = gba.display.vblank.get();
-    let mut counter = 0;
-    loop {
-        if counter > 30 {
-            break;
+    #[test_case]
+    fn trivial_test(_gba: &mut Gba) {
+        assert_eq!(1, 1);
+    }
+
+    #[test_case]
+    fn wait_30_frames(gba: &mut Gba) {
+        let vblank = gba.display.vblank.get();
+        let mut counter = 0;
+        loop {
+            if counter > 30 {
+                break;
+            }
+            vblank.wait_for_VBlank();
+            counter += 1
         }
-        vblank.wait_for_VBlank();
-        counter += 1
+    }
+
+    #[link_section = ".ewram"]
+    static mut EWRAM_TEST: u32 = 5;
+    #[test_case]
+    fn ewram_static_test(_gba: &mut Gba) {
+        unsafe {
+            let content = (&EWRAM_TEST as *const u32).read_volatile();
+            assert_eq!(content, 5, "expected data in ewram to be 5");
+            (&mut EWRAM_TEST as *mut u32).write_volatile(content + 1);
+            let content = (&EWRAM_TEST as *const u32).read_volatile();
+            assert_eq!(content, 6, "expected data to have increased by one")
+        }
     }
 }
