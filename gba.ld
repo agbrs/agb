@@ -42,8 +42,19 @@ SECTIONS {
 
         __iwram_data_end = ABSOLUTE(.);
     } > iwram AT>rom
-    
 
+    . = __iwram_rom_start + (__iwram_data_end - __iwram_data_start);
+
+    __ewram_rom_start = .;
+    .ewram : {
+        __ewram_data_start = ABSOLUTE(.);
+
+        *(.ewram .ewram.*);
+        . = ALIGN(4);
+
+        __ewram_data_end = ABSOLUTE(.);
+    } > ewram AT>rom
+    
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
@@ -51,6 +62,9 @@ SECTIONS {
 
     __iwram_rom_length_bytes = __iwram_data_end - __iwram_data_start;
     __iwram_rom_length_halfwords = (__iwram_rom_length_bytes + 1) / 2;
+
+    __ewram_rom_length_bytes = __ewram_data_end - __ewram_data_start;
+    __ewram_rom_length_halfwords = (__ewram_rom_length_bytes + 1) / 2;
 
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }

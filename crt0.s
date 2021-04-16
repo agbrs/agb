@@ -24,6 +24,12 @@ __start:
                                             @
                                             @ see: https://mgba-emu.github.io/gbatek/#swi-0bh-gbands7nds9dsi7dsi9---cpuset
 
+    @ copies ewram section in rom to ewram in ram
+    ldr r0, =__ewram_rom_start
+    ldr r1, =__ewram_data_start
+    ldr r2, =__ewram_rom_length_halfwords
+    swi 0x000B0000
+
     @ load main and branch
     ldr r0, =main
     bx  r0
