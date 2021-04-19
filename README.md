@@ -17,8 +17,8 @@ examples as documentation.
 ## Test Requirements
 
 * mgba 0.9.0
-* [corwinkuiper/mgba-test-runner](https://github.com/corwinkuiper/mgba-test-runner)
-    * `cargo install --git https://github.com/corwinkuiper/mgba-test-runner.git`
+* mgba-test-runner
+    * Run `cargo install --path mgba-test-runner` inside this directory
 
 ## Real Hardware Build
 
