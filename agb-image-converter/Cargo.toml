@@ -3,3 +3,6 @@ name = "agb-image-converter"
 version = "0.1.0"
 authors = ["Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
+
+[dependencies]
+image = "0.23.14"

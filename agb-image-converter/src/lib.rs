@@ -1,15 +1,8 @@
-#[derive(Debug, Clone, Copy)]
-pub struct Colour {
-    r: u8,
-    g: u8,
-    b: u8,
-}
+use std::path;
 
-impl Colour {
-    pub fn from_rgb(r: u8, g: u8, b: u8) -> Self {
-        Colour { r, g, b }
-    }
-}
+mod colour;
+
+pub use colour::Colour;
 
 #[derive(Debug, Clone, Copy)]
 pub enum TileSize {
@@ -17,25 +10,11 @@ pub enum TileSize {
     Tile16,
 }
 
-pub struct ImageConverter {}
-
-pub struct ImageConverterConfigBuilder {
-    transparent_colour: Option<Colour>,
-    tile_size: TileSize,
+pub struct ImageConverterConfig {
+    pub transparent_colour: Option<Colour>,
+    pub tile_size: TileSize,
+    pub input_file: path::PathBuf,
+    pub output_file: path::PathBuf,
 }
 
-impl ImageConverterConfigBuilder {
-    pub fn new_with_tile_size(tile_size: TileSize) -> Self {
-        ImageConverterConfigBuilder {
-            tile_size,
-            transparent_colour: None,
-        }
-    }
-
-    pub fn with_transparent_colour(&self, transparent_colour: Colour) -> Self {
-        ImageConverterConfigBuilder {
-            transparent_colour: Some(transparent_colour),
-            ..*self
-        }
-    }
-}
+pub fn convert_image(setting: &ImageConverterConfig) {}
