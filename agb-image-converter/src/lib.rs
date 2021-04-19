@@ -41,7 +41,7 @@ pub fn convert_image(settings: &ImageConverterConfig) {
     let optimiser = optimiser_for_image(&image, tile_size);
     let optimisation_results = optimiser.optimise_palettes(settings.transparent_colour);
 
-    println!("{:?}", optimisation_results);
+    println!("{:#?}", optimisation_results);
 }
 
 fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16Optimiser {
@@ -58,9 +58,7 @@ fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16O
                 for i in 0..tile_size {
                     let colour = image.colour(x * tile_size + i, y * tile_size + j);
 
-                    if !palette.add_colour(colour) {
-                        panic!("Tile contains more than 16 colours");
-                    }
+                    palette.add_colour(colour);
                 }
             }
 
