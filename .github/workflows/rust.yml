@@ -39,11 +39,14 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust_install.outputs.rustc_hash }}
 
     - name: install mgba-test-runner
-      run: cargo install --git https://github.com/corwinkuiper/mgba-test-runner.git
-    - name: Build
+      run: cargo install --path mgba-test-runner
+    - name: Build agb library
+      working-directory: agb
       run: cargo build --verbose
-    - name: Run Clippy
+    - name: Run Clippy on agb
+      working-directory: agb
       run: cargo clippy --verbose
-    - name: Run Tests
+    - name: Run Tests for agb
+      working-directory: agb
       run: cargo test --verbose
       
