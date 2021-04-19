@@ -37,9 +37,6 @@ SECTIONS {
         *(.iwram .iwram.*);
         . = ALIGN(4);
 
-        *(.data .data.*);
-        . = ALIGN(4);
-
         *(.text_iwram .text_iwram.*);
         . = ALIGN(4);
 
@@ -53,6 +50,9 @@ SECTIONS {
         __ewram_data_start = ABSOLUTE(.);
 
         *(.ewram .ewram.*);
+        . = ALIGN(4);
+
+        *(.data .data.*);
         . = ALIGN(4);
 
         __ewram_data_end = ABSOLUTE(.);
