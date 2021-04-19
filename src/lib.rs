@@ -184,15 +184,15 @@ mod test {
         }
     }
 
-    static mut IWRAM_IMPLICIT: u32 = 9;
+    static mut IMPLICIT_STORAGE: u32 = 9;
     #[test_case]
-    fn iwram_implicit_test(_gba: &mut Gba) {
+    fn implicit_data_test(_gba: &mut Gba) {
         unsafe {
-            let iwram_ptr = &mut IWRAM_IMPLICIT as *mut u32;
+            let iwram_ptr = &mut IMPLICIT_STORAGE as *mut u32;
             let address = iwram_ptr as usize;
             assert!(
-                address >= 0x0300_0000 && address < 0x0300_8000,
-                "iwram is located beween 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
+                address >= 0x0200_0000 && address < 0x0204_0000,
+                "implicit data storage is expected to be in ewram, which is between 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
                 address
             );
             let c = iwram_ptr.read_volatile();
