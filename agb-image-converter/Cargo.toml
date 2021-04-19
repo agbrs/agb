@@ -1,5 +1,5 @@
 [package]
-name = "agb-image-converter"
+name = "agb_image_converter"
 version = "0.1.0"
 authors = ["Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
