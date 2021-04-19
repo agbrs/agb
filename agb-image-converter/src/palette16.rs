@@ -141,6 +141,10 @@ impl Palette16Optimiser {
                 }
 
                 for colour in &current_palette.colours {
+                    if palette.colours.contains(&colour) {
+                        continue;
+                    }
+
                     if let Some(colour_index) = self.colours.iter().position(|c| c == colour) {
                         colour_usage[colour_index] += 1;
                         a_colour_is_used = true;
