@@ -13,7 +13,7 @@ pub(crate) fn generate_code(
 ) -> io::Result<()> {
     writeln!(
         output,
-        "pub const PALETTE_DATA: &'static [crate::display::palette16::Palette16] = &[",
+        "pub const PALETTE_DATA: &[crate::display::palette16::Palette16] = &[",
     )?;
 
     for palette in &results.optimised_palettes {
@@ -33,7 +33,7 @@ pub(crate) fn generate_code(
     writeln!(output, "];")?;
     writeln!(output)?;
 
-    writeln!(output, "pub const TILE_DATA: &'static [u32] = &[",)?;
+    writeln!(output, "pub const TILE_DATA: &[u32] = &[",)?;
 
     let tile_size = tile_size.to_size();
 
@@ -76,7 +76,7 @@ pub(crate) fn generate_code(
     writeln!(output, "];")?;
     writeln!(output)?;
 
-    write!(output, "pub const PALETTE_ASSIGNMENT: &'static [u8] = &[")?;
+    write!(output, "pub const PALETTE_ASSIGNMENT: &[u8] = &[")?;
 
     for (i, assignment) in results.assignments.iter().enumerate() {
         if i % 16 == 0 {
