@@ -107,7 +107,7 @@ impl Palette16Optimiser {
             .cloned()
             .collect::<HashSet<Palette16>>();
 
-        while unsatisfied_palettes.len() > 0 {
+        while !unsatisfied_palettes.is_empty() {
             let palette = self.find_maximal_palette_for(&unsatisfied_palettes, transparent_colour);
 
             for test_palette in unsatisfied_palettes.clone() {
@@ -130,8 +130,8 @@ impl Palette16Optimiser {
         }
 
         Palette16OptimisationResults {
-            assignments,
             optimised_palettes,
+            assignments,
         }
     }
 

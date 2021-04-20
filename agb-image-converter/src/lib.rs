@@ -18,8 +18,8 @@ pub enum TileSize {
 }
 
 impl TileSize {
-    fn to_size(&self) -> usize {
-        match &self {
+    fn to_size(self) -> usize {
+        match self {
             TileSize::Tile8 => 8,
             TileSize::Tile16 => 16,
         }

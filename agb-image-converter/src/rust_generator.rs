@@ -11,9 +11,9 @@ pub(crate) fn generate_code(
     image: &Image,
     tile_size: TileSize,
 ) -> io::Result<()> {
-    write!(
+    writeln!(
         output,
-        "pub const PALETTE_DATA: &'static [crate::display::palette16::Palette16] = &[\n",
+        "pub const PALETTE_DATA: &'static [crate::display::palette16::Palette16] = &[",
     )?;
 
     for palette in &results.optimised_palettes {
@@ -27,12 +27,13 @@ pub(crate) fn generate_code(
             write!(output, "0x00000000, ")?;
         }
 
-        write!(output, "]),\n")?;
+        writeln!(output, "]),")?;
     }
 
-    write!(output, "];\n\n")?;
+    writeln!(output, "];")?;
+    writeln!(output)?;
 
-    write!(output, "pub const TILE_DATA: &'static [u32] = &[\n",)?;
+    writeln!(output, "pub const TILE_DATA: &'static [u32] = &[",)?;
 
     let tile_size = tile_size.to_size();
 
@@ -43,9 +44,9 @@ pub(crate) fn generate_code(
         for x in 0..tiles_x {
             let palette_index = results.assignments[y * tiles_x + x];
             let palette = &results.optimised_palettes[palette_index];
-            write!(
+            writeln!(
                 output,
-                "    /* {}, {} (palette index {}) */\n",
+                "    /* {}, {} (palette index {}) */",
                 x, y, palette_index
             )?;
 
@@ -68,11 +69,12 @@ pub(crate) fn generate_code(
                 }
             }
 
-            write!(output, "\n")?;
+            writeln!(output)?;
         }
     }
 
-    write!(output, "];\n\n")?;
+    writeln!(output, "];")?;
+    writeln!(output)?;
 
     write!(output, "pub const PALETTE_ASSIGNMENT: &'static [u8] = &[")?;
 
@@ -83,7 +85,7 @@ pub(crate) fn generate_code(
         write!(output, "{}, ", assignment)?;
     }
 
-    write!(output, "\n];\n")?;
+    writeln!(output, "\n];")?;
 
     Ok(())
 }
