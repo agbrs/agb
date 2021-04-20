@@ -3,6 +3,7 @@ use std::path::PathBuf;
 mod colour;
 mod image_loader;
 mod palette16;
+mod rust_generator;
 
 use image_loader::Image;
 
@@ -41,7 +42,18 @@ pub fn convert_image(settings: &ImageConverterConfig) {
     let optimiser = optimiser_for_image(&image, tile_size);
     let optimisation_results = optimiser.optimise_palettes(settings.transparent_colour);
 
-    println!("{:#?}", optimisation_results);
+    let stdout = std::io::stdout();
+    let handle = stdout.lock();
+    let mut writer = std::io::BufWriter::new(handle);
+
+    rust_generator::generate_code(
+        &mut writer,
+        &optimisation_results,
+        &image,
+        settings.tile_size,
+        "HELLO",
+    )
+    .expect("Failed to write data");
 }
 
 fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16Optimiser {

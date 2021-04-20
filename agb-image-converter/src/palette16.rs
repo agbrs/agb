@@ -27,6 +27,12 @@ impl Palette16 {
         self.colours.push(colour);
         true
     }
+    pub fn colour_index(&self, colour: Colour) -> u8 {
+        self.colours
+            .iter()
+            .position(|c| *c == colour)
+            .expect("Can't get a colour index without it existing") as u8
+    }
 
     fn union_length(&self, other: &Palette16) -> usize {
         self.colours
@@ -41,6 +47,15 @@ impl Palette16 {
             .iter()
             .collect::<HashSet<_>>()
             .is_subset(&other.colours.iter().collect::<HashSet<_>>())
+    }
+}
+
+impl IntoIterator for Palette16 {
+    type Item = Colour;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.colours.into_iter()
     }
 }
 

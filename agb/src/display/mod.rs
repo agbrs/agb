@@ -7,6 +7,7 @@ use video::Video;
 pub mod bitmap3;
 pub mod bitmap4;
 pub mod object;
+pub mod palette16;
 pub mod tiled0;
 pub mod vblank;
 pub mod video;
