@@ -3,8 +3,8 @@ use core::convert::TryInto;
 use crate::memory_mapped::MemoryMapped1DArray;
 
 use super::{
-    object::ObjectControl, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
-    DISPLAY_CONTROL,
+    object::ObjectControl, palette16, set_graphics_mode, set_graphics_settings, DisplayMode,
+    GraphicsSettings, DISPLAY_CONTROL,
 };
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
@@ -12,7 +12,7 @@ const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
 const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0200) };
 
-const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 512 * 8 }> =
+const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06000000) };
 const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06010000) };
@@ -141,6 +141,17 @@ impl Tiled0 {
     pub fn set_background_palette(&mut self, colour: &[u16]) {
         for (index, &entry) in colour.iter().enumerate() {
             self.set_background_palette_entry(index.try_into().unwrap(), entry)
+        }
+    }
+
+    pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+        for (palette_index, entry) in palettes.iter().enumerate() {
+            for (colour_index, &colour) in entry.colours.iter().enumerate() {
+                self.set_background_palette_entry(
+                    (palette_index * 16 + colour_index) as u8,
+                    colour,
+                );
+            }
         }
     }
 

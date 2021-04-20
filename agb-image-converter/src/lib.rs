@@ -1,9 +1,6 @@
-use std::fs;
 use std::fs::File;
-use std::io;
 use std::io::BufWriter;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::path::PathBuf;
 
 mod colour;
 mod image_loader;
@@ -34,19 +31,9 @@ pub struct ImageConverterConfig {
     pub tile_size: TileSize,
     pub input_image: PathBuf,
     pub output_file: PathBuf,
-    pub output_name: String,
 }
 
 pub fn convert_image(settings: &ImageConverterConfig) {
-    let source_modified_time =
-        get_modified_time(&settings.input_image).unwrap_or(SystemTime::now());
-    let target_modified_time =
-        get_modified_time(&settings.output_file).unwrap_or(SystemTime::UNIX_EPOCH);
-
-    if source_modified_time < target_modified_time {
-        return;
-    }
-
     let image = Image::load_from_file(&settings.input_image);
 
     let tile_size = settings.tile_size.to_size();
@@ -65,7 +52,6 @@ pub fn convert_image(settings: &ImageConverterConfig) {
         &optimisation_results,
         &image,
         settings.tile_size,
-        &settings.output_name,
     )
     .expect("Failed to write data");
 }
@@ -93,9 +79,4 @@ fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16O
     }
 
     palette_optimiser
-}
-
-fn get_modified_time(path: impl AsRef<Path>) -> io::Result<SystemTime> {
-    let metadata = fs::metadata(path)?;
-    metadata.modified()
 }

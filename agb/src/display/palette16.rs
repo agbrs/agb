@@ -1,5 +1,5 @@
 pub struct Palette16 {
-    colours: [u16; 16],
+    pub(crate) colours: [u16; 16],
 }
 
 impl Palette16 {

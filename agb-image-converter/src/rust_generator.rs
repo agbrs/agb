@@ -10,19 +10,21 @@ pub(crate) fn generate_code(
     results: &Palette16OptimisationResults,
     image: &Image,
     tile_size: TileSize,
-    tile_name: &str,
 ) -> io::Result<()> {
     write!(
         output,
-        "pub const {}_PALETTE_DATA: &'static [agb::display::palette16::Palette16] = &[\n",
-        tile_name
+        "pub const PALETTE_DATA: &'static [crate::display::palette16::Palette16] = &[\n",
     )?;
 
     for palette in &results.optimised_palettes {
-        write!(output, "    agb::display::palette16::Palette16::new([")?;
+        write!(output, "    crate::display::palette16::Palette16::new([")?;
 
         for colour in palette.clone() {
             write!(output, "0x{:08x}, ", colour.to_rgb15())?;
+        }
+
+        for _ in palette.clone().into_iter().len()..16 {
+            write!(output, "0x00000000, ")?;
         }
 
         write!(output, "]),\n")?;
@@ -30,11 +32,7 @@ pub(crate) fn generate_code(
 
     write!(output, "];\n\n")?;
 
-    write!(
-        output,
-        "pub const {}_TILE_DATA: &'static [u32] = &[\n",
-        tile_name
-    )?;
+    write!(output, "pub const TILE_DATA: &'static [u32] = &[\n",)?;
 
     let tile_size = tile_size.to_size();
 
@@ -58,7 +56,7 @@ pub(crate) fn generate_code(
                     for j in inner_y * 8..inner_y * 8 + 8 {
                         write!(output, "0x")?;
 
-                        for i in (inner_x * 8..inner_x * 8 + 7).rev() {
+                        for i in (inner_x * 8..inner_x * 8 + 8).rev() {
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
                             let colour_index = palette.colour_index(colour);
 
@@ -76,11 +74,7 @@ pub(crate) fn generate_code(
 
     write!(output, "];\n\n")?;
 
-    write!(
-        output,
-        "pub const {}_PALETTE_ASSIGNMENT: &'static [u8] = &[",
-        tile_name
-    )?;
+    write!(output, "pub const PALETTE_ASSIGNMENT: &'static [u8] = &[")?;
 
     for (i, assignment) in results.assignments.iter().enumerate() {
         if i % 16 == 0 {
