@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::BufWriter;
 use std::path::PathBuf;
 
 mod colour;
@@ -29,6 +31,7 @@ pub struct ImageConverterConfig {
     pub tile_size: TileSize,
     pub input_image: PathBuf,
     pub output_file: PathBuf,
+    pub output_name: String,
 }
 
 pub fn convert_image(settings: &ImageConverterConfig) {
@@ -42,16 +45,15 @@ pub fn convert_image(settings: &ImageConverterConfig) {
     let optimiser = optimiser_for_image(&image, tile_size);
     let optimisation_results = optimiser.optimise_palettes(settings.transparent_colour);
 
-    let stdout = std::io::stdout();
-    let handle = stdout.lock();
-    let mut writer = std::io::BufWriter::new(handle);
+    let output_file = File::create(&settings.output_file).expect("Failed to create file");
+    let mut writer = BufWriter::new(output_file);
 
     rust_generator::generate_code(
         &mut writer,
         &optimisation_results,
         &image,
         settings.tile_size,
-        "HELLO",
+        &settings.output_name,
     )
     .expect("Failed to write data");
 }

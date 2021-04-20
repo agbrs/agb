@@ -74,7 +74,22 @@ pub(crate) fn generate_code(
         }
     }
 
-    write!(output, "];\n")?;
+    write!(output, "];\n\n")?;
+
+    write!(
+        output,
+        "pub const {}_PALETTE_ASSIGNMENT: &'static [u8] = &[",
+        tile_name
+    )?;
+
+    for (i, assignment) in results.assignments.iter().enumerate() {
+        if i % 16 == 0 {
+            write!(output, "\n    ")?;
+        }
+        write!(output, "{}, ", assignment)?;
+    }
+
+    write!(output, "\n];\n")?;
 
     Ok(())
 }
