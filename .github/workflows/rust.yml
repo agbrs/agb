@@ -35,7 +35,7 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          target
+          agb/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust_install.outputs.rustc_hash }}
 
     - name: install mgba-test-runner
