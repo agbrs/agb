@@ -51,19 +51,12 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     gfx.set_sprite_palette(&CHICKEN_PALETTE);
     gfx.set_sprite_tilemap(&CHICKEN_TILES);
 
-    gfx.set_background_palette(&MAP_PALETTE);
-    gfx.set_background_tilemap(&MAP_TILES);
+    gfx.set_background_palette_raw(&MAP_PALETTE);
+    gfx.set_background_tilemap(0, &MAP_TILES);
 
-    gfx.background_0.enable();
-    gfx.background_0
-        .set_background_size(tiled0::BackgroundSize::S32x32);
-    gfx.background_0
-        .set_colour_mode(tiled0::ColourMode::FourBitPerPixel);
-
-    // This interface is not yet safe, as this can easily clobber the tiles.
-    // Not sure how to make this interface safe to use
-    gfx.background_0.set_screen_base_block(1);
-    gfx.copy_to_map(1, &MAP_MAP);
+    let mut background = gfx.get_background().unwrap();
+    background.set_map(&MAP_MAP, 32, 32);
+    background.show();
 
     let mut object = gfx.object;
 

@@ -266,6 +266,12 @@ impl Tiled0 {
         }
     }
 
+    pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
+        for (index, &colour) in palette.iter().enumerate() {
+            PALETTE_BACKGROUND.set(index, colour);
+        }
+    }
+
     fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(pal_index as usize * 16 + colour_index, colour);
