@@ -46,6 +46,9 @@ pub enum BackgroundSize {
 }
 
 #[non_exhaustive]
+/// The map background is the method of drawing game maps to the screen. It
+/// automatically handles copying the correct portion of a provided map to the
+/// assigned block depending on given coordinates.
 pub struct Background<'a> {
     background: u8,
     block: u8,
@@ -73,6 +76,13 @@ impl<'a> Background<'a> {
         background
     }
 
+    /// Sets the internal map to the provided map. Dimensions should be the
+    /// dimensions of the map. The mapping between coordinate and index is given
+    /// by `y * dim_x + x`. The length of the map slice should be `dim_x *
+    /// dim_y`, or panics may occur.
+    ///
+    /// The portion of this map that is in view is copied to the map block
+    /// assigned to this background.
     pub fn set_map(&mut self, map: &'a [u16], dim_x: u32, dim_y: u32) {
         self.map = Some(map);
         self.map_dim_x = dim_x;
@@ -82,6 +92,8 @@ impl<'a> Background<'a> {
 }
 
 impl Background<'_> {
+    /// Sets the background to be shown on screen. Requires the background to
+    /// have a map enabled otherwise a panic is caused.
     pub fn show(&mut self) {
         assert!(self.map.is_some(), "map should be set before showing");
         let mode = DISPLAY_CONTROL.get();
@@ -89,6 +101,7 @@ impl Background<'_> {
         DISPLAY_CONTROL.set(new_mode);
     }
 
+    /// Hides the background, nothing from this background is rendered to screen.
     pub fn hide(&mut self) {
         let mode = DISPLAY_CONTROL.get();
         let new_mode = mode | !(1 << (self.background + 0x08));
@@ -111,6 +124,8 @@ impl Background<'_> {
         reg.write_volatile(new_control);
     }
 
+    /// Sets priority of the background layer. Backgrounds with higher priority
+    /// are drawn (above/below) backgrounds with lower priority.
     pub fn set_priority(&mut self, p: Prioriry) {
         unsafe { self.set_bits(0, 2, p as u16) }
     }
@@ -142,6 +157,10 @@ impl Background<'_> {
         unsafe { *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y }
     }
 
+    /// Forces the portion of the map in current view to be copied to the map
+    /// block assigned to this background. This is currently unnecesary to call.
+    /// Setting position already updates the drawn map, and changing map forces
+    /// an update.
     pub fn draw_full_map(&mut self) {
         let x_map_space = self.pos_x / 8;
         let y_map_space = self.pos_y / 8;
@@ -161,6 +180,9 @@ impl Background<'_> {
         }
     }
 
+    /// Sets the position of the map to be shown on screen. This automatically
+    /// manages copying the correct portion to the map block and moving the map
+    /// registers.
     pub fn set_position(&mut self, x: i32, y: i32) {
         let x_map_space = x / 8;
         let y_map_space = y / 8;
@@ -260,12 +282,14 @@ impl Tiled0 {
         TILE_BACKGROUND.set(index as usize, data);
     }
 
+    /// Copies raw palettes to the background palette without any checks.
     pub fn set_sprite_palette(&mut self, colour: &[u16]) {
         for (index, &entry) in colour.iter().enumerate() {
             self.set_sprite_palette_entry(index.try_into().unwrap(), entry)
         }
     }
 
+    /// Copies raw palettes to the background palette without any checks.
     pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
         for (index, &colour) in palette.iter().enumerate() {
             PALETTE_BACKGROUND.set(index, colour);
@@ -278,18 +302,21 @@ impl Tiled0 {
         }
     }
 
+    /// Copies palettes to the background palettes without any checks.
     pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry)
         }
     }
 
+    /// Copies tiles to the sprite tilemap without any checks.
     pub fn set_sprite_tilemap(&mut self, tiles: &[u32]) {
         for (index, &tile) in tiles.iter().enumerate() {
             self.set_sprite_tilemap_entry(index as u32, tile)
         }
     }
 
+    /// Gets a map background if possible and assigns an unused block to it.
     pub fn get_background(&mut self) -> Result<Background, &'static str> {
         if self.num_backgrounds >= 4 {
             return Err("too many backgrounds created, maximum is 4");
@@ -320,6 +347,8 @@ impl Tiled0 {
         Ok(unsafe { Background::new(background, availiable_block) })
     }
 
+    /// Copies tiles to tilemap starting at the starting tile. Cannot overwrite
+    /// blocks that are already written to, panic is caused if this is attempted.
     pub fn set_background_tilemap(&mut self, start_tile: u32, tiles: &[u32]) {
         let u32_per_block = 512;
 
