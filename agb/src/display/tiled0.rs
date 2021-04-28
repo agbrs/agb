@@ -134,9 +134,7 @@ impl Background<'_> {
     fn map_get(&self, x: i32, y: i32, default: u16) -> u16 {
         let map = self.map.unwrap();
 
-        if x >= self.map_dim_x as i32 || x < 0 {
-            default
-        } else if y >= self.map_dim_y as i32 || y < 0 {
+        if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
             default
         } else {
             map[(self.map_dim_x as i32 * y + x) as usize]
