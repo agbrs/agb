@@ -25,7 +25,7 @@ jobs:
     - name: Nightly rust with required components
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: nightly-2021-04-20
         components: clippy, rust-src
         override: true
 
@@ -35,7 +35,7 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          target
+          agb/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ steps.rust_install.outputs.rustc_hash }}
 
     - name: install mgba-test-runner
