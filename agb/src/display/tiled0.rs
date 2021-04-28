@@ -19,13 +19,6 @@ const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
 
 const MAP: *mut [[[u16; 32]; 32]; 32] = 0x0600_0000 as *mut _;
 
-pub enum BackgroundLayer {
-    Background0 = 0,
-    Background1 = 1,
-    Background2 = 2,
-    Background3 = 3,
-}
-
 pub enum Prioriry {
     P0 = 0,
     P1 = 1,
