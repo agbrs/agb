@@ -3,7 +3,7 @@
 
 extern crate agb;
 use agb::{
-    display::{object::ObjectStandard, tiled0, HEIGHT, WIDTH},
+    display::{object::ObjectStandard, HEIGHT, WIDTH},
     input::Button,
 };
 use core::convert::TryInto;
