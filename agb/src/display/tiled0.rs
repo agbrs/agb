@@ -349,7 +349,7 @@ impl Tiled0 {
         // round up rather than down
         let end_block = (start_tile * 8 + tiles.len() as u32 + u32_per_block - 1) / u32_per_block;
 
-        let blocks_to_use: u32 = (1 << (end_block - start_block)) - 1 << start_block;
+        let blocks_to_use: u32 = ((1 << (end_block - start_block)) - 1) << start_block;
 
         assert!(
             self.used_blocks & blocks_to_use == 0,
