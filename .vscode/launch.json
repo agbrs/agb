@@ -8,7 +8,7 @@
             "type": "gdb",
             "request": "attach",
             "name": "Attach to gdbserver",
-            "executable": "target/thumbv4t-none-eabi/debug/examples/chicken",
+            "executable": "agb/target/thumbv4t-none-eabi/debug/examples/chicken",
             "target": "127.0.0.1:2345",
             "remote": true,
             "cwd": "${workspaceRoot}",
