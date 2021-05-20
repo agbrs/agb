@@ -7,7 +7,8 @@ description = "Library for Game Boy Advance Development"
 license = "MPL-2.0"
 
 [profile.dev]
-opt-level = 2
+opt-level = 0
+debug = true
 
 [profile.release]
 panic = "abort"

@@ -1,6 +1,8 @@
 use super::DISPLAY_CONTROL;
+use crate::memory_mapped::MemoryMapped1DArray;
 
-const OBJECT_MEMORY_STANDARD: *mut [ObjectAttributeStandard; 128] = 0x0700_0000 as *mut [_; 128];
+const OBJECT_MEMORY_STANDARD: MemoryMapped1DArray<u32, 256> =
+    unsafe { MemoryMapped1DArray::new(0x0700_0000) };
 
 #[non_exhaustive]
 pub struct ObjectControl {}
@@ -37,8 +39,6 @@ impl ObjectStandard {
     }
 }
 
-#[repr(packed)]
-#[derive(Clone, Copy)]
 pub struct ObjectAttributeStandard {
     low: u32,
     high: u32,
@@ -46,8 +46,8 @@ pub struct ObjectAttributeStandard {
 
 impl ObjectAttributeStandard {
     unsafe fn commit(&self, index: usize) {
-        (&mut (*OBJECT_MEMORY_STANDARD)[index] as *mut ObjectAttributeStandard)
-            .write_volatile(*self)
+        OBJECT_MEMORY_STANDARD.set(index * 2, self.low);
+        OBJECT_MEMORY_STANDARD.set(index * 2 + 1, self.high);
     }
 
     pub fn set_hflip(&mut self, hflip: bool) {
@@ -108,7 +108,7 @@ impl ObjectControl {
     pub unsafe fn clear_objects(&mut self) {
         let mut o = ObjectAttributeStandard::new();
         o.set_mode(Mode::Hidden);
-        for index in 0..(*OBJECT_MEMORY_STANDARD).len() {
+        for index in 0..128 {
             o.commit(index);
         }
     }
