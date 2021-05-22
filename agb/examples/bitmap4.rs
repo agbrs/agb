@@ -1,12 +1,12 @@
 #![no_std]
-#![feature(start)]
+#![no_main]
 
 extern crate agb;
 
 use agb::display;
 
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap4();
     let vblank = gba.display.vblank.get();

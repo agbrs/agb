@@ -1,9 +1,9 @@
 #![no_std]
-#![feature(start)]
+#![no_main]
 
 extern crate agb;
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut mgba = agb::mgba::Mgba::new().unwrap();
 

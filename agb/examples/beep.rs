@@ -1,12 +1,12 @@
 #![no_std]
-#![feature(start)]
+#![no_main]
 
 extern crate agb;
 
 use agb::sound;
 
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub fn main() -> ! {
     let gba = agb::Gba::new();
 
     gba.sound.enable();
