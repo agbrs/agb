@@ -1,10 +1,8 @@
 use std::path;
 
 fn find_mgba_library() -> Option<&'static str> {
-    const POTENTIAL_LIBRARY_LOCATIONS: &[&str] = &[
-        "/usr/lib/libmgba.so.0.9.0",
-        "/usr/local/lib/libmgba.so.0.9.0",
-    ];
+    const POTENTIAL_LIBRARY_LOCATIONS: &[&str] =
+        &["/usr/lib/libmgba.so.0.9", "/usr/local/lib/libmgba.so.0.9"];
 
     POTENTIAL_LIBRARY_LOCATIONS
         .iter()
@@ -13,7 +11,7 @@ fn find_mgba_library() -> Option<&'static str> {
 }
 
 fn main() {
-    let mgba_library = find_mgba_library().expect("Need mgba 0.9.0 installed");
+    let mgba_library = find_mgba_library().expect("Need mgba 0.9 installed");
 
     cc::Build::new()
         .file("c/test-runner.c")
