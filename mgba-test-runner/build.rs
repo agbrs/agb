@@ -19,7 +19,7 @@ fn main() {
     cc::Build::new()
         .file("c/test-runner.c")
         .object(mgba_library)
-        .include("c/include")
+        .include("c/vendor")
         .compile("test-runner");
 
     let bindings = bindgen::Builder::default()
