@@ -8,7 +8,7 @@ use std::ffi::CString;
     non_snake_case
 )]
 mod bindings {
-    include!("bindings.rs");
+    include!(concat!(env!("OUT_DIR"), "/runner-bindings.rs"));
 }
 
 pub struct MGBA {
