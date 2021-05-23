@@ -22,3 +22,7 @@ bitflags = "1.0"
 
 [build-dependencies]
 agb_image_converter = { path = "../agb-image-converter" }
+
+[package.metadata.docs.rs]
+default-target = "thumbv6m-none-eabi"
+targets = []
