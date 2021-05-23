@@ -9,14 +9,21 @@ examples as documentation.
 
 ## Build Requirements
 
-* Nightly rust, probably quite a recent version.
+* Recent rustup, see [the rust website](https://www.rust-lang.org/tools/install)
+  for instructions for your operating system.
+    * You can update rustup with `rustup update`, or using your package manager
+      if you obtained rustup in this way.
 * arm eabi binutils 
     * Debian and derivatives: `sudo apt install binutils-arm-none-eabi`
     * Arch Linux and derivatives: `pacman -S arm-none-eabi-binutils`
+    * Windows can apparently use the [GNU Arm Embedded
+      Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
+      Make sure to select "Add path to environment variable" during the install.
+    * This process has only been tested on Ubuntu and Arch Linux.
 
 ## Test Requirements
 
-* mgba 0.9.0
+* mgba 0.9.X
 * mgba-test-runner
     * Run `cargo install --path mgba-test-runner` inside this directory
 
