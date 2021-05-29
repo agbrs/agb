@@ -9,7 +9,7 @@ pub struct ObjectControl {}
 
 #[non_exhaustive]
 pub struct ObjectStandard {
-    attributes: ObjectAttributeStandard,
+    attributes: ObjectAttribute,
     id: usize,
 }
 
@@ -45,12 +45,12 @@ impl ObjectStandard {
     }
 }
 
-pub struct ObjectAttributeStandard {
+pub struct ObjectAttribute {
     low: u32,
     high: u32,
 }
 
-impl ObjectAttributeStandard {
+impl ObjectAttribute {
     unsafe fn commit(&self, index: usize) {
         OBJECT_MEMORY_STANDARD.set(index * 2, self.low);
         OBJECT_MEMORY_STANDARD.set(index * 2 + 1, self.high);
@@ -98,9 +98,9 @@ impl ObjectAttributeStandard {
     }
 }
 
-impl ObjectAttributeStandard {
+impl ObjectAttribute {
     fn new() -> Self {
-        ObjectAttributeStandard { low: 0, high: 0 }
+        ObjectAttribute { low: 0, high: 0 }
     }
 }
 
@@ -112,7 +112,7 @@ impl ObjectControl {
     /// # Safety
     /// Temporary, do not call if you currently hold an object
     pub unsafe fn clear_objects(&mut self) {
-        let mut o = ObjectAttributeStandard::new();
+        let mut o = ObjectAttribute::new();
         o.set_mode(Mode::Hidden);
         for index in 0..128 {
             o.commit(index);
@@ -136,7 +136,7 @@ impl ObjectControl {
     pub unsafe fn get_object(&self, id: usize) -> ObjectStandard {
         assert!(id < 128, "object id must be less than 128");
         ObjectStandard {
-            attributes: ObjectAttributeStandard::new(),
+            attributes: ObjectAttribute::new(),
             id,
         }
     }
