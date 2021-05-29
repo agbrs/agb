@@ -30,9 +30,15 @@ __start:
     ldr r2, =__ewram_rom_length_halfwords
     swi 0x000B0000
 
+
+    @ put zero in both r0 and r1
+    @ This corresponds to zero for argc and argv (which would technically be required for a c runtime)
+    ldr r0, =0
+    mov r1, r0
+
     @ load main and branch
-    ldr r0, =main
-    bx  r0
+    ldr r2, =main
+    bx  r2
 .pool
 
 .include "interrupt_simple.s"
