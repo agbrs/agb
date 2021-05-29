@@ -37,6 +37,12 @@ impl ObjectStandard {
     pub fn set_hflip(&mut self, hflip: bool) {
         self.attributes.set_hflip(hflip)
     }
+    pub fn show(&mut self) {
+        self.attributes.set_mode(Mode::Normal)
+    }
+    pub fn hide(&mut self) {
+        self.attributes.set_mode(Mode::Hidden)
+    }
 }
 
 pub struct ObjectAttributeStandard {
