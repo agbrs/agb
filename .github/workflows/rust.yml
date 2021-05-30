@@ -12,9 +12,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-20.04
-    env:
-      CARGO_TARGET_DIR: ~/target
     steps:
+    - name: Set CARGO_TARGET_DIR
+      run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
     - name: Install build tools
       run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi -y
     - name: Install mgba 0.9
