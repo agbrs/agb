@@ -14,6 +14,24 @@ pub struct ObjectStandard {
     id: u8,
 }
 
+pub struct ObjectAffine {
+    attributes: ObjectAttribute,
+    id: u8,
+    aff_id: Option<u8>,
+}
+
+pub struct AffineMatrix {
+    attributes: AffineMatrixAttributes,
+    id: u8,
+}
+
+pub struct AffineMatrixAttributes {
+    p_a: i16,
+    p_b: i16,
+    p_c: i16,
+    p_d: i16,
+}
+
 pub enum Mode {
     Normal = 0,
     Affine = 1,
@@ -40,6 +58,32 @@ impl ObjectStandard {
     }
     pub fn show(&mut self) {
         self.attributes.set_mode(Mode::Normal)
+    }
+    pub fn hide(&mut self) {
+        self.attributes.set_mode(Mode::Hidden)
+    }
+}
+
+impl ObjectAffine {
+    pub fn commit(&self) {
+        unsafe { self.attributes.commit(self.id) }
+    }
+
+    pub fn set_x(&mut self, x: u8) {
+        self.attributes.set_x(x)
+    }
+    pub fn set_y(&mut self, y: u8) {
+        self.attributes.set_y(y)
+    }
+    pub fn set_tile_id(&mut self, id: u16) {
+        self.attributes.set_tile_id(id)
+    }
+
+    pub fn show(&mut self) {
+        if self.aff_id.is_none() {
+            panic!("affine matrix should be set")
+        }
+        self.attributes.set_mode(Mode::Affine)
     }
     pub fn hide(&mut self) {
         self.attributes.set_mode(Mode::Hidden)
@@ -82,6 +126,10 @@ impl ObjectAttribute {
 
     pub fn set_mode(&mut self, mode: Mode) {
         self.a0 = set_bits(self.a0, mode as u16, 2, 8);
+    }
+
+    pub fn set_affine(&mut self, aff_id: u8) {
+        self.a1 = set_bits(self.a1, aff_id as u16, 5, 8);
     }
 }
 
