@@ -184,13 +184,24 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
-    pub fn get_object(&mut self) -> ObjectStandard {
+    pub fn get_object_standard(&mut self) -> ObjectStandard {
         let id = self.object_count;
         self.object_count += 1;
         assert!(id < 128, "object id must be less than 128");
         ObjectStandard {
             attributes: ObjectAttribute::new(),
             id,
+        }
+    }
+
+    pub fn get_object_affine(&mut self) -> ObjectAffine {
+        let id = self.object_count;
+        self.object_count += 1;
+        assert!(id < 128, "object id must be less than 128");
+        ObjectAffine {
+            attributes: ObjectAttribute::new(),
+            id,
+            aff_id: None,
         }
     }
 
