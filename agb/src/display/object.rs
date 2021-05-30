@@ -7,7 +7,6 @@ const OBJECT_MEMORY_STANDARD: MemoryMapped1DArray<u32, 256> =
 #[non_exhaustive]
 pub struct ObjectControl {}
 
-#[non_exhaustive]
 pub struct ObjectStandard {
     attributes: ObjectAttribute,
     id: usize,
