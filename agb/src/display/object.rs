@@ -46,6 +46,11 @@ impl ObjectStandard {
     }
 }
 
+fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
+    let mask: u16 = (1 << length) - 1;
+    (current & !(mask << shift)) | ((value & mask) << shift)
+}
+
 pub struct ObjectAttribute {
     a0: u16,
     a1: u16,
