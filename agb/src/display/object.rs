@@ -136,6 +136,17 @@ impl ObjectAttribute {
     }
 }
 
+impl AffineMatrix {
+    #[allow(clippy::identity_op)]
+    pub fn commit(&self) {
+        let id = self.id as usize;
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 0) * 4 + 3, self.attributes.p_a as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 1) * 4 + 3, self.attributes.p_b as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 2) * 4 + 3, self.attributes.p_c as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 3) * 4 + 3, self.attributes.p_d as u16);
+    }
+}
+
 impl ObjectAttribute {
     fn new() -> Self {
         ObjectAttribute {
