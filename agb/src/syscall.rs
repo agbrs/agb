@@ -1,4 +1,4 @@
-use crate::{display::object::AffineMatrixAttributes, Gba};
+use crate::display::object::AffineMatrixAttributes;
 
 #[allow(non_snake_case)]
 
@@ -113,6 +113,7 @@ pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixA
         p_d: 0,
     };
 
+    #[allow(dead_code)]
     struct Input {
         x_scale: i16,
         y_scale: i16,
@@ -138,7 +139,7 @@ pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixA
 }
 
 #[test_case]
-fn affine(_gba: &mut Gba) {
+fn affine(_gba: &mut crate::Gba) {
     // expect identity matrix
     let aff = affine_matrix(1 << 8, 1 << 8, 0);
     assert_eq!(aff.p_a, 1 << 8);
