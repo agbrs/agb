@@ -15,9 +15,9 @@ pub struct ObjectStandard {
 
 pub enum Mode {
     Normal = 0,
-    Affline = 1,
+    Affine = 1,
     Hidden = 2,
-    AfflineDouble = 3,
+    AffineDouble = 3,
 }
 
 impl ObjectStandard {
