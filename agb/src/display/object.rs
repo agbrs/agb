@@ -90,6 +90,7 @@ impl ObjectAffine {
     }
     pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
         self.attributes.set_affine(aff.id);
+        self.aff_id = Some(aff.id);
     }
 }
 
