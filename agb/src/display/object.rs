@@ -21,15 +21,15 @@ pub struct ObjectAffine {
 }
 
 pub struct AffineMatrix {
-    attributes: AffineMatrixAttributes,
+    pub attributes: AffineMatrixAttributes,
     id: u8,
 }
 
 pub struct AffineMatrixAttributes {
-    p_a: i16,
-    p_b: i16,
-    p_c: i16,
-    p_d: i16,
+    pub p_a: i16,
+    pub p_b: i16,
+    pub p_c: i16,
+    pub p_d: i16,
 }
 
 pub enum Mode {
