@@ -65,44 +65,23 @@ impl ObjectAttribute {
     }
 
     pub fn set_hflip(&mut self, hflip: bool) {
-        let mask = 1 << 0xC;
-        let attr = self.a1;
-        let attr = attr & !mask;
-        if hflip {
-            self.a1 = attr | mask
-        } else {
-            self.a1 = attr
-        }
+        self.a1 = set_bits(self.a1, hflip as u16, 1, 0xC);
     }
 
     pub fn set_x(&mut self, x: u8) {
-        let mask = (1 << 8) - 1;
-        let attr1 = self.a1;
-        let attr_without_x = attr1 & !mask;
-        let attr_with_new_x = attr_without_x | x as u16;
-        self.a1 = attr_with_new_x;
+        self.a1 = set_bits(self.a1, x as u16, 8, 0);
     }
 
     pub fn set_y(&mut self, y: u8) {
-        let mask = (1 << 8) - 1;
-        let attr0 = self.a0;
-        let attr_without_y = attr0 & !mask;
-        let attr_with_new_y = attr_without_y | y as u16;
-        self.a0 = attr_with_new_y;
+        self.a0 = set_bits(self.a0, y as u16, 8, 0)
     }
 
     pub fn set_tile_id(&mut self, id: u16) {
-        let mask = (1 << 9) - 1;
-        assert!(id <= mask, "tile id is greater than 9 bits");
-        let attr = self.a2;
-        let attr = attr & !mask;
-        let attr = attr | id;
-        self.a2 = attr;
+        self.a2 = set_bits(self.a2, id, 9, 0);
     }
 
     pub fn set_mode(&mut self, mode: Mode) {
-        let mask = 0b11 << 0x8;
-        self.a0 = (self.a0 & !mask) | ((mode as u16) << 0x8);
+        self.a0 = set_bits(self.a0, mode as u16, 2, 8);
     }
 }
 
