@@ -7,6 +7,7 @@ const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
 #[non_exhaustive]
 pub struct ObjectControl {
     object_count: u8,
+    affine_count: u8,
 }
 
 pub struct ObjectStandard {
@@ -165,7 +166,10 @@ impl ObjectControl {
         for index in 0..128 {
             unsafe { o.commit(index) };
         }
-        ObjectControl { object_count: 0 }
+        ObjectControl {
+            object_count: 0,
+            affine_count: 0,
+        }
     }
 
     pub fn enable(&mut self) {
@@ -186,6 +190,21 @@ impl ObjectControl {
         assert!(id < 128, "object id must be less than 128");
         ObjectStandard {
             attributes: ObjectAttribute::new(),
+            id,
+        }
+    }
+
+    pub fn get_affine(&mut self) -> AffineMatrix {
+        let id = self.affine_count;
+        self.affine_count += 1;
+        assert!(id < 32, "affine id must be less than 32");
+        AffineMatrix {
+            attributes: AffineMatrixAttributes {
+                p_a: 0,
+                p_b: 0,
+                p_c: 0,
+                p_d: 0,
+            },
             id,
         }
     }
