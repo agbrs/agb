@@ -62,7 +62,7 @@ pub fn main() -> ! {
 
     object.enable();
     let mut chicken = Character {
-        object: object.get_object(),
+        object: object.get_object_standard(),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,
