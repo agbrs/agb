@@ -88,6 +88,9 @@ impl ObjectAffine {
     pub fn hide(&mut self) {
         self.attributes.set_mode(Mode::Hidden)
     }
+    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
+        self.attributes.set_affine(aff.id);
+    }
 }
 
 fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
