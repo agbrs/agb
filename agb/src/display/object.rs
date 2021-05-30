@@ -52,7 +52,10 @@ pub struct ObjectAttribute {
 impl ObjectAttribute {
     unsafe fn commit(&self, index: usize) {
         OBJECT_MEMORY_STANDARD.set(index * 2, self.low);
-        OBJECT_MEMORY_STANDARD.set(index * 2 + 1, self.high);
+        // preserve top set of bits
+        let high_bits = OBJECT_MEMORY_STANDARD.get(index * 2 + 1);
+        let new_high_bits = (high_bits & !((1 << 16) - 1)) | self.high;
+        OBJECT_MEMORY_STANDARD.set(index * 2 + 1, new_high_bits);
     }
 
     pub fn set_hflip(&mut self, hflip: bool) {
