@@ -31,8 +31,8 @@ fn tile_is_collidable(tile: u16) -> bool {
     masked == 0 || masked == 4
 }
 
-fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u32 {
-    ((count / delay) % (end + 1 - start)) + start
+fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u16 {
+    (((count / delay) % (end + 1 - start)) + start) as u16
 }
 
 #[no_mangle]
@@ -61,9 +61,8 @@ pub fn main() -> ! {
     let mut object = gfx.object;
 
     object.enable();
-    unsafe { object.clear_objects() };
     let mut chicken = Character {
-        object: unsafe { object.get_object(0) },
+        object: object.get_object(),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,
