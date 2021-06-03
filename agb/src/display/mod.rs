@@ -4,13 +4,21 @@ use bitflags::bitflags;
 use vblank::VBlankGiver;
 use video::Video;
 
+/// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
+/// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
 pub mod bitmap4;
+/// Test logo of agb.
 pub mod example_logo;
+/// Implements sprites.
 pub mod object;
+/// Palette type.
 pub mod palette16;
+/// Graphics mode 0. Four regular backgrounds.
 pub mod tiled0;
+/// Syscall for waiting for vblank.
 pub mod vblank;
+/// Giving out graphics mode.
 pub mod video;
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
