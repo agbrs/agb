@@ -1,23 +1,43 @@
 use super::DISPLAY_CONTROL;
 use crate::memory_mapped::MemoryMapped1DArray;
 
-const OBJECT_MEMORY_STANDARD: MemoryMapped1DArray<u32, 256> =
+const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
     unsafe { MemoryMapped1DArray::new(0x0700_0000) };
 
 #[non_exhaustive]
-pub struct ObjectControl {}
+pub struct ObjectControl {
+    object_count: u8,
+    affine_count: u8,
+}
 
-#[non_exhaustive]
 pub struct ObjectStandard {
-    attributes: ObjectAttributeStandard,
-    id: usize,
+    attributes: ObjectAttribute,
+    id: u8,
+}
+
+pub struct ObjectAffine {
+    attributes: ObjectAttribute,
+    id: u8,
+    aff_id: Option<u8>,
+}
+
+pub struct AffineMatrix {
+    pub attributes: AffineMatrixAttributes,
+    id: u8,
+}
+
+pub struct AffineMatrixAttributes {
+    pub p_a: i16,
+    pub p_b: i16,
+    pub p_c: i16,
+    pub p_d: i16,
 }
 
 pub enum Mode {
     Normal = 0,
-    Affline = 1,
+    Affine = 1,
     Hidden = 2,
-    AfflineDouble = 3,
+    AffineDouble = 3,
 }
 
 impl ObjectStandard {
@@ -31,85 +51,124 @@ impl ObjectStandard {
     pub fn set_y(&mut self, y: u8) {
         self.attributes.set_y(y)
     }
-    pub fn set_tile_id(&mut self, id: u32) {
+    pub fn set_tile_id(&mut self, id: u16) {
         self.attributes.set_tile_id(id)
     }
     pub fn set_hflip(&mut self, hflip: bool) {
         self.attributes.set_hflip(hflip)
     }
-}
-
-pub struct ObjectAttributeStandard {
-    low: u32,
-    high: u32,
-}
-
-impl ObjectAttributeStandard {
-    unsafe fn commit(&self, index: usize) {
-        OBJECT_MEMORY_STANDARD.set(index * 2, self.low);
-        OBJECT_MEMORY_STANDARD.set(index * 2 + 1, self.high);
+    pub fn show(&mut self) {
+        self.attributes.set_mode(Mode::Normal)
     }
+    pub fn hide(&mut self) {
+        self.attributes.set_mode(Mode::Hidden)
+    }
+}
 
-    pub fn set_hflip(&mut self, hflip: bool) {
-        let mask = (1 << 0xC) << 16;
-        let attr = self.low;
-        let attr = attr & !mask;
-        if hflip {
-            self.low = attr | mask
-        } else {
-            self.low = attr
-        }
+impl ObjectAffine {
+    pub fn commit(&self) {
+        unsafe { self.attributes.commit(self.id) }
     }
 
     pub fn set_x(&mut self, x: u8) {
-        let mask = ((1 << 8) - 1) << 16;
-        let attr1 = self.low;
-        let attr_without_x = attr1 & !mask;
-        let attr_with_new_x = attr_without_x | ((x as u32) << 16);
-        self.low = attr_with_new_x;
+        self.attributes.set_x(x)
     }
-
     pub fn set_y(&mut self, y: u8) {
-        let mask = (1 << 8) - 1;
-        let attr0 = self.low;
-        let attr_without_y = attr0 & !mask;
-        let attr_with_new_y = attr_without_y | y as u32;
-        self.low = attr_with_new_y;
+        self.attributes.set_y(y)
+    }
+    pub fn set_tile_id(&mut self, id: u16) {
+        self.attributes.set_tile_id(id)
     }
 
-    pub fn set_tile_id(&mut self, id: u32) {
-        let mask = (1 << 9) - 1;
-        assert!(id <= mask, "tile id is greater than 9 bits");
-        let attr = self.high;
-        let attr = attr & !mask;
-        let attr = attr | id;
-        self.high = attr;
+    pub fn show(&mut self) {
+        if self.aff_id.is_none() {
+            panic!("affine matrix should be set")
+        }
+        self.attributes.set_mode(Mode::Affine)
     }
-
-    pub fn set_mode(&mut self, mode: Mode) {
-        let mask = 0b11 << 0x8;
-        self.low = (self.low & !mask) | ((mode as u32) << 0x8);
+    pub fn hide(&mut self) {
+        self.attributes.set_mode(Mode::Hidden)
+    }
+    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
+        self.attributes.set_affine(aff.id);
+        self.aff_id = Some(aff.id);
     }
 }
 
-impl ObjectAttributeStandard {
+fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
+    let mask: u16 = (1 << length) - 1;
+    (current & !(mask << shift)) | ((value & mask) << shift)
+}
+
+pub struct ObjectAttribute {
+    a0: u16,
+    a1: u16,
+    a2: u16,
+}
+
+impl ObjectAttribute {
+    unsafe fn commit(&self, index: u8) {
+        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4, self.a0);
+        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4 + 1, self.a1);
+        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4 + 2, self.a2);
+    }
+
+    pub fn set_hflip(&mut self, hflip: bool) {
+        self.a1 = set_bits(self.a1, hflip as u16, 1, 0xC);
+    }
+
+    pub fn set_x(&mut self, x: u8) {
+        self.a1 = set_bits(self.a1, x as u16, 8, 0);
+    }
+
+    pub fn set_y(&mut self, y: u8) {
+        self.a0 = set_bits(self.a0, y as u16, 8, 0)
+    }
+
+    pub fn set_tile_id(&mut self, id: u16) {
+        self.a2 = set_bits(self.a2, id, 9, 0);
+    }
+
+    pub fn set_mode(&mut self, mode: Mode) {
+        self.a0 = set_bits(self.a0, mode as u16, 2, 8);
+    }
+
+    pub fn set_affine(&mut self, aff_id: u8) {
+        self.a1 = set_bits(self.a1, aff_id as u16, 5, 8);
+    }
+}
+
+impl AffineMatrix {
+    #[allow(clippy::identity_op)]
+    pub fn commit(&self) {
+        let id = self.id as usize;
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 0) * 4 + 3, self.attributes.p_a as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 1) * 4 + 3, self.attributes.p_b as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 2) * 4 + 3, self.attributes.p_c as u16);
+        OBJECT_ATTRIBUTE_MEMORY.set((id + 3) * 4 + 3, self.attributes.p_d as u16);
+    }
+}
+
+impl ObjectAttribute {
     fn new() -> Self {
-        ObjectAttributeStandard { low: 0, high: 0 }
+        ObjectAttribute {
+            a0: 0,
+            a1: 0,
+            a2: 0,
+        }
     }
 }
 
 impl ObjectControl {
     pub(crate) fn new() -> Self {
-        ObjectControl {}
-    }
-
-    /// # Safety
-    /// Temporary, do not call if you currently hold an object
-    pub unsafe fn clear_objects(&mut self) {
-        let mut o = ObjectAttributeStandard::new();
+        let mut o = ObjectAttribute::new();
         o.set_mode(Mode::Hidden);
         for index in 0..128 {
-            o.commit(index);
+            unsafe { o.commit(index) };
+        }
+        ObjectControl {
+            object_count: 0,
+            affine_count: 0,
         }
     }
 
@@ -125,12 +184,38 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
-    /// # Safety
-    /// Temporary function, you must not get multiple objects with the same id
-    pub unsafe fn get_object(&self, id: usize) -> ObjectStandard {
+    pub fn get_object_standard(&mut self) -> ObjectStandard {
+        let id = self.object_count;
+        self.object_count += 1;
         assert!(id < 128, "object id must be less than 128");
         ObjectStandard {
-            attributes: ObjectAttributeStandard::new(),
+            attributes: ObjectAttribute::new(),
+            id,
+        }
+    }
+
+    pub fn get_object_affine(&mut self) -> ObjectAffine {
+        let id = self.object_count;
+        self.object_count += 1;
+        assert!(id < 128, "object id must be less than 128");
+        ObjectAffine {
+            attributes: ObjectAttribute::new(),
+            id,
+            aff_id: None,
+        }
+    }
+
+    pub fn get_affine(&mut self) -> AffineMatrix {
+        let id = self.affine_count;
+        self.affine_count += 1;
+        assert!(id < 32, "affine id must be less than 32");
+        AffineMatrix {
+            attributes: AffineMatrixAttributes {
+                p_a: 0,
+                p_b: 0,
+                p_c: 0,
+                p_d: 0,
+            },
             id,
         }
     }

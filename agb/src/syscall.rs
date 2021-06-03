@@ -1,3 +1,5 @@
+use crate::display::object::AffineMatrixAttributes;
+
 #[allow(non_snake_case)]
 
 pub fn halt() {
@@ -101,4 +103,45 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
         );
     }
     result
+}
+
+pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixAttributes {
+    let mut result = AffineMatrixAttributes {
+        p_a: 0,
+        p_b: 0,
+        p_c: 0,
+        p_d: 0,
+    };
+
+    #[allow(dead_code)]
+    struct Input {
+        x_scale: i16,
+        y_scale: i16,
+        rotation: u16,
+    }
+
+    let input = Input {
+        x_scale,
+        y_scale,
+        rotation,
+    };
+
+    unsafe {
+        asm!("swi 0x0F",
+            in("r0") &input as *const Input as usize,
+            in("r1") &mut result as *mut AffineMatrixAttributes as usize,
+            in("r2") 1,
+            in("r3") 2,
+        )
+    }
+
+    result
+}
+
+#[test_case]
+fn affine(_gba: &mut crate::Gba) {
+    // expect identity matrix
+    let aff = affine_matrix(1 << 8, 1 << 8, 0);
+    assert_eq!(aff.p_a, 1 << 8);
+    assert_eq!(aff.p_d, 1 << 8);
 }
