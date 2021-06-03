@@ -1,11 +1,15 @@
 # Rust for the Game Boy Advance
 
-This is my in development library for rust on the Game Boy Advance. It uses
-information from GbaTek, Tonc, and the existing
-[rust-console/gba](https://github.com/rust-console/gba).
+This is a library for making games on the Game Boy Advance using the Rust
+programming language. It attempts to be a high level abstraction over the
+internal workings of the Game Boy Advance whilst still being high performance
+and memory efficient.
 
-Note that this currently contains no documentation of any kind, unless you count
-examples as documentation.
+The documentation for the latest release can be found on
+[docs.rs](https://docs.rs/agb/latest/agb/). Note that this repository does not
+nesesarily contain the latest release, but in development versions. Futher work
+is needed to improve the documentation.
+
 
 ## Build Requirements
 
