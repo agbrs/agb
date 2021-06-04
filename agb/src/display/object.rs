@@ -87,11 +87,11 @@ impl ObjectStandard<'_> {
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u8) {
+    pub fn set_x(&mut self, x: u16) {
         self.attributes.set_x(x)
     }
     /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u8) {
+    pub fn set_y(&mut self, y: u16) {
         self.attributes.set_y(y)
     }
     /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
@@ -124,11 +124,11 @@ impl<'a> ObjectAffine<'a> {
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u8) {
+    pub fn set_x(&mut self, x: u16) {
         self.attributes.set_x(x)
     }
     /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u8) {
+    pub fn set_y(&mut self, y: u16) {
         self.attributes.set_y(y)
     }
     /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
@@ -203,12 +203,12 @@ impl ObjectAttribute {
         self.a1 = set_bits(self.a1, a1, 2, 0xE);
     }
 
-    fn set_x(&mut self, x: u8) {
-        self.a1 = set_bits(self.a1, x as u16, 8, 0);
+    fn set_x(&mut self, x: u16) {
+        self.a1 = set_bits(self.a1, x, 9, 0);
     }
 
-    fn set_y(&mut self, y: u8) {
-        self.a0 = set_bits(self.a0, y as u16, 8, 0)
+    fn set_y(&mut self, y: u16) {
+        self.a0 = set_bits(self.a0, y, 8, 0)
     }
 
     fn set_tile_id(&mut self, id: u16) {
