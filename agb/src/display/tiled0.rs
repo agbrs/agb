@@ -253,7 +253,7 @@ pub struct Tiled0 {
 
 impl Tiled0 {
     pub(crate) unsafe fn new() -> Self {
-        set_graphics_settings(GraphicsSettings::empty());
+        set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
         set_graphics_mode(DisplayMode::Tiled0);
         Tiled0 {
             used_blocks: 0,
