@@ -116,7 +116,7 @@ impl ObjectStandard<'_> {
     }
 }
 
-impl ObjectAffine<'_> {
+impl<'a> ObjectAffine<'a> {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
     pub fn commit(&self) {
@@ -153,7 +153,7 @@ impl ObjectAffine<'_> {
     }
     /// Sets the affine matrix to use. Changing the affine matrix will change
     /// how the sprite is rendered.
-    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
+    pub fn set_affine_mat(&mut self, aff: &'a AffineMatrix) {
         self.attributes.set_affine(aff.loan.index);
         self.aff_id = Some(aff.loan.index);
     }
