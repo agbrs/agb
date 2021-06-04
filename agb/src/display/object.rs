@@ -196,11 +196,11 @@ impl ObjectAttribute {
     }
 
     fn set_size(&mut self, size: Size) {
-        let lower = size as u16 & 0b11;
-        let upper = (size as u16 >> 2) & 0b11;
+        let a1 = size as u16 & 0b11;
+        let a0 = (size as u16 >> 2) & 0b11;
 
-        self.a0 = set_bits(self.a0, lower, 2, 0xE);
-        self.a1 = set_bits(self.a1, upper, 2, 0xE);
+        self.a0 = set_bits(self.a0, a0, 2, 0xE);
+        self.a1 = set_bits(self.a1, a1, 2, 0xE);
     }
 
     fn set_x(&mut self, x: u8) {
