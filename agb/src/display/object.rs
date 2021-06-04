@@ -295,10 +295,8 @@ impl ObjectControl {
         panic!("affine id must be less than 32");
     }
 
-    /// Get an unused standard object. Currently dropping an unused object will
-    /// not free this. You should either keep around all objects you need
-    /// forever or drop and reobtain ObjectControl. Panics if more than 128
-    /// objects are obtained.
+    /// Get an unused standard object. Panics if more than 128 objects are
+    /// obtained.
     pub fn get_object_standard(&mut self) -> ObjectStandard {
         let id = self.get_unused_object_index();
         ObjectStandard {
@@ -310,10 +308,8 @@ impl ObjectControl {
         }
     }
 
-    /// Get an unused affine object. Currently dropping an unused object will
-    /// not free this. You should either keep around all objects you need
-    /// forever or drop and reobtain ObjectControl. Panics if more than 128
-    /// objects are obtained.
+    /// Get an unused affine object. Panics if more than 128 objects are
+    /// obtained.
     pub fn get_object_affine(&mut self) -> ObjectAffine {
         let id = self.get_unused_object_index();
         ObjectAffine {
@@ -326,10 +322,8 @@ impl ObjectControl {
         }
     }
 
-    /// Get an unused affine matrix. Currently dropping an unused object will
-    /// not free this. You should either keep around all affine matricies you
-    /// need forever or drop and reobtain ObjectControl. Panics if more than 32
-    /// affine matricies are obtained.
+    /// Get an unused affine matrix. Panics if more than 32 affine matricies are
+    /// obtained.
     pub fn get_affine(&mut self) -> AffineMatrix {
         let id = self.get_unused_affine_index();
         AffineMatrix {
