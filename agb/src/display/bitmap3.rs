@@ -9,6 +9,7 @@ use core::convert::TryInto;
 const BITMAP_MODE_3: MemoryMapped2DArray<u16, { WIDTH as usize }, { HEIGHT as usize }> =
     unsafe { MemoryMapped2DArray::new(0x600_0000) };
 
+#[non_exhaustive]
 pub struct Bitmap3 {}
 
 impl Bitmap3 {

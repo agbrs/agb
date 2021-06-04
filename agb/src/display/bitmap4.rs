@@ -23,6 +23,7 @@ pub enum Page {
     Back = 1,
 }
 
+#[non_exhaustive]
 pub struct Bitmap4 {}
 
 impl Bitmap4 {
