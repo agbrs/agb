@@ -15,8 +15,8 @@ enum State {
     Flapping,
 }
 
-struct Character {
-    object: ObjectStandard,
+struct Character<'a> {
+    object: ObjectStandard<'a>,
     position: Vector2D,
     velocity: Vector2D,
 }
