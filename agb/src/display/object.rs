@@ -1,4 +1,5 @@
 use super::DISPLAY_CONTROL;
+use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
 
 const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
@@ -6,8 +7,8 @@ const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
 
 /// Handles distributing objects and matricies along with operations that effect all objects.
 pub struct ObjectControl {
-    object_count: u8,
-    affine_count: u8,
+    objects: Bitarray<4>,
+    affines: Bitarray<1>,
 }
 
 /// The standard object, without rotation.
@@ -227,8 +228,8 @@ impl ObjectControl {
             unsafe { o.commit(index) };
         }
         ObjectControl {
-            object_count: 0,
-            affine_count: 0,
+            objects: Bitarray::new(),
+            affines: Bitarray::new(),
         }
     }
 
@@ -246,14 +247,32 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
+    fn get_unused_object_index(&mut self) -> u8 {
+        for index in 0..128 {
+            if self.objects.get(index).unwrap() == false {
+                self.objects.set(index, true);
+                return index as u8;
+            }
+        }
+        panic!("object id must be less than 128");
+    }
+
+    fn get_unused_affine_index(&mut self) -> u8 {
+        for index in 0..32 {
+            if self.affines.get(index).unwrap() == false {
+                self.affines.set(index, true);
+                return index as u8;
+            }
+        }
+        panic!("affine id must be less than 32");
+    }
+
     /// Get an unused standard object. Currently dropping an unused object will
     /// not free this. You should either keep around all objects you need
     /// forever or drop and reobtain ObjectControl. Panics if more than 128
     /// objects are obtained.
     pub fn get_object_standard(&mut self) -> ObjectStandard {
-        let id = self.object_count;
-        self.object_count += 1;
-        assert!(id < 128, "object id must be less than 128");
+        let id = self.get_unused_object_index();
         ObjectStandard {
             attributes: ObjectAttribute::new(),
             id,
@@ -265,9 +284,7 @@ impl ObjectControl {
     /// forever or drop and reobtain ObjectControl. Panics if more than 128
     /// objects are obtained.
     pub fn get_object_affine(&mut self) -> ObjectAffine {
-        let id = self.object_count;
-        self.object_count += 1;
-        assert!(id < 128, "object id must be less than 128");
+        let id = self.get_unused_object_index();
         ObjectAffine {
             attributes: ObjectAttribute::new(),
             id,
@@ -280,9 +297,7 @@ impl ObjectControl {
     /// need forever or drop and reobtain ObjectControl. Panics if more than 32
     /// affine matricies are obtained.
     pub fn get_affine(&mut self) -> AffineMatrix {
-        let id = self.affine_count;
-        self.affine_count += 1;
-        assert!(id < 32, "affine id must be less than 32");
+        let id = self.get_unused_affine_index();
         AffineMatrix {
             attributes: AffineMatrixAttributes {
                 p_a: 0,
