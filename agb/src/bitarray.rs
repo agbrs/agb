@@ -9,7 +9,7 @@ impl<const N: usize> Bitarray<N> {
 
     pub fn get(&self, index: usize) -> Option<bool> {
         if index < N * 32 {
-            Some((self.a[index / N] >> (N % 32) & 1) != 0)
+            Some((self.a[index / 32] >> (N % 32) & 1) != 0)
         } else {
             None
         }
@@ -19,7 +19,7 @@ impl<const N: usize> Bitarray<N> {
         let value = value as u32;
         let mask = 1 << (N % 32);
         let value_mask = value << (N % 32);
-        self.a[index / N] = self.a[index / N] & !mask | value_mask
+        self.a[index / 32] = self.a[index / 32] & !mask | value_mask
     }
 }
 
