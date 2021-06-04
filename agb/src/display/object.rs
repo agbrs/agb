@@ -1,3 +1,5 @@
+use core::cell::RefCell;
+
 use super::DISPLAY_CONTROL;
 use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
@@ -7,29 +9,39 @@ const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
 
 /// Handles distributing objects and matricies along with operations that effect all objects.
 pub struct ObjectControl {
-    objects: Bitarray<4>,
-    affines: Bitarray<1>,
+    objects: RefCell<Bitarray<4>>,
+    affines: RefCell<Bitarray<1>>,
+}
+
+struct ObjectLoan<'a> {
+    index: u8,
+    objects: &'a RefCell<Bitarray<4>>,
+}
+
+struct AffineLoan<'a> {
+    index: u8,
+    affines: &'a RefCell<Bitarray<1>>,
 }
 
 /// The standard object, without rotation.
-pub struct ObjectStandard {
+pub struct ObjectStandard<'a> {
     attributes: ObjectAttribute,
-    id: u8,
+    loan: ObjectLoan<'a>,
 }
 
 /// The affine object, with potential for using a transformation matrix to alter
 /// how the sprite is rendered to screen.
-pub struct ObjectAffine {
+pub struct ObjectAffine<'a> {
     attributes: ObjectAttribute,
-    id: u8,
+    loan: ObjectLoan<'a>,
     aff_id: Option<u8>,
 }
 
 /// Refers to an affine matrix in the OAM. Includes both an index and the
 /// components of the affine matrix.
-pub struct AffineMatrix {
+pub struct AffineMatrix<'a> {
     pub attributes: AffineMatrixAttributes,
-    id: u8,
+    loan: AffineLoan<'a>,
 }
 
 /// The components of the affine matrix. The components are fixed point 8:8.
@@ -67,11 +79,11 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
-impl ObjectStandard {
+impl ObjectStandard<'_> {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
     pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.id) }
+        unsafe { self.attributes.commit(self.loan.index) }
     }
 
     /// Sets the x coordinate of the sprite on screen.
@@ -104,11 +116,11 @@ impl ObjectStandard {
     }
 }
 
-impl ObjectAffine {
+impl ObjectAffine<'_> {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
     pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.id) }
+        unsafe { self.attributes.commit(self.loan.index) }
     }
 
     /// Sets the x coordinate of the sprite on screen.
@@ -142,14 +154,28 @@ impl ObjectAffine {
     /// Sets the affine matrix to use. Changing the affine matrix will change
     /// how the sprite is rendered.
     pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
-        self.attributes.set_affine(aff.id);
-        self.aff_id = Some(aff.id);
+        self.attributes.set_affine(aff.loan.index);
+        self.aff_id = Some(aff.loan.index);
     }
 }
 
 fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
     let mask: u16 = (1 << length) - 1;
     (current & !(mask << shift)) | ((value & mask) << shift)
+}
+
+impl Drop for ObjectLoan<'_> {
+    fn drop(&mut self) {
+        let mut objs = self.objects.borrow_mut();
+        objs.set(self.index as usize, false);
+    }
+}
+
+impl Drop for AffineLoan<'_> {
+    fn drop(&mut self) {
+        let mut affs = self.affines.borrow_mut();
+        affs.set(self.index as usize, false);
+    }
 }
 
 struct ObjectAttribute {
@@ -198,11 +224,11 @@ impl ObjectAttribute {
     }
 }
 
-impl AffineMatrix {
+impl AffineMatrix<'_> {
     #[allow(clippy::identity_op)]
     /// Commits matrix to OAM, will cause any objects using this matrix to be updated.
     pub fn commit(&self) {
-        let id = self.id as usize;
+        let id = self.loan.index as usize;
         OBJECT_ATTRIBUTE_MEMORY.set((id + 0) * 4 + 3, self.attributes.p_a as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 1) * 4 + 3, self.attributes.p_b as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 2) * 4 + 3, self.attributes.p_c as u16);
@@ -228,8 +254,8 @@ impl ObjectControl {
             unsafe { o.commit(index) };
         }
         ObjectControl {
-            objects: Bitarray::new(),
-            affines: Bitarray::new(),
+            objects: RefCell::new(Bitarray::new()),
+            affines: RefCell::new(Bitarray::new()),
         }
     }
 
@@ -248,9 +274,10 @@ impl ObjectControl {
     }
 
     fn get_unused_object_index(&mut self) -> u8 {
+        let mut objects = self.objects.borrow_mut();
         for index in 0..128 {
-            if self.objects.get(index).unwrap() == false {
-                self.objects.set(index, true);
+            if objects.get(index).unwrap() == false {
+                objects.set(index, true);
                 return index as u8;
             }
         }
@@ -258,9 +285,10 @@ impl ObjectControl {
     }
 
     fn get_unused_affine_index(&mut self) -> u8 {
+        let mut affines = self.affines.borrow_mut();
         for index in 0..32 {
-            if self.affines.get(index).unwrap() == false {
-                self.affines.set(index, true);
+            if affines.get(index).unwrap() == false {
+                affines.set(index, true);
                 return index as u8;
             }
         }
@@ -275,7 +303,10 @@ impl ObjectControl {
         let id = self.get_unused_object_index();
         ObjectStandard {
             attributes: ObjectAttribute::new(),
-            id,
+            loan: ObjectLoan {
+                objects: &self.objects,
+                index: id,
+            },
         }
     }
 
@@ -287,7 +318,10 @@ impl ObjectControl {
         let id = self.get_unused_object_index();
         ObjectAffine {
             attributes: ObjectAttribute::new(),
-            id,
+            loan: ObjectLoan {
+                objects: &self.objects,
+                index: id,
+            },
             aff_id: None,
         }
     }
@@ -305,7 +339,10 @@ impl ObjectControl {
                 p_c: 0,
                 p_d: 0,
             },
-            id,
+            loan: AffineLoan {
+                affines: &self.affines,
+                index: id,
+            },
         }
     }
 }
