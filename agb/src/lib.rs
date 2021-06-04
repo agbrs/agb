@@ -134,6 +134,17 @@ pub extern "C" fn main() -> ! {
 }
 
 #[cfg(test)]
+fn assert_image_output(image: &str) {
+    let mut mgba = crate::mgba::Mgba::new().unwrap();
+    mgba.print(
+        format_args!("image:{}", image),
+        crate::mgba::DebugLevel::Info,
+    )
+    .unwrap();
+    display::busy_wait_for_VBlank();
+}
+
+#[cfg(test)]
 mod test {
     use super::Gba;
 

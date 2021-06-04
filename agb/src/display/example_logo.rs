@@ -19,13 +19,5 @@ fn logo_display(gba: &mut crate::Gba) {
     back.set_position(0, 0);
     back.show();
 
-    let vblank = gba.display.vblank.get();
-    vblank.wait_for_VBlank();
-    let mut mgba = crate::mgba::Mgba::new().unwrap();
-    mgba.print(
-        format_args!("image:gfx/test_logo.png"),
-        crate::mgba::DebugLevel::Info,
-    )
-    .unwrap();
-    vblank.wait_for_VBlank();
+    crate::assert_image_output("gfx/test_logo.png");
 }
