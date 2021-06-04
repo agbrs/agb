@@ -31,3 +31,24 @@ fn write_and_read(_gba: &mut crate::Gba) {
     assert_eq!(a.get(62).unwrap(), true, "expect set value to be true");
     assert_eq!(a.get(120), None, "expect out of range to give None");
 }
+
+#[test_case]
+fn test_everything(_gba: &mut crate::Gba) {
+    for i in 0..64 {
+        let mut a: Bitarray<2> = Bitarray::new();
+        a.set(i, true);
+        for j in 0..64 {
+            let expected = if i == j { true } else { false };
+            assert_eq!(
+                a.get(j).unwrap(),
+                expected,
+                "set index {} and read {}, expected {} but got {}. u32 of this is {:#b}",
+                i,
+                j,
+                expected,
+                a.get(j).unwrap(),
+                a.a[j / 32],
+            );
+        }
+    }
+}
