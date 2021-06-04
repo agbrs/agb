@@ -344,18 +344,40 @@ impl ObjectControl {
 #[cfg(test)]
 mod tests {
     #[test_case]
-    fn get_and_release(gba: &mut crate::Gba) {
+    fn get_and_release_object(gba: &mut crate::Gba) {
         let gfx = gba.display.video.tiled0();
         let objs = gfx.object;
 
-        {
+        let _o1 = {
             let o0 = objs.get_object_standard();
             let o1 = objs.get_object_standard();
             assert_eq!(o0.loan.index, 0);
             assert_eq!(o1.loan.index, 1);
-        }
+            o1
+        };
 
         let o0 = objs.get_object_standard();
         assert_eq!(o0.loan.index, 0);
+        let o2 = objs.get_object_affine();
+        assert_eq!(o2.loan.index, 2);
+    }
+
+    #[test_case]
+    fn get_and_release_affine(gba: &mut crate::Gba) {
+        let gfx = gba.display.video.tiled0();
+        let objs = gfx.object;
+
+        let _a1 = {
+            let a0 = objs.get_affine();
+            let a1 = objs.get_affine();
+            assert_eq!(a0.loan.index, 0);
+            assert_eq!(a1.loan.index, 1);
+            a1
+        };
+
+        let a0 = objs.get_affine();
+        assert_eq!(a0.loan.index, 0);
+        let a2 = objs.get_affine();
+        assert_eq!(a2.loan.index, 2);
     }
 }
