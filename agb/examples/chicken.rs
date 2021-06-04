@@ -151,8 +151,8 @@ fn update_chicken_object(chicken: &mut Character, state: State, frame_count: u32
         }
     }
 
-    let x: u8 = (chicken.position.x >> 8).try_into().unwrap();
-    let y: u8 = (chicken.position.y >> 8).try_into().unwrap();
+    let x: u16 = (chicken.position.x >> 8).try_into().unwrap();
+    let y: u16 = (chicken.position.y >> 8).try_into().unwrap();
 
     chicken.object.set_x(x - 4);
     chicken.object.set_y(y - 4);
