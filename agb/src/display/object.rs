@@ -47,6 +47,25 @@ enum Mode {
     AffineDouble = 3,
 }
 
+#[derive(Clone, Copy)]
+pub enum Size {
+    // stored as attr0 attr1
+    S8x8 = 0b00_00,
+    S16x16 = 0b00_01,
+    S32x32 = 0b00_10,
+    S64x64 = 0b00_11,
+
+    S16x8 = 0b01_00,
+    S32x8 = 0b01_01,
+    S32x16 = 0b01_10,
+    S64x32 = 0b01_11,
+
+    S8x16 = 0b10_00,
+    S8x32 = 0b10_01,
+    S16x32 = 0b10_10,
+    S32x64 = 0b10_11,
+}
+
 impl ObjectStandard {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
@@ -69,6 +88,10 @@ impl ObjectStandard {
     /// Sets whether the sprite is horizontally mirrored or not.
     pub fn set_hflip(&mut self, hflip: bool) {
         self.attributes.set_hflip(hflip)
+    }
+    /// Sets the sprite size, will read tiles in x major order to construct this.
+    pub fn set_sprite_size(&mut self, size: Size) {
+        self.attributes.set_size(size);
     }
     /// Show the object on screen.
     pub fn show(&mut self) {
@@ -98,6 +121,10 @@ impl ObjectAffine {
     /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
     pub fn set_tile_id(&mut self, id: u16) {
         self.attributes.set_tile_id(id)
+    }
+    /// Sets the sprite size, will read tiles in x major order to construct this.
+    pub fn set_sprite_size(&mut self, size: Size) {
+        self.attributes.set_size(size);
     }
 
     /// Show the object on screen. Panics if affine matrix has not been set.
@@ -139,6 +166,14 @@ impl ObjectAttribute {
 
     fn set_hflip(&mut self, hflip: bool) {
         self.a1 = set_bits(self.a1, hflip as u16, 1, 0xC);
+    }
+
+    fn set_size(&mut self, size: Size) {
+        let lower = size as u16 & 0b11;
+        let upper = (size as u16 >> 2) & 0b11;
+
+        self.a0 = set_bits(self.a0, lower, 2, 0xE);
+        self.a1 = set_bits(self.a1, upper, 2, 0xE);
     }
 
     fn set_x(&mut self, x: u8) {
