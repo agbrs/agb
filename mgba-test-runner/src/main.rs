@@ -18,7 +18,7 @@ enum Status {
 
 fn test_file(file_to_run: &str) -> Status {
     let mut finished = Status::Running;
-    let debug_reader_mutex = Regex::new(r"^\[(.*)\] GBA Debug: (.*)$").unwrap();
+    let debug_reader_mutex = Regex::new(r"(?s)^\[(.*)\] GBA Debug: (.*)$").unwrap();
 
     let mut mgba = runner::MGBA::new(file_to_run);
     let video_buffer = mgba.get_video_buffer();
