@@ -273,7 +273,7 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
-    fn get_unused_object_index(&mut self) -> u8 {
+    fn get_unused_object_index(&self) -> u8 {
         let mut objects = self.objects.borrow_mut();
         for index in 0..128 {
             if objects.get(index).unwrap() == false {
@@ -284,7 +284,7 @@ impl ObjectControl {
         panic!("object id must be less than 128");
     }
 
-    fn get_unused_affine_index(&mut self) -> u8 {
+    fn get_unused_affine_index(&self) -> u8 {
         let mut affines = self.affines.borrow_mut();
         for index in 0..32 {
             if affines.get(index).unwrap() == false {
@@ -297,7 +297,7 @@ impl ObjectControl {
 
     /// Get an unused standard object. Panics if more than 128 objects are
     /// obtained.
-    pub fn get_object_standard(&mut self) -> ObjectStandard {
+    pub fn get_object_standard(&self) -> ObjectStandard {
         let id = self.get_unused_object_index();
         ObjectStandard {
             attributes: ObjectAttribute::new(),
@@ -310,7 +310,7 @@ impl ObjectControl {
 
     /// Get an unused affine object. Panics if more than 128 objects are
     /// obtained.
-    pub fn get_object_affine(&mut self) -> ObjectAffine {
+    pub fn get_object_affine(&self) -> ObjectAffine {
         let id = self.get_unused_object_index();
         ObjectAffine {
             attributes: ObjectAttribute::new(),
@@ -324,7 +324,7 @@ impl ObjectControl {
 
     /// Get an unused affine matrix. Panics if more than 32 affine matricies are
     /// obtained.
-    pub fn get_affine(&mut self) -> AffineMatrix {
+    pub fn get_affine(&self) -> AffineMatrix {
         let id = self.get_unused_affine_index();
         AffineMatrix {
             attributes: AffineMatrixAttributes {
@@ -338,5 +338,24 @@ impl ObjectControl {
                 index: id,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn get_and_release(gba: &mut crate::Gba) {
+        let gfx = gba.display.video.tiled0();
+        let objs = gfx.object;
+
+        {
+            let o0 = objs.get_object_standard();
+            let o1 = objs.get_object_standard();
+            assert_eq!(o0.loan.index, 0);
+            assert_eq!(o1.loan.index, 1);
+        }
+
+        let o0 = objs.get_object_standard();
+        assert_eq!(o0.loan.index, 0);
     }
 }
