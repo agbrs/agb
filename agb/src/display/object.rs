@@ -276,7 +276,7 @@ impl ObjectControl {
     fn get_unused_object_index(&self) -> u8 {
         let mut objects = self.objects.borrow_mut();
         for index in 0..128 {
-            if objects.get(index).unwrap() == false {
+            if !objects.get(index).unwrap() {
                 objects.set(index, true);
                 return index as u8;
             }
@@ -287,7 +287,7 @@ impl ObjectControl {
     fn get_unused_affine_index(&self) -> u8 {
         let mut affines = self.affines.borrow_mut();
         for index in 0..32 {
-            if affines.get(index).unwrap() == false {
+            if !affines.get(index).unwrap() {
                 affines.set(index, true);
                 return index as u8;
             }
