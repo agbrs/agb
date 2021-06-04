@@ -10,20 +10,20 @@ void log_output(struct mLogger* _log, int category, enum mLogLevel level,
                 const char* format, va_list args);
 char* log_level_str(enum mLogLevel);
 
-static void (*EXTERNAL_LOGGING)(char*);
-
-struct mLogger LOGGER = {.log = log_output};
-
 struct MGBA {
+    struct mLogger mlogger;
     struct mCore* core;
     struct video_buffer videoBuffer;
     char* filename;
+    struct callback callback;
 };
 
 struct MGBA* new_runner(char* filename) {
     struct MGBA* mgba = malloc(sizeof(struct MGBA));
+    mgba->mlogger.log = log_output;
+    mgba->callback.callback = NULL;
 
-    mLogSetDefaultLogger(&LOGGER);
+    mLogSetDefaultLogger(&mgba->mlogger);
 
     char* filename_new = strdup(filename);
     mgba->filename = filename_new;
@@ -61,10 +61,13 @@ struct MGBA* new_runner(char* filename) {
     return mgba;
 }
 
-void set_logger(void logger(char*)) { EXTERNAL_LOGGING = logger; }
+void set_logger(struct MGBA* mgba, struct callback callback) {
+    mgba->callback = callback;
+}
 
 void free_runner(struct MGBA* mgba) {
     mgba->core->deinit(mgba->core);
+    mgba->callback.destroy(mgba->callback.data);
     free(mgba->filename);
     free(mgba->videoBuffer.buffer);
     free(mgba);
@@ -76,9 +79,12 @@ struct video_buffer get_video_buffer(struct MGBA* mgba) {
     return mgba->videoBuffer;
 }
 
-void log_output(struct mLogger* _log, int category, enum mLogLevel level,
+void log_output(struct mLogger* log, int category, enum mLogLevel level,
                 const char* format, va_list args) {
-    UNUSED(_log);
+    // cast log to mgba, this works as the logger is the top entry of the mgba
+    // struct
+    struct MGBA* mgba = (struct MGBA*)log;
+
     if (level & 31) {
         int32_t size = 0;
 
@@ -97,11 +103,11 @@ void log_output(struct mLogger* _log, int category, enum mLogLevel level,
         size -= offset;
         vsnprintf(&str[offset], size, format, args);
 
-        if (EXTERNAL_LOGGING != NULL) {
-            EXTERNAL_LOGGING(str);
-        } else {
+        if (mgba->callback.callback != NULL)
+            mgba->callback.callback(mgba->callback.data, str);
+        else
             printf("%s\n", str);
-        }
+
         free(str);
     }
 }

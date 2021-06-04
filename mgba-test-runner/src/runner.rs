@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
 
@@ -35,7 +36,6 @@ impl VideoBuffer {
 
 impl MGBA {
     pub fn new(filename: &str) -> Self {
-        unsafe { bindings::set_logger(Some(logger)) };
         let c_str = CString::new(filename).expect("should be able to make cstring from filename");
         MGBA {
             mgba: unsafe { bindings::new_runner(c_str.as_ptr() as *mut i8) },
@@ -54,28 +54,45 @@ impl MGBA {
     pub fn advance_frame(&mut self) {
         unsafe { bindings::advance_frame(self.mgba) }
     }
-}
-
-static mut CALLBACK: Option<Box<dyn Fn(&str)>> = None;
-
-pub fn set_logger(x: Box<dyn Fn(&str)>) {
-    unsafe {
-        assert!(CALLBACK.is_none());
-        CALLBACK = Some(x);
+    pub fn set_logger(&mut self, mut logger: impl FnMut(&str)) {
+        unsafe {
+            let callback = generate_c_callback(move |message: *mut i8| {
+                logger(
+                    CStr::from_ptr(message)
+                        .to_str()
+                        .expect("should be able to convert logging message to rust String"),
+                );
+            });
+            bindings::set_logger(self.mgba, callback)
+        }
     }
 }
 
-pub fn clear_logger() {
-    unsafe { CALLBACK = None }
+unsafe fn generate_c_callback<F>(f: F) -> bindings::callback
+where
+    F: FnMut(*mut i8),
+{
+    let data = Box::into_raw(Box::new(f));
+
+    bindings::callback {
+        callback: Some(call_closure::<F>),
+        data: data as *mut _,
+        destroy: Some(drop_box::<F>),
+    }
 }
 
-extern "C" fn logger(c_str: *mut i8) {
+extern "C" fn call_closure<F>(data: *mut c_void, message: *mut i8)
+where
+    F: FnMut(*mut i8),
+{
+    let callback_ptr = data as *mut F;
+    let callback = unsafe { &mut *callback_ptr };
+    callback(message);
+}
+
+extern "C" fn drop_box<T>(data: *mut c_void) {
     unsafe {
-        if let Some(f) = &CALLBACK {
-            f(CStr::from_ptr(c_str)
-                .to_str()
-                .expect("should be able to convert logging message to rust String"));
-        }
+        Box::from_raw(data as *mut T);
     }
 }
 
