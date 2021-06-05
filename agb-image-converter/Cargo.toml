@@ -7,5 +7,5 @@ license = "MPL-2.0"
 description = "Library for converting graphics for use on the Game Boy Advance"
 
 [dependencies]
-image = "0.23.14"
+image = { version = "0.23.14", default-features = false, features = [ "png", "bmp" ] }
 typed-builder = "0.9.0"
