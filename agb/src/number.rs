@@ -132,7 +132,14 @@ impl<const N: usize> Num<N> {
     }
 
     pub fn int(&self) -> i32 {
-        self.0 >> N
+        let fractional_part = self.0 & ((1 << N) - 1);
+        let self_as_int = self.0 >> N;
+
+        if self_as_int < 0 && fractional_part != 0 {
+            self_as_int + 1
+        } else {
+            self_as_int
+        }
     }
 
     pub fn new(integral: i32) -> Self {
