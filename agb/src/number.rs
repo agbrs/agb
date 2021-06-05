@@ -210,7 +210,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         self.0
     }
 
-    pub fn int(&self) -> I {
+    pub fn trunc(&self) -> I {
         let fractional_part = self.0 & ((I::one() << N) - I::one());
         let self_as_int = self.0 >> N;
 
@@ -275,16 +275,16 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 #[test_case]
 fn test_numbers(_gba: &mut super::Gba) {
     // test addition
-    let n: Num<8> = 1.into();
+    let n: Num<i32, 8> = 1.into();
     assert_eq!(n + 2, 3.into(), "testing that 1 + 2 == 3");
 
     // test multiplication
-    let n: Num<8> = 5.into();
+    let n: Num<i32, 8> = 5.into();
     assert_eq!(n * 3, 15.into(), "testing that 5 * 3 == 15");
 
     // test division
-    let n: Num<8> = 30.into();
-    let p: Num<8> = 3.into();
+    let n: Num<i32, 8> = 30.into();
+    let p: Num<i32, 8> = 3.into();
     assert_eq!(n / 20, p / 2, "testing that 30 / 20 == 3 / 2");
 
     assert_ne!(n, p, "testing that 30 != 3");
@@ -292,20 +292,20 @@ fn test_numbers(_gba: &mut super::Gba) {
 
 #[test_case]
 fn test_division_by_one(_gba: &mut super::Gba) {
-    let one: Num<8> = 1.into();
+    let one: Num<i32, 8> = 1.into();
 
     for i in -40..40 {
-        let n: Num<8> = i.into();
+        let n: Num<i32, 8> = i.into();
         assert_eq!(n / one, n);
     }
 }
 
 #[test_case]
 fn test_division_and_multiplication_by_16(_gba: &mut super::Gba) {
-    let sixteen: Num<8> = 16.into();
+    let sixteen: Num<i32, 8> = 16.into();
 
     for i in -40..40 {
-        let n: Num<8> = i.into();
+        let n: Num<i32, 8> = i.into();
         let m = n / sixteen;
 
         assert_eq!(m * sixteen, n);
@@ -314,12 +314,12 @@ fn test_division_and_multiplication_by_16(_gba: &mut super::Gba) {
 
 #[test_case]
 fn test_division_by_2_and_15(_gba: &mut super::Gba) {
-    let two: Num<8> = 2.into();
-    let fifteen: Num<8> = 15.into();
-    let thirty: Num<8> = 30.into();
+    let two: Num<i32, 8> = 2.into();
+    let fifteen: Num<i32, 8> = 15.into();
+    let thirty: Num<i32, 8> = 30.into();
 
     for i in -128..128 {
-        let n: Num<8> = i.into();
+        let n: Num<i32, 8> = i.into();
 
         assert_eq!(n / two / fifteen, n / thirty);
         assert_eq!(n / fifteen / two, n / thirty);
@@ -328,8 +328,8 @@ fn test_division_by_2_and_15(_gba: &mut super::Gba) {
 
 #[test_case]
 fn test_change_base(_gba: &mut super::Gba) {
-    let two: Num<9> = 2.into();
-    let three: Num<4> = 3.into();
+    let two: Num<i32, 9> = 2.into();
+    let three: Num<i32, 4> = 3.into();
 
     assert_eq!(two + change_base(three), 5.into());
     assert_eq!(three + change_base(two), 5.into());
@@ -344,7 +344,7 @@ fn test_rem_returns_sensible_values_for_integers(_gba: &mut super::Gba) {
             }
 
             let i_rem_j_normally = i % j;
-            let i_fixnum: Num<8> = i.into();
+            let i_fixnum: Num<i32, 8> = i.into();
 
             assert_eq!(i_fixnum % j, i_rem_j_normally.into());
         }
@@ -353,7 +353,7 @@ fn test_rem_returns_sensible_values_for_integers(_gba: &mut super::Gba) {
 
 #[test_case]
 fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
-    let one: Num<8> = 1.into();
+    let one: Num<i32, 8> = 1.into();
     let third = one / 3;
 
     for i in -50..50 {
@@ -363,10 +363,10 @@ fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
             }
 
             // full calculation in the normal way
-            let x: Num<8> = third + i;
-            let y: Num<8> = j.into();
+            let x: Num<i32, 8> = third + i;
+            let y: Num<i32, 8> = j.into();
 
-            let truncated_division: Num<8> = (x / y).trunc().into();
+            let truncated_division: Num<i32, 8> = (x / y).trunc().into();
 
             let remainder = x - truncated_division * y;
 
@@ -377,7 +377,7 @@ fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
 
 #[test_case]
 fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
-    let one: Num<8> = 1.into();
+    let one: Num<i32, 8> = 1.into();
     let third = one / 3;
 
     for i in -50..50 {
@@ -386,13 +386,8 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
                 continue;
             }
 
-            // full calculation in the normal way
-            let x: Num<8> = third + i;
-            let y: Num<8> = j.into();
-
-            let truncated_division: Num<8> = (x / y).trunc().into();
-
-            let remainder = x - truncated_division * y;
+            let x: Num<i32, 8> = third + i;
+            let y: Num<i32, 8> = j.into();
 
             let rem_euclid = x.rem_euclid(y);
             assert!(rem_euclid > 0.into());
