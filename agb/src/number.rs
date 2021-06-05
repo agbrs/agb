@@ -1,12 +1,63 @@
 use core::{
+    cmp::{Eq, Ord, PartialEq, PartialOrd},
     fmt::{Debug, Display},
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
+    ops::{
+        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
+        Sub, SubAssign,
+    },
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Num<const N: usize>(i32);
+pub trait FixedWidthInteger:
+    Sized
+    + Copy
+    + PartialOrd
+    + Ord
+    + PartialEq
+    + Eq
+    + Shl<usize, Output = Self>
+    + Shr<usize, Output = Self>
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Not<Output = Self>
+    + BitAnd<Output = Self>
+    + Neg<Output = Self>
+    + Rem<Output = Self>
+    + Div<Output = Self>
+    + Mul<Output = Self>
+    + From<u8>
+    + Debug
+    + Display
+{
+    fn zero() -> Self;
+    fn one() -> Self;
+    fn ten() -> Self;
+    fn abs(self) -> Self;
+}
 
-pub fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
+impl FixedWidthInteger for i32 {
+    fn zero() -> Self {
+        0
+    }
+
+    fn one() -> Self {
+        1
+    }
+
+    fn ten() -> Self {
+        10
+    }
+
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Num<I: FixedWidthInteger, const N: usize>(I);
+
+pub fn change_base<I: FixedWidthInteger, const N: usize, const M: usize>(
+    num: Num<I, N>,
+) -> Num<I, M> {
     if N < M {
         Num(num.0 << (M - N))
     } else {
@@ -14,15 +65,16 @@ pub fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
     }
 }
 
-impl<const N: usize> From<i32> for Num<N> {
-    fn from(value: i32) -> Self {
+impl<I: FixedWidthInteger, const N: usize> From<I> for Num<I, N> {
+    fn from(value: I) -> Self {
         Num(value << N)
     }
 }
 
-impl<T, const N: usize> Add<T> for Num<N>
+impl<I, T, const N: usize> Add<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     type Output = Self;
     fn add(self, rhs: T) -> Self::Output {
@@ -30,18 +82,20 @@ where
     }
 }
 
-impl<T, const N: usize> AddAssign<T> for Num<N>
+impl<I, T, const N: usize> AddAssign<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     fn add_assign(&mut self, rhs: T) {
         self.0 = (*self + rhs.into()).0
     }
 }
 
-impl<T, const N: usize> Sub<T> for Num<N>
+impl<I, T, const N: usize> Sub<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     type Output = Self;
     fn sub(self, rhs: T) -> Self::Output {
@@ -49,18 +103,20 @@ where
     }
 }
 
-impl<T, const N: usize> SubAssign<T> for Num<N>
+impl<I, T, const N: usize> SubAssign<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     fn sub_assign(&mut self, rhs: T) {
         self.0 = (*self - rhs.into()).0
     }
 }
 
-impl<T, const N: usize> Mul<T> for Num<N>
+impl<I, T, const N: usize> Mul<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     type Output = Self;
     fn mul(self, rhs: T) -> Self::Output {
@@ -68,18 +124,20 @@ where
     }
 }
 
-impl<T, const N: usize> MulAssign<T> for Num<N>
+impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     fn mul_assign(&mut self, rhs: T) {
         self.0 = (*self * rhs.into()).0
     }
 }
 
-impl<T, const N: usize> Div<T> for Num<N>
+impl<I, T, const N: usize> Div<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     type Output = Self;
     fn div(self, rhs: T) -> Self::Output {
@@ -87,18 +145,20 @@ where
     }
 }
 
-impl<T, const N: usize> DivAssign<T> for Num<N>
+impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
         self.0 = (*self / rhs.into()).0
     }
 }
 
-impl<T, const N: usize> Rem<T> for Num<N>
+impl<I, T, const N: usize> Rem<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     type Output = Self;
     fn rem(self, modulus: T) -> Self::Output {
@@ -106,45 +166,38 @@ where
     }
 }
 
-impl<T, const N: usize> RemAssign<T> for Num<N>
+impl<I, T, const N: usize> RemAssign<T> for Num<I, N>
 where
-    T: Into<Num<N>>,
+    I: FixedWidthInteger,
+    T: Into<Num<I, N>>,
 {
     fn rem_assign(&mut self, modulus: T) {
         self.0 = (*self % modulus).0
     }
 }
 
-impl<const N: usize> Neg for Num<N> {
+impl<I: FixedWidthInteger, const N: usize> Neg for Num<I, N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Num(-self.0)
     }
 }
 
-impl<const N: usize> Num<N> {
-    pub const fn max() -> Self {
-        Num(i32::MAX)
-    }
-
-    pub const fn min() -> Self {
-        Num(i32::MIN)
-    }
-
-    pub const fn from_raw(n: i32) -> Self {
+impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
+    pub fn from_raw(n: I) -> Self {
         Num(n)
     }
 
-    pub const fn to_raw(&self) -> i32 {
+    pub fn to_raw(&self) -> I {
         self.0
     }
 
-    pub const fn trunc(&self) -> i32 {
-        let fractional_part = self.0 & ((1 << N) - 1);
+    pub fn int(&self) -> I {
+        let fractional_part = self.0 & ((I::one() << N) - I::one());
         let self_as_int = self.0 >> N;
 
-        if self_as_int < 0 && fractional_part != 0 {
-            self_as_int + 1
+        if self_as_int < I::zero() && fractional_part != I::zero() {
+            self_as_int + I::one()
         } else {
             self_as_int
         }
@@ -152,8 +205,8 @@ impl<const N: usize> Num<N> {
 
     pub fn rem_euclid(&self, rhs: Self) -> Self {
         let r = *self % rhs;
-        if r < 0.into() {
-            if rhs < 0.into() {
+        if r < I::zero().into() {
+            if rhs < I::zero().into() {
                 r - rhs
             } else {
                 r + rhs
@@ -163,31 +216,38 @@ impl<const N: usize> Num<N> {
         }
     }
 
-    pub const fn floor(&self) -> i32 {
+    pub fn floor(&self) -> I {
         self.0 >> N
     }
 
-    pub const fn abs(self) -> Self {
+    pub fn abs(self) -> Self {
         Num(self.0.abs())
     }
 
     /// domain of [0, 1].
     /// see https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226
     pub fn cos(self) -> Self {
-        let one: Self = 1.into();
+        let one: Self = I::one().into();
         let mut x = self;
-        x -= one / 4 + (x + one / 4).floor();
-        x *= (x.abs() - one / 2) * 16;
-        x += x * (x.abs() - 1) * 9 / 40;
+        let four: I = 4.into();
+        let two: I = 2.into();
+        let sixteen: I = 16.into();
+        let nine: I = 9.into();
+        let forty: I = 40.into();
+
+        x -= one / four + (x + one / four).floor();
+        x *= (x.abs() - one / two) * sixteen;
+        x += x * (x.abs() - one) * nine / forty;
         x
     }
 
     pub fn sin(self) -> Self {
-        let one: Self = 1.into();
-        (self - one / 4).cos()
+        let one: Self = I::one().into();
+        let four: I = 4.into();
+        (self - one / four).cos()
     }
 
-    pub const fn new(integral: i32) -> Self {
+    pub fn new(integral: I) -> Self {
         Self(integral << N)
     }
 }
@@ -320,29 +380,32 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
     }
 }
 
-impl<const N: usize> Display for Num<N> {
+impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let integral = self.0 >> N;
-        let mask: u32 = (1 << N) - 1;
+        let mask: I = (I::one() << N) - I::one();
 
         write!(f, "{}", integral)?;
 
-        let mut fractional = self.0 as u32 & mask;
-        if fractional & mask != 0 {
+        let mut fractional = self.0 & mask;
+        if fractional & mask != I::zero() {
             write!(f, ".")?;
         }
-        while fractional & mask != 0 {
-            fractional *= 10;
+
+        while fractional & mask != I::zero() {
+            fractional = fractional * I::ten();
             write!(f, "{}", (fractional & !mask) >> N)?;
-            fractional &= mask;
+            fractional = fractional & mask;
         }
 
         Ok(())
     }
 }
 
-impl<const N: usize> Debug for Num<N> {
+impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Num<{}>({})", N, self)
+        use core::any::type_name;
+
+        write!(f, "Num<{}, {}>({})", type_name::<I>(), N, self)
     }
 }

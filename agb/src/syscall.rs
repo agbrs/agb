@@ -106,7 +106,11 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMatrixAttributes {
+pub fn affine_matrix(
+    x_scale: Num<i32, 8>,
+    y_scale: Num<i32, 8>,
+    rotation: u8,
+) -> AffineMatrixAttributes {
     let mut result = AffineMatrixAttributes {
         p_a: 0,
         p_b: 0,
