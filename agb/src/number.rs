@@ -123,23 +123,23 @@ impl<const N: usize> Neg for Num<N> {
 }
 
 impl<const N: usize> Num<N> {
-    pub fn max() -> Self {
+    pub const fn max() -> Self {
         Num(i32::MAX)
     }
 
-    pub fn min() -> Self {
+    pub const fn min() -> Self {
         Num(i32::MIN)
     }
 
-    pub fn from_raw(n: i32) -> Self {
+    pub const fn from_raw(n: i32) -> Self {
         Num(n)
     }
 
-    pub fn to_raw(&self) -> i32 {
+    pub const fn to_raw(&self) -> i32 {
         self.0
     }
 
-    pub fn int(&self) -> i32 {
+    pub const fn int(&self) -> i32 {
         let fractional_part = self.0 & ((1 << N) - 1);
         let self_as_int = self.0 >> N;
 
@@ -163,7 +163,7 @@ impl<const N: usize> Num<N> {
         }
     }
 
-    pub fn new(integral: i32) -> Self {
+    pub const fn new(integral: i32) -> Self {
         Self(integral << N)
     }
 }
