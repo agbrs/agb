@@ -250,8 +250,7 @@ impl ObjectAttribute {
 
 impl ObjectControl {
     pub(crate) fn new() -> Self {
-        let mut o = ObjectAttribute::new();
-        o.set_mode(Mode::Hidden);
+        let o = ObjectAttribute::new();
         for index in 0..128 {
             unsafe { o.commit(index) };
         }
