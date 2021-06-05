@@ -210,6 +210,46 @@ fn test_change_base(_gba: &mut super::Gba) {
     assert_eq!(three + change_base(two), 5.into());
 }
 
+#[test_case]
+fn test_rem_returns_sensible_values_for_integers(_gba: &mut super::Gba) {
+    for i in -50..50 {
+        for j in -50..50 {
+            if j == 0 {
+                continue;
+            }
+
+            let i_rem_j_normally = i % j;
+            let i_fixnum: Num<8> = i.into();
+
+            assert_eq!(i_fixnum % j, i_rem_j_normally.into());
+        }
+    }
+}
+
+#[test_case]
+fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
+    let one: Num<8> = 1.into();
+    let third = one / 3;
+
+    for i in -50..50 {
+        for j in -50..50 {
+            if j == 0 {
+                continue;
+            }
+
+            // full calculation in the normal way
+            let x: Num<8> = third + i;
+            let y: Num<8> = j.into();
+
+            let truncated_division: Num<8> = (x / y).int().into();
+
+            let remainder = x - truncated_division * y;
+
+            assert_eq!(x % y, remainder);
+        }
+    }
+}
+
 impl<const N: usize> Display for Num<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let integral = self.0 >> N;
