@@ -226,6 +226,6 @@ impl<const N: usize> Display for Num<N> {
 
 impl<const N: usize> Debug for Num<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "Num<{}>({})", N, self)
     }
 }
