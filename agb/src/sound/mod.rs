@@ -7,6 +7,9 @@ const CHANNEL_1_FREQUENCY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::ne
 const CHANNEL_2_LENGTH_DUTY_ENVELOPE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0068) };
 const CHANNEL_2_FREQUENCY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_006c) };
 
+const CHANNEL_4_LENGTH_ENVELOPE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0078) };
+const CHANNEL_4_FREQUENCY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_007c) };
+
 const MASTER_SOUND_VOLUME_ENABLE: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0080) };
 const MASTER_SOUND_VOLUME_MIXING: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0082) };
 const MASTER_SOUND_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0084) };
@@ -25,6 +28,10 @@ impl Sound {
 
     pub fn channel2(&self) -> Channel2 {
         Channel2 {}
+    }
+
+    pub fn noise(&self) -> Noise {
+        Noise {}
     }
 
     pub fn enable(&self) {
@@ -85,6 +92,46 @@ impl Channel2 {
         CHANNEL_2_LENGTH_DUTY_ENVELOPE
             .set(envelope_settings.as_bits() | duty_cycle.as_bits() | length_bits);
         CHANNEL_2_FREQUENCY_CONTROL.set(frequency | length_flag | initial);
+    }
+}
+
+#[non_exhaustive]
+pub struct Noise {}
+
+impl Noise {
+    pub fn play_sound(
+        &self,
+        length: Option<u8>,
+        envelope_setting: &EnvelopeSettings,
+        frequency_divider: u8,
+        counter_step_width_15: bool,
+        shift_clock_frequency: u8,
+    ) {
+        let length_bits = length.unwrap_or(0) as u16;
+        assert!(length_bits < 64, "length must be less than 16");
+
+        assert!(
+            frequency_divider < 8,
+            "frequency divider must be less than 8"
+        );
+        assert!(
+            shift_clock_frequency < 16,
+            "frequency clock divider must be less than 16"
+        );
+
+        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let initial: u16 = 1 << 15;
+
+        let counter_step_bit = if counter_step_width_15 { 0 } else { 1 << 3 };
+
+        CHANNEL_4_LENGTH_ENVELOPE.set(length_bits | envelope_setting.as_bits());
+        CHANNEL_4_FREQUENCY_CONTROL.set(
+            (frequency_divider as u16)
+                | counter_step_bit
+                | ((shift_clock_frequency as u16) << 4)
+                | length_flag
+                | initial,
+        )
     }
 }
 
