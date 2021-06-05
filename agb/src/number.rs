@@ -27,7 +27,7 @@ where
     T: Into<Num<N>>,
 {
     fn add_assign(&mut self, rhs: T) {
-        self.0 += (*self + rhs.into()).0
+        self.0 = (*self + rhs.into()).0
     }
 }
 
