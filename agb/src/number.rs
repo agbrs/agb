@@ -131,6 +131,14 @@ impl<const N: usize> Num<N> {
         Num(i32::MIN)
     }
 
+    pub fn from_raw(n: i32) -> Self {
+        Num(n)
+    }
+
+    pub fn to_raw(&self) -> i32 {
+        self.0
+    }
+
     pub fn int(&self) -> i32 {
         let fractional_part = self.0 & ((1 << N) - 1);
         let self_as_int = self.0 >> N;
