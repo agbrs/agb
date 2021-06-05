@@ -220,7 +220,7 @@ impl ObjectAttribute {
     }
 
     fn set_affine(&mut self, aff_id: u8) {
-        self.a1 = set_bits(self.a1, aff_id as u16, 5, 8);
+        self.a1 = set_bits(self.a1, aff_id as u16, 5, 0x9);
     }
 }
 
