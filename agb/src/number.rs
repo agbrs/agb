@@ -145,7 +145,11 @@ where
 {
     type Output = Self;
     fn mul(self, rhs: T) -> Self::Output {
-        Num((self.0 * rhs.into().0) >> N)
+        let rhs: Self = rhs.into();
+
+        Num(((self.floor() * rhs.floor()) << N)
+            + (self.floor() * rhs.frac() + rhs.floor() * self.frac())
+            + ((self.frac() * rhs.frac()) >> N))
     }
 }
 
@@ -243,6 +247,10 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 
     pub fn floor(&self) -> I {
         self.0 >> N
+    }
+
+    pub fn frac(&self) -> I {
+        self.0 & ((I::one() << N) - I::one())
     }
 
     pub fn new(integral: I) -> Self {
