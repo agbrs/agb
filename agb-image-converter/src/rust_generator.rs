@@ -10,20 +10,14 @@ pub(crate) fn generate_code(
     results: &Palette16OptimisationResults,
     image: &Image,
     tile_size: TileSize,
-    crate_prefix: String,
 ) -> io::Result<()> {
     writeln!(
         output,
-        "pub const PALETTE_DATA: &[{}::display::palette16::Palette16] = &[",
-        crate_prefix,
+        "pub const PALETTE_DATA: &[crate::display::palette16::Palette16] = &[",
     )?;
 
     for palette in &results.optimised_palettes {
-        write!(
-            output,
-            "    {}::display::palette16::Palette16::new([",
-            crate_prefix
-        )?;
+        write!(output, "    crate::display::palette16::Palette16::new([")?;
 
         for colour in palette.clone() {
             write!(output, "0x{:08x}, ", colour.to_rgb15())?;
