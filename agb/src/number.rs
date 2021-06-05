@@ -208,7 +208,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         Num(n)
     }
 
-    pub fn to_raw(&self) -> I {
+    pub fn to_raw(self) -> I {
         self.0
     }
 
