@@ -6,7 +6,7 @@ use core::{
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Num<const N: usize>(i32);
 
-fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
+pub fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
     if N < M {
         Num(num.0 << (M - N))
     } else {
