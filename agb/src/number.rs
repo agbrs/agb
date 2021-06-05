@@ -1,9 +1,9 @@
 use core::{
-    fmt::Display,
+    fmt::{Debug, Display},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<const N: usize>(i32);
 
 pub fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
@@ -221,5 +221,11 @@ impl<const N: usize> Display for Num<N> {
         }
 
         Ok(())
+    }
+}
+
+impl<const N: usize> Debug for Num<N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self)
     }
 }
