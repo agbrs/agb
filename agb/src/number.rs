@@ -1,6 +1,6 @@
 use core::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -96,6 +96,25 @@ where
     }
 }
 
+impl<T, const N: usize> Rem<T> for Num<N>
+where
+    T: Into<Num<N>>,
+{
+    type Output = Self;
+    fn rem(self, modulus: T) -> Self::Output {
+        Num(self.0 % modulus.into().0)
+    }
+}
+
+impl<T, const N: usize> RemAssign<T> for Num<N>
+where
+    T: Into<Num<N>>,
+{
+    fn rem_assign(&mut self, modulus: T) {
+        self.0 = (*self % modulus).0
+    }
+}
+
 impl<const N: usize> Neg for Num<N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
@@ -107,6 +126,7 @@ impl<const N: usize> Num<N> {
     pub fn max() -> Self {
         Num(i32::MAX)
     }
+
     pub fn min() -> Self {
         Num(i32::MIN)
     }
