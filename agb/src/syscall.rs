@@ -115,6 +115,7 @@ pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMa
     };
 
     #[allow(dead_code)]
+    #[repr(C, packed)]
     struct Input {
         x_scale: i16,
         y_scale: i16,
