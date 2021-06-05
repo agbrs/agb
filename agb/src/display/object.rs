@@ -1,4 +1,7 @@
+use core::cell::RefCell;
+
 use super::DISPLAY_CONTROL;
+use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
 
 const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
@@ -6,29 +9,39 @@ const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
 
 /// Handles distributing objects and matricies along with operations that effect all objects.
 pub struct ObjectControl {
-    object_count: u8,
-    affine_count: u8,
+    objects: RefCell<Bitarray<4>>,
+    affines: RefCell<Bitarray<1>>,
+}
+
+struct ObjectLoan<'a> {
+    index: u8,
+    objects: &'a RefCell<Bitarray<4>>,
+}
+
+struct AffineLoan<'a> {
+    index: u8,
+    affines: &'a RefCell<Bitarray<1>>,
 }
 
 /// The standard object, without rotation.
-pub struct ObjectStandard {
+pub struct ObjectStandard<'a> {
     attributes: ObjectAttribute,
-    id: u8,
+    loan: ObjectLoan<'a>,
 }
 
 /// The affine object, with potential for using a transformation matrix to alter
 /// how the sprite is rendered to screen.
-pub struct ObjectAffine {
+pub struct ObjectAffine<'a> {
     attributes: ObjectAttribute,
-    id: u8,
+    loan: ObjectLoan<'a>,
     aff_id: Option<u8>,
 }
 
 /// Refers to an affine matrix in the OAM. Includes both an index and the
 /// components of the affine matrix.
-pub struct AffineMatrix {
+pub struct AffineMatrix<'a> {
     pub attributes: AffineMatrixAttributes,
-    id: u8,
+    loan: AffineLoan<'a>,
 }
 
 /// The components of the affine matrix. The components are fixed point 8:8.
@@ -66,19 +79,19 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
-impl ObjectStandard {
+impl ObjectStandard<'_> {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
     pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.id) }
+        unsafe { self.attributes.commit(self.loan.index) }
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u8) {
+    pub fn set_x(&mut self, x: u16) {
         self.attributes.set_x(x)
     }
     /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u8) {
+    pub fn set_y(&mut self, y: u16) {
         self.attributes.set_y(y)
     }
     /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
@@ -103,19 +116,19 @@ impl ObjectStandard {
     }
 }
 
-impl ObjectAffine {
+impl<'a> ObjectAffine<'a> {
     /// Commits the object to OAM such that the updated version is displayed on
     /// screen. Recommend to do this during VBlank.
     pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.id) }
+        unsafe { self.attributes.commit(self.loan.index) }
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u8) {
+    pub fn set_x(&mut self, x: u16) {
         self.attributes.set_x(x)
     }
     /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u8) {
+    pub fn set_y(&mut self, y: u16) {
         self.attributes.set_y(y)
     }
     /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
@@ -140,15 +153,29 @@ impl ObjectAffine {
     }
     /// Sets the affine matrix to use. Changing the affine matrix will change
     /// how the sprite is rendered.
-    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
-        self.attributes.set_affine(aff.id);
-        self.aff_id = Some(aff.id);
+    pub fn set_affine_mat(&mut self, aff: &'a AffineMatrix) {
+        self.attributes.set_affine(aff.loan.index);
+        self.aff_id = Some(aff.loan.index);
     }
 }
 
 fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
     let mask: u16 = (1 << length) - 1;
     (current & !(mask << shift)) | ((value & mask) << shift)
+}
+
+impl Drop for ObjectLoan<'_> {
+    fn drop(&mut self) {
+        let mut objs = self.objects.borrow_mut();
+        objs.set(self.index as usize, false);
+    }
+}
+
+impl Drop for AffineLoan<'_> {
+    fn drop(&mut self) {
+        let mut affs = self.affines.borrow_mut();
+        affs.set(self.index as usize, false);
+    }
 }
 
 struct ObjectAttribute {
@@ -169,19 +196,19 @@ impl ObjectAttribute {
     }
 
     fn set_size(&mut self, size: Size) {
-        let lower = size as u16 & 0b11;
-        let upper = (size as u16 >> 2) & 0b11;
+        let a1 = size as u16 & 0b11;
+        let a0 = (size as u16 >> 2) & 0b11;
 
-        self.a0 = set_bits(self.a0, lower, 2, 0xE);
-        self.a1 = set_bits(self.a1, upper, 2, 0xE);
+        self.a0 = set_bits(self.a0, a0, 2, 0xE);
+        self.a1 = set_bits(self.a1, a1, 2, 0xE);
     }
 
-    fn set_x(&mut self, x: u8) {
-        self.a1 = set_bits(self.a1, x as u16, 8, 0);
+    fn set_x(&mut self, x: u16) {
+        self.a1 = set_bits(self.a1, x, 9, 0);
     }
 
-    fn set_y(&mut self, y: u8) {
-        self.a0 = set_bits(self.a0, y as u16, 8, 0)
+    fn set_y(&mut self, y: u16) {
+        self.a0 = set_bits(self.a0, y, 8, 0)
     }
 
     fn set_tile_id(&mut self, id: u16) {
@@ -197,11 +224,11 @@ impl ObjectAttribute {
     }
 }
 
-impl AffineMatrix {
+impl AffineMatrix<'_> {
     #[allow(clippy::identity_op)]
     /// Commits matrix to OAM, will cause any objects using this matrix to be updated.
     pub fn commit(&self) {
-        let id = self.id as usize;
+        let id = self.loan.index as usize;
         OBJECT_ATTRIBUTE_MEMORY.set((id + 0) * 4 + 3, self.attributes.p_a as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 1) * 4 + 3, self.attributes.p_b as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 2) * 4 + 3, self.attributes.p_c as u16);
@@ -227,8 +254,8 @@ impl ObjectControl {
             unsafe { o.commit(index) };
         }
         ObjectControl {
-            object_count: 0,
-            affine_count: 0,
+            objects: RefCell::new(Bitarray::new()),
+            affines: RefCell::new(Bitarray::new()),
         }
     }
 
@@ -246,43 +273,59 @@ impl ObjectControl {
         DISPLAY_CONTROL.set(disp);
     }
 
-    /// Get an unused standard object. Currently dropping an unused object will
-    /// not free this. You should either keep around all objects you need
-    /// forever or drop and reobtain ObjectControl. Panics if more than 128
-    /// objects are obtained.
-    pub fn get_object_standard(&mut self) -> ObjectStandard {
-        let id = self.object_count;
-        self.object_count += 1;
-        assert!(id < 128, "object id must be less than 128");
+    fn get_unused_object_index(&self) -> u8 {
+        let mut objects = self.objects.borrow_mut();
+        for index in 0..128 {
+            if !objects.get(index).unwrap() {
+                objects.set(index, true);
+                return index as u8;
+            }
+        }
+        panic!("object id must be less than 128");
+    }
+
+    fn get_unused_affine_index(&self) -> u8 {
+        let mut affines = self.affines.borrow_mut();
+        for index in 0..32 {
+            if !affines.get(index).unwrap() {
+                affines.set(index, true);
+                return index as u8;
+            }
+        }
+        panic!("affine id must be less than 32");
+    }
+
+    /// Get an unused standard object. Panics if more than 128 objects are
+    /// obtained.
+    pub fn get_object_standard(&self) -> ObjectStandard {
+        let id = self.get_unused_object_index();
         ObjectStandard {
             attributes: ObjectAttribute::new(),
-            id,
+            loan: ObjectLoan {
+                objects: &self.objects,
+                index: id,
+            },
         }
     }
 
-    /// Get an unused affine object. Currently dropping an unused object will
-    /// not free this. You should either keep around all objects you need
-    /// forever or drop and reobtain ObjectControl. Panics if more than 128
-    /// objects are obtained.
-    pub fn get_object_affine(&mut self) -> ObjectAffine {
-        let id = self.object_count;
-        self.object_count += 1;
-        assert!(id < 128, "object id must be less than 128");
+    /// Get an unused affine object. Panics if more than 128 objects are
+    /// obtained.
+    pub fn get_object_affine(&self) -> ObjectAffine {
+        let id = self.get_unused_object_index();
         ObjectAffine {
             attributes: ObjectAttribute::new(),
-            id,
+            loan: ObjectLoan {
+                objects: &self.objects,
+                index: id,
+            },
             aff_id: None,
         }
     }
 
-    /// Get an unused affine matrix. Currently dropping an unused object will
-    /// not free this. You should either keep around all affine matricies you
-    /// need forever or drop and reobtain ObjectControl. Panics if more than 32
-    /// affine matricies are obtained.
-    pub fn get_affine(&mut self) -> AffineMatrix {
-        let id = self.affine_count;
-        self.affine_count += 1;
-        assert!(id < 32, "affine id must be less than 32");
+    /// Get an unused affine matrix. Panics if more than 32 affine matricies are
+    /// obtained.
+    pub fn get_affine(&self) -> AffineMatrix {
+        let id = self.get_unused_affine_index();
         AffineMatrix {
             attributes: AffineMatrixAttributes {
                 p_a: 0,
@@ -290,7 +333,51 @@ impl ObjectControl {
                 p_c: 0,
                 p_d: 0,
             },
-            id,
+            loan: AffineLoan {
+                affines: &self.affines,
+                index: id,
+            },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn get_and_release_object(gba: &mut crate::Gba) {
+        let gfx = gba.display.video.tiled0();
+        let objs = gfx.object;
+
+        let _o1 = {
+            let o0 = objs.get_object_standard();
+            let o1 = objs.get_object_standard();
+            assert_eq!(o0.loan.index, 0);
+            assert_eq!(o1.loan.index, 1);
+            o1
+        };
+
+        let o0 = objs.get_object_standard();
+        assert_eq!(o0.loan.index, 0);
+        let o2 = objs.get_object_affine();
+        assert_eq!(o2.loan.index, 2);
+    }
+
+    #[test_case]
+    fn get_and_release_affine(gba: &mut crate::Gba) {
+        let gfx = gba.display.video.tiled0();
+        let objs = gfx.object;
+
+        let _a1 = {
+            let a0 = objs.get_affine();
+            let a1 = objs.get_affine();
+            assert_eq!(a0.loan.index, 0);
+            assert_eq!(a1.loan.index, 1);
+            a1
+        };
+
+        let a0 = objs.get_affine();
+        assert_eq!(a0.loan.index, 0);
+        let a2 = objs.get_affine();
+        assert_eq!(a2.loan.index, 2);
     }
 }

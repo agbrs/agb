@@ -20,6 +20,7 @@ pub mod input;
 /// Implements sound output.
 pub mod sound;
 
+mod bitarray;
 mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
