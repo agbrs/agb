@@ -145,7 +145,9 @@ pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMa
 #[test_case]
 fn affine(_gba: &mut crate::Gba) {
     // expect identity matrix
-    let aff = affine_matrix(1 << 8, 1 << 8, 0);
-    assert_eq!(aff.p_a, 1 << 8);
-    assert_eq!(aff.p_d, 1 << 8);
+    let one: Num<8> = 1.into();
+
+    let aff = affine_matrix(one, one, 0);
+    assert_eq!(aff.p_a, one.to_raw() as i16);
+    assert_eq!(aff.p_d, one.to_raw() as i16);
 }
