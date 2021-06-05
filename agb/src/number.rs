@@ -6,6 +6,14 @@ use core::{
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Num<const N: usize>(i32);
 
+pub fn change_base<const N: usize, const M: usize>(num: Num<N>) -> Num<M> {
+    if N < M {
+        Num(num.0 << (M - N))
+    } else {
+        Num(num.0 >> (N - M))
+    }
+}
+
 impl<const N: usize> From<i32> for Num<N> {
     fn from(value: i32) -> Self {
         Num(value << N)
@@ -164,6 +172,15 @@ fn test_division_by_2_and_15(_gba: &mut super::Gba) {
         assert_eq!(n / two / fifteen, n / thirty);
         assert_eq!(n / fifteen / two, n / thirty);
     }
+}
+
+#[test_case]
+fn test_change_base(_gba: &mut super::Gba) {
+    let two: Num<9> = 2.into();
+    let three: Num<4> = 3.into();
+
+    assert_eq!(two + change_base(three), 5.into());
+    assert_eq!(three + change_base(two), 5.into());
 }
 
 impl<const N: usize> Display for Num<N> {
