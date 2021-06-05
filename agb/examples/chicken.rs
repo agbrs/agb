@@ -48,7 +48,7 @@ pub fn main() -> ! {
     let vblank = gba.display.vblank.get();
     let mut input = agb::input::ButtonController::new();
 
-    gfx.set_sprite_palette(&CHICKEN_PALETTE);
+    gfx.set_sprite_palette_raw(&CHICKEN_PALETTE);
     gfx.set_sprite_tilemap(&CHICKEN_TILES);
 
     gfx.set_background_palette_raw(&MAP_PALETTE);
