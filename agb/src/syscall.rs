@@ -1,4 +1,5 @@
 use crate::display::object::AffineMatrixAttributes;
+use crate::number::Num;
 
 #[allow(non_snake_case)]
 
@@ -105,7 +106,7 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixAttributes {
+pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMatrixAttributes {
     let mut result = AffineMatrixAttributes {
         p_a: 0,
         p_b: 0,
@@ -114,16 +115,19 @@ pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixA
     };
 
     #[allow(dead_code)]
+    #[repr(C, packed)]
     struct Input {
         x_scale: i16,
         y_scale: i16,
         rotation: u16,
     }
 
+    let rotation_for_input = (rotation as u16) << 8;
+
     let input = Input {
-        x_scale,
-        y_scale,
-        rotation,
+        y_scale: x_scale.to_raw() as i16,
+        x_scale: y_scale.to_raw() as i16,
+        rotation: rotation_for_input,
     };
 
     unsafe {
@@ -141,7 +145,9 @@ pub fn affine_matrix(x_scale: i16, y_scale: i16, rotation: u16) -> AffineMatrixA
 #[test_case]
 fn affine(_gba: &mut crate::Gba) {
     // expect identity matrix
-    let aff = affine_matrix(1 << 8, 1 << 8, 0);
-    assert_eq!(aff.p_a, 1 << 8);
-    assert_eq!(aff.p_d, 1 << 8);
+    let one: Num<8> = 1.into();
+
+    let aff = affine_matrix(one, one, 0);
+    assert_eq!(aff.p_a, one.to_raw() as i16);
+    assert_eq!(aff.p_d, one.to_raw() as i16);
 }
