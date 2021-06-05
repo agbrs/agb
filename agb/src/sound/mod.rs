@@ -129,7 +129,7 @@ impl SweepSettings {
 
     fn as_bits(&self) -> u16 {
         ((self.number_of_sweep_shifts as u16) & 0b111)
-            | (self.sound_direction.as_bits() << 3)
+            | ((1 - self.sound_direction.as_bits()) << 3) // sweep works backwards
             | ((self.sweep_time as u16) & 0b111) << 4
     }
 }
