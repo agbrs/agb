@@ -274,9 +274,20 @@ impl Tiled0 {
     }
 
     /// Copies raw palettes to the background palette without any checks.
-    pub fn set_sprite_palette(&mut self, colour: &[u16]) {
+    pub fn set_sprite_palette_raw(&mut self, colour: &[u16]) {
         for (index, &entry) in colour.iter().enumerate() {
             self.set_sprite_palette_entry(index.try_into().unwrap(), entry)
+        }
+    }
+    fn set_sprite_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+        for (colour_index, &colour) in palette.colours.iter().enumerate() {
+            PALETTE_SPRITE.set(pal_index as usize * 16 + colour_index, colour);
+        }
+    }
+
+    pub fn set_sprite_palettes(&mut self, palettes: &[palette16::Palette16]) {
+        for (palette_index, entry) in palettes.iter().enumerate() {
+            self.set_sprite_palette(palette_index as u8, entry)
         }
     }
 
