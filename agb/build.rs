@@ -24,10 +24,13 @@ fn main() {
 
     println!("cargo:rustc-link-search={}", out_dir);
 
-    convert_image(&ImageConverterConfig {
-        transparent_colour: Some(Colour::from_rgb(1, 1, 1)),
-        tile_size: TileSize::Tile8,
-        input_image: "gfx/test_logo.png".into(),
-        output_file: format!("{}/test_logo.rs", out_dir).into(),
-    });
+    convert_image(
+        ImageConverterConfig::builder()
+            .transparent_colour(Colour::from_rgb(1, 1, 1))
+            .tile_size(TileSize::Tile8)
+            .input_image("gfx/test_logo.png".into())
+            .output_file(format!("{}/test_logo.rs", out_dir).into())
+            .crate_prefix("crate".to_owned())
+            .build(),
+    );
 }
