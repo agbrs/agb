@@ -73,6 +73,8 @@ fixed_width_signed_integer_impl!(i32);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
+pub type Number<const N: usize> = Num<i32, N>;
+
 pub fn change_base<I: FixedWidthUnsignedInteger, const N: usize, const M: usize>(
     num: Num<I, N>,
 ) -> Num<I, M> {
