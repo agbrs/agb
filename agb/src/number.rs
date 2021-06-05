@@ -41,42 +41,26 @@ impl<const N: usize> SubAssign for Num<N> {
 impl<const N: usize> Mul for Num<N> {
     type Output = Self;
     fn mul(self, rhs: Num<N>) -> Self::Output {
-        if N % 2 == 0 {
-            Num((self.0 >> (N / 2)) * (rhs.0 >> (N / 2)))
-        } else {
-            Num((self.0 >> (1 + N / 2)) * (rhs.0 >> (N / 2)))
-        }
+        Num((self.0 * rhs.0) >> N)
     }
 }
 
 impl<const N: usize> MulAssign for Num<N> {
     fn mul_assign(&mut self, rhs: Self) {
-        if N % 2 == 0 {
-            self.0 = (self.0 >> (N / 2)) * (rhs.0 >> (N / 2))
-        } else {
-            self.0 = (self.0 >> (1 + N / 2)) * (rhs.0 >> (N / 2))
-        }
+        self.0 = (*self * rhs).0
     }
 }
 
 impl<const N: usize> Div for Num<N> {
     type Output = Self;
     fn div(self, rhs: Num<N>) -> Self::Output {
-        if N % 2 == 0 {
-            Num((self.0 << (N / 2)) / (rhs.0 >> (N / 2)))
-        } else {
-            Num((self.0 << (1 + N / 2)) / (rhs.0 >> (N / 2)))
-        }
+        Num((self.0 << N) / rhs.0)
     }
 }
 
 impl<const N: usize> DivAssign for Num<N> {
     fn div_assign(&mut self, rhs: Self) {
-        if N % 2 == 0 {
-            self.0 = (self.0 << (N / 2)) / (rhs.0 >> (N / 2))
-        } else {
-            self.0 = (self.0 << (1 + N / 2)) / (rhs.0 >> (N / 2))
-        }
+        self.0 = (*self / rhs).0
     }
 }
 
