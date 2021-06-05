@@ -7,7 +7,7 @@ use core::{
     },
 };
 
-pub trait FixedWidthInteger:
+pub trait FixedWidthUnsignedInteger:
     Sized
     + Copy
     + PartialOrd
@@ -20,7 +20,6 @@ pub trait FixedWidthInteger:
     + Sub<Output = Self>
     + Not<Output = Self>
     + BitAnd<Output = Self>
-    + Neg<Output = Self>
     + Rem<Output = Self>
     + Div<Output = Self>
     + Mul<Output = Self>
@@ -31,31 +30,50 @@ pub trait FixedWidthInteger:
     fn zero() -> Self;
     fn one() -> Self;
     fn ten() -> Self;
-    fn abs(self) -> Self;
 }
 
-impl FixedWidthInteger for i32 {
-    fn zero() -> Self {
-        0
-    }
-
-    fn one() -> Self {
-        1
-    }
-
-    fn ten() -> Self {
-        10
-    }
-
-    fn abs(self) -> Self {
-        self.abs()
-    }
+pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self> {
+    fn fixed_abs(self) -> Self;
 }
+
+macro_rules! fixed_width_unsigned_integer_impl {
+    ($T: ty) => {
+        impl FixedWidthUnsignedInteger for $T {
+            fn zero() -> Self {
+                0
+            }
+            fn one() -> Self {
+                1
+            }
+            fn ten() -> Self {
+                10
+            }
+        }
+    };
+}
+
+macro_rules! fixed_width_signed_integer_impl {
+    ($T: ty) => {
+        impl FixedWidthSignedInteger for $T {
+            fn fixed_abs(self) -> Self {
+                self.abs()
+            }
+        }
+    };
+}
+
+fixed_width_unsigned_integer_impl!(i16);
+fixed_width_unsigned_integer_impl!(u16);
+fixed_width_unsigned_integer_impl!(i32);
+fixed_width_unsigned_integer_impl!(u32);
+
+fixed_width_signed_integer_impl!(i16);
+fixed_width_signed_integer_impl!(i32);
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Num<I: FixedWidthInteger, const N: usize>(I);
+pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
-pub fn change_base<I: FixedWidthInteger, const N: usize, const M: usize>(
+pub fn change_base<I: FixedWidthUnsignedInteger, const N: usize, const M: usize>(
     num: Num<I, N>,
 ) -> Num<I, M> {
     if N < M {
@@ -65,7 +83,7 @@ pub fn change_base<I: FixedWidthInteger, const N: usize, const M: usize>(
     }
 }
 
-impl<I: FixedWidthInteger, const N: usize> From<I> for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
         Num(value << N)
     }
@@ -73,7 +91,7 @@ impl<I: FixedWidthInteger, const N: usize> From<I> for Num<I, N> {
 
 impl<I, T, const N: usize> Add<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -84,7 +102,7 @@ where
 
 impl<I, T, const N: usize> AddAssign<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     fn add_assign(&mut self, rhs: T) {
@@ -94,7 +112,7 @@ where
 
 impl<I, T, const N: usize> Sub<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -105,7 +123,7 @@ where
 
 impl<I, T, const N: usize> SubAssign<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     fn sub_assign(&mut self, rhs: T) {
@@ -115,7 +133,7 @@ where
 
 impl<I, T, const N: usize> Mul<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -126,7 +144,7 @@ where
 
 impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     fn mul_assign(&mut self, rhs: T) {
@@ -136,7 +154,7 @@ where
 
 impl<I, T, const N: usize> Div<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -147,7 +165,7 @@ where
 
 impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
@@ -157,7 +175,7 @@ where
 
 impl<I, T, const N: usize> Rem<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -168,7 +186,7 @@ where
 
 impl<I, T, const N: usize> RemAssign<T> for Num<I, N>
 where
-    I: FixedWidthInteger,
+    I: FixedWidthUnsignedInteger,
     T: Into<Num<I, N>>,
 {
     fn rem_assign(&mut self, modulus: T) {
@@ -176,14 +194,14 @@ where
     }
 }
 
-impl<I: FixedWidthInteger, const N: usize> Neg for Num<I, N> {
+impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Num(-self.0)
     }
 }
 
-impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     pub fn from_raw(n: I) -> Self {
         Num(n)
     }
@@ -220,8 +238,14 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
         self.0 >> N
     }
 
+    pub fn new(integral: I) -> Self {
+        Self(integral << N)
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     pub fn abs(self) -> Self {
-        Num(self.0.abs())
+        Num(self.0.fixed_abs())
     }
 
     /// domain of [0, 1].
@@ -245,10 +269,6 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
         let one: Self = I::one().into();
         let four: I = 4.into();
         (self - one / four).cos()
-    }
-
-    pub fn new(integral: I) -> Self {
-        Self(integral << N)
     }
 }
 
@@ -380,7 +400,7 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
     }
 }
 
-impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let integral = self.0 >> N;
         let mask: I = (I::one() << N) - I::one();
@@ -402,7 +422,7 @@ impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use core::any::type_name;
 
