@@ -106,7 +106,11 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMatrixAttributes {
+pub fn affine_matrix(
+    x_scale: Num<i16, 8>,
+    y_scale: Num<i16, 8>,
+    rotation: u8,
+) -> AffineMatrixAttributes {
     let mut result = AffineMatrixAttributes {
         p_a: 0,
         p_b: 0,
@@ -125,8 +129,8 @@ pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMa
     let rotation_for_input = (rotation as u16) << 8;
 
     let input = Input {
-        y_scale: x_scale.to_raw() as i16,
-        x_scale: y_scale.to_raw() as i16,
+        y_scale: x_scale.to_raw(),
+        x_scale: y_scale.to_raw(),
         rotation: rotation_for_input,
     };
 
@@ -145,9 +149,9 @@ pub fn affine_matrix(x_scale: Num<8>, y_scale: Num<8>, rotation: u8) -> AffineMa
 #[test_case]
 fn affine(_gba: &mut crate::Gba) {
     // expect identity matrix
-    let one: Num<8> = 1.into();
+    let one: Num<i16, 8> = 1.into();
 
     let aff = affine_matrix(one, one, 0);
-    assert_eq!(aff.p_a, one.to_raw() as i16);
-    assert_eq!(aff.p_d, one.to_raw() as i16);
+    assert_eq!(aff.p_a, one.to_raw());
+    assert_eq!(aff.p_d, one.to_raw());
 }
