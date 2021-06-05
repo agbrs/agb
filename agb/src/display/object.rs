@@ -153,7 +153,7 @@ impl<'a> ObjectAffine<'a> {
     }
     /// Sets the affine matrix to use. Changing the affine matrix will change
     /// how the sprite is rendered.
-    pub fn set_affine_mat(&mut self, aff: &'a AffineMatrix) {
+    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
         self.attributes.set_affine(aff.loan.index);
         self.aff_id = Some(aff.loan.index);
     }
