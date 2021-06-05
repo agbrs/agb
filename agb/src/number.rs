@@ -139,7 +139,7 @@ impl<const N: usize> Num<N> {
         self.0
     }
 
-    pub const fn int(&self) -> i32 {
+    pub const fn trunc(&self) -> i32 {
         let fractional_part = self.0 & ((1 << N) - 1);
         let self_as_int = self.0 >> N;
 
@@ -161,6 +161,30 @@ impl<const N: usize> Num<N> {
         } else {
             r
         }
+    }
+
+    pub const fn floor(&self) -> i32 {
+        self.0 >> N
+    }
+
+    pub const fn abs(self) -> Self {
+        Num(self.0.abs())
+    }
+
+    /// domain of [0, 1].
+    /// see https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226
+    pub fn cos(self) -> Self {
+        let one: Self = 1.into();
+        let mut x = self;
+        x -= one / 4 + (x + one / 4).floor();
+        x *= (x.abs() - one / 2) * 16;
+        x += x * (x.abs() - 1) * 9 / 40;
+        x
+    }
+
+    pub fn sin(self) -> Self {
+        let one: Self = 1.into();
+        (self - one / 4).cos()
     }
 
     pub const fn new(integral: i32) -> Self {
@@ -262,7 +286,7 @@ fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
             let x: Num<8> = third + i;
             let y: Num<8> = j.into();
 
-            let truncated_division: Num<8> = (x / y).int().into();
+            let truncated_division: Num<8> = (x / y).trunc().into();
 
             let remainder = x - truncated_division * y;
 
@@ -286,7 +310,7 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
             let x: Num<8> = third + i;
             let y: Num<8> = j.into();
 
-            let truncated_division: Num<8> = (x / y).int().into();
+            let truncated_division: Num<8> = (x / y).trunc().into();
 
             let remainder = x - truncated_division * y;
 
