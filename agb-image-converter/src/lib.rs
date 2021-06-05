@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::PathBuf;
 
+use typed_builder::TypedBuilder;
+
 mod colour;
 mod image_loader;
 mod palette16;
@@ -26,14 +28,16 @@ impl TileSize {
     }
 }
 
+#[derive(TypedBuilder)]
 pub struct ImageConverterConfig {
-    pub transparent_colour: Option<Colour>,
-    pub tile_size: TileSize,
-    pub input_image: PathBuf,
-    pub output_file: PathBuf,
+    #[builder(default, setter(strip_option))]
+    transparent_colour: Option<Colour>,
+    tile_size: TileSize,
+    input_image: PathBuf,
+    output_file: PathBuf,
 }
 
-pub fn convert_image(settings: &ImageConverterConfig) {
+pub fn convert_image(settings: ImageConverterConfig) {
     let image = Image::load_from_file(&settings.input_image);
 
     let tile_size = settings.tile_size.to_size();

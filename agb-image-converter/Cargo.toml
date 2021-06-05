@@ -8,3 +8,4 @@ description = "Library for converting graphics for use on the Game Boy Advance"
 
 [dependencies]
 image = "0.23.14"
+typed-builder = "0.9.0"
