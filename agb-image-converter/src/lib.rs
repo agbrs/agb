@@ -35,6 +35,9 @@ pub struct ImageConverterConfig {
     tile_size: TileSize,
     input_image: PathBuf,
     output_file: PathBuf,
+
+    #[builder(default, setter(strip_option))]
+    crate_prefix: Option<String>,
 }
 
 pub fn convert_image(settings: ImageConverterConfig) {
@@ -56,6 +59,7 @@ pub fn convert_image(settings: ImageConverterConfig) {
         &optimisation_results,
         &image,
         settings.tile_size,
+        settings.crate_prefix.unwrap_or("agb".to_owned()),
     )
     .expect("Failed to write data");
 }
