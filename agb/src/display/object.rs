@@ -238,18 +238,19 @@ impl AffineMatrix<'_> {
 
 impl ObjectAttribute {
     fn new() -> Self {
-        ObjectAttribute {
+        let mut o = ObjectAttribute {
             a0: 0,
             a1: 0,
             a2: 0,
-        }
+        };
+        o.set_mode(Mode::Hidden);
+        o
     }
 }
 
 impl ObjectControl {
     pub(crate) fn new() -> Self {
-        let mut o = ObjectAttribute::new();
-        o.set_mode(Mode::Hidden);
+        let o = ObjectAttribute::new();
         for index in 0..128 {
             unsafe { o.commit(index) };
         }
