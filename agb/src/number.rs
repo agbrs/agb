@@ -75,13 +75,18 @@ pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
 pub type Number<const N: usize> = Num<i32, N>;
 
-pub fn change_base<I: FixedWidthUnsignedInteger, const N: usize, const M: usize>(
-    num: Num<I, N>,
+pub fn change_base<
+    I: FixedWidthUnsignedInteger,
+    J: FixedWidthUnsignedInteger + Into<I>,
+    const N: usize,
+    const M: usize,
+>(
+    num: Num<J, N>,
 ) -> Num<I, M> {
     if N < M {
-        Num(num.0 << (M - N))
+        Num(num.0.into() << (M - N))
     } else {
-        Num(num.0 >> (N - M))
+        Num(num.0.into() >> (N - M))
     }
 }
 
