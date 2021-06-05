@@ -263,7 +263,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
         x -= one / four + (x + one / four).floor();
         x *= (x.abs() - one / two) * sixteen;
-        x += x * (x.abs() - one) * nine / forty;
+        x += x * (x.abs() - one) * (nine / forty);
         x
     }
 
