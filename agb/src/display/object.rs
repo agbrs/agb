@@ -228,7 +228,7 @@ impl AffineMatrix<'_> {
     #[allow(clippy::identity_op)]
     /// Commits matrix to OAM, will cause any objects using this matrix to be updated.
     pub fn commit(&self) {
-        let id = self.loan.index as usize;
+        let id = self.loan.index as usize * 4;
         OBJECT_ATTRIBUTE_MEMORY.set((id + 0) * 4 + 3, self.attributes.p_a as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 1) * 4 + 3, self.attributes.p_b as u16);
         OBJECT_ATTRIBUTE_MEMORY.set((id + 2) * 4 + 3, self.attributes.p_c as u16);
