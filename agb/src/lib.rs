@@ -25,7 +25,7 @@ mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
-mod number;
+pub mod number;
 mod single;
 
 /// System BIOS calls / syscalls.
