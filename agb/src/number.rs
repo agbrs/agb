@@ -106,6 +106,42 @@ fn test_numbers(_gba: &mut super::Gba) {
     assert_ne!(n, p, "testing that 30 != 3");
 }
 
+#[test_case]
+fn test_division_by_one(_gba: &mut super::Gba) {
+    let one: Num<8> = 1.into();
+
+    for i in -40..40 {
+        let n: Num<8> = i.into();
+        assert_eq!(n / one, n);
+    }
+}
+
+#[test_case]
+fn test_division_and_multiplication_by_16(_gba: &mut super::Gba) {
+    let sixteen: Num<8> = 16.into();
+
+    for i in -40..40 {
+        let n: Num<8> = i.into();
+        let m = n / sixteen;
+
+        assert_eq!(m * sixteen, n);
+    }
+}
+
+#[test_case]
+fn test_division_by_2_and_15(_gba: &mut super::Gba) {
+    let two: Num<8> = 2.into();
+    let fifteen: Num<8> = 15.into();
+    let thirty: Num<8> = 30.into();
+
+    for i in -128..128 {
+        let n: Num<8> = i.into();
+
+        assert_eq!(n / two / fifteen, n / thirty);
+        assert_eq!(n / fifteen / two, n / thirty);
+    }
+}
+
 impl<const N: usize> Display for Num<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let integral = self.0 >> N;
