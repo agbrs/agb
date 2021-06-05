@@ -142,6 +142,19 @@ impl<const N: usize> Num<N> {
         }
     }
 
+    pub fn rem_euclid(&self, rhs: Self) -> Self {
+        let r = *self % rhs;
+        if r < 0.into() {
+            if rhs < 0.into() {
+                r - rhs
+            } else {
+                r + rhs
+            }
+        } else {
+            r
+        }
+    }
+
     pub fn new(integral: i32) -> Self {
         Self(integral << N)
     }
@@ -246,6 +259,31 @@ fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
             let remainder = x - truncated_division * y;
 
             assert_eq!(x % y, remainder);
+        }
+    }
+}
+
+#[test_case]
+fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
+    let one: Num<8> = 1.into();
+    let third = one / 3;
+
+    for i in -50..50 {
+        for j in -50..50 {
+            if j == 0 {
+                continue;
+            }
+
+            // full calculation in the normal way
+            let x: Num<8> = third + i;
+            let y: Num<8> = j.into();
+
+            let truncated_division: Num<8> = (x / y).int().into();
+
+            let remainder = x - truncated_division * y;
+
+            let rem_euclid = x.rem_euclid(y);
+            assert!(rem_euclid > 0.into());
         }
     }
 }
