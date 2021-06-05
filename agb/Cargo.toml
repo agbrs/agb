@@ -21,7 +21,7 @@ lto = true
 bitflags = "1.0"
 
 [build-dependencies]
-agb_image_converter = "0.1.0"
+agb_image_converter = "0.2.0"
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
