@@ -11,20 +11,20 @@ pub fn main() -> ! {
 
     gba.sound.enable();
 
-    let sweep_settings = sound::SweepSettings::default();
+    let sweep_settings = sound::dmg::SweepSettings::default();
     gba.sound.channel1().play_sound(
         1024,
         Some(0),
         &sweep_settings,
-        &sound::EnvelopeSettings::default(),
-        sound::DutyCycle::Half,
+        &sound::dmg::EnvelopeSettings::default(),
+        sound::dmg::DutyCycle::Half,
     );
 
     gba.sound.channel2().play_sound(
         1524,
         Some(0),
-        &sound::EnvelopeSettings::default(),
-        sound::DutyCycle::Half,
+        &sound::dmg::EnvelopeSettings::default(),
+        sound::dmg::DutyCycle::Half,
     );
 
     gba.sound
