@@ -18,7 +18,10 @@ impl Mixer {
     }
 }
 
+// I've picked one frequency that works nicely. But there are others that work nicely
+// which we may want to consider in the future: https://web.archive.org/web/20070608011909/http://deku.gbadev.org/program/sound1.html
 const SOUND_FREQUENCY: i32 = 10512;
+const SOUND_BUFFER_SIZE: usize = 176;
 
 // Once we have proper DMA support, we should use that rather than hard coding these here too
 const DMA1_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00bc) };
