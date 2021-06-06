@@ -70,11 +70,21 @@ impl Mixer {
 pub struct SoundChannel {
     data: &'static [u8],
     pos: usize,
+    should_loop: bool,
 }
 
 impl SoundChannel {
     pub fn new(data: &'static [u8]) -> Self {
-        SoundChannel { data, pos: 0 }
+        SoundChannel {
+            data,
+            pos: 0,
+            should_loop: false,
+        }
+    }
+
+    pub fn should_loop(mut self) -> Self {
+        self.should_loop = true;
+        self
     }
 }
 
