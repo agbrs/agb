@@ -15,7 +15,7 @@ pub fn main() -> ! {
     let mixer = gba.mixer;
     mixer.enable();
 
-    mixer.play_sound_starting_at(&I_WILL_NOT_LET_YOU_LET_ME_DOWN[0], 8000);
+    mixer.play_sound_starting_at(&I_WILL_NOT_LET_YOU_LET_ME_DOWN[0]);
 
     loop {}
 }

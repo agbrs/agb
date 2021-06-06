@@ -12,11 +12,13 @@ impl Mixer {
         set_sound_control_register_for_mixer();
     }
 
-    pub fn play_sound_starting_at(&self, sound_memory: *const u8, frequency: i32) {
-        set_timer_counter_for_frequency_and_enable(frequency);
+    pub fn play_sound_starting_at(&self, sound_memory: *const u8) {
+        set_timer_counter_for_frequency_and_enable(SOUND_FREQUENCY);
         enable_dma1_for_sound(sound_memory);
     }
 }
+
+const SOUND_FREQUENCY: i32 = 10512;
 
 // Once we have proper DMA support, we should use that rather than hard coding these here too
 const DMA1_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00bc) };
