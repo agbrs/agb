@@ -43,7 +43,11 @@ impl Mixer {
                 some_channel.pos += SOUND_BUFFER_SIZE;
 
                 if some_channel.pos >= some_channel.data.len() {
-                    has_finished = true;
+                    if some_channel.should_loop {
+                        some_channel.pos = 0;
+                    } else {
+                        has_finished = true;
+                    }
                 }
             }
 
