@@ -221,12 +221,12 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         self.0
     }
 
-    pub fn trunc(&self) -> I {
+    pub fn trunc(self) -> I {
         self.0 / (I::one() << N)
     }
 
-    pub fn rem_euclid(&self, rhs: Self) -> Self {
-        let r = *self % rhs;
+    pub fn rem_euclid(self, rhs: Self) -> Self {
+        let r = self % rhs;
         if r < I::zero().into() {
             if rhs < I::zero().into() {
                 r - rhs
@@ -238,11 +238,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         }
     }
 
-    pub fn floor(&self) -> I {
+    pub fn floor(self) -> I {
         self.0 >> N
     }
 
-    pub fn frac(&self) -> I {
+    pub fn frac(self) -> I {
         self.0 & ((I::one() << N) - I::one())
     }
 
