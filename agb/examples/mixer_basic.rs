@@ -1,0 +1,20 @@
+#![no_std]
+#![no_main]
+
+extern crate agb;
+
+use agb::sound;
+
+const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &'static [u8] =
+    include_bytes!("i-will-not-let-you-let-me-down.raw");
+
+#[no_mangle]
+pub fn main() -> ! {
+    let gba = agb::Gba::new();
+    let mixer = gba.mixer;
+    mixer.enable();
+
+    mixer.play_sound_starting_at(&I_WILL_NOT_LET_YOU_LET_ME_DOWN[0], 8000);
+
+    loop {}
+}

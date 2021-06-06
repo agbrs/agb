@@ -51,6 +51,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 pub struct Gba {
     pub display: display::Display,
     pub sound: sound::dmg::Sound,
+    pub mixer: sound::mixer::Mixer,
 }
 
 impl Gba {
@@ -62,6 +63,7 @@ impl Gba {
         Self {
             display: display::Display::new(),
             sound: sound::dmg::Sound::new(),
+            mixer: sound::mixer::Mixer::new(),
         }
     }
 }
