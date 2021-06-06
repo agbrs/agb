@@ -166,6 +166,10 @@ fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
 
 impl Drop for ObjectLoan<'_> {
     fn drop(&mut self) {
+        let attributes = ObjectAttribute::new();
+        unsafe {
+            attributes.commit(self.index);
+        }
         let mut objs = self.objects.borrow_mut();
         objs.set(self.index as usize, false);
     }
