@@ -27,28 +27,54 @@ impl Mixer {
     }
 
     pub fn enable(&self) {
-        set_sound_control_register_for_mixer();
         set_timer_counter_for_frequency_and_enable(SOUND_FREQUENCY);
+        set_sound_control_register_for_mixer();
     }
 
     pub fn vblank(&mut self) {
         self.buffer.swap();
+        self.buffer.clear();
+
+        for channel in self.channels.iter_mut() {
+            let mut has_finished = false;
+
+            if let Some(some_channel) = channel {
+                self.buffer.write_channel(&some_channel);
+                some_channel.pos += SOUND_BUFFER_SIZE;
+
+                if some_channel.pos >= some_channel.data.len() {
+                    has_finished = true;
+                }
+            }
+
+            if has_finished {
+                channel.take();
+            }
+        }
+    }
+
+    pub fn play_sound(&mut self, new_channel: SoundChannel) {
+        for channel in self.channels.iter_mut() {
+            if channel.is_some() {
+                continue;
+            }
+
+            channel.replace(new_channel);
+            return;
+        }
+
+        panic!("Cannot play more than 16 sounds at once");
     }
 }
 
 pub struct SoundChannel {
     data: &'static [u8],
     pos: usize,
-    should_loop: bool,
 }
 
 impl SoundChannel {
-    pub fn new(data: &'static [u8], should_loop: bool) -> Self {
-        SoundChannel {
-            data,
-            pos: 0,
-            should_loop,
-        }
+    pub fn new(data: &'static [u8]) -> Self {
+        SoundChannel { data, pos: 0 }
     }
 }
 
@@ -75,13 +101,37 @@ impl MixerBuffer {
     }
 
     fn swap(&mut self) {
+        self.buffer_1_active = !self.buffer_1_active;
+
         if self.buffer_1_active {
             enable_dma1_for_sound(&self.buffer1);
         } else {
             enable_dma1_for_sound(&self.buffer2);
         }
+    }
 
-        self.buffer_1_active = !self.buffer_1_active;
+    fn clear(&mut self) {
+        if self.buffer_1_active {
+            self.buffer2.fill(0);
+        } else {
+            self.buffer1.fill(0);
+        }
+    }
+
+    fn write_channel(&mut self, channel: &SoundChannel) {
+        let data_to_copy = &channel.data[channel.pos..(channel.pos + SOUND_BUFFER_SIZE)];
+
+        if self.buffer_1_active {
+            for (i, v) in data_to_copy.iter().enumerate() {
+                let v = *v as i8;
+                self.buffer2[i] = self.buffer2[i].saturating_add(v);
+            }
+        } else {
+            for (i, v) in data_to_copy.iter().enumerate() {
+                let v = *v as i8;
+                self.buffer1[i] = self.buffer1[i].saturating_add(v);
+            }
+        }
     }
 }
 
@@ -107,8 +157,8 @@ fn enable_dma1_for_sound(sound_memory: &[i8]) {
     let dma_start_timing: u16 = 3 << 12; // sound fifo timing
     let enable: u16 = 1 << 15; // enable
 
-    let address: *const i8 = &sound_memory[0];
-    DMA1_SOURCE_ADDR.set(address as u32);
+    DMA1_CONTROL.set(0);
+    DMA1_SOURCE_ADDR.set(sound_memory.as_ptr() as u32);
     DMA1_DEST_ADDR.set(FIFOA_DEST_ADDR);
     DMA1_CONTROL.set(dest_fixed | repeat | transfer_type | dma_start_timing | enable);
 }
