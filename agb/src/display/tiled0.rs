@@ -1,4 +1,4 @@
-use core::convert::TryInto;
+use core::{borrow::Borrow, cell::RefCell, convert::TryInto};
 
 use crate::memory_mapped::MemoryMapped1DArray;
 
@@ -45,11 +45,16 @@ pub enum BackgroundSize {
 pub struct Background<'a> {
     background: u8,
     block: u8,
-    map: Option<&'a [u16]>,
+    map: Option<MapStorage<'a>>,
     map_dim_x: u32,
     map_dim_y: u32,
     pos_x: i32,
     pos_y: i32,
+}
+
+enum MapStorage<'a> {
+    R(&'a RefCell<[u16]>),
+    S(&'a [u16]),
 }
 
 impl<'a> Background<'a> {
@@ -77,7 +82,14 @@ impl<'a> Background<'a> {
     /// The portion of this map that is in view is copied to the map block
     /// assigned to this background.
     pub fn set_map(&mut self, map: &'a [u16], dim_x: u32, dim_y: u32) {
-        self.map = Some(map);
+        self.map = Some(MapStorage::S(map));
+        self.map_dim_x = dim_x;
+        self.map_dim_y = dim_y;
+        self.draw_full_map();
+    }
+
+    pub fn set_map_refcell(&mut self, map: &'a RefCell<[u16]>, dim_x: u32, dim_y: u32) {
+        self.map = Some(MapStorage::R(map));
         self.map_dim_x = dim_x;
         self.map_dim_y = dim_y;
         self.draw_full_map();
@@ -132,12 +144,22 @@ impl Background<'_> {
     }
 
     fn map_get(&self, x: i32, y: i32, default: u16) -> u16 {
-        let map = self.map.unwrap();
-
-        if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
-            default
-        } else {
-            map[(self.map_dim_x as i32 * y + x) as usize]
+        match self.map.as_ref().unwrap() {
+            MapStorage::R(map) => {
+                let map = (*map).borrow();
+                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
+                    default
+                } else {
+                    map[(self.map_dim_x as i32 * y + x) as usize]
+                }
+            }
+            MapStorage::S(map) => {
+                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
+                    default
+                } else {
+                    map[(self.map_dim_x as i32 * y + x) as usize]
+                }
+            }
         }
     }
 
