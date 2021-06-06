@@ -39,7 +39,7 @@ impl Mixer {
             let mut has_finished = false;
 
             if let Some(some_channel) = channel {
-                self.buffer.write_channel(&some_channel);
+                self.buffer.write_channel(some_channel);
                 some_channel.pos += SOUND_BUFFER_SIZE;
 
                 if some_channel.pos >= some_channel.data.len() {
