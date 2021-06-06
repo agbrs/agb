@@ -115,10 +115,10 @@ impl MixerBuffer {
     }
 
     fn write_channel(&mut self, channel: &SoundChannel) {
-        let data_to_copy = &channel.data[channel.pos..(channel.pos + SOUND_BUFFER_SIZE)];
+        let data_to_copy = &channel.data[channel.pos..];
         let place_to_write_to = self.get_write_buffer();
 
-        for (i, v) in data_to_copy.iter().enumerate() {
+        for (i, v) in data_to_copy.iter().take(SOUND_BUFFER_SIZE).enumerate() {
             let v = *v as i8;
             place_to_write_to[i] = place_to_write_to[i].saturating_add(v);
         }
