@@ -36,14 +36,14 @@ impl Mixer {
     }
 }
 
-struct SoundChannel {
+pub struct SoundChannel {
     data: &'static [u8],
     pos: usize,
     should_loop: bool,
 }
 
 impl SoundChannel {
-    fn new(data: &'static [u8], should_loop: bool) -> Self {
+    pub fn new(data: &'static [u8], should_loop: bool) -> Self {
         SoundChannel {
             data,
             pos: 0,
