@@ -222,14 +222,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     pub fn trunc(&self) -> I {
-        let fractional_part = self.0 & ((I::one() << N) - I::one());
-        let self_as_int = self.0 >> N;
-
-        if self_as_int < I::zero() && fractional_part != I::zero() {
-            self_as_int + I::one()
-        } else {
-            self_as_int
-        }
+        self.0 / (I::one() << N)
     }
 
     pub fn rem_euclid(&self, rhs: Self) -> Self {
