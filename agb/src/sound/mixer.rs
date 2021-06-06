@@ -1,14 +1,28 @@
 use crate::memory_mapped::MemoryMapped;
 
 #[non_exhaustive]
+pub struct MixerController {}
+
+impl MixerController {
+    pub(crate) const fn new() -> Self {
+        MixerController {}
+    }
+
+    pub fn mixer(&mut self) -> Mixer {
+        Mixer::new()
+    }
+}
+
 pub struct Mixer {
     buffer: MixerBuffer,
+    channels: [Option<SoundChannel>; 16],
 }
 
 impl Mixer {
-    pub(crate) const unsafe fn new() -> Self {
+    fn new() -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
+            channels: Default::default(),
         }
     }
 
@@ -19,6 +33,17 @@ impl Mixer {
 
     pub fn vblank(&mut self) {
         self.buffer.swap();
+    }
+}
+
+struct SoundChannel {
+    data: &'static [u8],
+    pos: usize,
+}
+
+impl SoundChannel {
+    fn new(data: &'static [u8]) -> Self {
+        SoundChannel { data, pos: 0 }
     }
 }
 
@@ -37,8 +62,8 @@ struct MixerBuffer {
 impl MixerBuffer {
     fn new() -> Self {
         MixerBuffer {
-            buffer1: Default::default(),
-            buffer2: Default::default(),
+            buffer1: [0; SOUND_BUFFER_SIZE],
+            buffer2: [0; SOUND_BUFFER_SIZE],
 
             buffer_1_active: true,
         }
