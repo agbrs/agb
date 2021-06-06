@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, cell::RefCell, convert::TryInto};
+use core::{borrow::Borrow, cell::RefCell, convert::TryInto, ops::Deref};
 
 use crate::memory_mapped::MemoryMapped1DArray;
 
@@ -143,30 +143,21 @@ impl Background<'_> {
         unsafe { self.set_bits(0x0E, 2, size as u16) }
     }
 
-    fn map_get(&self, x: i32, y: i32, default: u16) -> u16 {
-        match self.map.as_ref().unwrap() {
-            MapStorage::R(map) => {
-                let map = (*map).borrow();
-                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
-                    default
-                } else {
-                    map[(self.map_dim_x as i32 * y + x) as usize]
-                }
-            }
-            MapStorage::S(map) => {
-                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
-                    default
-                } else {
-                    map[(self.map_dim_x as i32 * y + x) as usize]
-                }
-            }
+    fn map_get<T>(&self, map: &T, x: i32, y: i32, default: u16) -> u16
+    where
+        T: Deref<Target = [u16]>,
+    {
+        if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
+            default
+        } else {
+            map[(self.map_dim_x as i32 * y + x) as usize]
         }
     }
 
-    fn set_x(&mut self, x: u16) {
+    fn set_x(&self, x: u16) {
         unsafe { *((0x0400_0010 + 4 * self.background as usize) as *mut u16) = x }
     }
-    fn set_y(&mut self, y: u16) {
+    fn set_y(&self, y: u16) {
         unsafe { *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y }
     }
 
@@ -175,19 +166,47 @@ impl Background<'_> {
     /// Setting position already updates the drawn map, and changing map forces
     /// an update.
     pub fn draw_full_map(&mut self) {
+        match self.map.as_ref().unwrap() {
+            MapStorage::R(m) => {
+                let map = (*m).borrow();
+                self.draw_area_mapped(&map, -1, 32, -1, 22);
+            }
+            MapStorage::S(map) => {
+                self.draw_area_mapped(map, -1, 32, -1, 22);
+            }
+        }
+    }
+
+    /// Forces a specific area of the screen to be drawn, taking into account any positonal offsets.
+    pub fn draw_area(&mut self, left: i32, top: i32, width: i32, height: i32) {
+        match self.map.as_ref().unwrap() {
+            MapStorage::R(m) => {
+                let map = (*m).borrow();
+                self.draw_area_mapped(&map, left, top, width, height);
+            }
+            MapStorage::S(map) => {
+                self.draw_area_mapped(map, left, top, width, height);
+            }
+        }
+    }
+
+    fn draw_area_mapped<T>(&self, map: &T, left: i32, top: i32, width: i32, height: i32)
+    where
+        T: Deref<Target = [u16]>,
+    {
         let x_map_space = self.pos_x / 8;
         let y_map_space = self.pos_y / 8;
 
         let x_block_space = x_map_space % 32;
         let y_block_space = y_map_space % 32;
 
-        for x in -1..31 {
-            for y in -1..21 {
+        for x in left..(left + width) {
+            for y in top..(top + height) {
                 unsafe {
                     (&mut (*MAP)[self.block as usize][(y_block_space + y).rem_euclid(32) as usize]
                         [(x_block_space + x).rem_euclid(32) as usize]
                         as *mut u16)
-                        .write_volatile(self.map_get(x_map_space + x, y_map_space + y, 0))
+                        .write_volatile(self.map_get(map, x_map_space + x, y_map_space + y, 0))
                 };
             }
         }
@@ -197,6 +216,23 @@ impl Background<'_> {
     /// manages copying the correct portion to the map block and moving the map
     /// registers.
     pub fn set_position(&mut self, x: i32, y: i32) {
+        match self.map.as_ref().unwrap() {
+            MapStorage::R(m) => {
+                let map = (*m).borrow();
+                self.set_position_mapped(&map, x, y);
+            }
+            MapStorage::S(map) => {
+                self.set_position_mapped(map, x, y);
+            }
+        }
+        self.pos_x = x;
+        self.pos_y = y;
+    }
+
+    pub fn set_position_mapped<T>(&self, map: &T, x: i32, y: i32)
+    where
+        T: Deref<Target = [u16]>,
+    {
         let x_map_space = x / 8;
         let y_map_space = y / 8;
 
@@ -209,12 +245,9 @@ impl Background<'_> {
         let x_block_space = x_map_space % 32;
         let y_block_space = y_map_space % 32;
 
-        self.pos_x = x;
-        self.pos_y = y;
-
         // don't fancily handle if we've moved more than one tile, just copy the whole new map
         if x_difference.abs() > 1 || y_difference.abs() > 1 {
-            self.draw_full_map();
+            self.draw_area_mapped(map, -1, 32, -1, 22);
         } else {
             if x_difference != 0 {
                 let x_offset = match x_difference {
@@ -229,6 +262,7 @@ impl Background<'_> {
                             [(x_block_space + x_offset).rem_euclid(32) as usize]
                             as *mut u16)
                             .write_volatile(self.map_get(
+                                map,
                                 x_map_space + x_offset,
                                 y_map_space + y,
                                 0,
@@ -249,6 +283,7 @@ impl Background<'_> {
                             [(x_block_space + x).rem_euclid(32) as usize]
                             as *mut u16)
                             .write_volatile(self.map_get(
+                                map,
                                 x_map_space + x,
                                 y_map_space + y_offset,
                                 0,
