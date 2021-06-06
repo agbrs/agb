@@ -365,8 +365,7 @@ impl ObjectControl {
 mod tests {
     #[test_case]
     fn get_and_release_object(gba: &mut crate::Gba) {
-        let gfx = gba.display.video.tiled0();
-        let objs = gfx.object;
+        let objs = gba.display.object.get();
 
         let _o1 = {
             let o0 = objs.get_object_standard();
@@ -384,8 +383,7 @@ mod tests {
 
     #[test_case]
     fn get_and_release_affine(gba: &mut crate::Gba) {
-        let gfx = gba.display.video.tiled0();
-        let objs = gfx.object;
+        let objs = gba.display.object.get();
 
         let _a1 = {
             let a0 = objs.get_affine();

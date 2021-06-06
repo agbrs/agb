@@ -4,6 +4,8 @@ use bitflags::bitflags;
 use vblank::VBlankGiver;
 use video::Video;
 
+use self::object::ObjectControl;
+
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
 /// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
@@ -62,6 +64,16 @@ enum DisplayMode {
 pub struct Display {
     pub video: Video,
     pub vblank: VBlankGiver,
+    pub object: ObjectDistribution,
+}
+
+#[non_exhaustive]
+pub struct ObjectDistribution {}
+
+impl ObjectDistribution {
+    pub fn get(&mut self) -> ObjectControl {
+        ObjectControl::new()
+    }
 }
 
 impl Display {
@@ -69,6 +81,7 @@ impl Display {
         Display {
             video: Video {},
             vblank: VBlankGiver {},
+            object: ObjectDistribution {},
         }
     }
 }

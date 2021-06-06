@@ -248,7 +248,6 @@ impl Background<'_> {
 pub struct Tiled0 {
     used_blocks: u32,
     num_backgrounds: u8,
-    pub object: ObjectControl,
 }
 
 impl Tiled0 {
@@ -258,7 +257,6 @@ impl Tiled0 {
         Tiled0 {
             used_blocks: 0,
             num_backgrounds: 0,
-            object: ObjectControl::new(),
         }
     }
 
