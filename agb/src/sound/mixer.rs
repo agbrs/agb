@@ -43,7 +43,11 @@ impl Mixer {
                 some_channel.pos += SOUND_BUFFER_SIZE;
 
                 if some_channel.pos >= some_channel.data.len() {
-                    has_finished = true;
+                    if some_channel.should_loop {
+                        some_channel.pos = 0;
+                    } else {
+                        has_finished = true;
+                    }
                 }
             }
 
@@ -70,11 +74,21 @@ impl Mixer {
 pub struct SoundChannel {
     data: &'static [u8],
     pos: usize,
+    should_loop: bool,
 }
 
 impl SoundChannel {
     pub fn new(data: &'static [u8]) -> Self {
-        SoundChannel { data, pos: 0 }
+        SoundChannel {
+            data,
+            pos: 0,
+            should_loop: false,
+        }
+    }
+
+    pub fn should_loop(mut self) -> Self {
+        self.should_loop = true;
+        self
     }
 }
 
