@@ -3,11 +3,10 @@
 
 extern crate agb;
 
-use agb::sound;
+use core::mem;
 
 // Music - "I will not let you let me down" by Josh Woodward, free download at http://joshwoodward.com
-const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &'static [u8] =
-    include_bytes!("i-will-not-let-you-let-me-down.raw");
+const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &[u8] = include_bytes!("i-will-not-let-you-let-me-down.raw");
 
 #[no_mangle]
 pub fn main() -> ! {
@@ -15,7 +14,7 @@ pub fn main() -> ! {
     let mixer = gba.mixer;
     mixer.enable();
 
-    mixer.play_sound_starting_at(&I_WILL_NOT_LET_YOU_LET_ME_DOWN[0]);
+    mixer.play_sound_starting_at(I_WILL_NOT_LET_YOU_LET_ME_DOWN);
 
     loop {}
 }
