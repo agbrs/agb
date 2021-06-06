@@ -27,9 +27,13 @@ pub fn main() -> ! {
         sound::dmg::DutyCycle::Half,
     );
 
-    gba.sound
-        .noise()
-        .play_sound(Some(0), &sound::EnvelopeSettings::default(), 4, false, 1);
+    gba.sound.noise().play_sound(
+        Some(0),
+        &sound::dmg::EnvelopeSettings::default(),
+        4,
+        false,
+        1,
+    );
 
     loop {}
 }
