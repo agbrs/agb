@@ -177,6 +177,15 @@ impl Drop for ObjectLoan<'_> {
 
 impl Drop for AffineLoan<'_> {
     fn drop(&mut self) {
+        let attributes = AffineMatrixAttributes {
+            p_a: 0,
+            p_b: 0,
+            p_c: 0,
+            p_d: 0,
+        };
+        unsafe {
+            attributes.commit(self.index);
+        }
         let mut affs = self.affines.borrow_mut();
         affs.set(self.index as usize, false);
     }
