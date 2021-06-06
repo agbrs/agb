@@ -111,26 +111,24 @@ impl MixerBuffer {
     }
 
     fn clear(&mut self) {
-        if self.buffer_1_active {
-            self.buffer2.fill(0);
-        } else {
-            self.buffer1.fill(0);
-        }
+        self.get_write_buffer().fill(0);
     }
 
     fn write_channel(&mut self, channel: &SoundChannel) {
         let data_to_copy = &channel.data[channel.pos..(channel.pos + SOUND_BUFFER_SIZE)];
+        let place_to_write_to = self.get_write_buffer();
 
+        for (i, v) in data_to_copy.iter().enumerate() {
+            let v = *v as i8;
+            place_to_write_to[i] = place_to_write_to[i].saturating_add(v);
+        }
+    }
+
+    fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE] {
         if self.buffer_1_active {
-            for (i, v) in data_to_copy.iter().enumerate() {
-                let v = *v as i8;
-                self.buffer2[i] = self.buffer2[i].saturating_add(v);
-            }
+            &mut self.buffer2
         } else {
-            for (i, v) in data_to_copy.iter().enumerate() {
-                let v = *v as i8;
-                self.buffer1[i] = self.buffer1[i].saturating_add(v);
-            }
+            &mut self.buffer1
         }
     }
 }
