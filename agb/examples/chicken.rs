@@ -58,7 +58,7 @@ pub fn main() -> ! {
     background.set_map(&MAP_MAP, 32, 32);
     background.show();
 
-    let mut object = gfx.object;
+    let mut object = gba.display.object.get();
 
     object.enable();
     let mut chicken = Character {
