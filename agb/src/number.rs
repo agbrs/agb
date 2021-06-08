@@ -7,6 +7,24 @@ use core::{
     },
 };
 
+pub trait Number:
+    Sized
+    + Copy
+    + PartialOrd
+    + Ord
+    + PartialEq
+    + Eq
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Rem<Output = Self>
+    + Div<Output = Self>
+    + Mul<Output = Self>
+{
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
+impl<I: FixedWidthUnsignedInteger> Number for I {}
+
 pub trait FixedWidthUnsignedInteger:
     Sized
     + Copy
@@ -73,22 +91,8 @@ fixed_width_signed_integer_impl!(i32);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
-pub type Number<const N: usize> = Num<i32, N>;
-
-pub fn change_base<
-    I: FixedWidthUnsignedInteger,
-    J: FixedWidthUnsignedInteger + Into<I>,
-    const N: usize,
-    const M: usize,
->(
-    num: Num<J, N>,
-) -> Num<I, M> {
-    if N < M {
-        Num(num.0.into() << (M - N))
-    } else {
-        Num(num.0.into() >> (N - M))
-    }
-}
+pub type FixedNum<const N: usize> = Num<i32, N>;
+pub type Integer = Num<i32, 0>;
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
@@ -213,6 +217,15 @@ impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+    pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
+        let n: J = self.0.into();
+        if N < M {
+            Num(n << (M - N))
+        } else {
+            Num(n >> (N - M))
+        }
+    }
+
     pub fn from_raw(n: I) -> Self {
         Num(n)
     }
@@ -276,7 +289,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
         let four: I = 4.into();
-        (self - one / four).cos()
+        (self + one / four).cos()
     }
 }
 
@@ -339,8 +352,8 @@ fn test_change_base(_gba: &mut super::Gba) {
     let two: Num<i32, 9> = 2.into();
     let three: Num<i32, 4> = 3.into();
 
-    assert_eq!(two + change_base(three), 5.into());
-    assert_eq!(three + change_base(two), 5.into());
+    assert_eq!(two + three.change_base(), 5.into());
+    assert_eq!(three + two.change_base(), 5.into());
 }
 
 #[test_case]
@@ -431,4 +444,146 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
         write!(f, "Num<{}, {}>({})", type_name::<I>(), N, self)
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Vector2D<T: Number> {
+    pub x: T,
+    pub y: T,
+}
+
+impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn add(self, rhs: Vector2D<T>) -> Self::Output {
+        Vector2D {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl<T: Number, U: Number + Into<T>> Mul<U> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn mul(self, rhs: U) -> Self::Output {
+        Vector2D {
+            x: self.x * rhs.into(),
+            y: self.y * rhs.into(),
+        }
+    }
+}
+
+impl<T: Number, U: Number + Into<T>> Div<U> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn div(self, rhs: U) -> Self::Output {
+        Vector2D {
+            x: self.x / rhs.into(),
+            y: self.y / rhs.into(),
+        }
+    }
+}
+
+#[test_case]
+fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
+    let a: Vector2D<i32> = (1, 2).into();
+    let b = a * 5;
+    let c = b / 5;
+    assert_eq!(b, (5, 10).into());
+    assert_eq!(a, c);
+}
+
+impl<T: Number> AddAssign<Self> for Vector2D<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl<T: Number> Sub<Vector2D<T>> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn sub(self, rhs: Vector2D<T>) -> Self::Output {
+        Vector2D {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl<T: Number> SubAssign<Self> for Vector2D<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    pub fn trunc(self) -> Vector2D<I> {
+        Vector2D {
+            x: self.x.trunc(),
+            y: self.y.trunc(),
+        }
+    }
+    pub fn floor(self) -> Vector2D<I> {
+        Vector2D {
+            x: self.x.floor(),
+            y: self.y.floor(),
+        }
+    }
+}
+
+impl<T: Number> From<(T, T)> for Vector2D<T> {
+    fn from(f: (T, T)) -> Self {
+        Vector2D::new(f.0, f.1)
+    }
+}
+
+impl<T: Number> Vector2D<T> {
+    pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
+        (self.x.into(), self.y.into()).into()
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    pub fn new_from_angle(angle: Num<I, N>) -> Self {
+        Vector2D {
+            x: angle.cos(),
+            y: angle.sin(),
+        }
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
+    fn from(n: Vector2D<I>) -> Self {
+        Vector2D {
+            x: n.x.into(),
+            y: n.y.into(),
+        }
+    }
+}
+
+pub struct Rect<T: Number> {
+    pub position: Vector2D<T>,
+    pub size: Vector2D<T>,
+}
+
+impl<T: Number> Rect<T> {
+    pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
+        Rect { position, size }
+    }
+}
+
+impl<T: Number> Vector2D<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Vector2D { x, y }
+    }
+    pub fn get(self) -> (T, T) {
+        (self.x, self.y)
+    }
+}
+
+#[test_case]
+fn test_vector_changing(_gba: &mut super::Gba) {
+    let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+
+    let v2 = v1.trunc();
+    assert_eq!(v2.get(), (1, 2));
+
+    assert_eq!(v1 + v1, (v2 + v2).into());
 }

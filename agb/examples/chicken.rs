@@ -55,7 +55,7 @@ pub fn main() -> ! {
     gfx.set_background_tilemap(0, &MAP_TILES);
 
     let mut background = gfx.get_background().unwrap();
-    background.set_map(&MAP_MAP, 32, 32);
+    background.draw_full_map(&MAP_MAP, (32, 32).into());
     background.show();
 
     let mut object = gba.display.object.get();

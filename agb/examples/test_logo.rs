@@ -21,8 +21,7 @@ pub fn main() -> ! {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.set_map(&entries, 30, 20);
-    back.set_position(0, 0);
+    back.draw_full_map(&entries, (30, 20).into());
     back.show();
 
     loop {}

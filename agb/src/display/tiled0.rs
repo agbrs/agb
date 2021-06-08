@@ -1,10 +1,13 @@
-use core::{borrow::Borrow, cell::RefCell, convert::TryInto};
+use core::{convert::TryInto, ops::Deref};
 
-use crate::memory_mapped::MemoryMapped1DArray;
+use crate::{
+    memory_mapped::MemoryMapped1DArray,
+    number::{Rect, Vector2D},
+};
 
 use super::{
-    object::ObjectControl, palette16, set_graphics_mode, set_graphics_settings, DisplayMode,
-    GraphicsSettings, DISPLAY_CONTROL,
+    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
+    DISPLAY_CONTROL,
 };
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
@@ -42,29 +45,18 @@ pub enum BackgroundSize {
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
-pub struct Background<'a> {
+pub struct Background {
     background: u8,
     block: u8,
-    map: Option<MapStorage<'a>>,
-    map_dim_x: u32,
-    map_dim_y: u32,
     pos_x: i32,
     pos_y: i32,
 }
 
-enum MapStorage<'a> {
-    R(&'a RefCell<[u16]>),
-    S(&'a [u16]),
-}
-
-impl<'a> Background<'a> {
-    unsafe fn new(layer: u8, block: u8) -> Background<'a> {
+impl Background {
+    unsafe fn new(layer: u8, block: u8) -> Background {
         let mut background = Background {
             background: layer,
             block,
-            map: None,
-            map_dim_x: 0,
-            map_dim_y: 0,
             pos_x: 0,
             pos_y: 0,
         };
@@ -73,34 +65,12 @@ impl<'a> Background<'a> {
         background.set_block(block);
         background
     }
-
-    /// Sets the internal map to the provided map. Dimensions should be the
-    /// dimensions of the map. The mapping between coordinate and index is given
-    /// by `y * dim_x + x`. The length of the map slice should be `dim_x *
-    /// dim_y`, or panics may occur.
-    ///
-    /// The portion of this map that is in view is copied to the map block
-    /// assigned to this background.
-    pub fn set_map(&mut self, map: &'a [u16], dim_x: u32, dim_y: u32) {
-        self.map = Some(MapStorage::S(map));
-        self.map_dim_x = dim_x;
-        self.map_dim_y = dim_y;
-        self.draw_full_map();
-    }
-
-    pub fn set_map_refcell(&mut self, map: &'a RefCell<[u16]>, dim_x: u32, dim_y: u32) {
-        self.map = Some(MapStorage::R(map));
-        self.map_dim_x = dim_x;
-        self.map_dim_y = dim_y;
-        self.draw_full_map();
-    }
 }
 
-impl Background<'_> {
+impl Background {
     /// Sets the background to be shown on screen. Requires the background to
     /// have a map enabled otherwise a panic is caused.
     pub fn show(&mut self) {
-        assert!(self.map.is_some(), "map should be set before showing");
         let mode = DISPLAY_CONTROL.get();
         let new_mode = mode | (1 << (self.background + 0x08));
         DISPLAY_CONTROL.set(new_mode);
@@ -143,30 +113,21 @@ impl Background<'_> {
         unsafe { self.set_bits(0x0E, 2, size as u16) }
     }
 
-    fn map_get(&self, x: i32, y: i32, default: u16) -> u16 {
-        match self.map.as_ref().unwrap() {
-            MapStorage::R(map) => {
-                let map = (*map).borrow();
-                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
-                    default
-                } else {
-                    map[(self.map_dim_x as i32 * y + x) as usize]
-                }
-            }
-            MapStorage::S(map) => {
-                if x >= self.map_dim_x as i32 || x < 0 || y >= self.map_dim_y as i32 || y < 0 {
-                    default
-                } else {
-                    map[(self.map_dim_x as i32 * y + x) as usize]
-                }
-            }
+    fn map_get<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32, default: u16) -> u16
+    where
+        T: Deref<Target = [u16]>,
+    {
+        if x >= dim_x as i32 || x < 0 || y >= dim_y as i32 || y < 0 {
+            default
+        } else {
+            map[(dim_x as i32 * y + x) as usize]
         }
     }
 
-    fn set_x(&mut self, x: u16) {
+    fn set_x(&self, x: u16) {
         unsafe { *((0x0400_0010 + 4 * self.background as usize) as *mut u16) = x }
     }
-    fn set_y(&mut self, y: u16) {
+    fn set_y(&self, y: u16) {
         unsafe { *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y }
     }
 
@@ -174,20 +135,60 @@ impl Background<'_> {
     /// block assigned to this background. This is currently unnecesary to call.
     /// Setting position already updates the drawn map, and changing map forces
     /// an update.
-    pub fn draw_full_map(&mut self) {
+    pub fn draw_full_map(&mut self, map: &[u16], dimensions: Vector2D<u32>) {
+        let area: Rect<i32> = Rect {
+            position: Vector2D::new(-1, -1),
+            size: Vector2D::new(32, 22),
+        };
+        self.draw_area(map, dimensions, area);
+    }
+
+    /// Forces a specific area of the screen to be drawn, taking into account any positonal offsets.
+    pub fn draw_area(&self, map: &[u16], dimensions: Vector2D<u32>, area: Rect<i32>) {
+        self.draw_area_mapped(
+            &map,
+            dimensions.x,
+            dimensions.y,
+            area.position.x,
+            area.position.y,
+            area.size.x,
+            area.size.y,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_area_mapped<T>(
+        &self,
+        map: &T,
+        dim_x: u32,
+        dim_y: u32,
+        left: i32,
+        top: i32,
+        width: i32,
+        height: i32,
+    ) where
+        T: Deref<Target = [u16]>,
+    {
         let x_map_space = self.pos_x / 8;
         let y_map_space = self.pos_y / 8;
 
         let x_block_space = x_map_space % 32;
         let y_block_space = y_map_space % 32;
 
-        for x in -1..31 {
-            for y in -1..21 {
+        for x in left..(left + width) {
+            for y in top..(top + height) {
                 unsafe {
                     (&mut (*MAP)[self.block as usize][(y_block_space + y).rem_euclid(32) as usize]
                         [(x_block_space + x).rem_euclid(32) as usize]
                         as *mut u16)
-                        .write_volatile(self.map_get(x_map_space + x, y_map_space + y, 0))
+                        .write_volatile(self.map_get(
+                            map,
+                            dim_x,
+                            dim_y,
+                            x_map_space + x,
+                            y_map_space + y,
+                            0,
+                        ))
                 };
             }
         }
@@ -196,7 +197,21 @@ impl Background<'_> {
     /// Sets the position of the map to be shown on screen. This automatically
     /// manages copying the correct portion to the map block and moving the map
     /// registers.
-    pub fn set_position(&mut self, x: i32, y: i32) {
+    pub fn set_position(
+        &mut self,
+        map: &[u16],
+        dimensions: Vector2D<u32>,
+        position: Vector2D<i32>,
+    ) {
+        self.set_position_mapped(&map, dimensions.x, dimensions.y, position.x, position.y);
+        self.pos_x = position.x;
+        self.pos_y = position.y;
+    }
+
+    fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32)
+    where
+        T: Deref<Target = [u16]>,
+    {
         let x_map_space = x / 8;
         let y_map_space = y / 8;
 
@@ -209,12 +224,9 @@ impl Background<'_> {
         let x_block_space = x_map_space % 32;
         let y_block_space = y_map_space % 32;
 
-        self.pos_x = x;
-        self.pos_y = y;
-
         // don't fancily handle if we've moved more than one tile, just copy the whole new map
         if x_difference.abs() > 1 || y_difference.abs() > 1 {
-            self.draw_full_map();
+            self.draw_area_mapped(map, dim_x, dim_y, -1, 32, -1, 22);
         } else {
             if x_difference != 0 {
                 let x_offset = match x_difference {
@@ -229,6 +241,9 @@ impl Background<'_> {
                             [(x_block_space + x_offset).rem_euclid(32) as usize]
                             as *mut u16)
                             .write_volatile(self.map_get(
+                                map,
+                                dim_x,
+                                dim_y,
                                 x_map_space + x_offset,
                                 y_map_space + y,
                                 0,
@@ -249,6 +264,9 @@ impl Background<'_> {
                             [(x_block_space + x).rem_euclid(32) as usize]
                             as *mut u16)
                             .write_volatile(self.map_get(
+                                map,
+                                dim_x,
+                                dim_y,
                                 x_map_space + x,
                                 y_map_space + y_offset,
                                 0,
