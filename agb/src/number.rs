@@ -462,22 +462,22 @@ impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     }
 }
 
-impl<T: Number> Mul<T> for Vector2D<T> {
+impl<T: Number, U: Number + Into<T>> Mul<U> for Vector2D<T> {
     type Output = Vector2D<T>;
-    fn mul(self, rhs: T) -> Self::Output {
+    fn mul(self, rhs: U) -> Self::Output {
         Vector2D {
-            x: self.x * rhs,
-            y: self.y * rhs,
+            x: self.x * rhs.into(),
+            y: self.y * rhs.into(),
         }
     }
 }
 
-impl<T: Number> Div<T> for Vector2D<T> {
+impl<T: Number, U: Number + Into<T>> Div<U> for Vector2D<T> {
     type Output = Vector2D<T>;
-    fn div(self, rhs: T) -> Self::Output {
+    fn div(self, rhs: U) -> Self::Output {
         Vector2D {
-            x: self.x / rhs,
-            y: self.y / rhs,
+            x: self.x / rhs.into(),
+            y: self.y / rhs.into(),
         }
     }
 }
