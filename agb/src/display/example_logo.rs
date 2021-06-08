@@ -1,5 +1,3 @@
-use crate::number::Vector2D;
-
 include!(concat!(env!("OUT_DIR"), "/test_logo.rs"));
 
 #[test_case]
@@ -17,7 +15,7 @@ fn logo_display(gba: &mut crate::Gba) {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.draw_full_map(&entries, Vector2D::new(30, 20));
+    back.draw_full_map(&entries, (30, 20).into());
     back.show();
 
     crate::assert_image_output("gfx/test_logo.png");
