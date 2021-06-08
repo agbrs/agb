@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, cell::RefCell, convert::TryInto, ops::Deref};
+use core::{convert::TryInto, ops::Deref};
 
 use crate::{
     memory_mapped::MemoryMapped1DArray,
@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    object::ObjectControl, palette16, set_graphics_mode, set_graphics_settings, DisplayMode,
-    GraphicsSettings, DISPLAY_CONTROL,
+    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
+    DISPLAY_CONTROL,
 };
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
@@ -156,6 +156,7 @@ impl Background {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_area_mapped<T>(
         &self,
         map: &T,
