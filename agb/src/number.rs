@@ -540,6 +540,15 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
+impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    pub fn new_from_angle(angle: Num<I, N>) -> Self {
+        Vector2D {
+            x: angle.cos(),
+            y: angle.sin(),
+        }
+    }
+}
+
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
         Vector2D {
