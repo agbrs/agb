@@ -1,6 +1,9 @@
 use core::{borrow::Borrow, cell::RefCell, convert::TryInto, ops::Deref};
 
-use crate::memory_mapped::MemoryMapped1DArray;
+use crate::{
+    memory_mapped::MemoryMapped1DArray,
+    number::{Rect, Vector2D},
+};
 
 use super::{
     object::ObjectControl, palette16, set_graphics_mode, set_graphics_settings, DisplayMode,
@@ -132,22 +135,25 @@ impl Background {
     /// block assigned to this background. This is currently unnecesary to call.
     /// Setting position already updates the drawn map, and changing map forces
     /// an update.
-    pub fn draw_full_map(&mut self, map: &[u16], dim_x: u32, dim_y: u32) {
-        self.draw_area(map, dim_x, dim_y, -1, -1, 32, 22);
+    pub fn draw_full_map(&mut self, map: &[u16], dimensions: Vector2D<u32>) {
+        let area: Rect<i32> = Rect {
+            position: Vector2D::new(-1, -1),
+            size: Vector2D::new(32, 22),
+        };
+        self.draw_area(map, dimensions, area);
     }
 
     /// Forces a specific area of the screen to be drawn, taking into account any positonal offsets.
-    pub fn draw_area(
-        &self,
-        map: &[u16],
-        dim_x: u32,
-        dim_y: u32,
-        left: i32,
-        top: i32,
-        width: i32,
-        height: i32,
-    ) {
-        self.draw_area_mapped(&map, dim_x, dim_y, left, top, width, height);
+    pub fn draw_area(&self, map: &[u16], dimensions: Vector2D<u32>, area: Rect<i32>) {
+        self.draw_area_mapped(
+            &map,
+            dimensions.x,
+            dimensions.y,
+            area.position.x,
+            area.position.y,
+            area.size.x,
+            area.size.y,
+        );
     }
 
     fn draw_area_mapped<T>(
@@ -190,10 +196,15 @@ impl Background {
     /// Sets the position of the map to be shown on screen. This automatically
     /// manages copying the correct portion to the map block and moving the map
     /// registers.
-    pub fn set_position(&mut self, map: &[u16], dim_x: u32, dim_y: u32, x: i32, y: i32) {
-        self.set_position_mapped(&map, dim_x, dim_y, x, y);
-        self.pos_x = x;
-        self.pos_y = y;
+    pub fn set_position(
+        &mut self,
+        map: &[u16],
+        dimensions: Vector2D<u32>,
+        position: Vector2D<i32>,
+    ) {
+        self.set_position_mapped(&map, dimensions.x, dimensions.y, position.x, position.y);
+        self.pos_x = position.x;
+        self.pos_y = position.y;
     }
 
     fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32)
