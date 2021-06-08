@@ -126,12 +126,10 @@ pub fn affine_matrix(
         rotation: u16,
     }
 
-    let rotation_for_input = (rotation as u16) << 8;
-
     let input = Input {
         y_scale: x_scale.to_raw(),
         x_scale: y_scale.to_raw(),
-        rotation: rotation_for_input,
+        rotation: rotation as u16,
     };
 
     unsafe {

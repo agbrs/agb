@@ -3,6 +3,7 @@ use core::cell::RefCell;
 use super::DISPLAY_CONTROL;
 use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
+use crate::number::Vector2D;
 
 const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
     unsafe { MemoryMapped1DArray::new(0x0700_0000) };
@@ -114,6 +115,15 @@ impl ObjectStandard<'_> {
     pub fn hide(&mut self) {
         self.attributes.set_mode(Mode::Hidden)
     }
+
+    /// Sets the x and y position of the object, performing casts as nessesary
+    /// to fit within the bits allocated for this purpose.
+    pub fn set_position(&mut self, position: Vector2D<i32>) {
+        let x = position.x as u16;
+        let y = position.y as u16;
+        self.attributes.set_x(x);
+        self.attributes.set_y(y);
+    }
 }
 
 impl<'a> ObjectAffine<'a> {
@@ -156,6 +166,15 @@ impl<'a> ObjectAffine<'a> {
     pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
         self.attributes.set_affine(aff.loan.index);
         self.aff_id = Some(aff.loan.index);
+    }
+
+    /// Sets the x and y position of the object, performing casts as nessesary
+    /// to fit within the bits allocated for this purpose.
+    pub fn set_position(&mut self, position: Vector2D<i32>) {
+        let x = position.x as u16;
+        let y = position.y as u16;
+        self.attributes.set_x(x);
+        self.attributes.set_y(y);
     }
 }
 
