@@ -196,7 +196,7 @@ impl Background {
         self.pos_y = y;
     }
 
-    pub fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32)
+    fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32)
     where
         T: Deref<Target = [u16]>,
     {
