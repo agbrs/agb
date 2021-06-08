@@ -289,7 +289,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
         let four: I = 4.into();
-        (self - one / four).cos()
+        (self + one / four).cos()
     }
 }
 
