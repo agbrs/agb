@@ -454,8 +454,8 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Vector2D<T: Number> {
-    x: T,
-    y: T,
+    pub x: T,
+    pub y: T,
 }
 
 impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
