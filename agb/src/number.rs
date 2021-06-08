@@ -505,6 +505,12 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 }
 
+impl<T: Number> From<(T, T)> for Vector2D<T> {
+    fn from(f: (T, T)) -> Self {
+        Vector2D::new(f.0, f.1)
+    }
+}
+
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
         Vector2D {
