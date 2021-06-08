@@ -7,6 +7,24 @@ use core::{
     },
 };
 
+pub trait Number:
+    Sized
+    + Copy
+    + PartialOrd
+    + Ord
+    + PartialEq
+    + Eq
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Rem<Output = Self>
+    + Div<Output = Self>
+    + Mul<Output = Self>
+{
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
+impl<I: FixedWidthUnsignedInteger> Number for I {}
+
 pub trait FixedWidthUnsignedInteger:
     Sized
     + Copy
@@ -73,7 +91,8 @@ fixed_width_signed_integer_impl!(i32);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
-pub type Number<const N: usize> = Num<i32, N>;
+pub type FixedNum<const N: usize> = Num<i32, N>;
+pub type Integer = Num<i32, 0>;
 
 pub fn change_base<
     I: FixedWidthUnsignedInteger,
@@ -431,4 +450,90 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
         write!(f, "Num<{}, {}>({})", type_name::<I>(), N, self)
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Vector2D<T: Number> {
+    x: T,
+    y: T,
+}
+
+impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn add(self, rhs: Vector2D<T>) -> Self::Output {
+        Vector2D {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl<T: Number> AddAssign<Self> for Vector2D<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl<T: Number> Sub<Vector2D<T>> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn sub(self, rhs: Vector2D<T>) -> Self::Output {
+        Vector2D {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl<T: Number> SubAssign<Self> for Vector2D<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    pub fn trunc(self) -> Vector2D<I> {
+        Vector2D {
+            x: self.x.trunc(),
+            y: self.y.trunc(),
+        }
+    }
+    pub fn floor(self) -> Vector2D<I> {
+        Vector2D {
+            x: self.x.floor(),
+            y: self.y.floor(),
+        }
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
+    fn from(n: Vector2D<I>) -> Self {
+        Vector2D {
+            x: n.x.into(),
+            y: n.y.into(),
+        }
+    }
+}
+
+pub struct Rect<T: Number> {
+    pub position: Vector2D<T>,
+    pub size: Vector2D<T>,
+}
+
+impl<T: Number> Vector2D<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Vector2D { x, y }
+    }
+    pub fn get(self) -> (T, T) {
+        (self.x, self.y)
+    }
+}
+
+#[test_case]
+fn test_vector_changing(_gba: &mut super::Gba) {
+    let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+
+    let v2 = v1.trunc();
+    assert_eq!(v2.get(), (1, 2));
+
+    assert_eq!(v1 + v1, (v2 + v2).into());
 }
