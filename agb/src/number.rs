@@ -462,6 +462,35 @@ impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     }
 }
 
+impl<T: Number> Mul<T> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Vector2D {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
+impl<T: Number> Div<T> for Vector2D<T> {
+    type Output = Vector2D<T>;
+    fn div(self, rhs: T) -> Self::Output {
+        Vector2D {
+            x: self.x / rhs,
+            y: self.y / rhs,
+        }
+    }
+}
+
+#[test_case]
+fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
+    let a: Vector2D<i32> = (1, 2).into();
+    let b = a * 5;
+    let c = b / 5;
+    assert_eq!(b, (5, 10).into());
+    assert_eq!(a, c);
+}
+
 impl<T: Number> AddAssign<Self> for Vector2D<T> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
