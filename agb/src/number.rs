@@ -94,21 +94,6 @@ pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 pub type FixedNum<const N: usize> = Num<i32, N>;
 pub type Integer = Num<i32, 0>;
 
-pub fn change_base<
-    I: FixedWidthUnsignedInteger,
-    J: FixedWidthUnsignedInteger + Into<I>,
-    const N: usize,
-    const M: usize,
->(
-    num: Num<J, N>,
-) -> Num<I, M> {
-    if N < M {
-        Num(num.0.into() << (M - N))
-    } else {
-        Num(num.0.into() >> (N - M))
-    }
-}
-
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
         Num(value << N)
@@ -232,6 +217,15 @@ impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+    pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
+        let n: J = self.0.into();
+        if N < M {
+            Num(n << (M - N))
+        } else {
+            Num(n >> (N - M))
+        }
+    }
+
     pub fn from_raw(n: I) -> Self {
         Num(n)
     }
@@ -358,8 +352,8 @@ fn test_change_base(_gba: &mut super::Gba) {
     let two: Num<i32, 9> = 2.into();
     let three: Num<i32, 4> = 3.into();
 
-    assert_eq!(two + change_base(three), 5.into());
-    assert_eq!(three + change_base(two), 5.into());
+    assert_eq!(two + three.change_base(), 5.into());
+    assert_eq!(three + two.change_base(), 5.into());
 }
 
 #[test_case]
@@ -511,6 +505,12 @@ impl<T: Number> From<(T, T)> for Vector2D<T> {
     }
 }
 
+impl<T: Number> Vector2D<T> {
+    pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
+        (self.x.into(), self.y.into()).into()
+    }
+}
+
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
         Vector2D {
@@ -523,6 +523,12 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
 pub struct Rect<T: Number> {
     pub position: Vector2D<T>,
     pub size: Vector2D<T>,
+}
+
+impl<T: Number> Rect<T> {
+    pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
+        Rect { position, size }
+    }
 }
 
 impl<T: Number> Vector2D<T> {
