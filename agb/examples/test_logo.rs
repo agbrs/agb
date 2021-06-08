@@ -3,7 +3,7 @@
 
 extern crate agb;
 
-use agb::display::example_logo;
+use agb::{display::example_logo, number::Vector2D};
 
 #[no_mangle]
 pub fn main() -> ! {
@@ -21,7 +21,7 @@ pub fn main() -> ! {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.draw_full_map(&entries, 30, 20);
+    back.draw_full_map(&entries, Vector2D::new(30, 20));
     back.show();
 
     loop {}
