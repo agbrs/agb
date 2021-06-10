@@ -105,8 +105,8 @@ impl MixerBuffer {
                 let v: Num<i16, 4> = v.into();
                 channel.pos += channel.playback_speed;
 
-                buffer[i] += v;
-                buffer[i + SOUND_BUFFER_SIZE] += v;
+                buffer[i] += v * left_amount;
+                buffer[i + SOUND_BUFFER_SIZE] += v * right_amount;
             }
         }
 
