@@ -22,6 +22,8 @@ pub struct SoundChannel {
     data: &'static [u8],
     pos: Num<usize, 8>,
     should_loop: bool,
+
+    playback_speed: Num<usize, 8>,
 }
 
 impl SoundChannel {
@@ -30,11 +32,17 @@ impl SoundChannel {
             data,
             pos: 0.into(),
             should_loop: false,
+            playback_speed: 1.into(),
         }
     }
 
     pub fn should_loop(mut self) -> Self {
         self.should_loop = true;
+        self
+    }
+
+    pub fn playback(mut self, playback_speed: Num<usize, 8>) -> Self {
+        self.playback_speed = playback_speed;
         self
     }
 }

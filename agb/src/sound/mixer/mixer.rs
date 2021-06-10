@@ -3,16 +3,14 @@ use super::hw::LeftOrRight;
 use super::SoundChannel;
 
 pub struct Mixer {
-    buffer_l: MixerBuffer,
-    buffer_r: MixerBuffer,
+    buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 16],
 }
 
 impl Mixer {
     pub(super) fn new() -> Self {
         Mixer {
-            buffer_l: MixerBuffer::new(LeftOrRight::Left),
-            buffer_r: MixerBuffer::new(LeftOrRight::Right),
+            buffer: MixerBuffer::new(),
             channels: Default::default(),
         }
     }
@@ -23,30 +21,14 @@ impl Mixer {
     }
 
     pub fn vblank(&mut self) {
-        self.buffer_l.swap();
-        self.buffer_r.swap();
-        self.buffer_l.clear();
-        self.buffer_r.clear();
+        self.buffer.swap();
+        self.buffer.clear();
 
         for channel in self.channels.iter_mut() {
-            let mut has_finished = false;
-
             if let Some(some_channel) = channel {
-                self.buffer_l.write_channel(some_channel);
-                self.buffer_r.write_channel(some_channel);
-                some_channel.pos += SOUND_BUFFER_SIZE;
-
-                if some_channel.pos.floor() >= some_channel.data.len() {
-                    if some_channel.should_loop {
-                        some_channel.pos = 0.into();
-                    } else {
-                        has_finished = true;
-                    }
+                if self.buffer.write_channel(some_channel) {
+                    channel.take();
                 }
-            }
-
-            if has_finished {
-                channel.take();
             }
         }
     }
@@ -71,50 +53,60 @@ const SOUND_FREQUENCY: i32 = 10512;
 const SOUND_BUFFER_SIZE: usize = 176;
 
 struct MixerBuffer {
-    buffer1: [i8; SOUND_BUFFER_SIZE],
-    buffer2: [i8; SOUND_BUFFER_SIZE],
+    buffer1: [i8; SOUND_BUFFER_SIZE * 2], // first half is left, second is right
+    buffer2: [i8; SOUND_BUFFER_SIZE * 2],
 
     buffer_1_active: bool,
-
-    lr: LeftOrRight,
 }
 
 impl MixerBuffer {
-    fn new(lr: LeftOrRight) -> Self {
+    fn new() -> Self {
         MixerBuffer {
-            buffer1: [0; SOUND_BUFFER_SIZE],
-            buffer2: [0; SOUND_BUFFER_SIZE],
+            buffer1: [0; SOUND_BUFFER_SIZE * 2],
+            buffer2: [0; SOUND_BUFFER_SIZE * 2],
 
             buffer_1_active: true,
-            lr,
         }
     }
 
     fn swap(&mut self) {
-        self.buffer_1_active = !self.buffer_1_active;
+        let (left_buffer, right_buffer) = self.get_write_buffer().split_at(SOUND_BUFFER_SIZE);
 
-        if self.buffer_1_active {
-            hw::enable_dma_for_sound(&self.buffer1, self.lr);
-        } else {
-            hw::enable_dma_for_sound(&self.buffer2, self.lr);
-        }
+        hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
+        hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
+
+        self.buffer_1_active = !self.buffer_1_active;
     }
 
     fn clear(&mut self) {
         self.get_write_buffer().fill(0);
     }
 
-    fn write_channel(&mut self, channel: &SoundChannel) {
-        let data_to_copy = &channel.data[channel.pos.floor()..];
+    fn write_channel(&mut self, channel: &mut SoundChannel) -> bool {
         let place_to_write_to = self.get_write_buffer();
+        let mut current_point = channel.pos;
 
-        for (i, v) in data_to_copy.iter().take(SOUND_BUFFER_SIZE).enumerate() {
-            let v = *v as i8;
-            place_to_write_to[i] = place_to_write_to[i].saturating_add(v);
+        for i in 0..SOUND_BUFFER_SIZE {
+            let v = channel.data[current_point.floor()];
+            current_point += channel.playback_speed;
+
+            if current_point.floor() >= channel.data.len() {
+                if channel.should_loop {
+                    channel.pos -= channel.data.len();
+                } else {
+                    return true;
+                }
+            }
+
+            place_to_write_to[i] = place_to_write_to[i].saturating_add(v as i8);
+            place_to_write_to[i + SOUND_BUFFER_SIZE] =
+                place_to_write_to[i + SOUND_BUFFER_SIZE].saturating_add(v as i8);
         }
+
+        false
     }
 
-    fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE] {
+    fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {
         if self.buffer_1_active {
             &mut self.buffer2
         } else {
