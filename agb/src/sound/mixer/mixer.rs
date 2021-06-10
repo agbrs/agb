@@ -1,15 +1,18 @@
 use super::hw;
+use super::hw::LeftOrRight;
 use super::SoundChannel;
 
 pub struct Mixer {
-    buffer: MixerBuffer,
+    buffer_l: MixerBuffer,
+    buffer_r: MixerBuffer,
     channels: [Option<SoundChannel>; 16],
 }
 
 impl Mixer {
     pub(super) fn new() -> Self {
         Mixer {
-            buffer: MixerBuffer::new(),
+            buffer_l: MixerBuffer::new(LeftOrRight::Left),
+            buffer_r: MixerBuffer::new(LeftOrRight::Right),
             channels: Default::default(),
         }
     }
@@ -20,14 +23,17 @@ impl Mixer {
     }
 
     pub fn vblank(&mut self) {
-        self.buffer.swap();
-        self.buffer.clear();
+        self.buffer_l.swap();
+        self.buffer_r.swap();
+        self.buffer_l.clear();
+        self.buffer_r.clear();
 
         for channel in self.channels.iter_mut() {
             let mut has_finished = false;
 
             if let Some(some_channel) = channel {
-                self.buffer.write_channel(some_channel);
+                self.buffer_l.write_channel(some_channel);
+                self.buffer_r.write_channel(some_channel);
                 some_channel.pos += SOUND_BUFFER_SIZE;
 
                 if some_channel.pos >= some_channel.data.len() {
@@ -69,15 +75,18 @@ struct MixerBuffer {
     buffer2: [i8; SOUND_BUFFER_SIZE],
 
     buffer_1_active: bool,
+
+    lr: LeftOrRight,
 }
 
 impl MixerBuffer {
-    fn new() -> Self {
+    fn new(lr: LeftOrRight) -> Self {
         MixerBuffer {
             buffer1: [0; SOUND_BUFFER_SIZE],
             buffer2: [0; SOUND_BUFFER_SIZE],
 
             buffer_1_active: true,
+            lr,
         }
     }
 
@@ -85,9 +94,9 @@ impl MixerBuffer {
         self.buffer_1_active = !self.buffer_1_active;
 
         if self.buffer_1_active {
-            hw::enable_dma1_for_sound(&self.buffer1);
+            hw::enable_dma_for_sound(&self.buffer1, self.lr);
         } else {
-            hw::enable_dma1_for_sound(&self.buffer2);
+            hw::enable_dma_for_sound(&self.buffer2, self.lr);
         }
     }
 

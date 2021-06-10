@@ -31,14 +31,27 @@ const DMA_CONTROL_SETTING_FOR_SOUND: u16 = {
     dest_fixed | repeat | transfer_type | dma_start_timing | enable
 };
 
-pub(super) fn enable_dma1_for_sound(sound_memory: &[i8]) {
+#[derive(Copy, Clone)]
+pub(super) enum LeftOrRight {
+    Left,
+    Right,
+}
+
+pub(super) fn enable_dma_for_sound(sound_memory: &[i8], lr: LeftOrRight) {
+    match lr {
+        LeftOrRight::Left => enable_dma1_for_sound(sound_memory),
+        LeftOrRight::Right => enable_dma2_for_sound(sound_memory),
+    }
+}
+
+fn enable_dma1_for_sound(sound_memory: &[i8]) {
     DMA1_CONTROL.set(0);
     DMA1_SOURCE_ADDR.set(sound_memory.as_ptr() as u32);
     DMA1_DEST_ADDR.set(FIFOA_DEST_ADDR);
     DMA1_CONTROL.set(DMA_CONTROL_SETTING_FOR_SOUND);
 }
 
-pub(super) fn enable_dma2_for_sound(sound_memory: &[i8]) {
+fn enable_dma2_for_sound(sound_memory: &[i8]) {
     DMA2_CONTROL.set(0);
     DMA2_SOURCE_ADDR.set(sound_memory.as_ptr() as u32);
     DMA2_DEST_ADDR.set(FIFOB_DEST_ADDR);
