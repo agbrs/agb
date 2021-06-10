@@ -26,6 +26,7 @@ pub struct SoundChannel {
     playback_speed: Num<usize, 8>,
 
     panning: Num<i16, 4>, // between -1 and 1
+    is_done: bool,
 }
 
 impl SoundChannel {
@@ -36,6 +37,7 @@ impl SoundChannel {
             should_loop: false,
             playback_speed: 1.into(),
             panning: 0.into(),
+            is_done: false,
         }
     }
 

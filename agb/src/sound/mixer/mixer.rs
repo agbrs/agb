@@ -82,6 +82,10 @@ impl MixerBuffer {
         let mut buffer: [Num<i16, 4>; SOUND_BUFFER_SIZE * 2] = [Num::new(0); SOUND_BUFFER_SIZE * 2];
 
         for channel in channels {
+            if channel.is_done {
+                continue;
+            }
+
             let mut current_point = channel.pos;
 
             let right_amount = (channel.panning - 1) / 2;
@@ -96,6 +100,7 @@ impl MixerBuffer {
                     if channel.should_loop {
                         channel.pos -= channel.data.len();
                     } else {
+                        channel.is_done = true;
                         continue;
                     }
                 }
