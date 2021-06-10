@@ -47,11 +47,25 @@ pub(super) fn enable_dma2_for_sound(sound_memory: &[i8]) {
 
 pub(super) fn set_sound_control_register_for_mixer() {
     let sound_a_volume_100: u16 = 1 << 2;
-    let sound_a_rout: u16 = 1 << 8;
+    let sound_a_rout: u16 = 0 << 8; // sound A is for left channel only
     let sound_a_lout: u16 = 1 << 9;
     let sound_a_fifo_reset: u16 = 1 << 11;
 
-    SOUND_CONTROL.set(sound_a_volume_100 | sound_a_rout | sound_a_lout | sound_a_fifo_reset);
+    let sound_b_volume_100: u16 = 1 << 3;
+    let sound_b_rout: u16 = 1 << 12;
+    let sound_b_lout: u16 = 1 << 13;
+    let sound_b_fifo_reset: u16 = 1 << 15;
+
+    SOUND_CONTROL.set(
+        sound_a_volume_100
+            | sound_a_rout
+            | sound_a_lout
+            | sound_a_fifo_reset
+            | sound_b_volume_100
+            | sound_b_rout
+            | sound_b_lout
+            | sound_b_fifo_reset,
+    );
 
     // master sound enable
     SOUND_CONTROL_X.set(1 << 7);
