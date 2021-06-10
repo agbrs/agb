@@ -31,8 +31,10 @@ impl Mixer {
 
     pub fn play_sound(&mut self, new_channel: SoundChannel) {
         for channel in self.channels.iter_mut() {
-            if channel.is_some() {
-                continue;
+            if let Some(some_channel) = channel {
+                if !some_channel.is_done {
+                    continue;
+                }
             }
 
             channel.replace(new_channel);
@@ -86,17 +88,11 @@ impl MixerBuffer {
                 continue;
             }
 
-            let mut current_point = channel.pos;
-
             let right_amount = (channel.panning - 1) / 2;
             let left_amount = -right_amount + 1;
 
             for i in 0..SOUND_BUFFER_SIZE {
-                let v = (channel.data[current_point.floor()] as i8) as i16;
-                let v: Num<i16, 4> = v.into();
-                current_point += channel.playback_speed;
-
-                if current_point.floor() >= channel.data.len() {
+                if channel.pos.floor() >= channel.data.len() {
                     if channel.should_loop {
                         channel.pos -= channel.data.len();
                     } else {
@@ -105,8 +101,12 @@ impl MixerBuffer {
                     }
                 }
 
-                buffer[i] += v * left_amount;
-                buffer[i + SOUND_BUFFER_SIZE] += v * right_amount;
+                let v = (channel.data[channel.pos.floor()] as i8) as i16;
+                let v: Num<i16, 4> = v.into();
+                channel.pos += channel.playback_speed;
+
+                buffer[i] += v;
+                buffer[i + SOUND_BUFFER_SIZE] += v;
             }
         }
 
