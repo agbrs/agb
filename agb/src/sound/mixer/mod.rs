@@ -3,6 +3,8 @@ mod mixer;
 
 pub use mixer::Mixer;
 
+use crate::number::Num;
+
 #[non_exhaustive]
 pub struct MixerController {}
 
@@ -18,7 +20,7 @@ impl MixerController {
 
 pub struct SoundChannel {
     data: &'static [u8],
-    pos: usize,
+    pos: Num<usize, 8>,
     should_loop: bool,
 }
 
@@ -26,7 +28,7 @@ impl SoundChannel {
     pub fn new(data: &'static [u8]) -> Self {
         SoundChannel {
             data,
-            pos: 0,
+            pos: 0.into(),
             should_loop: false,
         }
     }

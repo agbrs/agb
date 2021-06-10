@@ -36,9 +36,9 @@ impl Mixer {
                 self.buffer_r.write_channel(some_channel);
                 some_channel.pos += SOUND_BUFFER_SIZE;
 
-                if some_channel.pos >= some_channel.data.len() {
+                if some_channel.pos.floor() >= some_channel.data.len() {
                     if some_channel.should_loop {
-                        some_channel.pos = 0;
+                        some_channel.pos = 0.into();
                     } else {
                         has_finished = true;
                     }
@@ -105,7 +105,7 @@ impl MixerBuffer {
     }
 
     fn write_channel(&mut self, channel: &SoundChannel) {
-        let data_to_copy = &channel.data[channel.pos..];
+        let data_to_copy = &channel.data[channel.pos.floor()..];
         let place_to_write_to = self.get_write_buffer();
 
         for (i, v) in data_to_copy.iter().take(SOUND_BUFFER_SIZE).enumerate() {
