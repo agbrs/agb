@@ -88,7 +88,7 @@ impl MixerBuffer {
                 continue;
             }
 
-            let right_amount = (channel.panning - 1) / 2;
+            let right_amount = (channel.panning + 1) / 2;
             let left_amount = -right_amount + 1;
 
             for i in 0..SOUND_BUFFER_SIZE {
