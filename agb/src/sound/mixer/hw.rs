@@ -66,7 +66,7 @@ pub(super) fn set_sound_control_register_for_mixer() {
 
     let sound_b_volume_100: u16 = 1 << 3;
     let sound_b_rout: u16 = 1 << 12;
-    let sound_b_lout: u16 = 1 << 13;
+    let sound_b_lout: u16 = 0 << 13;
     let sound_b_fifo_reset: u16 = 1 << 15;
 
     SOUND_CONTROL.set(
