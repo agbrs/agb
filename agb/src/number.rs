@@ -103,6 +103,15 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     }
 }
 
+impl<I, const N: usize> Default for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    fn default() -> Self {
+        Num(I::zero())
+    }
+}
+
 impl<I, T, const N: usize> Add<T> for Num<I, N>
 where
     I: FixedWidthUnsignedInteger,

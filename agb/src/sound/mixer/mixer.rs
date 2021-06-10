@@ -1,6 +1,7 @@
 use super::hw;
 use super::hw::LeftOrRight;
 use super::SoundChannel;
+use crate::number::Num;
 
 pub struct Mixer {
     buffer: MixerBuffer,
@@ -24,13 +25,8 @@ impl Mixer {
         self.buffer.swap();
         self.buffer.clear();
 
-        for channel in self.channels.iter_mut() {
-            if let Some(some_channel) = channel {
-                if self.buffer.write_channel(some_channel) {
-                    channel.take();
-                }
-            }
-        }
+        self.buffer
+            .write_channels(self.channels.iter_mut().flatten());
     }
 
     pub fn play_sound(&mut self, new_channel: SoundChannel) {
@@ -82,28 +78,37 @@ impl MixerBuffer {
         self.get_write_buffer().fill(0);
     }
 
-    fn write_channel(&mut self, channel: &mut SoundChannel) -> bool {
-        let place_to_write_to = self.get_write_buffer();
-        let mut current_point = channel.pos;
+    fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
+        let mut buffer: [Num<i16, 4>; SOUND_BUFFER_SIZE * 2] = [Num::new(0); SOUND_BUFFER_SIZE * 2];
 
-        for i in 0..SOUND_BUFFER_SIZE {
-            let v = channel.data[current_point.floor()];
-            current_point += channel.playback_speed;
+        for channel in channels {
+            let mut current_point = channel.pos;
 
-            if current_point.floor() >= channel.data.len() {
-                if channel.should_loop {
-                    channel.pos -= channel.data.len();
-                } else {
-                    return true;
+            let right_amount = (channel.panning - 1) / 2;
+            let left_amount = -right_amount + 1;
+
+            for i in 0..SOUND_BUFFER_SIZE {
+                let v = (channel.data[current_point.floor()] as i8) as i16;
+                let v: Num<i16, 4> = v.into();
+                current_point += channel.playback_speed;
+
+                if current_point.floor() >= channel.data.len() {
+                    if channel.should_loop {
+                        channel.pos -= channel.data.len();
+                    } else {
+                        continue;
+                    }
                 }
-            }
 
-            place_to_write_to[i] = place_to_write_to[i].saturating_add(v as i8);
-            place_to_write_to[i + SOUND_BUFFER_SIZE] =
-                place_to_write_to[i + SOUND_BUFFER_SIZE].saturating_add(v as i8);
+                buffer[i] += v * left_amount;
+                buffer[i + SOUND_BUFFER_SIZE] += v * right_amount;
+            }
         }
 
-        false
+        let write_buffer = self.get_write_buffer();
+        for i in 0..SOUND_BUFFER_SIZE * 2 {
+            write_buffer[i] = buffer[i].floor().clamp(i8::MIN as i16, i8::MAX as i16) as i8
+        }
     }
 
     fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {

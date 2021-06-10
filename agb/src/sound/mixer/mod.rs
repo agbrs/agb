@@ -24,6 +24,8 @@ pub struct SoundChannel {
     should_loop: bool,
 
     playback_speed: Num<usize, 8>,
+
+    panning: Num<i16, 4>, // between -1 and 1
 }
 
 impl SoundChannel {
@@ -33,6 +35,7 @@ impl SoundChannel {
             pos: 0.into(),
             should_loop: false,
             playback_speed: 1.into(),
+            panning: 0.into(),
         }
     }
 
@@ -43,6 +46,14 @@ impl SoundChannel {
 
     pub fn playback(mut self, playback_speed: Num<usize, 8>) -> Self {
         self.playback_speed = playback_speed;
+        self
+    }
+
+    pub fn panning(mut self, panning: Num<i16, 4>) -> Self {
+        debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
+        debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
+
+        self.panning = panning;
         self
     }
 }
