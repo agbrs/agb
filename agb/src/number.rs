@@ -528,15 +528,15 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 }
 
-impl<T: Number> From<(T, T)> for Vector2D<T> {
-    fn from(f: (T, T)) -> Self {
-        Vector2D::new(f.0, f.1)
+impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
+    fn from(f: (P, P)) -> Self {
+        Vector2D::new(f.0.into(), f.1.into())
     }
 }
 
 impl<T: Number> Vector2D<T> {
     pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
-        (self.x.into(), self.y.into()).into()
+        (self.x, self.y).into()
     }
 }
 
