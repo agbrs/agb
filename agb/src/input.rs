@@ -48,9 +48,10 @@ impl Default for ButtonController {
 
 impl ButtonController {
     pub fn new() -> Self {
+        let pressed = !unsafe { BUTTON_INPUT.read_volatile() };
         ButtonController {
-            previous: 0,
-            current: 0,
+            previous: pressed,
+            current: pressed,
         }
     }
 
