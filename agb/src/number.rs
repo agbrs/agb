@@ -550,6 +550,10 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
         self.x * self.x + self.y * self.y
     }
 
+    pub fn manhattan_distance(self) -> Num<i32, N> {
+        self.x.abs() + self.y.abs()
+    }
+
     pub fn magnitude(self) -> Num<i32, N> {
         self.magnitude_squared().sqrt()
     }
