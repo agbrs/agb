@@ -491,6 +491,14 @@ impl<T: Number, U: Number + Into<T>> Div<U> for Vector2D<T> {
     }
 }
 
+impl<T: Number, U: Number + Into<T>> DivAssign<U> for Vector2D<T> {
+    fn div_assign(&mut self, rhs: U) {
+        let result = *self / rhs;
+        self.x = result.x;
+        self.y = result.y;
+    }
+}
+
 #[test_case]
 fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
     let a: Vector2D<i32> = (1, 2).into();
