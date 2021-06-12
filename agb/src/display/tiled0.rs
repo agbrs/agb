@@ -72,7 +72,7 @@ impl Background {
     /// Hides the background, nothing from this background is rendered to screen.
     pub fn hide(&mut self) {
         let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode | !(1 << (self.background + 0x08));
+        let new_mode = mode & !(1 << (self.background + 0x08));
         DISPLAY_CONTROL.set(new_mode);
     }
 
@@ -128,16 +128,16 @@ impl Background {
     /// block assigned to this background. This is currently unnecesary to call.
     /// Setting position already updates the drawn map, and changing map forces
     /// an update.
-    pub fn draw_full_map(&mut self, map: &[u16], dimensions: Vector2D<u32>) {
+    pub fn draw_full_map(&mut self, map: &[u16], dimensions: Vector2D<u32>, default: u16) {
         let area: Rect<i32> = Rect {
             position: Vector2D::new(-1, -1),
             size: Vector2D::new(32, 22),
         };
-        self.draw_area(map, dimensions, area);
+        self.draw_area(map, dimensions, area, default);
     }
 
     /// Forces a specific area of the screen to be drawn, taking into account any positonal offsets.
-    pub fn draw_area(&self, map: &[u16], dimensions: Vector2D<u32>, area: Rect<i32>) {
+    pub fn draw_area(&self, map: &[u16], dimensions: Vector2D<u32>, area: Rect<i32>, default: u16) {
         self.draw_area_mapped(
             &map,
             dimensions.x,
@@ -146,6 +146,7 @@ impl Background {
             area.position.y,
             area.size.x,
             area.size.y,
+            default,
         );
     }
 
@@ -159,6 +160,7 @@ impl Background {
         top: i32,
         width: i32,
         height: i32,
+        default: u16,
     ) where
         T: Deref<Target = [u16]>,
     {
@@ -180,7 +182,7 @@ impl Background {
                             dim_y,
                             x_map_space + x,
                             y_map_space + y,
-                            0,
+                            default,
                         ))
                 };
             }
@@ -195,13 +197,21 @@ impl Background {
         map: &[u16],
         dimensions: Vector2D<u32>,
         position: Vector2D<i32>,
+        default: u16,
     ) {
-        self.set_position_mapped(&map, dimensions.x, dimensions.y, position.x, position.y);
+        self.set_position_mapped(
+            &map,
+            dimensions.x,
+            dimensions.y,
+            position.x,
+            position.y,
+            default,
+        );
         self.pos_x = position.x;
         self.pos_y = position.y;
     }
 
-    fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32)
+    fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32, default: u16)
     where
         T: Deref<Target = [u16]>,
     {
@@ -219,7 +229,7 @@ impl Background {
 
         // don't fancily handle if we've moved more than one tile, just copy the whole new map
         if x_difference.abs() > 1 || y_difference.abs() > 1 {
-            self.draw_area_mapped(map, dim_x, dim_y, -1, 32, -1, 22);
+            self.draw_area_mapped(map, dim_x, dim_y, -1, 32, -1, 22, default);
         } else {
             if x_difference != 0 {
                 let x_offset = match x_difference {
@@ -239,7 +249,7 @@ impl Background {
                                 dim_y,
                                 x_map_space + x_offset,
                                 y_map_space + y,
-                                0,
+                                default,
                             ))
                     };
                 }
@@ -262,7 +272,7 @@ impl Background {
                                 dim_y,
                                 x_map_space + x,
                                 y_map_space + y_offset,
-                                0,
+                                default,
                             ))
                     };
                 }
