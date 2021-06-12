@@ -1,6 +1,7 @@
 use bitflags::bitflags;
 use core::convert::From;
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tri {
     Positive = 1,
     Zero = 0,
