@@ -1,6 +1,6 @@
 use core::cell::RefCell;
 
-use super::DISPLAY_CONTROL;
+use super::{Priority, DISPLAY_CONTROL};
 use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
 use crate::number::Vector2D;
@@ -124,6 +124,10 @@ impl ObjectStandard<'_> {
         self.attributes.set_x(x);
         self.attributes.set_y(y);
     }
+
+    pub fn set_priority(&mut self, p: Priority) {
+        self.attributes.set_priority(p)
+    }
 }
 
 impl<'a> ObjectAffine<'a> {
@@ -175,6 +179,10 @@ impl<'a> ObjectAffine<'a> {
         let y = position.y as u16;
         self.attributes.set_x(x);
         self.attributes.set_y(y);
+    }
+
+    pub fn set_priority(&mut self, p: Priority) {
+        self.attributes.set_priority(p)
     }
 }
 
@@ -253,6 +261,10 @@ impl ObjectAttribute {
 
     fn set_affine(&mut self, aff_id: u8) {
         self.a1 = set_bits(self.a1, aff_id as u16, 5, 0x9);
+    }
+
+    fn set_priority(&mut self, p: Priority) {
+        self.a2 = set_bits(self.a2, p as u16, 2, 0x0A);
     }
 }
 

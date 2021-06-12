@@ -6,7 +6,7 @@ use crate::{
 };
 
 use super::{
-    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings,
+    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority,
     DISPLAY_CONTROL,
 };
 
@@ -21,13 +21,6 @@ const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06010000) };
 
 const MAP: *mut [[[u16; 32]; 32]; 32] = 0x0600_0000 as *mut _;
-
-pub enum Prioriry {
-    P0 = 0,
-    P1 = 1,
-    P2 = 2,
-    P3 = 3,
-}
 
 pub enum ColourMode {
     FourBitPerPixel = 0,
@@ -101,7 +94,7 @@ impl Background {
 
     /// Sets priority of the background layer. Backgrounds with higher priority
     /// are drawn (above/below) backgrounds with lower priority.
-    pub fn set_priority(&mut self, p: Prioriry) {
+    pub fn set_priority(&mut self, p: Priority) {
         unsafe { self.set_bits(0, 2, p as u16) }
     }
 

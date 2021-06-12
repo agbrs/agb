@@ -111,3 +111,10 @@ pub fn busy_wait_for_VBlank() {
     while VCOUNT.get() >= 160 {}
     while VCOUNT.get() < 160 {}
 }
+
+pub enum Priority {
+    P0 = 0,
+    P1 = 1,
+    P2 = 2,
+    P3 = 3,
+}
