@@ -15,7 +15,7 @@ fn logo_display(gba: &mut crate::Gba) {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.draw_full_map(&entries, (30_u32, 20_u32).into());
+    back.draw_full_map(&entries, (30_u32, 20_u32).into(), 0);
     back.show();
 
     crate::assert_image_output("gfx/test_logo.png");
