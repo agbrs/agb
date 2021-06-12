@@ -7,6 +7,8 @@ use core::{
     },
 };
 
+use crate::syscall;
+
 pub trait Number:
     Sized
     + Copy
@@ -293,6 +295,13 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     }
 }
 
+impl<const N: usize> Num<i32, N> {
+    pub fn sqrt(self) -> Self {
+        assert_eq!(N % 2, 0, "N must be even to be able to square root");
+        Self(syscall::sqrt(self.0) << (N / 2))
+    }
+}
+
 #[test_case]
 fn test_numbers(_gba: &mut super::Gba) {
     // test addition
@@ -525,6 +534,19 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
             x: self.x.floor(),
             y: self.y.floor(),
         }
+    }
+}
+
+impl<const N: usize> Vector2D<Num<i32, N>> {
+    pub fn magnitude_squared(self) -> Num<i32, N> {
+        self.x * self.x + self.y * self.y
+    }
+
+    pub fn magnitude(self) -> Num<i32, N> {
+        self.magnitude_squared().sqrt()
+    }
+    pub fn normalise(self) -> Self {
+        self / self.magnitude()
     }
 }
 
