@@ -207,12 +207,17 @@ impl Background {
             position.y,
             default,
         );
-        self.pos_x = position.x;
-        self.pos_y = position.y;
     }
 
-    fn set_position_mapped<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32, default: u16)
-    where
+    fn set_position_mapped<T>(
+        &mut self,
+        map: &T,
+        dim_x: u32,
+        dim_y: u32,
+        x: i32,
+        y: i32,
+        default: u16,
+    ) where
         T: Deref<Target = [u16]>,
     {
         let x_map_space = x / 8;
@@ -227,9 +232,12 @@ impl Background {
         let x_block_space = x_map_space % 32;
         let y_block_space = y_map_space % 32;
 
+        self.pos_x = x;
+        self.pos_y = y;
+
         // don't fancily handle if we've moved more than one tile, just copy the whole new map
         if x_difference.abs() > 1 || y_difference.abs() > 1 {
-            self.draw_area_mapped(map, dim_x, dim_y, -1, 32, -1, 22, default);
+            self.draw_area_mapped(map, dim_x, dim_y, -1, -1, 32, 22, default);
         } else {
             if x_difference != 0 {
                 let x_offset = match x_difference {
