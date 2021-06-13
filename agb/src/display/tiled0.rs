@@ -419,7 +419,7 @@ impl Tiled0 {
         self.used_blocks |= blocks_to_use;
 
         for (index, &tile) in tiles.iter().enumerate() {
-            self.set_background_tilemap_entry(start_tile + index as u32, tile)
+            self.set_background_tilemap_entry(start_tile * 8 + index as u32, tile)
         }
     }
 }
