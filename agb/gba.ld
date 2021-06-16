@@ -101,6 +101,8 @@ SECTIONS {
     .debug_typenames 0 : { *(.debug_typenames) }
     .debug_varnames  0 : { *(.debug_varnames) }
 
+    .debug_ranges   0 : { *(.debug_ranges) }
+
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }
 }
