@@ -144,49 +144,65 @@ where
     }
 }
 
-impl<I, T, const N: usize> Mul<T> for Num<I, N>
+impl<I, const N: usize> Mul<Num<I, N>> for Num<I, N>
 where
     I: FixedWidthUnsignedInteger,
-    T: Into<Num<I, N>>,
 {
     type Output = Self;
-    fn mul(self, rhs: T) -> Self::Output {
-        let rhs: Self = rhs.into();
-
+    fn mul(self, rhs: Num<I, N>) -> Self::Output {
         Num(((self.floor() * rhs.floor()) << N)
             + (self.floor() * rhs.frac() + rhs.floor() * self.frac())
             + ((self.frac() * rhs.frac()) >> N))
     }
 }
 
-impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
+impl<I, const N: usize> Mul<I> for Num<I, N>
 where
     I: FixedWidthUnsignedInteger,
-    T: Into<Num<I, N>>,
 {
-    fn mul_assign(&mut self, rhs: T) {
-        self.0 = (*self * rhs.into()).0
+    type Output = Self;
+    fn mul(self, rhs: I) -> Self::Output {
+        Num(self.0 * rhs)
     }
 }
 
-impl<I, T, const N: usize> Div<T> for Num<I, N>
+impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
 where
     I: FixedWidthUnsignedInteger,
-    T: Into<Num<I, N>>,
+    Num<I, N>: Mul<T, Output = Num<I, N>>,
+{
+    fn mul_assign(&mut self, rhs: T) {
+        self.0 = (*self * rhs).0
+    }
+}
+
+impl<I, const N: usize> Div<Num<I, N>> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
 {
     type Output = Self;
-    fn div(self, rhs: T) -> Self::Output {
-        Num((self.0 << N) / rhs.into().0)
+    fn div(self, rhs: Num<I, N>) -> Self::Output {
+        Num((self.0 << N) / rhs.0)
+    }
+}
+
+impl<I, const N: usize> Div<I> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    type Output = Self;
+    fn div(self, rhs: I) -> Self::Output {
+        Num(self.0 / rhs)
     }
 }
 
 impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
 where
     I: FixedWidthUnsignedInteger,
-    T: Into<Num<I, N>>,
+    Num<I, N>: Div<T, Output = Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
-        self.0 = (*self / rhs.into()).0
+        self.0 = (*self / rhs).0
     }
 }
 
@@ -471,27 +487,47 @@ impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     }
 }
 
-impl<T: Number, U: Number + Into<T>> Mul<U> for Vector2D<T> {
+impl<T: Number, U: Copy> Mul<U> for Vector2D<T>
+where
+    T: Mul<U, Output = T>,
+{
     type Output = Vector2D<T>;
     fn mul(self, rhs: U) -> Self::Output {
         Vector2D {
-            x: self.x * rhs.into(),
-            y: self.y * rhs.into(),
+            x: self.x * rhs,
+            y: self.y * rhs,
         }
     }
 }
 
-impl<T: Number, U: Number + Into<T>> Div<U> for Vector2D<T> {
+impl<T: Number, U: Copy> MulAssign<U> for Vector2D<T>
+where
+    T: Mul<U, Output = T>,
+{
+    fn mul_assign(&mut self, rhs: U) {
+        let result = *self * rhs;
+        self.x = result.x;
+        self.y = result.y;
+    }
+}
+
+impl<T: Number, U: Copy> Div<U> for Vector2D<T>
+where
+    T: Div<U, Output = T>,
+{
     type Output = Vector2D<T>;
     fn div(self, rhs: U) -> Self::Output {
         Vector2D {
-            x: self.x / rhs.into(),
-            y: self.y / rhs.into(),
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }
 
-impl<T: Number, U: Number + Into<T>> DivAssign<U> for Vector2D<T> {
+impl<T: Number, U: Copy> DivAssign<U> for Vector2D<T>
+where
+    T: Div<U, Output = T>,
+{
     fn div_assign(&mut self, rhs: U) {
         let result = *self / rhs;
         self.x = result.x;
