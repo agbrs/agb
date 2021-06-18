@@ -1,15 +1,25 @@
 use crate::memory_mapped::MemoryMapped;
 
-// Once we have proper DMA support, we should use that rather than hard coding these here too
-const DMA1_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00bc) };
-const DMA1_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00c0) };
-const _DMA1_WORD_COUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_00c4) }; // sound ignores this for some reason
-const DMA1_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_00c6) };
+const fn dma_source_addr(dma: usize) -> usize {
+    0x0400_00b0 + 0x0c * dma
+}
 
-const DMA2_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00ca) };
-const DMA2_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(0x0400_00cc) };
-const _DMA2_WORD_COUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_00d0) };
-const DMA2_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_00d2) };
+const fn dma_dest_addr(dma: usize) -> usize {
+    0x0400_00b4 + 0x0c * dma
+}
+
+const fn dma_control_addr(dma: usize) -> usize {
+    0x0400_00ba + 0x0c * dma
+}
+
+// Once we have proper DMA support, we should use that rather than hard coding these here too
+const DMA1_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_source_addr(1)) };
+const DMA1_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_dest_addr(1)) };
+const DMA1_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(dma_control_addr(1)) };
+
+const DMA2_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_source_addr(2)) };
+const DMA2_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_dest_addr(2)) };
+const DMA2_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(dma_control_addr(2)) };
 
 const FIFOA_DEST_ADDR: u32 = 0x0400_00a0;
 const FIFOB_DEST_ADDR: u32 = 0x0400_00a4;
