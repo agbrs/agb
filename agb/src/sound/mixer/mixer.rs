@@ -46,7 +46,7 @@ impl Mixer {
 }
 
 // I've picked one frequency that works nicely. But there are others that work nicely
-// which we may want to consider in the future: https://web.archive.org/web/20070608011909/http://deku.gbadev.org/program/sound1.html
+// which we may want to consider in the future: http://deku.gbadev.org/program/sound1.html
 const SOUND_FREQUENCY: i32 = 10512;
 const SOUND_BUFFER_SIZE: usize = 176;
 
