@@ -91,22 +91,23 @@ impl MixerBuffer {
             let right_amount = (channel.panning + 1) / 2;
             let left_amount = -right_amount + 1;
 
-            for i in 0..SOUND_BUFFER_SIZE {
-                if channel.pos.floor() >= channel.data.len() {
-                    if channel.should_loop {
-                        channel.pos -= channel.data.len();
-                    } else {
-                        channel.is_done = true;
-                        continue;
-                    }
+            if channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE >= channel.data.len().into()
+            {
+                // TODO: This should probably play what's left rather than skip the last bit
+                if channel.should_loop {
+                    channel.pos -= channel.data.len();
+                } else {
+                    channel.is_done = true;
+                    continue;
                 }
+            }
 
+            for i in 0..SOUND_BUFFER_SIZE {
                 let v = (channel.data[channel.pos.floor()] as i8) as i16;
-                let v: Num<i16, 4> = v.into();
                 channel.pos += channel.playback_speed;
 
-                buffer[i] += v * left_amount;
-                buffer[i + SOUND_BUFFER_SIZE] += v * right_amount;
+                buffer[i] += left_amount * v;
+                buffer[i + SOUND_BUFFER_SIZE] += right_amount * v;
             }
         }
 
