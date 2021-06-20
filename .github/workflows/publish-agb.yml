@@ -1,0 +1,19 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Login to crates.io
+        run: cargo login ${{ secrets.CRATE_API }}
+      - name: Publish agb
+        run: cargo publish
+        working-directory: ./agb
