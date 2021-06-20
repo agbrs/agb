@@ -1,3 +1,5 @@
+name: Enforce gba.ld consistency
+
 on: push
 
 jobs:
