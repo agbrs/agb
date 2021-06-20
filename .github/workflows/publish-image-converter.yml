@@ -1,0 +1,18 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - agb-image-converter/v*
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Login to crates.io
+        run: cargo login ${{ secrets.CRATE_API }}
+      - name: Publish agb-image-converter
+        run: cargo publish
+        working-directory: ./agb-image-converter
