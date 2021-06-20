@@ -1,0 +1,12 @@
+name: Enforce gba.ld consistency
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Check if gba.ld files are identical
+        run: cmp --silent -- "agb/gba.ld" "template/gba.ld"
