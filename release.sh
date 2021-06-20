@@ -60,7 +60,7 @@ sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 
 # Also update the lock file
 (cd "$DIRECTORY" && cargo update)
-git add "$DIRECTORY/Cargo.toml"
+git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"
 
 if [ "$PROJECT" = "agb" ]; then
     # also update the agb version in the template
