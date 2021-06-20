@@ -1,7 +1,7 @@
 mod hw;
-mod mixer;
+mod sw_mixer;
 
-pub use mixer::Mixer;
+pub use sw_mixer::Mixer;
 
 use crate::number::Num;
 
