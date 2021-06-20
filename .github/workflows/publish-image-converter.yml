@@ -1,3 +1,5 @@
+name: Publish agb-image-converter
+
 on:
   push:
     tags:

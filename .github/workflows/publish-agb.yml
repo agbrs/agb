@@ -1,3 +1,5 @@
+name: Publish agb
+
 on:
   push:
     tags:
