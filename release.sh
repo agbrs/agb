@@ -39,6 +39,12 @@ if [ ! -z "$(git status --porcelain)" ]; then
     exit 1
 fi
 
+# Check that we are in the master branch
+if [ "$(git symbolic-ref --short HEAD)" != "master" ]; then
+    echo "You must be in the master branch before releasing"
+    exit 1
+fi
+
 # Sanity check to make sure the build works
 (cd agb && cargo test)
 (cd agb-image-converter && cargo test)
