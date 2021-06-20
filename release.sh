@@ -56,15 +56,15 @@ fi
 (cd agb-image-converter && cargo test)
 
 # Update the version in Cargo.toml
-sed -i -e "s/^version = .*/version = $VERSION/" "$DIRECTORY/Cargo.toml"
+sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 
 # Also update the lock file
 (cd "$DIRECTORY" && cargo update)
-git add "$DIRECTIORY/Cargo.toml"
+git add "$DIRECTORY/Cargo.toml"
 
 if [ "$PROJECT" = "agb" ]; then
     # also update the agb version in the template
-    sed -i -e "s/agb = \"\(.*\)\"/$VERSION/" template/Cargo.toml
+    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
 fi
 
