@@ -13,8 +13,8 @@ if [ "$VERSION" = "" ]; then
 fi
 
 # Check the format of version
-if [ ! "$(echo "$VERSION" | grep -E "[0-9]+\.[0-9]+\.[0-9]+")" ]; then
-    echo "Version must be of the form x.y.z"
+if [ ! "$(echo "$VERSION" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")" ]; then
+    echo "Version must be of the form x.y.z, got $VERSION"
     exit 1
 fi
 
