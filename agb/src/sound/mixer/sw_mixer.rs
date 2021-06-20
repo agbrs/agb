@@ -1,6 +1,6 @@
 use super::hw;
 use super::hw::LeftOrRight;
-use super::SoundChannel;
+use super::{SoundChannel, SoundPriority};
 use crate::number::Num;
 
 pub struct Mixer {
@@ -35,6 +35,19 @@ impl Mixer {
                 if !some_channel.is_done {
                     continue;
                 }
+            }
+
+            channel.replace(new_channel);
+            return;
+        }
+
+        if new_channel.priority == SoundPriority::Low {
+            return; // don't bother even playing it
+        }
+
+        for channel in self.channels.iter_mut() {
+            if channel.as_ref().unwrap().priority == SoundPriority::High {
+                continue;
             }
 
             channel.replace(new_channel);
