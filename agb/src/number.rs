@@ -86,6 +86,7 @@ fixed_width_unsigned_integer_impl!(i16);
 fixed_width_unsigned_integer_impl!(u16);
 fixed_width_unsigned_integer_impl!(i32);
 fixed_width_unsigned_integer_impl!(u32);
+fixed_width_unsigned_integer_impl!(usize);
 
 fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
@@ -99,6 +100,15 @@ pub type Integer = Num<i32, 0>;
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
         Num(value << N)
+    }
+}
+
+impl<I, const N: usize> Default for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    fn default() -> Self {
+        Num(I::zero())
     }
 }
 
