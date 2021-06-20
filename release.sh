@@ -12,6 +12,12 @@ if [ "$VERSION" = "" ]; then
     exit 1
 fi
 
+# Check the format of version
+if [ ! "$(echo "$VERSION" | grep -E "[0-9]+\.[0-9]+\.[0-9]+")" ]; then
+    echo "Version must be of the form x.y.z"
+    exit 1
+fi
+
 # Set up $DIRECTORY and $TAGNAME
 case "$PROJECT" in
     agb)
