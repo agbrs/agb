@@ -18,6 +18,12 @@ impl MixerController {
     }
 }
 
+#[derive(PartialEq, Eq)]
+enum SoundPriority {
+    High,
+    Low,
+}
+
 pub struct SoundChannel {
     data: &'static [u8],
     pos: Num<usize, 8>,
@@ -27,6 +33,8 @@ pub struct SoundChannel {
 
     panning: Num<i16, 4>, // between -1 and 1
     is_done: bool,
+
+    priority: SoundPriority,
 }
 
 impl SoundChannel {
@@ -38,6 +46,7 @@ impl SoundChannel {
             playback_speed: 1.into(),
             panning: 0.into(),
             is_done: false,
+            priority: SoundPriority::Low,
         }
     }
 
@@ -56,6 +65,11 @@ impl SoundChannel {
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
 
         self.panning = panning;
+        self
+    }
+
+    pub fn high_priority(mut self) -> Self {
+        self.priority = SoundPriority::High;
         self
     }
 }
