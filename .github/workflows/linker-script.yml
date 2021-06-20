@@ -9,4 +9,4 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
       - name: Check if gba.ld files are identical
-        cmp --silent -- "agb/gba.ld" "template/gba.ld"
+        run: cmp --silent -- "agb/gba.ld" "template/gba.ld"
