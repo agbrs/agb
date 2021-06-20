@@ -75,4 +75,4 @@ git commit -m "Release $PROJECT v$VERSION"
 git tag -a $TAGNAME -m "$PROJECT - v$VERSION"
 
 echo "Done! Push with"
-echo "git push origin $TAGNAME"
+echo "git push --atomic origin master $TAGNAME"
