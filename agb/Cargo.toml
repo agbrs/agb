@@ -18,7 +18,7 @@ lto = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "1.2"
 
 [build-dependencies]
 agb_image_converter = "0.2.0"
