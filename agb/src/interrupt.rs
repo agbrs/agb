@@ -151,10 +151,7 @@ fn get_interrupt_handle_root<'a>(
     }
 }
 
-pub fn get_interrupt_handle<'a>(
-    f: &'a mut dyn FnMut(),
-    interrupt: Interrupt,
-) -> InterruptClosureBounded<'a> {
+pub fn get_interrupt_handle(f: &mut dyn FnMut(), interrupt: Interrupt) -> InterruptClosureBounded {
     let root = match interrupt {
         Interrupt::VBlank => unsafe { &INTERRUPT_TABLE.vblank },
         _ => unimplemented!(
