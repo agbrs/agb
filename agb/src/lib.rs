@@ -23,7 +23,7 @@ pub mod sound;
 pub use agb_image_converter::include_gfx;
 
 mod bitarray;
-mod interrupt;
+pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
