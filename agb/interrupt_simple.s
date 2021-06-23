@@ -13,6 +13,23 @@ InterruptHandlerSimple:
     ldrh r1, [r2] @ load bios interrupt requests
     orr r1, r1, r0 @ or with enabled and requested interrupts
     strh r1, [r2] @ acknowlege bios requests
-    
+
+    mrs r2, cpsr
+    orr r2, r2, #0xD
+    msr cpsr_c, r2
+
+
+    ldr r1, =__RUST_INTERRUPT_HANDLER
+    push {lr}
+    adr lr, .IReturn
+    bx r1
+.IReturn:
+    pop {lr}
+
+    mrs r2, cpsr
+    bic r2, r2, #0xD
+    orr r2, r2, #0x92
+    msr cpsr_c, r2
+
     bx lr @ return to bios
 .pool

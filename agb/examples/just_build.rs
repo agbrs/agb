@@ -6,6 +6,9 @@ fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[no_mangle]
+pub extern "C" fn __RUST_INTERRUPT_HANDLER(_: u16) {}
+
 // implementation of tonc's "My first GBA demo"
 // https://coranac.com/tonc/text/first.htm
 
