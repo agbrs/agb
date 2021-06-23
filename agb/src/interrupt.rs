@@ -27,21 +27,21 @@ pub enum Interrupt {
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
 const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
-pub fn enable(interrupt: Interrupt) {
+pub(crate) fn enable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() | (1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub fn disable(interrupt: Interrupt) {
+pub(crate) fn disable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() & !(1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub struct Disable {}
+pub(crate) struct Disable {}
 
 impl Drop for Disable {
     fn drop(&mut self) {
@@ -49,12 +49,12 @@ impl Drop for Disable {
     }
 }
 
-pub fn temporary_interrupt_disable() -> Disable {
+pub(crate) fn temporary_interrupt_disable() -> Disable {
     disable_interrupts();
     Disable {}
 }
 
-pub fn enable_interrupts() {
+pub(crate) fn enable_interrupts() {
     INTERRUPTS_ENABLED.set(1);
 }
 
@@ -62,7 +62,7 @@ pub(crate) fn disable_interrupts() {
     INTERRUPTS_ENABLED.set(0);
 }
 
-pub struct InterruptRoot {
+pub(crate) struct InterruptRoot {
     next: Cell<*const InterruptClosure>,
 }
 
@@ -97,7 +97,7 @@ pub struct InterruptClosureBounded<'a> {
     _unpin: PhantomPinned,
 }
 
-pub struct InterruptClosure {
+struct InterruptClosure {
     closure: *mut (dyn FnMut()),
     next: Cell<*const InterruptClosure>,
     root: *const InterruptRoot,
