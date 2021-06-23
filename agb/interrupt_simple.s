@@ -15,7 +15,7 @@ InterruptHandlerSimple:
     orr r1, r1, r0 @ or with enabled and requested interrupts
     strh r1, [r2] @ acknowlege bios requests
 
-    @ change to user mode
+    @ change to system mode
     mrs r2, cpsr
     orr r2, r2, #0xD
     msr cpsr_c, r2
@@ -28,7 +28,7 @@ InterruptHandlerSimple:
 .IReturn:
     pop {lr, r4-r11}
 
-    @ change back to interuupt mode
+    @ change back to interrupt mode
     mrs r2, cpsr
     bic r2, r2, #0xD
     orr r2, r2, #0x92
