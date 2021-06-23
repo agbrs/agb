@@ -30,7 +30,6 @@ InterruptHandlerSimple:
     @ change back to interrupt mode
     mrs r2, cpsr
     bic r2, r2, #0xD
-    orr r2, r2, #0x92
     msr cpsr_c, r2
 
     bx lr @ return to bios
