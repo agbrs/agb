@@ -105,10 +105,8 @@ pub struct InterruptClosure {
 
 impl InterruptRoot {
     fn trigger_interrupts(&self) {
-        let mut count = 0;
         let mut c = self.next.get();
         while !c.is_null() {
-            count += 1;
             let closure_ptr = unsafe { &*c }.closure;
             let closure_ref = unsafe { &mut *closure_ptr };
             closure_ref();
