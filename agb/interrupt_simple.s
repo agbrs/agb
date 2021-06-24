@@ -22,10 +22,10 @@ InterruptHandlerSimple:
 
     @ call the rust interrupt handler with r0 set to the triggered interrupts
     ldr r1, =__RUST_INTERRUPT_HANDLER
-    push {lr, r4-r9}
+    push {lr, r4-r11}
     mov lr, pc
     bx r1
-    pop {lr, r4-r9}
+    pop {lr, r4-r11}
 
     @ change back to interrupt mode
     mrs r2, cpsr
