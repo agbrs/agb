@@ -261,7 +261,7 @@ fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
     );
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum MutexState {
     Locked,
     Unlocked(bool),
@@ -279,6 +279,11 @@ impl<T> Mutex<T> {
     pub fn lock(&self) -> MutexRef<T> {
         let state = INTERRUPTS_ENABLED.get();
         INTERRUPTS_ENABLED.set(0);
+        assert_eq!(
+            unsafe { *self.state.get() },
+            MutexState::Locked,
+            "mutex must be unlocked to be able to lock it"
+        );
         unsafe { *self.state.get() = MutexState::Unlocked(state != 0) };
         MutexRef {
             internal: &self.internal,
