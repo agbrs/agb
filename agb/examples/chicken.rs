@@ -77,6 +77,7 @@ pub fn main() -> ! {
     chicken
         .object
         .set_y((chicken.position.y >> 8).try_into().unwrap());
+    chicken.object.show();
     chicken.object.commit();
 
     let acceleration = 1 << 4;
