@@ -75,53 +75,29 @@ impl InterruptRoot {
     }
 }
 
-static mut INTERRUPT_TABLE: Interrupts = Interrupts::new();
+static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+    InterruptRoot::new(),
+];
 
 #[no_mangle]
 pub extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) {
-    for i in 0..=13_u8 {
-        if (1 << (i as u16)) & interrupt != 0 {
-            let interrupt = unsafe { core::mem::transmute(i) };
-            let root = interrupt_to_root(interrupt);
+    for i in 0..=13_u16 {
+        if (1 << i) & interrupt != 0 {
+            let root = unsafe { &INTERRUPT_TABLE[i as usize] };
             root.trigger_interrupts();
-        }
-    }
-}
-
-struct Interrupts {
-    vblank: InterruptRoot,
-    hblank: InterruptRoot,
-    vcounter: InterruptRoot,
-    timer0: InterruptRoot,
-    timer1: InterruptRoot,
-    timer2: InterruptRoot,
-    timer3: InterruptRoot,
-    serial: InterruptRoot,
-    dma0: InterruptRoot,
-    dma1: InterruptRoot,
-    dma2: InterruptRoot,
-    dma3: InterruptRoot,
-    keypad: InterruptRoot,
-    gamepak: InterruptRoot,
-}
-
-impl Interrupts {
-    const fn new() -> Self {
-        Interrupts {
-            vblank: InterruptRoot::new(),
-            hblank: InterruptRoot::new(),
-            vcounter: InterruptRoot::new(),
-            timer0: InterruptRoot::new(),
-            timer1: InterruptRoot::new(),
-            timer2: InterruptRoot::new(),
-            timer3: InterruptRoot::new(),
-            serial: InterruptRoot::new(),
-            dma0: InterruptRoot::new(),
-            dma1: InterruptRoot::new(),
-            dma2: InterruptRoot::new(),
-            dma3: InterruptRoot::new(),
-            keypad: InterruptRoot::new(),
-            gamepak: InterruptRoot::new(),
         }
     }
 }
@@ -170,22 +146,7 @@ impl Drop for InterruptClosure {
 }
 
 fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
-    match interrupt {
-        Interrupt::VBlank => unsafe { &INTERRUPT_TABLE.vblank },
-        Interrupt::HBlank => unsafe { &INTERRUPT_TABLE.hblank },
-        Interrupt::VCounter => unsafe { &INTERRUPT_TABLE.vcounter },
-        Interrupt::Timer0 => unsafe { &INTERRUPT_TABLE.timer0 },
-        Interrupt::Timer1 => unsafe { &INTERRUPT_TABLE.timer1 },
-        Interrupt::Timer2 => unsafe { &INTERRUPT_TABLE.timer2 },
-        Interrupt::Timer3 => unsafe { &INTERRUPT_TABLE.timer3 },
-        Interrupt::Serial => unsafe { &INTERRUPT_TABLE.serial },
-        Interrupt::Dma0 => unsafe { &INTERRUPT_TABLE.dma0 },
-        Interrupt::Dma1 => unsafe { &INTERRUPT_TABLE.dma1 },
-        Interrupt::Dma2 => unsafe { &INTERRUPT_TABLE.dma2 },
-        Interrupt::Dma3 => unsafe { &INTERRUPT_TABLE.dma3 },
-        Interrupt::Keypad => unsafe { &INTERRUPT_TABLE.keypad },
-        Interrupt::Gamepak => unsafe { &INTERRUPT_TABLE.gamepak },
-    }
+    unsafe { &INTERRUPT_TABLE[interrupt as usize] }
 }
 
 fn get_interrupt_handle_root<'a>(
@@ -255,7 +216,7 @@ fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
     }
 
     assert_eq!(
-        unsafe { INTERRUPT_TABLE.vblank.next.get() },
+        interrupt_to_root(Interrupt::VBlank).next.get(),
         core::ptr::null(),
         "expected the interrupt table for vblank to be empty"
     );
