@@ -263,8 +263,8 @@ fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum MutexState {
-    Locked,
-    Unlocked(bool),
+    Unlocked,
+    Locked(bool),
 }
 
 pub struct Mutex<T> {
@@ -281,10 +281,10 @@ impl<T> Mutex<T> {
         INTERRUPTS_ENABLED.set(0);
         assert_eq!(
             unsafe { *self.state.get() },
-            MutexState::Locked,
+            MutexState::Unlocked,
             "mutex must be unlocked to be able to lock it"
         );
-        unsafe { *self.state.get() = MutexState::Unlocked(state != 0) };
+        unsafe { *self.state.get() = MutexState::Locked(state != 0) };
         MutexRef {
             internal: &self.internal,
             state: &self.state,
@@ -293,7 +293,7 @@ impl<T> Mutex<T> {
     pub fn new(val: T) -> Self {
         Mutex {
             internal: UnsafeCell::new(val),
-            state: UnsafeCell::new(MutexState::Locked),
+            state: UnsafeCell::new(MutexState::Unlocked),
         }
     }
 }
@@ -308,10 +308,10 @@ impl<'a, T> Drop for MutexRef<'a, T> {
         unsafe {
             let state = &mut *self.state.get();
             let prev_state = *state;
-            *state = MutexState::Locked;
+            *state = MutexState::Unlocked;
             match prev_state {
-                MutexState::Unlocked(b) => INTERRUPTS_ENABLED.set(b as u16),
-                MutexState::Locked => {}
+                MutexState::Locked(b) => INTERRUPTS_ENABLED.set(b as u16),
+                MutexState::Unlocked => {}
             }
         }
     }
