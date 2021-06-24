@@ -222,6 +222,15 @@ fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
     );
 }
 
+#[test_case]
+fn test_interrupt_table_length(_gba: &mut crate::Gba) {
+    assert_eq!(
+        unsafe { INTERRUPT_TABLE.len() },
+        Interrupt::Gamepak as usize + 1,
+        "interrupt table should be able to store gamepak interrupt"
+    );
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum MutexState {
     Unlocked,
