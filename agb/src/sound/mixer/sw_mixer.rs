@@ -117,8 +117,8 @@ impl MixerBuffer {
                 continue;
             }
 
-            let right_amount = (channel.panning + 1) / 2;
-            let left_amount = -right_amount + 1;
+            let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+            let left_amount = (-right_amount + 1) * channel.volume;
 
             if channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE >= channel.data.len().into()
             {

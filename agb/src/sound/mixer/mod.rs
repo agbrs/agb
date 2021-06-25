@@ -30,6 +30,7 @@ pub struct SoundChannel {
     should_loop: bool,
 
     playback_speed: Num<usize, 8>,
+    volume: Num<i16, 4>, // between 0 and 1
 
     panning: Num<i16, 4>, // between -1 and 1
     is_done: bool,
@@ -47,6 +48,7 @@ impl SoundChannel {
             panning: 0.into(),
             is_done: false,
             priority: SoundPriority::Low,
+            volume: 1.into(),
         }
     }
 
@@ -59,6 +61,7 @@ impl SoundChannel {
             panning: 0.into(),
             is_done: false,
             priority: SoundPriority::High,
+            volume: 1.into(),
         }
     }
 
@@ -77,6 +80,14 @@ impl SoundChannel {
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
 
         self.panning = panning;
+        self
+    }
+
+    pub fn volume<'a>(&'a mut self, volume: Num<i16, 4>) -> &'a mut Self {
+        assert!(volume <= Num::new(1), "volume must be <= 1");
+        assert!(volume >= Num::new(0), "volume must be >= 0");
+
+        self.volume = volume;
         self
     }
 }
