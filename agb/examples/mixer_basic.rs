@@ -27,21 +27,21 @@ pub fn main() -> ! {
         input.update();
 
         {
-            let channel = mixer.get_channel(&channel_id).unwrap();
-
-            let half: Num<i16, 4> = Num::new(1) / 2;
-            let half_usize: Num<usize, 8> = Num::new(1) / 2;
-            match input.x_tri() {
-                Tri::Negative => channel.panning(-half),
-                Tri::Zero => channel.panning(0.into()),
-                Tri::Positive => channel.panning(half),
-            };
-
-            match input.y_tri() {
-                Tri::Negative => channel.playback(half_usize.change_base() + 1),
-                Tri::Zero => channel.playback(1.into()),
-                Tri::Positive => channel.playback(half_usize),
-            };
+            if let Some(channel) = mixer.get_channel(&channel_id) {
+                let half: Num<i16, 4> = Num::new(1) / 2;
+                let half_usize: Num<usize, 8> = Num::new(1) / 2;
+                match input.x_tri() {
+                    Tri::Negative => channel.panning(-half),
+                    Tri::Zero => channel.panning(0.into()),
+                    Tri::Positive => channel.panning(half),
+                };
+    
+                match input.y_tri() {
+                    Tri::Negative => channel.playback(half_usize.change_base() + 1),
+                    Tri::Zero => channel.playback(1.into()),
+                    Tri::Positive => channel.playback(half_usize),
+                };
+            }
         }
 
         vblank_provider.wait_for_VBlank();
