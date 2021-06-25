@@ -190,22 +190,23 @@ pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
     }
 }
 
+#[macro_export]
+macro_rules! add_interrupt_handler {
+    ($interrupt: expr, $handler: expr) => {
+        let a = $handler;
+        let a = $crate::interrupt::get_interrupt_handle(&a, $interrupt);
+        let a = unsafe { core::pin::Pin::new_unchecked(&a) };
+        $crate::interrupt::add_interrupt(a);
+    };
+}
+
 #[test_case]
 fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
     {
         let counter = Mutex::new(0);
         let counter_2 = Mutex::new(0);
-
-        let mut vblank_interrupt = || *counter.lock() += 1;
-        let mut vblank_interrupt_2 = || *counter_2.lock() += 1;
-
-        let interrupt_closure = get_interrupt_handle(&mut vblank_interrupt, Interrupt::VBlank);
-        let interrupt_closure = unsafe { Pin::new_unchecked(&interrupt_closure) };
-        add_interrupt(interrupt_closure);
-
-        let interrupt_closure_2 = get_interrupt_handle(&mut vblank_interrupt_2, Interrupt::VBlank);
-        let interrupt_closure_2 = unsafe { Pin::new_unchecked(&interrupt_closure_2) };
-        add_interrupt(interrupt_closure_2);
+        add_interrupt_handler!(Interrupt::VBlank, || *counter.lock() += 1);
+        add_interrupt_handler!(Interrupt::VBlank, || *counter_2.lock() += 1);
 
         let vblank = gba.display.vblank.get();
 
