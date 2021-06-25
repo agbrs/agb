@@ -6,13 +6,17 @@ use crate::number::Num;
 pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 16],
+    indices: [i32; 16],
 }
+
+pub struct ChannelId(usize, i32);
 
 impl Mixer {
     pub(super) fn new() -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
             channels: Default::default(),
+            indices: Default::default(),
         }
     }
 
@@ -29,8 +33,8 @@ impl Mixer {
             .write_channels(self.channels.iter_mut().flatten());
     }
 
-    pub fn play_sound(&mut self, new_channel: SoundChannel) {
-        for channel in self.channels.iter_mut() {
+    pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
+        for (i, channel) in self.channels.iter_mut().enumerate() {
             if let Some(some_channel) = channel {
                 if !some_channel.is_done {
                     continue;
@@ -38,23 +42,35 @@ impl Mixer {
             }
 
             channel.replace(new_channel);
-            return;
+            self.indices[i] += 1;
+            return Some(ChannelId(i, self.indices[i]));
         }
 
         if new_channel.priority == SoundPriority::Low {
-            return; // don't bother even playing it
+            return None; // don't bother even playing it
         }
 
-        for channel in self.channels.iter_mut() {
+        for (i, channel) in self.channels.iter_mut().enumerate() {
             if channel.as_ref().unwrap().priority == SoundPriority::High {
                 continue;
             }
 
             channel.replace(new_channel);
-            return;
+            self.indices[i] += 1;
+            return Some(ChannelId(i, self.indices[i]));
         }
 
         panic!("Cannot play more than 16 sounds at once");
+    }
+
+    pub fn get_channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
+        if let Some(channel) = &mut self.channels[id.0] {
+            if self.indices[id.0] == id.1 && !channel.is_done {
+                return Some(channel);
+            }
+        }
+
+        None
     }
 }
 
@@ -101,8 +117,8 @@ impl MixerBuffer {
                 continue;
             }
 
-            let right_amount = (channel.panning + 1) / 2;
-            let left_amount = -right_amount + 1;
+            let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+            let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
             if channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE >= channel.data.len().into()
             {
