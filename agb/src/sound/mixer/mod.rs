@@ -90,4 +90,8 @@ impl SoundChannel {
         self.volume = volume;
         self
     }
+
+    pub fn stop(&mut self) {
+        self.is_done = true
+    }
 }
