@@ -5,7 +5,7 @@ extern crate agb;
 
 use agb::sound::mixer::SoundChannel;
 use agb::Gba;
-use agb::input::{ButtonController, Tri};
+use agb::input::{ButtonController, Tri, Button};
 use agb::number::Num;
 
 // Music - "I will not let you let me down" by Josh Woodward, free download at http://joshwoodward.com
@@ -41,6 +41,12 @@ pub fn main() -> ! {
                     Tri::Zero => channel.playback(1.into()),
                     Tri::Positive => channel.playback(half_usize),
                 };
+
+                if input.is_pressed(Button::L) {
+                    channel.volume(half);
+                } else {
+                    channel.volume(1.into());
+                }
             }
         }
 
