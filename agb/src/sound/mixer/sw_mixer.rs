@@ -65,7 +65,7 @@ impl Mixer {
 
     pub fn get_channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
         if let Some(channel) = &mut self.channels[id.0] {
-            if self.indices[id.0] == id.1 {
+            if self.indices[id.0] == id.1 && !channel.is_done {
                 return Some(channel);
             }
         }
