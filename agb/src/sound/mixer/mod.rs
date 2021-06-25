@@ -50,6 +50,18 @@ impl SoundChannel {
         }
     }
 
+    pub fn new_high_priority(data: &'static [u8]) -> Self {
+        SoundChannel {
+            data,
+            pos: 0.into(),
+            should_loop: false,
+            playback_speed: 1.into(),
+            panning: 0.into(),
+            is_done: false,
+            priority: SoundPriority::High,
+        }
+    }
+
     pub fn should_loop<'a>(&'a mut self) -> &'a mut Self {
         self.should_loop = true;
         self
@@ -65,11 +77,6 @@ impl SoundChannel {
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
 
         self.panning = panning;
-        self
-    }
-
-    pub fn high_priority<'a>(&'a mut self) -> &'a mut Self {
-        self.priority = SoundPriority::High;
         self
     }
 }
