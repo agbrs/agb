@@ -6,15 +6,17 @@ use crate::number::Num;
 pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 16],
+    indices: [i32; 16],
 }
 
-pub struct ChannelId(usize);
+pub struct ChannelId(usize, i32);
 
 impl Mixer {
     pub(super) fn new() -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
             channels: Default::default(),
+            indices: Default::default(),
         }
     }
 
@@ -40,7 +42,8 @@ impl Mixer {
             }
 
             channel.replace(new_channel);
-            return Some(ChannelId(i));
+            self.indices[i] += 1;
+            return Some(ChannelId(i, self.indices[i]));
         }
 
         if new_channel.priority == SoundPriority::Low {
@@ -53,7 +56,8 @@ impl Mixer {
             }
 
             channel.replace(new_channel);
-            return Some(ChannelId(i));
+            self.indices[i] += 1;
+            return Some(ChannelId(i, self.indices[i]));
         }
 
         panic!("Cannot play more than 16 sounds at once");
