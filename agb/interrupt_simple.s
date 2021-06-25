@@ -6,6 +6,11 @@
 InterruptHandlerSimple:
     ldr r2, =0x04000200 @ interrupt enable register location
 
+    mov r1, #0
+    strh r1, [r2, #8]
+
+    push {r2}
+
     ldrh r1, [r2] @ load 16 bit interrupt enable to r1
     ldrh r3, [r2, #2] @ load 16 bit interrupt request to r3
     and r0, r1, r3 @ interrupts both enabled and requested
@@ -32,6 +37,11 @@ InterruptHandlerSimple:
     mrs r2, cpsr
     bic r2, r2, #0xD
     msr cpsr_c, r2
+
+    pop {r2}
+
+    mov r1, #0
+    strh r1, [r2, #8]
 
     bx lr @ return to bios
 .pool
