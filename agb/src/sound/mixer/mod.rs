@@ -50,17 +50,17 @@ impl SoundChannel {
         }
     }
 
-    pub fn should_loop(mut self) -> Self {
+    pub fn should_loop<'a>(&'a mut self) -> &'a mut Self {
         self.should_loop = true;
         self
     }
 
-    pub fn playback(mut self, playback_speed: Num<usize, 8>) -> Self {
+    pub fn playback<'a>(&'a mut self, playback_speed: Num<usize, 8>) -> &'a mut Self {
         self.playback_speed = playback_speed;
         self
     }
 
-    pub fn panning(mut self, panning: Num<i16, 4>) -> Self {
+    pub fn panning<'a>(&'a mut self, panning: Num<i16, 4>) -> &'a mut Self {
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
 
@@ -68,7 +68,7 @@ impl SoundChannel {
         self
     }
 
-    pub fn high_priority(mut self) -> Self {
+    pub fn high_priority<'a>(&'a mut self) -> &'a mut Self {
         self.priority = SoundPriority::High;
         self
     }
