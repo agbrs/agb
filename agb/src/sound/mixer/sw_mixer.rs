@@ -8,6 +8,8 @@ pub struct Mixer {
     channels: [Option<SoundChannel>; 16],
 }
 
+pub struct ChannelId(usize);
+
 impl Mixer {
     pub(super) fn new() -> Self {
         Mixer {
@@ -29,8 +31,8 @@ impl Mixer {
             .write_channels(self.channels.iter_mut().flatten());
     }
 
-    pub fn play_sound(&mut self, new_channel: SoundChannel) {
-        for channel in self.channels.iter_mut() {
+    pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
+        for (i, channel) in self.channels.iter_mut().enumerate() {
             if let Some(some_channel) = channel {
                 if !some_channel.is_done {
                     continue;
@@ -38,20 +40,20 @@ impl Mixer {
             }
 
             channel.replace(new_channel);
-            return;
+            return Some(ChannelId(i));
         }
 
         if new_channel.priority == SoundPriority::Low {
-            return; // don't bother even playing it
+            return None; // don't bother even playing it
         }
 
-        for channel in self.channels.iter_mut() {
+        for (i, channel) in self.channels.iter_mut().enumerate() {
             if channel.as_ref().unwrap().priority == SoundPriority::High {
                 continue;
             }
 
             channel.replace(new_channel);
-            return;
+            return Some(ChannelId(i));
         }
 
         panic!("Cannot play more than 16 sounds at once");
