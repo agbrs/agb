@@ -1,6 +1,7 @@
 @ An interrupt handler that simply acknowledges all interrupts
     .arm
     .global InterruptHandlerSimple
+    .section .iwram, "ax"
     .align
 InterruptHandlerSimple:
     ldr r2, =0x04000200 @ interrupt enable register location
