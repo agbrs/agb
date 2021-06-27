@@ -93,7 +93,7 @@ static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
 ];
 
 #[no_mangle]
-pub extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) {
+extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) {
     for (i, root) in unsafe { INTERRUPT_TABLE.iter().enumerate() } {
         if (1 << i) & interrupt != 0 {
             root.trigger_interrupts();
