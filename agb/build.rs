@@ -1,8 +1,8 @@
 fn main() {
     println!("cargo:rerun-if-changed=crt0.s");
     println!("cargo:rerun-if-changed=gba_mb.ld");
-    println!("cargo:rerun-if-changed=interrupt_simple.s");
     println!("cargo:rerun-if-changed=src/sound/mixer/mixer.s");
+    println!("cargo:rerun-if-changed=interrupt_handler.s");
     println!("cargo:rerun-if-changed=gfx/test_logo.png");
 
     let out_file_name = "crt0.o";

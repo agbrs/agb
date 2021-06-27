@@ -1,9 +1,9 @@
 @ An interrupt handler that simply acknowledges all interrupts
     .arm
-    .global InterruptHandlerSimple
+    .global InterruptHandler
     .section .iwram, "ax"
     .align
-InterruptHandlerSimple:
+InterruptHandler:
     ldr r2, =0x04000200 @ interrupt enable register location
 
     mov r1, #0
