@@ -4,7 +4,7 @@
 extern crate agb;
 
 use agb::{
-    display::{example_logo, tiled0::Background},
+    display::example_logo,
     interrupt::{Interrupt, Mutex},
     number::FixedNum,
 };
