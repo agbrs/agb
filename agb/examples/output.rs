@@ -6,11 +6,11 @@ extern crate agb;
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
 
-    let vblank = gba.display.vblank.get();
+    let vblank = agb::interrupt::VBlank::new();
 
     let mut count = 0;
     loop {
-        vblank.wait_for_VBlank();
+        vblank.wait_for_vblank();
 
         agb::println!("Hello, world, frame = {}", count);
 

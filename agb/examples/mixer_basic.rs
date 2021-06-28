@@ -15,7 +15,7 @@ const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &[u8] = include_bytes!("i-will-not-let-you
 pub fn main() -> ! {
     let mut gba = Gba::new();
     let mut input = ButtonController::new();
-    let vblank_provider = gba.display.vblank.get();
+    let vblank_provider = agb::interrupt::VBlank::new();
 
     let mut mixer = gba.mixer.mixer();
     mixer.enable();
@@ -50,7 +50,7 @@ pub fn main() -> ! {
             }
         }
 
-        vblank_provider.wait_for_VBlank();
+        vblank_provider.wait_for_vblank();
         mixer.vblank();
     }
 }

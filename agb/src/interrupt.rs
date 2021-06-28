@@ -5,9 +5,9 @@ use core::{
     pin::Pin,
 };
 
-use crate::memory_mapped::MemoryMapped;
+use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
 
-#[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub enum Interrupt {
     VBlank = 0,
     HBlank = 1,
@@ -28,21 +28,47 @@ pub enum Interrupt {
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
 const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
-pub(crate) fn enable(interrupt: Interrupt) {
+fn enable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
+    other_things_to_enable_interrupt(interrupt);
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() | (1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub(crate) fn disable(interrupt: Interrupt) {
+fn disable(interrupt: Interrupt) {
     let _interrupt_token = temporary_interrupt_disable();
+    other_things_to_disable_interrupt(interrupt);
     let interrupt = interrupt as usize;
     let enabled = ENABLED_INTERRUPTS.get() & !(1 << (interrupt as u16));
     ENABLED_INTERRUPTS.set(enabled);
 }
 
-pub(crate) struct Disable {}
+fn other_things_to_enable_interrupt(interrupt: Interrupt) {
+    match interrupt {
+        Interrupt::VBlank => {
+            DISPLAY_STATUS.set_bits(1, 1, 3);
+        }
+        Interrupt::HBlank => {
+            DISPLAY_STATUS.set_bits(1, 1, 4);
+        }
+        _ => {}
+    }
+}
+
+fn other_things_to_disable_interrupt(interrupt: Interrupt) {
+    match interrupt {
+        Interrupt::VBlank => {
+            DISPLAY_STATUS.set_bits(0, 1, 3);
+        }
+        Interrupt::HBlank => {
+            DISPLAY_STATUS.set_bits(0, 1, 4);
+        }
+        _ => {}
+    }
+}
+
+struct Disable {}
 
 impl Drop for Disable {
     fn drop(&mut self) {
@@ -50,46 +76,66 @@ impl Drop for Disable {
     }
 }
 
-pub(crate) fn temporary_interrupt_disable() -> Disable {
+fn temporary_interrupt_disable() -> Disable {
     disable_interrupts();
     Disable {}
 }
 
-pub(crate) fn enable_interrupts() {
+fn enable_interrupts() {
     INTERRUPTS_ENABLED.set(1);
 }
 
-pub(crate) fn disable_interrupts() {
+fn disable_interrupts() {
     INTERRUPTS_ENABLED.set(0);
 }
 
 pub(crate) struct InterruptRoot {
     next: Cell<*const InterruptClosure>,
+    count: Cell<i32>,
+    interrupt: Interrupt,
 }
 
 impl InterruptRoot {
-    const fn new() -> Self {
+    const fn new(interrupt: Interrupt) -> Self {
         InterruptRoot {
             next: Cell::new(core::ptr::null()),
+            count: Cell::new(0),
+            interrupt,
         }
+    }
+
+    fn reduce(&self) {
+        let new_count = self.count.get() - 1;
+        if new_count == 0 {
+            disable(self.interrupt);
+        }
+        self.count.set(new_count);
+    }
+
+    fn add(&self) {
+        let count = self.count.get();
+        if count == 0 {
+            enable(self.interrupt);
+        }
+        self.count.set(count + 1);
     }
 }
 
 static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
-    InterruptRoot::new(),
+    InterruptRoot::new(Interrupt::VBlank),
+    InterruptRoot::new(Interrupt::HBlank),
+    InterruptRoot::new(Interrupt::VCounter),
+    InterruptRoot::new(Interrupt::Timer0),
+    InterruptRoot::new(Interrupt::Timer1),
+    InterruptRoot::new(Interrupt::Timer2),
+    InterruptRoot::new(Interrupt::Timer3),
+    InterruptRoot::new(Interrupt::Serial),
+    InterruptRoot::new(Interrupt::Dma0),
+    InterruptRoot::new(Interrupt::Dma1),
+    InterruptRoot::new(Interrupt::Dma2),
+    InterruptRoot::new(Interrupt::Dma3),
+    InterruptRoot::new(Interrupt::Keypad),
+    InterruptRoot::new(Interrupt::Gamepak),
 ];
 
 #[no_mangle]
@@ -127,7 +173,9 @@ impl InterruptRoot {
 
 impl Drop for InterruptClosure {
     fn drop(&mut self) {
-        let mut c = unsafe { &*self.root }.next.get();
+        let root = unsafe { &*self.root };
+        root.reduce();
+        let mut c = root.next.get();
         let own_pointer = self as *const _;
         if c == own_pointer {
             unsafe { &*self.root }.next.set(self.next.get());
@@ -174,6 +222,7 @@ pub fn get_interrupt_handle(
 
 pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
     let root = unsafe { &*interrupt.c.root };
+    root.add();
     let mut c = root.next.get();
     if c.is_null() {
         root.next.set((&interrupt.c) as *const _);
@@ -201,17 +250,17 @@ macro_rules! add_interrupt_handler {
 }
 
 #[test_case]
-fn test_vblank_interrupt_handler(gba: &mut crate::Gba) {
+fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
     {
         let counter = Mutex::new(0);
         let counter_2 = Mutex::new(0);
         add_interrupt_handler!(Interrupt::VBlank, || *counter.lock() += 1);
         add_interrupt_handler!(Interrupt::VBlank, || *counter_2.lock() += 1);
 
-        let vblank = gba.display.vblank.get();
+        let vblank = VBlank::new();
 
         while *counter.lock() < 100 || *counter_2.lock() < 100 {
-            vblank.wait_for_VBlank();
+            vblank.wait_for_vblank();
         }
     }
 
@@ -297,5 +346,24 @@ impl<'a, T> Deref for MutexRef<'a, T> {
 impl<'a, T> DerefMut for MutexRef<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.internal.get() }
+    }
+}
+
+#[non_exhaustive]
+pub struct VBlank {}
+
+impl VBlank {
+    pub fn new() -> Self {
+        interrupt_to_root(Interrupt::VBlank).add();
+        VBlank {}
+    }
+    pub fn wait_for_vblank(&self) {
+        crate::syscall::wait_for_VBlank();
+    }
+}
+
+impl Drop for VBlank {
+    fn drop(&mut self) {
+        interrupt_to_root(Interrupt::VBlank).reduce();
     }
 }

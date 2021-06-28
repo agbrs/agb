@@ -163,14 +163,14 @@ mod test {
     }
 
     #[test_case]
-    fn wait_30_frames(gba: &mut Gba) {
-        let vblank = gba.display.vblank.get();
+    fn wait_30_frames(_gba: &mut Gba) {
+        let vblank = crate::interrupt::VBlank::new();
         let mut counter = 0;
         loop {
             if counter > 30 {
                 break;
             }
-            vblank.wait_for_VBlank();
+            vblank.wait_for_vblank();
             counter += 1
         }
     }
