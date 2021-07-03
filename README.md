@@ -27,7 +27,9 @@ is needed to improve the documentation.
 
 ## Test Requirements
 
-* mgba 0.9.X
+* libelf
+  * Debian and derivatives: `sudo apt install libelf-dev`
+  * Arch Linux and derivatives: `pacman -S libelf`
 * mgba-test-runner
     * Run `cargo install --path mgba-test-runner` inside this directory
 

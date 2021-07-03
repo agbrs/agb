@@ -31,6 +31,7 @@ struct MGBA* new_runner(char* filename) {
     struct mCore* core = mCoreFind(mgba->filename);
     if (!core) {
         printf("failed to find core\n");
+        free(mgba);
         return NULL;
     }
 

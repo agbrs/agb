@@ -35,10 +35,13 @@ impl VideoBuffer {
 }
 
 impl MGBA {
-    pub fn new(filename: &str) -> Self {
+    pub fn new(filename: &str) -> Result<Self, anyhow::Error> {
         let c_str = CString::new(filename).expect("should be able to make cstring from filename");
-        MGBA {
-            mgba: unsafe { bindings::new_runner(c_str.as_ptr() as *mut i8) },
+        let mgba = unsafe { bindings::new_runner(c_str.as_ptr() as *mut i8) };
+        if mgba.is_null() {
+            Err(anyhow::anyhow!("could not create core"))
+        } else {
+            Ok(MGBA { mgba })
         }
     }
 
