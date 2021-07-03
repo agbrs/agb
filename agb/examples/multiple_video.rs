@@ -13,7 +13,7 @@ struct Vector2D {
 #[no_mangle]
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
-    let vblank = agb::interrupt::VBlank::new();
+    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     loop {

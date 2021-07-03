@@ -257,7 +257,7 @@ fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
         add_interrupt_handler!(Interrupt::VBlank, || *counter.lock() += 1);
         add_interrupt_handler!(Interrupt::VBlank, || *counter_2.lock() += 1);
 
-        let vblank = VBlank::new();
+        let vblank = VBlank::get();
 
         while *counter.lock() < 100 || *counter_2.lock() < 100 {
             vblank.wait_for_vblank();
@@ -353,7 +353,7 @@ impl<'a, T> DerefMut for MutexRef<'a, T> {
 pub struct VBlank {}
 
 impl VBlank {
-    pub fn new() -> Self {
+    pub fn get() -> Self {
         interrupt_to_root(Interrupt::VBlank).add();
         VBlank {}
     }

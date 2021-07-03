@@ -45,7 +45,7 @@ pub fn main() -> ! {
 
     let mut gba = agb::Gba::new();
     let mut gfx = gba.display.video.tiled0();
-    let vblank = agb::interrupt::VBlank::new();
+    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     gfx.set_sprite_palette_raw(&CHICKEN_PALETTE);

@@ -9,7 +9,7 @@ use agb::display;
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap4();
-    let vblank = agb::interrupt::VBlank::new();
+    let vblank = agb::interrupt::VBlank::get();
 
     bitmap.set_palette_entry(1, 0x001F);
     bitmap.set_palette_entry(2, 0x03E0);

@@ -4,7 +4,7 @@
 extern crate agb;
 #[no_mangle]
 pub fn main() -> ! {
-    let vblank = agb::interrupt::VBlank::new();
+    let vblank = agb::interrupt::VBlank::get();
 
     let mut count = 0;
     loop {

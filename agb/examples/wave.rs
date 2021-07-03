@@ -45,7 +45,7 @@ pub fn main() -> ! {
         backc.row += 1;
     });
 
-    let vblank = agb::interrupt::VBlank::new();
+    let vblank = agb::interrupt::VBlank::get();
 
     loop {
         vblank.wait_for_vblank();
