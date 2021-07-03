@@ -40,7 +40,7 @@ InterruptHandler:
 
     pop {r2}
 
-    mov r1, #0
+    mov r1, #1
     strh r1, [r2, #8]
 
     bx lr @ return to bios
