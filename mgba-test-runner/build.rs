@@ -1,25 +1,25 @@
-use std::{
-    env,
-    path::{self, PathBuf},
-};
+use std::{env, path::PathBuf};
 
-fn find_mgba_library() -> Option<&'static str> {
-    const POTENTIAL_LIBRARY_LOCATIONS: &[&str] =
-        &["/usr/lib/libmgba.so.0.9", "/usr/local/lib/libmgba.so.0.9"];
-
-    POTENTIAL_LIBRARY_LOCATIONS
-        .iter()
-        .find(|file_path| path::Path::new(file_path).exists())
-        .copied()
-}
+const MGBA_VERSION: &str = "0.9.1";
 
 fn main() {
-    let mgba_library = find_mgba_library().expect("Need mgba 0.9 installed");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let mgba_directory = out_path.join(format!("mgba-{}", MGBA_VERSION));
+    std::process::Command::new("bash")
+        .arg("build-mgba.sh")
+        .arg(MGBA_VERSION)
+        .arg(&out_path)
+        .output()
+        .expect("should be able to build mgba");
+    println!("cargo:rustc-link-search={}", out_path.to_str().unwrap()); 
+    println!("cargo:rustc-link-lib=static={}", "mgba-cycle");
+    println!("cargo:rustc-link-lib=z");
+    println!("cargo:rustc-link-lib=elf");
 
     cc::Build::new()
         .file("c/test-runner.c")
-        .object(mgba_library)
-        .include("c/vendor")
+        .include(&mgba_directory.join("include"))
+        .static_flag(true)
         .compile("test-runner");
 
     let bindings = bindgen::Builder::default()
@@ -27,8 +27,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
-        .write_to_file(out_path.join("runner-bindings.rs"))
+        .write_to_file(&out_path.join("runner-bindings.rs"))
         .expect("Couldn't write bindings!");
 }
