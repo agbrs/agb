@@ -13,7 +13,6 @@ fn main() {
         .expect("should be able to build mgba");
     println!("cargo:rustc-link-search={}", out_path.to_str().unwrap());
     println!("cargo:rustc-link-lib=static={}", "mgba-cycle");
-    println!("cargo:rustc-link-lib=z");
     println!("cargo:rustc-link-lib=elf");
 
     cc::Build::new()
