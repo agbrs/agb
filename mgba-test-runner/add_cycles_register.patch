@@ -20,7 +20,7 @@ index cc39e1192..d34dcb4b4 100644
  		return;
 +	case REG_DEBUG_CYCLES: {
 +		int32_t number_of_cycles = mTimingCurrentTime(&gba->timing);
-+		mLOG(GBA_DEBUG, INFO, "Cycles: %d Tag: %hd", number_of_cycles, value);
++		mLOG(GBA_DEBUG, INFO, "Cycles: %d Tag: %d", number_of_cycles, value);
 +		return;
 +	}
  	case REG_DEBUG_FLAGS:
