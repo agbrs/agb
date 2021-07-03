@@ -20,7 +20,7 @@ fn test_file(file_to_run: &str) -> Status {
     let mut finished = Status::Running;
     let debug_reader_mutex = Regex::new(r"(?s)^\[(.*)\] GBA Debug: (.*)$").unwrap();
 
-    let mut mgba = runner::MGBA::new(file_to_run);
+    let mut mgba = runner::MGBA::new(file_to_run).unwrap();
     let video_buffer = mgba.get_video_buffer();
 
     mgba.set_logger(|message| {
