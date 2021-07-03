@@ -29,4 +29,9 @@ fn main() {
     bindings
         .write_to_file(&out_path.join("runner-bindings.rs"))
         .expect("Couldn't write bindings!");
+
+    println!("cargo:rerun-if-changed=c/test-runner.c");
+    println!("cargo:rerun-if-changed=c/test-runner.h");
+    println!("cargo:rerun-if-changed=build-mgba.sh");
+    println!("cargo:rerun-if-changed=add_cycles_register.patch");
 }
