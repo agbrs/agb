@@ -16,12 +16,22 @@ enum Status {
     Sucess,
 }
 
+enum Timing {
+    None,
+    WaitFor(i32),
+    Difference(i32),
+}
+
+const TEST_RUNNER_TAG: u16 = 785;
+
 fn test_file(file_to_run: &str) -> Status {
     let mut finished = Status::Running;
     let debug_reader_mutex = Regex::new(r"(?s)^\[(.*)\] GBA Debug: (.*)$").unwrap();
+    let tagged_cycles_reader = Regex::new(r"Cycles: (\d*) Tag: (\d*)").unwrap();
 
     let mut mgba = runner::MGBA::new(file_to_run).unwrap();
     let video_buffer = mgba.get_video_buffer();
+    let mut number_of_cycles = Timing::None;
 
     mgba.set_logger(|message| {
         if let Some(captures) = debug_reader_mutex.captures(message) {
@@ -41,6 +51,29 @@ fn test_file(file_to_run: &str) -> Status {
             } else if out.ends_with("...") {
                 print!("{}", out);
                 io::stdout().flush().expect("can't flush stdout");
+            } else if out.starts_with("Cycles: ") {
+                if let Some(captures) = tagged_cycles_reader.captures(out) {
+                    let num_cycles: i32 = captures[1].parse().unwrap();
+                    let tag: u16 = captures[2].parse().unwrap();
+
+                    if tag == TEST_RUNNER_TAG {
+                        number_of_cycles = match number_of_cycles {
+                            Timing::WaitFor(n) => Timing::Difference(num_cycles - n),
+                            Timing::None => Timing::WaitFor(num_cycles),
+                            Timing::Difference(_) => Timing::WaitFor(num_cycles),
+                        };
+                    }
+                }
+            } else if out == "[ok]" {
+                if let Timing::Difference(cycles) = number_of_cycles {
+                    println!(
+                        "[ok: {} c ≈ {} s]",
+                        cycles,
+                        ((cycles as f64 / (16.78 * 1_000_000.0)) * 100.0).round() / 100.0
+                    );
+                } else {
+                    println!("{}", out);
+                }
             } else {
                 println!("{}", out);
             }
