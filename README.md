@@ -1,5 +1,7 @@
 # Rust for the Game Boy Advance
 
+![AGB logo](.github/logo.png)
+
 This is a library for making games on the Game Boy Advance using the Rust
 programming language. It attempts to be a high level abstraction over the
 internal workings of the Game Boy Advance whilst still being high performance
