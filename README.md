@@ -9,7 +9,7 @@ and memory efficient.
 
 The documentation for the latest release can be found on
 [docs.rs](https://docs.rs/agb/latest/agb/). Note that this repository does not
-nesesarily contain the latest release, but in development versions. Futher work
+necessarily contain the latest release, but in development versions. Further work
 is needed to improve the documentation.
 
 
