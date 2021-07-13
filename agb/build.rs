@@ -11,7 +11,7 @@ fn main() {
 
     let out = std::process::Command::new("arm-none-eabi-as")
         .arg("-mthumb-interwork")
-        .arg("-mthumb")
+        .arg("-mcpu=arm7tdmi")
         .arg("-g")
         .args(&["-o", out_file_path.as_str()])
         .arg("crt0.s")
