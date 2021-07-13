@@ -89,7 +89,9 @@ where
             mgba::DebugLevel::Info,
         )
         .unwrap();
+        mgba::number_of_cycles_tagged(785);
         self(gba);
+        mgba::number_of_cycles_tagged(785);
         mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
             .unwrap();
     }
@@ -138,6 +140,8 @@ pub extern "C" fn main() -> ! {
 
 #[cfg(test)]
 fn assert_image_output(image: &str) {
+    display::busy_wait_for_VBlank();
+    display::busy_wait_for_VBlank();
     let mut mgba = crate::mgba::Mgba::new().unwrap();
     mgba.print(
         format_args!("image:{}", image),

@@ -19,6 +19,7 @@ fn main() {
         .file("c/test-runner.c")
         .include(&mgba_directory.join("include"))
         .static_flag(true)
+        .debug(true)
         .compile("test-runner");
 
     let bindings = bindgen::Builder::default()
@@ -29,4 +30,9 @@ fn main() {
     bindings
         .write_to_file(&out_path.join("runner-bindings.rs"))
         .expect("Couldn't write bindings!");
+
+    println!("cargo:rerun-if-changed=c/test-runner.c");
+    println!("cargo:rerun-if-changed=c/test-runner.h");
+    println!("cargo:rerun-if-changed=build-mgba.sh");
+    println!("cargo:rerun-if-changed=add_cycles_register.patch");
 }

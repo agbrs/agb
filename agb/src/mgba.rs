@@ -26,6 +26,12 @@ fn is_running_in_mgba() -> bool {
     DEBUG_ENABLE.get() == ENABLE_HANDSHAKE_OUT
 }
 
+const NUMBER_OF_CYCLES: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F800) };
+
+pub fn number_of_cycles_tagged(tag: u16) {
+    NUMBER_OF_CYCLES.set(tag)
+}
+
 pub struct Mgba {
     bytes_written: usize,
 }

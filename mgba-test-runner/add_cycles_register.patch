@@ -1,0 +1,40 @@
+diff --git a/include/mgba/internal/gba/io.h b/include/mgba/internal/gba/io.h
+index 9875061f3..bdeafdcd3 100644
+--- a/include/mgba/internal/gba/io.h
++++ b/include/mgba/internal/gba/io.h
+@@ -157,6 +157,7 @@ enum GBAIORegisters {
+ 	REG_DEBUG_STRING = 0xFFF600,
+ 	REG_DEBUG_FLAGS = 0xFFF700,
+ 	REG_DEBUG_ENABLE = 0xFFF780,
++	REG_DEBUG_CYCLES = 0xFFF800,
+ };
+ 
+ mLOG_DECLARE_CATEGORY(GBA_IO);
+diff --git a/src/gba/io.c b/src/gba/io.c
+index cc39e1192..d34dcb4b4 100644
+--- a/src/gba/io.c
++++ b/src/gba/io.c
+@@ -573,6 +573,11 @@ void GBAIOWrite(struct GBA* gba, uint32_t address, uint16_t value) {
+ 	case REG_DEBUG_ENABLE:
+ 		gba->debug = value == 0xC0DE;
+ 		return;
++	case REG_DEBUG_CYCLES: {
++		int32_t number_of_cycles = mTimingCurrentTime(&gba->timing);
++		mLOG(GBA_DEBUG, INFO, "Cycles: %d Tag: %d", number_of_cycles, value);
++		return;
++	}
+ 	case REG_DEBUG_FLAGS:
+ 		if (gba->debug) {
+ 			GBADebug(gba, value);
+@@ -936,6 +941,11 @@ uint16_t GBAIORead(struct GBA* gba, uint32_t address) {
+ 			return 0x1DEA;
+ 		}
+ 		// Fall through
++	case REG_DEBUG_CYCLES: {
++		int32_t number_of_cycles = mTimingCurrentTime(&gba->timing);
++		mLOG(GBA_DEBUG, INFO, "Cycles: %d", number_of_cycles);
++		return number_of_cycles;
++	}
+ 	default:
+ 		mLOG(GBA_IO, GAME_ERROR, "Read from unused I/O register: %03X", address);
+ 		return GBALoadBad(gba->cpu);
