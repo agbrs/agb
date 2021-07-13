@@ -19,6 +19,7 @@ fn main() {
         .file("c/test-runner.c")
         .include(&mgba_directory.join("include"))
         .static_flag(true)
+        .debug(true)
         .compile("test-runner");
 
     let bindings = bindgen::Builder::default()
