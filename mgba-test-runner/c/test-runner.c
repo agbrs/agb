@@ -19,7 +19,7 @@ struct MGBA {
 };
 
 struct MGBA* new_runner(char* filename) {
-    struct MGBA* mgba = malloc(sizeof(struct MGBA));
+    struct MGBA* mgba = calloc(1, sizeof(struct MGBA));
     mgba->mlogger.log = log_output;
     mgba->callback.callback = NULL;
 
