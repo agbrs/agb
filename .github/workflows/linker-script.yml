@@ -10,3 +10,5 @@ jobs:
         uses: actions/checkout@v2
       - name: Check if gba.ld files are identical
         run: cmp --silent -- "agb/gba.ld" "template/gba.ld"
+      - name: Check if gba_mb.ld files are identical
+        run: cmp --silent -- "agb/gba_mb.ld" "template/gba_mb.ld"
