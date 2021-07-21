@@ -12,9 +12,12 @@ pub(crate) fn generate_code(
     tile_size: TileSize,
     crate_prefix: String,
 ) -> io::Result<()> {
+    writeln!(output, "#[allow(non_upper_case_globals)]")?;
+    writeln!(output, "pub const {}: {}::display::tile_data::TileData = {{", "test", crate_prefix)?;
+
     writeln!(
         output,
-        "pub const PALETTE_DATA: &[{}::display::palette16::Palette16] = &[",
+        "const PALETTE_DATA: &[{}::display::palette16::Palette16] = &[",
         crate_prefix,
     )?;
 
@@ -39,7 +42,7 @@ pub(crate) fn generate_code(
     writeln!(output, "];")?;
     writeln!(output)?;
 
-    writeln!(output, "pub const TILE_DATA: &[u32] = &[",)?;
+    writeln!(output, "const TILE_DATA: &[u32] = &[",)?;
 
     let tile_size = tile_size.to_size();
 
@@ -82,7 +85,7 @@ pub(crate) fn generate_code(
     writeln!(output, "];")?;
     writeln!(output)?;
 
-    write!(output, "pub const PALETTE_ASSIGNMENT: &[u8] = &[")?;
+    write!(output, "const PALETTE_ASSIGNMENT: &[u8] = &[")?;
 
     for (i, assignment) in results.assignments.iter().enumerate() {
         if i % 16 == 0 {
@@ -92,6 +95,8 @@ pub(crate) fn generate_code(
     }
 
     writeln!(output, "\n];")?;
+
+    writeln!(output, "{}::display::tile_data::TileData::new(PALETTE_DATA, TILE_DATA, PALETTE_ASSIGNMENT)\n}};", crate_prefix)?;
 
     Ok(())
 }
