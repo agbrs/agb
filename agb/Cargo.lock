@@ -21,6 +21,7 @@ name = "agb_image_converter"
 version = "0.4.0"
 dependencies = [
  "image",
+ "litrs",
  "serde",
  "toml",
  "typed-builder",
@@ -94,6 +95,15 @@ dependencies = [
  "num-rational",
  "num-traits",
  "png",
+]
+
+[[package]]
+name = "litrs"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9275e0933cf8bb20f008924c0cb07a0692fe54d8064996520bf998de9eb79aa"
+dependencies = [
+ "proc-macro2",
 ]
 
 [[package]]
