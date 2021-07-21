@@ -5,7 +5,7 @@ use std::fs;
 use crate::{TileSize, Colour};
 
 pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
-    let config_toml = fs::read_to_string(filename).expect(&format!("Failed to read file {}", filename));
+    let config_toml = fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read file {}", filename));
     
     let config: ConfigV1 = toml::from_str(&config_toml).expect("Failed to parse file");
 
@@ -37,7 +37,7 @@ pub struct ConfigV1 {
 
 impl Config for ConfigV1 {
     fn crate_prefix(&self) -> String {
-        self.crate_prefix.clone().unwrap_or("agb".to_owned())
+        self.crate_prefix.clone().unwrap_or_else(|| "agb".to_owned())
     }
 
     fn images(&self) -> HashMap<String, &dyn Image> {
@@ -89,9 +89,9 @@ pub enum TileSizeV1 {
     Tile16,
 }
 
-impl Into<TileSize> for TileSizeV1 {
-    fn into(self) -> TileSize {
-        match self {
+impl From<TileSizeV1> for TileSize {
+    fn from(item: TileSizeV1) -> Self {
+        match item {
             TileSizeV1::Tile8 => TileSize::Tile8,
             TileSizeV1::Tile16 => TileSize::Tile16,
         }
