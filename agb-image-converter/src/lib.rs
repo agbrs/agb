@@ -57,6 +57,7 @@ pub fn convert_image(settings: ImageConverterConfig) {
 
     rust_generator::generate_code(
         &mut writer,
+        "test",
         &optimisation_results,
         &image,
         settings.tile_size,

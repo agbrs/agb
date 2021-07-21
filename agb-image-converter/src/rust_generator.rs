@@ -7,13 +7,14 @@ use crate::TileSize;
 
 pub(crate) fn generate_code(
     output: &mut dyn Write,
+    output_variable_name: &str,
     results: &Palette16OptimisationResults,
     image: &Image,
     tile_size: TileSize,
     crate_prefix: String,
 ) -> io::Result<()> {
     writeln!(output, "#[allow(non_upper_case_globals)]")?;
-    writeln!(output, "pub const {}: {}::display::tile_data::TileData = {{", "test", crate_prefix)?;
+    writeln!(output, "pub const {}: {}::display::tile_data::TileData = {{", output_variable_name, crate_prefix)?;
 
     writeln!(
         output,
