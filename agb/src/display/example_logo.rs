@@ -1,5 +1,5 @@
-use agb_image_converter::include_gfx;
 use crate::display::tiled0::Tiled0;
+use agb_image_converter::include_gfx;
 
 include_gfx!("gfx/agb_logo.toml");
 

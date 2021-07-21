@@ -7,7 +7,11 @@ pub struct TileData {
 }
 
 impl TileData {
-    pub const fn new(palettes: &'static [Palette16], tiles: &'static [u32], palette_assignments: &'static [u8]) -> Self {
+    pub const fn new(
+        palettes: &'static [Palette16],
+        tiles: &'static [u32],
+        palette_assignments: &'static [u8],
+    ) -> Self {
         TileData {
             palettes,
             tiles,
