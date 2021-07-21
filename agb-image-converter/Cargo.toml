@@ -9,3 +9,5 @@ description = "Library for converting graphics for use on the Game Boy Advance"
 [dependencies]
 image = { version = "0.23.14", default-features = false, features = [ "png", "bmp" ] }
 typed-builder = "0.9.0"
+toml = "0.5.8"
+serde = { version = "1.0", features = ["derive"] }

@@ -8,6 +8,7 @@ mod colour;
 mod image_loader;
 mod palette16;
 mod rust_generator;
+mod config;
 
 use image_loader::Image;
 
