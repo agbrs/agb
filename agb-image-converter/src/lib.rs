@@ -1,15 +1,15 @@
-use proc_macro::TokenStream;
 use litrs::StringLit;
+use proc_macro::TokenStream;
 
-use std::path::Path;
 use std::convert::TryFrom;
 use std::fmt::Write;
+use std::path::Path;
 
 mod colour;
+mod config;
 mod image_loader;
 mod palette16;
 mod rust_generator;
-mod config;
 
 use image_loader::Image;
 
@@ -41,7 +41,9 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
     let path = Path::new(&root).join(&*filename);
-    let parent = path.parent().expect("Expected a parent directory for the path");
+    let parent = path
+        .parent()
+        .expect("Expected a parent directory for the path");
 
     let config = config::parse(&path.to_string_lossy());
 
@@ -50,10 +52,20 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let mut output = String::new();
 
     writeln!(&mut output, "mod {} {{", module_name.to_string_lossy()).unwrap();
-    writeln!(&mut output, "const _: &[u8] = include_bytes!(\"{}\");", path.to_string_lossy()).unwrap();
+    writeln!(
+        &mut output,
+        "const _: &[u8] = include_bytes!(\"{}\");",
+        path.to_string_lossy()
+    )
+    .unwrap();
 
     for (image_name, image) in config.images() {
-        writeln!(&mut output, "{}", convert_image(image, parent, &image_name, &config.crate_prefix())).unwrap();
+        writeln!(
+            &mut output,
+            "{}",
+            convert_image(image, parent, &image_name, &config.crate_prefix())
+        )
+        .unwrap();
     }
 
     writeln!(&mut output, "}}").unwrap();
@@ -61,7 +73,12 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     output.parse().expect("Failed to generate valid rust code")
 }
 
-fn convert_image(settings: &dyn config::Image, parent: &Path, variable_name: &str, crate_prefix: &str) -> String {
+fn convert_image(
+    settings: &dyn config::Image,
+    parent: &Path,
+    variable_name: &str,
+    crate_prefix: &str,
+) -> String {
     let image_filename = &parent.join(&settings.filename());
     let image = Image::load_from_file(image_filename);
 

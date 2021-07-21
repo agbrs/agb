@@ -2,15 +2,19 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 
-use crate::{TileSize, Colour};
+use crate::{Colour, TileSize};
 
 pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
-    let config_toml = fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read file {}", filename));
-    
+    let config_toml =
+        fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read file {}", filename));
+
     let config: ConfigV1 = toml::from_str(&config_toml).expect("Failed to parse file");
 
     if config.version != "1.0" {
-        panic!("Expected version of {} to be 1.0, got {}", filename, config.version);
+        panic!(
+            "Expected version of {} to be 1.0, got {}",
+            filename, config.version
+        );
     }
 
     Box::new(config)
@@ -37,14 +41,16 @@ pub struct ConfigV1 {
 
 impl Config for ConfigV1 {
     fn crate_prefix(&self) -> String {
-        self.crate_prefix.clone().unwrap_or_else(|| "agb".to_owned())
+        self.crate_prefix
+            .clone()
+            .unwrap_or_else(|| "agb".to_owned())
     }
 
     fn images(&self) -> HashMap<String, &dyn Image> {
-        self.image.iter()
-        .map(|(filename, image)| (
-            filename.clone(), image as &dyn Image
-        )).collect()
+        self.image
+            .iter()
+            .map(|(filename, image)| (filename.clone(), image as &dyn Image))
+            .collect()
     }
 }
 

@@ -14,22 +14,34 @@ pub(crate) fn generate_code(
     crate_prefix: String,
 ) {
     writeln!(output, "#[allow(non_upper_case_globals)]").unwrap();
-    writeln!(output, "pub const {}: {}::display::tile_data::TileData = {{", output_variable_name, crate_prefix).unwrap();
+    writeln!(
+        output,
+        "pub const {}: {}::display::tile_data::TileData = {{",
+        output_variable_name, crate_prefix
+    )
+    .unwrap();
 
-    writeln!(output, "const _: &[u8] = include_bytes!(\"{}\");", image_filename).unwrap();
+    writeln!(
+        output,
+        "const _: &[u8] = include_bytes!(\"{}\");",
+        image_filename
+    )
+    .unwrap();
 
     writeln!(
         output,
         "const PALETTE_DATA: &[{}::display::palette16::Palette16] = &[",
         crate_prefix,
-    ).unwrap();
+    )
+    .unwrap();
 
     for palette in &results.optimised_palettes {
         write!(
             output,
             "    {}::display::palette16::Palette16::new([",
             crate_prefix
-        ).unwrap();
+        )
+        .unwrap();
 
         for colour in palette.clone() {
             write!(output, "0x{:08x}, ", colour.to_rgb15()).unwrap();
@@ -60,7 +72,8 @@ pub(crate) fn generate_code(
                 output,
                 "    /* {}, {} (palette index {}) */",
                 x, y, palette_index
-            ).unwrap();
+            )
+            .unwrap();
 
             for inner_y in 0..tile_size / 8 {
                 write!(output, "    ").unwrap();
@@ -99,5 +112,10 @@ pub(crate) fn generate_code(
 
     writeln!(output, "\n];").unwrap();
 
-    writeln!(output, "{}::display::tile_data::TileData::new(PALETTE_DATA, TILE_DATA, PALETTE_ASSIGNMENT)\n}};", crate_prefix).unwrap();
+    writeln!(
+        output,
+        "{}::display::tile_data::TileData::new(PALETTE_DATA, TILE_DATA, PALETTE_ASSIGNMENT)\n}};",
+        crate_prefix
+    )
+    .unwrap();
 }
