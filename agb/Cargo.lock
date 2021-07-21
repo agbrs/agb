@@ -19,8 +19,6 @@ dependencies = [
 [[package]]
 name = "agb_image_converter"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63c48ea2b7f5bb3c4605234f6355218401a840055ce703602b8266076a1e6f30"
 dependencies = [
  "image",
  "typed-builder",
