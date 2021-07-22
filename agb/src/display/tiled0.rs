@@ -1,7 +1,7 @@
 use core::{convert::TryInto, ops::Deref};
 
 use crate::{
-    memory_mapped::MemoryMapped1DArray,
+    memory_mapped::{MemoryMapped, MemoryMapped1DArray},
     number::{Rect, Vector2D},
 };
 
@@ -34,273 +34,131 @@ pub enum BackgroundSize {
     S64x64 = 3,
 }
 
-#[non_exhaustive]
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
 pub struct Background {
     background: u8,
     block: u8,
-    pos_x: i32,
-    pos_y: i32,
+    commited_position: Vector2D<i32>,
+    shadowed_position: Vector2D<i32>,
+    poisoned: bool,
+    shadowed_register: u16,
 }
 
 impl Background {
-    unsafe fn new(layer: u8, block: u8) -> Background {
-        let mut background = Background {
-            background: layer,
+    unsafe fn new(background: u8, block: u8) -> Background {
+        let mut b = Background {
+            background,
             block,
-            pos_x: 0,
-            pos_y: 0,
+            commited_position: (0, 0).into(),
+            shadowed_position: (0, 0).into(),
+            shadowed_register: 0,
+            poisoned: true,
         };
-        background.set_colour_mode(ColourMode::FourBitPerPixel);
-        background.set_background_size(BackgroundSize::S32x32);
-        background.set_block(block);
-        background
-    }
-}
-
-impl Background {
-    /// Sets the background to be shown on screen. Requires the background to
-    /// have a map enabled otherwise a panic is caused.
-    pub fn show(&mut self) {
-        let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode | (1 << (self.background + 0x08));
-        DISPLAY_CONTROL.set(new_mode);
+        b.set_block(block);
+        b.set_colour_mode(ColourMode::FourBitPerPixel);
+        b.set_background_size(BackgroundSize::S32x32);
+        b
     }
 
-    /// Hides the background, nothing from this background is rendered to screen.
-    pub fn hide(&mut self) {
-        let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode & !(1 << (self.background + 0x08));
-        DISPLAY_CONTROL.set(new_mode);
+    unsafe fn set_shadowed_register_bits(&mut self, value: u16, length: u16, shift: u16) {
+        let mask = !(((1 << length) - 1) << shift);
+        let new = (self.shadowed_register & mask) | (value << shift);
+        self.shadowed_register = new;
     }
 
-    unsafe fn get_register(&mut self) -> *mut u16 {
-        (0x0400_0008 + 2 * self.background as usize) as *mut u16
+    unsafe fn get_register(&self) -> MemoryMapped<u16> {
+        MemoryMapped::new(0x0400_0008 + 2 * self.background as usize)
     }
 
     unsafe fn set_block(&mut self, block: u8) {
-        self.set_bits(0x08, 5, block as u16)
+        self.set_shadowed_register_bits(block as u16, 5, 0x8);
     }
 
-    unsafe fn set_bits(&mut self, start: u16, num_bits: u16, bits: u16) {
-        let reg = self.get_register();
-        let control = reg.read_volatile();
-        let mask = !(((1 << num_bits) - 1) << start);
-        let new_control = (control & mask) | ((bits as u16) << start);
-        reg.write_volatile(new_control);
+    unsafe fn set_colour_mode(&mut self, mode: ColourMode) {
+        self.set_shadowed_register_bits(mode as u16, 0x1, 0x7);
     }
 
-    /// Sets priority of the background layer. Backgrounds with higher priority
-    /// are drawn (above/below) backgrounds with lower priority.
     pub fn set_priority(&mut self, p: Priority) {
-        unsafe { self.set_bits(0, 2, p as u16) }
+        unsafe { self.set_shadowed_register_bits(p as u16, 0x2, 0x0) };
     }
 
-    fn set_colour_mode(&mut self, mode: ColourMode) {
-        unsafe { self.set_bits(0x07, 1, mode as u16) }
+    unsafe fn set_background_size(&mut self, size: BackgroundSize) {
+        self.set_shadowed_register_bits(size as u16, 0x2, 0xE);
     }
 
-    fn set_background_size(&mut self, size: BackgroundSize) {
-        unsafe { self.set_bits(0x0E, 2, size as u16) }
+    pub fn set_position(&mut self, position: Vector2D<i32>) {
+        self.shadowed_position = position;
     }
 
-    fn map_get<T>(&self, map: &T, dim_x: u32, dim_y: u32, x: i32, y: i32, default: u16) -> u16
-    where
-        T: Deref<Target = [u16]>,
-    {
-        if x >= dim_x as i32 || x < 0 || y >= dim_y as i32 || y < 0 {
-            default
+    pub fn map_has_changed(&mut self) {
+        self.poisoned = true;
+    }
+
+    pub fn commit_area(&self, map: &[u16], map_dimensions: Vector2D<u32>, area: Rect<i32>) {
+        // commit shadowed register
+        unsafe { self.get_register().set(self.shadowed_register) };
+
+        let positions_to_be_updated = if self.poisoned {
+            area.iter()
+                .chain(Rect::new((0, 0).into(), (0, 0).into()).iter())
         } else {
-            map[(dim_x as i32 * y + x) as usize]
-        }
+            // calculate difference in positions
+            let position_difference = self.shadowed_position - self.commited_position;
+            let tile_position_difference = position_difference / 8;
+
+            // how much of the map needs updating
+            let difference_x: Rect<i32> = if tile_position_difference.x == 0 {
+                Rect::new((0, 0).into(), (0, 0).into())
+            } else if tile_position_difference.x > 0 {
+                Rect::new((0, 0).into(), (tile_position_difference.x, 0).into())
+            } else if tile_position_difference.x < 0 {
+                Rect::new(
+                    (32 + tile_position_difference.x, 0).into(),
+                    (tile_position_difference.x.abs(), 0).into(),
+                )
+            } else {
+                unreachable!();
+            };
+
+            let difference_y: Rect<i32> = if tile_position_difference.y == 0 {
+                Rect::new((0, 0).into(), (0, 0).into())
+            } else if tile_position_difference.y > 0 {
+                Rect::new((0, 0).into(), (0, tile_position_difference.y).into())
+            } else if tile_position_difference.y < 0 {
+                Rect::new(
+                    (0, 32 + tile_position_difference.y).into(),
+                    (0, tile_position_difference.y.abs()).into(),
+                )
+            } else {
+                unreachable!();
+            };
+
+            // update those positions
+
+            let y_update = area.overlapping_rect(difference_y);
+            let x_update = area.overlapping_rect(difference_x);
+
+            y_update.iter().chain(x_update.iter())
+        };
+
+        for (x, y) in positions_to_be_updated {}
+
+        // update commited position
+
+        // update position in registers
     }
 
-    fn set_x(&self, x: u16) {
-        unsafe { ((0x0400_0010 + 4 * self.background as usize) as *mut u16).write_volatile(x) }
-    }
-    fn set_y(&self, y: u16) {
-        unsafe { ((0x0400_0012 + 4 * self.background as usize) as *mut u16).write_volatile(y) }
-    }
-
-    /// Forces the portion of the map in current view to be copied to the map
-    /// block assigned to this background. This is currently unnecesary to call.
-    /// Setting position already updates the drawn map, and changing map forces
-    /// an update.
-    pub fn draw_full_map(&mut self, map: &[u16], dimensions: Vector2D<u32>, default: u16) {
+    pub fn commit(&self, map: &[u16], map_dimensions: Vector2D<u32>) {
         let area: Rect<i32> = Rect {
             position: Vector2D::new(-1, -1),
             size: Vector2D::new(32, 22),
         };
-        self.draw_area(map, dimensions, area, default);
-    }
-
-    /// Forces a specific area of the screen to be drawn, taking into account any positonal offsets.
-    pub fn draw_area(&self, map: &[u16], dimensions: Vector2D<u32>, area: Rect<i32>, default: u16) {
-        self.draw_area_mapped(
-            &map,
-            dimensions.x,
-            dimensions.y,
-            area.position.x,
-            area.position.y,
-            area.size.x,
-            area.size.y,
-            default,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn draw_area_mapped<T>(
-        &self,
-        map: &T,
-        dim_x: u32,
-        dim_y: u32,
-        left: i32,
-        top: i32,
-        width: i32,
-        height: i32,
-        default: u16,
-    ) where
-        T: Deref<Target = [u16]>,
-    {
-        let x_map_space = self.pos_x / 8;
-        let y_map_space = self.pos_y / 8;
-
-        let x_block_space = x_map_space % 32;
-        let y_block_space = y_map_space % 32;
-
-        for x in left..(left + width) {
-            for y in top..(top + height) {
-                unsafe {
-                    (&mut (*MAP)[self.block as usize][(y_block_space + y).rem_euclid(32) as usize]
-                        [(x_block_space + x).rem_euclid(32) as usize]
-                        as *mut u16)
-                        .write_volatile(self.map_get(
-                            map,
-                            dim_x,
-                            dim_y,
-                            x_map_space + x,
-                            y_map_space + y,
-                            default,
-                        ))
-                };
-            }
-        }
-    }
-
-    pub fn set_offset(&mut self, position: Vector2D<u32>) {
-        self.set_x(position.x as u16);
-        self.set_y(position.y as u16);
-    }
-
-    /// Sets the position of the map to be shown on screen. This automatically
-    /// manages copying the correct portion to the map block and moving the map
-    /// registers.
-    pub fn set_position(
-        &mut self,
-        map: &[u16],
-        dimensions: Vector2D<u32>,
-        position: Vector2D<i32>,
-        default: u16,
-    ) {
-        self.set_position_mapped(
-            &map,
-            dimensions.x,
-            dimensions.y,
-            position.x,
-            position.y,
-            default,
-        );
-    }
-
-    fn set_position_mapped<T>(
-        &mut self,
-        map: &T,
-        dim_x: u32,
-        dim_y: u32,
-        x: i32,
-        y: i32,
-        default: u16,
-    ) where
-        T: Deref<Target = [u16]>,
-    {
-        let x_map_space = x / 8;
-        let y_map_space = y / 8;
-
-        let prev_x_map_space = self.pos_x / 8;
-        let prev_y_map_space = self.pos_y / 8;
-
-        let x_difference = x_map_space - prev_x_map_space;
-        let y_difference = y_map_space - prev_y_map_space;
-
-        let x_block_space = x_map_space % 32;
-        let y_block_space = y_map_space % 32;
-
-        self.pos_x = x;
-        self.pos_y = y;
-
-        // don't fancily handle if we've moved more than one tile, just copy the whole new map
-        if x_difference.abs() > 1 || y_difference.abs() > 1 {
-            self.draw_area_mapped(map, dim_x, dim_y, -1, -1, 32, 22, default);
-        } else {
-            if x_difference != 0 {
-                let x_offset = match x_difference {
-                    -1 => -1,
-                    1 => 30,
-                    _ => unreachable!(),
-                };
-                for y in -1..21 {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize]
-                            [(y_block_space + y).rem_euclid(32) as usize]
-                            [(x_block_space + x_offset).rem_euclid(32) as usize]
-                            as *mut u16)
-                            .write_volatile(self.map_get(
-                                map,
-                                dim_x,
-                                dim_y,
-                                x_map_space + x_offset,
-                                y_map_space + y,
-                                default,
-                            ))
-                    };
-                }
-            }
-            if y_difference != 0 {
-                let y_offset = match y_difference {
-                    -1 => -1,
-                    1 => 20,
-                    _ => unreachable!(),
-                };
-                for x in -1..31 {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize]
-                            [(y_block_space + y_offset).rem_euclid(32) as usize]
-                            [(x_block_space + x).rem_euclid(32) as usize]
-                            as *mut u16)
-                            .write_volatile(self.map_get(
-                                map,
-                                dim_x,
-                                dim_y,
-                                x_map_space + x,
-                                y_map_space + y_offset,
-                                default,
-                            ))
-                    };
-                }
-            }
-        }
-
-        let x_remainder = x % (32 * 8);
-        let y_remainder = y % (32 * 8);
-
-        self.set_x(x_remainder as u16);
-        self.set_y(y_remainder as u16);
+        self.commit_area(map, map_dimensions, area)
     }
 }
 
-#[non_exhaustive]
 pub struct Tiled0 {
     used_blocks: u32,
     num_backgrounds: u8,
@@ -316,33 +174,8 @@ impl Tiled0 {
         }
     }
 
-    fn set_sprite_palette_entry(&mut self, index: u8, colour: u16) {
-        PALETTE_SPRITE.set(index as usize, colour)
-    }
-    fn set_sprite_tilemap_entry(&mut self, index: u32, data: u32) {
-        TILE_SPRITE.set(index as usize, data);
-    }
-
     fn set_background_tilemap_entry(&mut self, index: u32, data: u32) {
         TILE_BACKGROUND.set(index as usize, data);
-    }
-
-    /// Copies raw palettes to the background palette without any checks.
-    pub fn set_sprite_palette_raw(&mut self, colour: &[u16]) {
-        for (index, &entry) in colour.iter().enumerate() {
-            self.set_sprite_palette_entry(index.try_into().unwrap(), entry)
-        }
-    }
-    fn set_sprite_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
-        for (colour_index, &colour) in palette.colours.iter().enumerate() {
-            PALETTE_SPRITE.set(pal_index as usize * 16 + colour_index, colour);
-        }
-    }
-
-    pub fn set_sprite_palettes(&mut self, palettes: &[palette16::Palette16]) {
-        for (palette_index, entry) in palettes.iter().enumerate() {
-            self.set_sprite_palette(palette_index as u8, entry)
-        }
     }
 
     /// Copies raw palettes to the background palette without any checks.
@@ -362,13 +195,6 @@ impl Tiled0 {
     pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry)
-        }
-    }
-
-    /// Copies tiles to the sprite tilemap without any checks.
-    pub fn set_sprite_tilemap(&mut self, tiles: &[u32]) {
-        for (index, &tile) in tiles.iter().enumerate() {
-            self.set_sprite_tilemap_entry(index as u32, tile)
         }
     }
 
