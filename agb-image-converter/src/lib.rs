@@ -1,7 +1,6 @@
-use litrs::StringLit;
 use proc_macro::TokenStream;
+use syn::parse_macro_input;
 
-use std::convert::TryFrom;
 use std::fmt::Write;
 use std::path::Path;
 
@@ -32,12 +31,9 @@ impl TileSize {
 
 #[proc_macro]
 pub fn include_gfx(input: TokenStream) -> TokenStream {
-    let first_token = input.into_iter().next().expect("no input");
+    let input = parse_macro_input!(input as syn::LitStr);
 
-    let filename = match StringLit::try_from(first_token) {
-        Err(e) => return e.to_compile_error(),
-        Ok(filename) => filename.into_value(),
-    };
+    let filename = input.value();
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
     let path = Path::new(&root).join(&*filename);
