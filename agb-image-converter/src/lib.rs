@@ -1,8 +1,9 @@
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
-use std::fmt::Write;
 use std::path::Path;
+
+use quote::{quote, format_ident};
 
 mod colour;
 mod config;
@@ -43,30 +44,23 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let config = config::parse(&path.to_string_lossy());
 
-    let module_name = path.file_stem().expect("Expected a file stem");
+    let module_name = format_ident!("{}", path.file_stem().expect("Expected a file stem").to_string_lossy());
+    let include_path = path.to_string_lossy();
 
-    let mut output = String::new();
+    let images = config.images();
+    let image_code = images
+        .iter()
+        .map(|(image_name, &image)| convert_image(image, parent, &image_name, &config.crate_prefix()).parse::<proc_macro2::TokenStream>().unwrap());
 
-    writeln!(&mut output, "mod {} {{", module_name.to_string_lossy()).unwrap();
-    writeln!(
-        &mut output,
-        "const _: &[u8] = include_bytes!(\"{}\");",
-        path.to_string_lossy()
-    )
-    .unwrap();
+    let module = quote! {
+        pub mod #module_name {
+            const _: &[u8] = include_bytes!(#include_path);
 
-    for (image_name, image) in config.images() {
-        writeln!(
-            &mut output,
-            "{}",
-            convert_image(image, parent, &image_name, &config.crate_prefix())
-        )
-        .unwrap();
-    }
+            #(#image_code)*
+        }
+    };
 
-    writeln!(&mut output, "}}").unwrap();
-
-    output.parse().expect("Failed to generate valid rust code")
+    TokenStream::from(module)
 }
 
 fn convert_image(

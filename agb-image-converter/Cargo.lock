@@ -13,6 +13,8 @@ name = "agb_image_converter"
 version = "0.4.0"
 dependencies = [
  "image",
+ "proc-macro2",
+ "quote",
  "serde",
  "syn",
  "toml",
