@@ -50,7 +50,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let images = config.images();
     let image_code = images
         .iter()
-        .map(|(image_name, &image)| convert_image(image, parent, &image_name, &config.crate_prefix()).parse::<proc_macro2::TokenStream>().unwrap());
+        .map(|(image_name, &image)| convert_image(image, parent, &image_name, &config.crate_prefix()));
 
     let module = quote! {
         pub mod #module_name {
@@ -68,7 +68,7 @@ fn convert_image(
     parent: &Path,
     variable_name: &str,
     crate_prefix: &str,
-) -> String {
+) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(&settings.filename());
     let image = Image::load_from_file(image_filename);
 
@@ -92,7 +92,7 @@ fn convert_image(
         crate_prefix.to_owned(),
     );
 
-    writer
+    writer.parse().unwrap()
 }
 
 fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16Optimiser {
