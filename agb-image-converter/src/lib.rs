@@ -3,7 +3,7 @@ use syn::parse_macro_input;
 
 use std::path::Path;
 
-use quote::{quote, format_ident};
+use quote::{format_ident, quote};
 
 mod colour;
 mod config;
@@ -44,13 +44,18 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let config = config::parse(&path.to_string_lossy());
 
-    let module_name = format_ident!("{}", path.file_stem().expect("Expected a file stem").to_string_lossy());
+    let module_name = format_ident!(
+        "{}",
+        path.file_stem()
+            .expect("Expected a file stem")
+            .to_string_lossy()
+    );
     let include_path = path.to_string_lossy();
 
     let images = config.images();
-    let image_code = images
-        .iter()
-        .map(|(image_name, &image)| convert_image(image, parent, &image_name, &config.crate_prefix()));
+    let image_code = images.iter().map(|(image_name, &image)| {
+        convert_image(image, parent, &image_name, &config.crate_prefix())
+    });
 
     let module = quote! {
         pub mod #module_name {
@@ -80,19 +85,14 @@ fn convert_image(
     let optimiser = optimiser_for_image(&image, tile_size);
     let optimisation_results = optimiser.optimise_palettes(settings.transparent_colour());
 
-    let mut writer = String::new();
-
     rust_generator::generate_code(
-        &mut writer,
         variable_name,
         &optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
         settings.tilesize(),
         crate_prefix.to_owned(),
-    );
-
-    writer.parse().unwrap()
+    )
 }
 
 fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16Optimiser {
