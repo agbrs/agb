@@ -1,7 +1,6 @@
 use crate::display::tiled0::Tiled0;
-use agb_image_converter::include_gfx;
 
-include_gfx!("gfx/agb_logo.toml");
+crate::include_gfx!("gfx/agb_logo.toml");
 
 pub fn display_logo(gfx: &mut Tiled0) {
     gfx.set_background_palettes(agb_logo::test_logo.palettes);
