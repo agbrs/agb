@@ -24,7 +24,8 @@ pub(crate) fn generate_code(
             .into_iter()
             .map(|colour| colour.to_rgb15())
             .chain(iter::repeat(0))
-            .take(16);
+            .take(16)
+            .map(|colour| colour as u16);
 
         quote! {
             #crate_prefix::display::palette16::Palette16::new([
@@ -48,7 +49,7 @@ pub(crate) fn generate_code(
             for inner_y in 0..tile_size / 8 {
                 for inner_x in 0..tile_size / 8 {
                     for j in inner_y * 8..inner_y * 8 + 8 {                        
-                        for i in inner_x * 8..inner_x * 8 + 8 {
+                        for i in (inner_x * 8..inner_x * 8 + 8).rev() {
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
                             tile_data.push(palette.colour_index(colour));
                         }
@@ -58,7 +59,10 @@ pub(crate) fn generate_code(
         }
     }
 
-    let assignments = &results.assignments;
+    let tile_data = tile_data.chunks(8)
+        .map(|chunk| chunk.iter().fold(0u32, |acc, &x| (acc << 4) | (x as u32)));
+
+    let assignments = results.assignments.iter().map(|&x| x as u8);
 
     quote! {
         #[allow(non_upper_case_globals)]
