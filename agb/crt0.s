@@ -26,7 +26,7 @@ b .Initialise_mb
 
 .Initialise:
     @ Set interrupt handler
-    ldr r0, =InterruptHandlerSimple
+    ldr r0, =InterruptHandler
     ldr r1, =0x03007FFC
     str r0, [r1]
 
