@@ -133,7 +133,7 @@ impl MixerBuffer {
             let right_amount = ((channel.panning + 1) / 2) * channel.volume;
             let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-            if channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE >= channel.data.len().into()
+            if (channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE).floor() >= channel.data.len()
             {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
