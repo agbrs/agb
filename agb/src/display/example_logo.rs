@@ -2,6 +2,8 @@ use crate::display::tiled0::Tiled0;
 
 crate::include_gfx!("gfx/agb_logo.toml");
 
+use super::tiled0::Map;
+
 pub fn display_logo(gfx: &mut Tiled0) {
     gfx.set_background_palettes(agb_logo::test_logo.palettes);
     gfx.set_background_tilemap(0, agb_logo::test_logo.tiles);
@@ -14,7 +16,11 @@ pub fn display_logo(gfx: &mut Tiled0) {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.draw_full_map(&entries, (30_u32, 20_u32).into(), 0);
+    back.set_map(Map {
+        store: &mut entries,
+        dimensions: (30_u32, 20_u32).into(),
+        default: 0,
+    });
     back.show();
 }
 

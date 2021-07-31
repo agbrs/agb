@@ -4,6 +4,7 @@
 extern crate agb;
 
 use agb::display::example_logo;
+use agb::display::tiled0::Map;
 
 #[no_mangle]
 pub fn main() -> ! {

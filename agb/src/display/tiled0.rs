@@ -1,5 +1,3 @@
-use core::{convert::TryInto, ops::Deref};
-
 use crate::{
     memory_mapped::{MemoryMapped, MemoryMapped1DArray},
     number::{Rect, Vector2D},
@@ -12,13 +10,9 @@ use super::{
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
-const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
-    unsafe { MemoryMapped1DArray::new(0x0500_0200) };
 
 const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06000000) };
-const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
-    unsafe { MemoryMapped1DArray::new(0x06010000) };
 
 const MAP: *mut [[[u16; 32]; 32]; 32] = 0x0600_0000 as *mut _;
 
@@ -37,17 +31,36 @@ pub enum BackgroundSize {
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
-pub struct Background {
+pub struct Background<'a> {
     background: u8,
     block: u8,
     commited_position: Vector2D<i32>,
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
     shadowed_register: u16,
+    map: Option<Map<'a>>,
 }
 
-impl Background {
-    unsafe fn new(background: u8, block: u8) -> Background {
+pub struct Map<'a> {
+    pub store: &'a mut [u16],
+    pub dimensions: Vector2D<u32>,
+    pub default: u16,
+}
+
+impl<'a> Map<'a> {
+    fn get_position(&self, x: i32, y: i32) -> u16 {
+        if x < 0 || x as u32 >= self.dimensions.x {
+            self.default
+        } else if y < 0 || y as u32 >= self.dimensions.y {
+            self.default
+        } else {
+            self.store[y as usize * self.dimensions.x as usize + x as usize]
+        }
+    }
+}
+
+impl<'a> Background<'a> {
+    unsafe fn new(background: u8, block: u8) -> Background<'a> {
         let mut b = Background {
             background,
             block,
@@ -55,11 +68,28 @@ impl Background {
             shadowed_position: (0, 0).into(),
             shadowed_register: 0,
             poisoned: true,
+            map: None,
         };
         b.set_block(block);
         b.set_colour_mode(ColourMode::FourBitPerPixel);
         b.set_background_size(BackgroundSize::S32x32);
         b
+    }
+
+    /// Sets the background to be shown on screen. Requires the background to
+    /// have a map enabled otherwise a panic is caused.
+    pub fn show(&mut self) {
+        assert!(self.map.is_some());
+        let mode = DISPLAY_CONTROL.get();
+        let new_mode = mode | (1 << (self.background + 0x08));
+        DISPLAY_CONTROL.set(new_mode);
+    }
+
+    /// Hides the background, nothing from this background is rendered to screen.
+    pub fn hide(&mut self) {
+        let mode = DISPLAY_CONTROL.get();
+        let new_mode = mode & !(1 << (self.background + 0x08));
+        DISPLAY_CONTROL.set(new_mode);
     }
 
     unsafe fn set_shadowed_register_bits(&mut self, value: u16, length: u16, shift: u16) {
@@ -88,15 +118,27 @@ impl Background {
         self.set_shadowed_register_bits(size as u16, 0x2, 0xE);
     }
 
+    unsafe fn set_position_x_register(&self, x: u16) {
+        *((0x0400_0010 + 4 * self.background as usize) as *mut u16) = x
+    }
+    unsafe fn set_position_y_register(&self, y: u16) {
+        *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y
+    }
+
     pub fn set_position(&mut self, position: Vector2D<i32>) {
         self.shadowed_position = position;
     }
 
-    pub fn map_has_changed(&mut self) {
+    pub fn get_map(&mut self) -> &mut Option<Map<'a>> {
         self.poisoned = true;
+        &mut self.map
     }
 
-    pub fn commit_area(&self, map: &[u16], map_dimensions: Vector2D<u32>, area: Rect<i32>) {
+    pub fn set_map(&mut self, map: Map<'a>) {
+        self.map = Some(map);
+    }
+
+    pub fn commit_area(&mut self, area: Rect<i32>) {
         // commit shadowed register
         unsafe { self.get_register().set(self.shadowed_register) };
 
@@ -143,19 +185,37 @@ impl Background {
             y_update.iter().chain(x_update.iter())
         };
 
-        for (x, y) in positions_to_be_updated {}
+        if let Some(map) = &self.map {
+            for (x, y) in positions_to_be_updated {
+                let tile_space_position = self.shadowed_position / 8;
+                unsafe {
+                    (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
+                        [x.rem_euclid(32) as usize] as *mut u16)
+                        .write_volatile(
+                            map.get_position(x + tile_space_position.x, y + tile_space_position.y),
+                        );
+                }
+            }
+        }
 
         // update commited position
 
+        self.commited_position = self.shadowed_position;
+
         // update position in registers
+
+        unsafe {
+            self.set_position_x_register((self.commited_position.x % (32 * 8)) as u16);
+            self.set_position_y_register((self.commited_position.y % (32 * 8)) as u16);
+        }
     }
 
-    pub fn commit(&self, map: &[u16], map_dimensions: Vector2D<u32>) {
+    pub fn commit(&mut self) {
         let area: Rect<i32> = Rect {
             position: Vector2D::new(-1, -1),
             size: Vector2D::new(32, 22),
         };
-        self.commit_area(map, map_dimensions, area)
+        self.commit_area(area)
     }
 }
 
