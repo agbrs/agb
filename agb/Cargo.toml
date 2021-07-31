@@ -9,7 +9,6 @@ license = "MPL-2.0"
 [profile.dev]
 opt-level = 3
 debug = true
-lto = "thin"
 
 [profile.release]
 lto = true
