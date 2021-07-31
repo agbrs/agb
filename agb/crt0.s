@@ -63,3 +63,4 @@ b .Initialise_mb
 .pool
 
 .include "interrupt_simple.s"
+.include "src/sound/mixer/mixer.s"
