@@ -74,7 +74,7 @@ agb_rs__mixer_collapse:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision
 
-    mov r2, #0
+    mov r2, #352
 
 1:
     @ r12 = *r1; r1++
@@ -88,11 +88,9 @@ agb_rs__mixer_collapse:
     cmp r12, #2048      @ compare r12 against 2048
     movge r3, #127      @ r3 = 127 if r12 >= 2048
 
-    strb r3, [r0, -r2]  @ r2 counts down, so need a negative offset
+    strb r3, [r0], #1    @ *r0 = r3; r0++
 
-    sub r2, r2, #1      @ r2 -= 1
-    cmn r2, #352        @ compare r2 against -352
-
-    bne 1b              @ loop if not equal
+    subs r2, r2, #1      @ r2 -= 1
+    bne 1b               @ loop if not 0
 
     bx lr
