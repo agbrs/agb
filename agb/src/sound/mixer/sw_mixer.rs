@@ -146,7 +146,7 @@ impl MixerBuffer {
 
             unsafe {
                 agb_rs__mixer_add(
-                    channel.data.as_ptr().offset(channel.pos.floor() as isize),
+                    channel.data.as_ptr().add(channel.pos.floor()),
                     buffer.as_mut_ptr(),
                     channel.playback_speed,
                     left_amount,
