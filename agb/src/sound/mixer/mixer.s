@@ -24,13 +24,11 @@ agb_rs__mixer_add:
     mov r5, #0                                  @ current index we're reading from
 
 1:
-                                                @ r6 = current buffer location, later gets set to the value we're reading and writing from
-    mov r6, r1                                  @ load the current sound buffer location
-
     add r4, r0, r5, asr #8                      @ calculate the address of the next read form the sound buffer
     add r5, r5, r2                              @ calculate the position to read the next step from
 
-    ldrh r9, [r6, r12]!                         @ load the current buffer value (r6 being the current location, r12 being the offset)
+    mov r6, r1                                  @ r6 = current buffer location
+    ldrh r9, [r6, r12]!                         @ load the current buffer value (r12 being the offset)
                                                 @ but pre-increment r6 by r12
 
     ldrsb r10, [r4]                             @ load the current value we want to read
