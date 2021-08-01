@@ -37,8 +37,6 @@ agb_rs__mixer_add:
 
     add r12, r12, #2                            @ increment the current write offset in the resulting buffer
 
-    cmp r12, #352                               @ check if we're done
-
     mla r7, r10, r3, r9                         @ r7 = r10 * r3 + r9 = current sound value * left amount + previous buffer value
     strh r7, [r6], r8                           @ *(r6 + r8) = r7, r8 = 352 = offset for the right hand side
 
@@ -46,6 +44,7 @@ agb_rs__mixer_add:
     mla r4, r10, lr, r7
     strh r4, [r6]
 
+    cmp r12, #352                               @ check if we're done
     bne 1b
 
     pop {r4-r10, lr}
