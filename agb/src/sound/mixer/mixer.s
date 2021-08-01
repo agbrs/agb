@@ -16,46 +16,33 @@ agb_rs__mixer_add:
 
     push {r4-r10, lr}
 
-    @ load the right channel modification amount into lr
-    ldr lr, [sp, #32]
+    ldr lr, [sp, #32]                           @ load the right channel modification amount into lr
 
-    @ current write offset into the resulting buffer
-    mov r12, #0
-    mov r8, #352
+    mov r12, #0                                 @ current write offset into the resulting buffer
+    mov r8, #352                                @ the offset for writing to the resulting buffer between left and right channels
 
-    @ current index
-    mov r5, #0
+    mov r5, #0                                  @ current index we're reading from
 
 1:
-    @ load the current sound buffer location
-    mov r6, r1
-    
-    @ calculate the address of the next read form the sound buffer
-    add r4, r0, r5, asr #8
-    
-    @ calculate the position to read the next step from
-    add r5, r5, r2
+                                                @ r6 = current buffer location, later gets set to the value we're reading and writing from
+    mov r6, r1                                  @ load the current sound buffer location
 
-    @ load the current buffer value (r6 being the current location, r12 being the offset)
-    @ but pre-increment r6 by r12
-    ldrh r9, [r6, r12]!
+    add r4, r0, r5, asr #8                      @ calculate the address of the next read form the sound buffer
+    add r5, r5, r2                              @ calculate the position to read the next step from
 
-    @ load the current value we want to read
-    ldrsb r10, [r4]
+    ldrh r9, [r6, r12]!                         @ load the current buffer value (r6 being the current location, r12 being the offset)
+                                                @ but pre-increment r6 by r12
 
-    @ increment the current write offset in the resulting buffer
-    add r12, r12, #2
+    ldrsb r10, [r4]                             @ load the current value we want to read
 
-    @ check if we're done
-    cmp r12, #352
+    add r12, r12, #2                            @ increment the current write offset in the resulting buffer
 
-    @ r7 = r10 * r3 + r9 = current sound value * left amount + previous buffer value
-    mla r7, r10, r3, r9
-    @ *(r6 + r8) = r7, r8 = 352 = offset for the right hand side
-    strh r7, [r6], r8
+    cmp r12, #352                               @ check if we're done
 
-    @ same for the left hand side (slightly confused here, but this is what was generated)
-    ldrh r7, [r6]
+    mla r7, r10, r3, r9                         @ r7 = r10 * r3 + r9 = current sound value * left amount + previous buffer value
+    strh r7, [r6], r8                           @ *(r6 + r8) = r7, r8 = 352 = offset for the right hand side
+
+    ldrh r7, [r6]                               @ same for the right hand side (slightly confused here, but this is what was generated)
     mla r4, r10, lr, r7
     strh r4, [r6]
 
@@ -79,7 +66,7 @@ agb_rs__mixer_collapse:
 1:
     @ r12 = *r1; r1++
     ldrsh r12, [r1], #2
-    
+
     lsr r3, r12, #4     @ r3 = r12 >> 4
 
     cmn r12, #2048      @ compare r12 against -2048
