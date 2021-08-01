@@ -91,6 +91,7 @@ fixed_width_unsigned_integer_impl!(usize);
 fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
 
+#[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 

@@ -3,6 +3,19 @@ use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
 use crate::number::Num;
 
+// Defined in mixer.s
+extern "C" {
+    fn agb_rs__mixer_add(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        playback_speed: Num<usize, 8>,
+        left_amount: Num<i16, 4>,
+        right_amount: Num<i16, 4>,
+    );
+
+    fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
+}
+
 pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 16],
@@ -120,7 +133,7 @@ impl MixerBuffer {
             let right_amount = ((channel.panning + 1) / 2) * channel.volume;
             let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-            if channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE >= channel.data.len().into()
+            if (channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE).floor() >= channel.data.len()
             {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
@@ -131,18 +144,21 @@ impl MixerBuffer {
                 }
             }
 
-            for i in 0..SOUND_BUFFER_SIZE {
-                let v = (channel.data[channel.pos.floor()] as i8) as i16;
-                channel.pos += channel.playback_speed;
-
-                buffer[i] += left_amount * v;
-                buffer[i + SOUND_BUFFER_SIZE] += right_amount * v;
+            unsafe {
+                agb_rs__mixer_add(
+                    channel.data.as_ptr().add(channel.pos.floor()),
+                    buffer.as_mut_ptr(),
+                    channel.playback_speed,
+                    left_amount,
+                    right_amount,
+                );
             }
+            channel.pos += channel.playback_speed * SOUND_BUFFER_SIZE;
         }
 
         let write_buffer = self.get_write_buffer();
-        for i in 0..SOUND_BUFFER_SIZE * 2 {
-            write_buffer[i] = buffer[i].floor().clamp(i8::MIN as i16, i8::MAX as i16) as i8
+        unsafe {
+            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
         }
     }
 
