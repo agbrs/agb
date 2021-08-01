@@ -18,7 +18,7 @@ lto = true
 
 [dependencies]
 bitflags = "1.2"
-agb_image_converter = { version = "0.4.0", path = "../agb-image-converter" }
+agb_image_converter = { version = "0.6.0", path = "../agb-image-converter" }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
