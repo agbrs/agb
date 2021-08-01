@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::os::raw::c_char;
 
 #[allow(
     non_upper_case_globals,
@@ -37,7 +38,7 @@ impl VideoBuffer {
 impl MGBA {
     pub fn new(filename: &str) -> Result<Self, anyhow::Error> {
         let c_str = CString::new(filename).expect("should be able to make cstring from filename");
-        let mgba = unsafe { bindings::new_runner(c_str.as_ptr() as *mut i8) };
+        let mgba = unsafe { bindings::new_runner(c_str.as_ptr() as *mut c_char) };
         if mgba.is_null() {
             Err(anyhow::anyhow!("could not create core"))
         } else {
@@ -59,7 +60,7 @@ impl MGBA {
     }
     pub fn set_logger(&mut self, mut logger: impl FnMut(&str)) {
         unsafe {
-            let callback = generate_c_callback(move |message: *mut i8| {
+            let callback = generate_c_callback(move |message: *mut c_char| {
                 logger(
                     CStr::from_ptr(message)
                         .to_str()
@@ -73,7 +74,7 @@ impl MGBA {
 
 unsafe fn generate_c_callback<F>(f: F) -> bindings::callback
 where
-    F: FnMut(*mut i8),
+    F: FnMut(*mut c_char),
 {
     let data = Box::into_raw(Box::new(f));
 
@@ -84,9 +85,9 @@ where
     }
 }
 
-extern "C" fn call_closure<F>(data: *mut c_void, message: *mut i8)
+extern "C" fn call_closure<F>(data: *mut c_void, message: *mut c_char)
 where
-    F: FnMut(*mut i8),
+    F: FnMut(*mut c_char),
 {
     let callback_ptr = data as *mut F;
     let callback = unsafe { &mut *callback_ptr };
