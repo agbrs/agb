@@ -75,3 +75,4 @@ agb_rs__mixer_collapse:
     bne 1b               @ loop if not 0
 
     bx lr
+.pool
