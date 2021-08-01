@@ -25,8 +25,10 @@ agb_rs__mixer_add:
 
     @ kept between iterations:
     @ r12 - current write offset into the output buffer (r1)
+    @ r9  - the amount to modify the right channel by
     @ r8  - the constant 352
     @ r5  - the current index from the input buffer we're reading from (r0)
+    @ the provided arguments are all unmodified
 
     @ all other registers are temporary
 1:
