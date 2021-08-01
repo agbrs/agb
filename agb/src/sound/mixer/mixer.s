@@ -40,7 +40,7 @@ agb_rs__mixer_add:
 
     ldrh r4, [r6, r12]!      @ load the current buffer value (r12 being the offset) but pre-increment r6 by r12
     mla r7, r10, r3, r4      @ r7 = r10 * r3 + r9 = current sound value * left amount + previous buffer value
-    strh r7, [r6, r8]        @ *r6 = r7, r6 += r8 where r8 = 352 = offset for the right hand side
+    strh r7, [r6], r8        @ *r6 = r7, r6 += r8 where r8 = 352 = offset for the right hand side
 
     ldrh r7, [r6]            @ same for the right hand side, r6 now points to the right hand side location
     mla r4, r10, r9, r7
