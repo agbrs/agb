@@ -16,6 +16,8 @@ pub mod example_logo;
 pub mod object;
 /// Palette type.
 pub mod palette16;
+/// Data produced by agb-image-converter
+pub mod tile_data;
 /// Graphics mode 0. Four regular backgrounds.
 pub mod tiled0;
 /// Syscall for waiting for vblank.

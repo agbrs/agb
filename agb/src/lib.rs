@@ -20,6 +20,8 @@ pub mod input;
 /// Implements sound output.
 pub mod sound;
 
+pub use agb_image_converter::include_gfx;
+
 mod bitarray;
 mod interrupt;
 mod memory_mapped;
