@@ -48,17 +48,22 @@ pub fn main() -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    gfx.set_sprite_palette_raw(&CHICKEN_PALETTE);
-    gfx.set_sprite_tilemap(&CHICKEN_TILES);
-
     gfx.set_background_palette_raw(&MAP_PALETTE);
     gfx.set_background_tilemap(0, &MAP_TILES);
 
     let mut background = gfx.get_background().unwrap();
-    background.draw_full_map(&MAP_MAP, (32_u32, 32_u32).into(), 0);
+    background.set_map(agb::display::tiled0::Map {
+        store: &MAP_MAP,
+        dimensions: (32_u32, 32_u32).into(),
+        default: 0,
+    });
     background.show();
+    background.commit();
 
     let mut object = gba.display.object.get();
+
+    object.set_sprite_palette_raw(&CHICKEN_PALETTE);
+    object.set_sprite_tilemap(&CHICKEN_TILES);
 
     object.enable();
     let mut chicken = Character {

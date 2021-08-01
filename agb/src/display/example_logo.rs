@@ -17,7 +17,7 @@ pub fn display_logo(gfx: &mut Tiled0) {
     }
 
     back.set_map(Map {
-        store: &mut entries,
+        store: &entries,
         dimensions: (30_u32, 20_u32).into(),
         default: 0,
     });
