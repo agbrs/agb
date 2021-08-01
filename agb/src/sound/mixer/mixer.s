@@ -12,11 +12,11 @@ agb_rs__mixer_add:
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
 
-    @ lr = amount to modify right channel by
+    @ r9 = amount to modify right channel by
 
-    push {r4-r10, lr}
+    push {r4-r10}
 
-    ldr lr, [sp, #32]        @ load the right channel modification amount into lr
+    ldr r9, [sp, #28]        @ load the right channel modification amount into r9
 
     mov r12, #0              @ current write offset into the resulting buffer
     mov r8, #352             @ the offset for writing to the resulting buffer between left and right channels
@@ -41,14 +41,14 @@ agb_rs__mixer_add:
     strh r7, [r6], r8        @ *r6 = r7, r6 += r8 where r8 = 352 = offset for the right hand side
 
     ldrh r7, [r6]            @ same for the right hand side, r6 now points to the right hand side location
-    mla r4, r10, lr, r7
+    mla r4, r10, r9, r7
     strh r4, [r6]
 
     add r12, r12, #2         @ increment the current write offset in the resulting buffer
     cmp r12, #352            @ check if we're done
     bne 1b
 
-    pop {r4-r10, lr}
+    pop {r4-r10}
     bx lr
 .pool
 
