@@ -5,6 +5,7 @@ authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
 description = "Library for Game Boy Advance Development"
 license = "MPL-2.0"
+readme = "../README.md"
 
 [profile.dev]
 opt-level = 3
