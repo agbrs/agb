@@ -40,7 +40,7 @@ pub fn wait_for_interrupt() {
 }
 
 #[allow(non_snake_case)]
-pub fn wait_for_VBlank() {
+pub fn wait_for_vblank() {
     unsafe {
         asm!(
             "swi 0x05",

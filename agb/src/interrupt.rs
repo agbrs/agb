@@ -389,7 +389,7 @@ impl VBlank {
         VBlank {}
     }
     pub fn wait_for_vblank(&self) {
-        crate::syscall::wait_for_VBlank();
+        crate::syscall::wait_for_vblank();
     }
 }
 

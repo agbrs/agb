@@ -104,7 +104,7 @@ unsafe fn set_graphics_settings(settings: GraphicsSettings) {
 /// Waits until vblank using a busy wait loop, this should almost never be used.
 /// I only say almost because whilst I don't believe there to be a reason to use
 /// this I can't rule it out.
-pub fn busy_wait_for_VBlank() {
+pub fn busy_wait_for_vblank() {
     while VCOUNT.get() >= 160 {}
     while VCOUNT.get() < 160 {}
 }

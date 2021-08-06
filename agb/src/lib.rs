@@ -142,15 +142,15 @@ pub extern "C" fn main() -> ! {
 
 #[cfg(test)]
 fn assert_image_output(image: &str) {
-    display::busy_wait_for_VBlank();
-    display::busy_wait_for_VBlank();
+    display::busy_wait_for_vblank();
+    display::busy_wait_for_vblank();
     let mut mgba = crate::mgba::Mgba::new().unwrap();
     mgba.print(
         format_args!("image:{}", image),
         crate::mgba::DebugLevel::Info,
     )
     .unwrap();
-    display::busy_wait_for_VBlank();
+    display::busy_wait_for_vblank();
 }
 
 #[cfg(test)]
