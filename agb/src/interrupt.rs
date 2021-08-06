@@ -242,6 +242,18 @@ pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
 }
 
 #[macro_export]
+/// Creates a new interrupt handler in the current scope, when this scope drops
+/// the interrupt handler is removed. Note that this returns nothing, but some
+/// stack space is used. The interrupt handler is of the form `Fn(Key) + Send +
+/// Sync` where Key can be used to unlock a mutex without checking whether
+/// interrupts need to be disabled, as during an interrupt interrupts are
+/// disabled.
+///
+/// # Usage
+/// ```
+/// add_interrupt_handler!(Interrupt::VBlank, |key| agb::println!("hello world!"));
+/// ```
+///
 macro_rules! add_interrupt_handler {
     ($interrupt: expr, $handler: expr) => {
         let a = $handler;
