@@ -25,48 +25,50 @@ pub enum Interrupt {
     Gamepak = 13,
 }
 
+impl Interrupt {
+    fn enable(self) {
+        let _interrupt_token = temporary_interrupt_disable();
+        self.other_things_to_enable_interrupt();
+        let interrupt = self as usize;
+        let enabled = ENABLED_INTERRUPTS.get() | (1 << (interrupt as u16));
+        ENABLED_INTERRUPTS.set(enabled);
+    }
+
+    fn disable(self) {
+        let _interrupt_token = temporary_interrupt_disable();
+        self.other_things_to_disable_interrupt();
+        let interrupt = self as usize;
+        let enabled = ENABLED_INTERRUPTS.get() & !(1 << (interrupt as u16));
+        ENABLED_INTERRUPTS.set(enabled);
+    }
+
+    fn other_things_to_enable_interrupt(self) {
+        match self {
+            Interrupt::VBlank => {
+                DISPLAY_STATUS.set_bits(1, 1, 3);
+            }
+            Interrupt::HBlank => {
+                DISPLAY_STATUS.set_bits(1, 1, 4);
+            }
+            _ => {}
+        }
+    }
+
+    fn other_things_to_disable_interrupt(self) {
+        match self {
+            Interrupt::VBlank => {
+                DISPLAY_STATUS.set_bits(0, 1, 3);
+            }
+            Interrupt::HBlank => {
+                DISPLAY_STATUS.set_bits(0, 1, 4);
+            }
+            _ => {}
+        }
+    }
+}
+
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
 const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
-
-fn enable(interrupt: Interrupt) {
-    let _interrupt_token = temporary_interrupt_disable();
-    other_things_to_enable_interrupt(interrupt);
-    let interrupt = interrupt as usize;
-    let enabled = ENABLED_INTERRUPTS.get() | (1 << (interrupt as u16));
-    ENABLED_INTERRUPTS.set(enabled);
-}
-
-fn disable(interrupt: Interrupt) {
-    let _interrupt_token = temporary_interrupt_disable();
-    other_things_to_disable_interrupt(interrupt);
-    let interrupt = interrupt as usize;
-    let enabled = ENABLED_INTERRUPTS.get() & !(1 << (interrupt as u16));
-    ENABLED_INTERRUPTS.set(enabled);
-}
-
-fn other_things_to_enable_interrupt(interrupt: Interrupt) {
-    match interrupt {
-        Interrupt::VBlank => {
-            DISPLAY_STATUS.set_bits(1, 1, 3);
-        }
-        Interrupt::HBlank => {
-            DISPLAY_STATUS.set_bits(1, 1, 4);
-        }
-        _ => {}
-    }
-}
-
-fn other_things_to_disable_interrupt(interrupt: Interrupt) {
-    match interrupt {
-        Interrupt::VBlank => {
-            DISPLAY_STATUS.set_bits(0, 1, 3);
-        }
-        Interrupt::HBlank => {
-            DISPLAY_STATUS.set_bits(0, 1, 4);
-        }
-        _ => {}
-    }
-}
 
 struct Disable {}
 
@@ -107,7 +109,7 @@ impl InterruptRoot {
     fn reduce(&self) {
         let new_count = self.count.get() - 1;
         if new_count == 0 {
-            disable(self.interrupt);
+            self.interrupt.disable();
         }
         self.count.set(new_count);
     }
@@ -115,7 +117,7 @@ impl InterruptRoot {
     fn add(&self) {
         let count = self.count.get();
         if count == 0 {
-            enable(self.interrupt);
+            self.interrupt.enable();
         }
         self.count.set(count + 1);
     }
