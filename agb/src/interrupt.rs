@@ -156,7 +156,7 @@ pub struct InterruptClosureBounded<'a> {
 }
 
 struct InterruptClosure {
-    closure: *const (dyn Fn()),
+    closure: *const (dyn Fn(Key)),
     next: Cell<*const InterruptClosure>,
     root: *const InterruptRoot,
 }
@@ -167,7 +167,7 @@ impl InterruptRoot {
         while !c.is_null() {
             let closure_ptr = unsafe { &*c }.closure;
             let closure_ref = unsafe { &*closure_ptr };
-            closure_ref();
+            closure_ref(Key());
             c = unsafe { &*c }.next.get();
         }
     }
@@ -199,7 +199,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 }
 
 fn get_interrupt_handle_root<'a>(
-    f: &'a dyn Fn(),
+    f: &'a dyn Fn(Key),
     root: &InterruptRoot,
 ) -> InterruptClosureBounded<'a> {
     InterruptClosureBounded {
@@ -214,7 +214,7 @@ fn get_interrupt_handle_root<'a>(
 }
 
 pub fn get_interrupt_handle(
-    f: &(dyn Fn() + Send + Sync),
+    f: &(dyn Fn(Key) + Send + Sync),
     interrupt: Interrupt,
 ) -> InterruptClosureBounded {
     let root = interrupt_to_root(interrupt);
@@ -256,8 +256,8 @@ fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
     {
         let counter = Mutex::new(0);
         let counter_2 = Mutex::new(0);
-        add_interrupt_handler!(Interrupt::VBlank, || *counter.lock() += 1);
-        add_interrupt_handler!(Interrupt::VBlank, || *counter_2.lock() += 1);
+        add_interrupt_handler!(Interrupt::VBlank, |key| *counter.lock_with_key(&key) += 1);
+        add_interrupt_handler!(Interrupt::VBlank, |_| *counter_2.lock() += 1);
 
         let vblank = VBlank::get();
 
@@ -293,6 +293,9 @@ pub struct Mutex<T> {
     state: UnsafeCell<MutexState>,
 }
 
+#[non_exhaustive]
+pub struct Key();
+
 unsafe impl<T> Send for Mutex<T> {}
 unsafe impl<T> Sync for Mutex<T> {}
 
@@ -311,6 +314,20 @@ impl<T> Mutex<T> {
             state: &self.state,
         }
     }
+
+    pub fn lock_with_key(&self, _key: &Key) -> MutexRef<T> {
+        assert_eq!(
+            unsafe { *self.state.get() },
+            MutexState::Unlocked,
+            "mutex must be unlocked to be able to lock it"
+        );
+        unsafe { *self.state.get() = MutexState::Locked(false) };
+        MutexRef {
+            internal: &self.internal,
+            state: &self.state,
+        }
+    }
+
     pub fn new(val: T) -> Self {
         Mutex {
             internal: UnsafeCell::new(val),

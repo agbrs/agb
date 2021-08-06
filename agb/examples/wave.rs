@@ -38,7 +38,7 @@ pub fn main() -> ! {
 
     let back = Mutex::new(BackCosines { cosines, row: 0 });
 
-    agb::add_interrupt_handler!(Interrupt::HBlank, || {
+    agb::add_interrupt_handler!(Interrupt::HBlank, |_| {
         let mut backc = back.lock();
         let deflection = backc.cosines[backc.row % 32];
         unsafe { ((0x0400_0010) as *mut u16).write_volatile(deflection) }
