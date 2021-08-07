@@ -91,7 +91,7 @@ fn disable_interrupts() {
     INTERRUPTS_ENABLED.set(0);
 }
 
-pub(crate) struct InterruptRoot {
+struct InterruptRoot {
     next: Cell<*const InterruptClosure>,
     count: Cell<i32>,
     interrupt: Interrupt,
