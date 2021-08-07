@@ -53,7 +53,7 @@ pub fn main() -> ! {
 
     let mut background = gfx.get_background().unwrap();
     background.set_map(agb::display::tiled0::Map {
-        store: &MAP_MAP,
+        store: MAP_MAP.as_ref(),
         dimensions: (32_u32, 32_u32).into(),
         default: 0,
     });

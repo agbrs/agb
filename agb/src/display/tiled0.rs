@@ -30,29 +30,30 @@ pub enum BackgroundSize {
     S64x64 = 3,
 }
 
+pub trait MapStorage: Deref<Target = [u16]> {}
+impl MapStorage for &[u16] {}
+impl MapStorage for &mut [u16] {}
+
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
-pub struct Background<S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>> {
+pub struct Background<S: MapStorage> {
     background: u8,
     block: u8,
     commited_position: Vector2D<i32>,
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
     shadowed_register: u16,
-    map: Option<Map<S, D>>,
+    map: Option<Map<S>>,
 }
 
-pub struct Map<S, D: Deref<Target = S>>
-where
-    S: Index<usize, Output = u16> + ?Sized,
-{
-    pub store: D,
+pub struct Map<S: MapStorage> {
+    pub store: S,
     pub dimensions: Vector2D<u32>,
     pub default: u16,
 }
 
-impl<'a, S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>> Map<S, D> {
+impl<'a, S: MapStorage> Map<S> {
     fn get_position(&self, x: i32, y: i32) -> u16 {
         if x < 0 || x as u32 >= self.dimensions.x {
             self.default
@@ -64,8 +65,8 @@ impl<'a, S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>> Map<S, D>
     }
 }
 
-impl<'a, S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>> Background<S, D> {
-    unsafe fn new(background: u8, block: u8) -> Background<S, D> {
+impl<'a, S: MapStorage> Background<S> {
+    unsafe fn new(background: u8, block: u8) -> Background<S> {
         let mut b = Background {
             background,
             block,
@@ -134,12 +135,12 @@ impl<'a, S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>> Backgroun
         self.shadowed_position = position;
     }
 
-    pub fn get_map(&mut self) -> Option<&mut Map<S, D>> {
+    pub fn get_map(&mut self) -> Option<&mut Map<S>> {
         self.poisoned = true;
         self.map.as_mut()
     }
 
-    pub fn set_map(&mut self, map: Map<S, D>) {
+    pub fn set_map(&mut self, map: Map<S>) {
         self.poisoned = true;
         self.map = Some(map);
     }
@@ -265,9 +266,7 @@ impl Tiled0 {
     }
 
     /// Gets a map background if possible and assigns an unused block to it.
-    pub fn get_background<S: Index<usize, Output = u16> + ?Sized, D: Deref<Target = S>>(
-        &mut self,
-    ) -> Result<Background<S, D>, &'static str> {
+    pub fn get_background<S: MapStorage>(&mut self) -> Result<Background<S>, &'static str> {
         if self.num_backgrounds >= 4 {
             return Err("too many backgrounds created, maximum is 4");
         }
