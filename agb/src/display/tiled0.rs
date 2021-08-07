@@ -1,4 +1,4 @@
-use core::ops::{Deref, Index};
+use core::ops::Index;
 
 use crate::{
     memory_mapped::{MemoryMapped, MemoryMapped1DArray},
