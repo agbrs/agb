@@ -78,3 +78,14 @@ impl core::fmt::Write for Mgba {
         Ok(())
     }
 }
+
+#[macro_export]
+macro_rules! println {
+    ($( $x:expr ),*) => {
+        {
+            if let Some(mut mgba) = $crate::mgba::Mgba::new() {
+                let _ = mgba.print(format_args!($($x,)*), $crate::mgba::DebugLevel::Info);
+            }
+        }
+    };
+}
