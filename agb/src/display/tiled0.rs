@@ -211,7 +211,7 @@ impl<'a> Background<'a> {
 
         if self.poisoned {
             let positions_to_be_updated =
-                Rect::new(self.shadowed_position / 8, (30, 20).into()).iter();
+                Rect::new(self.shadowed_position / 8 - (1, 1).into(), (31, 21).into()).iter();
 
             if let Some(map) = &self.map {
                 for (x, y) in positions_to_be_updated {
