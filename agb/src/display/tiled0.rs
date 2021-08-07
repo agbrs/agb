@@ -111,9 +111,7 @@ impl<'a> Map<'a> {
         }
     }
     fn get_position(&self, x: i32, y: i32) -> u16 {
-        if x < 0 || x as u32 >= self.dimensions.x {
-            self.default
-        } else if y < 0 || y as u32 >= self.dimensions.y {
+        if x < 0 || x as u32 >= self.dimensions.x || y < 0 || y as u32 >= self.dimensions.y {
             self.default
         } else {
             self.store[y as usize * self.dimensions.x as usize + x as usize]
@@ -220,30 +218,22 @@ impl<'a> Background<'a> {
             let tile_position_difference = position_difference / 8;
 
             // how much of the map needs updating
-            let difference_x: Rect<i32> = if tile_position_difference.x == 0 {
-                Rect::new((0, 0).into(), (0, 0).into())
-            } else if tile_position_difference.x > 0 {
-                Rect::new((0, 0).into(), (tile_position_difference.x, 0).into())
-            } else if tile_position_difference.x < 0 {
-                Rect::new(
+            let difference_x: Rect<i32> = match tile_position_difference.x {
+                0 => Rect::new((0, 0).into(), (0, 0).into()),
+                1..=i32::MAX => Rect::new((0, 0).into(), (tile_position_difference.x, 0).into()),
+                i32::MIN..=-1 => Rect::new(
                     (32 + tile_position_difference.x, 0).into(),
                     (tile_position_difference.x.abs(), 0).into(),
-                )
-            } else {
-                unreachable!();
+                ),
             };
 
-            let difference_y: Rect<i32> = if tile_position_difference.y == 0 {
-                Rect::new((0, 0).into(), (0, 0).into())
-            } else if tile_position_difference.y > 0 {
-                Rect::new((0, 0).into(), (0, tile_position_difference.y).into())
-            } else if tile_position_difference.y < 0 {
-                Rect::new(
+            let difference_y: Rect<i32> = match tile_position_difference.y {
+                0 => Rect::new((0, 0).into(), (0, 0).into()),
+                1..=i32::MAX => Rect::new((0, 0).into(), (0, tile_position_difference.y).into()),
+                i32::MIN..=-1 => Rect::new(
                     (0, 32 + tile_position_difference.y).into(),
                     (0, tile_position_difference.y.abs()).into(),
-                )
-            } else {
-                unreachable!();
+                ),
             };
 
             // update those positions
