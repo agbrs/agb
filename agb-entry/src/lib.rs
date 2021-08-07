@@ -3,8 +3,8 @@ use proc_macro::TokenStream;
 
 use proc_macro2::Span;
 use quote::quote;
-use syn::{ItemFn, ReturnType, Type, Visibility, Ident};
 use rand::Rng;
+use syn::{Ident, ItemFn, ReturnType, Type, Visibility};
 
 #[proc_macro_attribute]
 pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -25,7 +25,10 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         "#[agb::entry] must have signature [unsafe] fn () -> !"
     );
 
-    assert!(args.to_string() == "", "Must pass no args to #[agb::entry] macro");
+    assert!(
+        args.to_string() == "",
+        "Must pass no args to #[agb::entry] macro"
+    );
 
     let fn_name = random_ident();
 
@@ -38,19 +41,22 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         pub fn #fn_name() -> ! {
             #(#stmts)*
         }
-    ).into()
+    )
+    .into()
 }
 
 fn random_ident() -> Ident {
     let mut rng = rand::thread_rng();
     Ident::new(
-        &(0..16).map(|i| {
-            if i == 0 || rng.gen() {
-                (b'a' + rng.gen::<u8>() % 25) as char
-            } else {
-                (b'0' + rng.gen::<u8>() % 10) as char
-            }
-        }).collect::<String>(),
-        Span::call_site()
+        &(0..16)
+            .map(|i| {
+                if i == 0 || rng.gen() {
+                    (b'a' + rng.gen::<u8>() % 25) as char
+                } else {
+                    (b'0' + rng.gen::<u8>() % 10) as char
+                }
+            })
+            .collect::<String>(),
+        Span::call_site(),
     )
 }
