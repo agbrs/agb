@@ -3,7 +3,7 @@
 
 extern crate agb;
 use agb::{
-    display::{object::ObjectStandard, HEIGHT, WIDTH},
+    display::{object::ObjectStandard, tiled0::Map, HEIGHT, WIDTH},
     input::Button,
 };
 use core::convert::TryInto;
@@ -52,11 +52,7 @@ pub fn main() -> ! {
     gfx.set_background_tilemap(0, &MAP_TILES);
 
     let mut background = gfx.get_background().unwrap();
-    background.set_map(agb::display::tiled0::Map {
-        store: MAP_MAP.as_ref(),
-        dimensions: (32_u32, 32_u32).into(),
-        default: 0,
-    });
+    background.set_map(Map::new(&MAP_MAP, (32_u32, 32_u32).into(), 0));
     background.show();
     background.commit();
 

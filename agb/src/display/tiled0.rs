@@ -30,30 +30,86 @@ pub enum BackgroundSize {
     S64x64 = 3,
 }
 
-pub trait MapStorage: Deref<Target = [u16]> {}
-impl MapStorage for &[u16] {}
-impl MapStorage for &mut [u16] {}
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum Mutability {
+    Immutable,
+    Mutable,
+}
+
+struct MapStorage<'a> {
+    s: *const [u16],
+    mutability: Mutability,
+    _phantom: core::marker::PhantomData<&'a ()>,
+}
+
+impl<'a> Index<usize> for MapStorage<'a> {
+    type Output = u16;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.get()[index]
+    }
+}
+
+impl<'a> MapStorage<'a> {
+    fn new(store: &[u16]) -> MapStorage {
+        MapStorage {
+            s: store as *const _,
+            mutability: Mutability::Immutable,
+            _phantom: core::marker::PhantomData,
+        }
+    }
+    fn new_mutable(store: &mut [u16]) -> MapStorage {
+        MapStorage {
+            s: store as *const _,
+            mutability: Mutability::Mutable,
+            _phantom: core::marker::PhantomData,
+        }
+    }
+    fn get(&self) -> &[u16] {
+        unsafe { &*self.s }
+    }
+    fn get_mut(&mut self) -> &mut [u16] {
+        assert!(
+            self.mutability == Mutability::Mutable,
+            "backing storage must be mutable in order to get internal storage mutably"
+        );
+        unsafe { &mut *(self.s as *mut _) }
+    }
+}
 
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
-pub struct Background<S: MapStorage> {
+pub struct Background<'a> {
     background: u8,
     block: u8,
     commited_position: Vector2D<i32>,
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
     shadowed_register: u16,
-    map: Option<Map<S>>,
+    map: Option<Map<'a>>,
 }
 
-pub struct Map<S: MapStorage> {
-    pub store: S,
+pub struct Map<'a> {
+    store: MapStorage<'a>,
     pub dimensions: Vector2D<u32>,
     pub default: u16,
 }
 
-impl<'a, S: MapStorage> Map<S> {
+impl<'a> Map<'a> {
+    pub fn new(map: &[u16], dimensions: Vector2D<u32>, default: u16) -> Map {
+        Map {
+            store: MapStorage::new(map),
+            dimensions,
+            default,
+        }
+    }
+    pub fn new_mutable(map: &mut [u16], dimensions: Vector2D<u32>, default: u16) -> Map {
+        Map {
+            store: MapStorage::new_mutable(map),
+            dimensions,
+            default,
+        }
+    }
     fn get_position(&self, x: i32, y: i32) -> u16 {
         if x < 0 || x as u32 >= self.dimensions.x {
             self.default
@@ -63,10 +119,16 @@ impl<'a, S: MapStorage> Map<S> {
             self.store[y as usize * self.dimensions.x as usize + x as usize]
         }
     }
+    pub fn get_store(&self) -> &[u16] {
+        self.store.get()
+    }
+    pub fn get_mutable_store(&mut self) -> &mut [u16] {
+        self.store.get_mut()
+    }
 }
 
-impl<'a, S: MapStorage> Background<S> {
-    unsafe fn new(background: u8, block: u8) -> Background<S> {
+impl<'a> Background<'a> {
+    unsafe fn new(background: u8, block: u8) -> Background<'a> {
         let mut b = Background {
             background,
             block,
@@ -135,12 +197,12 @@ impl<'a, S: MapStorage> Background<S> {
         self.shadowed_position = position;
     }
 
-    pub fn get_map(&mut self) -> Option<&mut Map<S>> {
+    pub fn get_map(&mut self) -> Option<&mut Map<'a>> {
         self.poisoned = true;
         self.map.as_mut()
     }
 
-    pub fn set_map(&mut self, map: Map<S>) {
+    pub fn set_map(&mut self, map: Map<'a>) {
         self.poisoned = true;
         self.map = Some(map);
     }
@@ -266,7 +328,7 @@ impl Tiled0 {
     }
 
     /// Gets a map background if possible and assigns an unused block to it.
-    pub fn get_background<S: MapStorage>(&mut self) -> Result<Background<S>, &'static str> {
+    pub fn get_background(&mut self) -> Result<Background, &'static str> {
         if self.num_backgrounds >= 4 {
             return Err("too many backgrounds created, maximum is 4");
         }
