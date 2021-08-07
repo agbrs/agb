@@ -215,6 +215,8 @@ fn get_interrupt_handle_root<'a>(
     }
 }
 
+/// The [add_interrupt_handler!] macro should be used instead of this function.
+/// Creates an interrupt handler from a closure.
 pub fn get_interrupt_handle(
     f: &(dyn Fn(Key) + Send + Sync),
     interrupt: Interrupt,
@@ -224,6 +226,9 @@ pub fn get_interrupt_handle(
     get_interrupt_handle_root(f, root)
 }
 
+/// The [add_interrupt_handler!] macro should be used instead of this.
+/// Adds an interrupt handler to the interrupt table such that when that
+/// interrupt is triggered the closure is called.
 pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
     let root = unsafe { &*interrupt.c.root };
     root.add();
