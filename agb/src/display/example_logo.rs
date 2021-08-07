@@ -17,6 +17,7 @@ pub fn display_logo(gfx: &mut Tiled0) {
 
     back.set_map(Map::new(&entries, (30_u32, 20_u32).into(), 0));
     back.show();
+    back.commit();
 }
 
 #[test_case]
