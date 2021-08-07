@@ -38,6 +38,9 @@ jobs:
     - name: Run Clippy on agb image converter
       working-directory: agb-image-converter
       run: cargo clippy --verbose
+    - name: Run Clippy on agb entry
+      working-directory: agb-entry
+      run: cargo clippy --verbose
     - name: Run Tests for agb in debug mode
       working-directory: agb
       run: cargo test --verbose
