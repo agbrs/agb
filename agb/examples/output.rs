@@ -4,14 +4,11 @@
 extern crate agb;
 #[no_mangle]
 pub fn main() -> ! {
-    let vblank = agb::interrupt::VBlank::get();
-
-    let mut count = 0;
-    loop {
-        vblank.wait_for_vblank();
-
-        agb::println!("Hello, world, frame = {}", count);
-
-        count += 1;
-    }
+    let count = agb::interrupt::Mutex::new(0);
+    agb::add_interrupt_handler!(agb::interrupt::Interrupt::VBlank, |key| {
+        let mut count = count.lock_with_key(&key);
+        agb::println!("Hello, world, frame = {}", *count);
+        *count += 1;
+    });
+    loop {}
 }
