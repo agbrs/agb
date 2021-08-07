@@ -11,8 +11,8 @@ use agb::Gba;
 // Music - "I will not let you let me down" by Josh Woodward, free download at http://joshwoodward.com
 const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &[u8] = include_bytes!("i-will-not-let-you-let-me-down.raw");
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let mut gba = Gba::new();
     let mut input = ButtonController::new();
     let vblank_provider = agb::interrupt::VBlank::get();

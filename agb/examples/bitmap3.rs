@@ -10,8 +10,8 @@ struct Vector2D {
     y: i32,
 }
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap3();
     let vblank = agb::interrupt::VBlank::get();

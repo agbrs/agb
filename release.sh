@@ -28,6 +28,10 @@ case "$PROJECT" in
         DIRECTORY="agb-image-converter"
         TAGNAME="agb-image-converter/v$VERSION"
         ;;
+    agb-entry)
+        DIRECTORY="agb-entry"
+        TAGNAME="agb-entry/v$VERSION"
+        ;;
     mgba-test-runner)
         DIRECTORY="mgba-test-runner"
         TAGNAME="mgba-test-runner/v$VERSION"

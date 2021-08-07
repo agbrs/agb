@@ -5,8 +5,8 @@ extern crate agb;
 
 use agb::sound;
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let gba = agb::Gba::new();
 
     gba.sound.enable();
