@@ -5,8 +5,8 @@ extern crate agb;
 
 use agb::display::example_logo;
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut gfx = gba.display.video.tiled0();
 

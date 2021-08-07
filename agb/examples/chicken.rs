@@ -35,8 +35,8 @@ fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u16 {
     (((count / delay) % (end + 1 - start)) + start) as u16
 }
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let map_as_grid: &[[u16; 32]; 32] = unsafe {
         (&MAP_MAP as *const [u16; 1024] as *const [[u16; 32]; 32])
             .as_ref()

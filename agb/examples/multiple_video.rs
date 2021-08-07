@@ -10,8 +10,8 @@ struct Vector2D {
     y: i32,
 }
 
-#[no_mangle]
-pub fn main() -> ! {
+#[agb::entry]
+fn main() -> ! {
     let mut gba = agb::Gba::new();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
