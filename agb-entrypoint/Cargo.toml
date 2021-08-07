@@ -1,5 +1,5 @@
 [package]
-name = "agb-entrypoint"
+name = "agb_entrypoint"
 version = "0.6.0"
 authors = ["Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
