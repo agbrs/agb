@@ -29,7 +29,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         "#[agb::entry] must have signature [unsafe] fn () -> !"
     );
 
-    assert!(args.to_string() == "", "Must pass no args to entrypoint");
+    assert!(args.to_string() == "", "Must pass no args to #[agb::entry] macro");
 
     let fn_name = random_ident();
 
