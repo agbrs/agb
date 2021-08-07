@@ -4,7 +4,7 @@
 extern crate agb;
 use agb::{display, syscall};
 
-#[no_mangle]
+#[agb::entry]
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap3();
