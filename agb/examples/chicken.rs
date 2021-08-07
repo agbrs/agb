@@ -45,7 +45,7 @@ pub fn main() -> ! {
 
     let mut gba = agb::Gba::new();
     let mut gfx = gba.display.video.tiled0();
-    let vblank = gba.display.vblank.get();
+    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     gfx.set_sprite_palette_raw(&CHICKEN_PALETTE);
@@ -90,7 +90,7 @@ pub fn main() -> ! {
     let terminal_velocity = (1 << 8) / 2;
 
     loop {
-        vblank.wait_for_VBlank();
+        vblank.wait_for_vblank();
         frame_count += 1;
 
         input.update();

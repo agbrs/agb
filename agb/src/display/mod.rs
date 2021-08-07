@@ -1,7 +1,6 @@
 use crate::memory_mapped::MemoryMapped;
 use bitflags::bitflags;
 
-use vblank::VBlankGiver;
 use video::Video;
 
 use self::object::ObjectControl;
@@ -20,13 +19,11 @@ pub mod palette16;
 pub mod tile_data;
 /// Graphics mode 0. Four regular backgrounds.
 pub mod tiled0;
-/// Syscall for waiting for vblank.
-pub mod vblank;
 /// Giving out graphics mode.
 pub mod video;
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
-const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
+pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
 bitflags! {
@@ -65,7 +62,6 @@ enum DisplayMode {
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
     pub video: Video,
-    pub vblank: VBlankGiver,
     pub object: ObjectDistribution,
 }
 
@@ -82,7 +78,6 @@ impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
             video: Video {},
-            vblank: VBlankGiver {},
             object: ObjectDistribution {},
         }
     }
@@ -109,7 +104,7 @@ unsafe fn set_graphics_settings(settings: GraphicsSettings) {
 /// Waits until vblank using a busy wait loop, this should almost never be used.
 /// I only say almost because whilst I don't believe there to be a reason to use
 /// this I can't rule it out.
-pub fn busy_wait_for_VBlank() {
+pub fn busy_wait_for_vblank() {
     while VCOUNT.get() >= 160 {}
     while VCOUNT.get() < 160 {}
 }

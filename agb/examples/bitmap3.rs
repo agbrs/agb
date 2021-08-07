@@ -14,7 +14,7 @@ struct Vector2D {
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
     let mut bitmap = gba.display.video.bitmap3();
-    let vblank = gba.display.vblank.get();
+    let vblank = agb::interrupt::VBlank::get();
 
     let mut input = agb::input::ButtonController::new();
     let mut pos = Vector2D {
@@ -23,7 +23,7 @@ pub fn main() -> ! {
     };
 
     loop {
-        vblank.wait_for_VBlank();
+        vblank.wait_for_vblank();
 
         input.update();
         pos.x += input.x_tri() as i32;

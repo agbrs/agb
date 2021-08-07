@@ -13,18 +13,18 @@ struct Vector2D {
 #[no_mangle]
 pub fn main() -> ! {
     let mut gba = agb::Gba::new();
-    let mut vblank = gba.display.vblank.get();
+    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     loop {
-        bitmap3_mode(&mut gba.display.video.bitmap3(), &mut vblank, &mut input);
-        bitmap4_mode(&mut gba.display.video.bitmap4(), &mut vblank, &mut input);
+        bitmap3_mode(&mut gba.display.video.bitmap3(), &vblank, &mut input);
+        bitmap4_mode(&mut gba.display.video.bitmap4(), &vblank, &mut input);
     }
 }
 
 fn bitmap3_mode(
     bitmap: &mut display::bitmap3::Bitmap3,
-    vblank: &mut display::vblank::VBlank,
+    vblank: &agb::interrupt::VBlank,
     input: &mut agb::input::ButtonController,
 ) {
     let mut pos = Vector2D {
@@ -33,7 +33,7 @@ fn bitmap3_mode(
     };
 
     loop {
-        vblank.wait_for_VBlank();
+        vblank.wait_for_vblank();
 
         input.update();
         if input.is_just_pressed(agb::input::Button::B) {
@@ -51,7 +51,7 @@ fn bitmap3_mode(
 
 fn bitmap4_mode(
     bitmap: &mut display::bitmap4::Bitmap4,
-    vblank: &mut display::vblank::VBlank,
+    vblank: &agb::interrupt::VBlank,
     input: &mut agb::input::ButtonController,
 ) {
     bitmap.set_palette_entry(1, 0x001F);
@@ -72,7 +72,7 @@ fn bitmap4_mode(
 
     let mut count = 0;
     loop {
-        vblank.wait_for_VBlank();
+        vblank.wait_for_vblank();
 
         input.update();
         if input.is_just_pressed(agb::input::Button::B) {

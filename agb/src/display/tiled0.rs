@@ -118,10 +118,10 @@ impl Background {
     }
 
     fn set_x(&self, x: u16) {
-        unsafe { *((0x0400_0010 + 4 * self.background as usize) as *mut u16) = x }
+        unsafe { ((0x0400_0010 + 4 * self.background as usize) as *mut u16).write_volatile(x) }
     }
     fn set_y(&self, y: u16) {
-        unsafe { *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y }
+        unsafe { ((0x0400_0012 + 4 * self.background as usize) as *mut u16).write_volatile(y) }
     }
 
     /// Forces the portion of the map in current view to be copied to the map
@@ -187,6 +187,11 @@ impl Background {
                 };
             }
         }
+    }
+
+    pub fn set_offset(&mut self, position: Vector2D<u32>) {
+        self.set_x(position.x as u16);
+        self.set_y(position.y as u16);
     }
 
     /// Sets the position of the map to be shown on screen. This automatically
