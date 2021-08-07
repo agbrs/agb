@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "agb_entry"
-version = "0.6.0"
+version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",

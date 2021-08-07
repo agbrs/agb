@@ -20,7 +20,7 @@ debug = true
 [dependencies]
 bitflags = "1.2"
 agb_image_converter = { version = "0.6.0", path = "../agb-image-converter" }
-agb_entry = { version = "0.6.0", path = "../agb-entry" }
+agb_entry = { version = "0.1.0", path = "../agb-entry" }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

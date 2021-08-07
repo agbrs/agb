@@ -3,8 +3,8 @@
 version = 3
 
 [[package]]
-name = "agb-entrypoint"
-version = "0.6.0"
+name = "agb_entry"
+version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
