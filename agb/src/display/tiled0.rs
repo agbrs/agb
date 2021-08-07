@@ -205,61 +205,69 @@ impl<'a> Background<'a> {
         self.map = Some(map);
     }
 
-    pub fn commit_area(&mut self, area: Rect<i32>) {
+    pub fn commit(&mut self) {
         // commit shadowed register
         unsafe { self.get_register().set(self.shadowed_register) };
 
-        let positions_to_be_updated = if self.poisoned {
-            area.iter()
-                .chain(Rect::new((0, 0).into(), (0, 0).into()).iter())
-        } else {
-            // calculate difference in positions
-            let position_difference = self.shadowed_position - self.commited_position;
-            let tile_position_difference = position_difference / 8;
+        if self.poisoned {
+            let positions_to_be_updated =
+                Rect::new(self.shadowed_position / 8, (30, 20).into()).iter();
 
-            // how much of the map needs updating
-            let difference_x: Rect<i32> = match tile_position_difference.x {
-                0 => Rect::new((0, 0).into(), (0, 0).into()),
-                1..=i32::MAX => Rect::new((0, 0).into(), (tile_position_difference.x, 0).into()),
-                i32::MIN..=-1 => Rect::new(
-                    (32 + tile_position_difference.x, 0).into(),
-                    (tile_position_difference.x.abs(), 0).into(),
-                ),
-            };
-
-            let difference_y: Rect<i32> = match tile_position_difference.y {
-                0 => Rect::new((0, 0).into(), (0, 0).into()),
-                1..=i32::MAX => Rect::new((0, 0).into(), (0, tile_position_difference.y).into()),
-                i32::MIN..=-1 => Rect::new(
-                    (0, 32 + tile_position_difference.y).into(),
-                    (0, tile_position_difference.y.abs()).into(),
-                ),
-            };
-
-            // update those positions
-
-            let y_update = area.overlapping_rect(difference_y);
-            let x_update = area.overlapping_rect(difference_x);
-
-            y_update.iter().chain(x_update.iter())
-        };
-
-        if let Some(map) = &self.map {
-            for (x, y) in positions_to_be_updated {
-                let tile_space_position = self.shadowed_position / 8;
-                unsafe {
-                    (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
-                        [x.rem_euclid(32) as usize] as *mut u16)
-                        .write_volatile(
-                            map.get_position(x + tile_space_position.x, y + tile_space_position.y),
-                        );
+            if let Some(map) = &self.map {
+                for (x, y) in positions_to_be_updated {
+                    unsafe {
+                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
+                            [x.rem_euclid(32) as usize] as *mut u16)
+                            .write_volatile(map.get_position(x, y));
+                    }
                 }
             }
-        }
+        } else {
+            let commited_block = self.commited_position / 8;
+            let shadowed_block = self.shadowed_position / 8;
+
+            let top_bottom_rect: Rect<i32> = {
+                let top_bottom_height = commited_block.y - shadowed_block.y;
+                let new_y = if top_bottom_height < 0 {
+                    commited_block.y + 20
+                } else {
+                    shadowed_block.y
+                };
+                Rect::new(
+                    (shadowed_block.x, new_y).into(),
+                    (30, top_bottom_height.abs()).into(),
+                )
+            };
+
+            let left_right_rect: Rect<i32> = {
+                let left_right_width = commited_block.x - shadowed_block.x;
+                let new_x = if left_right_width < 0 {
+                    commited_block.x + 30
+                } else {
+                    shadowed_block.x
+                };
+                Rect::new(
+                    (new_x, shadowed_block.y).into(),
+                    (left_right_width.abs(), 20).into(),
+                )
+            };
+
+            if let Some(map) = &self.map {
+                for (x, y) in top_bottom_rect.iter().chain(left_right_rect.iter()) {
+                    unsafe {
+                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
+                            [x.rem_euclid(32) as usize] as *mut u16)
+                            .write_volatile(map.get_position(x, y));
+                    }
+                }
+            }
+        };
 
         // update commited position
 
         self.commited_position = self.shadowed_position;
+
+        self.poisoned = false;
 
         // update position in registers
 
@@ -268,14 +276,6 @@ impl<'a> Background<'a> {
             self.set_position_y_register((self.commited_position.y % (32 * 8)) as u16);
         }
     }
-
-    pub fn commit(&mut self) {
-        let area: Rect<i32> = Rect {
-            position: Vector2D::new(-1, -1),
-            size: Vector2D::new(32, 22),
-        };
-        self.commit_area(area)
-    }
 }
 
 pub struct Tiled0 {
@@ -283,7 +283,7 @@ pub struct Tiled0 {
     num_backgrounds: u8,
 }
 
-impl Tiled0 {
+impl<'b> Tiled0 {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
         set_graphics_mode(DisplayMode::Tiled0);
@@ -318,7 +318,7 @@ impl Tiled0 {
     }
 
     /// Gets a map background if possible and assigns an unused block to it.
-    pub fn get_background(&mut self) -> Result<Background, &'static str> {
+    pub fn get_background(&mut self) -> Result<Background<'b>, &'static str> {
         if self.num_backgrounds >= 4 {
             return Err("too many backgrounds created, maximum is 4");
         }
