@@ -22,7 +22,7 @@ pub mod sound;
 
 pub use agb_image_converter::include_gfx;
 
-pub use agb_entrypoint::entry;
+pub use agb_entry::entry;
 
 mod bitarray;
 pub mod interrupt;
