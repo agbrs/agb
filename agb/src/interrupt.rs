@@ -391,10 +391,14 @@ impl<'a, T> DerefMut for MutexRef<'a, T> {
 pub struct VBlank {}
 
 impl VBlank {
+    /// Handles setting up everything reqired to be able to use the wait for
+    /// interrupt syscall.
     pub fn get() -> Self {
         interrupt_to_root(Interrupt::VBlank).add();
         VBlank {}
     }
+    /// Pauses CPU until vblank interrupt is triggered where code execution is
+    /// resumed.
     pub fn wait_for_vblank(&self) {
         crate::syscall::wait_for_vblank();
     }

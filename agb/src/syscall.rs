@@ -39,6 +39,8 @@ pub fn wait_for_interrupt() {
     }
 }
 
+/// The vblank interrupt handler [VBlank][crate::interrupt::VBlank] should be
+/// used instead of calling this function directly.
 pub fn wait_for_vblank() {
     unsafe {
         asm!(
