@@ -9,11 +9,11 @@ agb_arm_func agb_rs__mixer_add
     @ stack position 1 - amount to modify the right channel by (u16 fixnum with 4 bits)
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {r4-r10}
+    push {r4-r8}
 
-    ldr r9, [sp, #28]        @ load the right channel modification amount into r9
+    ldr r7, [sp, #20]        @ load the right channel modification amount into r7
 
-    orr r9, r9, r3, lsl #16   @ r9 now is the left channel followed by the right channel modifications.
+    orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0               @ current index we're reading from
     mov r8, #SOUND_BUFFER_SIZE @ the number of steps left
@@ -26,7 +26,7 @@ agb_arm_func agb_rs__mixer_add
 
     ldr r4, [r1]             @ read the current value
 
-    mla r4, r6, r9, r4       @ r4 += r6 * r9 (calculating both the left and right samples together)
+    mla r4, r6, r7, r4       @ r4 += r6 * r7 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endm
@@ -39,7 +39,7 @@ agb_arm_func agb_rs__mixer_add
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {r4-r10}
+    pop {r4-r8}
     bx lr
 agb_arm_end agb_rs__mixer_add
 
