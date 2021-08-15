@@ -20,7 +20,7 @@ if [ ! "$(echo "$VERSION" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")" ]; then
 fi
 
 # Check if no commit option is valid
-if [ ! "$NO_COMMIT" = "" ] || [ ! "$NO_COMMIT" = "--no-commit" ]; then
+if [ ! "$NO_COMMIT" = "" ] && [ ! "$NO_COMMIT" = "--no-commit" ]; then
     echo "Must pass either no last argument or --no-commit"
     exit 1
 fi
