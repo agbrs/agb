@@ -209,7 +209,10 @@ impl<'a> Background<'a> {
         // commit shadowed register
         unsafe { self.get_register().set(self.shadowed_register) };
 
-        if self.poisoned {
+        let commited_screen = Rect::new(self.commited_position, (30, 20).into());
+        let shadowed_screen = Rect::new(self.shadowed_position, (30, 20).into());
+
+        if self.poisoned || !shadowed_screen.touches(commited_screen) {
             let positions_to_be_updated =
                 Rect::new(self.shadowed_position / 8 - (1, 1).into(), (31, 21).into()).iter();
 
