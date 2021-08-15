@@ -62,11 +62,6 @@ if [ ! "$NO_COMMIT" = "--no-commit" ] && [ "$(git symbolic-ref --short HEAD)" !=
     exit 1
 fi
 
-# Sanity check to make sure the build works
-(cd agb && cargo test)
-(cd agb-image-converter && cargo test)
-(cd agb-macros && cargo test)
-
 # Update the version in Cargo.toml
 sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 
@@ -85,6 +80,11 @@ else
     (cd agb && cargo update)
     git add agb/Cargo.toml agb/Cargo.lock
 fi
+
+# Sanity check to make sure the build works
+(cd agb && cargo test)
+(cd agb-image-converter && cargo test)
+(cd agb-macros && cargo test)
 
 if [ ! "$NO_COMMIT" = "--no-commit" ]; then
     # Commit the Cargo.toml changes
