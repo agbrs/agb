@@ -1,5 +1,5 @@
 [package]
-name = "agb_entry"
+name = "agb_macros"
 version = "0.1.0"
 authors = ["Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
