@@ -30,7 +30,7 @@ agb_arm_func agb_rs__mixer_add
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endm
-    
+
     mixer_add_loop
     mixer_add_loop
     mixer_add_loop
