@@ -1,3 +1,5 @@
+.include "src/asm_include.s"
+
     .arm
     .global __start
 __start:

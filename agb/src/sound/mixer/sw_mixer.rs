@@ -92,9 +92,12 @@ impl Mixer {
 const SOUND_FREQUENCY: i32 = 10512;
 const SOUND_BUFFER_SIZE: usize = 176;
 
+#[repr(C, align(4))]
+struct SoundBuffer([i8; SOUND_BUFFER_SIZE * 2]);
+
 struct MixerBuffer {
-    buffer1: [i8; SOUND_BUFFER_SIZE * 2], // first half is left, second is right
-    buffer2: [i8; SOUND_BUFFER_SIZE * 2],
+    buffer1: SoundBuffer, // alternating bytes left and right channels
+    buffer2: SoundBuffer,
 
     buffer_1_active: bool,
 }
@@ -102,8 +105,8 @@ struct MixerBuffer {
 impl MixerBuffer {
     fn new() -> Self {
         MixerBuffer {
-            buffer1: [0; SOUND_BUFFER_SIZE * 2],
-            buffer2: [0; SOUND_BUFFER_SIZE * 2],
+            buffer1: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
+            buffer2: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
 
             buffer_1_active: true,
         }
@@ -164,9 +167,9 @@ impl MixerBuffer {
 
     fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {
         if self.buffer_1_active {
-            &mut self.buffer2
+            &mut self.buffer2.0
         } else {
-            &mut self.buffer1
+            &mut self.buffer1.0
         }
     }
 }
