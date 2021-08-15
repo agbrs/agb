@@ -79,7 +79,7 @@ if [ "$PROJECT" = "agb" ]; then
     sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
 else
-    local PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
+    PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
     sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
     
     (cd agb && cargo update)
