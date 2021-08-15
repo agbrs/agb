@@ -656,6 +656,13 @@ impl<T: Number> Rect<T> {
             && point.y < self.position.y + self.size.y
     }
 
+    pub fn touches(self, other: Rect<T>) -> bool {
+        self.position.x < other.position.x + other.size.x
+            && self.position.x + self.size.x > other.position.x
+            && self.position.y < other.position.y + other.size.y
+            && self.position.y + self.size.y > self.position.y
+    }
+
     pub fn overlapping_rect(&self, other: Rect<T>) -> Rect<T> {
         fn max<E: Number>(x: E, y: E) -> E {
             if x > y {
