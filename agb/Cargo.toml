@@ -20,7 +20,7 @@ debug = true
 [dependencies]
 bitflags = "1.2"
 agb_image_converter = { version = "0.6.0", path = "../agb-image-converter" }
-agb_macros = { version = "0.1.0", path = "../agb-entry" }
+agb_macros = { version = "0.1.0", path = "../agb-macros" }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
