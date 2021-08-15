@@ -70,6 +70,12 @@ if [ "$PROJECT" = "agb" ]; then
     # also update the agb version in the template
     sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
+else
+    local PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
+    sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
+    
+    (cd agb && cargo update)
+    git add agb/Cargo.toml agb/Cargo.lock
 fi
 
 # Commit the Cargo.toml changes
