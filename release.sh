@@ -5,16 +5,23 @@ set -e
 
 PROJECT=$1
 VERSION=$2
+NO_COMMIT=$3
 
 # Sanity check that we actually have a version
 if [ "$VERSION" = "" ]; then
-    echo "Usage $0 <project> <version>"
+    echo "Usage $0 <project> <version> [--no-commit]"
     exit 1
 fi
 
 # Check the format of version
 if [ ! "$(echo "$VERSION" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")" ]; then
     echo "Version must be of the form x.y.z, got $VERSION"
+    exit 1
+fi
+
+# Check if no commit option is valid
+if [ ! "$NO_COMMIT" = "" ] || [ ! "$NO_COMMIT" = "--no-commit" ]; then
+    echo "Must pass either no last argument or --no-commit"
     exit 1
 fi
 
@@ -49,8 +56,8 @@ if [ ! -z "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-# Check that we are in the master branch
-if [ "$(git symbolic-ref --short HEAD)" != "master" ]; then
+# Check that we are in the master branch, but only if actually committing
+if [ ! "$NO_COMMIT" = "--no-commit" ] && [ "$(git symbolic-ref --short HEAD)" != "master" ]; then
     echo "You must be in the master branch before releasing"
     exit 1
 fi
@@ -78,11 +85,13 @@ else
     git add agb/Cargo.toml agb/Cargo.lock
 fi
 
-# Commit the Cargo.toml changes
-git commit -m "Release $PROJECT v$VERSION"
+if [ ! "$NO_COMMIT" = "--no-commit" ]; then
+    # Commit the Cargo.toml changes
+    git commit -m "Release $PROJECT v$VERSION"
 
-# Tag the version
-git tag -a $TAGNAME -m "$PROJECT - v$VERSION"
+    # Tag the version
+    git tag -a $TAGNAME -m "$PROJECT - v$VERSION"
 
-echo "Done! Push with"
-echo "git push --atomic origin master $TAGNAME"
+    echo "Done! Push with"
+    echo "git push --atomic origin master $TAGNAME"
+fi
