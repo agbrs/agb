@@ -29,6 +29,18 @@ pub(crate) struct BlockAllocator {
     state: Mutex<BlockAllocatorState>,
 }
 
+impl BlockAllocator {
+    pub(super) const unsafe fn new() -> Self {
+        Self {
+            inner_allocator: BumpAllocator::new(),
+            state: Mutex::new(BlockAllocatorState {
+                first_block: None,
+                last_block: None,
+            }),
+        }
+    }
+}
+
 unsafe impl GlobalAlloc for BlockAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let block_layout = Layout::new::<Block>();

@@ -3,12 +3,12 @@ use core::alloc::Layout;
 mod block_allocator;
 mod bump_allocator;
 
-use bump_allocator::BumpAllocator;
+use block_allocator::BlockAllocator;
 
 const EWRAM_END: usize = 0x0204_0000;
 
 #[global_allocator]
-static GLOBAL_ALLOC: BumpAllocator = BumpAllocator::new();
+static GLOBAL_ALLOC: BlockAllocator = unsafe { BlockAllocator::new() };
 
 #[alloc_error_handler]
 fn alloc_error(layout: Layout) -> ! {
