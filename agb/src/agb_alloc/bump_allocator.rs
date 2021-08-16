@@ -2,6 +2,9 @@ use core::alloc::{GlobalAlloc, Layout};
 
 use crate::interrupt::Mutex;
 
+const EWRAM_START: usize = 0x0200_0000;
+const EWRAM_END: usize = 0x0204_0000;
+
 fn get_data_end() -> usize {
     extern "C" {
         static __ewram_data_end: usize;
@@ -12,7 +15,7 @@ fn get_data_end() -> usize {
     (unsafe { &__ewram_data_end }) as *const _ as usize
 }
 
-pub(super) struct BumpAllocator {
+pub(crate) struct BumpAllocator {
     current_ptr: Mutex<*mut u8>,
 }
 
@@ -41,6 +44,10 @@ impl BumpAllocator {
 
         let resulting_ptr = ptr + amount_to_add;
         *current_ptr = (resulting_ptr + layout.size()) as *mut _;
+
+        if *current_ptr as usize >= EWRAM_END {
+            return core::ptr::null_mut();
+        }
 
         resulting_ptr as *mut _
     }
