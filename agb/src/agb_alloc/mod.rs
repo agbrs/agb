@@ -28,11 +28,11 @@ impl BumpAllocator {
     fn alloc_safe(&self, layout: Layout) -> *mut u8 {
         let mut current_ptr = self.current_ptr.lock();
 
-        let mut ptr = *current_ptr as usize;
-
-        if ptr == 0 {
-            ptr = get_data_end();
-        }
+        let ptr = if current_ptr.is_null() {
+            get_data_end()
+        } else {
+            *current_ptr as usize
+        };
 
         let alignment_bitmask = layout.align() - 1;
         let fixup = ptr & alignment_bitmask;
