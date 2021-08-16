@@ -13,7 +13,10 @@
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
 
+#[cfg(feature = "alloc")]
 extern crate alloc;
+#[cfg(feature = "alloc")]
+mod agb_alloc;
 
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
@@ -33,8 +36,6 @@ mod memory_mapped;
 pub mod mgba;
 pub mod number;
 mod single;
-
-mod agb_alloc;
 
 /// System BIOS calls / syscalls.
 pub mod syscall;
