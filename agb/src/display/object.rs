@@ -54,6 +54,7 @@ pub struct AffineMatrixAttributes {
     pub p_d: i16,
 }
 
+#[allow(dead_code)]
 enum Mode {
     Normal = 0,
     Affine = 1,
