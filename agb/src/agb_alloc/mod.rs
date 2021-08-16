@@ -1,3 +1,4 @@
+mod block_allocator;
 mod bump_allocator;
 
 use bump_allocator::BumpAllocator;
