@@ -2,11 +2,11 @@ use core::alloc::{GlobalAlloc, Layout};
 
 use super::interrupt::Mutex;
 
-extern "C" {
-    static __ewram_data_end: usize;
-}
-
 fn get_data_end() -> usize {
+    extern "C" {
+        static __ewram_data_end: usize;
+    }
+
     // TODO: This seems completely wrong, but without the &, rust generates
     // a double dereference :/. Maybe a bug in nightly?
     (unsafe { &__ewram_data_end }) as *const _ as usize
