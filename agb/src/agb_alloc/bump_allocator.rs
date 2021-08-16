@@ -85,7 +85,7 @@ mod test {
 
         let address = &*first_box as *const _ as usize;
         assert!(
-            address >= 0x0200_0000 && address < 0x0204_0000,
+            address >= super::EWRAM_START && address < super::EWRAM_END,
             "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
             address
         );
