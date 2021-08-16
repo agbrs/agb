@@ -4,14 +4,16 @@
 #![feature(asm)]
 #![deny(clippy::all)]
 #![feature(custom_test_frameworks)]
+#![feature(alloc_error_handler)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
 //! programming language. It attempts to be a high level abstraction over the
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
+
+extern crate alloc;
 
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
@@ -31,6 +33,8 @@ mod memory_mapped;
 pub mod mgba;
 pub mod number;
 mod single;
+
+mod agb_alloc;
 
 /// System BIOS calls / syscalls.
 pub mod syscall;
