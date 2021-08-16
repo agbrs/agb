@@ -39,10 +39,8 @@ impl BlockAllocator {
             }),
         }
     }
-}
 
-unsafe impl GlobalAlloc for BlockAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+    unsafe fn new_block(&self, layout: Layout) -> *mut u8 {
         let block_layout = Layout::new::<Block>();
         let (overall_layout, offset) = block_layout.extend(layout).expect("Overflow on allocation");
 
@@ -69,6 +67,12 @@ unsafe impl GlobalAlloc for BlockAllocator {
         state.last_block = Some(block_ptr);
 
         block_ptr.as_ptr().cast::<u8>().add(offset)
+    }
+}
+
+unsafe impl GlobalAlloc for BlockAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        self.new_block(layout)
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
