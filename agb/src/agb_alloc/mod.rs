@@ -17,6 +17,14 @@ struct BumpAllocator {
 }
 
 impl BumpAllocator {
+    pub const fn new() -> Self {
+        Self {
+            current_ptr: Mutex::new(core::ptr::null_mut())
+        }
+    }
+}
+
+impl BumpAllocator {
     fn alloc_safe(&self, layout: Layout) -> *mut u8 {
         let mut current_ptr = self.current_ptr.lock();
 
@@ -56,9 +64,7 @@ fn alloc_error(layout: Layout) -> ! {
 }
 
 #[global_allocator]
-static GLOBAL_ALLOC: BumpAllocator = BumpAllocator {
-    current_ptr: Mutex::new(core::ptr::null_mut()),
-};
+static GLOBAL_ALLOC: BumpAllocator = BumpAllocator::new();
 
 #[cfg(test)]
 mod test {
