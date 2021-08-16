@@ -19,7 +19,7 @@ struct BumpAllocator {
 impl BumpAllocator {
     pub const fn new() -> Self {
         Self {
-            current_ptr: Mutex::new(core::ptr::null_mut())
+            current_ptr: Mutex::new(core::ptr::null_mut()),
         }
     }
 }
@@ -78,5 +78,12 @@ mod test {
         assert!(&*first_box as *const _ < &*second_box as *const _);
         assert_eq!(*first_box, 1);
         assert_eq!(*second_box, 2);
+
+        let address = &*first_box as *const _ as usize;
+        assert!(
+            address >= 0x0200_0000 && address < 0x0204_0000,
+            "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
+            address
+        );
     }
 }
