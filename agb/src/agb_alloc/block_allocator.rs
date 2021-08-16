@@ -75,7 +75,7 @@ unsafe impl GlobalAlloc for BlockAllocator {
         // find a block that this current request fits in
         let block_layout = Layout::new::<Block>();
         let (full_layout, offset) = block_layout.extend(layout).unwrap();
-        
+
         {
             let state = self.state.lock();
             let mut current_block = state.first_block;
