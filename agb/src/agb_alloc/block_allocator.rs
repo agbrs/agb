@@ -101,6 +101,6 @@ unsafe impl GlobalAlloc for BlockAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let block = Block::from_data_ptr(ptr, layout);
-        (&mut *block).used = false;
+        (*block).used = false;
     }
 }
