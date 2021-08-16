@@ -72,6 +72,30 @@ impl BlockAllocator {
 
 unsafe impl GlobalAlloc for BlockAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        // find a block that this current request fits in
+        let block_layout = Layout::new::<Block>();
+        let (full_layout, offset) = block_layout.extend(layout).unwrap();
+        
+        {
+            let state = self.state.lock();
+            let mut current_block = state.first_block;
+            while let Some(mut curr) = current_block {
+                let mut curr_block = curr.as_mut();
+
+                if !curr_block.used {
+                    if let Some(next) = curr_block.next {
+                        let size = next.cast::<u8>().as_ptr().offset_from(curr.as_ptr().cast());
+                        if size >= full_layout.size() as isize {
+                            curr_block.used = true;
+                            return curr.as_ptr().cast::<u8>().add(offset);
+                        }
+                    }
+                }
+
+                current_block = curr_block.next;
+            }
+        }
+
         self.new_block(layout)
     }
 
