@@ -1,4 +1,5 @@
 use core::alloc::{GlobalAlloc, Layout};
+use core::ptr::NonNull;
 
 use crate::interrupt::Mutex;
 
@@ -16,13 +17,13 @@ fn get_data_end() -> usize {
 }
 
 pub(crate) struct BumpAllocator {
-    current_ptr: Mutex<*mut u8>,
+    current_ptr: Mutex<Option<NonNull<u8>>>,
 }
 
 impl BumpAllocator {
     pub const fn new() -> Self {
         Self {
-            current_ptr: Mutex::new(core::ptr::null_mut()),
+            current_ptr: Mutex::new(None),
         }
     }
 }
@@ -31,10 +32,10 @@ impl BumpAllocator {
     fn alloc_safe(&self, layout: Layout) -> *mut u8 {
         let mut current_ptr = self.current_ptr.lock();
 
-        let ptr = if current_ptr.is_null() {
-            get_data_end()
+        let ptr = if let Some(c) = *current_ptr {
+            c.as_ptr() as usize
         } else {
-            *current_ptr as usize
+            get_data_end()
         };
 
         let alignment_bitmask = layout.align() - 1;
@@ -43,11 +44,13 @@ impl BumpAllocator {
         let amount_to_add = layout.align() - fixup;
 
         let resulting_ptr = ptr + amount_to_add;
-        *current_ptr = (resulting_ptr + layout.size()) as *mut _;
+        let new_current_ptr = resulting_ptr + layout.size();
 
-        if *current_ptr as usize >= EWRAM_END {
+        if new_current_ptr as usize >= EWRAM_END {
             return core::ptr::null_mut();
         }
+
+        *current_ptr = NonNull::new(new_current_ptr as *mut _);
 
         resulting_ptr as *mut _
     }
