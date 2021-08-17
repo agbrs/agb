@@ -347,7 +347,7 @@ impl<T> Mutex<T> {
         }
     }
 
-    pub fn new(val: T) -> Self {
+    pub const fn new(val: T) -> Self {
         Mutex {
             internal: UnsafeCell::new(val),
             state: UnsafeCell::new(MutexState::Unlocked),
@@ -362,14 +362,14 @@ pub struct MutexRef<'a, T> {
 
 impl<'a, T> Drop for MutexRef<'a, T> {
     fn drop(&mut self) {
-        unsafe {
-            let state = &mut *self.state.get();
-            let prev_state = *state;
-            *state = MutexState::Unlocked;
-            match prev_state {
-                MutexState::Locked(b) => INTERRUPTS_ENABLED.set(b as u16),
-                MutexState::Unlocked => {}
-            }
+        let state = unsafe { &mut *self.state.get() };
+
+        let prev_state = *state;
+        *state = MutexState::Unlocked;
+
+        match prev_state {
+            MutexState::Locked(b) => INTERRUPTS_ENABLED.set(b as u16),
+            MutexState::Unlocked => {}
         }
     }
 }
