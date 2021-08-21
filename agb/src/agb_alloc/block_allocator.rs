@@ -45,14 +45,7 @@ impl BlockAllocator {
 
     unsafe fn new_block(&self, layout: Layout) -> *mut u8 {
         let overall_layout = Block::either_layout(layout);
-
-        let block_ptr = self.inner_allocator.alloc(overall_layout);
-
-        if block_ptr.is_null() {
-            return core::ptr::null_mut();
-        }
-
-        block_ptr
+        self.inner_allocator.alloc(overall_layout)
     }
 }
 
