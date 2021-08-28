@@ -79,7 +79,7 @@ impl<'a> MapStorage<'a> {
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
-pub struct Background<'a> {
+pub struct BackgroundRegular<'a> {
     background: u8,
     block: u8,
     commited_position: Vector2D<i32>,
@@ -125,9 +125,9 @@ impl<'a> Map<'a> {
     }
 }
 
-impl<'a> Background<'a> {
-    unsafe fn new(background: u8, block: u8) -> Background<'a> {
-        let mut b = Background {
+impl<'a> BackgroundRegular<'a> {
+    unsafe fn new(background: u8, block: u8) -> BackgroundRegular<'a> {
+        let mut b = BackgroundRegular {
             background,
             block,
             commited_position: (0, 0).into(),
@@ -281,18 +281,32 @@ impl<'a> Background<'a> {
     }
 }
 
-pub struct Tiled0 {
-    used_blocks: u32,
-    num_backgrounds: u8,
+fn decide_background_mode(num_regular: u8, num_affine: u8) -> Option<DisplayMode> {
+    if num_affine == 0 && num_regular <= 4 {
+        Some(DisplayMode::Tiled0)
+    } else if num_affine == 1 && num_regular <= 2 {
+        Some(DisplayMode::Tiled1)
+    } else if num_affine == 2 && num_regular == 0 {
+        Some(DisplayMode::Tiled2)
+    } else {
+        None
+    }
 }
 
-impl<'b> Tiled0 {
+pub struct BackgroundDistributor {
+    used_blocks: u32,
+    num_regular: u8,
+    num_affine: u8,
+}
+
+impl<'b> BackgroundDistributor {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
         set_graphics_mode(DisplayMode::Tiled0);
-        Tiled0 {
+        BackgroundDistributor {
             used_blocks: 0,
-            num_backgrounds: 0,
+            num_regular: 0,
+            num_affine: 0,
         }
     }
 
@@ -321,10 +335,11 @@ impl<'b> Tiled0 {
     }
 
     /// Gets a map background if possible and assigns an unused block to it.
-    pub fn get_background(&mut self) -> Result<Background<'b>, &'static str> {
-        if self.num_backgrounds >= 4 {
-            return Err("too many backgrounds created, maximum is 4");
-        }
+    pub fn get_regular(&mut self) -> Result<BackgroundRegular<'b>, &'static str> {
+        let new_mode = decide_background_mode(self.num_regular + 1, self.num_affine)
+            .ok_or("there is no mode compatible with the requested backgrounds")?;
+
+        unsafe { set_graphics_mode(new_mode) };
 
         if !self.used_blocks == 0 {
             return Err("all blocks are used");
@@ -346,9 +361,9 @@ impl<'b> Tiled0 {
 
         self.used_blocks |= 1 << availiable_block;
 
-        let background = self.num_backgrounds;
-        self.num_backgrounds = background + 1;
-        Ok(unsafe { Background::new(background, availiable_block) })
+        let background = self.num_regular;
+        self.num_regular += 1;
+        Ok(unsafe { BackgroundRegular::new(background, availiable_block) })
     }
 
     /// Copies tiles to tilemap starting at the starting tile. Cannot overwrite
