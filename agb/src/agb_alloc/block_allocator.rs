@@ -6,22 +6,26 @@ use crate::interrupt::Mutex;
 use super::bump_allocator::BumpAllocator;
 
 struct Block {
-    used: bool,
+    size: usize,
     next: Option<NonNull<Block>>,
 }
 
 impl Block {
-    pub unsafe fn from_data_ptr(data_ptr: *mut u8, layout: Layout) -> *mut Block {
+    pub fn either_layout(layout: Layout) -> Layout {
         let block_layout = Layout::new::<Block>();
-        let (_, offset) = block_layout.extend(layout).expect("Overflow on allocation");
-
-        data_ptr.sub(offset).cast()
+        let aligned_to = layout
+            .align_to(block_layout.align())
+            .expect("too large allocation");
+        Layout::from_size_align(
+            block_layout.size().max(aligned_to.size()),
+            aligned_to.align(),
+        )
+        .expect("too large allocation")
     }
 }
 
 struct BlockAllocatorState {
-    first_block: Option<NonNull<Block>>,
-    last_block: Option<NonNull<Block>>,
+    first_free_block: Option<NonNull<Block>>,
 }
 
 pub(crate) struct BlockAllocator {
@@ -34,65 +38,52 @@ impl BlockAllocator {
         Self {
             inner_allocator: BumpAllocator::new(),
             state: Mutex::new(BlockAllocatorState {
-                first_block: None,
-                last_block: None,
+                first_free_block: None,
             }),
         }
     }
 
     unsafe fn new_block(&self, layout: Layout) -> *mut u8 {
-        let block_layout = Layout::new::<Block>();
-        let (overall_layout, offset) = block_layout.extend(layout).expect("Overflow on allocation");
-
-        let block_ptr = self.inner_allocator.alloc(overall_layout);
-
-        if block_ptr.is_null() {
-            return core::ptr::null_mut();
-        }
-
-        let block_ptr = NonNull::new_unchecked(block_ptr).cast();
-
-        let mut state = self.state.lock();
-
-        *block_ptr.cast::<Block>().as_mut() = Block {
-            used: true,
-            next: None,
-        };
-
-        state.first_block.get_or_insert(block_ptr);
-
-        if let Some(last_block) = state.last_block {
-            last_block.cast::<Block>().as_mut().next = Some(block_ptr);
-        }
-        state.last_block = Some(block_ptr);
-
-        block_ptr.as_ptr().cast::<u8>().add(offset)
+        let overall_layout = Block::either_layout(layout);
+        self.inner_allocator.alloc(overall_layout)
     }
 }
 
 unsafe impl GlobalAlloc for BlockAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         // find a block that this current request fits in
-        let block_layout = Layout::new::<Block>();
-        let (full_layout, offset) = block_layout.extend(layout).unwrap();
+        let full_layout = Block::either_layout(layout);
+
+        let (block_after_layout, block_after_layout_offset) =
+            full_layout.extend(Layout::new::<Block>()).unwrap();
 
         {
-            let state = self.state.lock();
-            let mut current_block = state.first_block;
+            let mut state = self.state.lock();
+            let mut current_block = state.first_free_block;
+            let mut list_ptr = &mut state.first_free_block;
             while let Some(mut curr) = current_block {
-                let mut curr_block = curr.as_mut();
+                let curr_block = curr.as_mut();
+                if curr_block.size == full_layout.size() {
+                    *list_ptr = curr_block.next;
+                    return curr.as_ptr().cast();
+                } else if curr_block.size >= block_after_layout.size() {
+                    // can split block
+                    let split_block = Block {
+                        size: curr_block.size - block_after_layout_offset,
+                        next: curr_block.next,
+                    };
+                    let split_ptr = curr
+                        .as_ptr()
+                        .cast::<u8>()
+                        .add(block_after_layout_offset)
+                        .cast();
+                    *split_ptr = split_block;
+                    *list_ptr = NonNull::new(split_ptr);
 
-                if !curr_block.used {
-                    if let Some(next) = curr_block.next {
-                        let size = next.cast::<u8>().as_ptr().offset_from(curr.as_ptr().cast());
-                        if size >= full_layout.size() as isize {
-                            curr_block.used = true;
-                            return curr.as_ptr().cast::<u8>().add(offset);
-                        }
-                    }
+                    return curr.as_ptr().cast();
                 }
-
                 current_block = curr_block.next;
+                list_ptr = &mut curr_block.next;
             }
         }
 
@@ -100,7 +91,13 @@ unsafe impl GlobalAlloc for BlockAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        let block = Block::from_data_ptr(ptr, layout);
-        (*block).used = false;
+        let new_layout = Block::either_layout(layout);
+        let mut state = self.state.lock();
+        let new_block_content = Block {
+            size: new_layout.size(),
+            next: state.first_free_block,
+        };
+        *ptr.cast() = new_block_content;
+        state.first_free_block = NonNull::new(ptr.cast());
     }
 }
