@@ -87,7 +87,7 @@ pub struct BackgroundRegular<'a> {
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
     shadowed_register: u16,
-    copy_size: Vector2D<u8>,
+    copy_size: Vector2D<u16>,
     background_size: BackgroundSize,
     map: Option<Map<'a>>,
 }
@@ -136,7 +136,7 @@ impl<'a> BackgroundRegular<'a> {
             commited_position: (0, 0).into(),
             shadowed_position: (0, 0).into(),
             shadowed_register: 0,
-            copy_size: (30, 20).into(),
+            copy_size: (30_u16, 20_u16).into(),
             background_size: size,
             poisoned: true,
             map: None,
