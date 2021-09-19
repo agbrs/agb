@@ -23,6 +23,7 @@ pub enum ColourMode {
     EightBitPerPixel = 1,
 }
 
+#[derive(Clone, Copy)]
 pub enum BackgroundSize {
     S32x32 = 0,
     S64x32 = 1,
@@ -86,6 +87,8 @@ pub struct BackgroundRegular<'a> {
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
     shadowed_register: u16,
+    copy_size: Vector2D<u8>,
+    background_size: BackgroundSize,
     map: Option<Map<'a>>,
 }
 
@@ -126,19 +129,21 @@ impl<'a> Map<'a> {
 }
 
 impl<'a> BackgroundRegular<'a> {
-    unsafe fn new(background: u8, block: u8) -> BackgroundRegular<'a> {
+    unsafe fn new(background: u8, block: u8, size: BackgroundSize) -> BackgroundRegular<'a> {
         let mut b = BackgroundRegular {
             background,
             block,
             commited_position: (0, 0).into(),
             shadowed_position: (0, 0).into(),
             shadowed_register: 0,
+            copy_size: (30, 20).into(),
+            background_size: size,
             poisoned: true,
             map: None,
         };
         b.set_block(block);
         b.set_colour_mode(ColourMode::FourBitPerPixel);
-        b.set_background_size(BackgroundSize::S32x32);
+        b.set_background_size(size);
         b
     }
 
@@ -209,12 +214,15 @@ impl<'a> BackgroundRegular<'a> {
         // commit shadowed register
         unsafe { self.get_register().set(self.shadowed_register) };
 
-        let commited_screen = Rect::new(self.commited_position, (30, 20).into());
-        let shadowed_screen = Rect::new(self.shadowed_position, (30, 20).into());
+        let commited_screen = Rect::new(self.commited_position, self.copy_size.change_base());
+        let shadowed_screen = Rect::new(self.shadowed_position, self.copy_size.change_base());
 
         if self.poisoned || !shadowed_screen.touches(commited_screen) {
-            let positions_to_be_updated =
-                Rect::new(self.shadowed_position / 8 - (1, 1).into(), (31, 21).into()).iter();
+            let positions_to_be_updated = Rect::new(
+                self.shadowed_position / 8 - (1, 1).into(),
+                self.copy_size.change_base() + (1, 1).into(),
+            )
+            .iter();
 
             if let Some(map) = &self.map {
                 for (x, y) in positions_to_be_updated {
@@ -232,7 +240,7 @@ impl<'a> BackgroundRegular<'a> {
             let top_bottom_rect: Rect<i32> = {
                 let top_bottom_height = commited_block.y - shadowed_block.y;
                 let new_y = if top_bottom_height < 0 {
-                    commited_block.y + 20
+                    commited_block.y + self.copy_size.y as i32
                 } else {
                     shadowed_block.y
                 };
@@ -245,7 +253,7 @@ impl<'a> BackgroundRegular<'a> {
             let left_right_rect: Rect<i32> = {
                 let left_right_width = commited_block.x - shadowed_block.x;
                 let new_x = if left_right_width < 0 {
-                    commited_block.x + 30
+                    commited_block.x + self.copy_size.x as i32
                 } else {
                     shadowed_block.x
                 };
@@ -363,7 +371,7 @@ impl<'b> BackgroundDistributor {
 
         let background = self.num_regular;
         self.num_regular += 1;
-        Ok(unsafe { BackgroundRegular::new(background, availiable_block) })
+        Ok(unsafe { BackgroundRegular::new(background, availiable_block, BackgroundSize::S32x32) })
     }
 
     /// Copies tiles to tilemap starting at the starting tile. Cannot overwrite
