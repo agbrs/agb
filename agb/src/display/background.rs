@@ -80,6 +80,7 @@ impl<'a> MapStorage<'a> {
 /// The map background is the method of drawing game maps to the screen. It
 /// automatically handles copying the correct portion of a provided map to the
 /// assigned block depending on given coordinates.
+#[allow(dead_code)]
 pub struct BackgroundRegular<'a> {
     background: u8,
     block: u8,
