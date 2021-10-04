@@ -648,6 +648,83 @@ impl<T: Number> Rect<T> {
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
+
+    pub fn contains_point(&self, point: Vector2D<T>) -> bool {
+        point.x > self.position.x
+            && point.x < self.position.x + self.size.x
+            && point.y > self.position.y
+            && point.y < self.position.y + self.size.y
+    }
+
+    pub fn touches(self, other: Rect<T>) -> bool {
+        self.position.x < other.position.x + other.size.x
+            && self.position.x + self.size.x > other.position.x
+            && self.position.y < other.position.y + other.size.y
+            && self.position.y + self.size.y > self.position.y
+    }
+
+    pub fn overlapping_rect(&self, other: Rect<T>) -> Rect<T> {
+        fn max<E: Number>(x: E, y: E) -> E {
+            if x > y {
+                x
+            } else {
+                y
+            }
+        }
+        fn min<E: Number>(x: E, y: E) -> E {
+            if x > y {
+                y
+            } else {
+                x
+            }
+        }
+
+        let top_left: Vector2D<T> = (
+            max(self.position.x, other.position.x),
+            max(self.position.y, other.position.y),
+        )
+            .into();
+        let bottom_right: Vector2D<T> = (
+            min(
+                self.position.x + self.size.x,
+                other.position.x + other.size.x,
+            ),
+            min(
+                self.position.y + self.size.y,
+                other.position.y + other.size.y,
+            ),
+        )
+            .into();
+
+        Rect::new(top_left, bottom_right - top_left)
+    }
+}
+
+impl<T: FixedWidthUnsignedInteger> Rect<T> {
+    pub fn iter(self) -> impl Iterator<Item = (T, T)> {
+        let mut current_x = self.position.x;
+        let mut current_y = self.position.y;
+        let mut is_done = false;
+        core::iter::from_fn(move || {
+            if is_done {
+                None
+            } else {
+                let (old_x, old_y) = (current_x, current_y);
+
+                current_x = current_x + T::one();
+                if current_x > self.position.x + self.size.x {
+                    current_x = self.position.x;
+                    current_y = current_y + T::one();
+                }
+
+                if current_y > self.position.y + self.size.y {
+                    is_done = true;
+                }
+
+                Some((old_x, old_y))
+            }
+        })
+    }
 }
 
 impl<T: Number> Vector2D<T> {

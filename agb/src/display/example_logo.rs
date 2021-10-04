@@ -1,12 +1,13 @@
-use crate::display::tiled0::Tiled0;
+use crate::display::background::BackgroundDistributor;
 
 crate::include_gfx!("gfx/agb_logo.toml");
 
-pub fn display_logo(gfx: &mut Tiled0) {
+pub fn display_logo(gfx: &mut BackgroundDistributor) {
+    use super::background::Map;
     gfx.set_background_palettes(agb_logo::test_logo.palettes);
     gfx.set_background_tilemap(0, agb_logo::test_logo.tiles);
 
-    let mut back = gfx.get_background().unwrap();
+    let mut back = gfx.get_regular().unwrap();
 
     let mut entries: [u16; 30 * 20] = [0; 30 * 20];
     for tile_id in 0..(30 * 20) {
@@ -14,8 +15,9 @@ pub fn display_logo(gfx: &mut Tiled0) {
         entries[tile_id as usize] = tile_id | (palette_entry << 12);
     }
 
-    back.draw_full_map(&entries, (30_u32, 20_u32).into(), 0);
+    back.set_map(Map::new(&entries, (30_u32, 20_u32).into(), 0));
     back.show();
+    back.commit();
 }
 
 #[test_case]

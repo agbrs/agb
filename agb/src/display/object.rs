@@ -1,12 +1,16 @@
 use core::cell::RefCell;
 
-use super::{Priority, DISPLAY_CONTROL};
+use super::{palette16, Priority, DISPLAY_CONTROL};
 use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
 use crate::number::Vector2D;
 
 const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
     unsafe { MemoryMapped1DArray::new(0x0700_0000) };
+const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
+    unsafe { MemoryMapped1DArray::new(0x0500_0200) };
+const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
+    unsafe { MemoryMapped1DArray::new(0x06010000) };
 
 /// Handles distributing objects and matricies along with operations that effect all objects.
 pub struct ObjectControl {
@@ -308,6 +312,39 @@ impl ObjectControl {
         ObjectControl {
             objects: RefCell::new(Bitarray::new()),
             affines: RefCell::new(Bitarray::new()),
+        }
+    }
+
+    fn set_sprite_tilemap_entry(&self, index: usize, data: u32) {
+        TILE_SPRITE.set(index, data);
+    }
+
+    /// Copies raw palettes to the background palette without any checks.
+    pub fn set_sprite_palette_raw(&self, colour: &[u16]) {
+        for (index, &entry) in colour.iter().enumerate() {
+            self.set_sprite_palette_entry(index, entry)
+        }
+    }
+    fn set_sprite_palette_entry(&self, index: usize, colour: u16) {
+        PALETTE_SPRITE.set(index, colour)
+    }
+
+    fn set_sprite_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
+        for (colour_index, &colour) in palette.colours.iter().enumerate() {
+            PALETTE_SPRITE.set(pal_index as usize * 16 + colour_index, colour);
+        }
+    }
+
+    pub fn set_sprite_palettes(&self, palettes: &[palette16::Palette16]) {
+        for (palette_index, entry) in palettes.iter().enumerate() {
+            self.set_sprite_palette(palette_index as u8, entry)
+        }
+    }
+
+    /// Copies tiles to the sprite tilemap without any checks.
+    pub fn set_sprite_tilemap(&self, tiles: &[u32]) {
+        for (index, &tile) in tiles.iter().enumerate() {
+            self.set_sprite_tilemap_entry(index, tile)
         }
     }
 
