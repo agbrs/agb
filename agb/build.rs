@@ -19,9 +19,11 @@ fn main() {
         .output()
         .expect("failed to compile crt0.s");
 
-    if !out.status.success() {
-        panic!("{}", String::from_utf8_lossy(&out.stderr));
-    }
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 
     println!("cargo:rustc-link-search={}", out_dir);
 }
