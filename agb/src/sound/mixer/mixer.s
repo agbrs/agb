@@ -13,10 +13,15 @@ agb_arm_func agb_rs__mixer_add
 
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
 
+    cmp r7, r3               @ check if left and right channel need the same modifications
+    beq same_modification
+
+modifications_fallback:
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0               @ current index we're reading from
     mov r8, #SOUND_BUFFER_SIZE @ the number of steps left
+
 
 1:
 .macro mixer_add_loop
@@ -41,6 +46,51 @@ agb_arm_func agb_rs__mixer_add
 
     pop {r4-r8}
     bx lr
+
+same_modification:
+    @ check to see if this is a perfect power of 2
+    @ r5 is a scratch register, r7 = r3 = amount to modify
+    sub r5, r7, #1
+    ands r5, r5, r7
+
+    bne modifications_fallback @ not 0 means we need to do the full modification
+
+    @ count leading zeros of r7 into r3
+    mov r3, #0
+1:
+    add r3, r3, #1
+    lsrs r7, r7, #1
+    bne 1b
+
+    mov r5, #0               @ current index we're reading from
+    mov r8, #SOUND_BUFFER_SIZE @ the number of steps left
+
+.macro mixer_add_loop_simple
+    add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
+    ldrsb r6, [r4]            @ load the current sound sample to r6
+    add r5, r5, r2           @ calculate the position to read the next sample from
+
+    ldr r4, [r1]             @ read the current value
+
+    lsl r6, r6, #16
+    orr r6, r6, lsr #16
+    add r4, r4, r6, lsl r3   @ r4 += r6 << r3 (calculating both the left and right samples together)
+
+    str r4, [r1], #4         @ store the new value, and increment the pointer
+.endm
+
+1:
+    mixer_add_loop_simple
+    mixer_add_loop_simple
+    mixer_add_loop_simple
+    mixer_add_loop_simple
+
+    subs r8, r8, #4          @ loop counter
+    bne 1b                   @ jump back if we're done with the loop
+
+    pop {r4-r8}
+    bx lr
+
 agb_arm_end agb_rs__mixer_add
 
 .macro clamp_s8 reg:req
