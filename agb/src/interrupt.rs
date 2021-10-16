@@ -1,5 +1,5 @@
 use core::{
-    cell::{Cell, UnsafeCell},
+    cell::{Cell, RefCell, RefMut},
     marker::{PhantomData, PhantomPinned},
     ops::{Deref, DerefMut},
     pin::Pin,
@@ -68,27 +68,25 @@ impl Interrupt {
 }
 
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
-const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
-struct Disable {}
+extern "C" {
+    fn InterruptSwap(a: u32) -> u32;
+}
+
+struct Disable {
+    previous: u32,
+}
 
 impl Drop for Disable {
     fn drop(&mut self) {
-        enable_interrupts();
+        unsafe { InterruptSwap(self.previous) };
     }
 }
 
 fn temporary_interrupt_disable() -> Disable {
-    disable_interrupts();
-    Disable {}
-}
-
-fn enable_interrupts() {
-    INTERRUPTS_ENABLED.set(1);
-}
-
-fn disable_interrupts() {
-    INTERRUPTS_ENABLED.set(0);
+    Disable {
+        previous: unsafe { InterruptSwap(0) },
+    }
 }
 
 struct InterruptRoot {
@@ -142,7 +140,7 @@ static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
 
 #[no_mangle]
 extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) -> u16 {
-    for (i, root) in unsafe { INTERRUPT_TABLE.iter().enumerate() } {
+    for (i, root) in unsafe { &INTERRUPT_TABLE }.iter().enumerate() {
         if (1 << i) & interrupt != 0 {
             root.trigger_interrupts();
         }
@@ -301,15 +299,13 @@ fn test_interrupt_table_length(_gba: &mut crate::Gba) {
     );
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum MutexState {
-    Unlocked,
-    Locked(bool),
+pub struct Mutex<T> {
+    internal: RefCell<T>,
 }
 
-pub struct Mutex<T> {
-    internal: UnsafeCell<T>,
-    state: UnsafeCell<MutexState>,
+pub struct MutexRef<'a, T> {
+    r: RefMut<'a, T>,
+    _d: Disable,
 }
 
 #[non_exhaustive]
@@ -320,56 +316,20 @@ unsafe impl<T> Sync for Mutex<T> {}
 
 impl<T> Mutex<T> {
     pub fn lock(&self) -> MutexRef<T> {
-        let state = INTERRUPTS_ENABLED.get();
-        INTERRUPTS_ENABLED.set(0);
-        assert_eq!(
-            unsafe { *self.state.get() },
-            MutexState::Unlocked,
-            "mutex must be unlocked to be able to lock it"
-        );
-        unsafe { *self.state.get() = MutexState::Locked(state != 0) };
+        let _a = temporary_interrupt_disable();
         MutexRef {
-            internal: &self.internal,
-            state: &self.state,
+            r: self.internal.borrow_mut(),
+            _d: _a,
         }
     }
 
-    pub fn lock_with_key(&self, _key: &Key) -> MutexRef<T> {
-        assert_eq!(
-            unsafe { *self.state.get() },
-            MutexState::Unlocked,
-            "mutex must be unlocked to be able to lock it"
-        );
-        unsafe { *self.state.get() = MutexState::Locked(false) };
-        MutexRef {
-            internal: &self.internal,
-            state: &self.state,
-        }
+    pub fn lock_with_key(&self, _key: &Key) -> RefMut<T> {
+        self.internal.borrow_mut()
     }
 
     pub const fn new(val: T) -> Self {
         Mutex {
-            internal: UnsafeCell::new(val),
-            state: UnsafeCell::new(MutexState::Unlocked),
-        }
-    }
-}
-
-pub struct MutexRef<'a, T> {
-    internal: &'a UnsafeCell<T>,
-    state: &'a UnsafeCell<MutexState>,
-}
-
-impl<'a, T> Drop for MutexRef<'a, T> {
-    fn drop(&mut self) {
-        let state = unsafe { &mut *self.state.get() };
-
-        let prev_state = *state;
-        *state = MutexState::Unlocked;
-
-        match prev_state {
-            MutexState::Locked(b) => INTERRUPTS_ENABLED.set(b as u16),
-            MutexState::Unlocked => {}
+            internal: RefCell::new(val),
         }
     }
 }
@@ -377,13 +337,13 @@ impl<'a, T> Drop for MutexRef<'a, T> {
 impl<'a, T> Deref for MutexRef<'a, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.internal.get() }
+        &*self.r
     }
 }
 
 impl<'a, T> DerefMut for MutexRef<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.internal.get() }
+        &mut *self.r
     }
 }
 

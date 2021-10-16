@@ -1,4 +1,4 @@
-@ An interrupt handler that simply acknowledges all interrupts
+@ An interrupt handler that hands to an interrupt handler in rust
     .arm
     .global InterruptHandler
     .section .iwram, "ax"
@@ -42,4 +42,17 @@ InterruptHandler:
     strh r1, [r2] @ acknowlege bios requests
 
     bx lr @ return to bios
+.pool
+
+
+@ Swaps the value in r0 with the interrupt enable address
+    .arm
+    .global InterruptSwap
+    .section .iwram, "ax"
+    .align
+InterruptSwap:
+    mov r2, #0x04000000 @ interrupt enable register location
+    add r2, #0x208
+    swp r0, r0, [r2]
+    bx lr
 .pool
