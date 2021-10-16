@@ -1,4 +1,4 @@
-use core::{cell::RefCell, num::NonZeroU8};
+use core::cell::RefCell;
 
 type Index = u8;
 
@@ -7,18 +7,9 @@ pub struct Loan<'a, const S: usize> {
     arena: &'a RefCell<ArenaInner<S>>,
 }
 
-/// Next should be an option, however this raises this struct to 3 bytes where
-/// it is now only 2 bytes This saves a byte per entry and therefore it is
-/// probably worth it.
-#[derive(Clone, Copy, Debug)]
-enum Element {
-    Contains(NonZeroU8),
-    Next(Index),
-}
-
 #[derive(Debug)]
 struct ArenaInner<const S: usize> {
-    arena: [Element; S],
+    arena: [Index; S],
     first: Index,
 }
 
@@ -31,14 +22,16 @@ impl<const S: usize> Arena<S> {
         // we use the special value u8::MAX as a None
         assert!(S < u8::MAX as usize - 1);
 
-        let mut arena: [Element; S] = [Element::Next(u8::MAX); S];
+        let mut arena: [u8; S] = [u8::MAX; S];
         arena
             .iter_mut()
             .enumerate()
-            .for_each(|(index, e)| *e = Element::Next(index as Index + 1));
+            .for_each(|(idx, a)| *a = idx as Index + 1);
+
         if let Some(a) = arena.last_mut() {
-            *a = Element::Next(u8::MAX);
+            *a = u8::MAX;
         }
+
         Arena {
             arena_inner: RefCell::new(ArenaInner { arena, first: 0 }),
         }
@@ -50,12 +43,9 @@ impl<const S: usize> Arena<S> {
         if i == u8::MAX {
             return None;
         }
-        if let Element::Next(n) = arena.arena[i as usize] {
-            arena.first = n;
-        } else {
-            unreachable!("invalid state, next points to already occupied state");
-        }
-        arena.arena[i as usize] = Element::Contains(NonZeroU8::new(1).unwrap());
+        arena.first = arena.arena[i as usize];
+
+        arena.arena[i as usize] = 1;
         Some(Loan {
             my_index: i,
             arena: &self.arena_inner,
@@ -66,32 +56,22 @@ impl<const S: usize> Arena<S> {
 impl<const S: usize> Drop for Loan<'_, S> {
     fn drop(&mut self) {
         let mut arena = self.arena.borrow_mut();
-        let me = &mut arena.arena[self.my_index as usize];
-        match me {
-            Element::Contains(n) => {
-                let mut a = n.get();
-                a -= 1;
-                if a == 0 {
-                    arena.arena[self.my_index as usize] = Element::Next(arena.first);
-                    arena.first = self.my_index;
-                } else {
-                    *n = NonZeroU8::new(a).unwrap();
-                }
-            }
-            _ => unreachable!("if a loan exists the correspoinding arena entry should be filled"),
+        let mut me = arena.arena[self.my_index as usize];
+
+        me -= 1;
+        if me == 0 {
+            arena.arena[self.my_index as usize] = arena.first;
+            arena.first = self.my_index;
+        } else {
+            arena.arena[self.my_index as usize] = me;
         }
     }
 }
 
 impl<const S: usize> Clone for Loan<'_, S> {
     fn clone(&self) -> Self {
-        match &mut self.arena.borrow_mut().arena[self.my_index as usize] {
-            Element::Contains(n) => {
-                let a = n.get();
-                *n = NonZeroU8::new(a + 1).unwrap();
-            }
-            _ => unreachable!("if a loan exists the correspoinding arena entry should be filled"),
-        }
+        self.arena.borrow_mut().arena[self.my_index as usize] += 1;
+
         Loan {
             my_index: self.my_index,
             arena: self.arena,
@@ -105,17 +85,13 @@ mod tests {
     use super::*;
 
     #[test_case]
-    fn size_of_element(_gba: &mut crate::Gba) {
-        let s = core::mem::size_of::<Element>();
-        assert_eq!(s, 2, "elements should be of a minimum size");
-    }
-
-    #[test_case]
     fn get_everything(_gba: &mut crate::Gba) {
         let s: Arena<4> = Arena::new();
         {
             let c = alloc::vec![s.get_next_free(), s.get_next_free()];
-            c.iter().for_each(|a| assert!(a.is_some()));
+            c.iter()
+                .enumerate()
+                .for_each(|(i, a)| assert!(a.is_some(), "expected index {} is some", i));
         }
         {
             let c = alloc::vec![
