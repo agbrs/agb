@@ -36,7 +36,9 @@ impl<const S: usize> Arena<S> {
             .iter_mut()
             .enumerate()
             .for_each(|(index, e)| *e = Element::Next(index as Index + 1));
-        arena.last_mut().map(|a| *a = Element::Next(u8::MAX));
+        if let Some(a) = arena.last_mut() {
+            *a = Element::Next(u8::MAX);
+        }
         Arena {
             arena_inner: RefCell::new(ArenaInner { arena, first: 0 }),
         }
@@ -101,7 +103,6 @@ impl<const S: usize> Clone for Loan<'_, S> {
 mod tests {
 
     use super::*;
-    use alloc;
 
     #[test_case]
     fn size_of_element(_gba: &mut crate::Gba) {
@@ -113,26 +114,26 @@ mod tests {
     fn get_everything(_gba: &mut crate::Gba) {
         let s: Arena<4> = Arena::new();
         {
-            let mut c = alloc::vec::Vec::new();
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
+            let c = alloc::vec![s.get_next_free(), s.get_next_free()];
             c.iter().for_each(|a| assert!(a.is_some()));
         }
         {
-            let mut c = alloc::vec::Vec::new();
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
+            let c = alloc::vec![
+                s.get_next_free(),
+                s.get_next_free(),
+                s.get_next_free(),
+                s.get_next_free()
+            ];
             c.iter().for_each(|a| assert!(a.is_some()));
             assert!(s.get_next_free().is_none());
         }
         {
-            let mut c = alloc::vec::Vec::new();
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
-            c.push(s.get_next_free());
+            let c = alloc::vec![
+                s.get_next_free(),
+                s.get_next_free(),
+                s.get_next_free(),
+                s.get_next_free()
+            ];
             c.iter().for_each(|a| assert!(a.is_some()));
             assert!(s.get_next_free().is_none());
         }
