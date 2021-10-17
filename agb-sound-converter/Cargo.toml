@@ -1,0 +1,16 @@
+[package]
+name = "agb_sound_converter"
+version = "0.1.0"
+authors = ["Gwilym Kuiper <gw@ilym.me>"]
+edition = "2018"
+license = "MPL-2.0"
+description = "Library for converting wavs for use on the Game Boy Advance"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+hound = "3.4.0"
+syn = "1.0.73"
+proc-macro2 = "1.0.27"
+quote = "1.0.9"
