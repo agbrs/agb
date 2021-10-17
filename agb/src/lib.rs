@@ -195,7 +195,7 @@ mod test {
             assert_eq!(content, 6, "expected data to have increased by one");
             let address = ewram_ptr as usize;
             assert!(
-                address >= 0x0200_0000 && address < 0x0204_0000,
+                (0x0200_0000..0x0204_0000).contains(&address),
                 "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
                 address
             );
@@ -210,7 +210,7 @@ mod test {
             let iwram_ptr = &mut IWRAM_EXPLICIT as *mut u32;
             let address = iwram_ptr as usize;
             assert!(
-                address >= 0x0300_0000 && address < 0x0300_8000,
+                (0x0300_0000..0x0300_8000).contains(&address),
                 "iwram is located beween 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
                 address
             );
@@ -229,7 +229,7 @@ mod test {
             let iwram_ptr = &mut IMPLICIT_STORAGE as *mut u32;
             let address = iwram_ptr as usize;
             assert!(
-                address >= 0x0200_0000 && address < 0x0204_0000,
+                (0x0200_0000..0x0204_0000).contains(&address),
                 "implicit data storage is expected to be in ewram, which is between 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
                 address
             );
