@@ -6,10 +6,10 @@ extern crate agb;
 use agb::input::{Button, ButtonController, Tri};
 use agb::number::Num;
 use agb::sound::mixer::SoundChannel;
-use agb::Gba;
+use agb::{include_wav, Gba};
 
-// Music - "I will not let you let me down" by Josh Woodward, free download at http://joshwoodward.com
-const I_WILL_NOT_LET_YOU_LET_ME_DOWN: &[u8] = include_bytes!("i-will-not-let-you-let-me-down.raw");
+// Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
+const DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
 
 #[agb::entry]
 fn main() -> ! {
@@ -20,7 +20,7 @@ fn main() -> ! {
     let mut mixer = gba.mixer.mixer();
     mixer.enable();
 
-    let channel = SoundChannel::new(I_WILL_NOT_LET_YOU_LET_ME_DOWN);
+    let channel = SoundChannel::new(DEAD_CODE);
     let channel_id = mixer.play_sound(channel).unwrap();
 
     loop {
