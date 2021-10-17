@@ -700,30 +700,16 @@ impl<T: Number> Rect<T> {
     }
 }
 
-impl<T: FixedWidthUnsignedInteger> Rect<T> {
+impl<T: FixedWidthUnsignedInteger + core::iter::Step> Rect<T> {
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
-        let mut current_x = self.position.x;
-        let mut current_y = self.position.y;
-        let mut is_done = false;
-        core::iter::from_fn(move || {
-            if is_done {
-                None
-            } else {
-                let (old_x, old_y) = (current_x, current_y);
-
-                current_x = current_x + T::one();
-                if current_x > self.position.x + self.size.x {
-                    current_x = self.position.x;
-                    current_y = current_y + T::one();
-                }
-
-                if current_y > self.position.y + self.size.y {
-                    is_done = true;
-                }
-
-                Some((old_x, old_y))
-            }
-        })
+        (self.position.x..=(self.position.x + self.size.x))
+            .into_iter()
+            .map(move |x| {
+                (self.position.y..=(self.position.y + self.size.y))
+                    .into_iter()
+                    .map(move |y| (x, y))
+            })
+            .flatten()
     }
 }
 

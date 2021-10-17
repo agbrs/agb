@@ -129,7 +129,7 @@ impl<'a> Map<'a> {
     }
 }
 
-impl<'a> BackgroundRegular<'a> {
+impl<'a, 'b> BackgroundRegular<'a> {
     unsafe fn new(background: u8, block: u8, size: BackgroundSize) -> BackgroundRegular<'a> {
         let mut b = BackgroundRegular {
             background,
@@ -211,29 +211,23 @@ impl<'a> BackgroundRegular<'a> {
         self.map = Some(map);
     }
 
-    pub fn commit(&mut self) {
+    pub fn commit_partial(&'b mut self) -> impl Iterator<Item = ()> + 'b {
         // commit shadowed register
         unsafe { self.get_register().set(self.shadowed_register) };
+
+        let map = self.map.as_ref().unwrap();
 
         let commited_screen = Rect::new(self.commited_position, self.copy_size.change_base());
         let shadowed_screen = Rect::new(self.shadowed_position, self.copy_size.change_base());
 
-        if self.poisoned || !shadowed_screen.touches(commited_screen) {
+        let iter = if self.poisoned || !shadowed_screen.touches(commited_screen) {
             let positions_to_be_updated = Rect::new(
                 self.shadowed_position / 8 - (1, 1).into(),
                 self.copy_size.change_base() + (1, 1).into(),
             )
             .iter();
 
-            if let Some(map) = &self.map {
-                for (x, y) in positions_to_be_updated {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
-                            [x.rem_euclid(32) as usize] as *mut u16)
-                            .write_volatile(map.get_position(x, y));
-                    }
-                }
-            }
+            positions_to_be_updated.chain(Rect::new((0, 0).into(), (0, 0).into()).iter())
         } else {
             let commited_block = self.commited_position / 8;
             let shadowed_block = self.shadowed_position / 8;
@@ -264,15 +258,7 @@ impl<'a> BackgroundRegular<'a> {
                 )
             };
 
-            if let Some(map) = &self.map {
-                for (x, y) in top_bottom_rect.iter().chain(left_right_rect.iter()) {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
-                            [x.rem_euclid(32) as usize] as *mut u16)
-                            .write_volatile(map.get_position(x, y));
-                    }
-                }
-            }
+            top_bottom_rect.iter().chain(left_right_rect.iter())
         };
 
         // update commited position
@@ -287,6 +273,18 @@ impl<'a> BackgroundRegular<'a> {
             self.set_position_x_register((self.commited_position.x % (32 * 8)) as u16);
             self.set_position_y_register((self.commited_position.y % (32 * 8)) as u16);
         }
+
+        let block = self.block;
+
+        iter.map(move |(x, y)| unsafe {
+            (&mut (*MAP)[block as usize][y.rem_euclid(32) as usize][x.rem_euclid(32) as usize]
+                as *mut u16)
+                .write_volatile(map.get_position(x, y));
+        })
+    }
+
+    pub fn commit(&mut self) {
+        self.commit_partial().count();
     }
 }
 
