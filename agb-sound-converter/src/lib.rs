@@ -1,7 +1,13 @@
 use hound;
 use proc_macro::TokenStream;
 use quote::quote;
-use std::path::Path;
+use siphasher::sip::SipHasher;
+use std::{
+    fs::File,
+    hash::{Hash, Hasher},
+    io::Write,
+    path::Path,
+};
 use syn::parse_macro_input;
 
 #[proc_macro]
@@ -26,13 +32,31 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
     let samples = samples_from_reader(wav_reader);
 
+    let out_file_path_include = {
+        let out_dir = std::env::var("OUT_DIR").expect("Expected OUT_DIR");
+        let out_filename = get_out_filename(&path);
+
+        let out_file_path = Path::new(&out_dir).with_file_name(&out_filename);
+
+        let mut out_file = File::create(&out_file_path).expect("Failed to open file for writing");
+
+        out_file
+            .write_all(&samples.collect::<Vec<_>>())
+            .expect("Failed to write to temporary file");
+
+        out_file_path
+    }
+    .clone()
+    .canonicalize()
+    .expect("Failed to canonicalize");
+
+    let out_file_path_include = out_file_path_include.to_string_lossy();
+
     let result = quote! {
         {
             const _: &[u8] = include_bytes!(#include_path);
 
-            &[
-                #(#samples),*
-            ]
+            include_bytes!(#out_file_path_include)
         }
     };
 
@@ -58,4 +82,11 @@ where
                 .map(move |sample| (sample.unwrap() >> reduction) as u8),
         ),
     }
+}
+
+fn get_out_filename(path: &Path) -> String {
+    let mut hasher = SipHasher::new();
+    path.hash(&mut hasher);
+
+    format!("{}.raw", hasher.finish())
 }
