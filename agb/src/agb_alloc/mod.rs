@@ -39,7 +39,7 @@ mod test {
 
         let address = &*first_box as *const _ as usize;
         assert!(
-            address >= EWRAM_START && address < EWRAM_END,
+            (EWRAM_START..EWRAM_END).contains(&address),
             "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
             address
         );
@@ -53,8 +53,8 @@ mod test {
             v.push(i);
         }
 
-        for i in 0..100 {
-            assert_eq!(v[i], i);
+        for (i, &e) in v.iter().enumerate() {
+            assert_eq!(e, i);
         }
     }
 
@@ -66,7 +66,7 @@ mod test {
             assert_eq!(*x, i);
             let address = &*x as *const _ as usize;
             assert!(
-                address >= EWRAM_START && address < EWRAM_END,
+                (EWRAM_START..EWRAM_END).contains(&address),
                 "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
                 address
             );
