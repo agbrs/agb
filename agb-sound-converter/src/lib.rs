@@ -15,7 +15,7 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
     let include_path = path.to_string_lossy();
 
-    let mut wav_reader = hound::WavReader::open(&path)
+    let wav_reader = hound::WavReader::open(&path)
         .unwrap_or_else(|_| panic!("Failed to load file {}", include_path));
 
     assert_eq!(
@@ -24,9 +24,7 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
         "agb currently only supports sample rate of 10512Hz"
     );
 
-    let samples = wav_reader
-        .samples::<i8>()
-        .map(|sample| sample.unwrap() as u8);
+    let samples = samples_from_reader(wav_reader);
 
     let result = quote! {
         {
@@ -39,4 +37,25 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(result)
+}
+
+fn samples_from_reader<'a, R>(reader: hound::WavReader<R>) -> Box<dyn Iterator<Item = u8> + 'a>
+where
+    R: std::io::Read + 'a,
+{
+    let bitrate = reader.spec().bits_per_sample;
+    let reduction = bitrate - 8;
+
+    match reader.spec().sample_format {
+        hound::SampleFormat::Float => Box::new(
+            reader
+                .into_samples::<f32>()
+                .map(|sample| (sample.unwrap() * (i8::MAX as f32)) as u8),
+        ),
+        hound::SampleFormat::Int => Box::new(
+            reader
+                .into_samples::<i32>()
+                .map(move |sample| (sample.unwrap() >> reduction) as u8),
+        ),
+    }
 }
