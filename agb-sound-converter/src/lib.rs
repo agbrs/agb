@@ -28,15 +28,11 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
         let out_file_path = Path::new(&out_dir).with_file_name(&out_filename);
 
-        let out_file_mtime = fs::metadata(&out_file_path)
-            .and_then(|metadata| metadata.modified())
-            .ok();
-        let in_file_mtime = fs::metadata(&path)
-            .and_then(|metadata| metadata.modified())
-            .ok();
+        let out_file_mtime = fs::metadata(&out_file_path).and_then(|metadata| metadata.modified());
+        let in_file_mtime = fs::metadata(&path).and_then(|metadata| metadata.modified());
 
         let should_write = match (out_file_mtime, in_file_mtime) {
-            (Some(out_file_mtime), Some(in_file_mtime)) => out_file_mtime <= in_file_mtime,
+            (Ok(out_file_mtime), Ok(in_file_mtime)) => out_file_mtime <= in_file_mtime,
             _ => true,
         };
 
