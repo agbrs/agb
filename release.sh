@@ -35,6 +35,10 @@ case "$PROJECT" in
         DIRECTORY="agb-image-converter"
         TAGNAME="agb-image-converter/v$VERSION"
         ;;
+    agb-sound-converter)
+        DIRECTORY="agb-sound-converter"
+        TAGNAME="agb-sound-converter/v$VERSION"
+        ;;
     agb-macros)
         DIRECTORY="agb-macros"
         TAGNAME="agb-macros/v$VERSION"
@@ -84,6 +88,7 @@ fi
 # Sanity check to make sure the build works
 (cd agb && cargo test)
 (cd agb-image-converter && cargo test)
+(cd agb-sound-converter && cargo test)
 (cd agb-macros && cargo test)
 
 if [ ! "$NO_COMMIT" = "--no-commit" ]; then
