@@ -1,4 +1,3 @@
-use hound;
 use proc_macro::TokenStream;
 use quote::quote;
 use siphasher::sip::SipHasher;
@@ -58,7 +57,6 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
         out_file_path
     }
-    .clone()
     .canonicalize()
     .expect("Failed to canonicalize");
 

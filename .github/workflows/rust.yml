@@ -38,6 +38,9 @@ jobs:
     - name: Run Clippy on agb image converter
       working-directory: agb-image-converter
       run: cargo clippy --verbose
+    - name: Run Clippy on agb sound converter
+      working-directory: agb-sound-converter
+      run: cargo clippy --verbose
     - name: Run Clippy on agb macros
       working-directory: agb-macros
       run: cargo clippy --verbose
