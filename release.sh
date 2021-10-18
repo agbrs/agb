@@ -35,6 +35,10 @@ case "$PROJECT" in
         DIRECTORY="agb-image-converter"
         TAGNAME="agb-image-converter/v$VERSION"
         ;;
+    agb-sound-converter)
+        DIRECTORY="agb-sound-converter"
+        TAGNAME="agb-sound-converter/v$VERSION"
+        ;;
     agb-macros)
         DIRECTORY="agb-macros"
         TAGNAME="agb-macros/v$VERSION"
