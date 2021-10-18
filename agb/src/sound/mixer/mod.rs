@@ -35,6 +35,8 @@ pub struct SoundChannel {
     panning: Num<i16, 4>, // between -1 and 1
     is_done: bool,
 
+    is_stereo: bool,
+
     priority: SoundPriority,
 }
 
@@ -49,6 +51,7 @@ impl SoundChannel {
             is_done: false,
             priority: SoundPriority::Low,
             volume: 1.into(),
+            is_stereo: false,
         }
     }
 
@@ -62,6 +65,7 @@ impl SoundChannel {
             is_done: false,
             priority: SoundPriority::High,
             volume: 1.into(),
+            is_stereo: false,
         }
     }
 
@@ -88,6 +92,12 @@ impl SoundChannel {
         assert!(volume >= Num::new(0), "volume must be >= 0");
 
         self.volume = volume;
+        self
+    }
+
+    pub fn stereo(&mut self) -> &mut Self {
+        self.is_stereo = true;
+
         self
     }
 
