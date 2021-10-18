@@ -22,17 +22,6 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
     let include_path = path.to_string_lossy();
 
-    let wav_reader = hound::WavReader::open(&path)
-        .unwrap_or_else(|_| panic!("Failed to load file {}", include_path));
-
-    assert_eq!(
-        wav_reader.spec().sample_rate,
-        10512,
-        "agb currently only supports sample rate of 10512Hz"
-    );
-
-    let samples = samples_from_reader(wav_reader);
-
     let out_file_path_include = {
         let out_dir = std::env::var("OUT_DIR").expect("Expected OUT_DIR");
         let out_filename = get_out_filename(&path);
@@ -52,6 +41,17 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
         };
 
         if should_write {
+            let wav_reader = hound::WavReader::open(&path)
+                .unwrap_or_else(|_| panic!("Failed to load file {}", include_path));
+
+            assert_eq!(
+                wav_reader.spec().sample_rate,
+                10512,
+                "agb currently only supports sample rate of 10512Hz"
+            );
+
+            let samples = samples_from_reader(wav_reader);
+
             let mut out_file =
                 File::create(&out_file_path).expect("Failed to open file for writing");
 
