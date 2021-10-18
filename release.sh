@@ -88,6 +88,7 @@ fi
 # Sanity check to make sure the build works
 (cd agb && cargo test)
 (cd agb-image-converter && cargo test)
+(cd agb-sound-converter && cargo test)
 (cd agb-macros && cargo test)
 
 if [ ! "$NO_COMMIT" = "--no-commit" ]; then
