@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use proc_macro::TokenStream;
 use quote::quote;
 use siphasher::sip::SipHasher;
