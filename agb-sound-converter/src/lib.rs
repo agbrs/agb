@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use siphasher::sip::SipHasher;
 use std::{
+    fs,
     fs::File,
     hash::{Hash, Hasher},
     io::Write,
@@ -38,11 +39,26 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
         let out_file_path = Path::new(&out_dir).with_file_name(&out_filename);
 
-        let mut out_file = File::create(&out_file_path).expect("Failed to open file for writing");
+        let out_file_mtime = fs::metadata(&out_file_path)
+            .and_then(|metadata| metadata.modified())
+            .ok();
+        let in_file_mtime = fs::metadata(&path)
+            .and_then(|metadata| metadata.modified())
+            .ok();
 
-        out_file
-            .write_all(&samples.collect::<Vec<_>>())
-            .expect("Failed to write to temporary file");
+        let should_write = match (out_file_mtime, in_file_mtime) {
+            (Some(out_file_mtime), Some(in_file_mtime)) => out_file_mtime <= in_file_mtime,
+            _ => true,
+        };
+
+        if should_write {
+            let mut out_file =
+                File::create(&out_file_path).expect("Failed to open file for writing");
+
+            out_file
+                .write_all(&samples.collect::<Vec<_>>())
+                .expect("Failed to write to temporary file");
+        }
 
         out_file_path
     }
