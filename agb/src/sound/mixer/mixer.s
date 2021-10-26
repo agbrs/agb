@@ -93,6 +93,46 @@ same_modification:
 
 agb_arm_end agb_rs__mixer_add
 
+agb_arm_func agb_rs__mixer_add_stereo
+    @ Arguments
+    @ r0 - pointer to the data to be copied (u8 array)
+    @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
+    @
+    @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
+    push {r4-r8}
+
+    ldr r5, =0x0000FFFF
+
+.macro mixer_add_loop_simple_stereo
+    ldrsh r6, [r0], #2        @ load the current sound sample to r6
+
+    ldr r4, [r1]             @ read the current value
+
+    mov r7, r6, asr #8
+    and r7, r7, r5
+    lsl r6, r6, #24
+    orr r6, r7, r6, asr #8
+
+    add r4, r4, r6, lsl #4  @ r4 += r6 << 4 (calculating both the left and right samples together)
+
+    str r4, [r1], #4         @ store the new value, and increment the pointer
+.endm
+
+    mov r8, #SOUND_BUFFER_SIZE
+1:
+    mixer_add_loop_simple_stereo
+    mixer_add_loop_simple_stereo
+    mixer_add_loop_simple_stereo
+    mixer_add_loop_simple_stereo
+
+    subs r8, r8, #4          @ loop counter
+    bne 1b                   @ jump back if we're done with the loop
+
+    pop {r4-r8}
+    bx lr
+
+agb_arm_end agb_rs__mixer_add_stereo
+
 .macro clamp_s8 reg:req
     cmn \reg, #127
     mvnlt \reg, #127
