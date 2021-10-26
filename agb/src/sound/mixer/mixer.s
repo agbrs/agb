@@ -109,11 +109,11 @@ agb_arm_func agb_rs__mixer_add_stereo
     ldr r4, [r1]             @ read the current value
 
     @ This is slightly convoluted, but is mainly done for performance reasons. It is better
-    @ to hit ROM just once and then do 4 really simple instructions then do 2 ldrsbs however annoying
+    @ to hit ROM just once and then do 3 really simple instructions then do 2 ldrsbs however annoying
     @ this is. Also, since all this code is in IWRAM and we never hit ROM otherwise, all accesses
     @ are sequential and exactly the size of the bus to ROM (16 bits), so hopefully this will be super fast.
     @
-    @ The next 4 instructions set up the current value in r6 to be in the expected format
+    @ The next 3 instructions set up the current value in r6 to be in the expected format
     @ 1 = 2s complement marks (so if negative, these are all 1s, if positive these are 0s)
     @ L = the left sample
     @ R = the right sample
@@ -122,8 +122,8 @@ agb_arm_func agb_rs__mixer_add_stereo
     @
     @ At this point
     @                        r6 = | 1 | 1 | L | R | where the upper bytes are 1s if L is negative. No care about R
-    mov r7, r6, asr #8     @ r7 = | 1 | 1 | 1 | L | drop R off the right hand side
-    and r7, r7, r5         @ r7 = | 0 | 0 | 1 | L | exactly what we want this to be. The mask puts the 1 as 00001111 ready for the shift later
+                         @ asr #8 | 1 | 1 | 1 | L | drop R off the right hand side
+    and r7, r5, r6, asr #8 @ r7 = | 0 | 0 | 1 | L | exactly what we want this to be. The mask puts the 1 as 00001111 ready for the shift later
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
