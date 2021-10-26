@@ -101,17 +101,31 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
     push {r4-r8}
 
-    ldr r5, =0x0000FFFF
+    ldr r5, =0x00000FFF
 
 .macro mixer_add_loop_simple_stereo
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
     ldr r4, [r1]             @ read the current value
 
-    mov r7, r6, asr #8
-    and r7, r7, r5
-    lsl r6, r6, #24
-    orr r6, r7, r6, asr #8
+    @ This is slightly convoluted, but is mainly done for performance reasons. It is better
+    @ to hit ROM just once and then do 4 really simple instructions then do 2 ldrsbs however annoying
+    @ this is. Also, since all this code is in IWRAM and we never hit ROM otherwise, all accesses
+    @ are sequential and exactly the size of the bus to ROM (16 bits), so hopefully this will be super fast.
+    @
+    @ The next 4 instructions set up the current value in r6 to be in the expected format
+    @ 1 = 2s complement marks (so if negative, these are all 1s, if positive these are 0s)
+    @ L = the left sample
+    @ R = the right sample
+    @ 0 = all zeros
+    @ Split into bytes
+    @
+    @ At this point
+    @                        r6 = | 1 | 1 | L | R | where the upper bytes are 1s if L is negative. No care about R
+    mov r7, r6, asr #8     @ r7 = | 1 | 1 | 1 | L | drop R off the right hand side
+    and r7, r7, r5         @ r7 = | 0 | 0 | 1 | L | exactly what we want this to be. The mask puts the 1 as 00001111 ready for the shift later
+    lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
+    orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
     add r4, r4, r6, lsl #4  @ r4 += r6 << 4 (calculating both the left and right samples together)
 
