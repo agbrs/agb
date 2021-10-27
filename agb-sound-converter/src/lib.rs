@@ -66,9 +66,12 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
     let result = quote! {
         {
+            #[repr(align(4))]
+            struct AlignmentWrapper<const N: usize>([u8; N]);
+
             const _: &[u8] = include_bytes!(#include_path);
 
-            include_bytes!(#out_file_path_include)
+            &AlignmentWrapper(*include_bytes!(#out_file_path_include)).0
         }
     };
 

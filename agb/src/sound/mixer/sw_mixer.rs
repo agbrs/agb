@@ -13,6 +13,8 @@ extern "C" {
         right_amount: Num<i16, 4>,
     );
 
+    fn agb_rs__mixer_add_stereo(sound_data: *const u8, sound_buffer: *mut Num<i16, 4>);
+
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
 }
 
@@ -133,12 +135,16 @@ impl MixerBuffer {
                 continue;
             }
 
+            let playback_speed = if channel.is_stereo {
+                2.into()
+            } else {
+                channel.playback_speed
+            };
+
             let right_amount = ((channel.panning + 1) / 2) * channel.volume;
             let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-            if (channel.pos + channel.playback_speed * SOUND_BUFFER_SIZE).floor()
-                >= channel.data.len()
-            {
+            if (channel.pos + playback_speed * SOUND_BUFFER_SIZE).floor() >= channel.data.len() {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
                     channel.pos -= channel.data.len();
@@ -148,16 +154,26 @@ impl MixerBuffer {
                 }
             }
 
-            unsafe {
-                agb_rs__mixer_add(
-                    channel.data.as_ptr().add(channel.pos.floor()),
-                    buffer.as_mut_ptr(),
-                    channel.playback_speed,
-                    left_amount,
-                    right_amount,
-                );
+            if channel.is_stereo {
+                unsafe {
+                    agb_rs__mixer_add_stereo(
+                        channel.data.as_ptr().add(channel.pos.floor()),
+                        buffer.as_mut_ptr(),
+                    );
+                }
+            } else {
+                unsafe {
+                    agb_rs__mixer_add(
+                        channel.data.as_ptr().add(channel.pos.floor()),
+                        buffer.as_mut_ptr(),
+                        playback_speed,
+                        left_amount,
+                        right_amount,
+                    );
+                }
             }
-            channel.pos += channel.playback_speed * SOUND_BUFFER_SIZE;
+
+            channel.pos += playback_speed * SOUND_BUFFER_SIZE;
         }
 
         let write_buffer = self.get_write_buffer();
