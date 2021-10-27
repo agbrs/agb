@@ -82,14 +82,11 @@ impl<'a> MapStorage<'a> {
 /// assigned block depending on given coordinates.
 #[allow(dead_code)]
 pub struct BackgroundRegular<'a> {
-    background: u8,
-    block: u8,
+    register: BackgroundRegister,
     commited_position: Vector2D<i32>,
     shadowed_position: Vector2D<i32>,
     poisoned: bool,
-    shadowed_register: u16,
     copy_size: Vector2D<u16>,
-    background_size: BackgroundSize,
     map: Option<Map<'a>>,
 }
 
@@ -129,29 +126,31 @@ impl<'a> Map<'a> {
     }
 }
 
-impl<'a> BackgroundRegular<'a> {
-    unsafe fn new(background: u8, block: u8, size: BackgroundSize) -> BackgroundRegular<'a> {
-        let mut b = BackgroundRegular {
+pub struct BackgroundRegister {
+    background: u8,
+    block: u8,
+    background_size: BackgroundSize,
+    shadowed_register: u16,
+}
+
+impl<'a> BackgroundRegister {
+    unsafe fn new(background: u8, block: u8, background_size: BackgroundSize) -> Self {
+        let mut b = Self {
             background,
             block,
-            commited_position: (0, 0).into(),
-            shadowed_position: (0, 0).into(),
+            background_size,
             shadowed_register: 0,
-            copy_size: (30_u16, 20_u16).into(),
-            background_size: size,
-            poisoned: true,
-            map: None,
         };
         b.set_block(block);
         b.set_colour_mode(ColourMode::FourBitPerPixel);
-        b.set_background_size(size);
+        b.set_background_size(background_size);
+        b.write_register();
         b
     }
 
     /// Sets the background to be shown on screen. Requires the background to
     /// have a map enabled otherwise a panic is caused.
     pub fn show(&mut self) {
-        assert!(self.map.is_some());
         let mode = DISPLAY_CONTROL.get();
         let new_mode = mode | (1 << (self.background + 0x08));
         DISPLAY_CONTROL.set(new_mode);
@@ -164,10 +163,18 @@ impl<'a> BackgroundRegular<'a> {
         DISPLAY_CONTROL.set(new_mode);
     }
 
+    pub fn set_priority(&mut self, p: Priority) {
+        unsafe { self.set_shadowed_register_bits(p as u16, 0x2, 0x0) };
+    }
+
     unsafe fn set_shadowed_register_bits(&mut self, value: u16, length: u16, shift: u16) {
         let mask = !(((1 << length) - 1) << shift);
         let new = (self.shadowed_register & mask) | (value << shift);
         self.shadowed_register = new;
+    }
+
+    pub fn write_register(&self) {
+        unsafe { self.get_register().set(self.shadowed_register) };
     }
 
     unsafe fn get_register(&self) -> MemoryMapped<u16> {
@@ -182,10 +189,6 @@ impl<'a> BackgroundRegular<'a> {
         self.set_shadowed_register_bits(mode as u16, 0x1, 0x7);
     }
 
-    pub fn set_priority(&mut self, p: Priority) {
-        unsafe { self.set_shadowed_register_bits(p as u16, 0x2, 0x0) };
-    }
-
     unsafe fn set_background_size(&mut self, size: BackgroundSize) {
         self.set_shadowed_register_bits(size as u16, 0x2, 0xE);
     }
@@ -195,6 +198,61 @@ impl<'a> BackgroundRegular<'a> {
     }
     unsafe fn set_position_y_register(&self, y: u16) {
         *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y
+    }
+
+    pub fn set_position(&self, position: Vector2D<i32>) {
+        unsafe {
+            self.set_position_x_register((position.x % (32 * 8)) as u16);
+            self.set_position_y_register((position.y % (32 * 8)) as u16);
+        }
+    }
+
+    pub fn get_block(&mut self) -> &mut [[u16; 32]; 32] {
+        unsafe { &mut (*MAP)[self.block as usize] }
+    }
+
+    pub fn clear_partial(&'a mut self, tile: u16) -> impl Iterator<Item = ()> + 'a {
+        self.get_block()
+            .iter_mut()
+            .flatten()
+            .map(move |t| unsafe { (t as *mut u16).write_volatile(tile) })
+    }
+
+    pub fn clear(&mut self, tile: u16) {
+        self.clear_partial(tile).count();
+    }
+}
+
+impl<'a, 'b> BackgroundRegular<'a> {
+    unsafe fn new(
+        background: u8,
+        block: u8,
+        background_size: BackgroundSize,
+    ) -> BackgroundRegular<'a> {
+        BackgroundRegular {
+            register: BackgroundRegister::new(background, block, background_size),
+            commited_position: (0, 0).into(),
+            shadowed_position: (0, 0).into(),
+            copy_size: (30_u16, 20_u16).into(),
+            poisoned: true,
+            map: None,
+        }
+    }
+
+    /// Sets the background to be shown on screen. Requires the background to
+    /// have a map enabled otherwise a panic is caused.
+    pub fn show(&mut self) {
+        assert!(self.map.is_some());
+        self.register.show();
+    }
+
+    /// Hides the background, nothing from this background is rendered to screen.
+    pub fn hide(&mut self) {
+        self.register.hide();
+    }
+
+    pub fn set_priority(&mut self, p: Priority) {
+        self.register.set_priority(p);
     }
 
     pub fn set_position(&mut self, position: Vector2D<i32>) {
@@ -211,29 +269,23 @@ impl<'a> BackgroundRegular<'a> {
         self.map = Some(map);
     }
 
-    pub fn commit(&mut self) {
+    pub fn commit_partial(&'b mut self) -> impl Iterator<Item = ()> + 'b {
         // commit shadowed register
-        unsafe { self.get_register().set(self.shadowed_register) };
+        self.register.write_register();
+
+        let map = self.map.as_ref().unwrap();
 
         let commited_screen = Rect::new(self.commited_position, self.copy_size.change_base());
         let shadowed_screen = Rect::new(self.shadowed_position, self.copy_size.change_base());
 
-        if self.poisoned || !shadowed_screen.touches(commited_screen) {
+        let iter = if self.poisoned || !shadowed_screen.touches(commited_screen) {
             let positions_to_be_updated = Rect::new(
                 self.shadowed_position / 8 - (1, 1).into(),
                 self.copy_size.change_base() + (1, 1).into(),
             )
             .iter();
 
-            if let Some(map) = &self.map {
-                for (x, y) in positions_to_be_updated {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
-                            [x.rem_euclid(32) as usize] as *mut u16)
-                            .write_volatile(map.get_position(x, y));
-                    }
-                }
-            }
+            positions_to_be_updated.chain(Rect::new((0, 0).into(), (0, 0).into()).iter())
         } else {
             let commited_block = self.commited_position / 8;
             let shadowed_block = self.shadowed_position / 8;
@@ -243,11 +295,11 @@ impl<'a> BackgroundRegular<'a> {
                 let new_y = if top_bottom_height < 0 {
                     commited_block.y + self.copy_size.y as i32
                 } else {
-                    shadowed_block.y
+                    shadowed_block.y - 1
                 };
                 Rect::new(
-                    (shadowed_block.x, new_y).into(),
-                    (30, top_bottom_height.abs()).into(),
+                    (shadowed_block.x - 1, new_y).into(),
+                    (32, top_bottom_height.abs()).into(),
                 )
             };
 
@@ -256,23 +308,15 @@ impl<'a> BackgroundRegular<'a> {
                 let new_x = if left_right_width < 0 {
                     commited_block.x + self.copy_size.x as i32
                 } else {
-                    shadowed_block.x
+                    shadowed_block.x - 1
                 };
                 Rect::new(
-                    (new_x, shadowed_block.y).into(),
-                    (left_right_width.abs(), 20).into(),
+                    (new_x, shadowed_block.y - 1).into(),
+                    (left_right_width.abs(), 22).into(),
                 )
             };
 
-            if let Some(map) = &self.map {
-                for (x, y) in top_bottom_rect.iter().chain(left_right_rect.iter()) {
-                    unsafe {
-                        (&mut (*MAP)[self.block as usize][y.rem_euclid(32) as usize]
-                            [x.rem_euclid(32) as usize] as *mut u16)
-                            .write_volatile(map.get_position(x, y));
-                    }
-                }
-            }
+            top_bottom_rect.iter().chain(left_right_rect.iter())
         };
 
         // update commited position
@@ -283,10 +327,15 @@ impl<'a> BackgroundRegular<'a> {
 
         // update position in registers
 
-        unsafe {
-            self.set_position_x_register((self.commited_position.x % (32 * 8)) as u16);
-            self.set_position_y_register((self.commited_position.y % (32 * 8)) as u16);
-        }
+        self.register.set_position(self.commited_position);
+        let block = self.register.get_block();
+        iter.map(move |(x, y)| {
+            block[y.rem_euclid(32) as usize][x.rem_euclid(32) as usize] = map.get_position(x, y)
+        })
+    }
+
+    pub fn commit(&mut self) {
+        self.commit_partial().count();
     }
 }
 
@@ -373,6 +422,41 @@ impl<'b> BackgroundDistributor {
         let background = self.num_regular;
         self.num_regular += 1;
         Ok(unsafe { BackgroundRegular::new(background, availiable_block, BackgroundSize::S32x32) })
+    }
+
+    pub fn get_raw_regular(&mut self) -> Result<BackgroundRegister, &'static str> {
+        let new_mode = decide_background_mode(self.num_regular + 1, self.num_affine)
+            .ok_or("there is no mode compatible with the requested backgrounds")?;
+
+        unsafe { set_graphics_mode(new_mode) };
+
+        if !self.used_blocks == 0 {
+            return Err("all blocks are used");
+        }
+
+        let mut availiable_block = u8::MAX;
+
+        for i in 0..32 {
+            if (1 << i) & self.used_blocks == 0 {
+                availiable_block = i;
+                break;
+            }
+        }
+
+        assert!(
+            availiable_block != u8::MAX,
+            "should be able to find a block"
+        );
+
+        self.used_blocks |= 1 << availiable_block;
+
+        let background = self.num_regular;
+        self.num_regular += 1;
+        Ok(
+            unsafe {
+                BackgroundRegister::new(background, availiable_block, BackgroundSize::S32x32)
+            },
+        )
     }
 
     /// Copies tiles to tilemap starting at the starting tile. Cannot overwrite

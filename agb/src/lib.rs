@@ -7,6 +7,7 @@
 #![feature(alloc_error_handler)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+#![feature(step_trait)]
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
 //! programming language. It attempts to be a high level abstraction over the
