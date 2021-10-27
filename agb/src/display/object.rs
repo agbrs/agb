@@ -5,6 +5,9 @@ use crate::bitarray::Bitarray;
 use crate::memory_mapped::MemoryMapped1DArray;
 use crate::number::Vector2D;
 
+type AffineLoan<'a> = crate::arena::Loan<'a, 32>;
+type AffineArena = crate::arena::Arena<32>;
+
 const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
     unsafe { MemoryMapped1DArray::new(0x0700_0000) };
 const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
@@ -15,17 +18,12 @@ const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
 /// Handles distributing objects and matricies along with operations that effect all objects.
 pub struct ObjectControl {
     objects: RefCell<Bitarray<4>>,
-    affines: RefCell<Bitarray<1>>,
+    affines: AffineArena,
 }
 
 struct ObjectLoan<'a> {
     index: u8,
     objects: &'a RefCell<Bitarray<4>>,
-}
-
-struct AffineLoan<'a> {
-    index: u8,
-    affines: &'a RefCell<Bitarray<1>>,
 }
 
 /// The standard object, without rotation.
@@ -39,7 +37,7 @@ pub struct ObjectStandard<'a> {
 pub struct ObjectAffine<'a> {
     attributes: ObjectAttribute,
     loan: ObjectLoan<'a>,
-    aff_id: Option<u8>,
+    aff_loan: Option<AffineLoan<'a>>,
 }
 
 /// Refers to an affine matrix in the OAM. Includes both an index and the
@@ -161,7 +159,7 @@ impl<'a> ObjectAffine<'a> {
 
     /// Show the object on screen. Panics if affine matrix has not been set.
     pub fn show(&mut self) {
-        if self.aff_id.is_none() {
+        if self.aff_loan.is_none() {
             panic!("affine matrix should be set")
         }
         self.attributes.set_mode(Mode::Affine)
@@ -170,11 +168,12 @@ impl<'a> ObjectAffine<'a> {
     pub fn hide(&mut self) {
         self.attributes.set_mode(Mode::Hidden)
     }
+
     /// Sets the affine matrix to use. Changing the affine matrix will change
     /// how the sprite is rendered.
-    pub fn set_affine_mat(&mut self, aff: &AffineMatrix) {
-        self.attributes.set_affine(aff.loan.index);
-        self.aff_id = Some(aff.loan.index);
+    pub fn set_affine_mat(&mut self, aff: &AffineMatrix<'a>) {
+        self.attributes.set_affine(aff.loan.my_index);
+        self.aff_loan = Some(aff.loan.clone());
     }
 
     /// Sets the x and y position of the object, performing casts as nessesary
@@ -204,22 +203,6 @@ impl Drop for ObjectLoan<'_> {
         }
         let mut objs = self.objects.borrow_mut();
         objs.set(self.index as usize, false);
-    }
-}
-
-impl Drop for AffineLoan<'_> {
-    fn drop(&mut self) {
-        let attributes = AffineMatrixAttributes {
-            p_a: 0,
-            p_b: 0,
-            p_c: 0,
-            p_d: 0,
-        };
-        unsafe {
-            attributes.commit(self.index);
-        }
-        let mut affs = self.affines.borrow_mut();
-        affs.set(self.index as usize, false);
     }
 }
 
@@ -276,7 +259,7 @@ impl ObjectAttribute {
 impl AffineMatrix<'_> {
     /// Commits matrix to OAM, will cause any objects using this matrix to be updated.
     pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.loan.index) };
+        unsafe { self.attributes.commit(self.loan.my_index) };
     }
 }
 
@@ -311,7 +294,7 @@ impl ObjectControl {
         }
         ObjectControl {
             objects: RefCell::new(Bitarray::new()),
-            affines: RefCell::new(Bitarray::new()),
+            affines: AffineArena::new(),
         }
     }
 
@@ -373,17 +356,6 @@ impl ObjectControl {
         panic!("object id must be less than 128");
     }
 
-    fn get_unused_affine_index(&self) -> u8 {
-        let mut affines = self.affines.borrow_mut();
-        for index in 0..32 {
-            if !affines.get(index).unwrap() {
-                affines.set(index, true);
-                return index as u8;
-            }
-        }
-        panic!("affine id must be less than 32");
-    }
-
     /// Get an unused standard object. Panics if more than 128 objects are
     /// obtained.
     pub fn get_object_standard(&self) -> ObjectStandard {
@@ -407,14 +379,13 @@ impl ObjectControl {
                 objects: &self.objects,
                 index: id,
             },
-            aff_id: None,
+            aff_loan: None,
         }
     }
 
     /// Get an unused affine matrix. Panics if more than 32 affine matricies are
     /// obtained.
     pub fn get_affine(&self) -> AffineMatrix {
-        let id = self.get_unused_affine_index();
         AffineMatrix {
             attributes: AffineMatrixAttributes {
                 p_a: 0,
@@ -422,10 +393,10 @@ impl ObjectControl {
                 p_c: 0,
                 p_d: 0,
             },
-            loan: AffineLoan {
-                affines: &self.affines,
-                index: id,
-            },
+            loan: self
+                .affines
+                .get_next_free()
+                .expect("there are no affines avaliable"),
         }
     }
 }
@@ -457,14 +428,14 @@ mod tests {
         let _a1 = {
             let a0 = objs.get_affine();
             let a1 = objs.get_affine();
-            assert_eq!(a0.loan.index, 0);
-            assert_eq!(a1.loan.index, 1);
+            assert_eq!(a0.loan.my_index, 0);
+            assert_eq!(a1.loan.my_index, 1);
             a1
         };
 
         let a0 = objs.get_affine();
-        assert_eq!(a0.loan.index, 0);
+        assert_eq!(a0.loan.my_index, 0);
         let a2 = objs.get_affine();
-        assert_eq!(a2.loan.index, 2);
+        assert_eq!(a2.loan.my_index, 2);
     }
 }

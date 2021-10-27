@@ -14,31 +14,29 @@
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
 
+pub use agb_image_converter::include_gfx;
+pub use agb_macros::entry;
+pub use agb_sound_converter::include_wav;
+
 #[cfg(feature = "alloc")]
 extern crate alloc;
 #[cfg(feature = "alloc")]
 mod agb_alloc;
 
+mod arena;
+mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
 /// Button inputs to the system.
 pub mod input;
-/// Implements sound output.
-pub mod sound;
-
-pub use agb_image_converter::include_gfx;
-pub use agb_sound_converter::include_wav;
-
-pub use agb_macros::entry;
-
-mod bitarray;
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
 pub mod number;
 mod single;
-
+/// Implements sound output.
+pub mod sound;
 /// System BIOS calls / syscalls.
 pub mod syscall;
 
