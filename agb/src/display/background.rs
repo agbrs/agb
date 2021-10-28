@@ -129,7 +129,6 @@ impl<'a> Map<'a> {
 pub struct BackgroundRegister {
     background: u8,
     block: u8,
-    background_size: BackgroundSize,
     shadowed_register: u16,
 }
 
@@ -138,7 +137,6 @@ impl<'a> BackgroundRegister {
         let mut b = Self {
             background,
             block,
-            background_size,
             shadowed_register: 0,
         };
         b.set_block(block);
