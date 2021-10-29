@@ -94,6 +94,16 @@ impl Mixer {
 const SOUND_FREQUENCY: i32 = 10512;
 const SOUND_BUFFER_SIZE: usize = 176;
 
+fn set_asm_buffer_size() {
+    extern "C" {
+        static mut agb_rs__buffer_size: usize;
+    }
+
+    unsafe {
+        agb_rs__buffer_size = SOUND_BUFFER_SIZE;
+    }
+}
+
 #[repr(C, align(4))]
 struct SoundBuffer([i8; SOUND_BUFFER_SIZE * 2]);
 
@@ -106,6 +116,8 @@ struct MixerBuffer {
 
 impl MixerBuffer {
     fn new() -> Self {
+        set_asm_buffer_size();
+
         MixerBuffer {
             buffer1: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
             buffer2: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
