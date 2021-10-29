@@ -555,6 +555,32 @@ fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
     assert_eq!(a, c);
 }
 
+#[cfg(feature = "alloc")]
+mod formatting_tests {
+    use super::Num;
+    use alloc::format;
+
+    #[test_case]
+    fn formats_numbers_correctly(_gba: &mut crate::Gba) {
+        let a = Num::<i32, 8>::new(-4i32);
+
+        assert_eq!(format!("{}", a), "-4");
+    }
+
+    #[test_case]
+    fn formats_fractions_correctly(_gba: &mut crate::Gba) {
+        let a = Num::<i32, 8>::new(5);
+        let two = Num::<i32, 8>::new(4);
+        let minus_one = Num::<i32, 8>::new(-1);
+
+        let b: Num<i32, 8> = a / two;
+        let c: Num<i32, 8> = b * minus_one;
+
+        assert_eq!(format!("{}", b), "1.25");
+        assert_eq!(format!("{}", c), "-1.25");
+    }
+}
+
 impl<T: Number> AddAssign<Self> for Vector2D<T> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
