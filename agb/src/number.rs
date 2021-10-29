@@ -720,6 +720,18 @@ impl<T: Number> Vector2D<T> {
     pub fn get(self) -> (T, T) {
         (self.x, self.y)
     }
+    pub fn hadamard(self, other: Self) -> Self {
+        Self {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        }
+    }
+    pub fn swap(self) -> Self {
+        Self {
+            x: self.y,
+            y: self.x,
+        }
+    }
 }
 
 #[test_case]
