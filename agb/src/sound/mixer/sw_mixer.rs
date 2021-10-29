@@ -147,7 +147,7 @@ impl MixerBuffer {
             if (channel.pos + playback_speed * SOUND_BUFFER_SIZE).floor() >= channel.data.len() {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
-                    channel.pos -= channel.data.len();
+                    channel.pos = 0.into();
                 } else {
                     channel.is_done = true;
                     continue;
