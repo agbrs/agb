@@ -12,6 +12,11 @@ use std::{
 };
 use syn::parse_macro_input;
 
+#[cfg(not(feature = "freq18157"))]
+const FREQUENCY: u32 = 10512;
+#[cfg(feature = "freq18157")]
+const FREQUENCY: u32 = 18157;
+
 #[proc_macro]
 pub fn include_wav(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::LitStr);
@@ -43,8 +48,9 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
             assert_eq!(
                 wav_reader.spec().sample_rate,
-                10512,
-                "agb currently only supports sample rate of 10512Hz"
+                FREQUENCY,
+                "agb currently only supports sample rate of {}Hz",
+                FREQUENCY
             );
 
             let samples = samples_from_reader(wav_reader);

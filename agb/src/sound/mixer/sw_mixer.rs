@@ -91,8 +91,15 @@ impl Mixer {
 
 // I've picked one frequency that works nicely. But there are others that work nicely
 // which we may want to consider in the future: http://deku.gbadev.org/program/sound1.html
+#[cfg(not(feature = "freq18157"))]
 const SOUND_FREQUENCY: i32 = 10512;
+#[cfg(not(feature = "freq18157"))]
 const SOUND_BUFFER_SIZE: usize = 176;
+
+#[cfg(feature = "freq18157")]
+const SOUND_FREQUENCY: i32 = 18157;
+#[cfg(feature = "freq18157")]
+const SOUND_BUFFER_SIZE: usize = 304;
 
 fn set_asm_buffer_size() {
     extern "C" {

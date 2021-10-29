@@ -17,6 +17,9 @@ debug = true
 [lib]
 proc-macro = true
 
+[features]
+freq18157 = []
+
 [dependencies]
 hound = "3.4.0"
 syn = "1.0.73"
