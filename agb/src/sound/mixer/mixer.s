@@ -1,4 +1,8 @@
-.equ SOUND_BUFFER_SIZE, 176
+.section .iwram
+    .global agb_rs__buffer_size
+    .balign 4
+agb_rs__buffer_size:
+    .word
 
 agb_arm_func agb_rs__mixer_add
     @ Arguments
@@ -19,8 +23,8 @@ agb_arm_func agb_rs__mixer_add
 modifications_fallback:
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
-    mov r5, #0               @ current index we're reading from
-    mov r8, #SOUND_BUFFER_SIZE @ the number of steps left
+    mov r5, #0                   @ current index we're reading from
+    ldr r8, agb_rs__buffer_size @ the number of steps left
 
 
 1:
@@ -62,8 +66,8 @@ same_modification:
     lsrs r7, r7, #1
     bne 1b
 
-    mov r5, #0               @ current index we're reading from
-    mov r8, #SOUND_BUFFER_SIZE @ the number of steps left
+    mov r5, #0                   @ current index we're reading from
+    ldr r8, agb_rs__buffer_size @ the number of steps left
 
 .macro mixer_add_loop_simple
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
@@ -132,7 +136,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endm
 
-    mov r8, #SOUND_BUFFER_SIZE
+    ldr r8, agb_rs__buffer_size
 1:
     mixer_add_loop_simple_stereo
     mixer_add_loop_simple_stereo
@@ -159,8 +163,10 @@ agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
+    push {r4}
 
-    mov r2, #SOUND_BUFFER_SIZE @ loop counter
+    ldr r2, agb_rs__buffer_size @ loop counter
+    mov r4, r2
 
 1:
     @ r12 = *r1; r1++
@@ -173,11 +179,12 @@ agb_arm_func agb_rs__mixer_collapse
     clamp_s8 r12            @ clamp the audio to 8 bit values
     clamp_s8 r3
 
-    strb r3, [r0, #SOUND_BUFFER_SIZE] @ *(r0 + SOUND_BUFFER_SIZE) = r3
+    strb r3, [r0, r4] @ *(r0 + r4 = SOUND_BUFFER_SIZE) = r3
     strb r12, [r0], #1                @ *r0 = r12; r0++
 
     subs r2, r2, #1      @ r2 -= 1
     bne 1b               @ loop if not 0
 
+    pop {r4}
     bx lr
 agb_arm_end agb_rs__mixer_collapse

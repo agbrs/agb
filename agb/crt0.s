@@ -64,5 +64,5 @@ b .Initialise_mb
     b 1b
 .pool
 
-.include "src/sound/mixer/mixer.s"
 .include "interrupt_handler.s"
+.include "src/sound/mixer/mixer.s"
