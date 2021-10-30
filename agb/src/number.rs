@@ -639,6 +639,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
     }
 }
 
+#[derive(PartialEq, Eq, Clone)]
 pub struct Rect<T: Number> {
     pub position: Vector2D<T>,
     pub size: Vector2D<T>,
@@ -656,7 +657,7 @@ impl<T: Number> Rect<T> {
             && point.y < self.position.y + self.size.y
     }
 
-    pub fn touches(self, other: Rect<T>) -> bool {
+    pub fn touches(&self, other: Rect<T>) -> bool {
         self.position.x < other.position.x + other.size.x
             && self.position.x + self.size.x > other.position.x
             && self.position.y < other.position.y + other.size.y
