@@ -556,6 +556,7 @@ fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
 }
 
 #[cfg(feature = "alloc")]
+#[cfg(test)]
 mod formatting_tests {
     use super::Num;
     use alloc::format;
