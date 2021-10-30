@@ -19,6 +19,7 @@ use colour::Colour;
 pub(crate) enum TileSize {
     Tile8,
     Tile16,
+    Tile32,
 }
 
 impl TileSize {
@@ -26,6 +27,7 @@ impl TileSize {
         match self {
             TileSize::Tile8 => 8,
             TileSize::Tile16 => 16,
+            TileSize::Tile32 => 32,
         }
     }
 }

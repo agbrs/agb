@@ -93,6 +93,8 @@ pub enum TileSizeV1 {
     Tile8,
     #[serde(rename = "16x16")]
     Tile16,
+    #[serde(rename = "32x32")]
+    Tile32,
 }
 
 impl From<TileSizeV1> for TileSize {
@@ -100,6 +102,7 @@ impl From<TileSizeV1> for TileSize {
         match item {
             TileSizeV1::Tile8 => TileSize::Tile8,
             TileSizeV1::Tile16 => TileSize::Tile16,
+            TileSizeV1::Tile32 => TileSize::Tile32,
         }
     }
 }
