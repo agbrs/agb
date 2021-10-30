@@ -119,6 +119,10 @@ impl ObjectStandard<'_> {
         self.attributes.set_mode(Mode::Hidden)
     }
 
+    pub fn set_palette(&mut self, palette: u16) {
+        self.attributes.set_palette(palette);
+    }
+
     /// Sets the x and y position of the object, performing casts as nessesary
     /// to fit within the bits allocated for this purpose.
     pub fn set_position(&mut self, position: Vector2D<i32>) {
@@ -231,6 +235,10 @@ impl ObjectAttribute {
         self.a1 = set_bits(self.a1, a1, 2, 0xE);
     }
 
+    fn set_palette(&mut self, palette: u16) {
+        self.a2 = set_bits(self.a2, palette, 4, 0xC);
+    }
+
     fn set_x(&mut self, x: u16) {
         self.a1 = set_bits(self.a1, x, 9, 0);
     }
@@ -240,7 +248,7 @@ impl ObjectAttribute {
     }
 
     fn set_tile_id(&mut self, id: u16) {
-        self.a2 = set_bits(self.a2, id, 9, 0);
+        self.a2 = set_bits(self.a2, id, 10, 0);
     }
 
     fn set_mode(&mut self, mode: Mode) {
