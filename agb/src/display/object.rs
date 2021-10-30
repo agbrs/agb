@@ -12,7 +12,7 @@ const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
     unsafe { MemoryMapped1DArray::new(0x0700_0000) };
 const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0200) };
-const TILE_SPRITE: MemoryMapped1DArray<u32, { 512 * 8 }> =
+const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06010000) };
 
 /// Handles distributing objects and matricies along with operations that effect all objects.
@@ -328,6 +328,12 @@ impl ObjectControl {
     pub fn set_sprite_tilemap(&self, tiles: &[u32]) {
         for (index, &tile) in tiles.iter().enumerate() {
             self.set_sprite_tilemap_entry(index, tile)
+        }
+    }
+
+    pub fn set_sprite_tilemap_at_idx(&self, idx: usize, tiles: &[u32]) {
+        for (index, &tile) in tiles.iter().enumerate() {
+            self.set_sprite_tilemap_entry(index + idx, tile)
         }
     }
 
