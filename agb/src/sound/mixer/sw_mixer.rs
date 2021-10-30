@@ -20,8 +20,8 @@ extern "C" {
 
 pub struct Mixer {
     buffer: MixerBuffer,
-    channels: [Option<SoundChannel>; 16],
-    indices: [i32; 16],
+    channels: [Option<SoundChannel>; 8],
+    indices: [i32; 8],
 }
 
 pub struct ChannelId(usize, i32);
@@ -75,7 +75,7 @@ impl Mixer {
             return Some(ChannelId(i, self.indices[i]));
         }
 
-        panic!("Cannot play more than 16 sounds at once");
+        panic!("Cannot play more than 8 sounds at once");
     }
 
     pub fn get_channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
