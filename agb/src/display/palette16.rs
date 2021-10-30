@@ -7,4 +7,12 @@ impl Palette16 {
     pub const fn new(colours: [u16; 16]) -> Self {
         Palette16 { colours }
     }
+
+    pub fn update_colour(&mut self, index: usize, colour: u16) {
+        self.colours[index] = colour;
+    }
+
+    pub fn get_colour(&self, index: usize) -> u16 {
+        self.colours[index]
+    }
 }
