@@ -1,6 +1,7 @@
 mod hw;
 mod sw_mixer;
 
+pub use sw_mixer::ChannelId;
 pub use sw_mixer::Mixer;
 
 use crate::number::Num;
