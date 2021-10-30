@@ -2,7 +2,7 @@
     .global agb_rs__buffer_size
     .balign 4
 agb_rs__buffer_size:
-    .word
+    .word 0
 
 agb_arm_func agb_rs__mixer_add
     @ Arguments
