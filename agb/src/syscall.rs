@@ -77,6 +77,9 @@ pub fn sqrt(n: i32) -> i32 {
             "swi 0x08",
             in("r0") n,
             lateout("r0") result,
+            lateout("r1") _,
+            lateout("r2") _,
+            lateout("r3") _
         );
     }
     result
@@ -102,6 +105,7 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
             in("r0") x,
             in("r1") y,
             lateout("r0") result,
+
         );
     }
     result
