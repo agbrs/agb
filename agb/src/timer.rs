@@ -9,14 +9,6 @@ const fn timer_control(timer: usize) -> MemoryMapped<u16> {
 }
 
 #[derive(Clone, Copy)]
-pub enum Timer {
-    Timer0,
-    Timer1,
-    Timer2,
-    Timer3,
-}
-
-#[derive(Clone, Copy)]
 pub enum Divider {
     // 16.78MHz or 59.59ns
     Divider1,
@@ -42,46 +34,54 @@ impl Divider {
 }
 
 #[non_exhaustive]
-pub struct TimerController {}
+pub struct Timer<const N: usize> {}
+
+#[non_exhaustive]
+pub struct TimerController {
+    pub timer0: Timer<0>,
+    pub timer1: Timer<1>,
+    pub timer2: Timer<2>,
+    pub timer3: Timer<3>,
+}
 
 impl TimerController {
     pub(crate) const unsafe fn new() -> Self {
-        Self {}
-    }
-
-    pub fn set_overflow_amount(&mut self, timer: Timer, n: u16) {
-        timer.set_overflow_amount(n);
-    }
-
-    pub fn get_value(&mut self, timer: Timer) -> u16 {
-        timer.get_value()
-    }
-
-    pub fn set_divider(&mut self, timer: Timer, divider: Divider) {
-        timer
-            .control_register()
-            .set_bits(divider.get_as_bits(), 2, 0);
-    }
-
-    pub fn set_enabled(&mut self, timer: Timer, enabled: bool) {
-        let bit = if enabled { 1 } else { 0 };
-        timer.control_register().set_bits(bit, 1, 7);
-    }
-
-    pub fn set_cascade(&mut self, timer: Timer, cascade: bool) {
-        let bit = if cascade { 1 } else { 0 };
-        timer.control_register().set_bits(bit, 1, 2);
+        Self {
+            timer0: Timer::new(),
+            timer1: Timer::new(),
+            timer2: Timer::new(),
+            timer3: Timer::new(),
+        }
     }
 }
 
-impl Timer {
-    fn set_overflow_amount(&self, n: u16) {
+impl<const N: usize> Timer<N> {
+    const unsafe fn new() -> Self {
+        Self {}
+    }
+
+    pub fn set_overflow_amount(&self, n: u16) {
         let count_up_value = 0u16.wrapping_sub(n);
         self.data_register().set(count_up_value);
     }
 
-    fn get_value(&self) -> u16 {
+    pub fn get_value(&self) -> u16 {
         self.data_register().get()
+    }
+
+    pub fn set_divider(&mut self, divider: Divider) {
+        self.control_register()
+            .set_bits(divider.get_as_bits(), 2, 0);
+    }
+
+    pub fn set_enabled(&mut self, enabled: bool) {
+        let bit = if enabled { 1 } else { 0 };
+        self.control_register().set_bits(bit, 1, 7);
+    }
+
+    pub fn set_cascade(&mut self, cascade: bool) {
+        let bit = if cascade { 1 } else { 0 };
+        self.control_register().set_bits(bit, 1, 2);
     }
 
     fn data_register(&self) -> MemoryMapped<u16> {
@@ -93,13 +93,6 @@ impl Timer {
     }
 
     fn get_timer_number(&self) -> usize {
-        use Timer::*;
-
-        match self {
-            Timer0 => 0,
-            Timer1 => 1,
-            Timer2 => 2,
-            Timer3 => 3,
-        }
+        N
     }
 }
