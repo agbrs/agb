@@ -454,13 +454,24 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let integral = self.0 >> N;
+        let mut integral = self.0 >> N;
         let mask: I = (I::one() << N) - I::one();
+
+        let mut fractional = self.0 & mask;
+
+        // Negative fix nums are awkward to print if they have non zero fractional part.
+        // This is because you can think of them as `number + non negative fraction`.
+        //
+        // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
+        // So we have to add 1 to the integral bit, and take 1 - fractional bit
+        if fractional != I::zero() && integral < I::zero() {
+            integral = integral + I::one();
+            fractional = (I::one() << N) - fractional;
+        }
 
         write!(f, "{}", integral)?;
 
-        let mut fractional = self.0 & mask;
-        if fractional & mask != I::zero() {
+        if fractional != I::zero() {
             write!(f, ".")?;
         }
 
@@ -553,6 +564,34 @@ fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
     let c = b / 5;
     assert_eq!(b, (5, 10).into());
     assert_eq!(a, c);
+}
+
+#[cfg(feature = "alloc")]
+#[cfg(test)]
+mod formatting_tests {
+    use super::Num;
+    use alloc::format;
+
+    #[test_case]
+    fn formats_whole_numbers_correctly(_gba: &mut crate::Gba) {
+        let a = Num::<i32, 8>::new(-4i32);
+
+        assert_eq!(format!("{}", a), "-4");
+    }
+
+    #[test_case]
+    fn formats_fractions_correctly(_gba: &mut crate::Gba) {
+        let a = Num::<i32, 8>::new(5);
+        let two = Num::<i32, 8>::new(4);
+        let minus_one = Num::<i32, 8>::new(-1);
+
+        let b: Num<i32, 8> = a / two;
+        let c: Num<i32, 8> = b * minus_one;
+
+        assert_eq!(b + c, 0.into());
+        assert_eq!(format!("{}", b), "1.25");
+        assert_eq!(format!("{}", c), "-1.25");
+    }
 }
 
 impl<T: Number> AddAssign<Self> for Vector2D<T> {
