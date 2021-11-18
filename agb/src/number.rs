@@ -454,13 +454,19 @@ fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let integral = self.0 >> N;
+        let mut integral = self.0 >> N;
         let mask: I = (I::one() << N) - I::one();
+
+        let mut fractional = self.0 & mask;
+
+        if fractional != I::zero() && integral < I::zero() {
+            integral = integral + I::one();
+            fractional = (I::one() << N) - fractional;
+        }
 
         write!(f, "{}", integral)?;
 
-        let mut fractional = self.0 & mask;
-        if fractional & mask != I::zero() {
+        if fractional != I::zero() {
             write!(f, ".")?;
         }
 
@@ -562,7 +568,7 @@ mod formatting_tests {
     use alloc::format;
 
     #[test_case]
-    fn formats_numbers_correctly(_gba: &mut crate::Gba) {
+    fn formats_whole_numbers_correctly(_gba: &mut crate::Gba) {
         let a = Num::<i32, 8>::new(-4i32);
 
         assert_eq!(format!("{}", a), "-4");
@@ -577,6 +583,7 @@ mod formatting_tests {
         let b: Num<i32, 8> = a / two;
         let c: Num<i32, 8> = b * minus_one;
 
+        assert_eq!(b + c, 0.into());
         assert_eq!(format!("{}", b), "1.25");
         assert_eq!(format!("{}", c), "-1.25");
     }
