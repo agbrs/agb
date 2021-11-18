@@ -315,7 +315,7 @@ pub struct Mutex<T> {
 #[non_exhaustive]
 pub struct Key();
 
-unsafe impl<T> Send for Mutex<T> {}
+unsafe impl<T: Send> Send for Mutex<T> {}
 unsafe impl<T> Sync for Mutex<T> {}
 
 impl<T> Mutex<T> {
