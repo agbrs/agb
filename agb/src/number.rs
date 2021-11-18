@@ -459,6 +459,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
 
         let mut fractional = self.0 & mask;
 
+        // Negative fix nums are awkward to print if they have non zero fractional part.
+        // This is because you can think of them as `number + non negative fraction`.
+        //
+        // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
+        // So we have to add 1 to the integral bit, and take 1 - fractional bit
         if fractional != I::zero() && integral < I::zero() {
             integral = integral + I::one();
             fractional = (I::one() << N) - fractional;
