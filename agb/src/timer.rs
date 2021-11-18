@@ -60,7 +60,7 @@ impl<const N: usize> Timer<N> {
         Self {}
     }
 
-    pub fn set_overflow_amount(&self, n: u16) {
+    pub fn set_overflow_amount(&mut self, n: u16) {
         let count_up_value = 0u16.wrapping_sub(n);
         self.data_register().set(count_up_value);
     }
