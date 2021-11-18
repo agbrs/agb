@@ -2,6 +2,7 @@ use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
 use crate::number::Num;
+use crate::timer::Timer;
 
 // Defined in mixer.s
 extern "C" {
@@ -22,21 +23,25 @@ pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
+
+    timer: Timer,
 }
 
 pub struct ChannelId(usize, i32);
 
 impl Mixer {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(timer: Timer) -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
             channels: Default::default(),
             indices: Default::default(),
+
+            timer,
         }
     }
 
-    pub fn enable(&self) {
-        hw::set_timer_counter_for_frequency_and_enable(SOUND_FREQUENCY);
+    pub fn enable(&mut self) {
+        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, SOUND_FREQUENCY);
         hw::set_sound_control_register_for_mixer();
     }
 

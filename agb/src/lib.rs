@@ -63,7 +63,7 @@ pub struct Gba {
     pub display: display::Display,
     pub sound: sound::dmg::Sound,
     pub mixer: sound::mixer::MixerController,
-    pub timer: timer::TimerController,
+    pub timers: timer::TimerController,
 }
 
 impl Gba {
@@ -76,7 +76,7 @@ impl Gba {
             display: display::Display::new(),
             sound: sound::dmg::Sound::new(),
             mixer: sound::mixer::MixerController::new(),
-            timer: timer::TimerController::new(),
+            timers: timer::TimerController::new(),
         }
     }
 }

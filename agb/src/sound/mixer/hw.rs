@@ -1,4 +1,5 @@
 use crate::memory_mapped::MemoryMapped;
+use crate::timer::Timer;
 
 const fn dma_source_addr(dma: usize) -> usize {
     0x0400_00b0 + 0x0c * dma
@@ -23,10 +24,6 @@ const DMA2_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(dma_control_a
 
 const FIFOA_DEST_ADDR: u32 = 0x0400_00a0;
 const FIFOB_DEST_ADDR: u32 = 0x0400_00a4;
-
-// Similarly for proper timer support
-const TIMER0_COUNTER: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0100) };
-const TIMER0_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0102) };
 
 const SOUND_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0082) };
 const SOUND_CONTROL_X: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0084) };
@@ -94,9 +91,7 @@ pub(super) fn set_sound_control_register_for_mixer() {
     SOUND_CONTROL_X.set(1 << 7);
 }
 
-pub(super) fn set_timer_counter_for_frequency_and_enable(frequency: i32) {
-    let counter = 65536 - (16777216 / frequency);
-    TIMER0_COUNTER.set(counter as u16);
-
-    TIMER0_CONTROL.set(1 << 7); // enable the timer
+pub(super) fn set_timer_counter_for_frequency_and_enable(timer: &mut Timer, frequency: i32) {
+    timer.set_overflow_amount((16777216 / frequency) as u16);
+    timer.set_enabled(true);
 }
