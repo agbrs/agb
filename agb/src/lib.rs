@@ -174,6 +174,12 @@ mod test {
     }
 
     #[test_case]
+    fn gba_struct_is_zero_sized(_gba: &mut Gba) {
+        use core::mem;
+        assert_eq!(mem::size_of::<Gba>(), 0);
+    }
+
+    #[test_case]
     fn wait_30_frames(_gba: &mut Gba) {
         let vblank = crate::interrupt::VBlank::get();
         let mut counter = 0;
