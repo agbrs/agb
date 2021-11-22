@@ -41,7 +41,7 @@ impl<'a> Mixer<'a> {
     }
 
     pub fn enable(&mut self) {
-        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, SOUND_FREQUENCY);
+        hw::set_timer_counter_for_frequency_and_enable(self.timer, SOUND_FREQUENCY);
         hw::set_sound_control_register_for_mixer();
     }
 
