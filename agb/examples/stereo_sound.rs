@@ -14,7 +14,7 @@ fn main() -> ! {
     let mut gba = Gba::new();
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut timer_controller = gba.timers;
+    let mut timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer1;
     timer.set_enabled(true);
 

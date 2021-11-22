@@ -33,20 +33,21 @@ impl Divider {
     }
 }
 
+#[non_exhaustive]
 pub struct Timer {
     timer_number: u16,
 }
 
 #[non_exhaustive]
-pub struct TimerController {
+pub struct Timers {
     pub timer0: Timer,
     pub timer1: Timer,
     pub timer2: Timer,
     pub timer3: Timer,
 }
 
-impl TimerController {
-    pub(crate) const unsafe fn new() -> Self {
+impl Timers {
+    pub(crate) unsafe fn new() -> Self {
         Self {
             timer0: Timer::new(0),
             timer1: Timer::new(1),
@@ -57,8 +58,12 @@ impl TimerController {
 }
 
 impl Timer {
-    const unsafe fn new(timer_number: u16) -> Self {
-        Self { timer_number }
+    unsafe fn new(timer_number: u16) -> Self {
+        let new_timer = Self { timer_number };
+        new_timer.data_register().set(0);
+        new_timer.control_register().set(0);
+
+        new_timer
     }
 
     pub fn set_overflow_amount(&mut self, n: u16) {
@@ -95,5 +100,18 @@ impl Timer {
 
     fn get_timer_number(&self) -> usize {
         self.timer_number as usize
+    }
+}
+
+#[non_exhaustive]
+pub struct TimerController {}
+
+impl TimerController {
+    pub(crate) const fn new() -> Self {
+        Self {}
+    }
+
+    pub fn timers(&mut self) -> Timers {
+        unsafe { Timers::new() }
     }
 }
