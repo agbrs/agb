@@ -19,18 +19,18 @@ extern "C" {
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
 }
 
-pub struct Mixer {
+pub struct Mixer<'a> {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
 
-    timer: Timer,
+    timer: &'a mut Timer,
 }
 
 pub struct ChannelId(usize, i32);
 
-impl Mixer {
-    pub(super) fn new(timer: Timer) -> Self {
+impl<'a> Mixer<'a> {
+    pub(super) fn new(timer: &'a mut Timer) -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
             channels: Default::default(),

@@ -15,7 +15,7 @@ impl MixerController {
         MixerController {}
     }
 
-    pub fn mixer(&mut self, timer: Timer) -> Mixer {
+    pub fn mixer<'a>(&mut self, timer: &'a mut Timer) -> Mixer<'a> {
         Mixer::new(timer)
     }
 }

@@ -14,11 +14,11 @@ fn main() -> ! {
     let mut gba = Gba::new();
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let timer_controller = gba.timers;
+    let mut timer_controller = gba.timers;
     let mut timer = timer_controller.timer1;
     timer.set_enabled(true);
 
-    let mut mixer = gba.mixer.mixer(timer_controller.timer0);
+    let mut mixer = gba.mixer.mixer(&mut timer_controller.timer0);
     mixer.enable();
 
     let mut channel = SoundChannel::new(LET_IT_IN);
