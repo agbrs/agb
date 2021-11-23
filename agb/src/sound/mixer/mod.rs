@@ -5,6 +5,7 @@ pub use sw_mixer::ChannelId;
 pub use sw_mixer::Mixer;
 
 use crate::number::Num;
+use crate::timer::Timer;
 
 #[non_exhaustive]
 pub struct MixerController {}
@@ -14,8 +15,8 @@ impl MixerController {
         MixerController {}
     }
 
-    pub fn mixer(&mut self) -> Mixer {
-        Mixer::new()
+    pub fn mixer<'a>(&mut self, timer: &'a mut Timer) -> Mixer<'a> {
+        Mixer::new(timer)
     }
 }
 

@@ -39,6 +39,8 @@ mod single;
 pub mod sound;
 /// System BIOS calls / syscalls.
 pub mod syscall;
+/// Interactions with the internal timers
+pub mod timer;
 
 #[cfg(not(test))]
 use core::fmt::Write;
@@ -61,6 +63,7 @@ pub struct Gba {
     pub display: display::Display,
     pub sound: sound::dmg::Sound,
     pub mixer: sound::mixer::MixerController,
+    pub timers: timer::TimerController,
 }
 
 impl Gba {
@@ -73,6 +76,7 @@ impl Gba {
             display: display::Display::new(),
             sound: sound::dmg::Sound::new(),
             mixer: sound::mixer::MixerController::new(),
+            timers: timer::TimerController::new(),
         }
     }
 }
@@ -167,6 +171,12 @@ mod test {
     #[test_case]
     fn trivial_test(_gba: &mut Gba) {
         assert_eq!(1, 1);
+    }
+
+    #[test_case]
+    fn gba_struct_is_zero_sized(_gba: &mut Gba) {
+        use core::mem;
+        assert_eq!(mem::size_of::<Gba>(), 0);
     }
 
     #[test_case]
