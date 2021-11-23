@@ -1,7 +1,7 @@
 # Introduction
 
-**agb** is a library for writing games for the Gameboy Advance (GBA) in rust.
-It is intended to make the process of producing games for the Gameboy Advance as easy as possible by giving you access to the hardware in an abstracted format, which allows you to take advantage of all that it has to offer, without needing to know the specifics of how it is implemented.
+**agb** is a library for writing games for the Game Boy Advance (GBA) in rust.
+It is intended to make the process of producing games for the Game Boy Advance as easy as possible by giving you access to the hardware in an abstracted format, which allows you to take advantage of all that it has to offer, without needing to know the specifics of how it is implemented.
 
 # What is in this book?
 
