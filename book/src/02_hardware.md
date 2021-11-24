@@ -27,7 +27,7 @@ The relevant features for this book are:
 * Background tiles, 8x8 pixel tiles are used in the background layers if they are in tile mode.
 * 8-bit sound. You have the ability to send 8-bit raw audio data to the speakers (optionally stereo).
 
-You can read more about the GBA on [gbatek](https://rust-console.github.io/gbatek-gbaonly/).
+You can read more about the specifics of the GBA on [gbatek](https://rust-console.github.io/gbatek-gbaonly/).
 
 agb tries to abstract some of this away from you to give you less to remember and less that can go wrong.
 If you want to try playing around directly with the hardware, the best place to look is [tonc](https://www.coranac.com/tonc/text/).
