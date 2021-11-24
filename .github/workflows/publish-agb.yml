@@ -19,3 +19,9 @@ jobs:
       - name: Publish agb
         run: cargo publish
         working-directory: ./agb
+
+      - name: Update template repo
+        env:
+          GITHUB_USERNAME: gwilymk
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        run: bash .github/scripts/update-template-repo.sh
