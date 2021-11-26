@@ -1,0 +1,6 @@
+[book]
+authors = ["Gwilym Kuiper", "Corwin Kuiper"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The agb book"
