@@ -15,8 +15,6 @@ lto = true
 debug = true
 
 [features]
-default = ["alloc"]
-alloc = []
 freq18157 = ["agb_sound_converter/freq18157"]
 
 [dependencies]

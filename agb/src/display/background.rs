@@ -1,9 +1,10 @@
-use core::ops::Index;
-
 use crate::{
+    bitarray::Bitarray,
     memory_mapped::{MemoryMapped, MemoryMapped1DArray},
     number::{Rect, Vector2D},
 };
+use alloc::Vec;
+use core::{cell::RefCell, ops::Index};
 
 use super::{
     palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority,
@@ -31,7 +32,76 @@ pub enum BackgroundSize {
     S64x64 = 3,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Clone, Copy)]
+pub struct Tile(u16);
+
+impl Tile {
+    pub fn get_tile_id(self) -> u16 {
+        self.0 & ((1 << 10) - 1)
+    }
+
+    pub fn get_hflip(self) -> bool {
+        (self.0 >> 0xA) & 1 != 0
+    }
+
+    pub fn get_vflip(self) -> bool {
+        (self.0 >> 0xB) & 1 != 0
+    }
+
+    pub fn get_palbank(self) -> u16 {
+        self.0 >> 0xC
+    }
+
+    pub fn from(a: u16) -> Tile {
+        Tile(a)
+    }
+}
+
+struct ScreenBlock<'a> {
+    blocks: &'a RefCell<Bitarray<1>>,
+    index: u8,
+    length: u8,
+}
+
+struct ScreenBlockDistributor {
+    blocks: RefCell<Bitarray<1>>,
+}
+
+struct BackgroundRegister<'a> {
+    screenblock: ScreenBlock<'a>,
+    background: u8,
+    shadow_register: u16,
+}
+
+struct TileBytes {}
+
+struct TileManager<'a> {
+    blocks: ScreenBlock<'a>,
+    tiles: &'static [TileBytes],
+    ram_to_rom: Vec<u16>,
+    rom_to_ram: Vec<u16>,
+    reference_count: Vec<u16>,
+    first_free: u16,
+}
+
+impl BackgroundRegister<'_> {
+    fn new(block: ScreenBlock, background_index: u8) {}
+
+    pub fn set_priority(&mut self, p: Priority) {}
+    pub fn set_base_block(&mut self, b: u8) {}
+    pub fn set_colour_mode(&mut self, mode: u8) {}
+    pub fn set_background_size(&mut self, b: BackgroundSize) {}
+    pub fn set_tile_slot(&mut self, t: Tile, x: u8, y: u8) {}
+    pub fn set_tile(&mut self, t: TileName, m: &mut TileManager, x: u8, y: u8) {}
+    pub fn get_tile_slot(&self, x: u8, y: u8) -> Tile {}
+    pub fn commit(&self) {}
+}
+
+struct ManagedBackground<'a> {
+    screenblock: ScreenBlock<'a>,
+    size: BackgroundSize,
+}
+
 enum Mutability {
     Immutable,
     Mutable,
