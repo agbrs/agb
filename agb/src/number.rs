@@ -2,8 +2,8 @@ use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
     fmt::{Debug, Display},
     ops::{
-        Add, AddAssign, BitAnd, BitOr, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign,
-        Shl, Shr, Sub, SubAssign,
+        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
+        Sub, SubAssign,
     },
 };
 
@@ -40,7 +40,6 @@ pub trait FixedWidthUnsignedInteger:
     + Sub<Output = Self>
     + Not<Output = Self>
     + BitAnd<Output = Self>
-    + BitOr<Output = Self>
     + Rem<Output = Self>
     + Div<Output = Self>
     + Mul<Output = Self>
