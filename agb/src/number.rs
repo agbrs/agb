@@ -2,8 +2,8 @@ use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
     fmt::{Debug, Display},
     ops::{
-        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
-        Sub, SubAssign,
+        Add, AddAssign, BitAnd, BitOr, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign,
+        Shl, Shr, Sub, SubAssign,
     },
 };
 
@@ -40,6 +40,7 @@ pub trait FixedWidthUnsignedInteger:
     + Sub<Output = Self>
     + Not<Output = Self>
     + BitAnd<Output = Self>
+    + BitOr<Output = Self>
     + Rem<Output = Self>
     + Div<Output = Self>
     + Mul<Output = Self>
@@ -50,6 +51,7 @@ pub trait FixedWidthUnsignedInteger:
     fn zero() -> Self;
     fn one() -> Self;
     fn ten() -> Self;
+    fn from_as_i32(v: i32) -> Self;
 }
 
 pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self> {
@@ -67,6 +69,9 @@ macro_rules! fixed_width_unsigned_integer_impl {
             }
             fn ten() -> Self {
                 10
+            }
+            fn from_as_i32(v: i32) -> Self {
+                v as $T
             }
         }
     };
@@ -291,6 +296,56 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     pub fn new(integral: I) -> Self {
         Self(integral << N)
     }
+
+    pub fn new_from_parts(num: (i32, i32)) -> Self {
+        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    }
+}
+
+#[macro_export]
+macro_rules! num {
+    ($value:literal) => {{
+        $crate::number::Num::new_from_parts(agb_macros::num!($value))
+    }};
+}
+
+#[test_case]
+fn test_macro_conversion(_gba: &mut super::Gba) {
+    fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
+        let a: Num<A, B> = num!(1.5);
+        let one = A::one() << B;
+        let b = Num::from_raw(one + (one >> 1));
+
+        assert_eq!(a, b);
+    }
+
+    fn test_negative<A: FixedWidthSignedInteger, const B: usize>() {
+        let a: Num<A, B> = num!(-1.5);
+        let one = A::one() << B;
+        let b = Num::from_raw(one + (one >> 1));
+
+        assert_eq!(a, -b);
+    }
+
+    fn test_base<const B: usize>() {
+        test_positive::<i32, 8>();
+        test_positive::<i16, 8>();
+        test_positive::<u32, 8>();
+        test_positive::<u16, 8>();
+
+        test_negative::<i32, 8>();
+        test_negative::<i16, 8>();
+    }
+    // some nice powers of two
+    test_base::<8>();
+    test_base::<4>();
+    test_base::<16>();
+    // not a power of two
+    test_base::<10>();
+    // an odd number
+    test_base::<9>();
+    // and a prime
+    test_base::<11>();
 }
 
 impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
