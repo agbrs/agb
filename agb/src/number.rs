@@ -327,13 +327,15 @@ fn test_macro_conversion(_gba: &mut super::Gba) {
     }
 
     fn test_base<const B: usize>() {
-        test_positive::<i32, 8>();
-        test_positive::<i16, 8>();
-        test_positive::<u32, 8>();
-        test_positive::<u16, 8>();
+        test_positive::<i32, B>();
+        test_positive::<u32, B>();
+        test_negative::<i32, B>();
 
-        test_negative::<i32, 8>();
-        test_negative::<i16, 8>();
+        if B < 16 {
+            test_positive::<u16, B>();
+            test_positive::<i16, B>();
+            test_negative::<i16, B>();
+        }
     }
     // some nice powers of two
     test_base::<8>();
