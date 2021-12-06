@@ -7,8 +7,6 @@ use core::{
     },
 };
 
-use crate::syscall;
-
 pub trait Number:
     Sized
     + Copy
