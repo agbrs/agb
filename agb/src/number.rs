@@ -703,6 +703,15 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     }
 }
 
+#[test_case]
+fn magnitude_accuracy(_gba: &mut crate::Gba) {
+    let n: Vector2D<Num<i32, 16>> = (3, 4).into();
+    assert!((n.magnitude() - 5).abs() < num!(0.1));
+
+    let n: Vector2D<Num<i32, 8>> = (3, 4).into();
+    assert!((n.magnitude() - 5).abs() < num!(0.1));
+}
+
 impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
     fn from(f: (P, P)) -> Self {
         Vector2D::new(f.0.into(), f.1.into())
