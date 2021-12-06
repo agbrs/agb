@@ -378,13 +378,6 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     }
 }
 
-impl<const N: usize> Num<i32, N> {
-    pub fn sqrt(self) -> Self {
-        assert_eq!(N % 2, 0, "N must be even to be able to square root");
-        Self(syscall::sqrt(self.0) << (N / 2))
-    }
-}
-
 #[test_case]
 fn test_numbers(_gba: &mut super::Gba) {
     // test addition
@@ -696,9 +689,17 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
         self.x.abs() + self.y.abs()
     }
 
+    // calculates the magnitude of a vector using the alpha max plus beta min
+    // algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
+    // this has a maximum error of less than 4% of the true magnitude, probably
+    // depending on the size of your fixed point approximation
     pub fn magnitude(self) -> Num<i32, N> {
-        self.magnitude_squared().sqrt()
+        let max = core::cmp::max(self.x, self.y);
+        let min = core::cmp::min(self.x, self.y);
+
+        max * num!(0.960433870103) + min * num!(0.397824734759)
     }
+
     pub fn normalise(self) -> Self {
         self / self.magnitude()
     }
