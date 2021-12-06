@@ -7,6 +7,13 @@ use core::{
     },
 };
 
+#[macro_export]
+macro_rules! num {
+    ($value:literal) => {{
+        $crate::number::Num::new_from_parts(agb_macros::num!($value))
+    }};
+}
+
 pub trait Number:
     Sized
     + Copy
@@ -299,11 +306,37 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 }
 
-#[macro_export]
-macro_rules! num {
-    ($value:literal) => {{
-        $crate::number::Num::new_from_parts(agb_macros::num!($value))
-    }};
+impl<const N: usize> Num<i32, N> {
+    pub fn sqrt(self) -> Self {
+        assert_eq!(N % 2, 0, "N must be even to be able to square root");
+        assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
+        let mut d = 1 << 30;
+        let mut x = self.0;
+        let mut c = 0;
+
+        while d > self.0 {
+            d >>= 2;
+        }
+
+        while d != 0 {
+            if x >= c + d {
+                x -= c + d;
+                c = (c >> 1) + d;
+            } else {
+                c >>= 1;
+            }
+            d >>= 2;
+        }
+        Self(c << (N / 2))
+    }
+}
+
+#[test_case]
+fn sqrt(_gba: &mut crate::Gba) {
+    for x in 1..1024 {
+        let n: Num<i32, 8> = Num::new(x * x);
+        assert_eq!(n.sqrt(), x.into());
+    }
 }
 
 #[test_case]
@@ -687,11 +720,15 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
         self.x.abs() + self.y.abs()
     }
 
+    pub fn magnitude(self) -> Num<i32, N> {
+        self.magnitude_squared().sqrt()
+    }
+
     // calculates the magnitude of a vector using the alpha max plus beta min
     // algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
     // this has a maximum error of less than 4% of the true magnitude, probably
     // depending on the size of your fixed point approximation
-    pub fn magnitude(self) -> Num<i32, N> {
+    pub fn fast_magnitude(self) -> Num<i32, N> {
         let max = core::cmp::max(self.x, self.y);
         let min = core::cmp::min(self.x, self.y);
 
@@ -700,6 +737,10 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
 
     pub fn normalise(self) -> Self {
         self / self.magnitude()
+    }
+
+    pub fn fast_normalise(self) -> Self {
+        self / self.fast_magnitude()
     }
 }
 
