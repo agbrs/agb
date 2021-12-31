@@ -7,7 +7,12 @@ use core::{
     },
 };
 
-use crate::syscall;
+#[macro_export]
+macro_rules! num {
+    ($value:literal) => {{
+        $crate::number::Num::new_from_parts(agb_macros::num!($value))
+    }};
+}
 
 pub trait Number:
     Sized
@@ -301,11 +306,37 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 }
 
-#[macro_export]
-macro_rules! num {
-    ($value:literal) => {{
-        $crate::number::Num::new_from_parts(agb_macros::num!($value))
-    }};
+impl<const N: usize> Num<i32, N> {
+    pub fn sqrt(self) -> Self {
+        assert_eq!(N % 2, 0, "N must be even to be able to square root");
+        assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
+        let mut d = 1 << 30;
+        let mut x = self.0;
+        let mut c = 0;
+
+        while d > self.0 {
+            d >>= 2;
+        }
+
+        while d != 0 {
+            if x >= c + d {
+                x -= c + d;
+                c = (c >> 1) + d;
+            } else {
+                c >>= 1;
+            }
+            d >>= 2;
+        }
+        Self(c << (N / 2))
+    }
+}
+
+#[test_case]
+fn sqrt(_gba: &mut crate::Gba) {
+    for x in 1..1024 {
+        let n: Num<i32, 8> = Num::new(x * x);
+        assert_eq!(n.sqrt(), x.into());
+    }
 }
 
 #[test_case]
@@ -375,13 +406,6 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         let one: Self = I::one().into();
         let four: I = 4.into();
         (self + one / four).cos()
-    }
-}
-
-impl<const N: usize> Num<i32, N> {
-    pub fn sqrt(self) -> Self {
-        assert_eq!(N % 2, 0, "N must be even to be able to square root");
-        Self(syscall::sqrt(self.0) << (N / 2))
     }
 }
 
@@ -699,9 +723,34 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     pub fn magnitude(self) -> Num<i32, N> {
         self.magnitude_squared().sqrt()
     }
+
+    // calculates the magnitude of a vector using the alpha max plus beta min
+    // algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
+    // this has a maximum error of less than 4% of the true magnitude, probably
+    // depending on the size of your fixed point approximation
+    pub fn fast_magnitude(self) -> Num<i32, N> {
+        let max = core::cmp::max(self.x, self.y);
+        let min = core::cmp::min(self.x, self.y);
+
+        max * num!(0.960433870103) + min * num!(0.397824734759)
+    }
+
     pub fn normalise(self) -> Self {
         self / self.magnitude()
     }
+
+    pub fn fast_normalise(self) -> Self {
+        self / self.fast_magnitude()
+    }
+}
+
+#[test_case]
+fn magnitude_accuracy(_gba: &mut crate::Gba) {
+    let n: Vector2D<Num<i32, 16>> = (3, 4).into();
+    assert!((n.magnitude() - 5).abs() < num!(0.1));
+
+    let n: Vector2D<Num<i32, 8>> = (3, 4).into();
+    assert!((n.magnitude() - 5).abs() < num!(0.1));
 }
 
 impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
