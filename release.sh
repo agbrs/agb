@@ -79,7 +79,7 @@ if [ "$PROJECT" = "agb" ]; then
     git add template/Cargo.toml
 
     for EXAMPLE_DIR in examples/*/; do
-        sed -i -e "/agb =/ s/version = \"[0-9.]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
+        sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
         (cd "$EXAMPLE_DIR" && cargo update)
         git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
     done
