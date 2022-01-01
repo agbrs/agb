@@ -19,7 +19,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi libelf-dev zip -y
     - uses: actions/checkout@v2
     - name: Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: |
           ~/.cargo/registry
