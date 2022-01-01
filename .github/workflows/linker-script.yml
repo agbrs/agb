@@ -1,6 +1,6 @@
 name: Enforce gba.ld consistency
 
-on: push
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,6 +9,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
       - name: Check if gba.ld files are identical
-        run: cmp --silent -- "agb/gba.ld" "template/gba.ld"
+        run: find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
       - name: Check if gba_mb.ld files are identical
-        run: cmp --silent -- "agb/gba_mb.ld" "template/gba_mb.ld"
+        run: find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
