@@ -761,11 +761,11 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 
         target_position.x = target_position.x.clamp(
             0,
-            ((self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32),
+            (self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32,
         );
         target_position.y = target_position.y.clamp(
             0,
-            ((self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32),
+            (self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32,
         );
 
         target_position.into()
