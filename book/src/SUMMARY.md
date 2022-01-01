@@ -9,3 +9,4 @@
         - [Mac OS setup]()
     - [Building the game](./setup/building.md)
 - [Learn agb part I - pong](./pong/01_introduction.md)
+    - [The Gba struct](./pong/02_the_gba_struct.md)
