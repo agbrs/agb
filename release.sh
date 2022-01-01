@@ -14,7 +14,7 @@ if [ "$VERSION" = "" ]; then
 fi
 
 # Check the format of version
-if [ ! "$(echo "$VERSION" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")" ]; then
+if echo "$VERSION" | grep -q -Ev "^[0-9]+\.[0-9]+\.[0-9]+$"; then
     echo "Version must be of the form x.y.z, got $VERSION"
     exit 1
 fi
@@ -55,7 +55,7 @@ case "$PROJECT" in
 esac
 
 # Check that no out-standing changes in git
-if [ ! -z "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain)" ]; then
     echo "Uncommitted changes, please commit first"
     exit 1
 fi
@@ -74,9 +74,15 @@ sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"
 
 if [ "$PROJECT" = "agb" ]; then
-    # also update the agb version in the template
+    # also update the agb version in the template and the examples
     sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
+
+    for EXAMPLE_DIR in examples/*/; do
+        sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
+        (cd "$EXAMPLE_DIR" && cargo update)
+        git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
+    done
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
     sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
@@ -90,13 +96,16 @@ fi
 (cd agb-image-converter && cargo test)
 (cd agb-sound-converter && cargo test)
 (cd agb-macros && cargo test)
+for EXAMPLE_DIR in examples/*/; do
+    (cd "$EXAMPLE_DIR" && cargo check --release)
+done
 
 if [ ! "$NO_COMMIT" = "--no-commit" ]; then
     # Commit the Cargo.toml changes
     git commit -m "Release $PROJECT v$VERSION"
 
     # Tag the version
-    git tag -a $TAGNAME -m "$PROJECT - v$VERSION"
+    git tag -a "$TAGNAME" -m "$PROJECT - v$VERSION"
 
     echo "Done! Push with"
     echo "git push --atomic origin master $TAGNAME"
