@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objecttypes>
+ <objecttype name="Win" color="#a0a0a4"/>
+ <objecttype name="Collision" color="#a0a0a4"/>
+ <objecttype name="Enemy Stop" color="#ffff00"/>
+ <objecttype name="Kill" color="#a0a0a4"/>
+ <objecttype name="Player Start" color="#ff0000"/>
+ <objecttype name="Slime Spawn" color="#00aa00"/>
+ <objecttype name="Snail Spawn" color="#55557f"/>
+</objecttypes>

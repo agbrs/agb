@@ -1,0 +1,17 @@
+[package]
+name = "joinedtogether"
+version = "0.1.0"
+authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Kuiper"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+agb = { version = "0.8.0", path = "../../agb", default-features = false }
+
+[build-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.dev]
+opt-level = 2
