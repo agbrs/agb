@@ -59,6 +59,7 @@ pub trait FixedWidthUnsignedInteger:
 }
 
 pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self> {
+    #[must_use]
     fn fixed_abs(self) -> Self;
 }
 
@@ -276,6 +277,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         self.0 / (I::one() << N)
     }
 
+    #[must_use]
     pub fn rem_euclid(self, rhs: Self) -> Self {
         let r = self % rhs;
         if r < I::zero().into() {
@@ -307,6 +309,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 }
 
 impl<const N: usize> Num<i32, N> {
+    #[must_use]
     pub fn sqrt(self) -> Self {
         assert_eq!(N % 2, 0, "N must be even to be able to square root");
         assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
@@ -387,6 +390,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
     /// domain of [0, 1].
     /// see https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226
+    #[must_use]
     pub fn cos(self) -> Self {
         let one: Self = I::one().into();
         let mut x = self;
@@ -402,6 +406,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         x
     }
 
+    #[must_use]
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
         let four: I = 4.into();
@@ -697,12 +702,15 @@ impl<T: Number> SubAssign<Self> for Vector2D<T> {
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    #[must_use]
     pub fn trunc(self) -> Vector2D<I> {
         Vector2D {
             x: self.x.trunc(),
             y: self.y.trunc(),
         }
     }
+
+    #[must_use]
     pub fn floor(self) -> Vector2D<I> {
         Vector2D {
             x: self.x.floor(),
@@ -712,14 +720,17 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
 }
 
 impl<const N: usize> Vector2D<Num<i32, N>> {
+    #[must_use]
     pub fn magnitude_squared(self) -> Num<i32, N> {
         self.x * self.x + self.y * self.y
     }
 
+    #[must_use]
     pub fn manhattan_distance(self) -> Num<i32, N> {
         self.x.abs() + self.y.abs()
     }
 
+    #[must_use]
     pub fn magnitude(self) -> Num<i32, N> {
         self.magnitude_squared().sqrt()
     }
@@ -728,6 +739,7 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     // algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
     // this has a maximum error of less than 4% of the true magnitude, probably
     // depending on the size of your fixed point approximation
+    #[must_use]
     pub fn fast_magnitude(self) -> Num<i32, N> {
         let max = core::cmp::max(self.x, self.y);
         let min = core::cmp::min(self.x, self.y);
@@ -735,10 +747,12 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
         max * num!(0.960433870103) + min * num!(0.397824734759)
     }
 
+    #[must_use]
     pub fn normalise(self) -> Self {
         self / self.magnitude()
     }
 
+    #[must_use]
     pub fn fast_normalise(self) -> Self {
         self / self.fast_magnitude()
     }
@@ -790,6 +804,7 @@ pub struct Rect<T: Number> {
 }
 
 impl<T: Number> Rect<T> {
+    #[must_use]
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
@@ -808,7 +823,8 @@ impl<T: Number> Rect<T> {
             && self.position.y + self.size.y > other.position.y
     }
 
-    pub fn overlapping_rect(&self, other: Rect<T>) -> Rect<T> {
+    #[must_use]
+    pub fn overlapping_rect(&self, other: Rect<T>) -> Self {
         fn max<E: Number>(x: E, y: E) -> E {
             if x > y {
                 x
@@ -862,15 +878,20 @@ impl<T: Number> Vector2D<T> {
     pub fn new(x: T, y: T) -> Self {
         Vector2D { x, y }
     }
+
     pub fn get(self) -> (T, T) {
         (self.x, self.y)
     }
+
+    #[must_use]
     pub fn hadamard(self, other: Self) -> Self {
         Self {
             x: self.x * other.x,
             y: self.y * other.y,
         }
     }
+
+    #[must_use]
     pub fn swap(self) -> Self {
         Self {
             x: self.y,
