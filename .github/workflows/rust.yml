@@ -29,6 +29,8 @@ jobs:
 
     - name: install mgba-test-runner
       run: cargo install --path mgba-test-runner --verbose
+    - name: Install gbafix
+      run: cargo install gbafix
     - name: Build agb library
       working-directory: agb
       run: cargo build --verbose
@@ -50,4 +52,6 @@ jobs:
     - name: Run Tests for agb in release mode
       working-directory: agb
       run: cargo test --verbose --release
+    - name: Build examples projects
+      run: bash .github/scripts/build-example-gba-files.sh
       
