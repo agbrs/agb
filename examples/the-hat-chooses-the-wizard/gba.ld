@@ -2,6 +2,7 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
 ENTRY(__start)
+EXTERN(__RUST_INTERRUPT_HANDLER)
 
 MEMORY {
     ewram (w!x) : ORIGIN = 0x02000000, LENGTH = 256K
@@ -100,6 +101,8 @@ SECTIONS {
     .debug_funcnames 0 : { *(.debug_funcnames) }
     .debug_typenames 0 : { *(.debug_typenames) }
     .debug_varnames  0 : { *(.debug_varnames) }
+
+    .debug_ranges   0 : { *(.debug_ranges) }
 
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }
