@@ -75,10 +75,11 @@ git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"
 
 if [ "$PROJECT" = "agb" ]; then
     # also update the agb version in the template and the examples
-    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml examples/*/Cargo.toml
+    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
 
     for EXAMPLE_DIR in examples/*/; do
+        sed -i -e "/agb =/ s/version = \"[0-9.]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
         (cd "$EXAMPLE_DIR" && cargo update)
         git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
     done
