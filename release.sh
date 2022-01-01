@@ -74,9 +74,14 @@ sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"
 
 if [ "$PROJECT" = "agb" ]; then
-    # also update the agb version in the template
-    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
+    # also update the agb version in the template and the examples
+    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml examples/*/Cargo.toml
     git add template/Cargo.toml
+
+    for EXAMPLE_DIR in examples/*/; do
+        (cd "$EXAMPLE_DIR" && cargo update)
+        git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
+    done
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
     sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
