@@ -59,14 +59,57 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
 
 static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { Gba::single_new() });
 
+/// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
+/// borrow checker's responsibility to ensure no clashes of global resources.
+///
+/// This is typically created once at the start of the main function and then the various fields are used
+/// to ensure mutually exclusive use of the various hardware registers. It provides a gateway into the main
+/// usage of `agb` library.
+///
+/// # Panics
+///
+/// Calling this twice will panic.
+///
+/// # Examples
+///
+/// ```
+/// #![no_std]
+/// #![no_main]
+///
+/// extern crate agb;
+///
+/// use agb::Gba;
+///
+/// #[agb::entry]
+/// fn main() -> ! {
+///     let mut gba = Gba::new();
+///
+///     // Do whatever you need to do with gba
+///
+///     loop {}
+/// }
+/// ```
+#[non_exhaustive]
 pub struct Gba {
+    /// Manages access to the Game Boy Advance's display hardware
     pub display: display::Display,
+    /// Manages access to the Game Boy Advance's beeps and boops sound hardware as part of the
+    /// original Game Boy's sound chip (the DMG).
     pub sound: sound::dmg::Sound,
+    /// Manages access to the Game Boy Advance's direct sound mixer for playing raw wav files.
     pub mixer: sound::mixer::MixerController,
+    /// Manages access to the Game Boy Advance's 4 timers.
     pub timers: timer::TimerController,
 }
 
 impl Gba {
+    /// Creates a new instance of the Gba struct.
+    ///
+    /// Note that you can only create 1 instance, and trying to create a second will panic.
+    ///
+    /// # Panics
+    ///
+    /// Panics if you try to create the second instance.
     pub fn new() -> Self {
         unsafe { GBASINGLE.take() }
     }
