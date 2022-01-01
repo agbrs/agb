@@ -12,7 +12,7 @@ function build_rom() {
     local GBA_FILE="target/$GAME_NAME.gba"
 
     pushd "examples/$GAME_NAME"
-    cargo build --release --verbose
+    cargo build --release --verbose --target thumbv4t-none-eabi
 
     arm-none-eabi-objcopy -O binary "target/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
     gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
