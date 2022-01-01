@@ -28,3 +28,11 @@ jobs:
 
       - name: Build the examples
         run: bash .github/scripts/build-example-gba-files.sh
+      - name: Upload examples to the release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: examples/target/examples.zip
+          asset_name: examples.zip
+          tag: ${{ github.ref }}
+          overwrite: true
