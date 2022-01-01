@@ -384,6 +384,7 @@ fn test_macro_conversion(_gba: &mut super::Gba) {
 }
 
 impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
+    #[must_use]
     pub fn abs(self) -> Self {
         Num(self.0.fixed_abs())
     }
