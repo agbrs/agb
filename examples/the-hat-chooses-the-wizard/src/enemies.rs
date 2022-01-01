@@ -28,13 +28,6 @@ pub enum EnemyUpdateState {
 }
 
 impl<'a> Enemy<'a> {
-    pub fn is_empty(&self) -> bool {
-        match self {
-            Enemy::Empty => true,
-            _ => false,
-        }
-    }
-
     pub fn new_slime(object: &'a ObjectControl, start_pos: Vector2D<FixedNumberType>) -> Self {
         Enemy::Slime(Slime::new(object, start_pos + (0, 1).into()))
     }
