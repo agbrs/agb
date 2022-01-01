@@ -7,8 +7,6 @@ extern crate alloc;
 mod rng;
 mod sfx;
 
-use core::borrow::Borrow;
-
 use alloc::vec::Vec;
 
 use rng::get_random;
@@ -1501,7 +1499,6 @@ impl<'a> Particle<'a> {
 enum GameStatus {
     Continue,
     Lost,
-    Won,
     RespawnAtBoss,
 }
 
@@ -2192,7 +2189,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.vblank();
             match game.advance_frame(&object, &mut sfx) {
                 GameStatus::Continue => {}
-                GameStatus::Lost | GameStatus::Won => {
+                GameStatus::Lost => {
                     break false;
                 }
                 GameStatus::RespawnAtBoss => {
