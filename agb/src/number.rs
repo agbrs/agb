@@ -865,12 +865,11 @@ impl<T: FixedWidthUnsignedInteger + core::iter::Step> Rect<T> {
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
         (self.position.x..=(self.position.x + self.size.x))
             .into_iter()
-            .map(move |x| {
+            .flat_map(move |x| {
                 (self.position.y..=(self.position.y + self.size.y))
                     .into_iter()
                     .map(move |y| (x, y))
             })
-            .flatten()
     }
 }
 
