@@ -52,6 +52,6 @@ jobs:
     - name: Run Tests for agb in release mode
       working-directory: agb
       run: cargo test --verbose --release
-    - name: Build examples projects
+    - name: Build example projects
       run: bash .github/scripts/build-example-gba-files.sh
       
