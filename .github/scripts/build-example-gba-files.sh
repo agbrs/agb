@@ -9,14 +9,13 @@ function build_rom() {
     local GAME_NAME="$1"
     local INTERNAL_NAME="$2"
 
-    local GBA_FILE="target/$GAME_NAME.gba"
+    local TARGET_FOLDER="${CARGO_TARGET_DIR:-target}"
+    local GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
 
     pushd "examples/$GAME_NAME"
     cargo build --release --verbose --target thumbv4t-none-eabi
 
-    find .
-
-    arm-none-eabi-objcopy -O binary "target/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
+    arm-none-eabi-objcopy -O binary "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
     gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
 
     cp -v "$GBA_FILE" "../$GAME_NAME.gba"
