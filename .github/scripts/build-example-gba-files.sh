@@ -14,7 +14,7 @@ function build_rom() {
     pushd "examples/$GAME_NAME"
     cargo build --release --verbose --target thumbv4t-none-eabi
 
-    find target
+    find .
 
     arm-none-eabi-objcopy -O binary "target/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
     gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
