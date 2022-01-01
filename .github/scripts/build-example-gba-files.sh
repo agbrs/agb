@@ -23,5 +23,9 @@ function build_rom() {
     popd
 }
 
+mkdir -p examples/target
+
 build_rom "the-purple-night" "PURPLENIGHT"
 build_rom "the-hat-chooses-the-wizard" "HATWIZARD"
+
+zip examples/target/examples.zip examples/*.gba
