@@ -1406,7 +1406,7 @@ impl ParticleData {
                 entity.sprite.set_tile_id((70 + *frame / 3) * 4);
 
                 *frame += 1;
-                return UpdateInstruction::None;
+                UpdateInstruction::None
             }
             ParticleData::Health(frame) => {
                 if *frame > 8 * 3 * 6 {

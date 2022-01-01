@@ -74,7 +74,7 @@ fn extract_tiles<'a>(layer: &'a tiled::LayerData) -> impl Iterator<Item = u16> +
         }
         _ => unimplemented!("cannot use infinite layer"),
     }
-    .map(|tileid| get_map_id(tileid))
+    .map(get_map_id)
 }
 
 fn get_map_id(tileid: u32) -> u16 {
@@ -103,5 +103,5 @@ fn get_spawn_locations<'a>(
     let xs = spawns.iter().map(|pos| pos.0).collect::<Vec<_>>();
     let ys = spawns.iter().map(|pos| pos.1).collect::<Vec<_>>();
 
-    return (xs.into_iter(), ys.into_iter());
+    (xs.into_iter(), ys.into_iter())
 }
