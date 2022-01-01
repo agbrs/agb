@@ -96,6 +96,9 @@ fi
 (cd agb-image-converter && cargo test)
 (cd agb-sound-converter && cargo test)
 (cd agb-macros && cargo test)
+for EXAMPLE_DIR in examples/*/; do
+    (cd "$EXAMPLE_DIR" && cargo check --release)
+done
 
 if [ ! "$NO_COMMIT" = "--no-commit" ]; then
     # Commit the Cargo.toml changes
