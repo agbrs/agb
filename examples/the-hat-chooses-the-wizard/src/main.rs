@@ -700,14 +700,14 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.player.update_frame(
             &self.input,
             self.timer,
-            &self.background.level,
+            self.background.level,
             &self.enemies,
             sfx_player,
         );
 
         for enemy in self.enemies.iter_mut() {
             match enemy.update(
-                &self.background.level,
+                self.background.level,
                 self.player.wizard.position,
                 self.player.hat_state,
                 self.timer,
@@ -731,7 +731,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         player_dead |= self
             .player
             .wizard
-            .killision_at_point(&self.background.level, self.player.wizard.position);
+            .killision_at_point(self.background.level, self.player.wizard.position);
         if player_dead {
             UpdateState::Dead
         } else if self
@@ -760,12 +760,12 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         let mut target_position = ((current_centre * 3 + new_target_position) / 4) - half_screen;
 
         target_position.x = target_position.x.clamp(
-            0.into(),
-            ((self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32).into(),
+            0,
+            ((self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32),
         );
         target_position.y = target_position.y.clamp(
-            0.into(),
-            ((self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32).into(),
+            0,
+            ((self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32),
         );
 
         target_position.into()
