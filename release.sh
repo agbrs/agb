@@ -14,7 +14,7 @@ if [ "$VERSION" = "" ]; then
 fi
 
 # Check the format of version
-if [ ! "$(echo "$VERSION" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")" ]; then
+if echo "$VERSION" | grep -q -Ev "^[0-9]+\.[0-9]+\.[0-9]+$"; then
     echo "Version must be of the form x.y.z, got $VERSION"
     exit 1
 fi
@@ -55,7 +55,7 @@ case "$PROJECT" in
 esac
 
 # Check that no out-standing changes in git
-if [ ! -z "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain)" ]; then
     echo "Uncommitted changes, please commit first"
     exit 1
 fi
@@ -105,7 +105,7 @@ if [ ! "$NO_COMMIT" = "--no-commit" ]; then
     git commit -m "Release $PROJECT v$VERSION"
 
     # Tag the version
-    git tag -a $TAGNAME -m "$PROJECT - v$VERSION"
+    git tag -a "$TAGNAME" -m "$PROJECT - v$VERSION"
 
     echo "Done! Push with"
     echo "git push --atomic origin master $TAGNAME"
