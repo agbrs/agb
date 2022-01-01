@@ -3,6 +3,7 @@
 In this section, we'll make a simple pong style game for the Game Boy Advance using `agb`.
 You will learn:
 
+* How to use tiled graphics modes.
 * How to import graphics using `agb`.
 * What Game Boy Advance sprites are and how to put them on the screen.
 * How to detect button input and react to it.
