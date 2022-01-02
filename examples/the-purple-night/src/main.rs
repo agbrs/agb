@@ -2185,8 +2185,9 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         start_at_boss = loop {
+            sfx.frame();
             vblank.wait_for_vblank();
-            sfx.vblank();
+            sfx.after_vblank();
             match game.advance_frame(&object, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {

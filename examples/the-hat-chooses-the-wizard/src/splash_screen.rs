@@ -52,12 +52,16 @@ pub fn show_splash_screen(
         ) {
             break;
         }
-        vblank.wait_for_vblank();
         if let Some(ref mut mixer) = mixer {
             if let Some(ref mut music_box) = music_box {
-                music_box.after_blank(mixer);
+                music_box.before_frame(mixer);
             }
-            mixer.vblank();
+            mixer.frame();
+        }
+        vblank.wait_for_vblank();
+
+        if let Some(ref mut mixer) = mixer {
+            mixer.after_vblank();
         }
     }
     splash_screen_display.hide();

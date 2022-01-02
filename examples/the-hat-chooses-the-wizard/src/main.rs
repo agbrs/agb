@@ -808,9 +808,10 @@ pub fn main() -> ! {
                 break;
             }
 
+            music_box.before_frame(&mut mixer);
+            mixer.frame();
             vblank.wait_for_vblank();
-            music_box.after_blank(&mut mixer);
-            mixer.vblank();
+            mixer.after_vblank();
 
             level_display::write_level(
                 &mut world_display,
@@ -820,9 +821,10 @@ pub fn main() -> ! {
 
             world_display.show();
 
+            music_box.before_frame(&mut mixer);
+            mixer.frame();
             vblank.wait_for_vblank();
-            music_box.after_blank(&mut mixer);
-            mixer.vblank();
+            mixer.after_vblank();
 
             let mut level = PlayingLevel::open_level(
                 &map_tiles::LEVELS[current_level as usize],
@@ -833,17 +835,21 @@ pub fn main() -> ! {
             );
             let mut level_load = level.load_1().step_by(24);
             for _ in 0..30 {
+                music_box.before_frame(&mut mixer);
+                mixer.frame();
                 vblank.wait_for_vblank();
-                music_box.after_blank(&mut mixer);
-                mixer.vblank();
+                mixer.after_vblank();
+
                 level_load.next();
             }
             level_load.count();
             let mut level_load = level.load_2().step_by(24);
             for _ in 0..30 {
+                music_box.before_frame(&mut mixer);
+                mixer.frame();
                 vblank.wait_for_vblank();
-                music_box.after_blank(&mut mixer);
-                mixer.vblank();
+                mixer.after_vblank();
+
                 level_load.next();
             }
             level_load.count();
@@ -857,9 +863,10 @@ pub fn main() -> ! {
                     UpdateState::Dead => {
                         level.dead_start();
                         while level.dead_update() {
+                            music_box.before_frame(&mut mixer);
+                            mixer.frame();
                             vblank.wait_for_vblank();
-                            music_box.after_blank(&mut mixer);
-                            mixer.vblank();
+                            mixer.after_vblank();
                         }
                         break;
                     }
@@ -868,9 +875,11 @@ pub fn main() -> ! {
                         break;
                     }
                 }
+
+                music_box.before_frame(&mut mixer);
+                mixer.frame();
                 vblank.wait_for_vblank();
-                music_box.after_blank(&mut mixer);
-                mixer.vblank();
+                mixer.after_vblank();
             }
         }
 
