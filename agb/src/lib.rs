@@ -14,6 +14,101 @@
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
 
+/// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
+///
+/// The macro expects to be linked to a `toml` file which contains a metadata about the image
+/// and a link to the png or bmp itself. See the examples below for a full definition of the format.
+///
+/// # The manifest file format
+///
+/// The following is an example of the toml file you would need to create. Generally you will
+/// find this in the `gfx` folder in the same level as the `src` folder (see the examples).
+///
+/// Suppose that the following is in `gfx/sprites.toml`.
+///
+/// ```toml
+/// version = "1.0" # version included for compatibility reasons
+///
+/// [images.objects]
+/// filename = "sprites.png"
+/// tile_size = "16x16"
+/// transparent_colour = "ff0044"
+/// ```
+///
+/// You then import this using:
+/// ```rust,ignore
+/// agb::include_gfx!("gfx/sprites.toml");
+/// ```
+///
+/// This will generate something along the lines of the following:
+///
+/// ```
+/// // module name comes from the name of the toml file, so `sprites` in this case because it is
+/// // called `sprites.toml`
+/// mod sprites {
+///     const objects = /* ... */;
+/// }
+/// ```
+///
+/// And objects will be an instance of [`TileData`][crate::display::tile_data::TileData]
+///
+/// # Examples
+///
+/// ## Loading sprites:
+///
+/// In `gfx/sprites.toml`:
+/// ```toml
+/// version = "1.0"
+///
+/// [image.sprites]
+/// filename = "sprites.png"
+/// tile_size = "16x16"
+/// transparent_colour = "ff0044"
+/// ```
+///
+/// In `src/main.rs`
+/// ```
+/// mod gfx {
+///     use agb::display::object::ObjectControl;
+///
+///     // Import the sprites into this module. This will create a `sprites` module
+///     // and within that will be a constant called `sprites` which houses all the
+///     // palette and tile data.
+///     agb::include_gfx!("gfx/sprites.toml");
+///
+///     // Loads the sprites tile data and palette data into VRAM
+///     pub fn load_sprite_data(object: &mut ObjectControl) {
+///         object.set_sprite_palettes(sprites::sprites.palettes);
+///         object.set_sprite_tilemap(sprites::sprites.tiles);
+///     }
+/// }
+/// ```
+///
+/// ## Loading tiles:
+///
+/// In `gfx/tiles.toml`:
+/// ```toml
+/// version = "1.0"
+///
+/// [image.background]
+/// filename = "tile_sheet.png"
+/// tile_size = "8x8"
+/// transparent_colour = "2ce8f4"
+/// ```
+///
+/// In `src/main.rs`:
+/// ```
+/// mod gfx {
+///     use agb::display::background::BackgroundDistributor;
+///
+///     agb::include_gfx!("gfx/tile_sheet.toml");
+///
+///     pub fn load_tile_sheet(tiled: &mut BackgroundDistributor) {
+///         tiled.set_background_palettes(tile_sheet::background.palettes);
+///         tiled.set_background_tilemap(tile_sheet::background.tiles);
+///     }
+/// }
+/// ```
 pub use agb_image_converter::include_gfx;
 pub use agb_macros::entry;
 pub use agb_sound_converter::include_wav;
