@@ -14,8 +14,22 @@
 // up correctly.
 extern crate agb;
 
+use agb::Gba;
+
+// Put all the graphics related code in the gfx module
 mod gfx {
+    use agb::display::object::ObjectControl;
+
+    // Import the sprites into this module. This will create a `sprites` module
+    // and within that will be a constant called `sprites` which houses all the
+    // palette and tile data.
     agb::include_gfx!("gfx/sprites.toml");
+
+    // Loads the sprites tile data and palette data into VRAM
+    pub fn load_sprite_data(object: &mut ObjectControl) {
+        object.set_sprite_palettes(sprites::sprites.palettes);
+        object.set_sprite_tilemap(sprites::sprites.tiles);
+    }
 }
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
@@ -23,11 +37,10 @@ mod gfx {
 // and interrupt handlers correctly.
 #[agb::entry]
 fn main() -> ! {
-    let mut gba = agb::Gba::new();
+    let mut gba = Gba::new();
 
     let mut object = gba.display.object.get();
-    object.set_sprite_palettes(gfx::sprites::sprites.palettes);
-    object.set_sprite_tilemap(gfx::sprites::sprites.tiles);
+    gfx::load_sprite_data(&mut object);
 
     loop {}
 }
