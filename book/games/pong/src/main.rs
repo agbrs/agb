@@ -53,7 +53,26 @@ fn main() -> ! {
         .set_tile_id(4 * 2)
         .show();
 
-    ball.commit();
+    let mut ball_x = 50;
+    let mut ball_y = 50;
+    let mut x_velocity = 1;
+    let mut y_velocity = 1;
 
-    loop {}
+    loop {
+        ball_x = (ball_x + x_velocity).clamp(0, agb::display::WIDTH - 16);
+        ball_y = (ball_y + y_velocity).clamp(0, agb::display::HEIGHT - 16);
+
+        if ball_x == 0 || ball_x == agb::display::WIDTH - 16 {
+            x_velocity = -x_velocity;
+        }
+
+        if ball_y == 0 || ball_y == agb::display::HEIGHT - 16 {
+            y_velocity = -y_velocity;
+        }
+
+        ball.set_x(ball_x as u16).set_y(ball_y as u16);
+
+        agb::display::busy_wait_for_vblank();
+        ball.commit();
+    }
 }

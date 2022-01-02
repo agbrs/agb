@@ -90,7 +90,7 @@ mod gfx {
 
 This uses the `include_gfx!` macro which loads the sprite information file and grabs the relevant tile data from there.
 
-Now, let's put this on screen by firstly creating the object manager
+Now, let's put this on screen by firstly creating the object manager and loading the sprite data from above:
 
 ```rust
 let mut gba = Gba::new();
@@ -104,3 +104,72 @@ let mut object = gba.display.object.get();
 gfx::load_sprite_data(&mut object);
 object.enable();
 ```
+
+Then, let's create the ball object and put it at 50, 50 on the screen:
+
+```rust
+// continued from above:
+let mut ball = object.get_object_standard(); // (1)
+
+ball.set_x(50)                               // (2)
+    .set_y(50)
+    .set_sprite_size(Size::S16x16)
+    .set_tile_id(4 * 2)
+    .show();
+
+ball.commit();                               // (3)
+```
+
+There are a few new things introduced here, so lets go through these 1 by 1.
+
+1. The first thing we're doing is creating a 'standard' object.
+These are of non-affine type.
+2. We now set some properties on the ball.
+The position and size are self explanatory.
+Interesting here is that the tile id is 4 * 2.
+This is because the tile id is calculated in 8x8 pixel chunks, and in our example we have 16x16 sprites so each sprite takes 4 tiles and this is the tile in position 2 on the tilesheet above (0 indexed).
+The final call to `.show()` will make it actually visible as sprites are hidden by default.
+3. The call to `.commit()` actually makes the change to object memory.
+Until `.commit()` is called, no changes you made will actually be visible.
+This is very handy because we might want to change sprite positions etc while the frame is rendering, and then move them in the short space of time we have before the next frame starts rendering (vblank).
+
+If you run this you should now see the ball for this pong game somewhere in the top left of the screen.
+
+# Making the sprite move
+
+As mentioned before, you should `.commit()` your sprites only during `vblank` which is the (very short) period of time nothing is being rendered to screen.
+`agb` provides a convenience function for waiting until this happens called `agb::display::busy_wait_for_vblank()`.
+You shouldn't use this is a real game (we'll do it properly later on), but for now we can use this to wait for the correct time to `commit` our sprites to memory.
+
+Making the sprite move 1 pixel every frame (so approximately 60 pixels per second) can be done as follows:
+
+```rust
+// replace the call to ball.commit() with the following:
+
+let mut ball_x = 50;
+let mut ball_y = 50;
+let mut x_velocity = 1;
+let mut y_velocity = 1;
+
+loop {
+    ball_x = (ball_x + x_velocity).clamp(0, agb::display::WIDTH - 16);
+    ball_y = (ball_y + y_velocity).clamp(0, agb::display::HEIGHT - 16);
+
+    if ball_x == 0 || ball_x == agb::display::WIDTH - 16 {
+        x_velocity = -x_velocity;
+    }
+
+    if ball_y == 0 || ball_y == agb::display::HEIGHT - 16 {
+        y_velocity = -y_velocity;
+    }
+
+    ball.set_x(ball_x as u16).set_y(ball_y as u16);
+
+    agb::display::busy_wait_for_vblank();
+    ball.commit();
+}
+```
+
+# What we did
+
+In this section, we covered why sprites are important, how to create and manage them using the `ObjectControl` in `agb` and make a ball bounce around the screen.
