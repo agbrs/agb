@@ -110,6 +110,28 @@
 /// }
 /// ```
 pub use agb_image_converter::include_gfx;
+/// This macro declares the entry point to your game written using `agb`.
+///
+/// It is already included in the template, but your `main` function must be annotated with `#[agb::entry]`, take no arguments and never return.
+/// Doing this will ensure that `agb` can correctly set up the environment to call your rust function on start up.
+///
+/// # Examples
+/// ```
+/// #![no_std]
+/// #![no_main]
+///
+/// // Required to set panic handlers
+/// extern crate agb;
+///
+/// use agb::Gba;
+///
+/// #[agb::entry]
+/// fn main() -> ! {
+///     let mut gba = Gba::new();
+///
+///     loop {}
+/// }
+/// ```
 pub use agb_macros::entry;
 pub use agb_sound_converter::include_wav;
 
