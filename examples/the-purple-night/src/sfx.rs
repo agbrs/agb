@@ -35,8 +35,12 @@ impl<'a> Sfx<'a> {
         Self { mixer, bgm: None }
     }
 
-    pub fn vblank(&mut self) {
-        self.mixer.vblank();
+    pub fn frame(&mut self) {
+        self.mixer.frame();
+    }
+
+    pub fn after_vblank(&mut self) {
+        self.mixer.after_vblank();
     }
 
     pub fn stop_music(&mut self) {

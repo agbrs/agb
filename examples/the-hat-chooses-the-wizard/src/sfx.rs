@@ -46,7 +46,7 @@ impl MusicBox {
         MusicBox { frame: 0 }
     }
 
-    pub fn after_blank(&mut self, mixer: &mut Mixer) {
+    pub fn before_frame(&mut self, mixer: &mut Mixer) {
         if self.frame == 0 {
             // play the introduction
             mixer.play_sound(SoundChannel::new_high_priority(music_data::INTRO_MUSIC));

@@ -29,7 +29,8 @@ fn main() -> ! {
     loop {
         vblank_provider.wait_for_vblank();
         let before_mixing_cycles = timer.get_value();
-        mixer.vblank();
+        mixer.after_vblank();
+        mixer.frame();
         let after_mixing_cycles = timer.get_value();
 
         frame_counter = frame_counter.wrapping_add(1);
