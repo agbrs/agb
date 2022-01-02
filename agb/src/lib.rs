@@ -282,9 +282,9 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     .unwrap();
 }
 
-#[no_mangle]
 #[cfg(test)]
-pub extern "C" fn main() -> ! {
+#[entry]
+fn agb_test_main() -> ! {
     test_main();
     loop {}
 }
