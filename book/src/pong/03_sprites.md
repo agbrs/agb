@@ -9,7 +9,7 @@ We'll briefly cover vblank and by the end of this section, you'll have a ball bo
 The Game Boy Advance has a 240x160px screen, with 15-bit RGB colour support.
 In order to manually set the colour for each pixel in the screen, you would need to update a total of 38,400 pixels per frame, or 2,304,000 pixels per second at 60 fps.
 With a 16MHz processor, that means you would need to be able to calculate 1 pixel every 8 clock cycles, which is pretty much impossible.
-You could get clever with how you update these pixels, but there is a much easier way which almost every game for the Game Boy Advance uses.
+You could get clever with how you update these pixels, but using the tools provided by the Game Boy Advance to put pixels on the screen, you'll have a much easier time.
 
 So there are 2 ways that the Game Boy Advance allows you to get these pixels on screen much more easily.
 Tiles and sprites.
