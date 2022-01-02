@@ -60,7 +60,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     });
 
     let module = quote! {
-        pub mod #module_name {
+        mod #module_name {
             const _: &[u8] = include_bytes!(#include_path);
 
             #(#image_code)*
