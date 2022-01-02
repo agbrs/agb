@@ -14,12 +14,20 @@
 // up correctly.
 extern crate agb;
 
+mod gfx {
+    agb::include_gfx!("gfx/sprites.toml");
+}
+
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly.
 #[agb::entry]
 fn main() -> ! {
     let mut gba = agb::Gba::new();
+
+    let mut object = gba.display.object.get();
+    object.set_sprite_palettes(gfx::sprites::sprites.palettes);
+    object.set_sprite_tilemap(gfx::sprites::sprites.tiles);
 
     loop {}
 }
