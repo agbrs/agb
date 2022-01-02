@@ -51,7 +51,8 @@ fn main() -> ! {
             }
         }
 
+        mixer.frame();
         vblank_provider.wait_for_vblank();
-        mixer.vblank();
+        mixer.after_vblank();
     }
 }
