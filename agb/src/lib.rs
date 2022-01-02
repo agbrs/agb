@@ -13,6 +13,8 @@
 //! programming language. It attempts to be a high level abstraction over the
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
+//!
+//! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
 
 /// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
 ///
@@ -247,6 +249,7 @@ impl Default for Gba {
     }
 }
 
+#[doc(hidden)]
 pub trait Testable {
     fn run(&self, gba: &mut Gba);
 }
@@ -283,6 +286,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[doc(hidden)]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let mut mgba = mgba::Mgba::new().unwrap();
     mgba.print(
