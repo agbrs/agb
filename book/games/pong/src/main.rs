@@ -51,8 +51,9 @@ fn main() -> ! {
         .set_y(50)
         .set_sprite_size(Size::S16x16)
         .set_tile_id(4 * 2)
-        .show()
-        .commit();
+        .show();
+
+    ball.commit();
 
     loop {}
 }

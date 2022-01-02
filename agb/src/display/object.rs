@@ -15,7 +15,30 @@ const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
 const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06010000) };
 
-/// Handles distributing objects and matricies along with operations that effect all objects.
+/// Handles distributing objects and matrices along with operations that effect all objects.
+/// You can create an instance of this using the Gba struct.
+///
+/// This handles distribution of sprites, ensuring that object ids are not reused and are
+/// returned to the pool once you're done handling them.
+///
+/// # Examples
+///
+/// ```
+/// # #![no_std]
+/// # #![no_main]
+/// #
+/// # extern crate agb;
+/// #
+/// # use agb::Gba;
+/// #
+/// # #[agb::entry]
+/// # fn main() -> ! {
+/// let mut gba = Gba::new();
+/// let mut object = gba.display.object.get();
+/// #
+/// #    loop {}
+/// # }
+/// ```
 pub struct ObjectControl {
     objects: RefCell<Bitarray<4>>,
     affines: AffineArena,
@@ -27,6 +50,41 @@ struct ObjectLoan<'a> {
 }
 
 /// The standard object, without rotation.
+///
+/// You should create this from an instance of ObjectControl created using the Gba struct. Note that
+/// no changes made to this will be visible until `commit()` is called. You should call `commit()` during
+/// vblank to ensure that you get no visual artifacts.
+///
+/// This struct implements a sort of builder pattern, allowing you to chain settings together.
+///
+/// # Examples
+///
+/// ```
+/// # #![no_std]
+/// # #![no_main]
+/// #
+/// # extern crate agb;
+/// #
+/// # use agb::Gba;
+/// use agb::display::object::Size;
+///
+/// # #[agb::entry]
+/// # fn main() -> ! {
+/// #    let mut gba = Gba::new();
+/// let mut object = gba.display.object.get();
+///
+/// let mut my_new_object = object.get_object_standard();
+/// my_new_object.set_x(50)
+///     .set_y(50)
+///     .set_sprite_Size(Size::S8x8)
+///     .set_tile_id(7)
+///     .show();
+///
+/// // some time later in vblank
+/// my_new_object.commit();
+/// #    loop {}
+/// # }
+/// ```
 pub struct ObjectStandard<'a> {
     attributes: ObjectAttribute,
     loan: ObjectLoan<'a>,
