@@ -47,15 +47,12 @@ fn main() -> ! {
 
     let mut ball = object.get_object_standard();
 
-    ball.set_x(50);
-    ball.set_y(50);
-
-    ball.set_sprite_size(Size::S16x16);
-
-    ball.set_tile_id(4 * 2);
-
-    ball.show();
-    ball.commit();
+    ball.set_x(50)
+        .set_y(50)
+        .set_sprite_size(Size::S16x16)
+        .set_tile_id(4 * 2)
+        .show()
+        .commit();
 
     loop {}
 }

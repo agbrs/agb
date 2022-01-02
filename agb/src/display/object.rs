@@ -91,49 +91,77 @@ impl ObjectStandard<'_> {
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u16) {
-        self.attributes.set_x(x)
-    }
-    /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u16) {
-        self.attributes.set_y(y)
-    }
-    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
-    pub fn set_tile_id(&mut self, id: u16) {
-        self.attributes.set_tile_id(id)
-    }
-    /// Sets whether the sprite is horizontally mirrored or not.
-    pub fn set_hflip(&mut self, hflip: bool) {
-        self.attributes.set_hflip(hflip)
-    }
-    /// Sets the sprite size, will read tiles in x major order to construct this.
-    pub fn set_sprite_size(&mut self, size: Size) {
-        self.attributes.set_size(size);
-    }
-    /// Show the object on screen.
-    pub fn show(&mut self) {
-        self.attributes.set_mode(Mode::Normal)
-    }
-    /// Hide the object and do not render.
-    pub fn hide(&mut self) {
-        self.attributes.set_mode(Mode::Hidden)
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.attributes.set_x(x);
+
+        self
     }
 
-    pub fn set_palette(&mut self, palette: u16) {
+    /// Sets the y coordinate of the sprite on screen.
+    pub fn set_y(&mut self, y: u16) -> &mut Self {
+        self.attributes.set_y(y);
+
+        self
+    }
+
+    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
+    pub fn set_tile_id(&mut self, id: u16) -> &mut Self {
+        self.attributes.set_tile_id(id);
+
+        self
+    }
+
+    /// Sets whether the sprite is horizontally mirrored or not.
+    pub fn set_hflip(&mut self, hflip: bool) -> &mut Self {
+        self.attributes.set_hflip(hflip);
+
+        self
+    }
+
+    /// Sets the sprite size, will read tiles in x major order to construct this.
+    pub fn set_sprite_size(&mut self, size: Size) -> &mut Self {
+        self.attributes.set_size(size);
+
+        self
+    }
+
+    /// Show the object on screen.
+    pub fn show(&mut self) -> &mut Self {
+        self.attributes.set_mode(Mode::Normal);
+
+        self
+    }
+
+    /// Hide the object and do not render.
+    pub fn hide(&mut self) -> &mut Self {
+        self.attributes.set_mode(Mode::Hidden);
+
+        self
+    }
+
+    /// Sets the palette to use for this sprite
+    pub fn set_palette(&mut self, palette: u16) -> &mut Self {
         self.attributes.set_palette(palette);
+
+        self
     }
 
     /// Sets the x and y position of the object, performing casts as nessesary
     /// to fit within the bits allocated for this purpose.
-    pub fn set_position(&mut self, position: Vector2D<i32>) {
+    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         let x = position.x as u16;
         let y = position.y as u16;
         self.attributes.set_x(x);
         self.attributes.set_y(y);
+
+        self
     }
 
-    pub fn set_priority(&mut self, p: Priority) {
-        self.attributes.set_priority(p)
+    /// Sets the priority (used for z ordering) of this sprite
+    pub fn set_priority(&mut self, p: Priority) -> &mut Self {
+        self.attributes.set_priority(p);
+
+        self
     }
 }
 

@@ -1578,24 +1578,24 @@ impl<'a> FollowingBoss<'a> {
             }
 
             let frame = (self.timer / 8) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4)
+            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
         } else if self.timer < 120 {
             let frame = (self.timer / 20) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4)
+            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
         } else if self.following {
             self.entity.velocity = difference / 16;
             if difference.manhattan_distance() < 20.into() {
                 self.following = false;
             }
             let frame = (self.timer / 8) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4)
+            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
         } else {
             self.entity.velocity = (0, 0).into();
             if difference.manhattan_distance() > 60.into() {
                 self.following = true;
             }
             let frame = (self.timer / 16) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4)
+            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
         }
         self.entity.update_position_without_collision();
     }
