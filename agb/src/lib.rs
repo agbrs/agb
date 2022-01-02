@@ -148,10 +148,12 @@ mod bitarray;
 pub mod display;
 /// Button inputs to the system.
 pub mod input;
+#[doc(hidden)] // hide for now as the implementation in here is unsound
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
+/// Implementation of fixnums for working with non-integer values.
 pub mod number;
 mod single;
 /// Implements sound output.
