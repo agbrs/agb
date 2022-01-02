@@ -14,6 +14,7 @@
 // up correctly.
 extern crate agb;
 
+use agb::display::object::Size;
 use agb::Gba;
 
 // Put all the graphics related code in the gfx module
@@ -39,8 +40,22 @@ mod gfx {
 fn main() -> ! {
     let mut gba = Gba::new();
 
+    let _tiled = gba.display.video.tiled0();
     let mut object = gba.display.object.get();
     gfx::load_sprite_data(&mut object);
+    object.enable();
+
+    let mut ball = object.get_object_standard();
+
+    ball.set_x(50);
+    ball.set_y(50);
+
+    ball.set_sprite_size(Size::S16x16);
+
+    ball.set_tile_id(4 * 2);
+
+    ball.show();
+    ball.commit();
 
     loop {}
 }
