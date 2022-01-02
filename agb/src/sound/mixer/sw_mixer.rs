@@ -45,12 +45,14 @@ impl<'a> Mixer<'a> {
         hw::set_sound_control_register_for_mixer();
     }
 
-    pub fn vblank(&mut self) {
-        self.buffer.swap();
+    pub fn frame(&mut self) {
         self.buffer.clear();
-
         self.buffer
             .write_channels(self.channels.iter_mut().flatten());
+    }
+
+    pub fn after_vblank(&mut self) {
+        self.buffer.swap();
     }
 
     pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
