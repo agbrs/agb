@@ -1,7 +1,6 @@
 #![no_std]
 // This appears to be needed for testing to work
 #![cfg_attr(test, no_main)]
-#![feature(asm)]
 #![deny(clippy::all)]
 #![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
