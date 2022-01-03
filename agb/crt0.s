@@ -44,6 +44,11 @@ b .Initialise_mb
                                                @ see: https://mgba-emu.github.io/gbatek/#swi-0bh-gbands7nds9dsi7dsi9---cpuset
 
 .CommonInit:
+    @ set the waitstate control register to the normal value used in manufactured cartridges
+    ldr r0, =0x04000204 @ address for waitstate control register
+    ldr r1, =0x4317     @ WS0/ROM=3,1 clks; SRAM=8 clks; WS2/EEPROM: 8,8 clks; prefetch enabled
+    strh r1, [r0]
+
     @ copies iwram section in rom to iwram in ram
     ldr r0, =__iwram_rom_start
     ldr r1, =__iwram_data_start
