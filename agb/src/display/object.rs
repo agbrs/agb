@@ -15,7 +15,30 @@ const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
 const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06010000) };
 
-/// Handles distributing objects and matricies along with operations that effect all objects.
+/// Handles distributing objects and matrices along with operations that effect all objects.
+/// You can create an instance of this using the Gba struct.
+///
+/// This handles distribution of sprites, ensuring that object ids are not reused and are
+/// returned to the pool once you're done handling them.
+///
+/// # Examples
+///
+/// ```
+/// # #![no_std]
+/// # #![no_main]
+/// #
+/// # extern crate agb;
+/// #
+/// # use agb::Gba;
+/// #
+/// # #[agb::entry]
+/// # fn main() -> ! {
+/// let mut gba = Gba::new();
+/// let mut object = gba.display.object.get();
+/// #
+/// #    loop {}
+/// # }
+/// ```
 pub struct ObjectControl {
     objects: RefCell<Bitarray<4>>,
     affines: AffineArena,
@@ -27,6 +50,41 @@ struct ObjectLoan<'a> {
 }
 
 /// The standard object, without rotation.
+///
+/// You should create this from an instance of ObjectControl created using the Gba struct. Note that
+/// no changes made to this will be visible until `commit()` is called. You should call `commit()` during
+/// vblank to ensure that you get no visual artifacts.
+///
+/// This struct implements a sort of builder pattern, allowing you to chain settings together.
+///
+/// # Examples
+///
+/// ```
+/// # #![no_std]
+/// # #![no_main]
+/// #
+/// # extern crate agb;
+/// #
+/// # use agb::Gba;
+/// use agb::display::object::Size;
+///
+/// # #[agb::entry]
+/// # fn main() -> ! {
+/// #    let mut gba = Gba::new();
+/// let mut object = gba.display.object.get();
+///
+/// let mut my_new_object = object.get_object_standard();
+/// my_new_object.set_x(50)
+///     .set_y(50)
+///     .set_sprite_Size(Size::S8x8)
+///     .set_tile_id(7)
+///     .show();
+///
+/// // some time later in vblank
+/// my_new_object.commit();
+/// #    loop {}
+/// # }
+/// ```
 pub struct ObjectStandard<'a> {
     attributes: ObjectAttribute,
     loan: ObjectLoan<'a>,
@@ -91,49 +149,77 @@ impl ObjectStandard<'_> {
     }
 
     /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u16) {
-        self.attributes.set_x(x)
-    }
-    /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u16) {
-        self.attributes.set_y(y)
-    }
-    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
-    pub fn set_tile_id(&mut self, id: u16) {
-        self.attributes.set_tile_id(id)
-    }
-    /// Sets whether the sprite is horizontally mirrored or not.
-    pub fn set_hflip(&mut self, hflip: bool) {
-        self.attributes.set_hflip(hflip)
-    }
-    /// Sets the sprite size, will read tiles in x major order to construct this.
-    pub fn set_sprite_size(&mut self, size: Size) {
-        self.attributes.set_size(size);
-    }
-    /// Show the object on screen.
-    pub fn show(&mut self) {
-        self.attributes.set_mode(Mode::Normal)
-    }
-    /// Hide the object and do not render.
-    pub fn hide(&mut self) {
-        self.attributes.set_mode(Mode::Hidden)
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.attributes.set_x(x);
+
+        self
     }
 
-    pub fn set_palette(&mut self, palette: u16) {
+    /// Sets the y coordinate of the sprite on screen.
+    pub fn set_y(&mut self, y: u16) -> &mut Self {
+        self.attributes.set_y(y);
+
+        self
+    }
+
+    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
+    pub fn set_tile_id(&mut self, id: u16) -> &mut Self {
+        self.attributes.set_tile_id(id);
+
+        self
+    }
+
+    /// Sets whether the sprite is horizontally mirrored or not.
+    pub fn set_hflip(&mut self, hflip: bool) -> &mut Self {
+        self.attributes.set_hflip(hflip);
+
+        self
+    }
+
+    /// Sets the sprite size, will read tiles in x major order to construct this.
+    pub fn set_sprite_size(&mut self, size: Size) -> &mut Self {
+        self.attributes.set_size(size);
+
+        self
+    }
+
+    /// Show the object on screen.
+    pub fn show(&mut self) -> &mut Self {
+        self.attributes.set_mode(Mode::Normal);
+
+        self
+    }
+
+    /// Hide the object and do not render.
+    pub fn hide(&mut self) -> &mut Self {
+        self.attributes.set_mode(Mode::Hidden);
+
+        self
+    }
+
+    /// Sets the palette to use for this sprite
+    pub fn set_palette(&mut self, palette: u16) -> &mut Self {
         self.attributes.set_palette(palette);
+
+        self
     }
 
     /// Sets the x and y position of the object, performing casts as nessesary
     /// to fit within the bits allocated for this purpose.
-    pub fn set_position(&mut self, position: Vector2D<i32>) {
+    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         let x = position.x as u16;
         let y = position.y as u16;
         self.attributes.set_x(x);
         self.attributes.set_y(y);
+
+        self
     }
 
-    pub fn set_priority(&mut self, p: Priority) {
-        self.attributes.set_priority(p)
+    /// Sets the priority (used for z ordering) of this sprite
+    pub fn set_priority(&mut self, p: Priority) -> &mut Self {
+        self.attributes.set_priority(p);
+
+        self
     }
 }
 

@@ -13,9 +13,130 @@
 //! programming language. It attempts to be a high level abstraction over the
 //! internal workings of the Game Boy Advance whilst still being high
 //! performance and memory efficient.
+//!
+//! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
 
+/// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
+///
+/// The macro expects to be linked to a `toml` file which contains a metadata about the image
+/// and a link to the png or bmp itself. See the examples below for a full definition of the format.
+///
+/// # The manifest file format
+///
+/// The following is an example of the toml file you would need to create. Generally you will
+/// find this in the `gfx` folder in the same level as the `src` folder (see the examples).
+///
+/// Suppose that the following is in `gfx/sprites.toml`.
+///
+/// ```toml
+/// version = "1.0" # version included for compatibility reasons
+///
+/// [images.objects]
+/// filename = "sprites.png"
+/// tile_size = "16x16"
+/// transparent_colour = "ff0044"
+/// ```
+///
+/// You then import this using:
+/// ```rust,ignore
+/// agb::include_gfx!("gfx/sprites.toml");
+/// ```
+///
+/// This will generate something along the lines of the following:
+///
+/// ```
+/// // module name comes from the name of the toml file, so `sprites` in this case because it is
+/// // called `sprites.toml`
+/// mod sprites {
+///     const objects = /* ... */;
+/// }
+/// ```
+///
+/// And objects will be an instance of [`TileData`][crate::display::tile_data::TileData]
+///
+/// # Examples
+///
+/// ## Loading sprites:
+///
+/// In `gfx/sprites.toml`:
+/// ```toml
+/// version = "1.0"
+///
+/// [image.sprites]
+/// filename = "sprites.png"
+/// tile_size = "16x16"
+/// transparent_colour = "ff0044"
+/// ```
+///
+/// In `src/main.rs`
+/// ```
+/// mod gfx {
+///     use agb::display::object::ObjectControl;
+///
+///     // Import the sprites into this module. This will create a `sprites` module
+///     // and within that will be a constant called `sprites` which houses all the
+///     // palette and tile data.
+///     agb::include_gfx!("gfx/sprites.toml");
+///
+///     // Loads the sprites tile data and palette data into VRAM
+///     pub fn load_sprite_data(object: &mut ObjectControl) {
+///         object.set_sprite_palettes(sprites::sprites.palettes);
+///         object.set_sprite_tilemap(sprites::sprites.tiles);
+///     }
+/// }
+/// ```
+///
+/// ## Loading tiles:
+///
+/// In `gfx/tiles.toml`:
+/// ```toml
+/// version = "1.0"
+///
+/// [image.background]
+/// filename = "tile_sheet.png"
+/// tile_size = "8x8"
+/// transparent_colour = "2ce8f4"
+/// ```
+///
+/// In `src/main.rs`:
+/// ```
+/// mod gfx {
+///     use agb::display::background::BackgroundDistributor;
+///
+///     agb::include_gfx!("gfx/tile_sheet.toml");
+///
+///     pub fn load_tile_sheet(tiled: &mut BackgroundDistributor) {
+///         tiled.set_background_palettes(tile_sheet::background.palettes);
+///         tiled.set_background_tilemap(tile_sheet::background.tiles);
+///     }
+/// }
+/// ```
 pub use agb_image_converter::include_gfx;
+
+/// This macro declares the entry point to your game written using `agb`.
+///
+/// It is already included in the template, but your `main` function must be annotated with `#[agb::entry]`, take no arguments and never return.
+/// Doing this will ensure that `agb` can correctly set up the environment to call your rust function on start up.
+///
+/// # Examples
+/// ```
+/// #![no_std]
+/// #![no_main]
+///
+/// // Required to set panic handlers
+/// extern crate agb;
+///
+/// use agb::Gba;
+///
+/// #[agb::entry]
+/// fn main() -> ! {
+///     let mut gba = Gba::new();
+///
+///     loop {}
+/// }
+/// ```
 pub use agb_macros::entry;
+
 pub use agb_sound_converter::include_wav;
 
 #[cfg(feature = "alloc")]
@@ -29,10 +150,12 @@ mod bitarray;
 pub mod display;
 /// Button inputs to the system.
 pub mod input;
+#[doc(hidden)] // hide for now as the implementation in here is unsound
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
+/// Implementation of fixnums for working with non-integer values.
 pub mod number;
 mod single;
 /// Implements sound output.
@@ -59,14 +182,57 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
 
 static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { Gba::single_new() });
 
+/// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
+/// borrow checker's responsibility to ensure no clashes of global resources.
+///
+/// This is typically created once at the start of the main function and then the various fields are used
+/// to ensure mutually exclusive use of the various hardware registers. It provides a gateway into the main
+/// usage of `agb` library.
+///
+/// # Panics
+///
+/// Calling this twice will panic.
+///
+/// # Examples
+///
+/// ```
+/// #![no_std]
+/// #![no_main]
+///
+/// extern crate agb;
+///
+/// use agb::Gba;
+///
+/// #[agb::entry]
+/// fn main() -> ! {
+///     let mut gba = Gba::new();
+///
+///     // Do whatever you need to do with gba
+///
+///     loop {}
+/// }
+/// ```
+#[non_exhaustive]
 pub struct Gba {
+    /// Manages access to the Game Boy Advance's display hardware
     pub display: display::Display,
+    /// Manages access to the Game Boy Advance's beeps and boops sound hardware as part of the
+    /// original Game Boy's sound chip (the DMG).
     pub sound: sound::dmg::Sound,
+    /// Manages access to the Game Boy Advance's direct sound mixer for playing raw wav files.
     pub mixer: sound::mixer::MixerController,
+    /// Manages access to the Game Boy Advance's 4 timers.
     pub timers: timer::TimerController,
 }
 
 impl Gba {
+    /// Creates a new instance of the Gba struct.
+    ///
+    /// Note that you can only create 1 instance, and trying to create a second will panic.
+    ///
+    /// # Panics
+    ///
+    /// Panics if you try to create the second instance.
     pub fn new() -> Self {
         unsafe { GBASINGLE.take() }
     }
@@ -87,6 +253,7 @@ impl Default for Gba {
     }
 }
 
+#[doc(hidden)]
 pub trait Testable {
     fn run(&self, gba: &mut Gba);
 }
@@ -123,6 +290,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[doc(hidden)]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let mut mgba = mgba::Mgba::new().unwrap();
     mgba.print(
@@ -144,9 +312,9 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     .unwrap();
 }
 
-#[no_mangle]
 #[cfg(test)]
-pub extern "C" fn main() -> ! {
+#[entry]
+fn agb_test_main() -> ! {
     test_main();
     loop {}
 }
