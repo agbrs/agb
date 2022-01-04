@@ -881,6 +881,33 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
     }
 }
 
+#[cfg(test)]
+#[test_case]
+fn test_rect_iter(_gba: &mut crate::Gba) {
+    let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (3_i32, 3_i32).into());
+    assert_eq!(
+        rect.iter().collect::<alloc::vec::Vec<_>>(),
+        &[
+            (5, 5),
+            (6, 5),
+            (7, 5),
+            (8, 5),
+            (5, 6),
+            (6, 6),
+            (7, 6),
+            (8, 6),
+            (5, 7),
+            (6, 7),
+            (7, 7),
+            (8, 7),
+            (5, 8),
+            (6, 8),
+            (7, 8),
+            (8, 8),
+        ]
+    );
+}
+
 impl<T: Number> Vector2D<T> {
     pub fn new(x: T, y: T) -> Self {
         Vector2D { x, y }
