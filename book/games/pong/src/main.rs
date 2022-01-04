@@ -10,10 +10,6 @@
 // which won't be a particularly clear error message.
 #![no_main]
 
-// This is required in order to ensure that the panic handler defined in `agb` is set
-// up correctly.
-extern crate agb;
-
 use agb::display::object::Size;
 use agb::Gba;
 

@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
 extern crate alloc;
 
 mod rng;

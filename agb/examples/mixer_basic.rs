@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
-
 use agb::input::{Button, ButtonController, Tri};
 use agb::number::Num;
 use agb::sound::mixer::SoundChannel;

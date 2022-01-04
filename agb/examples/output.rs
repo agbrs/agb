@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
-
 #[agb::entry]
 fn main() -> ! {
     let count = agb::interrupt::Mutex::new(0);
