@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
-
 use agb::display::example_logo;
 
 #[agb::entry]

@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
 use agb::{
     display::{background::Map, object::ObjectStandard, HEIGHT, WIDTH},
     input::Button,

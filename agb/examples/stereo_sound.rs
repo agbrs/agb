@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-extern crate agb;
-
 use agb::sound::mixer::SoundChannel;
 use agb::{include_wav, Gba};
 

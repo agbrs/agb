@@ -27,8 +27,6 @@ const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
 /// # #![no_std]
 /// # #![no_main]
 /// #
-/// # extern crate agb;
-/// #
 /// # use agb::Gba;
 /// #
 /// # #[agb::entry]
@@ -62,8 +60,6 @@ struct ObjectLoan<'a> {
 /// ```
 /// # #![no_std]
 /// # #![no_main]
-/// #
-/// # extern crate agb;
 /// #
 /// # use agb::Gba;
 /// use agb::display::object::Size;

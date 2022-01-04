@@ -19,7 +19,6 @@ Replace the content of the `main` function with the following:
 ```rust,ignore
 # #![no_std]
 # #![no_main]
-# extern crate agb;
 # #[agb::entry]
 # fn main() -> ! {
 let mut gba = agb::Gba::new();

@@ -122,9 +122,6 @@ pub use agb_image_converter::include_gfx;
 /// #![no_std]
 /// #![no_main]
 ///
-/// // Required to set panic handlers
-/// extern crate agb;
-///
 /// use agb::Gba;
 ///
 /// #[agb::entry]
@@ -197,8 +194,6 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 /// ```
 /// #![no_std]
 /// #![no_main]
-///
-/// extern crate agb;
 ///
 /// use agb::Gba;
 ///
