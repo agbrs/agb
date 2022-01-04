@@ -862,16 +862,50 @@ impl<T: Number> Rect<T> {
     }
 }
 
-impl<T: FixedWidthUnsignedInteger + core::iter::Step> Rect<T> {
+impl<T: FixedWidthUnsignedInteger> Rect<T> {
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
-        (self.position.x..=(self.position.x + self.size.x))
-            .into_iter()
-            .flat_map(move |x| {
-                (self.position.y..=(self.position.y + self.size.y))
-                    .into_iter()
-                    .map(move |y| (x, y))
-            })
+        let mut x = self.position.x - T::one();
+        let mut y = self.position.y;
+        core::iter::from_fn(move || {
+            x = x + T::one();
+            if x > self.position.x + self.size.x {
+                x = self.position.x;
+                y = y + T::one();
+                if y > self.position.y + self.size.y {
+                    return None;
+                }
+            }
+
+            Some((x, y))
+        })
     }
+}
+
+#[cfg(test)]
+#[test_case]
+fn test_rect_iter(_gba: &mut crate::Gba) {
+    let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (3_i32, 3_i32).into());
+    assert_eq!(
+        rect.iter().collect::<alloc::vec::Vec<_>>(),
+        &[
+            (5, 5),
+            (6, 5),
+            (7, 5),
+            (8, 5),
+            (5, 6),
+            (6, 6),
+            (7, 6),
+            (8, 6),
+            (5, 7),
+            (6, 7),
+            (7, 7),
+            (8, 7),
+            (5, 8),
+            (6, 8),
+            (7, 8),
+            (8, 8),
+        ]
+    );
 }
 
 impl<T: Number> Vector2D<T> {
