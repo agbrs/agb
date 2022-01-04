@@ -862,15 +862,22 @@ impl<T: Number> Rect<T> {
     }
 }
 
-impl<T: FixedWidthUnsignedInteger + core::iter::Step> Rect<T> {
+impl<T: FixedWidthUnsignedInteger> Rect<T> {
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
-        (self.position.x..=(self.position.x + self.size.x))
-            .into_iter()
-            .flat_map(move |x| {
-                (self.position.y..=(self.position.y + self.size.y))
-                    .into_iter()
-                    .map(move |y| (x, y))
-            })
+        let mut x = self.position.x - T::one();
+        let mut y = self.position.y;
+        core::iter::from_fn(move || {
+            x = x + T::one();
+            if x > self.position.x + self.size.x {
+                x = self.position.x;
+                y = y + T::one();
+                if y > self.position.y + self.size.y {
+                    return None;
+                }
+            }
+
+            Some((x, y))
+        })
     }
 }
 
