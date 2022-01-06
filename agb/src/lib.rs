@@ -1,11 +1,12 @@
 #![no_std]
 // This appears to be needed for testing to work
 #![cfg_attr(test, no_main)]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, test_runner(crate::test_runner))]
+#![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![deny(clippy::all)]
-#![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
-#![test_runner(crate::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
 //! programming language. It attempts to be a high level abstraction over the

@@ -334,55 +334,6 @@ impl<const N: usize> Num<i32, N> {
     }
 }
 
-#[test_case]
-fn sqrt(_gba: &mut crate::Gba) {
-    for x in 1..1024 {
-        let n: Num<i32, 8> = Num::new(x * x);
-        assert_eq!(n.sqrt(), x.into());
-    }
-}
-
-#[test_case]
-fn test_macro_conversion(_gba: &mut super::Gba) {
-    fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
-        let a: Num<A, B> = num!(1.5);
-        let one = A::one() << B;
-        let b = Num::from_raw(one + (one >> 1));
-
-        assert_eq!(a, b);
-    }
-
-    fn test_negative<A: FixedWidthSignedInteger, const B: usize>() {
-        let a: Num<A, B> = num!(-1.5);
-        let one = A::one() << B;
-        let b = Num::from_raw(one + (one >> 1));
-
-        assert_eq!(a, -b);
-    }
-
-    fn test_base<const B: usize>() {
-        test_positive::<i32, B>();
-        test_positive::<u32, B>();
-        test_negative::<i32, B>();
-
-        if B < 16 {
-            test_positive::<u16, B>();
-            test_positive::<i16, B>();
-            test_negative::<i16, B>();
-        }
-    }
-    // some nice powers of two
-    test_base::<8>();
-    test_base::<4>();
-    test_base::<16>();
-    // not a power of two
-    test_base::<10>();
-    // an odd number
-    test_base::<9>();
-    // and a prime
-    test_base::<11>();
-}
-
 impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     #[must_use]
     pub fn abs(self) -> Self {
@@ -412,129 +363,6 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         let one: Self = I::one().into();
         let four: I = 4.into();
         (self + one / four).cos()
-    }
-}
-
-#[test_case]
-fn test_numbers(_gba: &mut super::Gba) {
-    // test addition
-    let n: Num<i32, 8> = 1.into();
-    assert_eq!(n + 2, 3.into(), "testing that 1 + 2 == 3");
-
-    // test multiplication
-    let n: Num<i32, 8> = 5.into();
-    assert_eq!(n * 3, 15.into(), "testing that 5 * 3 == 15");
-
-    // test division
-    let n: Num<i32, 8> = 30.into();
-    let p: Num<i32, 8> = 3.into();
-    assert_eq!(n / 20, p / 2, "testing that 30 / 20 == 3 / 2");
-
-    assert_ne!(n, p, "testing that 30 != 3");
-}
-
-#[test_case]
-fn test_division_by_one(_gba: &mut super::Gba) {
-    let one: Num<i32, 8> = 1.into();
-
-    for i in -40..40 {
-        let n: Num<i32, 8> = i.into();
-        assert_eq!(n / one, n);
-    }
-}
-
-#[test_case]
-fn test_division_and_multiplication_by_16(_gba: &mut super::Gba) {
-    let sixteen: Num<i32, 8> = 16.into();
-
-    for i in -40..40 {
-        let n: Num<i32, 8> = i.into();
-        let m = n / sixteen;
-
-        assert_eq!(m * sixteen, n);
-    }
-}
-
-#[test_case]
-fn test_division_by_2_and_15(_gba: &mut super::Gba) {
-    let two: Num<i32, 8> = 2.into();
-    let fifteen: Num<i32, 8> = 15.into();
-    let thirty: Num<i32, 8> = 30.into();
-
-    for i in -128..128 {
-        let n: Num<i32, 8> = i.into();
-
-        assert_eq!(n / two / fifteen, n / thirty);
-        assert_eq!(n / fifteen / two, n / thirty);
-    }
-}
-
-#[test_case]
-fn test_change_base(_gba: &mut super::Gba) {
-    let two: Num<i32, 9> = 2.into();
-    let three: Num<i32, 4> = 3.into();
-
-    assert_eq!(two + three.change_base(), 5.into());
-    assert_eq!(three + two.change_base(), 5.into());
-}
-
-#[test_case]
-fn test_rem_returns_sensible_values_for_integers(_gba: &mut super::Gba) {
-    for i in -50..50 {
-        for j in -50..50 {
-            if j == 0 {
-                continue;
-            }
-
-            let i_rem_j_normally = i % j;
-            let i_fixnum: Num<i32, 8> = i.into();
-
-            assert_eq!(i_fixnum % j, i_rem_j_normally.into());
-        }
-    }
-}
-
-#[test_case]
-fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut super::Gba) {
-    let one: Num<i32, 8> = 1.into();
-    let third = one / 3;
-
-    for i in -50..50 {
-        for j in -50..50 {
-            if j == 0 {
-                continue;
-            }
-
-            // full calculation in the normal way
-            let x: Num<i32, 8> = third + i;
-            let y: Num<i32, 8> = j.into();
-
-            let truncated_division: Num<i32, 8> = (x / y).trunc().into();
-
-            let remainder = x - truncated_division * y;
-
-            assert_eq!(x % y, remainder);
-        }
-    }
-}
-
-#[test_case]
-fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut super::Gba) {
-    let one: Num<i32, 8> = 1.into();
-    let third = one / 3;
-
-    for i in -50..50 {
-        for j in -50..50 {
-            if j == 0 {
-                continue;
-            }
-
-            let x: Num<i32, 8> = third + i;
-            let y: Num<i32, 8> = j.into();
-
-            let rem_euclid = x.rem_euclid(y);
-            assert!(rem_euclid > 0.into());
-        }
     }
 }
 
@@ -643,15 +471,6 @@ where
     }
 }
 
-#[test_case]
-fn test_vector_multiplication_and_division(_gba: &mut super::Gba) {
-    let a: Vector2D<i32> = (1, 2).into();
-    let b = a * 5;
-    let c = b / 5;
-    assert_eq!(b, (5, 10).into());
-    assert_eq!(a, c);
-}
-
 #[cfg(feature = "alloc")]
 #[cfg(test)]
 mod formatting_tests {
@@ -757,15 +576,6 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     pub fn fast_normalise(self) -> Self {
         self / self.fast_magnitude()
     }
-}
-
-#[test_case]
-fn magnitude_accuracy(_gba: &mut crate::Gba) {
-    let n: Vector2D<Num<i32, 16>> = (3, 4).into();
-    assert!((n.magnitude() - 5).abs() < num!(0.1));
-
-    let n: Vector2D<Num<i32, 8>> = (3, 4).into();
-    assert!((n.magnitude() - 5).abs() < num!(0.1));
 }
 
 impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
@@ -934,12 +744,207 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
-#[test_case]
-fn test_vector_changing(_gba: &mut super::Gba) {
-    let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let v2 = v1.trunc();
-    assert_eq!(v2.get(), (1, 2));
+    #[test_case]
+    fn sqrt(_gba: &mut crate::Gba) {
+        for x in 1..1024 {
+            let n: Num<i32, 8> = Num::new(x * x);
+            assert_eq!(n.sqrt(), x.into());
+        }
+    }
 
-    assert_eq!(v1 + v1, (v2 + v2).into());
+    #[test_case]
+    fn test_macro_conversion(_gba: &mut crate::Gba) {
+        fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
+            let a: Num<A, B> = num!(1.5);
+            let one = A::one() << B;
+            let b = Num::from_raw(one + (one >> 1));
+
+            assert_eq!(a, b);
+        }
+
+        fn test_negative<A: FixedWidthSignedInteger, const B: usize>() {
+            let a: Num<A, B> = num!(-1.5);
+            let one = A::one() << B;
+            let b = Num::from_raw(one + (one >> 1));
+
+            assert_eq!(a, -b);
+        }
+
+        fn test_base<const B: usize>() {
+            test_positive::<i32, B>();
+            test_positive::<u32, B>();
+            test_negative::<i32, B>();
+
+            if B < 16 {
+                test_positive::<u16, B>();
+                test_positive::<i16, B>();
+                test_negative::<i16, B>();
+            }
+        }
+        // some nice powers of two
+        test_base::<8>();
+        test_base::<4>();
+        test_base::<16>();
+        // not a power of two
+        test_base::<10>();
+        // an odd number
+        test_base::<9>();
+        // and a prime
+        test_base::<11>();
+    }
+
+    #[test_case]
+    fn test_numbers(_gba: &mut crate::Gba) {
+        // test addition
+        let n: Num<i32, 8> = 1.into();
+        assert_eq!(n + 2, 3.into(), "testing that 1 + 2 == 3");
+
+        // test multiplication
+        let n: Num<i32, 8> = 5.into();
+        assert_eq!(n * 3, 15.into(), "testing that 5 * 3 == 15");
+
+        // test division
+        let n: Num<i32, 8> = 30.into();
+        let p: Num<i32, 8> = 3.into();
+        assert_eq!(n / 20, p / 2, "testing that 30 / 20 == 3 / 2");
+
+        assert_ne!(n, p, "testing that 30 != 3");
+    }
+
+    #[test_case]
+    fn test_division_by_one(_gba: &mut crate::Gba) {
+        let one: Num<i32, 8> = 1.into();
+
+        for i in -40..40 {
+            let n: Num<i32, 8> = i.into();
+            assert_eq!(n / one, n);
+        }
+    }
+
+    #[test_case]
+    fn test_division_and_multiplication_by_16(_gba: &mut crate::Gba) {
+        let sixteen: Num<i32, 8> = 16.into();
+
+        for i in -40..40 {
+            let n: Num<i32, 8> = i.into();
+            let m = n / sixteen;
+
+            assert_eq!(m * sixteen, n);
+        }
+    }
+
+    #[test_case]
+    fn test_division_by_2_and_15(_gba: &mut crate::Gba) {
+        let two: Num<i32, 8> = 2.into();
+        let fifteen: Num<i32, 8> = 15.into();
+        let thirty: Num<i32, 8> = 30.into();
+
+        for i in -128..128 {
+            let n: Num<i32, 8> = i.into();
+
+            assert_eq!(n / two / fifteen, n / thirty);
+            assert_eq!(n / fifteen / two, n / thirty);
+        }
+    }
+
+    #[test_case]
+    fn test_change_base(_gba: &mut crate::Gba) {
+        let two: Num<i32, 9> = 2.into();
+        let three: Num<i32, 4> = 3.into();
+
+        assert_eq!(two + three.change_base(), 5.into());
+        assert_eq!(three + two.change_base(), 5.into());
+    }
+
+    #[test_case]
+    fn test_rem_returns_sensible_values_for_integers(_gba: &mut crate::Gba) {
+        for i in -50..50 {
+            for j in -50..50 {
+                if j == 0 {
+                    continue;
+                }
+
+                let i_rem_j_normally = i % j;
+                let i_fixnum: Num<i32, 8> = i.into();
+
+                assert_eq!(i_fixnum % j, i_rem_j_normally.into());
+            }
+        }
+    }
+
+    #[test_case]
+    fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut crate::Gba) {
+        let one: Num<i32, 8> = 1.into();
+        let third = one / 3;
+
+        for i in -50..50 {
+            for j in -50..50 {
+                if j == 0 {
+                    continue;
+                }
+
+                // full calculation in the normal way
+                let x: Num<i32, 8> = third + i;
+                let y: Num<i32, 8> = j.into();
+
+                let truncated_division: Num<i32, 8> = (x / y).trunc().into();
+
+                let remainder = x - truncated_division * y;
+
+                assert_eq!(x % y, remainder);
+            }
+        }
+    }
+
+    #[test_case]
+    fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut crate::Gba) {
+        let one: Num<i32, 8> = 1.into();
+        let third = one / 3;
+
+        for i in -50..50 {
+            for j in -50..50 {
+                if j == 0 {
+                    continue;
+                }
+
+                let x: Num<i32, 8> = third + i;
+                let y: Num<i32, 8> = j.into();
+
+                let rem_euclid = x.rem_euclid(y);
+                assert!(rem_euclid > 0.into());
+            }
+        }
+    }
+
+    #[test_case]
+    fn test_vector_multiplication_and_division(_gba: &mut crate::Gba) {
+        let a: Vector2D<i32> = (1, 2).into();
+        let b = a * 5;
+        let c = b / 5;
+        assert_eq!(b, (5, 10).into());
+        assert_eq!(a, c);
+    }
+
+    #[test_case]
+    fn magnitude_accuracy(_gba: &mut crate::Gba) {
+        let n: Vector2D<Num<i32, 16>> = (3, 4).into();
+        assert!((n.magnitude() - 5).abs() < num!(0.1));
+
+        let n: Vector2D<Num<i32, 8>> = (3, 4).into();
+        assert!((n.magnitude() - 5).abs() < num!(0.1));
+    }
+
+    #[test_case]
+    fn test_vector_changing(_gba: &mut crate::Gba) {
+        let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+
+        let v2 = v1.trunc();
+        assert_eq!(v2.get(), (1, 2));
+
+        assert_eq!(v1 + v1, (v2 + v2).into());
+    }
 }

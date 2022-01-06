@@ -151,12 +151,17 @@ pub fn affine_matrix(
     result
 }
 
-#[test_case]
-fn affine(_gba: &mut crate::Gba) {
-    // expect identity matrix
-    let one: Num<i16, 8> = 1.into();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let aff = affine_matrix(one, one, 0);
-    assert_eq!(aff.p_a, one.to_raw());
-    assert_eq!(aff.p_d, one.to_raw());
+    #[test_case]
+    fn affine(_gba: &mut crate::Gba) {
+        // expect identity matrix
+        let one: Num<i16, 8> = 1.into();
+
+        let aff = affine_matrix(one, one, 0);
+        assert_eq!(aff.p_a, one.to_raw());
+        assert_eq!(aff.p_d, one.to_raw());
+    }
 }

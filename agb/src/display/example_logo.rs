@@ -19,12 +19,16 @@ pub fn display_logo(gfx: &mut BackgroundDistributor) {
     back.show();
     back.commit();
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test_case]
-fn logo_display(gba: &mut crate::Gba) {
-    let mut gfx = gba.display.video.tiled0();
+    #[test_case]
+    fn logo_display(gba: &mut crate::Gba) {
+        let mut gfx = gba.display.video.tiled0();
 
-    display_logo(&mut gfx);
+        display_logo(&mut gfx);
 
-    crate::assert_image_output("gfx/test_logo.png");
+        crate::assert_image_output("gfx/test_logo.png");
+    }
 }
