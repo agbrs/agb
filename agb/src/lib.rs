@@ -162,12 +162,10 @@ pub mod syscall;
 pub mod timer;
 
 #[cfg(not(test))]
-use core::fmt::Write;
-
-#[cfg(not(test))]
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+    use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
         write!(mgba, "{}", info);
         mgba.set_level(mgba::DebugLevel::Fatal);
