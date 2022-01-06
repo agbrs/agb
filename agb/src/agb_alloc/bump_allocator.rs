@@ -61,17 +61,22 @@ fn get_data_end() -> usize {
     (unsafe { &__ewram_data_end }) as *const _ as usize
 }
 
-#[test_case]
-fn should_return_data_end_somewhere_in_ewram(_gba: &mut crate::Gba) {
-    let data_end = get_data_end();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert!(
-        0x0200_0000 <= data_end,
-        "data end should be bigger than 0x0200_0000, got {}",
-        data_end
-    );
-    assert!(
-        0x0204_0000 > data_end,
-        "data end should be smaller than 0x0203_0000"
-    );
+    #[test_case]
+    fn should_return_data_end_somewhere_in_ewram(_gba: &mut crate::Gba) {
+        let data_end = get_data_end();
+
+        assert!(
+            0x0200_0000 <= data_end,
+            "data end should be bigger than 0x0200_0000, got {}",
+            data_end
+        );
+        assert!(
+            0x0204_0000 > data_end,
+            "data end should be smaller than 0x0203_0000"
+        );
+    }
 }

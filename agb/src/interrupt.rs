@@ -270,37 +270,6 @@ macro_rules! add_interrupt_handler {
     };
 }
 
-#[test_case]
-fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
-    {
-        let counter = Mutex::new(0);
-        let counter_2 = Mutex::new(0);
-        add_interrupt_handler!(Interrupt::VBlank, |key| *counter.lock_with_key(&key) += 1);
-        add_interrupt_handler!(Interrupt::VBlank, |_| *counter_2.lock() += 1);
-
-        let vblank = VBlank::get();
-
-        while *counter.lock() < 100 || *counter_2.lock() < 100 {
-            vblank.wait_for_vblank();
-        }
-    }
-
-    assert_eq!(
-        interrupt_to_root(Interrupt::VBlank).next.get(),
-        core::ptr::null(),
-        "expected the interrupt table for vblank to be empty"
-    );
-}
-
-#[test_case]
-fn test_interrupt_table_length(_gba: &mut crate::Gba) {
-    assert_eq!(
-        unsafe { INTERRUPT_TABLE.len() },
-        Interrupt::Gamepak as usize + 1,
-        "interrupt table should be able to store gamepak interrupt"
-    );
-}
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum MutexState {
     Unlocked,
@@ -407,5 +376,41 @@ impl VBlank {
 impl Drop for VBlank {
     fn drop(&mut self) {
         interrupt_to_root(Interrupt::VBlank).reduce();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_case]
+    fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
+        {
+            let counter = Mutex::new(0);
+            let counter_2 = Mutex::new(0);
+            add_interrupt_handler!(Interrupt::VBlank, |key| *counter.lock_with_key(&key) += 1);
+            add_interrupt_handler!(Interrupt::VBlank, |_| *counter_2.lock() += 1);
+
+            let vblank = VBlank::get();
+
+            while *counter.lock() < 100 || *counter_2.lock() < 100 {
+                vblank.wait_for_vblank();
+            }
+        }
+
+        assert_eq!(
+            interrupt_to_root(Interrupt::VBlank).next.get(),
+            core::ptr::null(),
+            "expected the interrupt table for vblank to be empty"
+        );
+    }
+
+    #[test_case]
+    fn test_interrupt_table_length(_gba: &mut crate::Gba) {
+        assert_eq!(
+            unsafe { INTERRUPT_TABLE.len() },
+            Interrupt::Gamepak as usize + 1,
+            "interrupt table should be able to store gamepak interrupt"
+        );
     }
 }

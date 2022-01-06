@@ -1,11 +1,12 @@
 #![no_std]
 // This appears to be needed for testing to work
 #![cfg_attr(test, no_main)]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, test_runner(crate::test_runner))]
+#![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![deny(clippy::all)]
-#![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
-#![test_runner(crate::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
 //! programming language. It attempts to be a high level abstraction over the
@@ -161,17 +162,16 @@ pub mod syscall;
 pub mod timer;
 
 #[cfg(not(test))]
-use core::fmt::Write;
-
-#[cfg(not(test))]
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+    use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
         write!(mgba, "{}", info);
         mgba.set_level(mgba::DebugLevel::Fatal);
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -309,6 +309,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 #[entry]
 fn agb_test_main() -> ! {
     test_main();
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -330,6 +331,7 @@ mod test {
     use super::Gba;
 
     #[test_case]
+    #[allow(clippy::eq_op)]
     fn trivial_test(_gba: &mut Gba) {
         assert_eq!(1, 1);
     }
