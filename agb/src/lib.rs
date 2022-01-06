@@ -171,6 +171,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
         mgba.set_level(mgba::DebugLevel::Fatal);
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -308,6 +309,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 #[entry]
 fn agb_test_main() -> ! {
     test_main();
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -329,6 +331,7 @@ mod test {
     use super::Gba;
 
     #[test_case]
+    #[allow(clippy::eq_op)]
     fn trivial_test(_gba: &mut Gba) {
         assert_eq!(1, 1);
     }
