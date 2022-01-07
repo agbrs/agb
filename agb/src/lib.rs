@@ -152,7 +152,7 @@ mod memory_mapped;
 /// Implements logging to the mgba emulator.
 pub mod mgba;
 /// Implementation of fixnums for working with non-integer values.
-pub mod number;
+pub use agb_fixnum as number;
 mod single;
 /// Implements sound output.
 pub mod sound;

@@ -12,10 +12,18 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 name = "agb"
 version = "0.8.0"
 dependencies = [
+ "agb_fixnum",
  "agb_image_converter",
  "agb_macros",
  "agb_sound_converter",
  "bitflags",
+]
+
+[[package]]
+name = "agb_fixnum"
+version = "0.1.0"
+dependencies = [
+ "agb_macros",
 ]
 
 [[package]]
