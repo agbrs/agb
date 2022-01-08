@@ -47,7 +47,10 @@ case "$PROJECT" in
         DIRECTORY="mgba-test-runner"
         TAGNAME="mgba-test-runner/v$VERSION"
         ;;
-
+    agb-fixnum)
+        DIRECTORY="agb-fixnum"
+        TAGNAME="agb-fixnum/v$VERSION"
+        ;;
     *)
         echo "Unknown project name $PROJECT"
         exit 1
