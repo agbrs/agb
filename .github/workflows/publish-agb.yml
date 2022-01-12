@@ -36,3 +36,14 @@ jobs:
           asset_name: examples.zip
           tag: ${{ github.ref }}
           overwrite: true
+
+      - name: Install mdbook
+        run: cargo install mdbook
+      - name: Build the book
+        run: mdbook build
+        working-directory: book
+      - name: Deploy the book
+        uses: JamesIves/github-pages-deploy-action@v4.2.2
+        with:
+          branch: gh-pages
+          folder: book/book

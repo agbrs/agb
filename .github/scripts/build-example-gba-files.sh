@@ -17,10 +17,12 @@ function build_rom() {
 
     (cd "$GAME_FOLDER" && cargo build --release --verbose --target thumbv4t-none-eabi)
 
+    mkdir -p examples/target/examples
+
     arm-none-eabi-objcopy -O binary "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
     gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
 
-    cp -v "$GBA_FILE" "examples/$GAME_NAME.gba"
+    cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
 }
 
 mkdir -p examples/target
@@ -30,4 +32,4 @@ build_rom "examples/the-hat-chooses-the-wizard" "HATWIZARD"
 
 build_rom "book/games/pong" "PONG"
 
-zip examples/target/examples.zip examples/*.gba
+(cd examples/target && zip examples.zip examples/*.gba)
