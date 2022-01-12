@@ -1,9 +1,9 @@
-name: Publish agb-fixnum
+name: Publish sub crate
 
 on:
   push:
     tags:
-      - agb-fixnum/v*
+      - */v*
 
 jobs:
   build:
@@ -15,6 +15,5 @@ jobs:
         uses: actions/checkout@v2
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATE_API }}
-      - name: Publish agb-fixnum
-        run: cargo publish
-        working-directory: ./agb-fixnum
+      - name: Publish crate
+        run: bash .github/scripts/publish-crate.sh
