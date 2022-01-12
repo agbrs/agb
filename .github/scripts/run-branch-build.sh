@@ -17,7 +17,7 @@ for CARGO_PROJECT_FILE in "${CARGO_PROJECT_FILES[@]}"; do
         echo "Testing $PROJECT_DIR in debug mode"
         (cd "$PROJECT_DIR" && cargo test)
 
-        echo "Testing $PROJECT_DIR and release mode"
+        echo "Testing $PROJECT_DIR in release mode"
         (cd "$PROJECT_DIR" && cargo test --release)
     fi
 done
