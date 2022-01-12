@@ -89,7 +89,7 @@ if [ "$PROJECT" = "agb" ]; then
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
 
-    for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
+    for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do
         sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
         (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
 
