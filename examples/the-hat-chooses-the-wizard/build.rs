@@ -170,7 +170,7 @@ mod tiled_export {
             &mut writer,
             r#"
             use crate::Level;
-            use agb::number::Vector2D;
+            use agb::fixnum::Vector2D;
 
             pub const fn get_level() -> Level {{
                 Level {{

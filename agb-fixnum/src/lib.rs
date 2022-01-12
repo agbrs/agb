@@ -1,3 +1,5 @@
+#![no_std]
+
 use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
     fmt::{Debug, Display},
@@ -10,7 +12,7 @@ use core::{
 #[macro_export]
 macro_rules! num {
     ($value:literal) => {{
-        $crate::number::Num::new_from_parts(agb_macros::num!($value))
+        $crate::Num::new_from_parts(agb_macros::num!($value))
     }};
 }
 
@@ -471,34 +473,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
-#[cfg(test)]
-mod formatting_tests {
-    use super::Num;
-    use alloc::format;
-
-    #[test_case]
-    fn formats_whole_numbers_correctly(_gba: &mut crate::Gba) {
-        let a = Num::<i32, 8>::new(-4i32);
-
-        assert_eq!(format!("{}", a), "-4");
-    }
-
-    #[test_case]
-    fn formats_fractions_correctly(_gba: &mut crate::Gba) {
-        let a = Num::<i32, 8>::new(5);
-        let two = Num::<i32, 8>::new(4);
-        let minus_one = Num::<i32, 8>::new(-1);
-
-        let b: Num<i32, 8> = a / two;
-        let c: Num<i32, 8> = b * minus_one;
-
-        assert_eq!(b + c, 0.into());
-        assert_eq!(format!("{}", b), "1.25");
-        assert_eq!(format!("{}", c), "-1.25");
-    }
-}
-
 impl<T: Number> AddAssign<Self> for Vector2D<T> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
@@ -691,33 +665,6 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
     }
 }
 
-#[cfg(test)]
-#[test_case]
-fn test_rect_iter(_gba: &mut crate::Gba) {
-    let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (3_i32, 3_i32).into());
-    assert_eq!(
-        rect.iter().collect::<alloc::vec::Vec<_>>(),
-        &[
-            (5, 5),
-            (6, 5),
-            (7, 5),
-            (8, 5),
-            (5, 6),
-            (6, 6),
-            (7, 6),
-            (8, 6),
-            (5, 7),
-            (6, 7),
-            (7, 7),
-            (8, 7),
-            (5, 8),
-            (6, 8),
-            (7, 8),
-            (8, 8),
-        ]
-    );
-}
-
 impl<T: Number> Vector2D<T> {
     pub fn new(x: T, y: T) -> Self {
         Vector2D { x, y }
@@ -746,18 +693,43 @@ impl<T: Number> Vector2D<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    #[test_case]
-    fn sqrt(_gba: &mut crate::Gba) {
+    extern crate alloc;
+
+    use super::*;
+    use alloc::format;
+
+    #[test]
+    fn formats_whole_numbers_correctly() {
+        let a = Num::<i32, 8>::new(-4i32);
+
+        assert_eq!(format!("{}", a), "-4");
+    }
+
+    #[test]
+    fn formats_fractions_correctly() {
+        let a = Num::<i32, 8>::new(5);
+        let two = Num::<i32, 8>::new(4);
+        let minus_one = Num::<i32, 8>::new(-1);
+
+        let b: Num<i32, 8> = a / two;
+        let c: Num<i32, 8> = b * minus_one;
+
+        assert_eq!(b + c, 0.into());
+        assert_eq!(format!("{}", b), "1.25");
+        assert_eq!(format!("{}", c), "-1.25");
+    }
+
+    #[test]
+    fn sqrt() {
         for x in 1..1024 {
             let n: Num<i32, 8> = Num::new(x * x);
             assert_eq!(n.sqrt(), x.into());
         }
     }
 
-    #[test_case]
-    fn test_macro_conversion(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_macro_conversion() {
         fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
             let a: Num<A, B> = num!(1.5);
             let one = A::one() << B;
@@ -797,8 +769,8 @@ mod tests {
         test_base::<11>();
     }
 
-    #[test_case]
-    fn test_numbers(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_numbers() {
         // test addition
         let n: Num<i32, 8> = 1.into();
         assert_eq!(n + 2, 3.into(), "testing that 1 + 2 == 3");
@@ -815,8 +787,8 @@ mod tests {
         assert_ne!(n, p, "testing that 30 != 3");
     }
 
-    #[test_case]
-    fn test_division_by_one(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_division_by_one() {
         let one: Num<i32, 8> = 1.into();
 
         for i in -40..40 {
@@ -825,8 +797,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_division_and_multiplication_by_16(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_division_and_multiplication_by_16() {
         let sixteen: Num<i32, 8> = 16.into();
 
         for i in -40..40 {
@@ -837,8 +809,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_division_by_2_and_15(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_division_by_2_and_15() {
         let two: Num<i32, 8> = 2.into();
         let fifteen: Num<i32, 8> = 15.into();
         let thirty: Num<i32, 8> = 30.into();
@@ -851,8 +823,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_change_base(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_change_base() {
         let two: Num<i32, 9> = 2.into();
         let three: Num<i32, 4> = 3.into();
 
@@ -860,8 +832,8 @@ mod tests {
         assert_eq!(three + two.change_base(), 5.into());
     }
 
-    #[test_case]
-    fn test_rem_returns_sensible_values_for_integers(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_rem_returns_sensible_values_for_integers() {
         for i in -50..50 {
             for j in -50..50 {
                 if j == 0 {
@@ -876,8 +848,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_rem_returns_sensible_values_for_non_integers(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_rem_returns_sensible_values_for_non_integers() {
         let one: Num<i32, 8> = 1.into();
         let third = one / 3;
 
@@ -900,8 +872,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_rem_euclid_is_always_positive_and_sensible(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_rem_euclid_is_always_positive_and_sensible() {
         let one: Num<i32, 8> = 1.into();
         let third = one / 3;
 
@@ -920,8 +892,8 @@ mod tests {
         }
     }
 
-    #[test_case]
-    fn test_vector_multiplication_and_division(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_vector_multiplication_and_division() {
         let a: Vector2D<i32> = (1, 2).into();
         let b = a * 5;
         let c = b / 5;
@@ -929,8 +901,8 @@ mod tests {
         assert_eq!(a, c);
     }
 
-    #[test_case]
-    fn magnitude_accuracy(_gba: &mut crate::Gba) {
+    #[test]
+    fn magnitude_accuracy() {
         let n: Vector2D<Num<i32, 16>> = (3, 4).into();
         assert!((n.magnitude() - 5).abs() < num!(0.1));
 
@@ -938,13 +910,39 @@ mod tests {
         assert!((n.magnitude() - 5).abs() < num!(0.1));
     }
 
-    #[test_case]
-    fn test_vector_changing(_gba: &mut crate::Gba) {
+    #[test]
+    fn test_vector_changing() {
         let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
 
         let v2 = v1.trunc();
         assert_eq!(v2.get(), (1, 2));
 
         assert_eq!(v1 + v1, (v2 + v2).into());
+    }
+
+    #[test]
+    fn test_rect_iter() {
+        let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (3_i32, 3_i32).into());
+        assert_eq!(
+            rect.iter().collect::<alloc::vec::Vec<_>>(),
+            &[
+                (5, 5),
+                (6, 5),
+                (7, 5),
+                (8, 5),
+                (5, 6),
+                (6, 6),
+                (7, 6),
+                (8, 6),
+                (5, 7),
+                (6, 7),
+                (7, 7),
+                (8, 7),
+                (5, 8),
+                (6, 8),
+                (7, 8),
+                (8, 8),
+            ]
+        );
     }
 }

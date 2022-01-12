@@ -1,8 +1,8 @@
 use core::ops::Index;
 
 use crate::{
+    fixnum::{Rect, Vector2D},
     memory_mapped::{MemoryMapped, MemoryMapped1DArray},
-    number::{Rect, Vector2D},
 };
 
 use super::{

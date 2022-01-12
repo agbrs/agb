@@ -47,7 +47,10 @@ case "$PROJECT" in
         DIRECTORY="mgba-test-runner"
         TAGNAME="mgba-test-runner/v$VERSION"
         ;;
-
+    agb-fixnum)
+        DIRECTORY="agb-fixnum"
+        TAGNAME="agb-fixnum/v$VERSION"
+        ;;
     *)
         echo "Unknown project name $PROJECT"
         exit 1
@@ -78,25 +81,30 @@ if [ "$PROJECT" = "agb" ]; then
     sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
 
-    for EXAMPLE_DIR in examples/*/ book/games/*/; do
+    for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+        EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
         sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
         (cd "$EXAMPLE_DIR" && cargo update)
         git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
     done
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
-    sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
-    
-    (cd agb && cargo update)
-    git add agb/Cargo.toml agb/Cargo.lock
+
+    for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do
+        sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
+        (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
+
+        git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}"
+    done
 fi
 
 # Sanity check to make sure the build works
-(cd agb && cargo test)
-(cd agb-image-converter && cargo test)
-(cd agb-sound-converter && cargo test)
-(cd agb-macros && cargo test)
-for EXAMPLE_DIR in examples/*/; do
+for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
+    (cd "$(dirname "$CARGO_TOML_FILE")" && cargo test)
+done
+
+for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+    EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
     (cd "$EXAMPLE_DIR" && cargo check --release)
 done
 

@@ -3,8 +3,8 @@
 
 use agb::{
     display::example_logo,
+    fixnum::FixedNum,
     interrupt::{Interrupt, Mutex},
-    number::FixedNum,
 };
 
 struct BackCosines {

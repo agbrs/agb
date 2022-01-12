@@ -109,8 +109,8 @@ use agb::{
         object::{ObjectControl, ObjectStandard, Size},
         Priority, HEIGHT, WIDTH,
     },
+    fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
-    number::{FixedNum, Vector2D},
 };
 
 type FixedNumberType = FixedNum<10>;

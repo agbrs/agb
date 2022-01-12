@@ -4,7 +4,7 @@ mod sw_mixer;
 pub use sw_mixer::ChannelId;
 pub use sw_mixer::Mixer;
 
-use crate::number::Num;
+use crate::fixnum::Num;
 use crate::timer::Timer;
 
 #[non_exhaustive]
