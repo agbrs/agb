@@ -31,33 +31,8 @@ jobs:
       run: cargo install --path mgba-test-runner --verbose
     - name: Install gbafix
       run: cargo install gbafix
-    - name: Build agb library
-      working-directory: agb
-      run: cargo build --verbose
-    - name: Run Clippy on agb
-      working-directory: agb
-      run: cargo clippy --verbose
-    - name: Run Clippy on agb image converter
-      working-directory: agb-image-converter
-      run: cargo clippy --verbose
-    - name: Run Clippy on agb sound converter
-      working-directory: agb-sound-converter
-      run: cargo clippy --verbose
-    - name: Run Clippy on agb macros
-      working-directory: agb-macros
-      run: cargo clippy --verbose
-    - name: Run Clippy on agb fixnum
-      working-directory: agb-fixnum
-      run: cargo clippy --verbose
-    - name: Run Tests for fixnum
-      working-directory: agb-fixnum
-      run: cargo test --verbose
-    - name: Run Tests for agb in debug mode
-      working-directory: agb
-      run: cargo test --verbose
-    - name: Run Tests for agb in release mode
-      working-directory: agb
-      run: cargo test --verbose --release
+    - name: Build and test all crates
+      run: bash .github/scripts/run-branch-build.sh
     - name: Build example projects
       run: bash .github/scripts/build-example-gba-files.sh
       
