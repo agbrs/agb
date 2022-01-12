@@ -1,10 +1,14 @@
-name: Rust
+name: Build book
 
 on:
   push:
     branches: [ master ]
+    paths:
+      'book/**'
   pull_request:
     branches: [ master ]
+    paths:
+      'book/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,11 +31,8 @@ jobs:
           ~/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: install mgba-test-runner
-      run: cargo install --path mgba-test-runner --verbose
-    - name: Install gbafix
-      run: cargo install gbafix
-    - name: Build and test all crates
-      run: bash .github/scripts/run-branch-build.sh
-    - name: Build example projects
-      run: bash .github/scripts/build-example-gba-files.sh
+    - name: Install mdbook
+      run: cargo install mdbook
+    - name: Build the book
+      run: mdbook build
+      working-directory: book
