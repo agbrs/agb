@@ -31,25 +31,18 @@ case "$PROJECT" in
         DIRECTORY="agb"
         TAGNAME="v$VERSION"
         ;;
-    agb-image-converter)
-        DIRECTORY="agb-image-converter"
-        TAGNAME="agb-image-converter/v$VERSION"
-        ;;
-    agb-sound-converter)
-        DIRECTORY="agb-sound-converter"
-        TAGNAME="agb-sound-converter/v$VERSION"
-        ;;
-    agb-macros)
-        DIRECTORY="agb-macros"
-        TAGNAME="agb-macros/v$VERSION"
+    agb-*)
+        if [ -f "$PROJECT/Cargo.toml" ]; then
+            DIRECTORY=$PROJECT
+            TAGNAME="$PROJECT/v$VERSION"
+        else
+            echo "Unknown project name $PROJECT"
+            exit 1
+        fi
         ;;
     mgba-test-runner)
         DIRECTORY="mgba-test-runner"
         TAGNAME="mgba-test-runner/v$VERSION"
-        ;;
-    agb-fixnum)
-        DIRECTORY="agb-fixnum"
-        TAGNAME="agb-fixnum/v$VERSION"
         ;;
     *)
         echo "Unknown project name $PROJECT"
