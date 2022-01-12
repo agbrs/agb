@@ -88,17 +88,22 @@ if [ "$PROJECT" = "agb" ]; then
     done
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
-    sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" agb/Cargo.toml
-    
-    (cd agb && cargo update)
+
+    for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
+        sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
+        (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
+
+        git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}"
+    done
+
     git add agb/Cargo.toml agb/Cargo.lock
 fi
 
 # Sanity check to make sure the build works
-(cd agb && cargo test)
-(cd agb-image-converter && cargo test)
-(cd agb-sound-converter && cargo test)
-(cd agb-macros && cargo test)
+for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
+    (cd "$(dirname "$CARGO_TOML_FILE")" && cargo test)
+done
+
 for EXAMPLE_DIR in examples/*/; do
     (cd "$EXAMPLE_DIR" && cargo check --release)
 done
