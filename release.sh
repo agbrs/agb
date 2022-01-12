@@ -81,7 +81,8 @@ if [ "$PROJECT" = "agb" ]; then
     sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
     git add template/Cargo.toml
 
-    for EXAMPLE_DIR in examples/*/ book/games/*/; do
+    for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+        EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
         sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
         (cd "$EXAMPLE_DIR" && cargo update)
         git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
@@ -95,8 +96,6 @@ else
 
         git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}"
     done
-
-    git add agb/Cargo.toml agb/Cargo.lock
 fi
 
 # Sanity check to make sure the build works
@@ -104,7 +103,8 @@ for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
     (cd "$(dirname "$CARGO_TOML_FILE")" && cargo test)
 done
 
-for EXAMPLE_DIR in examples/*/; do
+for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+    EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
     (cd "$EXAMPLE_DIR" && cargo check --release)
 done
 
