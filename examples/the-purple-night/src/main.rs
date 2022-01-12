@@ -16,8 +16,8 @@ use agb::{
         object::{ObjectControl, ObjectStandard},
         Priority, HEIGHT, WIDTH,
     },
+    fixnum::{FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
-    number::{FixedNum, Rect, Vector2D},
 };
 use generational_arena::Arena;
 

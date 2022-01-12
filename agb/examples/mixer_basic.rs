@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
+use agb::fixnum::Num;
 use agb::input::{Button, ButtonController, Tri};
-use agb::number::Num;
 use agb::sound::mixer::SoundChannel;
 use agb::{include_wav, Gba};
 

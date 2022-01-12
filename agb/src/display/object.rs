@@ -2,8 +2,8 @@ use core::cell::RefCell;
 
 use super::{palette16, Priority, DISPLAY_CONTROL};
 use crate::bitarray::Bitarray;
+use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped1DArray;
-use crate::number::Vector2D;
 
 type AffineLoan<'a> = crate::arena::Loan<'a, 32>;
 type AffineArena = crate::arena::Arena<32>;

@@ -1,7 +1,7 @@
 use core::arch::asm;
 
 use crate::display::object::AffineMatrixAttributes;
-use crate::number::Num;
+use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
 

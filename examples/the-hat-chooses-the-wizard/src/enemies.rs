@@ -1,7 +1,7 @@
 use super::{object_tiles, sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
 use agb::{
     display::object::{ObjectControl, Size},
-    number::Vector2D,
+    fixnum::Vector2D,
 };
 
 enum UpdateState {

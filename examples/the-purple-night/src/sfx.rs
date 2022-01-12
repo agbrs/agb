@@ -1,5 +1,5 @@
 use super::rng::get_random;
-use agb::number::Num;
+use agb::fixnum::Num;
 use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 
 const BAT_DEATH: &[u8] = agb::include_wav!("sfx/BatDeath.wav");

@@ -1,7 +1,7 @@
 use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
-use crate::number::Num;
+use crate::fixnum::Num;
 use crate::timer::Timer;
 
 // Defined in mixer.s
