@@ -31,8 +31,12 @@ jobs:
       run: cargo install --path mgba-test-runner --verbose
     - name: Install gbafix
       run: cargo install gbafix
+    - name: Install mdbook
+      run: cargo install mdbook
     - name: Build and test all crates
       run: bash .github/scripts/run-branch-build.sh
     - name: Build example projects
       run: bash .github/scripts/build-example-gba-files.sh
-      
+    - name: Build the book
+      run: mdbook build
+      working-directory: book
