@@ -9,7 +9,6 @@ dependencies = [
  "hound",
  "proc-macro2",
  "quote",
- "siphasher",
  "syn",
 ]
 
@@ -36,12 +35,6 @@ checksum = "47aa80447ce4daf1717500037052af176af5d38cc3e571d9ec1c7353fc10c87d"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "siphasher"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba1eead9e94aa5a2e02de9e7839f96a007f686ae7a1d57c7797774810d24908a"
 
 [[package]]
 name = "syn"
