@@ -8,8 +8,7 @@ use agb::{include_wav, Gba};
 const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = Gba::new();
+fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
     let mut timer_controller = gba.timers.timers();

@@ -2,7 +2,7 @@
 #![no_main]
 
 #[agb::entry]
-fn main() -> ! {
+fn main(_gba: agb::Gba) -> ! {
     let count = agb::interrupt::Mutex::new(0);
     agb::add_interrupt_handler!(agb::interrupt::Interrupt::VBlank, |key| {
         let mut count = count.lock_with_key(&key);

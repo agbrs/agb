@@ -4,8 +4,7 @@
 use agb::display;
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
+fn main(mut gba: agb::Gba) -> ! {
     let mut bitmap = gba.display.video.bitmap4();
     let vblank = agb::interrupt::VBlank::get();
 

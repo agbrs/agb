@@ -35,14 +35,13 @@ fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> u16 {
 }
 
 #[agb::entry]
-fn main() -> ! {
+fn main(mut gba: agb::Gba) -> ! {
     let map_as_grid: &[[u16; 32]; 32] = unsafe {
         (&MAP_MAP as *const [u16; 1024] as *const [[u16; 32]; 32])
             .as_ref()
             .unwrap()
     };
 
-    let mut gba = agb::Gba::new();
     let mut gfx = gba.display.video.tiled0();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();

@@ -4,9 +4,7 @@
 use agb::display;
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
-
+fn main(mut gba: agb::Gba) -> ! {
     let mut bitmap = gba.display.video.bitmap3();
     let mut input = agb::input::ButtonController::new();
 

@@ -4,9 +4,7 @@
 use agb::sound;
 
 #[agb::entry]
-fn main() -> ! {
-    let gba = agb::Gba::new();
-
+fn main(gba: agb::Gba) -> ! {
     gba.sound.enable();
 
     let sweep_settings = sound::dmg::SweepSettings::default();

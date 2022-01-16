@@ -9,8 +9,7 @@ struct Vector2D {
 }
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
+fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 

@@ -10,8 +10,7 @@ use agb::{include_wav, Gba};
 const DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = Gba::new();
+fn main(mut gba: Gba) -> ! {
     let mut input = ButtonController::new();
     let vblank_provider = agb::interrupt::VBlank::get();
 

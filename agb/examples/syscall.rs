@@ -4,8 +4,7 @@
 use agb::{display, syscall};
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
+fn main(mut gba: agb::Gba) -> ! {
     let mut bitmap = gba.display.video.bitmap3();
 
     for x in 0..display::WIDTH {

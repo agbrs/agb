@@ -13,8 +13,7 @@ struct BackCosines {
 }
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
+fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.video.tiled0();
 
     example_logo::display_logo(&mut gfx);
