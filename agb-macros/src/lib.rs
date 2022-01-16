@@ -77,7 +77,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[export_name = "main"]
         #(#attrs)*
         pub fn #fn_name() -> ! {
-            let #mutable #argument_name = #argument_type ::new();
+            let #mutable #argument_name = unsafe { #argument_type ::new_in_entry() };
 
             #(#stmts)*
         }

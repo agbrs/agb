@@ -210,8 +210,8 @@ pub struct Gba {
 
 impl Gba {
     #[doc(hidden)]
-    pub fn new() -> Self {
-        unsafe { GBASINGLE.take() }
+    pub unsafe fn new_in_entry() -> Self {
+        GBASINGLE.take()
     }
 
     const unsafe fn single_new() -> Self {
@@ -221,12 +221,6 @@ impl Gba {
             mixer: sound::mixer::MixerController::new(),
             timers: timer::TimerController::new(),
         }
-    }
-}
-
-impl Default for Gba {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
