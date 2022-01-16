@@ -1,15 +1,15 @@
 # The Gba struct
 
-In this section, we'll cover the importance of the Gba struct and how to create it.
+In this section, we'll cover the importance of the Gba struct and how it gets created for you.
 
 # The importance of the Gba struct
 
 Almost all interaction with the Game Boy Advance's hardware goes through the [Gba singleton struct](https://docs.rs/agb/latest/agb/struct.Gba.html).
-Your games using `agb` will typically create this in the `main` function and then handle the abstractions in there.
+You should not create the Gba struct yourself, instead having it be passed into your main function.
 
 The Gba struct is used to take advantage of rust's borrow checker, and lean on it to ensure that access to the Game Boy Advance hardware is done 'sensibly'.
 You won't have to worry about 2 bits of your code modifying data in the wrong way!
-This struct is a 'singleton', so you cannot create 2 instances of it at once.
+This struct is a 'singleton', so you cannot create another instance of it.
 Attempting to do so will result in a panic which by default crashes the game.
 
 # How all agb games start
@@ -21,8 +21,6 @@ Replace the content of the `main` function with the following:
 # #![no_main]
 # #[agb::entry]
 # fn main() -> ! {
-let mut gba = agb::Gba::new();
-
 loop {} // infinite loop for now
 # }
 ```
@@ -36,6 +34,6 @@ Although there isn't much to see at the moment (just a black screen), you can st
 # What we did
 
 This was a very simple but incredibly important part of any game using `agb`.
-All interactions with the hardware are gated via the Gba struct, so it must be created at the start of your `main` function and never again.
+All interactions with the hardware are gated via the Gba struct, which you never create yourself.
 
 You are now ready to learn about display modes and how to start getting things onto the screen!
