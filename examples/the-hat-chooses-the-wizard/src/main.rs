@@ -772,10 +772,8 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
     }
 }
 
-#[no_mangle]
-pub fn main() -> ! {
-    let mut agb = agb::Gba::new();
-
+#[agb::entry]
+fn main(mut agb: agb::Gba) -> ! {
     splash_screen::show_splash_screen(&mut agb, splash_screen::SplashScreen::Start, None, None);
 
     loop {
