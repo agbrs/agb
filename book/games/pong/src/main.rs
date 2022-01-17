@@ -33,9 +33,7 @@ mod gfx {
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly.
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = Gba::new();
-
+fn main(mut gba: Gba) -> ! {
     let _tiled = gba.display.video.tiled0();
     let mut object = gba.display.object.get();
     gfx::load_sprite_data(&mut object);

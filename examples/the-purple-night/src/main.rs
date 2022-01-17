@@ -2207,9 +2207,7 @@ mod tilemap {
 }
 
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
-
+fn main(mut gba: agb::Gba) -> ! {
     loop {
         game_with_level(&mut gba);
     }

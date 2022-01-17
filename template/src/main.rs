@@ -12,12 +12,11 @@
 
 use agb::{display, syscall};
 
-// The main function must take 0 arguments and never return. The agb::entry decorator
+// The main function must take 1 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
-// and interrupt handlers correctly.
+// and interrupt handlers correctly. It will also handle creating the `Gba` struct for you.
 #[agb::entry]
-fn main() -> ! {
-    let mut gba = agb::Gba::new();
+fn main(mut gba: agb::Gba) -> ! {
     let mut bitmap = gba.display.video.bitmap3();
 
     for x in 0..display::WIDTH {

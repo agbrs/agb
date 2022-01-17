@@ -114,7 +114,7 @@ pub use agb_image_converter::include_gfx;
 
 /// This macro declares the entry point to your game written using `agb`.
 ///
-/// It is already included in the template, but your `main` function must be annotated with `#[agb::entry]`, take no arguments and never return.
+/// It is already included in the template, but your `main` function must be annotated with `#[agb::entry]`, takes 1 argument and never returns.
 /// Doing this will ensure that `agb` can correctly set up the environment to call your rust function on start up.
 ///
 /// # Examples
@@ -125,9 +125,7 @@ pub use agb_image_converter::include_gfx;
 /// use agb::Gba;
 ///
 /// #[agb::entry]
-/// fn main() -> ! {
-///     let mut gba = Gba::new();
-///
+/// fn main(mut gba: Gba) -> ! {
 ///     loop {}
 /// }
 /// ```
@@ -180,13 +178,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 /// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
 /// borrow checker's responsibility to ensure no clashes of global resources.
 ///
-/// This is typically created once at the start of the main function and then the various fields are used
-/// to ensure mutually exclusive use of the various hardware registers. It provides a gateway into the main
-/// usage of `agb` library.
-///
-/// # Panics
-///
-/// Calling this twice will panic.
+/// This is will be created for you via the #[agb::entry] attribute.
 ///
 /// # Examples
 ///
@@ -197,9 +189,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 /// use agb::Gba;
 ///
 /// #[agb::entry]
-/// fn main() -> ! {
-///     let mut gba = Gba::new();
-///
+/// fn main(mut gba: Gba) -> !
 ///     // Do whatever you need to do with gba
 ///
 ///     loop {}
@@ -219,15 +209,9 @@ pub struct Gba {
 }
 
 impl Gba {
-    /// Creates a new instance of the Gba struct.
-    ///
-    /// Note that you can only create 1 instance, and trying to create a second will panic.
-    ///
-    /// # Panics
-    ///
-    /// Panics if you try to create the second instance.
-    pub fn new() -> Self {
-        unsafe { GBASINGLE.take() }
+    #[doc(hidden)]
+    pub unsafe fn new_in_entry() -> Self {
+        GBASINGLE.take()
     }
 
     const unsafe fn single_new() -> Self {
@@ -237,12 +221,6 @@ impl Gba {
             mixer: sound::mixer::MixerController::new(),
             timers: timer::TimerController::new(),
         }
-    }
-}
-
-impl Default for Gba {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -283,7 +261,11 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[cfg(test)]
+static mut TEST_GBA: Option<Gba> = None;
+
 #[doc(hidden)]
+#[cfg(test)]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let mut mgba = mgba::Mgba::new().unwrap();
     mgba.print(
@@ -292,7 +274,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     )
     .unwrap();
 
-    let mut gba = Gba::new();
+    let mut gba = unsafe { TEST_GBA.as_mut() }.unwrap();
 
     for test in tests {
         test.run(&mut gba);
@@ -307,7 +289,8 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 
 #[cfg(test)]
 #[entry]
-fn agb_test_main() -> ! {
+fn agb_test_main(gba: Gba) -> ! {
+    unsafe { TEST_GBA = Some(gba) };
     test_main();
     #[allow(clippy::empty_loop)]
     loop {}
