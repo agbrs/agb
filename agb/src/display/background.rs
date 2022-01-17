@@ -1,484 +1,187 @@
-use core::ops::Index;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
 
-use crate::{
-    fixnum::{Rect, Vector2D},
-    memory_mapped::{MemoryMapped, MemoryMapped1DArray},
-};
-
-use super::{
-    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority,
-    DISPLAY_CONTROL,
-};
-
-const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
-    unsafe { MemoryMapped1DArray::new(0x0500_0000) };
+use crate::memory_mapped::MemoryMapped1DArray;
 
 const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06000000) };
 
-const MAP: *mut [[[u16; 32]; 32]; 32] = 0x0600_0000 as *mut _;
-
-pub enum ColourMode {
-    FourBitPerPixel = 0,
-    EightBitPerPixel = 1,
+#[derive(Clone, Copy, Debug)]
+enum TileFormat {
+    FourBpp,
 }
 
-#[derive(Clone, Copy)]
-pub enum BackgroundSize {
-    S32x32 = 0,
-    S64x32 = 1,
-    S32x64 = 2,
-    S64x64 = 3,
-}
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-enum Mutability {
-    Immutable,
-    Mutable,
-}
-
-struct MapStorage<'a> {
-    s: *const [u16],
-    mutability: Mutability,
-    _phantom: core::marker::PhantomData<&'a ()>,
-}
-
-impl<'a> Index<usize> for MapStorage<'a> {
-    type Output = u16;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.get()[index]
-    }
-}
-
-impl<'a> MapStorage<'a> {
-    fn new(store: &[u16]) -> MapStorage {
-        MapStorage {
-            s: store as *const _,
-            mutability: Mutability::Immutable,
-            _phantom: core::marker::PhantomData,
+impl TileFormat {
+    /// Returns the size of the tile in bytes
+    fn tile_size(self) -> usize {
+        match self {
+            TileFormat::FourBpp => 8 * 8 / 2,
         }
     }
-    fn new_mutable(store: &mut [u16]) -> MapStorage {
-        MapStorage {
-            s: store as *const _,
-            mutability: Mutability::Mutable,
-            _phantom: core::marker::PhantomData,
-        }
-    }
-    fn get(&self) -> &[u16] {
-        unsafe { &*self.s }
-    }
-    fn get_mut(&mut self) -> &mut [u16] {
-        assert!(
-            self.mutability == Mutability::Mutable,
-            "backing storage must be mutable in order to get internal storage mutably"
-        );
-        unsafe { &mut *(self.s as *mut _) }
-    }
 }
 
-/// The map background is the method of drawing game maps to the screen. It
-/// automatically handles copying the correct portion of a provided map to the
-/// assigned block depending on given coordinates.
-#[allow(dead_code)]
-pub struct BackgroundRegular<'a> {
-    register: BackgroundRegister,
-    commited_position: Vector2D<i32>,
-    shadowed_position: Vector2D<i32>,
-    poisoned: bool,
-    copy_size: Vector2D<u16>,
-    map: Option<Map<'a>>,
+struct TileSet<'a> {
+    tiles: &'a [u8],
+    format: TileFormat,
 }
 
-pub struct Map<'a> {
-    store: MapStorage<'a>,
-    pub dimensions: Vector2D<u32>,
-    pub default: u16,
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct TileSetReference {
+    id: u16,
+    generation: u32,
 }
 
-impl<'a> Map<'a> {
-    pub fn new(map: &[u16], dimensions: Vector2D<u32>, default: u16) -> Map {
-        Map {
-            store: MapStorage::new(map),
-            dimensions,
-            default,
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+struct TileIndex(u16);
+
+enum ArenaStorageItem<T> {
+    EndOfFreeList,
+    NextFree(usize),
+    Data(T, u32),
+}
+
+struct VRamManager<'a> {
+    tilesets: Vec<ArenaStorageItem<TileSet<'a>>>,
+    generation: u32,
+    free_pointer: Option<usize>,
+
+    tile_set_to_vram: HashMap<(u16, u16), u16>,
+    references: Vec<u16>,
+    vram_free_pointer: Option<usize>,
+}
+
+const END_OF_FREE_LIST_REFERENCE: u16 = u16::MAX;
+
+impl<'a> VRamManager<'a> {
+    pub fn new() -> Self {
+        Self {
+            tilesets: Vec::new(),
+            generation: 0,
+            free_pointer: None,
+
+            tile_set_to_vram: HashMap::new(),
+            references: Vec::new(),
+            vram_free_pointer: None,
         }
     }
-    pub fn new_mutable(map: &mut [u16], dimensions: Vector2D<u32>, default: u16) -> Map {
-        Map {
-            store: MapStorage::new_mutable(map),
-            dimensions,
-            default,
-        }
-    }
-    fn get_position(&self, x: i32, y: i32) -> u16 {
-        if x < 0 || x as u32 >= self.dimensions.x || y < 0 || y as u32 >= self.dimensions.y {
-            self.default
+
+    pub fn add_tileset(&mut self, tileset: TileSet<'a>) -> TileSetReference {
+        let generation = self.generation;
+        self.generation += 1;
+
+        let tileset = ArenaStorageItem::Data(tileset, generation);
+
+        let index = if let Some(ptr) = self.free_pointer.take() {
+            match self.tilesets[ptr] {
+                ArenaStorageItem::EndOfFreeList => {
+                    self.tilesets[ptr] = tileset;
+                    ptr
+                }
+                ArenaStorageItem::NextFree(next_free) => {
+                    self.free_pointer = Some(next_free);
+                    self.tilesets[ptr] = tileset;
+                    ptr
+                }
+                _ => panic!("Free pointer shouldn't point to valid data"),
+            }
         } else {
-            self.store[y as usize * self.dimensions.x as usize + x as usize]
+            self.tilesets.push(tileset);
+            self.tilesets.len() - 1
+        };
+
+        TileSetReference {
+            id: index as u16,
+            generation,
         }
     }
-    pub fn get_store(&self) -> &[u16] {
-        self.store.get()
-    }
-    pub fn get_mutable_store(&mut self) -> &mut [u16] {
-        self.store.get_mut()
-    }
-}
 
-pub struct BackgroundRegister {
-    background: u8,
-    block: u8,
-    shadowed_register: u16,
-}
+    pub fn remove_tileset(&mut self, tile_set_ref: TileSetReference) {
+        let tileset = self.tilesets[tile_set_ref.id as usize];
 
-impl<'a> BackgroundRegister {
-    unsafe fn new(background: u8, block: u8, background_size: BackgroundSize) -> Self {
-        let mut b = Self {
-            background,
-            block,
-            shadowed_register: 0,
+        match tileset {
+            ArenaStorageItem::Data(_, generation) => {
+                assert_eq!(
+                    generation, tile_set_ref.generation,
+                    "Tileset generation must be the same when removing"
+                );
+
+                self.tilesets[tile_set_ref.id as usize] = if let Some(ptr) = self.free_pointer {
+                    ArenaStorageItem::NextFree(ptr)
+                } else {
+                    ArenaStorageItem::EndOfFreeList
+                };
+
+                self.free_pointer = Some(tile_set_ref.id as usize);
+            }
+            _ => panic!("Already freed, probably a double free?"),
+        }
+    }
+
+    pub fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
+        if let Some(&reference) = self.tile_set_to_vram.get(&(tile_set_ref.id, tile)) {
+            self.references[reference as usize] += 1;
+            return TileIndex(reference as u16);
+        }
+
+        let index_to_copy_into = if let Some(ptr) = self.vram_free_pointer.take() {
+            if self.references[ptr] != END_OF_FREE_LIST_REFERENCE {
+                self.vram_free_pointer = Some(self.references[ptr] as usize);
+            }
+
+            self.references[ptr] = 1;
+            ptr
+        } else {
+            self.references.push(1);
+            self.references.len() - 1
         };
-        b.set_block(block);
-        b.set_colour_mode(ColourMode::FourBitPerPixel);
-        b.set_background_size(background_size);
-        b.write_register();
-        b
-    }
 
-    /// Sets the background to be shown on screen. Requires the background to
-    /// have a map enabled otherwise a panic is caused.
-    pub fn show(&mut self) {
-        let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode | (1 << (self.background + 0x08));
-        DISPLAY_CONTROL.set(new_mode);
-    }
+        let tile_slice = if let ArenaStorageItem::Data(data, generation) =
+            self.tilesets[tile_set_ref.id as usize]
+        {
+            assert_eq!(
+                generation, tile_set_ref.generation,
+                "Stale tile data requested"
+            );
 
-    /// Hides the background, nothing from this background is rendered to screen.
-    pub fn hide(&mut self) {
-        let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode & !(1 << (self.background + 0x08));
-        DISPLAY_CONTROL.set(new_mode);
-    }
+            let tile_offset = (tile as usize) * data.format.tile_size();
+            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
+        } else {
+            panic!("Cannot find tile data at given reference");
+        };
 
-    pub fn set_priority(&mut self, p: Priority) {
-        unsafe { self.set_shadowed_register_bits(p as u16, 0x2, 0x0) };
-    }
+        let tile_size_in_words = TileFormat::FourBpp.tile_size() / 4;
 
-    unsafe fn set_shadowed_register_bits(&mut self, value: u16, length: u16, shift: u16) {
-        let mask = !(((1 << length) - 1) << shift);
-        let new = (self.shadowed_register & mask) | (value << shift);
-        self.shadowed_register = new;
-    }
-
-    pub fn write_register(&self) {
-        unsafe { self.get_register().set(self.shadowed_register) };
-    }
-
-    unsafe fn get_register(&self) -> MemoryMapped<u16> {
-        MemoryMapped::new(0x0400_0008 + 2 * self.background as usize)
-    }
-
-    unsafe fn set_block(&mut self, block: u8) {
-        self.set_shadowed_register_bits(block as u16, 5, 0x8);
-    }
-
-    unsafe fn set_colour_mode(&mut self, mode: ColourMode) {
-        self.set_shadowed_register_bits(mode as u16, 0x1, 0x7);
-    }
-
-    unsafe fn set_background_size(&mut self, size: BackgroundSize) {
-        self.set_shadowed_register_bits(size as u16, 0x2, 0xE);
-    }
-
-    unsafe fn set_position_x_register(&self, x: u16) {
-        *((0x0400_0010 + 4 * self.background as usize) as *mut u16) = x
-    }
-    unsafe fn set_position_y_register(&self, y: u16) {
-        *((0x0400_0012 + 4 * self.background as usize) as *mut u16) = y
-    }
-
-    pub fn set_position(&self, position: Vector2D<i32>) {
         unsafe {
-            self.set_position_x_register((position.x % (32 * 8)) as u16);
-            self.set_position_y_register((position.y % (32 * 8)) as u16);
+            let (_, tile_data, _) = tile_slice.align_to::<u32>();
+
+            for (i, &word) in tile_data.iter().enumerate() {
+                TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
+            }
         }
+
+        TileIndex(index_to_copy_into as u16)
     }
 
-    pub fn get_block(&mut self) -> &mut [[u16; 32]; 32] {
-        unsafe { &mut (*MAP)[self.block as usize] }
-    }
+    pub fn remove_tile(&mut self, tile_index: TileIndex) {
+        let index = tile_index.0 as usize;
+        self.references[index] -= 1;
 
-    pub fn clear_partial(&'a mut self, tile: u16) -> impl Iterator<Item = ()> + 'a {
-        self.get_block()
-            .iter_mut()
-            .flatten()
-            .map(move |t| unsafe { (t as *mut u16).write_volatile(tile) })
-    }
-
-    pub fn clear(&mut self, tile: u16) {
-        self.clear_partial(tile).count();
-    }
-}
-
-impl<'a, 'b> BackgroundRegular<'a> {
-    unsafe fn new(
-        background: u8,
-        block: u8,
-        background_size: BackgroundSize,
-    ) -> BackgroundRegular<'a> {
-        BackgroundRegular {
-            register: BackgroundRegister::new(background, block, background_size),
-            commited_position: (0, 0).into(),
-            shadowed_position: (0, 0).into(),
-            copy_size: (30_u16, 20_u16).into(),
-            poisoned: true,
-            map: None,
+        if self.references[index] != 0 {
+            return;
         }
-    }
 
-    /// Sets the background to be shown on screen. Requires the background to
-    /// have a map enabled otherwise a panic is caused.
-    pub fn show(&mut self) {
-        assert!(self.map.is_some());
-        self.register.show();
-    }
-
-    /// Hides the background, nothing from this background is rendered to screen.
-    pub fn hide(&mut self) {
-        self.register.hide();
-    }
-
-    pub fn set_priority(&mut self, p: Priority) {
-        self.register.set_priority(p);
-    }
-
-    pub fn set_position(&mut self, position: Vector2D<i32>) {
-        self.shadowed_position = position;
-    }
-
-    pub fn get_map(&mut self) -> Option<&mut Map<'a>> {
-        self.poisoned = true;
-        self.map.as_mut()
-    }
-
-    pub fn set_map(&mut self, map: Map<'a>) {
-        self.poisoned = true;
-        self.map = Some(map);
-    }
-
-    pub fn commit_partial(&'b mut self) -> impl Iterator<Item = ()> + 'b {
-        // commit shadowed register
-        self.register.write_register();
-
-        let map = self.map.as_ref().unwrap();
-
-        let commited_screen = Rect::new(self.commited_position, self.copy_size.change_base());
-        let shadowed_screen = Rect::new(self.shadowed_position, self.copy_size.change_base());
-
-        let iter = if self.poisoned || !shadowed_screen.touches(commited_screen) {
-            let positions_to_be_updated = Rect::new(
-                self.shadowed_position / 8 - (1, 1).into(),
-                self.copy_size.change_base() + (1, 1).into(),
-            )
-            .iter();
-
-            positions_to_be_updated.chain(Rect::new((0, 0).into(), (0, 0).into()).iter())
+        if let Some(ptr) = self.vram_free_pointer {
+            self.references[index] = ptr as u16;
         } else {
-            let commited_block = self.commited_position / 8;
-            let shadowed_block = self.shadowed_position / 8;
+            self.references[index] = END_OF_FREE_LIST_REFERENCE;
+        }
 
-            let top_bottom_rect: Rect<i32> = {
-                let top_bottom_height = commited_block.y - shadowed_block.y;
-                let new_y = if top_bottom_height < 0 {
-                    commited_block.y + self.copy_size.y as i32
-                } else {
-                    shadowed_block.y - 1
-                };
-                Rect::new(
-                    (shadowed_block.x - 1, new_y).into(),
-                    (32, top_bottom_height.abs()).into(),
-                )
-            };
-
-            let left_right_rect: Rect<i32> = {
-                let left_right_width = commited_block.x - shadowed_block.x;
-                let new_x = if left_right_width < 0 {
-                    commited_block.x + self.copy_size.x as i32
-                } else {
-                    shadowed_block.x - 1
-                };
-                Rect::new(
-                    (new_x, shadowed_block.y - 1).into(),
-                    (left_right_width.abs(), 22).into(),
-                )
-            };
-
-            top_bottom_rect.iter().chain(left_right_rect.iter())
-        };
-
-        // update commited position
-
-        self.commited_position = self.shadowed_position;
-
-        self.poisoned = false;
-
-        // update position in registers
-
-        self.register.set_position(self.commited_position);
-        let block = self.register.get_block();
-        iter.map(move |(x, y)| {
-            block[y.rem_euclid(32) as usize][x.rem_euclid(32) as usize] = map.get_position(x, y)
-        })
-    }
-
-    pub fn commit(&mut self) {
-        self.commit_partial().count();
+        self.vram_free_pointer = Some(index);
     }
 }
 
-fn decide_background_mode(num_regular: u8, num_affine: u8) -> Option<DisplayMode> {
-    if num_affine == 0 && num_regular <= 4 {
-        Some(DisplayMode::Tiled0)
-    } else if num_affine == 1 && num_regular <= 2 {
-        Some(DisplayMode::Tiled1)
-    } else if num_affine == 2 && num_regular == 0 {
-        Some(DisplayMode::Tiled2)
-    } else {
-        None
-    }
-}
-
-pub struct BackgroundDistributor {
-    used_blocks: u32,
-    num_regular: u8,
-    num_affine: u8,
-}
-
-impl<'b> BackgroundDistributor {
-    pub(crate) unsafe fn new() -> Self {
-        set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
-        set_graphics_mode(DisplayMode::Tiled0);
-        BackgroundDistributor {
-            used_blocks: 0,
-            num_regular: 0,
-            num_affine: 0,
-        }
-    }
-
-    fn set_background_tilemap_entry(&mut self, index: u32, data: u32) {
-        TILE_BACKGROUND.set(index as usize, data);
-    }
-
-    /// Copies raw palettes to the background palette without any checks.
-    pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
-        for (index, &colour) in palette.iter().enumerate() {
-            PALETTE_BACKGROUND.set(index, colour);
-        }
-    }
-
-    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
-        for (colour_index, &colour) in palette.colours.iter().enumerate() {
-            PALETTE_BACKGROUND.set(pal_index as usize * 16 + colour_index, colour);
-        }
-    }
-
-    /// Copies palettes to the background palettes without any checks.
-    pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
-        for (palette_index, entry) in palettes.iter().enumerate() {
-            self.set_background_palette(palette_index as u8, entry)
-        }
-    }
-
-    /// Gets a map background if possible and assigns an unused block to it.
-    pub fn get_regular(&mut self) -> Result<BackgroundRegular<'b>, &'static str> {
-        let new_mode = decide_background_mode(self.num_regular + 1, self.num_affine)
-            .ok_or("there is no mode compatible with the requested backgrounds")?;
-
-        unsafe { set_graphics_mode(new_mode) };
-
-        if !self.used_blocks == 0 {
-            return Err("all blocks are used");
-        }
-
-        let mut availiable_block = u8::MAX;
-
-        for i in 0..32 {
-            if (1 << i) & self.used_blocks == 0 {
-                availiable_block = i;
-                break;
-            }
-        }
-
-        assert!(
-            availiable_block != u8::MAX,
-            "should be able to find a block"
-        );
-
-        self.used_blocks |= 1 << availiable_block;
-
-        let background = self.num_regular;
-        self.num_regular += 1;
-        Ok(unsafe { BackgroundRegular::new(background, availiable_block, BackgroundSize::S32x32) })
-    }
-
-    pub fn get_raw_regular(&mut self) -> Result<BackgroundRegister, &'static str> {
-        let new_mode = decide_background_mode(self.num_regular + 1, self.num_affine)
-            .ok_or("there is no mode compatible with the requested backgrounds")?;
-
-        unsafe { set_graphics_mode(new_mode) };
-
-        if !self.used_blocks == 0 {
-            return Err("all blocks are used");
-        }
-
-        let mut availiable_block = u8::MAX;
-
-        for i in 0..32 {
-            if (1 << i) & self.used_blocks == 0 {
-                availiable_block = i;
-                break;
-            }
-        }
-
-        assert!(
-            availiable_block != u8::MAX,
-            "should be able to find a block"
-        );
-
-        self.used_blocks |= 1 << availiable_block;
-
-        let background = self.num_regular;
-        self.num_regular += 1;
-        Ok(
-            unsafe {
-                BackgroundRegister::new(background, availiable_block, BackgroundSize::S32x32)
-            },
-        )
-    }
-
-    /// Copies tiles to tilemap starting at the starting tile. Cannot overwrite
-    /// blocks that are already written to, panic is caused if this is attempted.
-    pub fn set_background_tilemap(&mut self, start_tile: u32, tiles: &[u32]) {
-        let u32_per_block = 512;
-
-        let start_block = (start_tile * 8) / u32_per_block;
-        // round up rather than down
-        let end_block = (start_tile * 8 + tiles.len() as u32 + u32_per_block - 1) / u32_per_block;
-
-        let blocks_to_use: u32 = ((1 << (end_block - start_block)) - 1) << start_block;
-
-        assert!(
-            self.used_blocks & blocks_to_use == 0,
-            "blocks {} to {} should be unused for this copy to succeed",
-            start_block,
-            end_block
-        );
-
-        self.used_blocks |= blocks_to_use;
-
-        for (index, &tile) in tiles.iter().enumerate() {
-            self.set_background_tilemap_entry(start_tile * 8 + index as u32, tile)
-        }
+impl TileSetReference {
+    fn new(id: u16, generation: u32) -> Self {
+        Self { id, generation }
     }
 }
