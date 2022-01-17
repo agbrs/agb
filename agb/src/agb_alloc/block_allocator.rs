@@ -4,7 +4,7 @@ use core::cell::RefCell;
 use core::ptr::NonNull;
 
 use crate::interrupt::free;
-use bare_metal::Mutex;
+use bare_metal::{CriticalSection, Mutex};
 
 use super::bump_allocator::BumpAllocator;
 use super::SendNonNull;
@@ -47,9 +47,9 @@ impl BlockAllocator {
         }
     }
 
-    fn new_block(&self, layout: Layout) -> *mut u8 {
+    fn new_block(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
         let overall_layout = Block::either_layout(layout);
-        self.inner_allocator.alloc_safe(overall_layout)
+        self.inner_allocator.alloc_critical(overall_layout, cs)
     }
 }
 
@@ -91,7 +91,7 @@ unsafe impl GlobalAlloc for BlockAllocator {
                     list_ptr = &mut curr_block.next;
                 }
 
-                self.new_block(layout)
+                self.new_block(layout, key)
             })
         }
     }

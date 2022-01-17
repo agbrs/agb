@@ -4,7 +4,7 @@ use core::ptr::NonNull;
 
 use super::SendNonNull;
 use crate::interrupt::free;
-use bare_metal::Mutex;
+use bare_metal::{CriticalSection, Mutex};
 
 pub(crate) struct BumpAllocator {
     current_ptr: Mutex<RefCell<Option<SendNonNull<u8>>>>,
@@ -19,32 +19,33 @@ impl BumpAllocator {
 }
 
 impl BumpAllocator {
+    pub fn alloc_critical(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
+        let mut current_ptr = self.current_ptr.borrow(*cs).borrow_mut();
+
+        let ptr = if let Some(c) = *current_ptr {
+            c.as_ptr() as usize
+        } else {
+            get_data_end()
+        };
+
+        let alignment_bitmask = layout.align() - 1;
+        let fixup = ptr & alignment_bitmask;
+
+        let amount_to_add = layout.align() - fixup;
+
+        let resulting_ptr = ptr + amount_to_add;
+        let new_current_ptr = resulting_ptr + layout.size();
+
+        if new_current_ptr as usize >= super::EWRAM_END {
+            return core::ptr::null_mut();
+        }
+
+        *current_ptr = NonNull::new(new_current_ptr as *mut _).map(SendNonNull);
+
+        resulting_ptr as *mut _
+    }
     pub fn alloc_safe(&self, layout: Layout) -> *mut u8 {
-        free(|key| {
-            let mut current_ptr = self.current_ptr.borrow(*key).borrow_mut();
-
-            let ptr = if let Some(c) = *current_ptr {
-                c.as_ptr() as usize
-            } else {
-                get_data_end()
-            };
-
-            let alignment_bitmask = layout.align() - 1;
-            let fixup = ptr & alignment_bitmask;
-
-            let amount_to_add = layout.align() - fixup;
-
-            let resulting_ptr = ptr + amount_to_add;
-            let new_current_ptr = resulting_ptr + layout.size();
-
-            if new_current_ptr as usize >= super::EWRAM_END {
-                return core::ptr::null_mut();
-            }
-
-            *current_ptr = NonNull::new(new_current_ptr as *mut _).map(SendNonNull);
-
-            resulting_ptr as *mut _
-        })
+        free(|key| self.alloc_critical(layout, key))
     }
 }
 
