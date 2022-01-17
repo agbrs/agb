@@ -1,4 +1,4 @@
-use super::{bitmap3::Bitmap3, bitmap4::Bitmap4};
+use super::{background::Tiled0, bitmap3::Bitmap3, bitmap4::Bitmap4};
 
 #[non_exhaustive]
 pub struct Video {}
@@ -14,7 +14,7 @@ impl Video {
         unsafe { Bitmap4::new() }
     }
 
-    // pub fn tiled0(&mut self) -> BackgroundDistributor {
-    //     unsafe { BackgroundDistributor::new() }
-    // }
+    pub fn tiled0(&mut self) -> Tiled0 {
+        unsafe { Tiled0::new() }
+    }
 }

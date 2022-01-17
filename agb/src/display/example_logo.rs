@@ -1,23 +1,31 @@
-/*use crate::display::background::BackgroundDistributor;
+use crate::display::background::Tiled0;
+
+use super::background::{Tile, TileFormat, TileSet};
 
 crate::include_gfx!("gfx/agb_logo.toml");
 
-pub fn display_logo(gfx: &mut BackgroundDistributor) {
-    use super::background::Map;
-    gfx.set_background_palettes(agb_logo::test_logo.palettes);
-    gfx.set_background_tilemap(0, agb_logo::test_logo.tiles);
+pub fn display_logo(gfx: &mut Tiled0) {
+    gfx.vram
+        .set_background_palettes(agb_logo::test_logo.palettes);
 
-    let mut back = gfx.get_regular().unwrap();
+    let background_tilemap = TileSet::new(agb_logo::test_logo.tiles, TileFormat::FourBpp);
+    let background_tilemap_reference = gfx.vram.add_tileset(background_tilemap);
 
-    let mut entries: [u16; 30 * 20] = [0; 30 * 20];
-    for tile_id in 0..(30 * 20) {
-        let palette_entry = agb_logo::test_logo.palette_assignments[tile_id as usize] as u16;
-        entries[tile_id as usize] = tile_id | (palette_entry << 12);
+    let mut back = gfx.background();
+
+    for y in 0..20 {
+        for x in 0..30 {
+            let tile_id = y * 30 + x;
+
+            let palette_entry = agb_logo::test_logo.palette_assignments[tile_id as usize] as u16;
+            let tile = gfx.vram.add_tile(background_tilemap_reference, tile_id);
+
+            back.set_tile(x, y, Tile::new(tile, false, false, palette_entry))
+        }
     }
 
-    back.set_map(Map::new(&entries, (30_u32, 20_u32).into(), 0));
-    back.show();
     back.commit();
+    back.show();
 }
 #[cfg(test)]
 mod tests {
@@ -31,4 +39,4 @@ mod tests {
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
     }
-}*/
+}

@@ -3,7 +3,10 @@ use hashbrown::HashMap;
 
 use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
 
-use super::{set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings};
+use super::{
+    palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority,
+    DISPLAY_CONTROL,
+};
 
 const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06000000) };
@@ -26,8 +29,14 @@ impl TileFormat {
 }
 
 pub struct TileSet<'a> {
-    tiles: &'a [u8],
+    tiles: &'a [u32],
     format: TileFormat,
+}
+
+impl<'a> TileSet<'a> {
+    pub fn new(tiles: &'a [u32], format: TileFormat) -> Self {
+        Self { tiles, format }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -145,20 +154,16 @@ impl<'a> VRamManager<'a> {
                 "Stale tile data requested"
             );
 
-            let tile_offset = (tile as usize) * data.format.tile_size();
-            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
+            let tile_offset = (tile as usize) * data.format.tile_size() / 4;
+            &data.tiles[tile_offset..(tile_offset + data.format.tile_size() / 4)]
         } else {
             panic!("Cannot find tile data at given reference");
         };
 
         let tile_size_in_words = TileFormat::FourBpp.tile_size() / 4;
 
-        unsafe {
-            let (_, tile_data, _) = tile_slice.align_to::<u32>();
-
-            for (i, &word) in tile_data.iter().enumerate() {
-                TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
-            }
+        for (i, &word) in tile_slice.iter().enumerate() {
+            TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
         }
 
         TileIndex(index_to_copy_into as u16)
@@ -187,6 +192,19 @@ impl<'a> VRamManager<'a> {
             PALETTE_BACKGROUND.set(index, colour);
         }
     }
+
+    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+        for (colour_index, &colour) in palette.colours.iter().enumerate() {
+            PALETTE_BACKGROUND.set(pal_index as usize * 16 + colour_index, colour);
+        }
+    }
+
+    /// Copies palettes to the background palettes without any checks.
+    pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+        for (palette_index, entry) in palettes.iter().enumerate() {
+            self.set_background_palette(palette_index as u8, entry)
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -205,7 +223,7 @@ pub struct RegularMap {
     screenblock: u8,
     x_scroll: u16,
     y_scroll: u16,
-    priority: u8,
+    priority: Priority,
 
     tiles: [Tile; 32 * 32],
     tiles_dirty: bool,
@@ -219,7 +237,7 @@ impl RegularMap {
             screenblock,
             x_scroll: 0,
             y_scroll: 0,
-            priority: 0,
+            priority: Priority::P0,
 
             tiles: [Tile(0); 32 * 32],
             tiles_dirty: true,
@@ -229,6 +247,12 @@ impl RegularMap {
     pub fn set_tile(&mut self, x: u16, y: u16, tile: Tile) {
         self.tiles[(x + y * 32) as usize] = tile;
         self.tiles_dirty = true;
+    }
+
+    pub fn show(&mut self) {
+        let mode = DISPLAY_CONTROL.get();
+        let new_mode = mode | (1 << (self.background_id + 0x08));
+        DISPLAY_CONTROL.set(new_mode);
     }
 
     pub fn commit(&mut self) {
@@ -246,6 +270,8 @@ impl RegularMap {
         for (i, tile) in self.tiles.iter().enumerate() {
             screenblock_memory.set(i, tile.0);
         }
+
+        self.tiles_dirty = false;
     }
 
     const fn bg_control_register(&self) -> MemoryMapped<u16> {
@@ -261,7 +287,7 @@ impl RegularMap {
     }
 
     const fn screenblock_memory(&self) -> MemoryMapped1DArray<u16, { 32 * 32 }> {
-        unsafe { MemoryMapped1DArray::new(0x0600_0000 + 0x1000 * self.screenblock as usize) }
+        unsafe { MemoryMapped1DArray::new(0x0600_0000 + 0x1000 * self.screenblock as usize / 2) }
     }
 }
 

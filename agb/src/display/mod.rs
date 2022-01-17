@@ -109,6 +109,7 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Priority {
     P0 = 0,
     P1 = 1,
