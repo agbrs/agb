@@ -1,45 +1,50 @@
 use core::alloc::{GlobalAlloc, Layout};
+use core::cell::RefCell;
 use core::ptr::NonNull;
 
-use crate::interrupt::Mutex;
+use super::SendNonNull;
+use crate::interrupt::free;
+use bare_metal::Mutex;
 
 pub(crate) struct BumpAllocator {
-    current_ptr: Mutex<Option<NonNull<u8>>>,
+    current_ptr: Mutex<RefCell<Option<SendNonNull<u8>>>>,
 }
 
 impl BumpAllocator {
     pub const fn new() -> Self {
         Self {
-            current_ptr: Mutex::new(None),
+            current_ptr: Mutex::new(RefCell::new(None)),
         }
     }
 }
 
 impl BumpAllocator {
-    fn alloc_safe(&self, layout: Layout) -> *mut u8 {
-        let mut current_ptr = self.current_ptr.lock();
+    pub fn alloc_safe(&self, layout: Layout) -> *mut u8 {
+        free(|key| {
+            let mut current_ptr = self.current_ptr.borrow(*key).borrow_mut();
 
-        let ptr = if let Some(c) = *current_ptr {
-            c.as_ptr() as usize
-        } else {
-            get_data_end()
-        };
+            let ptr = if let Some(c) = *current_ptr {
+                c.as_ptr() as usize
+            } else {
+                get_data_end()
+            };
 
-        let alignment_bitmask = layout.align() - 1;
-        let fixup = ptr & alignment_bitmask;
+            let alignment_bitmask = layout.align() - 1;
+            let fixup = ptr & alignment_bitmask;
 
-        let amount_to_add = layout.align() - fixup;
+            let amount_to_add = layout.align() - fixup;
 
-        let resulting_ptr = ptr + amount_to_add;
-        let new_current_ptr = resulting_ptr + layout.size();
+            let resulting_ptr = ptr + amount_to_add;
+            let new_current_ptr = resulting_ptr + layout.size();
 
-        if new_current_ptr as usize >= super::EWRAM_END {
-            return core::ptr::null_mut();
-        }
+            if new_current_ptr as usize >= super::EWRAM_END {
+                return core::ptr::null_mut();
+            }
 
-        *current_ptr = NonNull::new(new_current_ptr as *mut _);
+            *current_ptr = NonNull::new(new_current_ptr as *mut _).map(SendNonNull);
 
-        resulting_ptr as *mut _
+            resulting_ptr as *mut _
+        })
     }
 }
 
