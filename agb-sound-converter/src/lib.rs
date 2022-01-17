@@ -2,8 +2,8 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use siphasher::sip::SipHasher;
 use std::{
+    collections::hash_map::DefaultHasher,
     fs,
     fs::File,
     hash::{Hash, Hasher},
@@ -106,7 +106,7 @@ where
 }
 
 fn get_out_filename(path: &Path) -> String {
-    let mut hasher = SipHasher::new();
+    let mut hasher = DefaultHasher::new();
     path.hash(&mut hasher);
 
     format!("{}.raw", hasher.finish())
