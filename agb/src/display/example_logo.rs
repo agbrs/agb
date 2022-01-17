@@ -1,4 +1,4 @@
-use crate::display::background::BackgroundDistributor;
+/*use crate::display::background::BackgroundDistributor;
 
 crate::include_gfx!("gfx/agb_logo.toml");
 
@@ -31,4 +31,4 @@ mod tests {
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
     }
-}
+}*/

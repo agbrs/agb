@@ -1,13 +1,18 @@
 use alloc::vec::Vec;
 use hashbrown::HashMap;
 
-use crate::memory_mapped::MemoryMapped1DArray;
+use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
+
+use super::{set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings};
 
 const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
     unsafe { MemoryMapped1DArray::new(0x06000000) };
 
+const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
+    unsafe { MemoryMapped1DArray::new(0x0500_0000) };
+
 #[derive(Clone, Copy, Debug)]
-enum TileFormat {
+pub enum TileFormat {
     FourBpp,
 }
 
@@ -20,19 +25,19 @@ impl TileFormat {
     }
 }
 
-struct TileSet<'a> {
+pub struct TileSet<'a> {
     tiles: &'a [u8],
     format: TileFormat,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-struct TileSetReference {
+pub struct TileSetReference {
     id: u16,
     generation: u32,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-struct TileIndex(u16);
+#[derive(Debug)]
+pub struct TileIndex(u16);
 
 enum ArenaStorageItem<T> {
     EndOfFreeList,
@@ -40,7 +45,7 @@ enum ArenaStorageItem<T> {
     Data(T, u32),
 }
 
-struct VRamManager<'a> {
+pub struct VRamManager<'a> {
     tilesets: Vec<ArenaStorageItem<TileSet<'a>>>,
     generation: u32,
     free_pointer: Option<usize>,
@@ -89,19 +94,16 @@ impl<'a> VRamManager<'a> {
             self.tilesets.len() - 1
         };
 
-        TileSetReference {
-            id: index as u16,
-            generation,
-        }
+        TileSetReference::new(index as u16, generation)
     }
 
     pub fn remove_tileset(&mut self, tile_set_ref: TileSetReference) {
-        let tileset = self.tilesets[tile_set_ref.id as usize];
+        let tileset = &self.tilesets[tile_set_ref.id as usize];
 
         match tileset {
             ArenaStorageItem::Data(_, generation) => {
                 assert_eq!(
-                    generation, tile_set_ref.generation,
+                    *generation, tile_set_ref.generation,
                     "Tileset generation must be the same when removing"
                 );
 
@@ -136,10 +138,10 @@ impl<'a> VRamManager<'a> {
         };
 
         let tile_slice = if let ArenaStorageItem::Data(data, generation) =
-            self.tilesets[tile_set_ref.id as usize]
+            &self.tilesets[tile_set_ref.id as usize]
         {
             assert_eq!(
-                generation, tile_set_ref.generation,
+                *generation, tile_set_ref.generation,
                 "Stale tile data requested"
             );
 
@@ -177,6 +179,123 @@ impl<'a> VRamManager<'a> {
         }
 
         self.vram_free_pointer = Some(index);
+    }
+
+    /// Copies raw palettes to the background palette without any checks.
+    pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
+        for (index, &colour) in palette.iter().enumerate() {
+            PALETTE_BACKGROUND.set(index, colour);
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct Tile(u16);
+
+impl Tile {
+    pub fn new(tid: TileIndex, hflip: bool, vflip: bool, palette_id: u16) -> Self {
+        Self(tid.0 | ((hflip as u16) << 10) | ((vflip as u16) << 11) | (palette_id << 12))
+    }
+}
+
+pub struct RegularMap {
+    background_id: u8,
+
+    screenblock: u8,
+    x_scroll: u16,
+    y_scroll: u16,
+    priority: u8,
+
+    tiles: [Tile; 32 * 32],
+    tiles_dirty: bool,
+}
+
+impl RegularMap {
+    fn new(background_id: u8, screenblock: u8) -> Self {
+        Self {
+            background_id,
+
+            screenblock,
+            x_scroll: 0,
+            y_scroll: 0,
+            priority: 0,
+
+            tiles: [Tile(0); 32 * 32],
+            tiles_dirty: true,
+        }
+    }
+
+    pub fn set_tile(&mut self, x: u16, y: u16, tile: Tile) {
+        self.tiles[(x + y * 32) as usize] = tile;
+        self.tiles_dirty = true;
+    }
+
+    pub fn commit(&mut self) {
+        let new_bg_control_value = (self.priority as u16) | ((self.screenblock as u16) << 8);
+
+        self.bg_control_register().set(new_bg_control_value);
+        self.bg_h_offset().set(self.x_scroll);
+        self.bg_v_offset().set(self.y_scroll);
+
+        if !self.tiles_dirty {
+            return;
+        }
+
+        let screenblock_memory = self.screenblock_memory();
+        for (i, tile) in self.tiles.iter().enumerate() {
+            screenblock_memory.set(i, tile.0);
+        }
+    }
+
+    const fn bg_control_register(&self) -> MemoryMapped<u16> {
+        unsafe { MemoryMapped::new(0x0400_0008 + 2 * self.background_id as usize) }
+    }
+
+    const fn bg_h_offset(&self) -> MemoryMapped<u16> {
+        unsafe { MemoryMapped::new(0x0400_0010 + 4 * self.background_id as usize) }
+    }
+
+    const fn bg_v_offset(&self) -> MemoryMapped<u16> {
+        unsafe { MemoryMapped::new(0x0400_0012 + 4 * self.background_id as usize) }
+    }
+
+    const fn screenblock_memory(&self) -> MemoryMapped1DArray<u16, { 32 * 32 }> {
+        unsafe { MemoryMapped1DArray::new(0x0600_0000 + 0x1000 * self.screenblock as usize) }
+    }
+}
+
+pub struct Tiled0<'a> {
+    num_regular: u8,
+    next_screenblock: u8,
+
+    pub vram: VRamManager<'a>,
+}
+
+impl Tiled0<'_> {
+    pub(crate) unsafe fn new() -> Self {
+        set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
+        set_graphics_mode(DisplayMode::Tiled0);
+
+        Self {
+            num_regular: 0,
+            next_screenblock: 16,
+
+            vram: VRamManager::new(),
+        }
+    }
+
+    pub fn background(&mut self) -> RegularMap {
+        if self.num_regular == 4 {
+            panic!("Can only create 4 backgrounds");
+        }
+
+        let bg = RegularMap::new(self.num_regular, self.next_screenblock);
+
+        self.num_regular += 1;
+        self.next_screenblock += 1;
+
+        bg
     }
 }
 
