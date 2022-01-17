@@ -49,9 +49,11 @@ impl<T, const N: usize> MemoryMapped1DArray<T, N> {
             array: address as *mut [T; N],
         }
     }
+
     pub fn get(&self, n: usize) -> T {
         unsafe { (&mut (*self.array)[n] as *mut T).read_volatile() }
     }
+
     pub fn set(&self, n: usize, val: T) {
         unsafe { (&mut (*self.array)[n] as *mut T).write_volatile(val) }
     }
