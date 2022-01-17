@@ -255,6 +255,12 @@ impl RegularMap {
         DISPLAY_CONTROL.set(new_mode);
     }
 
+    pub fn hide(&mut self) {
+        let mode = DISPLAY_CONTROL.get();
+        let new_mode = mode & !(1 << (self.background_id + 0x08));
+        DISPLAY_CONTROL.set(new_mode);
+    }
+
     pub fn commit(&mut self) {
         let new_bg_control_value = (self.priority as u16) | ((self.screenblock as u16) << 8);
 
