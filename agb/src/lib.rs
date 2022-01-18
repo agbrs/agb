@@ -243,6 +243,13 @@ where
         mgba::number_of_cycles_tagged(785);
         self(gba);
         mgba::number_of_cycles_tagged(785);
+
+        assert!(
+            unsafe { agb_alloc::number_of_blocks() } < 2,
+            "memory is being leaked, there are {} blocks",
+            unsafe { agb_alloc::number_of_blocks() }
+        );
+
         mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
             .unwrap();
     }
@@ -274,10 +281,10 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     )
     .unwrap();
 
-    let mut gba = unsafe { TEST_GBA.as_mut() }.unwrap();
+    let gba = unsafe { TEST_GBA.as_mut() }.unwrap();
 
     for test in tests {
-        test.run(&mut gba);
+        test.run(gba);
     }
 
     mgba.print(
