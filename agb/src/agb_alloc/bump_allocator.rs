@@ -31,7 +31,7 @@ impl BumpAllocator {
         let alignment_bitmask = layout.align() - 1;
         let fixup = ptr & alignment_bitmask;
 
-        let amount_to_add = layout.align() - fixup;
+        let amount_to_add = (layout.align() - fixup) & alignment_bitmask;
 
         let resulting_ptr = ptr + amount_to_add;
         let new_current_ptr = resulting_ptr + layout.size();

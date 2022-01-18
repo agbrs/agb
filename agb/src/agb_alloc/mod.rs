@@ -35,6 +35,10 @@ const EWRAM_END: usize = 0x0204_0000;
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe { BlockAllocator::new() };
 
+pub unsafe fn number_of_blocks() -> u32 {
+    GLOBAL_ALLOC.number_of_blocks()
+}
+
 #[alloc_error_handler]
 fn alloc_error(layout: Layout) -> ! {
     panic!(
