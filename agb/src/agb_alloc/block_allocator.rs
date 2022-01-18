@@ -50,6 +50,7 @@ impl BlockAllocator {
         }
     }
 
+    #[allow(dead_code)]
     pub unsafe fn number_of_blocks(&self) -> u32 {
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();

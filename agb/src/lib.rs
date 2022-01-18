@@ -2,7 +2,7 @@
 // This appears to be needed for testing to work
 #![cfg_attr(test, no_main)]
 #![cfg_attr(test, feature(custom_test_frameworks))]
-#![cfg_attr(test, test_runner(crate::test_runner))]
+#![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![deny(clippy::all)]
 #![feature(alloc_error_handler)]
@@ -224,96 +224,96 @@ impl Gba {
     }
 }
 
-#[doc(hidden)]
-pub trait Testable {
-    fn run(&self, gba: &mut Gba);
-}
+#[cfg(test)]
+mod test_runner {
+    use super::*;
 
-impl<T> Testable for T
-where
-    T: Fn(&mut Gba),
-{
-    fn run(&self, gba: &mut Gba) {
+    #[doc(hidden)]
+    pub trait Testable {
+        fn run(&self, gba: &mut Gba);
+    }
+
+    impl<T> Testable for T
+    where
+        T: Fn(&mut Gba),
+    {
+        fn run(&self, gba: &mut Gba) {
+            let mut mgba = mgba::Mgba::new().unwrap();
+            mgba.print(
+                format_args!("{}...", core::any::type_name::<T>()),
+                mgba::DebugLevel::Info,
+            )
+            .unwrap();
+            mgba::number_of_cycles_tagged(785);
+            self(gba);
+            mgba::number_of_cycles_tagged(785);
+
+            assert!(
+                unsafe { agb_alloc::number_of_blocks() } < 2,
+                "memory is being leaked, there are {} blocks",
+                unsafe { agb_alloc::number_of_blocks() }
+            );
+
+            mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
+                .unwrap();
+        }
+    }
+
+    #[panic_handler]
+    fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+        if let Some(mut mgba) = mgba::Mgba::new() {
+            mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error)
+                .unwrap();
+            mgba.print(format_args!("Error: {}", info), mgba::DebugLevel::Fatal)
+                .unwrap();
+        }
+
+        loop {}
+    }
+
+    static mut TEST_GBA: Option<Gba> = None;
+
+    #[doc(hidden)]
+    pub fn test_runner(tests: &[&dyn Testable]) {
         let mut mgba = mgba::Mgba::new().unwrap();
         mgba.print(
-            format_args!("{}...", core::any::type_name::<T>()),
+            format_args!("Running {} tests", tests.len()),
             mgba::DebugLevel::Info,
         )
         .unwrap();
-        mgba::number_of_cycles_tagged(785);
-        self(gba);
-        mgba::number_of_cycles_tagged(785);
 
-        assert!(
-            unsafe { agb_alloc::number_of_blocks() } < 2,
-            "memory is being leaked, there are {} blocks",
-            unsafe { agb_alloc::number_of_blocks() }
-        );
+        let gba = unsafe { TEST_GBA.as_mut() }.unwrap();
 
-        mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
-            .unwrap();
-    }
-}
+        for test in tests {
+            test.run(gba);
+        }
 
-#[panic_handler]
-#[cfg(test)]
-fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-    if let Some(mut mgba) = mgba::Mgba::new() {
-        mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error)
-            .unwrap();
-        mgba.print(format_args!("Error: {}", info), mgba::DebugLevel::Fatal)
-            .unwrap();
+        mgba.print(
+            format_args!("Tests finished successfully"),
+            mgba::DebugLevel::Info,
+        )
+        .unwrap();
     }
 
-    loop {}
-}
-
-#[cfg(test)]
-static mut TEST_GBA: Option<Gba> = None;
-
-#[doc(hidden)]
-#[cfg(test)]
-pub fn test_runner(tests: &[&dyn Testable]) {
-    let mut mgba = mgba::Mgba::new().unwrap();
-    mgba.print(
-        format_args!("Running {} tests", tests.len()),
-        mgba::DebugLevel::Info,
-    )
-    .unwrap();
-
-    let gba = unsafe { TEST_GBA.as_mut() }.unwrap();
-
-    for test in tests {
-        test.run(gba);
+    #[entry]
+    fn agb_test_main(gba: Gba) -> ! {
+        unsafe { TEST_GBA = Some(gba) };
+        test_main();
+        #[allow(clippy::empty_loop)]
+        loop {}
     }
 
-    mgba.print(
-        format_args!("Tests finished successfully"),
-        mgba::DebugLevel::Info,
-    )
-    .unwrap();
-}
-
-#[cfg(test)]
-#[entry]
-fn agb_test_main(gba: Gba) -> ! {
-    unsafe { TEST_GBA = Some(gba) };
-    test_main();
-    #[allow(clippy::empty_loop)]
-    loop {}
-}
-
-#[cfg(test)]
-fn assert_image_output(image: &str) {
-    display::busy_wait_for_vblank();
-    display::busy_wait_for_vblank();
-    let mut mgba = crate::mgba::Mgba::new().unwrap();
-    mgba.print(
-        format_args!("image:{}", image),
-        crate::mgba::DebugLevel::Info,
-    )
-    .unwrap();
-    display::busy_wait_for_vblank();
+    pub fn assert_image_output(image: &str) {
+        display::busy_wait_for_vblank();
+        display::busy_wait_for_vblank();
+        let mut mgba = crate::mgba::Mgba::new().unwrap();
+        mgba.print(
+            format_args!("image:{}", image),
+            crate::mgba::DebugLevel::Info,
+        )
+        .unwrap();
+        display::busy_wait_for_vblank();
+    }
 }
 
 #[cfg(test)]
