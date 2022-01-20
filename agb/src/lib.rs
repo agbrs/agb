@@ -178,7 +178,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 /// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
 /// borrow checker's responsibility to ensure no clashes of global resources.
 ///
-/// This is will be created for you via the #[agb::entry] attribute.
+/// This is will be created for you via the [`#[agb::entry]`][entry] attribute.
 ///
 /// # Examples
 ///
@@ -189,7 +189,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 /// use agb::Gba;
 ///
 /// #[agb::entry]
-/// fn main(mut gba: Gba) -> !
+/// fn main(mut gba: Gba) -> ! {
 ///     // Do whatever you need to do with gba
 ///
 ///     loop {}
