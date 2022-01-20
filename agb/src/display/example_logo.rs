@@ -29,6 +29,6 @@ mod tests {
 
         display_logo(&mut gfx);
 
-        crate::assert_image_output("gfx/test_logo.png");
+        crate::test_runner::assert_image_output("gfx/test_logo.png");
     }
 }

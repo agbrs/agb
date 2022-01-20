@@ -1,16 +1,28 @@
+//! The block allocator works by maintaining a linked list of unused blocks and
+//! requesting new blocks using a bump allocator. Freed blocks are inserted into
+//! the linked list in order of pointer. Blocks are then merged after every
+//! free.
+
 use core::alloc::{GlobalAlloc, Layout};
+
+use core::cell::RefCell;
+use core::convert::TryInto;
 use core::ptr::NonNull;
 
-use crate::interrupt::Mutex;
+use crate::interrupt::free;
+use bare_metal::{CriticalSection, Mutex};
 
 use super::bump_allocator::BumpAllocator;
+use super::SendNonNull;
 
 struct Block {
     size: usize,
-    next: Option<NonNull<Block>>,
+    next: Option<SendNonNull<Block>>,
 }
 
 impl Block {
+    /// Returns the layout of either the block or the wanted layout aligned to
+    /// the maximum alignment used (double word).
     pub fn either_layout(layout: Layout) -> Layout {
         let block_layout = Layout::new::<Block>();
         let aligned_to = layout
@@ -21,31 +33,83 @@ impl Block {
             aligned_to.align(),
         )
         .expect("too large allocation")
+        .align_to(8)
+        .expect("too large allocation")
+        .pad_to_align()
     }
 }
 
 struct BlockAllocatorState {
-    first_free_block: Option<NonNull<Block>>,
+    first_free_block: Option<SendNonNull<Block>>,
 }
 
 pub(crate) struct BlockAllocator {
     inner_allocator: BumpAllocator,
-    state: Mutex<BlockAllocatorState>,
+    state: Mutex<RefCell<BlockAllocatorState>>,
 }
 
 impl BlockAllocator {
     pub(super) const unsafe fn new() -> Self {
         Self {
             inner_allocator: BumpAllocator::new(),
-            state: Mutex::new(BlockAllocatorState {
+            state: Mutex::new(RefCell::new(BlockAllocatorState {
                 first_free_block: None,
-            }),
+            })),
         }
     }
 
-    unsafe fn new_block(&self, layout: Layout) -> *mut u8 {
+    #[cfg(test)]
+    pub unsafe fn number_of_blocks(&self) -> u32 {
+        free(|key| {
+            let mut state = self.state.borrow(*key).borrow_mut();
+
+            let mut count = 0;
+
+            let mut list_ptr = &mut state.first_free_block;
+            while let Some(mut curr) = list_ptr {
+                count += 1;
+                list_ptr = &mut curr.as_mut().next;
+            }
+
+            count
+        })
+    }
+
+    /// Requests a brand new block from the inner bump allocator
+    fn new_block(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
         let overall_layout = Block::either_layout(layout);
-        self.inner_allocator.alloc(overall_layout)
+        self.inner_allocator.alloc_critical(overall_layout, cs)
+    }
+
+    /// Merges blocks together to create a normalised list
+    unsafe fn normalise(&self) {
+        free(|key| {
+            let mut state = self.state.borrow(*key).borrow_mut();
+
+            let mut list_ptr = &mut state.first_free_block;
+
+            while let Some(mut curr) = list_ptr {
+                if let Some(next_elem) = curr.as_mut().next {
+                    let difference = next_elem
+                        .as_ptr()
+                        .cast::<u8>()
+                        .offset_from(curr.as_ptr().cast::<u8>());
+                    let usize_difference: usize = difference
+                        .try_into()
+                        .expect("distances in alloc'd blocks must be positive");
+
+                    if usize_difference == curr.as_mut().size {
+                        let current = curr.as_mut();
+                        let next = next_elem.as_ref();
+
+                        current.size += next.size;
+                        current.next = next.next;
+                        continue;
+                    }
+                }
+                list_ptr = &mut curr.as_mut().next;
+            }
+        });
     }
 }
 
@@ -54,13 +118,17 @@ unsafe impl GlobalAlloc for BlockAllocator {
         // find a block that this current request fits in
         let full_layout = Block::either_layout(layout);
 
-        let (block_after_layout, block_after_layout_offset) =
-            full_layout.extend(Layout::new::<Block>()).unwrap();
+        let (block_after_layout, block_after_layout_offset) = full_layout
+            .extend(Layout::new::<Block>().align_to(8).unwrap().pad_to_align())
+            .unwrap();
 
-        {
-            let mut state = self.state.lock();
+        free(|key| {
+            let mut state = self.state.borrow(*key).borrow_mut();
             let mut current_block = state.first_free_block;
             let mut list_ptr = &mut state.first_free_block;
+            // This iterates the free list until it either finds a block that
+            // is the exact size requested or a block that can be split into
+            // one with the desired size and another block header.
             while let Some(mut curr) = current_block {
                 let curr_block = curr.as_mut();
                 if curr_block.size == full_layout.size() {
@@ -78,26 +146,57 @@ unsafe impl GlobalAlloc for BlockAllocator {
                         .add(block_after_layout_offset)
                         .cast();
                     *split_ptr = split_block;
-                    *list_ptr = NonNull::new(split_ptr);
+                    *list_ptr = NonNull::new(split_ptr).map(SendNonNull);
 
                     return curr.as_ptr().cast();
                 }
                 current_block = curr_block.next;
                 list_ptr = &mut curr_block.next;
             }
-        }
 
-        self.new_block(layout)
+            self.new_block(layout, key)
+        })
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        let new_layout = Block::either_layout(layout);
-        let mut state = self.state.lock();
-        let new_block_content = Block {
-            size: new_layout.size(),
-            next: state.first_free_block,
-        };
-        *ptr.cast() = new_block_content;
-        state.first_free_block = NonNull::new(ptr.cast());
+        let new_layout = Block::either_layout(layout).pad_to_align();
+        free(|key| {
+            let mut state = self.state.borrow(*key).borrow_mut();
+
+            // note that this is a reference to a pointer
+            let mut list_ptr = &mut state.first_free_block;
+
+            // This searches the free list until it finds a block further along
+            // than the block that is being freed. The newly freed block is then
+            // inserted before this block. If the end of the list is reached
+            // then the block is placed at the end with no new block after it.
+            loop {
+                match list_ptr {
+                    Some(mut current_block) => {
+                        if current_block.as_ptr().cast() > ptr {
+                            let new_block_content = Block {
+                                size: new_layout.size(),
+                                next: Some(current_block),
+                            };
+                            *ptr.cast() = new_block_content;
+                            *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
+                            break;
+                        }
+                        list_ptr = &mut current_block.as_mut().next;
+                    }
+                    None => {
+                        // reached the end of the list without finding a place to insert the value
+                        let new_block_content = Block {
+                            size: new_layout.size(),
+                            next: None,
+                        };
+                        *ptr.cast() = new_block_content;
+                        *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
+                        break;
+                    }
+                }
+            }
+        });
+        self.normalise();
     }
 }

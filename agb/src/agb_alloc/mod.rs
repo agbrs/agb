@@ -1,14 +1,44 @@
 use core::alloc::Layout;
+use core::ops::{Deref, DerefMut};
+use core::ptr::NonNull;
 
 mod block_allocator;
 mod bump_allocator;
 
 use block_allocator::BlockAllocator;
 
+struct SendNonNull<T>(NonNull<T>);
+unsafe impl<T> Send for SendNonNull<T> {}
+
+impl<T> Clone for SendNonNull<T> {
+    fn clone(&self) -> Self {
+        SendNonNull(self.0)
+    }
+}
+impl<T> Copy for SendNonNull<T> {}
+
+impl<T> Deref for SendNonNull<T> {
+    type Target = NonNull<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for SendNonNull<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 const EWRAM_END: usize = 0x0204_0000;
 
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe { BlockAllocator::new() };
+
+#[cfg(test)]
+pub unsafe fn number_of_blocks() -> u32 {
+    GLOBAL_ALLOC.number_of_blocks()
+}
 
 #[alloc_error_handler]
 fn alloc_error(layout: Layout) -> ! {

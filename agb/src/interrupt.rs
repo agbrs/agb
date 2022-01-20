@@ -1,9 +1,10 @@
 use core::{
-    cell::{Cell, UnsafeCell},
+    cell::Cell,
     marker::{PhantomData, PhantomPinned},
-    ops::{Deref, DerefMut},
     pin::Pin,
 };
+
+use bare_metal::CriticalSection;
 
 use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
 
@@ -70,21 +71,22 @@ impl Interrupt {
 const ENABLED_INTERRUPTS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000200) };
 const INTERRUPTS_ENABLED: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04000208) };
 
-struct Disable {}
+struct Disable {
+    pre: u16,
+}
 
 impl Drop for Disable {
     fn drop(&mut self) {
-        enable_interrupts();
+        INTERRUPTS_ENABLED.set(self.pre);
     }
 }
 
 fn temporary_interrupt_disable() -> Disable {
+    let d = Disable {
+        pre: INTERRUPTS_ENABLED.get(),
+    };
     disable_interrupts();
-    Disable {}
-}
-
-fn enable_interrupts() {
-    INTERRUPTS_ENABLED.set(1);
+    d
 }
 
 fn disable_interrupts() {
@@ -158,7 +160,7 @@ pub struct InterruptClosureBounded<'a> {
 }
 
 struct InterruptClosure {
-    closure: *const (dyn Fn(Key)),
+    closure: *const (dyn Fn(&CriticalSection)),
     next: Cell<*const InterruptClosure>,
     root: *const InterruptRoot,
 }
@@ -169,7 +171,7 @@ impl InterruptRoot {
         while !c.is_null() {
             let closure_ptr = unsafe { &*c }.closure;
             let closure_ref = unsafe { &*closure_ptr };
-            closure_ref(Key());
+            closure_ref(unsafe { &CriticalSection::new() });
             c = unsafe { &*c }.next.get();
         }
     }
@@ -201,7 +203,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 }
 
 fn get_interrupt_handle_root<'a>(
-    f: &'a dyn Fn(Key),
+    f: &'a dyn Fn(&CriticalSection),
     root: &InterruptRoot,
 ) -> InterruptClosureBounded<'a> {
     InterruptClosureBounded {
@@ -218,7 +220,7 @@ fn get_interrupt_handle_root<'a>(
 /// The [add_interrupt_handler!] macro should be used instead of this function.
 /// Creates an interrupt handler from a closure.
 pub fn get_interrupt_handle(
-    f: &(dyn Fn(Key) + Send + Sync),
+    f: &(dyn Fn(&CriticalSection) + Send + Sync),
     interrupt: Interrupt,
 ) -> InterruptClosureBounded {
     let root = interrupt_to_root(interrupt);
@@ -230,22 +232,24 @@ pub fn get_interrupt_handle(
 /// Adds an interrupt handler to the interrupt table such that when that
 /// interrupt is triggered the closure is called.
 pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
-    let root = unsafe { &*interrupt.c.root };
-    root.add();
-    let mut c = root.next.get();
-    if c.is_null() {
-        root.next.set((&interrupt.c) as *const _);
-        return;
-    }
-    loop {
-        let p = unsafe { &*c }.next.get();
-        if p.is_null() {
-            unsafe { &*c }.next.set((&interrupt.c) as *const _);
+    free(|_| {
+        let root = unsafe { &*interrupt.c.root };
+        root.add();
+        let mut c = root.next.get();
+        if c.is_null() {
+            root.next.set((&interrupt.c) as *const _);
             return;
         }
+        loop {
+            let p = unsafe { &*c }.next.get();
+            if p.is_null() {
+                unsafe { &*c }.next.set((&interrupt.c) as *const _);
+                return;
+            }
 
-        c = p;
-    }
+            c = p;
+        }
+    })
 }
 
 #[macro_export]
@@ -270,90 +274,18 @@ macro_rules! add_interrupt_handler {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum MutexState {
-    Unlocked,
-    Locked(bool),
-}
+pub fn free<F, R>(f: F) -> R
+where
+    F: FnOnce(&CriticalSection) -> R,
+{
+    let enabled = INTERRUPTS_ENABLED.get();
 
-pub struct Mutex<T> {
-    internal: UnsafeCell<T>,
-    state: UnsafeCell<MutexState>,
-}
+    disable_interrupts();
 
-#[non_exhaustive]
-pub struct Key();
+    let r = f(unsafe { &CriticalSection::new() });
 
-unsafe impl<T: Send> Send for Mutex<T> {}
-unsafe impl<T> Sync for Mutex<T> {}
-
-impl<T> Mutex<T> {
-    pub fn lock(&self) -> MutexRef<T> {
-        let state = INTERRUPTS_ENABLED.get();
-        INTERRUPTS_ENABLED.set(0);
-        assert_eq!(
-            unsafe { *self.state.get() },
-            MutexState::Unlocked,
-            "mutex must be unlocked to be able to lock it"
-        );
-        unsafe { *self.state.get() = MutexState::Locked(state != 0) };
-        MutexRef {
-            internal: &self.internal,
-            state: &self.state,
-        }
-    }
-
-    pub fn lock_with_key(&self, _key: &Key) -> MutexRef<T> {
-        assert_eq!(
-            unsafe { *self.state.get() },
-            MutexState::Unlocked,
-            "mutex must be unlocked to be able to lock it"
-        );
-        unsafe { *self.state.get() = MutexState::Locked(false) };
-        MutexRef {
-            internal: &self.internal,
-            state: &self.state,
-        }
-    }
-
-    pub const fn new(val: T) -> Self {
-        Mutex {
-            internal: UnsafeCell::new(val),
-            state: UnsafeCell::new(MutexState::Unlocked),
-        }
-    }
-}
-
-pub struct MutexRef<'a, T> {
-    internal: &'a UnsafeCell<T>,
-    state: &'a UnsafeCell<MutexState>,
-}
-
-impl<'a, T> Drop for MutexRef<'a, T> {
-    fn drop(&mut self) {
-        let state = unsafe { &mut *self.state.get() };
-
-        let prev_state = *state;
-        *state = MutexState::Unlocked;
-
-        match prev_state {
-            MutexState::Locked(b) => INTERRUPTS_ENABLED.set(b as u16),
-            MutexState::Unlocked => {}
-        }
-    }
-}
-
-impl<'a, T> Deref for MutexRef<'a, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.internal.get() }
-    }
-}
-
-impl<'a, T> DerefMut for MutexRef<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.internal.get() }
-    }
+    INTERRUPTS_ENABLED.set(enabled);
+    r
 }
 
 #[non_exhaustive]
@@ -382,18 +314,28 @@ impl Drop for VBlank {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bare_metal::Mutex;
+    use core::cell::RefCell;
 
     #[test_case]
     fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
         {
-            let counter = Mutex::new(0);
-            let counter_2 = Mutex::new(0);
-            add_interrupt_handler!(Interrupt::VBlank, |key| *counter.lock_with_key(&key) += 1);
-            add_interrupt_handler!(Interrupt::VBlank, |_| *counter_2.lock() += 1);
+            let counter = Mutex::new(RefCell::new(0));
+            let counter_2 = Mutex::new(RefCell::new(0));
+            add_interrupt_handler!(Interrupt::VBlank, |key: &CriticalSection| *counter
+                .borrow(*key)
+                .borrow_mut() +=
+                1);
+            add_interrupt_handler!(Interrupt::VBlank, |key: &CriticalSection| *counter_2
+                .borrow(*key)
+                .borrow_mut() +=
+                1);
 
             let vblank = VBlank::get();
 
-            while *counter.lock() < 100 || *counter_2.lock() < 100 {
+            while free(|key| {
+                *counter.borrow(*key).borrow() < 100 || *counter_2.borrow(*key).borrow() < 100
+            }) {
                 vblank.wait_for_vblank();
             }
         }
