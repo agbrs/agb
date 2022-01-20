@@ -10,12 +10,19 @@ use bare_metal::{CriticalSection, Mutex};
 use super::bump_allocator::BumpAllocator;
 use super::SendNonNull;
 
+/// The block allocator works by maintaining a linked list of unused blocks and
+/// requesting new blocks using a bump allocator. Freed blocks are inserted into
+/// the linked list in order of pointer. Blocks are then merged after every
+/// free.
+
 struct Block {
     size: usize,
     next: Option<SendNonNull<Block>>,
 }
 
 impl Block {
+    /// Returns the layout of either the block or the wanted layout aligned to
+    /// the maximum alignment used (double word).
     pub fn either_layout(layout: Layout) -> Layout {
         let block_layout = Layout::new::<Block>();
         let aligned_to = layout
@@ -67,11 +74,13 @@ impl BlockAllocator {
         })
     }
 
+    /// Requests a brand new block from the inner bump allocator
     fn new_block(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
         let overall_layout = Block::either_layout(layout);
         self.inner_allocator.alloc_critical(overall_layout, cs)
     }
 
+    /// Merges blocks together to create a normalised list
     unsafe fn normalise(&self) {
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();
@@ -116,6 +125,9 @@ unsafe impl GlobalAlloc for BlockAllocator {
             let mut state = self.state.borrow(*key).borrow_mut();
             let mut current_block = state.first_free_block;
             let mut list_ptr = &mut state.first_free_block;
+            // This iterates the free list until it either finds a block that
+            // is the exact size requested or a block that can be split into
+            // one with the desired size and another block header.
             while let Some(mut curr) = current_block {
                 let curr_block = curr.as_mut();
                 if curr_block.size == full_layout.size() {
@@ -150,8 +162,13 @@ unsafe impl GlobalAlloc for BlockAllocator {
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();
 
+            // note that this is a reference to a pointer
             let mut list_ptr = &mut state.first_free_block;
 
+            // This searches the free list until it finds a block further along
+            // than the block that is being freed. The newly freed block is then
+            // inserted before this block. If the end of the list is reached
+            // then the block is placed at the end with no new block after it.
             loop {
                 match list_ptr {
                     Some(mut current_block) => {
