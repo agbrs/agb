@@ -94,6 +94,7 @@ impl BlockAllocator {
 
                         current.size += next.size;
                         current.next = next.next;
+                        continue;
                     }
                 }
                 list_ptr = &mut curr.as_mut().next;
