@@ -35,6 +35,7 @@ impl Block {
         .expect("too large allocation")
         .align_to(8)
         .expect("too large allocation")
+        .pad_to_align()
     }
 }
 
