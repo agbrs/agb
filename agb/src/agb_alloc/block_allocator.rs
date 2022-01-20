@@ -1,3 +1,8 @@
+//! The block allocator works by maintaining a linked list of unused blocks and
+//! requesting new blocks using a bump allocator. Freed blocks are inserted into
+//! the linked list in order of pointer. Blocks are then merged after every
+//! free.
+
 use core::alloc::{GlobalAlloc, Layout};
 
 use core::cell::RefCell;
@@ -9,11 +14,6 @@ use bare_metal::{CriticalSection, Mutex};
 
 use super::bump_allocator::BumpAllocator;
 use super::SendNonNull;
-
-/// The block allocator works by maintaining a linked list of unused blocks and
-/// requesting new blocks using a bump allocator. Freed blocks are inserted into
-/// the linked list in order of pointer. Blocks are then merged after every
-/// free.
 
 struct Block {
     size: usize,
@@ -58,7 +58,7 @@ impl BlockAllocator {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub unsafe fn number_of_blocks(&self) -> u32 {
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();
