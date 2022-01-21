@@ -4,5 +4,6 @@
   ],
   "ignorePresets": [
     ":prHourlyLimit2"
-  ]
+  ],
+  "dependencyDashboardAutoclose": true
 }
