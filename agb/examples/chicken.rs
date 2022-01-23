@@ -56,14 +56,14 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut background = gfx.background();
 
-    for (i, tile) in MAP_MAP.iter().enumerate() {
+    for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
         background.set_tile(
             &mut gfx.vram,
             (i % 32, i / 32).into(),
             tileset_ref,
             tile & ((1 << 10) - 1),
-            TileSetting::default(),
+            TileSetting::from_raw(tile),
         );
     }
 

@@ -220,10 +220,7 @@ struct Tile(u16);
 
 impl Tile {
     fn new(tid: TileIndex, setting: TileSetting) -> Self {
-        let hflip = setting.hflip;
-        let vflip = setting.vflip;
-        let palette_id = setting.palette_id as u16;
-        Self(tid.0 | ((hflip as u16) << 10) | ((vflip as u16) << 11) | (palette_id << 12))
+        Self(tid.0 | setting.as_raw())
     }
 
     fn tile_index(self) -> TileIndex {
@@ -245,6 +242,22 @@ impl TileSetting {
             vflip,
             palette_id,
         }
+    }
+
+    pub fn from_raw(raw: u16) -> Self {
+        let hflip = raw & (1 << 10) != 0;
+        let vflip = raw & (1 << 11) != 0;
+        let palette_id = raw >> 12;
+
+        Self {
+            hflip,
+            vflip,
+            palette_id: palette_id as u8,
+        }
+    }
+
+    fn as_raw(self) -> u16 {
+        ((self.hflip as u16) << 10) | ((self.vflip as u16) << 11) | ((self.palette_id as u16) << 12)
     }
 }
 
