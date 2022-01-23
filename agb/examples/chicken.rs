@@ -2,7 +2,11 @@
 #![no_main]
 
 use agb::{
-    display::{background::Map, object::ObjectStandard, HEIGHT, WIDTH},
+    display::{
+        background::{RegularMap, TileFormat, TileSet, TileSetting},
+        object::ObjectStandard,
+        HEIGHT, WIDTH,
+    },
     input::Button,
 };
 use core::convert::TryInto;
@@ -46,11 +50,23 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    gfx.set_background_palette_raw(&MAP_PALETTE);
-    gfx.set_background_tilemap(0, &MAP_TILES);
+    gfx.vram.set_background_palette_raw(&MAP_PALETTE);
+    let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
+    let tileset_ref = gfx.vram.add_tileset(tileset);
 
-    let mut background = gfx.get_regular().unwrap();
-    background.set_map(Map::new(&MAP_MAP, (32_u32, 32_u32).into(), 0));
+    let mut background = gfx.background();
+
+    for (i, tile) in MAP_MAP.iter().enumerate() {
+        let i = i as u16;
+        background.set_tile(
+            &mut gfx.vram,
+            (i % 32, i / 32).into(),
+            tileset_ref,
+            tile & ((1 << 10) - 1),
+            TileSetting::default(),
+        );
+    }
+
     background.show();
     background.commit();
 
