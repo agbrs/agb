@@ -42,7 +42,7 @@ impl<'a> TileSet<'a> {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TileSetReference {
     id: u16,
-    generation: u32,
+    generation: u16,
 }
 
 #[derive(Debug)]
@@ -51,12 +51,12 @@ pub struct TileIndex(u16);
 enum ArenaStorageItem<T> {
     EndOfFreeList,
     NextFree(usize),
-    Data(T, u32),
+    Data(T, u16),
 }
 
 pub struct VRamManager<'a> {
     tilesets: Vec<ArenaStorageItem<TileSet<'a>>>,
-    generation: u32,
+    generation: u16,
     free_pointer: Option<usize>,
 
     tile_set_to_vram: HashMap<(u16, u16), u16>,
@@ -81,7 +81,7 @@ impl<'a> VRamManager<'a> {
 
     pub fn add_tileset(&mut self, tileset: TileSet<'a>) -> TileSetReference {
         let generation = self.generation;
-        self.generation += 1;
+        self.generation = self.generation.wrapping_add(1);
 
         let tileset = ArenaStorageItem::Data(tileset, generation);
 
@@ -332,7 +332,7 @@ impl Tiled0<'_> {
 }
 
 impl TileSetReference {
-    fn new(id: u16, generation: u32) -> Self {
+    fn new(id: u16, generation: u16) -> Self {
         Self { id, generation }
     }
 }
