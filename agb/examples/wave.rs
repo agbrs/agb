@@ -19,7 +19,9 @@ struct BackCosines {
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.video.tiled0();
 
-    example_logo::display_logo(&mut gfx);
+    let mut background = gfx.background();
+
+    example_logo::display_logo(&mut background, &mut gfx.vram);
 
     let mut time = 0;
     let cosines = [0_u16; 32];
