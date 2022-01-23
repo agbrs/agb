@@ -170,6 +170,9 @@ impl<'a> VRamManager<'a> {
             TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
         }
 
+        self.tile_set_to_vram
+            .insert((tile_set_ref.id, tile), index_to_copy_into as u16);
+
         TileIndex(index_to_copy_into as u16)
     }
 
