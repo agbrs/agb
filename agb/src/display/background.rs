@@ -208,7 +208,7 @@ impl<'a> VRamManager<'a> {
 }
 
 #[derive(Clone, Copy, Debug)]
-#[repr(C)]
+#[repr(transparent)]
 pub struct Tile(u16);
 
 impl Tile {
