@@ -1,3 +1,4 @@
+use alloc::vec;
 use alloc::vec::Vec;
 use hashbrown::HashMap;
 
@@ -77,7 +78,7 @@ impl<'a> VRamManager<'a> {
             free_pointer: None,
 
             tile_set_to_vram: HashMap::new(),
-            references: Vec::new(),
+            references: vec![1],
             vram_free_pointer: None,
         }
     }
