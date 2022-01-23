@@ -13,13 +13,12 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
             let tile_id = y * 30 + x;
 
             let palette_entry = agb_logo::test_logo.palette_assignments[tile_id as usize];
-            let tile_setting = TileSetting::new(false, false, palette_entry);
+            let tile_setting = TileSetting::new(tile_id, false, false, palette_entry);
 
             map.set_tile(
                 vram,
                 (x, y).into(),
                 background_tilemap_reference,
-                tile_id,
                 tile_setting,
             );
         }

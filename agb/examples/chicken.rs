@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        background::{RegularMap, TileFormat, TileSet, TileSetting},
+        background::{TileFormat, TileSet, TileSetting},
         object::ObjectStandard,
         HEIGHT, WIDTH,
     },
@@ -62,7 +62,6 @@ fn main(mut gba: agb::Gba) -> ! {
             &mut gfx.vram,
             (i % 32, i / 32).into(),
             tileset_ref,
-            tile & ((1 << 10) - 1),
             TileSetting::from_raw(tile),
         );
     }

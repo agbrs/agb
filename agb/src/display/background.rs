@@ -219,8 +219,8 @@ impl<'a> VRamManager<'a> {
 struct Tile(u16);
 
 impl Tile {
-    fn new(tid: TileIndex, setting: TileSetting) -> Self {
-        Self(tid.0 | setting.as_raw())
+    fn new(idx: TileIndex, setting: TileSetting) -> Self {
+        Self(idx.0 | setting.setting())
     }
 
     fn tile_index(self) -> TileIndex {
@@ -229,35 +229,28 @@ impl Tile {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct TileSetting {
-    hflip: bool,
-    vflip: bool,
-    palette_id: u8,
-}
+pub struct TileSetting(u16);
 
 impl TileSetting {
-    pub fn new(hflip: bool, vflip: bool, palette_id: u8) -> Self {
-        Self {
-            hflip,
-            vflip,
-            palette_id,
-        }
+    pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {
+        Self(
+            (tile_id & ((1 << 10) - 1))
+                | ((hflip as u16) << 10)
+                | ((vflip as u16) << 11)
+                | ((palette_id as u16) << 12),
+        )
     }
 
-    pub fn from_raw(raw: u16) -> Self {
-        let hflip = raw & (1 << 10) != 0;
-        let vflip = raw & (1 << 11) != 0;
-        let palette_id = raw >> 12;
-
-        Self {
-            hflip,
-            vflip,
-            palette_id: palette_id as u8,
-        }
+    pub const fn from_raw(raw: u16) -> Self {
+        Self(raw)
     }
 
-    fn as_raw(self) -> u16 {
-        ((self.hflip as u16) << 10) | ((self.vflip as u16) << 11) | ((self.palette_id as u16) << 12)
+    fn index(self) -> u16 {
+        self.0 & ((1 << 10) - 1)
+    }
+
+    fn setting(self) -> u16 {
+        self.0 & !((1 << 10) - 1)
     }
 }
 
@@ -293,7 +286,6 @@ impl RegularMap {
         vram: &mut VRamManager,
         pos: Vector2D<u16>,
         tileset_ref: TileSetReference,
-        tile_index: u16,
         tile_setting: TileSetting,
     ) {
         let pos = (pos.x + pos.y * 32) as usize;
@@ -303,6 +295,7 @@ impl RegularMap {
             vram.remove_tile(old_tile.tile_index());
         }
 
+        let tile_index = tile_setting.index();
         let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
         let new_tile = Tile::new(new_tile_idx, tile_setting);
 
