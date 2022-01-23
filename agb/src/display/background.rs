@@ -64,7 +64,7 @@ pub struct VRamManager<'a> {
     vram_free_pointer: Option<usize>,
 }
 
-const END_OF_FREE_LIST_REFERENCE: u16 = u16::MAX;
+const END_OF_FREE_LIST_MARKER: u16 = u16::MAX;
 
 impl<'a> VRamManager<'a> {
     pub fn new() -> Self {
@@ -135,7 +135,7 @@ impl<'a> VRamManager<'a> {
         }
 
         let index_to_copy_into = if let Some(ptr) = self.vram_free_pointer.take() {
-            if self.references[ptr] != END_OF_FREE_LIST_REFERENCE {
+            if self.references[ptr] != END_OF_FREE_LIST_MARKER {
                 self.vram_free_pointer = Some(self.references[ptr] as usize);
             }
 
@@ -180,7 +180,7 @@ impl<'a> VRamManager<'a> {
         if let Some(ptr) = self.vram_free_pointer {
             self.references[index] = ptr as u16;
         } else {
-            self.references[index] = END_OF_FREE_LIST_REFERENCE;
+            self.references[index] = END_OF_FREE_LIST_MARKER;
         }
 
         self.vram_free_pointer = Some(index);
