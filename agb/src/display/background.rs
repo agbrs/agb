@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 use hashbrown::HashMap;
 
-use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
+use crate::{
+    fixnum::Vector2D,
+    memory_mapped::{MemoryMapped, MemoryMapped1DArray},
+};
 
 use super::{
     palette16, set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority,
@@ -128,7 +131,7 @@ impl<'a> VRamManager<'a> {
         }
     }
 
-    pub fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
+    fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
         if let Some(&reference) = self.tile_set_to_vram.get(&(tile_set_ref.id, tile)) {
             self.references[reference as usize] += 1;
             return TileIndex(reference as u16);
@@ -169,7 +172,7 @@ impl<'a> VRamManager<'a> {
         TileIndex(index_to_copy_into as u16)
     }
 
-    pub fn remove_tile(&mut self, tile_index: TileIndex) {
+    fn remove_tile(&mut self, tile_index: TileIndex) {
         let index = tile_index.0 as usize;
         self.references[index] -= 1;
 
@@ -207,13 +210,37 @@ impl<'a> VRamManager<'a> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct Tile(u16);
+struct Tile(u16);
 
 impl Tile {
-    pub fn new(tid: TileIndex, hflip: bool, vflip: bool, palette_id: u16) -> Self {
+    fn new(tid: TileIndex, setting: TileSetting) -> Self {
+        let hflip = setting.hflip;
+        let vflip = setting.vflip;
+        let palette_id = setting.palette_id as u16;
         Self(tid.0 | ((hflip as u16) << 10) | ((vflip as u16) << 11) | (palette_id << 12))
+    }
+
+    fn tile_index(self) -> TileIndex {
+        TileIndex(self.0 & ((1 << 10) - 1))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TileSetting {
+    hflip: bool,
+    vflip: bool,
+    palette_id: u8,
+}
+
+impl TileSetting {
+    pub fn new(hflip: bool, vflip: bool, palette_id: u8) -> Self {
+        Self {
+            hflip,
+            vflip,
+            palette_id,
+        }
     }
 }
 
@@ -239,14 +266,39 @@ impl RegularMap {
             y_scroll: 0,
             priority: Priority::P0,
 
-            tiles: [Tile(0); 32 * 32],
+            tiles: [Tile::default(); 32 * 32],
             tiles_dirty: true,
         }
     }
 
-    pub fn set_tile(&mut self, x: u16, y: u16, tile: Tile) {
-        self.tiles[(x + y * 32) as usize] = tile;
+    pub fn set_tile(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: Vector2D<u16>,
+        tileset_ref: TileSetReference,
+        tile_index: u16,
+        tile_setting: TileSetting,
+    ) {
+        let pos = (pos.x + pos.y * 32) as usize;
+
+        let old_tile = self.tiles[pos];
+        if old_tile != Tile::default() {
+            vram.remove_tile(old_tile.tile_index());
+        }
+
+        let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
+        let new_tile = Tile::new(new_tile_idx, tile_setting);
+
+        self.tiles[pos] = new_tile;
         self.tiles_dirty = true;
+    }
+
+    pub fn clear(&mut self, vram: &mut VRamManager) {
+        for tile in self.tiles.iter_mut() {
+            vram.remove_tile(tile.tile_index());
+
+            *tile = Tile::default();
+        }
     }
 
     pub fn show(&mut self) {
