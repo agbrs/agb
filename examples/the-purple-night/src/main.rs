@@ -1949,7 +1949,7 @@ impl<'a> Game<'a> {
         self.player.commit(this_frame_offset);
         self.boss.commit(this_frame_offset);
 
-        let background_offset = (this_frame_offset.floor().x + 8, 8).into();
+        let background_offset = (this_frame_offset.floor().x, 8).into();
 
         self.level.background.set_pos(vram, background_offset);
         self.level.foreground.set_pos(vram, background_offset);

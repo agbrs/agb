@@ -442,7 +442,7 @@ impl InfiniteScrolledMap {
             .into();
 
         self.map.set_scroll_pos(offset_scroll);
-        self.offset = offset;
+        self.offset = pos * -1;
     }
 
     pub fn set_pos(&mut self, vram: &mut VRamManager, new_pos: Vector2D<i32>) {
@@ -455,59 +455,80 @@ impl InfiniteScrolledMap {
             return;
         }
 
-        let is_new_y_mod_8 = new_pos.y % 8 == 0;
-        let is_new_x_mod_8 = new_pos.x % 8 == 0;
+        self.current_pos = new_pos;
 
-        let top_bottom_rect: Rect<i32> = {
-            let top_bottom_height = difference.y.signum();
-            let new_tile_y = if top_bottom_height > 0 {
-                div_ceil(new_pos.y, 8) + if is_new_y_mod_8 { 20 } else { 22 }
+        let new_tile_x = div_floor(new_pos.x, 8);
+        let new_tile_y = div_floor(new_pos.y, 8);
+
+        let vertical_rect_to_update: Rect<i32> = if div_floor(old_pos.x, 8) != new_tile_x {
+            // need to update the x line
+            // calculate which direction we need to update
+            let direction = difference.x.signum();
+
+            // either need to update 20 or 21 tiles depending on whether the y coordinate is a perfect multiple
+            let y_tiles_to_update: i32 = if new_pos.y % 8 == 0 { 20 } else { 21 };
+
+            let line_to_update = if direction < 0 {
+                // moving to the left, so need to update the left most position
+                new_tile_x
             } else {
-                div_floor(new_pos.y, 8)
+                // moving to the right, so need to update the right most position
+                new_tile_x + 30 // TODO is this correct?
             };
 
             Rect::new(
-                (div_floor(new_pos.x, 8), new_tile_y).into(),
+                (line_to_update, new_tile_y).into(),
+                (1, y_tiles_to_update).into(),
+            )
+        } else {
+            Rect::new((0i32, 0).into(), (0i32, 0).into())
+        };
+
+        let horizontal_rect_to_update: Rect<i32> = if div_floor(old_pos.y, 8) != new_tile_y {
+            // need to update the y line
+            // calculate which direction we need to update
+            let direction = difference.y.signum();
+
+            // either need to update 30 or 31 tiles depending on whether the x coordinate is a perfect multiple
+            let x_tiles_to_update: i32 = if new_pos.x % 8 == 0 { 30 } else { 31 };
+
+            let line_to_update = if direction < 0 {
+                // moving up so need to update the top
+                new_tile_y
+            } else {
+                // moving down so need to update the bottom
+                new_tile_y + 20 // TODO is this correct?
+            };
+
+            Rect::new(
+                (new_tile_x, line_to_update).into(),
+                (x_tiles_to_update, 1).into(),
+            )
+        } else {
+            Rect::new((0i32, 0).into(), (0i32, 0).into())
+        };
+
+        let tile_offset = Vector2D::new(div_floor(self.offset.x, 8), div_floor(self.offset.y, 8));
+
+        for (tile_x, tile_y) in vertical_rect_to_update
+            .iter()
+            .chain(horizontal_rect_to_update.iter())
+        {
+            let (tile_set_ref, tile_setting) = (self.get_tile)((tile_x, tile_y).into());
+
+            self.map.set_tile(
+                vram,
                 (
-                    if is_new_x_mod_8 { 30 } else { 32 },
-                    top_bottom_height.abs(),
+                    (tile_x + tile_offset.x).rem_euclid(32) as u16,
+                    (tile_y + tile_offset.y).rem_euclid(32) as u16,
                 )
                     .into(),
-            )
-        };
-
-        let left_right_rect: Rect<i32> = {
-            let left_right_width = difference.x.signum();
-            let new_tile_x = if left_right_width > 0 {
-                div_ceil(new_pos.x, 8) + if is_new_x_mod_8 { 30 } else { 32 }
-            } else {
-                div_floor(new_pos.x, 8)
-            };
-
-            Rect::new(
-                (new_tile_x, div_floor(new_pos.y, 8)).into(),
-                (left_right_width.abs(), if is_new_y_mod_8 { 20 } else { 22 }).into(),
-            )
-        };
-
-        self.offset += difference;
-        self.current_pos = new_pos;
-        let offset_block = self.offset / 8;
-
-        for (x, y) in top_bottom_rect.iter().chain(left_right_rect.iter()) {
-            let (tileset_ref, tile_setting) = (self.get_tile)((x, y).into());
-
-            let tile_pos = (
-                (x + offset_block.x).rem_euclid(32) as u16,
-                (y + offset_block.y).rem_euclid(32) as u16,
-            )
-                .into();
-
-            self.map.set_tile(vram, tile_pos, tileset_ref, tile_setting)
+                tile_set_ref,
+                tile_setting,
+            );
         }
 
         let current_scroll = self.map.get_scroll_pos();
-
         let new_scroll = (
             (current_scroll.x as i32 + difference.x).rem_euclid(32 * 8) as u16,
             (current_scroll.y as i32 + difference.y).rem_euclid(32 * 8) as u16,
