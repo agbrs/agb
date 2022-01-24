@@ -35,7 +35,7 @@ mod tests {
     fn logo_display(gba: &mut crate::Gba) {
         let mut gfx = gba.display.video.tiled0();
 
-        let mut map = gfx.background();
+        let mut map = gfx.background(crate::display::Priority::P0);
 
         display_logo(&mut map, &mut gfx.vram);
 

@@ -1,9 +1,10 @@
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{boxed::Box, vec};
 use hashbrown::HashMap;
 
 use crate::{
-    fixnum::Vector2D,
+    display,
+    fixnum::{Rect, Vector2D},
     memory_mapped::{MemoryMapped, MemoryMapped1DArray},
 };
 
@@ -267,14 +268,14 @@ pub struct RegularMap {
 }
 
 impl RegularMap {
-    fn new(background_id: u8, screenblock: u8) -> Self {
+    fn new(background_id: u8, screenblock: u8, priority: Priority) -> Self {
         Self {
             background_id,
 
             screenblock,
             x_scroll: 0,
             y_scroll: 0,
-            priority: Priority::P0,
+            priority,
 
             tiles: [Tile::default(); 32 * 32],
             tiles_dirty: true,
@@ -335,11 +336,33 @@ impl RegularMap {
         }
 
         let screenblock_memory = self.screenblock_memory();
-        for (i, tile) in self.tiles.iter().enumerate() {
-            screenblock_memory.set(i, tile.0);
+
+        let scroll_pos = self.get_scroll_pos();
+        let x_scroll = scroll_pos.x % display::WIDTH as u16;
+        let y_scroll = scroll_pos.y % display::HEIGHT as u16;
+        let start_x = x_scroll / 8;
+        let end_x = (x_scroll + display::WIDTH as u16 + 8 - 1) / 8; // divide by 8 rounding up
+
+        let start_y = y_scroll / 8;
+        let end_y = (y_scroll + display::HEIGHT as u16 + 8 - 1) / 8;
+
+        for y in start_y..end_y {
+            for x in start_x..end_x {
+                let id = y.rem_euclid(32) * 32 + x.rem_euclid(32);
+                screenblock_memory.set(id as usize, self.tiles[id as usize].0);
+            }
         }
 
         self.tiles_dirty = false;
+    }
+
+    pub fn set_scroll_pos(&mut self, pos: Vector2D<u16>) {
+        self.x_scroll = pos.x;
+        self.y_scroll = pos.y;
+    }
+
+    pub fn get_scroll_pos(&self) -> Vector2D<u16> {
+        (self.x_scroll, self.y_scroll).into()
     }
 
     const fn bg_control_register(&self) -> MemoryMapped<u16> {
@@ -356,6 +379,174 @@ impl RegularMap {
 
     const fn screenblock_memory(&self) -> MemoryMapped1DArray<u16, { 32 * 32 }> {
         unsafe { MemoryMapped1DArray::new(0x0600_0000 + 0x1000 * self.screenblock as usize / 2) }
+    }
+}
+
+pub struct InfiniteScrolledMap {
+    map: RegularMap,
+    get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+
+    current_pos: Vector2D<i32>,
+    offset: Vector2D<i32>,
+}
+
+impl InfiniteScrolledMap {
+    pub fn new(
+        map: RegularMap,
+        get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+    ) -> Self {
+        Self {
+            map,
+            get_tile,
+            current_pos: (0, 0).into(),
+            offset: (0, 0).into(),
+        }
+    }
+
+    pub fn init(&mut self, vram: &mut VRamManager, pos: Vector2D<i32>) {
+        self.current_pos = pos;
+
+        let x_start = div_floor(self.current_pos.x, 8);
+        let y_start = div_floor(self.current_pos.y, 8);
+
+        let x_end = div_ceil(self.current_pos.x + display::WIDTH, 8);
+        let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8);
+
+        for (y_idx, y) in (y_start..y_end).enumerate() {
+            for (x_idx, x) in (x_start..x_end).enumerate() {
+                let pos = (x, y).into();
+                let (tile_set_ref, tile_setting) = (self.get_tile)(pos);
+
+                self.map.set_tile(
+                    vram,
+                    (x_idx as u16, y_idx as u16).into(),
+                    tile_set_ref,
+                    tile_setting,
+                );
+            }
+        }
+
+        let offset = self.current_pos - (x_start * 8, y_start * 8).into();
+        let offset_scroll = (
+            if offset.x < 0 {
+                (offset.x + 32 * 8) as u16
+            } else {
+                offset.x as u16
+            },
+            if offset.y < 0 {
+                (offset.y + 32 * 8) as u16
+            } else {
+                offset.y as u16
+            },
+        )
+            .into();
+
+        self.map.set_scroll_pos(offset_scroll);
+        self.offset = offset;
+    }
+
+    pub fn set_pos(&mut self, vram: &mut VRamManager, new_pos: Vector2D<i32>) {
+        let old_pos = self.current_pos;
+
+        let difference = new_pos - old_pos;
+
+        if difference.x.abs() > 8 || difference.y.abs() > 8 {
+            self.init(vram, new_pos);
+            return;
+        }
+
+        let is_new_y_mod_8 = new_pos.y % 8 == 0;
+        let is_new_x_mod_8 = new_pos.x % 8 == 0;
+
+        let top_bottom_rect: Rect<i32> = {
+            let top_bottom_height = difference.y.signum();
+            let new_tile_y = if top_bottom_height > 0 {
+                div_ceil(new_pos.y, 8) + if is_new_y_mod_8 { 20 } else { 22 }
+            } else {
+                div_floor(new_pos.y, 8)
+            };
+
+            Rect::new(
+                (div_floor(new_pos.x, 8), new_tile_y).into(),
+                (
+                    if is_new_x_mod_8 { 30 } else { 32 },
+                    top_bottom_height.abs(),
+                )
+                    .into(),
+            )
+        };
+
+        let left_right_rect: Rect<i32> = {
+            let left_right_width = difference.x.signum();
+            let new_tile_x = if left_right_width > 0 {
+                div_ceil(new_pos.x, 8) + if is_new_x_mod_8 { 30 } else { 32 }
+            } else {
+                div_floor(new_pos.x, 8)
+            };
+
+            Rect::new(
+                (new_tile_x, div_floor(new_pos.y, 8)).into(),
+                (left_right_width.abs(), if is_new_y_mod_8 { 20 } else { 22 }).into(),
+            )
+        };
+
+        self.offset += difference;
+        self.current_pos = new_pos;
+        let offset_block = self.offset / 8;
+
+        for (x, y) in top_bottom_rect.iter().chain(left_right_rect.iter()) {
+            let (tileset_ref, tile_setting) = (self.get_tile)((x, y).into());
+
+            let tile_pos = (
+                (x + offset_block.x).rem_euclid(32) as u16,
+                (y + offset_block.y).rem_euclid(32) as u16,
+            )
+                .into();
+
+            self.map.set_tile(vram, tile_pos, tileset_ref, tile_setting)
+        }
+
+        let current_scroll = self.map.get_scroll_pos();
+
+        let new_scroll = (
+            (current_scroll.x as i32 + difference.x).rem_euclid(32 * 8) as u16,
+            (current_scroll.y as i32 + difference.y).rem_euclid(32 * 8) as u16,
+        )
+            .into();
+
+        self.map.set_scroll_pos(new_scroll);
+    }
+
+    pub fn show(&mut self) {
+        self.map.show();
+    }
+
+    pub fn hide(&mut self) {
+        self.map.hide();
+    }
+
+    pub fn commit(&mut self) {
+        self.map.commit();
+    }
+}
+
+fn div_floor(x: i32, y: i32) -> i32 {
+    if x > 0 && y < 0 {
+        (x - 1) / y - 1
+    } else if x < 0 && y > 0 {
+        (x + 1) / y - 1
+    } else {
+        x / y
+    }
+}
+
+fn div_ceil(x: i32, y: i32) -> i32 {
+    if x > 0 && y > 0 {
+        (x - 1) / y + 1
+    } else if x < 0 && y < 0 {
+        (x + 1) / y + 1
+    } else {
+        x / y
     }
 }
 
@@ -379,12 +570,12 @@ impl Tiled0<'_> {
         }
     }
 
-    pub fn background(&mut self) -> RegularMap {
+    pub fn background(&mut self, priority: Priority) -> RegularMap {
         if self.num_regular == 4 {
             panic!("Can only create 4 backgrounds");
         }
 
-        let bg = RegularMap::new(self.num_regular, self.next_screenblock);
+        let bg = RegularMap::new(self.num_regular, self.next_screenblock, priority);
 
         self.num_regular += 1;
         self.next_screenblock += 1;

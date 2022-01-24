@@ -7,7 +7,7 @@ use agb::display::example_logo;
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.video.tiled0();
 
-    let mut map = gfx.background();
+    let mut map = gfx.background(agb::display::Priority::P0);
     let mut vram = gfx.vram;
 
     example_logo::display_logo(&mut map, &mut vram);

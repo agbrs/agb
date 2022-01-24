@@ -587,7 +587,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Rect<T: Number> {
     pub position: Vector2D<T>,
     pub size: Vector2D<T>,
@@ -657,10 +657,10 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
         let mut y = self.position.y;
         core::iter::from_fn(move || {
             x = x + T::one();
-            if x > self.position.x + self.size.x {
+            if x >= self.position.x + self.size.x {
                 x = self.position.x;
                 y = y + T::one();
-                if y > self.position.y + self.size.y {
+                if y >= self.position.y + self.size.y {
                     return None;
                 }
             }

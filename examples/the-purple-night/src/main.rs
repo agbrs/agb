@@ -8,13 +8,13 @@ mod sfx;
 
 use core::cmp::Ordering;
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use rng::get_random;
 
 use agb::{
     display::{
-        background::{BackgroundDistributor, BackgroundRegular},
+        background::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
         object::{ObjectControl, ObjectStandard},
         Priority, HEIGHT, WIDTH,
     },
@@ -29,9 +29,9 @@ agb::include_gfx!("gfx/background.toml");
 type Number = FixedNum<8>;
 
 struct Level {
-    background: BackgroundRegular<'static>,
-    foreground: BackgroundRegular<'static>,
-    clouds: BackgroundRegular<'static>,
+    background: InfiniteScrolledMap,
+    foreground: InfiniteScrolledMap,
+    clouds: InfiniteScrolledMap,
 
     slime_spawns: Vec<(u16, u16)>,
     bat_spawns: Vec<(u16, u16)>,
@@ -40,33 +40,14 @@ struct Level {
 
 impl Level {
     fn load_level(
-        mut backdrop: BackgroundRegular<'static>,
-        mut foreground: BackgroundRegular<'static>,
-        mut clouds: BackgroundRegular<'static>,
+        mut backdrop: InfiniteScrolledMap,
+        mut foreground: InfiniteScrolledMap,
+        mut clouds: InfiniteScrolledMap,
+        vram: &mut VRamManager,
     ) -> Self {
-        backdrop.set_position(Vector2D::new(0, 0));
-        backdrop.set_map(agb::display::background::Map::new(
-            tilemap::BACKGROUND_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        backdrop.set_priority(Priority::P2);
-
-        foreground.set_position(Vector2D::new(0, 0));
-        foreground.set_map(agb::display::background::Map::new(
-            tilemap::FOREGROUND_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        foreground.set_priority(Priority::P0);
-
-        clouds.set_position(Vector2D::new(0, -5));
-        clouds.set_map(agb::display::background::Map::new(
-            tilemap::CLOUD_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        clouds.set_priority(Priority::P3);
+        backdrop.init(vram, (8, 8).into());
+        foreground.init(vram, (8, 8).into());
+        clouds.init(vram, (2, 2).into());
 
         backdrop.commit();
         foreground.commit();
@@ -1804,8 +1785,6 @@ struct Game<'a> {
     boss: BossState<'a>,
     move_state: MoveState,
     fade_count: u16,
-
-    background_distributor: &'a mut BackgroundDistributor,
 }
 
 enum MoveState {
@@ -1826,6 +1805,7 @@ impl<'a> Game<'a> {
     fn advance_frame(
         &mut self,
         object_controller: &'a ObjectControl,
+        vram: &mut VRamManager,
         sfx: &mut sfx::Sfx,
     ) -> GameStatus {
         let mut state = GameStatus::Continue;
@@ -1845,7 +1825,7 @@ impl<'a> Game<'a> {
                 self.offset.x = (tilemap::WIDTH as i32 * 8 - 248).into();
             }
             MoveState::FollowingPlayer => {
-                Game::update_sunrise(self.background_distributor, self.sunrise_timer);
+                Game::update_sunrise(vram, self.sunrise_timer);
                 if self.sunrise_timer < 120 {
                     self.sunrise_timer += 1;
                 } else {
@@ -1867,7 +1847,7 @@ impl<'a> Game<'a> {
                     if boss.gone {
                         self.fade_count += 1;
                         self.fade_count = self.fade_count.min(600);
-                        Game::update_fade_out(self.background_distributor, self.fade_count);
+                        Game::update_fade_out(vram, self.fade_count);
                     }
                 }
             }
@@ -1969,15 +1949,11 @@ impl<'a> Game<'a> {
         self.player.commit(this_frame_offset);
         self.boss.commit(this_frame_offset);
 
-        self.level
-            .background
-            .set_position(this_frame_offset.floor());
-        self.level
-            .foreground
-            .set_position(this_frame_offset.floor());
-        self.level
-            .clouds
-            .set_position(this_frame_offset.floor() / 4);
+        let background_offset = (this_frame_offset.floor().x + 8, 8).into();
+
+        self.level.background.set_pos(vram, background_offset);
+        self.level.foreground.set_pos(vram, background_offset);
+        self.level.clouds.set_pos(vram, background_offset / 4);
         self.level.background.commit();
         self.level.foreground.commit();
         self.level.clouds.commit();
@@ -2082,7 +2058,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn update_sunrise(background_distributor: &'a mut BackgroundDistributor, time: u16) {
+    fn update_sunrise(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
         let a = modified_palette.get_colour(0);
@@ -2093,10 +2069,10 @@ impl<'a> Game<'a> {
 
         let modified_palettes = [modified_palette];
 
-        background_distributor.set_background_palettes(&modified_palettes);
+        vram.set_background_palettes(&modified_palettes);
     }
 
-    fn update_fade_out(background_distributor: &'a mut BackgroundDistributor, time: u16) {
+    fn update_fade_out(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
         let c = modified_palette.get_colour(2);
@@ -2107,15 +2083,10 @@ impl<'a> Game<'a> {
 
         let modified_palettes = [modified_palette];
 
-        background_distributor.set_background_palettes(&modified_palettes);
+        vram.set_background_palettes(&modified_palettes);
     }
 
-    fn new(
-        object: &'a ObjectControl,
-        level: Level,
-        background_distributor: &'a mut BackgroundDistributor,
-        start_at_boss: bool,
-    ) -> Self {
+    fn new(object: &'a ObjectControl, level: Level, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
         let mut offset = (8, 8).into();
         if start_at_boss {
@@ -2139,8 +2110,6 @@ impl<'a> Game<'a> {
             move_state: MoveState::Advancing,
             sunrise_timer: 0,
             fade_count: 0,
-
-            background_distributor,
         }
     }
 }
@@ -2170,19 +2139,59 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     loop {
         let mut background = gba.display.video.tiled0();
-        background.set_background_palettes(background::background.palettes);
-        background.set_background_tilemap(0, background::background.tiles);
+        background
+            .vram
+            .set_background_palettes(background::background.palettes);
+
+        let tileset_ref = background.vram.add_tileset(TileSet::new(
+            background::background.tiles,
+            TileFormat::FourBpp,
+        ));
+
         let mut object = gba.display.object.get();
         object.enable();
 
+        let backdrop = InfiniteScrolledMap::new(
+            background.background(Priority::P2),
+            Box::new(move |pos| {
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        tilemap::BACKGROUND_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                    ),
+                )
+            }),
+        );
+
+        let foreground = InfiniteScrolledMap::new(
+            background.background(Priority::P0),
+            Box::new(move |pos| {
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        tilemap::FOREGROUND_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                    ),
+                )
+            }),
+        );
+
+        let clouds = InfiniteScrolledMap::new(
+            background.background(Priority::P3),
+            Box::new(move |pos| {
+                agb::println!("CLOUDS: {}, {}", pos.x, pos.y);
+
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        tilemap::CLOUD_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                    ),
+                )
+            }),
+        );
+
         let mut game = Game::new(
             &object,
-            Level::load_level(
-                background.get_regular().unwrap(),
-                background.get_regular().unwrap(),
-                background.get_regular().unwrap(),
-            ),
-            &mut background,
+            Level::load_level(backdrop, foreground, clouds, &mut background.vram),
             start_at_boss,
         );
 
@@ -2190,7 +2199,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.frame();
             vblank.wait_for_vblank();
             sfx.after_vblank();
-            match game.advance_frame(&object, &mut sfx) {
+            match game.advance_frame(&object, &mut background.vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
                     break false;

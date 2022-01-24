@@ -19,7 +19,7 @@ struct BackCosines {
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.video.tiled0();
 
-    let mut background = gfx.background();
+    let mut background = gfx.background(agb::display::Priority::P0);
 
     example_logo::display_logo(&mut background, &mut gfx.vram);
 
