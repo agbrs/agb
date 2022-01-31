@@ -2178,8 +2178,6 @@ fn game_with_level(gba: &mut agb::Gba) {
         let clouds = InfiniteScrolledMap::new(
             background.background(Priority::P3),
             Box::new(move |pos| {
-                agb::println!("CLOUDS: {}, {}", pos.x, pos.y);
-
                 (
                     tileset_ref,
                     TileSetting::from_raw(
