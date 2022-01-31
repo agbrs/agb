@@ -1,6 +1,16 @@
 #![no_std]
 #![no_main]
 
+use agb::{
+    display::{
+        background::BackgroundRegular,
+        object::{ObjectControl, ObjectStandard, Size},
+        Priority, HEIGHT, WIDTH,
+    },
+    fixnum::{FixedNum, Vector2D},
+    input::{self, Button, ButtonController},
+};
+
 mod enemies;
 mod level_display;
 mod sfx;
@@ -102,16 +112,6 @@ mod map_tiles {
 }
 
 agb::include_gfx!("gfx/tile_sheet.toml");
-
-use agb::{
-    display::{
-        background::BackgroundRegular,
-        object::{ObjectControl, ObjectStandard, Size},
-        Priority, HEIGHT, WIDTH,
-    },
-    fixnum::{FixedNum, Vector2D},
-    input::{self, Button, ButtonController},
-};
 
 type FixedNumberType = FixedNum<10>;
 
