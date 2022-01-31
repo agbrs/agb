@@ -1,15 +1,18 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use agb::{
     display::{
-        background::BackgroundRegular,
+        background::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
         object::{ObjectControl, ObjectStandard, Size},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
 };
+use alloc::boxed::Box;
 
 mod enemies;
 mod level_display;
@@ -267,40 +270,24 @@ impl<'a> Entity<'a> {
 }
 
 struct Map<'a, 'b> {
-    background: &'a mut BackgroundRegular<'b>,
-    foreground: &'a mut BackgroundRegular<'b>,
+    background: &'a mut InfiniteScrolledMap<'b>,
+    foreground: &'a mut InfiniteScrolledMap<'b>,
     position: Vector2D<FixedNumberType>,
     level: &'a Level,
 }
 
-impl<'a, 'b, 'c> Map<'a, 'b> {
-    pub fn commit_position(&mut self) {
-        self.background.set_position(self.position.floor());
-        self.foreground.set_position(self.position.floor());
+impl<'a, 'b> Map<'a, 'b> {
+    pub fn commit_position(&mut self, vram: &mut VRamManager) {
+        self.background.set_pos(vram, self.position.floor());
+        self.foreground.set_pos(vram, self.position.floor());
 
         self.background.commit();
         self.foreground.commit();
     }
 
-    fn load_foreground(&'c mut self) -> impl Iterator<Item = ()> + 'c {
-        self.background.set_position(self.position.floor());
-        self.background.set_map(agb::display::background::Map::new(
-            self.level.foreground,
-            self.level.dimensions,
-            0,
-        ));
-        self.background.commit_partial()
-    }
-
-    fn load_background(&'c mut self) -> impl Iterator<Item = ()> + 'c {
-        self.foreground.set_position(self.position.floor());
-        self.foreground.set_map(agb::display::background::Map::new(
-            self.level.background,
-            self.level.dimensions,
-            0,
-        ));
-        self.foreground.set_priority(Priority::P2);
-        self.foreground.commit_partial()
+    pub fn init(&mut self, vram: &mut VRamManager) {
+        self.background.init(vram, self.position.floor());
+        self.foreground.init(vram, self.position.floor());
     }
 }
 
@@ -618,8 +605,8 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
         object_control: &'a ObjectControl,
-        background: &'a mut BackgroundRegular<'b>,
-        foreground: &'a mut BackgroundRegular<'b>,
+        background: &'a mut InfiniteScrolledMap<'b>,
+        foreground: &'a mut InfiniteScrolledMap<'b>,
         input: ButtonController,
     ) -> Self {
         let mut e: [enemies::Enemy<'a>; 16] = Default::default();
@@ -658,14 +645,6 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         }
     }
 
-    fn load_1(&'c mut self) -> impl Iterator<Item = ()> + 'c {
-        self.background.load_background()
-    }
-
-    fn load_2(&'c mut self) -> impl Iterator<Item = ()> + 'c {
-        self.background.load_foreground()
-    }
-
     fn show_backgrounds(&mut self) {
         self.background.background.show();
         self.background.foreground.show();
@@ -691,7 +670,11 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.player.wizard.position.y - self.background.position.y < (HEIGHT + 8).into()
     }
 
-    fn update_frame(&mut self, sfx_player: &mut sfx::SfxPlayer) -> UpdateState {
+    fn update_frame(
+        &mut self,
+        sfx_player: &mut sfx::SfxPlayer,
+        vram: &mut VRamManager,
+    ) -> UpdateState {
         self.timer += 1;
         self.input.update();
 
@@ -719,7 +702,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         }
 
         self.background.position = self.get_next_map_position();
-        self.background.commit_position();
+        self.background.commit_position(vram);
 
         self.player.wizard.commit_position(self.background.position);
         self.player.hat.commit_position(self.background.position);
@@ -774,25 +757,44 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 
 #[agb::entry]
 fn main(mut agb: agb::Gba) -> ! {
-    splash_screen::show_splash_screen(&mut agb, splash_screen::SplashScreen::Start, None, None);
+    let (tiled, mut vram) = agb.display.video.tiled0();
+    vram.set_background_palettes(tile_sheet::background.palettes);
+    let mut world_display = tiled.background(Priority::P0);
+
+    let tile_set_ref = vram.add_tileset(TileSet::new(
+        tile_sheet::background.tiles,
+        TileFormat::FourBpp,
+    ));
+
+    splash_screen::show_splash_screen(
+        splash_screen::SplashScreen::Start,
+        None,
+        None,
+        &mut world_display,
+        &mut vram,
+    );
 
     loop {
-        let mut tiled = agb.display.video.tiled0();
         let mut object = agb.display.object.get();
         let mut timer_controller = agb.timers.timers();
         let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
 
-        tiled.set_background_palettes(tile_sheet::background.palettes);
-        tiled.set_background_tilemap(0, tile_sheet::background.tiles);
         object.set_sprite_palettes(object_sheet::object_sheet.palettes);
         object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
 
-        let mut world_display = tiled.get_raw_regular().unwrap();
-        world_display.clear(level_display::BLANK);
+        for y in 0..20u16 {
+            for x in 0..30u16 {
+                world_display.set_tile(
+                    &mut vram,
+                    (x, y).into(),
+                    tile_set_ref,
+                    TileSetting::from_raw(level_display::BLANK),
+                );
+            }
+        }
+
         world_display.show();
 
-        let mut background = tiled.get_regular().unwrap();
-        let mut foreground = tiled.get_regular().unwrap();
         object.enable();
 
         mixer.enable();
@@ -815,6 +817,8 @@ fn main(mut agb: agb::Gba) -> ! {
                 &mut world_display,
                 current_level / 8 + 1,
                 current_level % 8 + 1,
+                tile_set_ref,
+                &mut vram,
             );
 
             world_display.show();
@@ -824,6 +828,39 @@ fn main(mut agb: agb::Gba) -> ! {
             vblank.wait_for_vblank();
             mixer.after_vblank();
 
+            vram.set_background_palettes(tile_sheet::background.palettes);
+
+            let mut background = InfiniteScrolledMap::new(
+                tiled.background(Priority::P1),
+                Box::new(move |pos: Vector2D<i32>| {
+                    let level = &map_tiles::LEVELS[current_level as usize];
+                    (
+                        tile_set_ref,
+                        TileSetting::from_raw(
+                            *level
+                                .background
+                                .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
+                                .unwrap_or(&0),
+                        ),
+                    )
+                }),
+            );
+            let mut foreground = InfiniteScrolledMap::new(
+                tiled.background(Priority::P2),
+                Box::new(move |pos: Vector2D<i32>| {
+                    let level = &map_tiles::LEVELS[current_level as usize];
+                    (
+                        tile_set_ref,
+                        TileSetting::from_raw(
+                            *level
+                                .foreground
+                                .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
+                                .unwrap_or(&0),
+                        ),
+                    )
+                }),
+            );
+
             let mut level = PlayingLevel::open_level(
                 &map_tiles::LEVELS[current_level as usize],
                 &object,
@@ -831,32 +868,24 @@ fn main(mut agb: agb::Gba) -> ! {
                 &mut foreground,
                 agb::input::ButtonController::new(),
             );
-            let mut level_load = level.load_1().step_by(24);
-            for _ in 0..30 {
+
+            level.background.init(&mut vram);
+
+            for _ in 0..60 {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();
                 mixer.after_vblank();
-
-                level_load.next();
             }
-            level_load.count();
-            let mut level_load = level.load_2().step_by(24);
-            for _ in 0..30 {
-                music_box.before_frame(&mut mixer);
-                mixer.frame();
-                vblank.wait_for_vblank();
-                mixer.after_vblank();
 
-                level_load.next();
-            }
-            level_load.count();
             level.show_backgrounds();
 
             world_display.hide();
 
             loop {
-                match level.update_frame(&mut sfx::SfxPlayer::new(&mut mixer, &music_box)) {
+                match level
+                    .update_frame(&mut sfx::SfxPlayer::new(&mut mixer, &music_box), &mut vram)
+                {
                     UpdateState::Normal => {}
                     UpdateState::Dead => {
                         level.dead_start();
@@ -882,10 +911,11 @@ fn main(mut agb: agb::Gba) -> ! {
         }
 
         splash_screen::show_splash_screen(
-            &mut agb,
             splash_screen::SplashScreen::End,
             Some(&mut mixer),
             Some(&mut music_box),
+            &mut world_display,
+            &mut vram,
         );
     }
 }
