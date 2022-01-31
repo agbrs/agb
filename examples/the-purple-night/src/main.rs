@@ -28,21 +28,21 @@ agb::include_gfx!("gfx/background.toml");
 
 type Number = FixedNum<8>;
 
-struct Level {
-    background: InfiniteScrolledMap,
-    foreground: InfiniteScrolledMap,
-    clouds: InfiniteScrolledMap,
+struct Level<'a> {
+    background: InfiniteScrolledMap<'a>,
+    foreground: InfiniteScrolledMap<'a>,
+    clouds: InfiniteScrolledMap<'a>,
 
     slime_spawns: Vec<(u16, u16)>,
     bat_spawns: Vec<(u16, u16)>,
     emu_spawns: Vec<(u16, u16)>,
 }
 
-impl Level {
+impl<'a> Level<'a> {
     fn load_level(
-        mut backdrop: InfiniteScrolledMap,
-        mut foreground: InfiniteScrolledMap,
-        mut clouds: InfiniteScrolledMap,
+        mut backdrop: InfiniteScrolledMap<'a>,
+        mut foreground: InfiniteScrolledMap<'a>,
+        mut clouds: InfiniteScrolledMap<'a>,
         vram: &mut VRamManager,
     ) -> Self {
         backdrop.init(vram, (8, 8).into());
@@ -1772,7 +1772,7 @@ struct Game<'a> {
     player: Player<'a>,
     input: ButtonController,
     frame_count: u32,
-    level: Level,
+    level: Level<'a>,
     offset: Vector2D<Number>,
     shake_time: u16,
     sunrise_timer: u16,
@@ -2086,7 +2086,7 @@ impl<'a> Game<'a> {
         vram.set_background_palettes(&modified_palettes);
     }
 
-    fn new(object: &'a ObjectControl, level: Level, start_at_boss: bool) -> Self {
+    fn new(object: &'a ObjectControl, level: Level<'a>, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
         let mut offset = (8, 8).into();
         if start_at_boss {
@@ -2138,12 +2138,11 @@ fn game_with_level(gba: &mut agb::Gba) {
     let mut start_at_boss = false;
 
     loop {
-        let mut background = gba.display.video.tiled0();
-        background
-            .vram
-            .set_background_palettes(background::background.palettes);
+        let (background, mut vram) = gba.display.video.tiled0();
 
-        let tileset_ref = background.vram.add_tileset(TileSet::new(
+        vram.set_background_palettes(background::background.palettes);
+
+        let tileset_ref = vram.add_tileset(TileSet::new(
             background::background.tiles,
             TileFormat::FourBpp,
         ));
@@ -2189,7 +2188,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         let mut game = Game::new(
             &object,
-            Level::load_level(backdrop, foreground, clouds, &mut background.vram),
+            Level::load_level(backdrop, foreground, clouds, &mut vram),
             start_at_boss,
         );
 
@@ -2197,7 +2196,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.frame();
             vblank.wait_for_vblank();
             sfx.after_vblank();
-            match game.advance_frame(&object, &mut background.vram, &mut sfx) {
+            match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
                     break false;

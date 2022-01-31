@@ -1,4 +1,5 @@
 use core::cell::RefCell;
+use core::ops::{Deref, DerefMut};
 
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
@@ -424,17 +425,17 @@ impl RegularMap {
     }
 }
 
-pub struct InfiniteScrolledMap {
-    map: RegularMap,
+pub struct InfiniteScrolledMap<'a> {
+    map: MapLoan<'a, RegularMap>,
     get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
 
     current_pos: Vector2D<i32>,
     offset: Vector2D<i32>,
 }
 
-impl InfiniteScrolledMap {
+impl<'a> InfiniteScrolledMap<'a> {
     pub fn new(
-        map: RegularMap,
+        map: MapLoan<'a, RegularMap>,
         get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
     ) -> Self {
         Self {
@@ -613,25 +614,21 @@ fn div_ceil(x: i32, y: i32) -> i32 {
     }
 }
 
-pub struct Tiled0<'a> {
+pub struct Tiled0 {
     regular: RefCell<Bitarray<1>>,
-
-    pub vram: VRamManager<'a>,
 }
 
-impl Tiled0<'_> {
+impl Tiled0 {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
         set_graphics_mode(DisplayMode::Tiled0);
 
         Self {
             regular: Default::default(),
-
-            vram: VRamManager::new(),
         }
     }
 
-    pub fn background(&mut self, priority: Priority) -> RegularMap {
+    pub fn background(&self, priority: Priority) -> MapLoan<'_, RegularMap> {
         let mut regular = self.regular.borrow_mut();
         let new_background = regular.first_zero().unwrap();
         if new_background >= 4 {
@@ -642,12 +639,50 @@ impl Tiled0<'_> {
 
         regular.set(new_background, true);
 
-        bg
+        MapLoan::new(bg, new_background as u8, &self.regular)
     }
 }
 
 impl TileSetReference {
     fn new(id: u16, generation: u16) -> Self {
         Self { id, generation }
+    }
+}
+
+pub struct MapLoan<'a, T> {
+    map: T,
+    background_id: u8,
+    regular_map_list: &'a RefCell<Bitarray<1>>,
+}
+
+impl<'a, T> Deref for MapLoan<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.map
+    }
+}
+
+impl<'a, T> DerefMut for MapLoan<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
+    }
+}
+
+impl<'a, T> MapLoan<'a, T> {
+    fn new(map: T, background_id: u8, regular_map_list: &'a RefCell<Bitarray<1>>) -> Self {
+        MapLoan {
+            map,
+            background_id,
+            regular_map_list,
+        }
+    }
+}
+
+impl<'a, T> Drop for MapLoan<'a, T> {
+    fn drop(&mut self) {
+        self.regular_map_list
+            .borrow_mut()
+            .set(self.background_id as usize, false);
     }
 }

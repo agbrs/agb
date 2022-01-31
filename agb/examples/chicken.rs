@@ -46,20 +46,20 @@ fn main(mut gba: agb::Gba) -> ! {
             .unwrap()
     };
 
-    let mut gfx = gba.display.video.tiled0();
+    let (gfx, mut vram) = gba.display.video.tiled0();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    gfx.vram.set_background_palette_raw(&MAP_PALETTE);
+    vram.set_background_palette_raw(&MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
-    let tileset_ref = gfx.vram.add_tileset(tileset);
+    let tileset_ref = vram.add_tileset(tileset);
 
-    let mut background = gfx.background();
+    let mut background = gfx.background(agb::display::Priority::P0);
 
     for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
         background.set_tile(
-            &mut gfx.vram,
+            &mut vram,
             (i % 32, i / 32).into(),
             tileset_ref,
             TileSetting::from_raw(tile),
