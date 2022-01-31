@@ -58,6 +58,26 @@ enum VRamState {
     Free(u16),
 }
 
+impl VRamState {
+    fn increase_reference(&mut self) -> u16 {
+        if let VRamState::ReferenceCounted(count, _) = self {
+            *count += 1;
+            *count
+        } else {
+            panic!("Corrupted vram state");
+        }
+    }
+
+    fn decrease_reference(&mut self) -> (u16, (u16, u16)) {
+        if let VRamState::ReferenceCounted(count, tile_ref) = self {
+            *count -= 1;
+            (*count, *tile_ref)
+        } else {
+            panic!("Corrupted vram state");
+        }
+    }
+}
+
 enum ArenaStorageItem<T> {
     EndOfFreeList,
     NextFree(usize),
@@ -141,15 +161,7 @@ impl<'a> VRamManager<'a> {
     fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
         let tile_ref = (tile_set_ref.id, tile);
         if let Some(&reference) = self.tile_set_to_vram.get(&tile_ref) {
-            if let VRamState::ReferenceCounted(count, tile_ref) =
-                self.references[reference as usize]
-            {
-                self.references[reference as usize] =
-                    VRamState::ReferenceCounted(count + 1, tile_ref);
-            } else {
-                panic!("Corrupted tile reference state");
-            }
-
+            self.references[reference as usize].increase_reference();
             return TileIndex(reference as u16);
         }
 
@@ -200,13 +212,7 @@ impl<'a> VRamManager<'a> {
     fn remove_tile(&mut self, tile_index: TileIndex) {
         let index = tile_index.0 as usize;
 
-        let (new_count, tile_ref) = match self.references[index] {
-            VRamState::ReferenceCounted(count, tile_ref) => {
-                self.references[index] = VRamState::ReferenceCounted(count - 1, tile_ref);
-                (count - 1, tile_ref)
-            }
-            _ => panic!("Corrupted tile reference state"),
-        };
+        let (new_count, tile_ref) = self.references[index].decrease_reference();
 
         if new_count != 0 {
             return;
