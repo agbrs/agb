@@ -53,7 +53,7 @@ pub struct TileSetReference {
 #[derive(Debug)]
 pub struct TileIndex(u16);
 
-enum TileReference {
+enum VRamState {
     ReferenceCounted(u16, (u16, u16)),
     Free(u16),
 }
@@ -70,7 +70,7 @@ pub struct VRamManager<'a> {
     free_pointer: Option<usize>,
 
     tile_set_to_vram: HashMap<(u16, u16), u16>,
-    references: Vec<TileReference>,
+    references: Vec<VRamState>,
     vram_free_pointer: Option<usize>,
 }
 
@@ -84,7 +84,7 @@ impl<'a> VRamManager<'a> {
             free_pointer: None,
 
             tile_set_to_vram: HashMap::new(),
-            references: vec![TileReference::Free(0)],
+            references: vec![VRamState::Free(0)],
             vram_free_pointer: None,
         }
     }
@@ -141,11 +141,11 @@ impl<'a> VRamManager<'a> {
     fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
         let tile_ref = (tile_set_ref.id, tile);
         if let Some(&reference) = self.tile_set_to_vram.get(&tile_ref) {
-            if let TileReference::ReferenceCounted(count, tile_ref) =
+            if let VRamState::ReferenceCounted(count, tile_ref) =
                 self.references[reference as usize]
             {
                 self.references[reference as usize] =
-                    TileReference::ReferenceCounted(count + 1, tile_ref);
+                    VRamState::ReferenceCounted(count + 1, tile_ref);
             } else {
                 panic!("Corrupted tile reference state");
             }
@@ -155,19 +155,19 @@ impl<'a> VRamManager<'a> {
 
         let index_to_copy_into = if let Some(ptr) = self.vram_free_pointer.take() {
             match self.references[ptr] {
-                TileReference::Free(next_free) => {
+                VRamState::Free(next_free) => {
                     if next_free != END_OF_FREE_LIST_MARKER {
                         self.vram_free_pointer = Some(next_free as usize);
                     }
                 }
-                TileReference::ReferenceCounted(_, _) => panic!("Corrupted tile reference state"),
+                VRamState::ReferenceCounted(_, _) => panic!("Corrupted tile reference state"),
             }
 
-            self.references[ptr] = TileReference::ReferenceCounted(1, tile_ref);
+            self.references[ptr] = VRamState::ReferenceCounted(1, tile_ref);
             ptr
         } else {
             self.references
-                .push(TileReference::ReferenceCounted(1, tile_ref));
+                .push(VRamState::ReferenceCounted(1, tile_ref));
             self.references.len() - 1
         };
 
@@ -201,8 +201,8 @@ impl<'a> VRamManager<'a> {
         let index = tile_index.0 as usize;
 
         let (new_count, tile_ref) = match self.references[index] {
-            TileReference::ReferenceCounted(count, tile_ref) => {
-                self.references[index] = TileReference::ReferenceCounted(count - 1, tile_ref);
+            VRamState::ReferenceCounted(count, tile_ref) => {
+                self.references[index] = VRamState::ReferenceCounted(count - 1, tile_ref);
                 (count - 1, tile_ref)
             }
             _ => panic!("Corrupted tile reference state"),
@@ -213,9 +213,9 @@ impl<'a> VRamManager<'a> {
         }
 
         if let Some(ptr) = self.vram_free_pointer {
-            self.references[index] = TileReference::Free(ptr as u16);
+            self.references[index] = VRamState::Free(ptr as u16);
         } else {
-            self.references[index] = TileReference::Free(END_OF_FREE_LIST_MARKER);
+            self.references[index] = VRamState::Free(END_OF_FREE_LIST_MARKER);
         }
 
         self.tile_set_to_vram.remove(&tile_ref);
