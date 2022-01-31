@@ -53,22 +53,24 @@ pub struct TileSetReference {
 #[derive(Debug)]
 pub struct TileIndex(u16);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct TileReference(u16, u16);
+
 enum VRamState {
-    ReferenceCounted(u16, (u16, u16)),
+    ReferenceCounted(u16, TileReference),
     Free(u16),
 }
 
 impl VRamState {
-    fn increase_reference(&mut self) -> u16 {
+    fn increase_reference(&mut self) {
         if let VRamState::ReferenceCounted(count, _) = self {
             *count += 1;
-            *count
         } else {
             panic!("Corrupted vram state");
         }
     }
 
-    fn decrease_reference(&mut self) -> (u16, (u16, u16)) {
+    fn decrease_reference(&mut self) -> (u16, TileReference) {
         if let VRamState::ReferenceCounted(count, tile_ref) = self {
             *count -= 1;
             (*count, *tile_ref)
@@ -89,7 +91,7 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: HashMap<(u16, u16), u16>,
+    tile_set_to_vram: HashMap<TileReference, u16>,
     references: Vec<VRamState>,
     vram_free_pointer: Option<usize>,
 }
@@ -159,7 +161,7 @@ impl<'a> VRamManager<'a> {
     }
 
     fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
-        let tile_ref = (tile_set_ref.id, tile);
+        let tile_ref = TileReference(tile_set_ref.id, tile);
         if let Some(&reference) = self.tile_set_to_vram.get(&tile_ref) {
             self.references[reference as usize].increase_reference();
             return TileIndex(reference as u16);
@@ -203,8 +205,10 @@ impl<'a> VRamManager<'a> {
             TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
         }
 
-        self.tile_set_to_vram
-            .insert((tile_set_ref.id, tile), index_to_copy_into as u16);
+        self.tile_set_to_vram.insert(
+            TileReference(tile_set_ref.id, tile),
+            index_to_copy_into as u16,
+        );
 
         TileIndex(index_to_copy_into as u16)
     }
