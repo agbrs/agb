@@ -341,10 +341,10 @@ impl RegularMap {
         let x_scroll = scroll_pos.x % display::WIDTH as u16;
         let y_scroll = scroll_pos.y % display::HEIGHT as u16;
         let start_x = x_scroll / 8;
-        let end_x = (x_scroll + display::WIDTH as u16 + 8 - 1) / 8; // divide by 8 rounding up
+        let end_x = (x_scroll + display::WIDTH as u16 + 8 - 1) / 8 + 1; // divide by 8 rounding up
 
         let start_y = y_scroll / 8;
-        let end_y = (y_scroll + display::HEIGHT as u16 + 8 - 1) / 8;
+        let end_y = (y_scroll + display::HEIGHT as u16 + 8 - 1) / 8 + 1;
 
         for y in start_y..end_y {
             for x in start_x..end_x {
@@ -409,8 +409,8 @@ impl InfiniteScrolledMap {
         let x_start = div_floor(self.current_pos.x, 8);
         let y_start = div_floor(self.current_pos.y, 8);
 
-        let x_end = div_ceil(self.current_pos.x + display::WIDTH, 8);
-        let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8);
+        let x_end = div_ceil(self.current_pos.x + display::WIDTH, 8) + 1;
+        let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8) + 1;
 
         for (y_idx, y) in (y_start..y_end).enumerate() {
             for (x_idx, x) in (x_start..x_end).enumerate() {
