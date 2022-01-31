@@ -1,7 +1,10 @@
+use core::cell::RefCell;
+
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 use hashbrown::HashMap;
 
+use crate::bitarray::Bitarray;
 use crate::{
     display,
     fixnum::{Rect, Vector2D},
@@ -611,8 +614,7 @@ fn div_ceil(x: i32, y: i32) -> i32 {
 }
 
 pub struct Tiled0<'a> {
-    num_regular: u8,
-    next_screenblock: u8,
+    regular: RefCell<Bitarray<1>>,
 
     pub vram: VRamManager<'a>,
 }
@@ -623,22 +625,22 @@ impl Tiled0<'_> {
         set_graphics_mode(DisplayMode::Tiled0);
 
         Self {
-            num_regular: 0,
-            next_screenblock: 16,
+            regular: Default::default(),
 
             vram: VRamManager::new(),
         }
     }
 
     pub fn background(&mut self, priority: Priority) -> RegularMap {
-        if self.num_regular == 4 {
-            panic!("Can only create 4 backgrounds");
+        let mut regular = self.regular.borrow_mut();
+        let new_background = regular.first_zero().unwrap();
+        if new_background >= 4 {
+            panic!("can only have 4 active backgrounds");
         }
 
-        let bg = RegularMap::new(self.num_regular, self.next_screenblock, priority);
+        let bg = RegularMap::new(new_background as u8, (new_background + 16) as u8, priority);
 
-        self.num_regular += 1;
-        self.next_screenblock += 1;
+        regular.set(new_background, true);
 
         bg
     }
