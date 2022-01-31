@@ -218,6 +218,8 @@ impl<'a> VRamManager<'a> {
             self.references[index] = TileReference::Free(END_OF_FREE_LIST_MARKER);
         }
 
+        self.tile_set_to_vram.remove(&tile_ref);
+
         self.vram_free_pointer = Some(index);
     }
 
