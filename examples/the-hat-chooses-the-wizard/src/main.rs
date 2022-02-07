@@ -285,8 +285,11 @@ impl<'a, 'b> Map<'a, 'b> {
         self.foreground.commit();
     }
 
-    pub fn init(&mut self, vram: &mut VRamManager) {
+    pub fn init_background(&mut self, vram: &mut VRamManager) {
         self.background.init(vram, self.position.floor());
+    }
+
+    pub fn init_foreground(&mut self, vram: &mut VRamManager) {
         self.foreground.init(vram, self.position.floor());
     }
 }
@@ -874,7 +877,13 @@ fn main(mut agb: agb::Gba) -> ! {
                 agb::input::ButtonController::new(),
             );
 
-            level.background.init(&mut vram);
+            level.background.init_background(&mut vram);
+            music_box.before_frame(&mut mixer);
+            mixer.frame();
+            vblank.wait_for_vblank();
+            mixer.after_vblank();
+
+            level.background.init_foreground(&mut vram);
 
             for _ in 0..60 {
                 music_box.before_frame(&mut mixer);

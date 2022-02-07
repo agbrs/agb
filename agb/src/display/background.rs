@@ -25,6 +25,18 @@ const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
+#[cfg(debug_assertions)]
+const unsafe fn debug_unreachable_unchecked() -> ! {
+    unreachable!();
+}
+
+#[cfg(not(debug_assertions))]
+const unsafe fn debug_unreachable_unchecked() -> ! {
+    use core::hint::unreachable_unchecked;
+
+    unreachable_unchecked();
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum TileFormat {
     FourBpp,
@@ -72,7 +84,7 @@ impl VRamState {
         if let VRamState::ReferenceCounted(count, _) = self {
             *count += 1;
         } else {
-            panic!("Corrupted vram state");
+            unsafe { debug_unreachable_unchecked() };
         }
     }
 
@@ -81,7 +93,7 @@ impl VRamState {
             *count -= 1;
             (*count, *tile_ref)
         } else {
-            panic!("Corrupted vram state");
+            unsafe { debug_unreachable_unchecked() };
         }
     }
 }
@@ -134,7 +146,7 @@ impl<'a> VRamManager<'a> {
                     self.tilesets[ptr] = tileset;
                     ptr
                 }
-                _ => panic!("Free pointer shouldn't point to valid data"),
+                _ => unsafe { debug_unreachable_unchecked() },
             }
         } else {
             self.tilesets.push(tileset);
@@ -149,7 +161,7 @@ impl<'a> VRamManager<'a> {
 
         match tileset {
             ArenaStorageItem::Data(_, generation) => {
-                assert_eq!(
+                debug_assert_eq!(
                     *generation, tile_set_ref.generation,
                     "Tileset generation must be the same when removing"
                 );
@@ -162,7 +174,7 @@ impl<'a> VRamManager<'a> {
 
                 self.free_pointer = Some(tile_set_ref.id as usize);
             }
-            _ => panic!("Already freed, probably a double free?"),
+            _ => unsafe { debug_unreachable_unchecked() },
         }
     }
 
@@ -182,7 +194,7 @@ impl<'a> VRamManager<'a> {
                         self.vram_free_pointer = Some(next_free as usize);
                     }
                 }
-                VRamState::ReferenceCounted(_, _) => panic!("Corrupted tile reference state"),
+                VRamState::ReferenceCounted(_, _) => unsafe { debug_unreachable_unchecked() },
             }
 
             self.references[ptr] = VRamState::ReferenceCounted(1, tile_ref);
@@ -196,7 +208,7 @@ impl<'a> VRamManager<'a> {
         let tile_slice = if let ArenaStorageItem::Data(data, generation) =
             &self.tilesets[tile_set_ref.id as usize]
         {
-            assert_eq!(
+            debug_assert_eq!(
                 *generation, tile_set_ref.generation,
                 "Stale tile data requested"
             );
@@ -204,7 +216,7 @@ impl<'a> VRamManager<'a> {
             let tile_offset = (tile as usize) * data.format.tile_size() / 4;
             &data.tiles[tile_offset..(tile_offset + data.format.tile_size() / 4)]
         } else {
-            panic!("Cannot find tile data at given reference");
+            unsafe { debug_unreachable_unchecked() };
         };
 
         let tile_size_in_words = TileFormat::FourBpp.tile_size() / 4;
