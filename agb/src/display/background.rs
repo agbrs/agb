@@ -1,9 +1,11 @@
 use core::cell::RefCell;
+use core::hash::BuildHasherDefault;
 use core::ops::{Deref, DerefMut};
 
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 use hashbrown::HashMap;
+use rustc_hash::FxHasher;
 
 use crate::bitarray::Bitarray;
 use crate::{
@@ -95,7 +97,7 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: HashMap<TileReference, (u16, u16)>,
+    tile_set_to_vram: HashMap<TileReference, (u16, u16), BuildHasherDefault<FxHasher>>,
     references: Vec<VRamState>,
     vram_free_pointer: Option<usize>,
 }
@@ -109,7 +111,7 @@ impl<'a> VRamManager<'a> {
             generation: 0,
             free_pointer: None,
 
-            tile_set_to_vram: HashMap::new(),
+            tile_set_to_vram: HashMap::default(),
             references: vec![VRamState::Free(0)],
             vram_free_pointer: None,
         }
