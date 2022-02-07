@@ -393,13 +393,11 @@ impl RegularMap {
         let screenblock_memory = self.screenblock_memory();
 
         let scroll_pos = self.get_scroll_pos();
-        let x_scroll = scroll_pos.x % (32 * 8) as u16;
-        let y_scroll = scroll_pos.y % (32 * 8) as u16;
-        let start_x = x_scroll / 8;
-        let end_x = div_ceil(x_scroll as i32 + display::WIDTH, 8) as u16 + 1; // divide by 8 rounding up
+        let start_x = scroll_pos.x / 8;
+        let end_x = div_ceil(scroll_pos.x as i32 + display::WIDTH, 8) as u16 + 1;
 
-        let start_y = y_scroll / 8;
-        let end_y = div_ceil(y_scroll as i32 + display::HEIGHT, 8) as u16 + 1;
+        let start_y = scroll_pos.y / 8;
+        let end_y = div_ceil(scroll_pos.y as i32 + display::HEIGHT, 8) as u16 + 1;
 
         for y in start_y..end_y {
             for x in start_x..end_x {
@@ -516,7 +514,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             let direction = difference.x.signum();
 
             // either need to update 20 or 21 tiles depending on whether the y coordinate is a perfect multiple
-            let y_tiles_to_update = 21;
+            let y_tiles_to_update = 22;
 
             let line_to_update = if direction < 0 {
                 // moving to the left, so need to update the left most position
@@ -527,7 +525,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             };
 
             Rect::new(
-                (line_to_update, new_tile_y).into(),
+                (line_to_update, new_tile_y - 1).into(),
                 (difference_tile_x, y_tiles_to_update).into(),
             )
         } else {
@@ -540,7 +538,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             let direction = difference.y.signum();
 
             // either need to update 30 or 31 tiles depending on whether the x coordinate is a perfect multiple
-            let x_tiles_to_update: i32 = 31;
+            let x_tiles_to_update: i32 = 32;
 
             let line_to_update = if direction < 0 {
                 // moving up so need to update the top
@@ -551,7 +549,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             };
 
             Rect::new(
-                (new_tile_x, line_to_update).into(),
+                (new_tile_x - 1, line_to_update).into(),
                 (x_tiles_to_update, difference_tile_y).into(),
             )
         } else {
