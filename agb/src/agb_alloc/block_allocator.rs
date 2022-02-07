@@ -49,9 +49,9 @@ pub(crate) struct BlockAllocator {
 }
 
 impl BlockAllocator {
-    pub(super) const unsafe fn new() -> Self {
+    pub(super) const unsafe fn new(start: fn() -> usize) -> Self {
         Self {
-            inner_allocator: BumpAllocator::new(),
+            inner_allocator: BumpAllocator::new(start),
             state: Mutex::new(RefCell::new(BlockAllocatorState {
                 first_free_block: None,
             })),
