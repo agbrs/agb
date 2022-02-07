@@ -497,7 +497,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let difference = new_pos - old_pos;
 
-        if difference.x.abs() > 8 || difference.y.abs() > 8 {
+        if difference.x.abs() > 10 * 8 || difference.y.abs() > 10 * 8 {
             self.init(vram, new_pos);
             return;
         }
@@ -506,6 +506,9 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let new_tile_x = div_floor(new_pos.x, 8);
         let new_tile_y = div_floor(new_pos.y, 8);
+
+        let difference_tile_x = div_ceil(difference.x, 8);
+        let difference_tile_y = div_ceil(difference.y, 8);
 
         let vertical_rect_to_update: Rect<i32> = if div_floor(old_pos.x, 8) != new_tile_x {
             // need to update the x line
@@ -525,7 +528,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
             Rect::new(
                 (line_to_update, new_tile_y).into(),
-                (1, y_tiles_to_update).into(),
+                (difference_tile_x, y_tiles_to_update).into(),
             )
         } else {
             Rect::new((0i32, 0).into(), (0i32, 0).into())
@@ -549,7 +552,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
             Rect::new(
                 (new_tile_x, line_to_update).into(),
-                (x_tiles_to_update, 1).into(),
+                (x_tiles_to_update, difference_tile_y).into(),
             )
         } else {
             Rect::new((0i32, 0).into(), (0i32, 0).into())
