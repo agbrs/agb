@@ -350,6 +350,11 @@ impl RegularMap {
             Tile::default()
         };
 
+        if old_tile == new_tile {
+            // no need to mark as dirty if nothing changes
+            return;
+        }
+
         self.tiles[pos] = new_tile;
         self.tiles_dirty = true;
     }
