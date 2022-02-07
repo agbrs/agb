@@ -393,8 +393,8 @@ impl RegularMap {
         let screenblock_memory = self.screenblock_memory();
 
         let scroll_pos = self.get_scroll_pos();
-        let x_scroll = scroll_pos.x % display::WIDTH as u16;
-        let y_scroll = scroll_pos.y % display::HEIGHT as u16;
+        let x_scroll = scroll_pos.x % (32 * 8) as u16;
+        let y_scroll = scroll_pos.y % (32 * 8) as u16;
         let start_x = x_scroll / 8;
         let end_x = (x_scroll + display::WIDTH as u16 + 8 - 1) / 8 + 1; // divide by 8 rounding up
 
@@ -483,16 +483,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
         let offset_scroll = (
-            if offset.x < 0 {
-                (offset.x + 32 * 8) as u16
-            } else {
-                offset.x as u16
-            },
-            if offset.y < 0 {
-                (offset.y + 32 * 8) as u16
-            } else {
-                offset.y as u16
-            },
+            offset.x.rem_euclid(32 * 8) as u16,
+            offset.y.rem_euclid(32 * 8) as u16,
         )
             .into();
 
