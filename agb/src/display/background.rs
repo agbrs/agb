@@ -396,10 +396,10 @@ impl RegularMap {
         let x_scroll = scroll_pos.x % (32 * 8) as u16;
         let y_scroll = scroll_pos.y % (32 * 8) as u16;
         let start_x = x_scroll / 8;
-        let end_x = (x_scroll + display::WIDTH as u16 + 8 - 1) / 8 + 1; // divide by 8 rounding up
+        let end_x = div_ceil(x_scroll as i32 + display::WIDTH, 8) as u16 + 1; // divide by 8 rounding up
 
         let start_y = y_scroll / 8;
-        let end_y = (y_scroll + display::HEIGHT as u16 + 8 - 1) / 8 + 1;
+        let end_y = div_ceil(y_scroll as i32 + display::HEIGHT, 8) as u16 + 1;
 
         for y in start_y..end_y {
             for x in start_x..end_x {
@@ -489,7 +489,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             .into();
 
         self.map.set_scroll_pos(offset_scroll);
-        self.offset = pos * -1;
+        self.offset = (x_start, y_start).into();
     }
 
     pub fn set_pos(&mut self, vram: &mut VRamManager, new_pos: Vector2D<i32>) {
@@ -555,8 +555,6 @@ impl<'a> InfiniteScrolledMap<'a> {
             Rect::new((0i32, 0).into(), (0i32, 0).into())
         };
 
-        let tile_offset = Vector2D::new(div_floor(self.offset.x, 8), div_floor(self.offset.y, 8));
-
         for (tile_x, tile_y) in vertical_rect_to_update
             .iter()
             .chain(horizontal_rect_to_update.iter())
@@ -566,8 +564,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             self.map.set_tile(
                 vram,
                 (
-                    (tile_x + tile_offset.x).rem_euclid(32) as u16,
-                    (tile_y + tile_offset.y).rem_euclid(32) as u16,
+                    (tile_x - self.offset.x).rem_euclid(32) as u16,
+                    (tile_y - self.offset.y).rem_euclid(32) as u16,
                 )
                     .into(),
                 tile_set_ref,
