@@ -26,6 +26,7 @@ agb_sound_converter = { version = "0.1.0", path = "../agb-sound-converter" }
 agb_macros = { version = "0.1.0", path = "../agb-macros" }
 agb_fixnum = { version = "0.1.0", path = "../agb-fixnum" }
 bare-metal = "1.0"
+hashbrown = "0.12.0"
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

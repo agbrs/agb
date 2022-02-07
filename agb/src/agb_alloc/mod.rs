@@ -2,12 +2,12 @@ use core::alloc::Layout;
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
-mod block_allocator;
-mod bump_allocator;
+pub(crate) mod block_allocator;
+pub(crate) mod bump_allocator;
 
 use block_allocator::BlockAllocator;
 
-use self::bump_allocator::{AddrFn, StartEnd};
+use self::bump_allocator::StartEnd;
 
 struct SendNonNull<T>(NonNull<T>);
 unsafe impl<T> Send for SendNonNull<T> {}
@@ -37,8 +37,8 @@ const EWRAM_END: usize = 0x0204_0000;
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
-        start: AddrFn(get_data_end),
-        end: AddrFn(|| EWRAM_END),
+        start: get_data_end,
+        end: || EWRAM_END,
     })
 };
 

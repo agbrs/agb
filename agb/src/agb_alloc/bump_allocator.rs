@@ -6,11 +6,9 @@ use super::SendNonNull;
 use crate::interrupt::free;
 use bare_metal::{CriticalSection, Mutex};
 
-pub(crate) struct AddrFn(pub fn() -> usize);
-
 pub(crate) struct StartEnd {
-    pub start: AddrFn,
-    pub end: AddrFn,
+    pub start: fn() -> usize,
+    pub end: fn() -> usize,
 }
 
 pub(crate) struct BumpAllocator {
@@ -34,7 +32,7 @@ impl BumpAllocator {
         let ptr = if let Some(c) = *current_ptr {
             c.as_ptr() as usize
         } else {
-            self.start_end.borrow(*cs).start.0()
+            (self.start_end.borrow(*cs).start)()
         };
 
         let alignment_bitmask = layout.align() - 1;
@@ -45,7 +43,7 @@ impl BumpAllocator {
         let resulting_ptr = ptr + amount_to_add;
         let new_current_ptr = resulting_ptr + layout.size();
 
-        if new_current_ptr as usize >= self.start_end.borrow(*cs).end.0() {
+        if new_current_ptr as usize >= (self.start_end.borrow(*cs).end)() {
             return None;
         }
 
