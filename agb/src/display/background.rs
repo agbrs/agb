@@ -465,6 +465,16 @@ impl<'a> InfiniteScrolledMap<'a> {
         let x_end = div_ceil(self.current_pos.x + display::WIDTH, 8) + 1;
         let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8) + 1;
 
+        let offset = self.current_pos - (x_start * 8, y_start * 8).into();
+        let offset_scroll = (
+            offset.x.rem_euclid(32 * 8) as u16,
+            offset.y.rem_euclid(32 * 8) as u16,
+        )
+            .into();
+
+        self.map.set_scroll_pos(offset_scroll);
+        self.offset = (x_start, y_start).into();
+
         for (y_idx, y) in (y_start..y_end).enumerate() {
             for (x_idx, x) in (x_start..x_end).enumerate() {
                 let pos = (x, y).into();
@@ -478,16 +488,6 @@ impl<'a> InfiniteScrolledMap<'a> {
                 );
             }
         }
-
-        let offset = self.current_pos - (x_start * 8, y_start * 8).into();
-        let offset_scroll = (
-            offset.x.rem_euclid(32 * 8) as u16,
-            offset.y.rem_euclid(32 * 8) as u16,
-        )
-            .into();
-
-        self.map.set_scroll_pos(offset_scroll);
-        self.offset = (x_start, y_start).into();
     }
 
     pub fn set_pos(&mut self, vram: &mut VRamManager, new_pos: Vector2D<i32>) {
