@@ -836,7 +836,7 @@ fn main(mut agb: agb::Gba) -> ! {
             vram.set_background_palettes(tile_sheet::background.palettes);
 
             let mut background = InfiniteScrolledMap::new(
-                tiled.background(Priority::P1),
+                tiled.background(Priority::P2),
                 Box::new(move |pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[current_level as usize];
                     (
@@ -851,7 +851,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 }),
             );
             let mut foreground = InfiniteScrolledMap::new(
-                tiled.background(Priority::P2),
+                tiled.background(Priority::P0),
                 Box::new(move |pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[current_level as usize];
                     (
