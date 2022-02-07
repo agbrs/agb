@@ -342,8 +342,13 @@ impl RegularMap {
         }
 
         let tile_index = tile_setting.index();
-        let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
-        let new_tile = Tile::new(new_tile_idx, tile_setting);
+
+        let new_tile = if tile_index != 0 {
+            let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
+            Tile::new(new_tile_idx, tile_setting)
+        } else {
+            Tile::default()
+        };
 
         self.tiles[pos] = new_tile;
         self.tiles_dirty = true;

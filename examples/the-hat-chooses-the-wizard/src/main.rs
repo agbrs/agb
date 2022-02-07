@@ -806,7 +806,7 @@ fn main(mut agb: agb::Gba) -> ! {
         let mut music_box = sfx::MusicBox::new();
 
         let vblank = agb::interrupt::VBlank::get();
-        let mut current_level = 0;
+        let mut current_level = 8;
 
         loop {
             if current_level == map_tiles::LEVELS.len() as u32 {
