@@ -650,6 +650,11 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.background.foreground.show();
     }
 
+    fn hide_backgrounds(&mut self) {
+        self.background.background.hide();
+        self.background.background.hide();
+    }
+
     fn dead_start(&mut self) {
         self.player.wizard.velocity = (0, -1).into();
         self.player.wizard.sprite.set_priority(Priority::P0);
@@ -908,6 +913,8 @@ fn main(mut agb: agb::Gba) -> ! {
                 vblank.wait_for_vblank();
                 mixer.after_vblank();
             }
+
+            level.hide_backgrounds();
         }
 
         splash_screen::show_splash_screen(
