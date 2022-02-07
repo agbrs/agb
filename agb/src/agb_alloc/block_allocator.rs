@@ -12,7 +12,7 @@ use core::ptr::NonNull;
 use crate::interrupt::free;
 use bare_metal::{CriticalSection, Mutex};
 
-use super::bump_allocator::BumpAllocator;
+use super::bump_allocator::{BumpAllocator, StartEnd};
 use super::SendNonNull;
 
 struct Block {
@@ -49,7 +49,7 @@ pub(crate) struct BlockAllocator {
 }
 
 impl BlockAllocator {
-    pub(super) const unsafe fn new(start: fn() -> usize) -> Self {
+    pub(super) const unsafe fn new(start: StartEnd) -> Self {
         Self {
             inner_allocator: BumpAllocator::new(start),
             state: Mutex::new(RefCell::new(BlockAllocatorState {

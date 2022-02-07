@@ -7,6 +7,8 @@ mod bump_allocator;
 
 use block_allocator::BlockAllocator;
 
+use self::bump_allocator::{AddrFn, StartEnd};
+
 struct SendNonNull<T>(NonNull<T>);
 unsafe impl<T> Send for SendNonNull<T> {}
 
@@ -33,7 +35,12 @@ impl<T> DerefMut for SendNonNull<T> {
 const EWRAM_END: usize = 0x0204_0000;
 
 #[global_allocator]
-static GLOBAL_ALLOC: BlockAllocator = unsafe { BlockAllocator::new(get_data_end) };
+static GLOBAL_ALLOC: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: AddrFn(get_data_end),
+        end: AddrFn(|| EWRAM_END),
+    })
+};
 
 #[cfg(test)]
 pub unsafe fn number_of_blocks() -> u32 {
