@@ -653,10 +653,9 @@ impl<T: Number> Rect<T> {
 
 impl<T: FixedWidthUnsignedInteger> Rect<T> {
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
-        let mut x = self.position.x - T::one();
+        let mut x = self.position.x;
         let mut y = self.position.y;
         core::iter::from_fn(move || {
-            x = x + T::one();
             if x >= self.position.x + self.size.x {
                 x = self.position.x;
                 y = y + T::one();
@@ -665,7 +664,10 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
                 }
             }
 
-            Some((x, y))
+            let ret_x = x;
+            x = x + T::one();
+
+            Some((ret_x, y))
         })
     }
 }

@@ -516,7 +516,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             let direction = difference.x.signum();
 
             // either need to update 20 or 21 tiles depending on whether the y coordinate is a perfect multiple
-            let y_tiles_to_update: i32 = if new_pos.y % 8 == 0 { 20 } else { 21 };
+            let y_tiles_to_update = 21;
 
             let line_to_update = if direction < 0 {
                 // moving to the left, so need to update the left most position
@@ -540,7 +540,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             let direction = difference.y.signum();
 
             // either need to update 30 or 31 tiles depending on whether the x coordinate is a perfect multiple
-            let x_tiles_to_update: i32 = if new_pos.x % 8 == 0 { 30 } else { 31 };
+            let x_tiles_to_update: i32 = 31;
 
             let line_to_update = if direction < 0 {
                 // moving up so need to update the top
