@@ -787,6 +787,9 @@ fn main(mut agb: agb::Gba) -> ! {
         let mut timer_controller = agb.timers.timers();
         let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
 
+        let mut timer = timer_controller.timer1;
+        timer.set_enabled(true);
+
         object.set_sprite_palettes(object_sheet::object_sheet.palettes);
         object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
 
@@ -877,11 +880,16 @@ fn main(mut agb: agb::Gba) -> ! {
                 agb::input::ButtonController::new(),
             );
 
+            let before_init_cycles = timer.get_value();
             level.background.init_background(&mut vram);
+            let after_init_cycles = timer.get_value();
+
             music_box.before_frame(&mut mixer);
             mixer.frame();
             vblank.wait_for_vblank();
             mixer.after_vblank();
+
+            agb::println!("cycles for init {}", after_init_cycles - before_init_cycles);
 
             level.background.init_foreground(&mut vram);
 
