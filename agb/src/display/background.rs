@@ -95,7 +95,7 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: HashMap<TileReference, u16>,
+    tile_set_to_vram: HashMap<TileReference, (u16, u16)>,
     references: Vec<VRamState>,
     vram_free_pointer: Option<usize>,
 }
@@ -167,8 +167,10 @@ impl<'a> VRamManager<'a> {
     fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
         let tile_ref = TileReference(tile_set_ref.id, tile);
         if let Some(&reference) = self.tile_set_to_vram.get(&tile_ref) {
-            self.references[reference as usize].increase_reference();
-            return TileIndex(reference as u16);
+            if reference.1 == tile_set_ref.generation {
+                self.references[reference.0 as usize].increase_reference();
+                return TileIndex(reference.0 as u16);
+            }
         }
 
         let index_to_copy_into = if let Some(ptr) = self.vram_free_pointer.take() {
@@ -211,7 +213,7 @@ impl<'a> VRamManager<'a> {
 
         self.tile_set_to_vram.insert(
             TileReference(tile_set_ref.id, tile),
-            index_to_copy_into as u16,
+            (index_to_copy_into as u16, tile_set_ref.generation),
         );
 
         TileIndex(index_to_copy_into as u16)
