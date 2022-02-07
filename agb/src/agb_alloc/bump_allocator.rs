@@ -28,7 +28,7 @@ impl BumpAllocator {
 }
 
 impl BumpAllocator {
-    pub fn alloc_critical(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
+    pub fn alloc_critical(&self, layout: Layout, cs: &CriticalSection) -> Option<NonNull<u8>> {
         let mut current_ptr = self.current_ptr.borrow(*cs).borrow_mut();
 
         let ptr = if let Some(c) = *current_ptr {
@@ -46,21 +46,24 @@ impl BumpAllocator {
         let new_current_ptr = resulting_ptr + layout.size();
 
         if new_current_ptr as usize >= self.start_end.borrow(*cs).end.0() {
-            return core::ptr::null_mut();
+            return None;
         }
 
         *current_ptr = NonNull::new(new_current_ptr as *mut _).map(SendNonNull);
 
-        resulting_ptr as *mut _
+        NonNull::new(resulting_ptr as *mut _)
     }
-    pub fn alloc_safe(&self, layout: Layout) -> *mut u8 {
+    pub fn alloc_safe(&self, layout: Layout) -> Option<NonNull<u8>> {
         free(|key| self.alloc_critical(layout, key))
     }
 }
 
 unsafe impl GlobalAlloc for BumpAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.alloc_safe(layout)
+        match self.alloc_safe(layout) {
+            None => core::ptr::null_mut(),
+            Some(p) => p.as_ptr(),
+        }
     }
 
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}

@@ -76,7 +76,7 @@ impl BlockAllocator {
     }
 
     /// Requests a brand new block from the inner bump allocator
-    fn new_block(&self, layout: Layout, cs: &CriticalSection) -> *mut u8 {
+    fn new_block(&self, layout: Layout, cs: &CriticalSection) -> Option<NonNull<u8>> {
         let overall_layout = Block::either_layout(layout);
         self.inner_allocator.alloc_critical(overall_layout, cs)
     }
@@ -111,10 +111,8 @@ impl BlockAllocator {
             }
         });
     }
-}
 
-unsafe impl GlobalAlloc for BlockAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+    unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
         // find a block that this current request fits in
         let full_layout = Block::either_layout(layout);
 
@@ -133,7 +131,7 @@ unsafe impl GlobalAlloc for BlockAllocator {
                 let curr_block = curr.as_mut();
                 if curr_block.size == full_layout.size() {
                     *list_ptr = curr_block.next;
-                    return curr.as_ptr().cast();
+                    return Some(curr.cast());
                 } else if curr_block.size >= block_after_layout.size() {
                     // can split block
                     let split_block = Block {
@@ -148,7 +146,7 @@ unsafe impl GlobalAlloc for BlockAllocator {
                     *split_ptr = split_block;
                     *list_ptr = NonNull::new(split_ptr).map(SendNonNull);
 
-                    return curr.as_ptr().cast();
+                    return Some(curr.cast());
                 }
                 current_block = curr_block.next;
                 list_ptr = &mut curr_block.next;
@@ -198,5 +196,18 @@ unsafe impl GlobalAlloc for BlockAllocator {
             }
         });
         self.normalise();
+    }
+}
+
+unsafe impl GlobalAlloc for BlockAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        match self.alloc(layout) {
+            None => core::ptr::null_mut(),
+            Some(p) => p.as_ptr(),
+        }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        self.dealloc(ptr, layout);
     }
 }
