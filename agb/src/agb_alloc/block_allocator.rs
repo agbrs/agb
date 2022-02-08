@@ -112,7 +112,7 @@ impl BlockAllocator {
         });
     }
 
-    unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
+    pub unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
         // find a block that this current request fits in
         let full_layout = Block::either_layout(layout);
 
@@ -156,7 +156,7 @@ impl BlockAllocator {
         })
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+    pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let new_layout = Block::either_layout(layout).pad_to_align();
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();
