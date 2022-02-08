@@ -1,6 +1,10 @@
+use core::alloc::Layout;
 use core::cell::RefCell;
+use core::ptr::NonNull;
 
 use hashbrown::{hash_map::Entry, HashMap};
+
+const BYTES_PER_TILE_4BPP: usize = 32;
 
 use super::palette16::Palette16;
 use super::{palette16, Priority, DISPLAY_CONTROL};
@@ -27,6 +31,45 @@ const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
 pub struct Sprite {
     palette: &'static Palette16,
     data: &'static [u8],
+    size: Size,
+}
+
+#[derive(Clone, Copy)]
+pub enum Size {
+    // stored as attr0 attr1
+    S8x8 = 0b00_00,
+    S16x16 = 0b00_01,
+    S32x32 = 0b00_10,
+    S64x64 = 0b00_11,
+
+    S16x8 = 0b01_00,
+    S32x8 = 0b01_01,
+    S32x16 = 0b01_10,
+    S64x32 = 0b01_11,
+
+    S8x16 = 0b10_00,
+    S8x32 = 0b10_01,
+    S16x32 = 0b10_10,
+    S32x64 = 0b10_11,
+}
+
+impl Size {
+    fn number_of_tiles(self) -> usize {
+        match self {
+            S8x8 => 1,
+            S16x16 => 4,
+            S32x32 => 16,
+            S64x64 => 64,
+            S16x8 => 2,
+            S32x8 => 4,
+            S32x16 => 8,
+            S64x32 => 32,
+            S8x16 => 2,
+            S8x32 => 4,
+            S16x32 => 8,
+            S32x64 => 32,
+        }
+    }
 }
 
 struct SpriteBorrow<'a> {
@@ -37,6 +80,15 @@ struct SpriteBorrow<'a> {
 struct Storage {
     location: u16,
     count: u16,
+}
+
+impl Storage {
+    fn from_ptr(d: NonNull<u8>) -> Self {
+        Self {
+            location: (((d.as_ptr() as usize) - 0x06010000) / BYTES_PER_TILE_4BPP) as u16,
+            count: 1,
+        }
+    }
 }
 
 pub struct Object<'a> {
@@ -59,6 +111,15 @@ pub struct ObjectController {}
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct SpriteId(usize);
 
+impl SpriteId {
+    fn get_sprite(self) -> &'static Sprite {
+        // # Safety
+        // This must be constructed using the get_id of a sprite, so
+        // they are always valid and always static
+        unsafe { (self.0 as *const Sprite).as_ref().unwrap_unchecked() }
+    }
+}
+
 /// The palette id is a thin wrapper around the pointer to the palette in rom
 /// and is therefore a unique reference to a palette
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -67,6 +128,9 @@ struct PaletteId(usize);
 impl Sprite {
     fn get_id(&'static self) -> SpriteId {
         SpriteId(self as *const _ as usize)
+    }
+    const fn layout(&self) -> Layout {
+        Layout::from_size_align(self.size.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
     }
 }
 
@@ -81,8 +145,18 @@ impl SpriteController {
                 controller: &self.inner,
             })
         } else {
-            // allocate a new sprite
+            // layout is non zero sized, so this is safe to call
+
+            let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
+            inner.sprite.insert(id, Storage::from_ptr(dest));
+
+            // need to consider palette
             todo!();
+
+            Some(SpriteBorrow {
+                id,
+                controller: &self.inner,
+            })
         }
     }
 }
