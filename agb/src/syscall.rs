@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use crate::display::object::AffineMatrixAttributes;
+// use crate::display::object::AffineMatrixAttributes;
 use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
@@ -113,55 +113,55 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-pub fn affine_matrix(
-    x_scale: Num<i16, 8>,
-    y_scale: Num<i16, 8>,
-    rotation: u8,
-) -> AffineMatrixAttributes {
-    let mut result = AffineMatrixAttributes {
-        p_a: 0,
-        p_b: 0,
-        p_c: 0,
-        p_d: 0,
-    };
+// pub fn affine_matrix(
+//     x_scale: Num<i16, 8>,
+//     y_scale: Num<i16, 8>,
+//     rotation: u8,
+// ) -> AffineMatrixAttributes {
+//     let mut result = AffineMatrixAttributes {
+//         p_a: 0,
+//         p_b: 0,
+//         p_c: 0,
+//         p_d: 0,
+//     };
 
-    #[allow(dead_code)]
-    #[repr(C, packed)]
-    struct Input {
-        x_scale: i16,
-        y_scale: i16,
-        rotation: u16,
-    }
+//     #[allow(dead_code)]
+//     #[repr(C, packed)]
+//     struct Input {
+//         x_scale: i16,
+//         y_scale: i16,
+//         rotation: u16,
+//     }
 
-    let input = Input {
-        y_scale: x_scale.to_raw(),
-        x_scale: y_scale.to_raw(),
-        rotation: rotation as u16,
-    };
+//     let input = Input {
+//         y_scale: x_scale.to_raw(),
+//         x_scale: y_scale.to_raw(),
+//         rotation: rotation as u16,
+//     };
 
-    unsafe {
-        asm!("swi 0x0F",
-            in("r0") &input as *const Input as usize,
-            in("r1") &mut result as *mut AffineMatrixAttributes as usize,
-            in("r2") 1,
-            in("r3") 2,
-        )
-    }
+//     unsafe {
+//         asm!("swi 0x0F",
+//             in("r0") &input as *const Input as usize,
+//             in("r1") &mut result as *mut AffineMatrixAttributes as usize,
+//             in("r2") 1,
+//             in("r3") 2,
+//         )
+//     }
 
-    result
-}
+//     result
+// }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test_case]
-    fn affine(_gba: &mut crate::Gba) {
-        // expect identity matrix
-        let one: Num<i16, 8> = 1.into();
+//     #[test_case]
+//     fn affine(_gba: &mut crate::Gba) {
+//         // expect identity matrix
+//         let one: Num<i16, 8> = 1.into();
 
-        let aff = affine_matrix(one, one, 0);
-        assert_eq!(aff.p_a, one.to_raw());
-        assert_eq!(aff.p_d, one.to_raw());
-    }
-}
+//         let aff = affine_matrix(one, one, 0);
+//         assert_eq!(aff.p_a, one.to_raw());
+//         assert_eq!(aff.p_d, one.to_raw());
+//     }
+// }

@@ -2,6 +2,8 @@ use alloc::vec::Vec;
 use core::alloc::Layout;
 use core::cell::RefCell;
 use core::ptr::NonNull;
+use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
+use modular_bitfield::{bitfield, BitfieldSpecifier};
 
 use hashbrown::{hash_map::Entry, HashMap};
 
@@ -12,6 +14,8 @@ use super::{palette16, Priority, DISPLAY_CONTROL};
 use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::fixnum::Vector2D;
+
+use attributes::*;
 
 static SPRITE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
@@ -73,6 +77,9 @@ impl Size {
             Size::S32x64 => 32,
         }
     }
+    const fn shape_size(self) -> (u8, u8) {
+        (self as u8 >> 2, self as u8 & 0b11)
+    }
 }
 
 pub struct SpriteBorrow<'a> {
@@ -104,11 +111,33 @@ impl Storage {
     fn as_palette_ptr(&self) -> *mut u8 {
         (self.location as usize * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
     }
+    fn as_sprite_ptr(&self) -> *mut u8 {
+        (self.location as usize * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
+    }
+}
+
+struct Attributes {
+    a0: ObjectAttribute0,
+    a1s: ObjectAttribute1Standard,
+    a1a: ObjectAttribute1Affine,
+    a2: ObjectAttribute2,
+}
+
+impl Attributes {
+    fn new() -> Self {
+        Self {
+            a0: ObjectAttribute0::new(),
+            a1s: ObjectAttribute1Standard::new(),
+            a1a: ObjectAttribute1Affine::new(),
+            a2: ObjectAttribute2::new(),
+        }
+    }
 }
 
 pub struct Object<'a, 'b> {
     sprite: SpriteBorrow<'a>,
     loan: Loan<'b>,
+    attrs: Attributes,
 }
 
 struct SpriteControllerInner {
@@ -140,6 +169,17 @@ pub struct ObjectController {
 
 impl ObjectController {
     pub(crate) fn new() -> Self {
+        DISPLAY_CONTROL.set_bits(1, 1, 0x6);
+        DISPLAY_CONTROL.set_bits(1, 1, 0xC);
+
+        for i in 0..128 {
+            unsafe {
+                (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                    .add(i * 4)
+                    .write_volatile(0b10 << 8)
+            }
+        }
+
         Self {
             free_objects: RefCell::new((0..128).collect()),
             free_affine_matricies: RefCell::new((0..32).collect()),
@@ -153,7 +193,11 @@ impl ObjectController {
             index: inner.pop()?,
             free_list: &self.free_objects,
         };
-        Some(Object { sprite, loan })
+        Some(Object {
+            sprite,
+            loan,
+            attrs: Attributes::new(),
+        })
     }
 
     pub fn get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
@@ -161,9 +205,79 @@ impl ObjectController {
     }
 }
 
+impl Drop for Object<'_, '_> {
+    fn drop(&mut self) {
+        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
+        self.commit();
+    }
+}
+
 impl<'a, 'b> Object<'a, 'b> {
-    pub fn set_sprite(&'a mut self, sprite: SpriteBorrow<'a>) {
+    pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
+        self.attrs.a2.set_tile_index(sprite.sprite_location);
+        let shape_size = sprite.id.get_sprite().size.shape_size();
+        self.attrs.a0.set_shape(shape_size.0);
+        self.attrs.a1a.set_size(shape_size.1);
+        self.attrs.a1s.set_size(shape_size.1);
         self.sprite = sprite;
+    }
+
+    pub fn show(&mut self) -> &mut Self {
+        self.attrs.a0.set_object_mode(ObjectMode::Normal);
+
+        self
+    }
+
+    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
+        self.attrs.a1s.set_horizontal_flip(flip);
+        self
+    }
+
+    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
+        self.attrs.a1s.set_vertical_flip(flip);
+        self
+    }
+
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.attrs.a1a.set_x(x as u16);
+        self.attrs.a1s.set_x(x as u16);
+        self
+    }
+
+    pub fn set_y(&mut self, y: u16) -> &mut Self {
+        self.attrs.a0.set_y(y as u8);
+
+        self
+    }
+
+    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
+        self.attrs.a0.set_y(position.y as u8);
+        self.attrs.a1a.set_x(position.x as u16);
+        self.attrs.a1s.set_x(position.x as u16);
+        self
+    }
+
+    pub fn commit(&self) {
+        let mode = self.attrs.a0.object_mode();
+        let attrs: [[u8; 2]; 3] = match mode {
+            ObjectMode::Normal => [
+                self.attrs.a0.into_bytes(),
+                self.attrs.a1s.into_bytes(),
+                self.attrs.a2.into_bytes(),
+            ],
+            _ => [
+                self.attrs.a0.into_bytes(),
+                self.attrs.a1a.into_bytes(),
+                self.attrs.a2.into_bytes(),
+            ],
+        };
+
+        unsafe {
+            let attrs: [u8; 6] = core::mem::transmute(attrs);
+            (OBJECT_ATTRIBUTE_MEMORY as *mut u8)
+                .add(self.loan.index as usize * (4 * 2))
+                .copy_from(attrs.as_ptr(), attrs.len())
+        };
     }
 }
 
@@ -288,6 +402,26 @@ impl SpriteControllerInner {
         }
     }
 
+    fn return_sprite(&mut self, sprite: &'static Sprite) {
+        let entry = self
+            .sprite
+            .entry(sprite.get_id())
+            .and_replace_entry_with(|_, mut storage| {
+                storage.count -= 1;
+                if storage.count == 0 {
+                    unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) }
+                    None
+                } else {
+                    Some(storage)
+                }
+            });
+
+        match entry {
+            Entry::Occupied(_) => {}
+            Entry::Vacant(_) => self.return_palette(sprite.palette),
+        }
+    }
+
     fn return_palette(&mut self, palette: &'static Palette16) {
         let id = palette.get_id();
         self.palette
@@ -309,21 +443,70 @@ impl SpriteControllerInner {
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
         let mut inner = self.controller.borrow_mut();
-        let entry = inner
-            .sprite
-            .entry(self.id)
-            .and_replace_entry_with(|_, mut storage| {
-                storage.count -= 1;
-                if storage.count == 0 {
-                    None
-                } else {
-                    Some(storage)
-                }
-            });
+        inner.return_sprite(self.id.get_sprite())
+    }
+}
 
-        match entry {
-            Entry::Occupied(_) => {}
-            Entry::Vacant(_) => inner.return_palette(self.id.get_sprite().palette),
-        }
+#[derive(BitfieldSpecifier, Clone, Copy)]
+enum ObjectMode {
+    Normal,
+    Affine,
+    Disabled,
+    AffineDouble,
+}
+
+#[derive(BitfieldSpecifier, Clone, Copy)]
+#[bits = 2]
+enum GraphicsMode {
+    Normal,
+    AlphaBlending,
+    Window,
+}
+
+#[derive(BitfieldSpecifier, Clone, Copy)]
+enum ColourMode {
+    Four,
+    Eight,
+}
+
+#[allow(dead_code)]
+mod attributes {
+    use super::*;
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute0 {
+        pub y: B8,
+        pub object_mode: ObjectMode,
+        pub graphics_mode: GraphicsMode,
+        pub mosaic: bool,
+        pub colour_mode: ColourMode,
+        pub shape: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute1Standard {
+        pub x: B9,
+        #[skip]
+        __: B3,
+        pub horizontal_flip: bool,
+        pub vertical_flip: bool,
+        pub size: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute1Affine {
+        pub x: B9,
+        pub affine_index: B5,
+        pub size: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute2 {
+        pub tile_index: B10,
+        pub priority: Priority,
+        pub palete_bank: B4,
     }
 }
