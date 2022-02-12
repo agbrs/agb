@@ -193,6 +193,11 @@ impl SpriteController {
                 }
             };
 
+            unsafe {
+                dest.as_ptr()
+                    .copy_from(sprite.data.as_ptr(), sprite.data.len())
+            }
+
             let storage = Storage::from_sprite_ptr(dest);
             inner.sprite.insert(id, storage);
 
@@ -214,6 +219,13 @@ impl SpriteControllerInner {
             Some(storage.location)
         } else {
             let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
+
+            unsafe {
+                dest.as_ptr()
+                    .cast::<u16>()
+                    .copy_from(palette.colours.as_ptr(), palette.colours.len())
+            }
+
             let storage = Storage::from_palette_ptr(dest);
             self.palette.insert(id, storage);
 
