@@ -216,6 +216,7 @@ impl<'a, 'b> Object<'a, 'b> {
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
         self.attrs.a2.set_tile_index(sprite.sprite_location);
         let shape_size = sprite.id.get_sprite().size.shape_size();
+        self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
         self.attrs.a0.set_shape(shape_size.0);
         self.attrs.a1a.set_size(shape_size.1);
         self.attrs.a1s.set_size(shape_size.1);
