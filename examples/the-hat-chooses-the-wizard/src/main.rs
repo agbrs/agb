@@ -660,6 +660,11 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.background.background.hide();
     }
 
+    fn clear_backgrounds(&mut self, vram: &mut VRamManager) {
+        self.background.background.clear(vram);
+        self.background.foreground.clear(vram);
+    }
+
     fn dead_start(&mut self) {
         self.player.wizard.velocity = (0, -1).into();
         self.player.wizard.sprite.set_priority(Priority::P0);
@@ -812,7 +817,7 @@ fn main(mut agb: agb::Gba) -> ! {
         let mut music_box = sfx::MusicBox::new();
 
         let vblank = agb::interrupt::VBlank::get();
-        let mut current_level = 10;
+        let mut current_level = 11;
 
         loop {
             if current_level == map_tiles::LEVELS.len() as u32 {
@@ -934,6 +939,7 @@ fn main(mut agb: agb::Gba) -> ! {
             }
 
             level.hide_backgrounds();
+            level.clear_backgrounds(&mut vram);
         }
 
         splash_screen::show_splash_screen(

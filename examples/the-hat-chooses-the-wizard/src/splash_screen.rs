@@ -19,16 +19,14 @@ pub fn show_splash_screen(
     vram: &mut VRamManager,
 ) {
     map.set_scroll_pos((0u16, 0u16).into());
-    let tile_set_ref = match which {
+    let (tile_set_ref, palette) = match which {
         SplashScreen::Start => {
             let tile_set_ref = vram.add_tileset(TileSet::new(
                 splash_screens::splash.tiles,
                 TileFormat::FourBpp,
             ));
 
-            vram.set_background_palettes(splash_screens::splash.palettes);
-
-            tile_set_ref
+            (tile_set_ref, splash_screens::splash.palettes)
         }
         SplashScreen::End => {
             let tile_set_ref = vram.add_tileset(TileSet::new(
@@ -36,9 +34,7 @@ pub fn show_splash_screen(
                 TileFormat::FourBpp,
             ));
 
-            vram.set_background_palettes(splash_screens::thanks_for_playing.palettes);
-
-            tile_set_ref
+            (tile_set_ref, splash_screens::thanks_for_playing.palettes)
         }
     };
 
@@ -71,6 +67,7 @@ pub fn show_splash_screen(
     }
 
     map.commit();
+    vram.set_background_palettes(palette);
     map.show();
 
     loop {

@@ -649,6 +649,10 @@ impl<'a> InfiniteScrolledMap<'a> {
     pub fn commit(&mut self) {
         self.map.commit();
     }
+
+    pub fn clear(&mut self, vram: &mut VRamManager) {
+        self.map.clear(vram);
+    }
 }
 
 fn div_floor(x: i32, y: i32) -> i32 {
