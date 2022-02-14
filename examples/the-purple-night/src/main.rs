@@ -45,9 +45,9 @@ impl<'a> Level<'a> {
         mut clouds: InfiniteScrolledMap<'a>,
         vram: &mut VRamManager,
     ) -> Self {
-        backdrop.init(vram, (8, 8).into());
-        foreground.init(vram, (8, 8).into());
-        clouds.init(vram, (2, 2).into());
+        backdrop.init(vram, (8, 8).into(), || {});
+        foreground.init(vram, (8, 8).into(), || {});
+        clouds.init(vram, (2, 2).into(), || {});
 
         backdrop.commit();
         foreground.commit();
@@ -2156,7 +2156,9 @@ fn game_with_level(gba: &mut agb::Gba) {
                 (
                     tileset_ref,
                     TileSetting::from_raw(
-                        tilemap::BACKGROUND_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                        *tilemap::BACKGROUND_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
                     ),
                 )
             }),
@@ -2168,7 +2170,9 @@ fn game_with_level(gba: &mut agb::Gba) {
                 (
                     tileset_ref,
                     TileSetting::from_raw(
-                        tilemap::FOREGROUND_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                        *tilemap::FOREGROUND_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
                     ),
                 )
             }),
@@ -2180,7 +2184,9 @@ fn game_with_level(gba: &mut agb::Gba) {
                 (
                     tileset_ref,
                     TileSetting::from_raw(
-                        tilemap::CLOUD_MAP[(pos.x + tilemap::WIDTH * pos.y) as usize],
+                        *tilemap::CLOUD_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
                     ),
                 )
             }),
