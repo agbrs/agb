@@ -482,7 +482,12 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
-    pub fn init(&mut self, vram: &mut VRamManager, pos: Vector2D<i32>, between_updates: impl Fn()) {
+    pub fn init(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: Vector2D<i32>,
+        between_updates: &mut impl FnMut(),
+    ) {
         while self.init_partial(vram, pos) != PartialUpdateStatus::Done {
             between_updates();
         }

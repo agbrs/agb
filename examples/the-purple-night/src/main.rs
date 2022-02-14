@@ -20,8 +20,10 @@ use agb::{
     },
     fixnum::{FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
+    interrupt::VBlank,
 };
 use generational_arena::Arena;
+use sfx::Sfx;
 
 agb::include_gfx!("gfx/objects.toml");
 agb::include_gfx!("gfx/background.toml");
@@ -43,11 +45,21 @@ impl<'a> Level<'a> {
         mut backdrop: InfiniteScrolledMap<'a>,
         mut foreground: InfiniteScrolledMap<'a>,
         mut clouds: InfiniteScrolledMap<'a>,
+        start_pos: Vector2D<i32>,
         vram: &mut VRamManager,
+        sfx: &mut Sfx,
     ) -> Self {
-        backdrop.init(vram, (8, 8).into(), || {});
-        foreground.init(vram, (8, 8).into(), || {});
-        clouds.init(vram, (2, 2).into(), || {});
+        let vblank = VBlank::get();
+
+        let mut between_updates = || {
+            sfx.frame();
+            vblank.wait_for_vblank();
+            sfx.after_vblank();
+        };
+
+        backdrop.init(vram, start_pos, &mut between_updates);
+        foreground.init(vram, start_pos, &mut between_updates);
+        clouds.init(vram, start_pos / 4, &mut between_updates);
 
         backdrop.commit();
         foreground.commit();
@@ -104,6 +116,12 @@ impl<'a> Level<'a> {
         } else {
             None
         }
+    }
+
+    fn clear(&mut self, vram: &mut VRamManager) {
+        self.background.clear(vram);
+        self.foreground.clear(vram);
+        self.clouds.clear(vram);
     }
 }
 
@@ -1802,6 +1820,10 @@ impl<'a> Game<'a> {
         }
     }
 
+    fn clear(&mut self, vram: &mut VRamManager) {
+        self.level.clear(vram);
+    }
+
     fn advance_frame(
         &mut self,
         object_controller: &'a ObjectControl,
@@ -1954,9 +1976,6 @@ impl<'a> Game<'a> {
         self.level.background.set_pos(vram, background_offset);
         self.level.foreground.set_pos(vram, background_offset);
         self.level.clouds.set_pos(vram, background_offset / 4);
-        self.level.background.commit();
-        self.level.foreground.commit();
-        self.level.clouds.commit();
 
         for i in remove {
             self.enemies.remove(i);
@@ -2000,6 +2019,10 @@ impl<'a> Game<'a> {
                 .entity
                 .commit_with_fudge(this_frame_offset, (0, 0).into());
         }
+
+        self.level.background.commit();
+        self.level.foreground.commit();
+        self.level.clouds.commit();
 
         for i in remove {
             self.particles.remove(i);
@@ -2135,7 +2158,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let mut sfx = sfx::Sfx::new(&mut mixer);
     sfx.purple_night();
 
-    let mut start_at_boss = false;
+    let mut start_at_boss = true;
 
     loop {
         let (background, mut vram) = gba.display.video.tiled0();
@@ -2192,9 +2215,15 @@ fn game_with_level(gba: &mut agb::Gba) {
             }),
         );
 
+        let start_pos = if start_at_boss {
+            (130 * 8, 8).into()
+        } else {
+            (8, 8).into()
+        };
+
         let mut game = Game::new(
             &object,
-            Level::load_level(backdrop, foreground, clouds, &mut vram),
+            Level::load_level(backdrop, foreground, clouds, start_pos, &mut vram, &mut sfx),
             start_at_boss,
         );
 
@@ -2213,7 +2242,9 @@ fn game_with_level(gba: &mut agb::Gba) {
             }
 
             get_random(); // advance RNG to make it less predictable between runs
-        }
+        };
+
+        game.clear(&mut vram);
     }
 }
 
