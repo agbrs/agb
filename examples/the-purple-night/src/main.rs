@@ -2158,7 +2158,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let mut sfx = sfx::Sfx::new(&mut mixer);
     sfx.purple_night();
 
-    let mut start_at_boss = true;
+    let mut start_at_boss = false;
 
     loop {
         let (background, mut vram) = gba.display.video.tiled0();
