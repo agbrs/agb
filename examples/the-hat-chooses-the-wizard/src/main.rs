@@ -789,12 +789,6 @@ fn main(mut agb: agb::Gba) -> ! {
         let mut timer_controller = agb.timers.timers();
         let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
 
-        let mut timer = timer_controller.timer1;
-        let mut timer_cascade = timer_controller.timer2;
-        timer_cascade.set_cascade(true);
-        timer_cascade.set_enabled(true);
-        timer.set_enabled(true);
-
         object.set_sprite_palettes(object_sheet::object_sheet.palettes);
         object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
 
