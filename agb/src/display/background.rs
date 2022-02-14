@@ -20,7 +20,7 @@ use super::{
 };
 
 const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
-    unsafe { MemoryMapped1DArray::new(0x06000000) };
+    unsafe { MemoryMapped1DArray::new(0x0600_0000) };
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
@@ -219,10 +219,16 @@ impl<'a> VRamManager<'a> {
             unsafe { debug_unreachable_unchecked() };
         };
 
-        let tile_size_in_words = TileFormat::FourBpp.tile_size() / 4;
+        let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
 
-        for (i, &word) in tile_slice.iter().enumerate() {
-            TILE_BACKGROUND.set(index_to_copy_into * tile_size_in_words + i, word);
+        const TILE_BACKGROUND_ADDRESS: usize = 0x0600_0000;
+        unsafe {
+            dma_copy(
+                tile_slice.as_ptr() as *const u16,
+                (TILE_BACKGROUND_ADDRESS as *mut u16)
+                    .add(index_to_copy_into * tile_size_in_half_words),
+                tile_size_in_half_words,
+            );
         }
 
         self.tile_set_to_vram.insert(
@@ -702,4 +708,29 @@ impl<'a, T> Drop for MapLoan<'a, T> {
             .borrow_mut()
             .set(self.background_id as usize, false);
     }
+}
+
+const fn dma_source_addr(dma: usize) -> usize {
+    0x0400_00b0 + 0x0c * dma
+}
+
+const fn dma_dest_addr(dma: usize) -> usize {
+    0x0400_00b4 + 0x0c * dma
+}
+
+const fn dma_control_addr(dma: usize) -> usize {
+    0x0400_00b8 + 0x0c * dma
+}
+
+const DMA3_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_source_addr(3)) };
+const DMA3_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_dest_addr(3)) };
+const DMA3_CONTROL: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_control_addr(3)) };
+
+unsafe fn dma_copy(src: *const u16, dest: *mut u16, count: usize) {
+    assert!(count < u16::MAX as usize);
+
+    DMA3_SOURCE_ADDR.set(src as u32);
+    DMA3_DEST_ADDR.set(dest as u32);
+
+    DMA3_CONTROL.set(count as u32 | (1 << 31));
 }

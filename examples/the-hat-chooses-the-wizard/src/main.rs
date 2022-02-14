@@ -796,8 +796,8 @@ fn main(mut agb: agb::Gba) -> ! {
         object.set_sprite_palettes(object_sheet::object_sheet.palettes);
         object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
 
-        for y in 0..20u16 {
-            for x in 0..30u16 {
+        for y in 0..32u16 {
+            for x in 0..32u16 {
                 world_display.set_tile(
                     &mut vram,
                     (x, y).into(),
