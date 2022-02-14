@@ -5,7 +5,9 @@ extern crate alloc;
 
 use agb::{
     display::{
-        background::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
+        background::{
+            InfiniteScrolledMap, PartialUpdateStatus, TileFormat, TileSet, TileSetting, VRamManager,
+        },
         object::{ObjectControl, ObjectStandard, Size},
         Priority, HEIGHT, WIDTH,
     },
@@ -285,12 +287,12 @@ impl<'a, 'b> Map<'a, 'b> {
         self.foreground.commit();
     }
 
-    pub fn init_background(&mut self, vram: &mut VRamManager) {
-        self.background.init(vram, self.position.floor());
+    pub fn init_background(&mut self, vram: &mut VRamManager) -> PartialUpdateStatus {
+        self.background.init_partial(vram, self.position.floor())
     }
 
-    pub fn init_foreground(&mut self, vram: &mut VRamManager) {
-        self.foreground.init(vram, self.position.floor());
+    pub fn init_foreground(&mut self, vram: &mut VRamManager) -> PartialUpdateStatus {
+        self.foreground.init_partial(vram, self.position.floor())
     }
 }
 
@@ -885,32 +887,21 @@ fn main(mut agb: agb::Gba) -> ! {
                 agb::input::ButtonController::new(),
             );
 
-            music_box.before_frame(&mut mixer);
-            mixer.frame();
-            vblank.wait_for_vblank();
-            mixer.after_vblank();
-            let (before_init_cycles, before_init_cycles_2) =
-                (timer.get_value(), timer_cascade.get_value());
+            while level.background.init_background(&mut vram) != PartialUpdateStatus::Done {
+                music_box.before_frame(&mut mixer);
+                mixer.frame();
+                vblank.wait_for_vblank();
+                mixer.after_vblank();
+            }
 
-            level.background.init_background(&mut vram);
+            while level.background.init_foreground(&mut vram) != PartialUpdateStatus::Done {
+                music_box.before_frame(&mut mixer);
+                mixer.frame();
+                vblank.wait_for_vblank();
+                mixer.after_vblank();
+            }
 
-            let (after_init_cycles, after_init_cycles_2) =
-                (timer.get_value(), timer_cascade.get_value());
-            let after_init_cycles =
-                (after_init_cycles as u32) | ((after_init_cycles_2 as u32) << 16);
-            let before_init_cycles =
-                (before_init_cycles as u32) | ((before_init_cycles_2 as u32) << 16);
-
-            music_box.before_frame(&mut mixer);
-            mixer.frame();
-            agb::println!("cycles for init {}", after_init_cycles - before_init_cycles);
-            vblank.wait_for_vblank();
-
-            mixer.after_vblank();
-
-            level.background.init_foreground(&mut vram);
-
-            for _ in 0..60 {
+            for _ in 0..20 {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();

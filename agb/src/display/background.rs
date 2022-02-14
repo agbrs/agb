@@ -458,6 +458,14 @@ pub struct InfiniteScrolledMap<'a> {
 
     current_pos: Vector2D<i32>,
     offset: Vector2D<i32>,
+
+    copied_up_to: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PartialUpdateStatus {
+    Done,
+    Continue,
 }
 
 impl<'a> InfiniteScrolledMap<'a> {
@@ -470,10 +478,26 @@ impl<'a> InfiniteScrolledMap<'a> {
             get_tile,
             current_pos: (0, 0).into(),
             offset: (0, 0).into(),
+            copied_up_to: 0,
         }
     }
 
-    pub fn init(&mut self, vram: &mut VRamManager, pos: Vector2D<i32>) {
+    pub fn init(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: Vector2D<i32>,
+        between_updates: Box<dyn Fn()>,
+    ) {
+        while self.init_partial(vram, pos) != PartialUpdateStatus::Done {
+            between_updates();
+        }
+    }
+
+    pub fn init_partial(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: Vector2D<i32>,
+    ) -> PartialUpdateStatus {
         self.current_pos = pos;
 
         let x_start = div_floor(self.current_pos.x, 8);
@@ -492,29 +516,45 @@ impl<'a> InfiniteScrolledMap<'a> {
         self.map.set_scroll_pos(offset_scroll);
         self.offset = (x_start, y_start).into();
 
-        for (y_idx, y) in (y_start..y_end).enumerate() {
+        let copy_from = self.copied_up_to;
+        const ROWS_TO_COPY: i32 = 2;
+
+        for (y_idx, y) in
+            ((y_start + copy_from)..(y_end.min(y_start + copy_from + ROWS_TO_COPY))).enumerate()
+        {
             for (x_idx, x) in (x_start..x_end).enumerate() {
                 let pos = (x, y).into();
                 let (tile_set_ref, tile_setting) = (self.get_tile)(pos);
 
                 self.map.set_tile(
                     vram,
-                    (x_idx as u16, y_idx as u16).into(),
+                    (x_idx as u16, (y_idx + copy_from as usize) as u16).into(),
                     tile_set_ref,
                     tile_setting,
                 );
             }
         }
+
+        if copy_from + ROWS_TO_COPY >= y_end - y_start {
+            self.copied_up_to = 0;
+            PartialUpdateStatus::Done
+        } else {
+            self.copied_up_to = copy_from + ROWS_TO_COPY;
+            PartialUpdateStatus::Continue
+        }
     }
 
-    pub fn set_pos(&mut self, vram: &mut VRamManager, new_pos: Vector2D<i32>) {
+    pub fn set_pos(
+        &mut self,
+        vram: &mut VRamManager,
+        new_pos: Vector2D<i32>,
+    ) -> PartialUpdateStatus {
         let old_pos = self.current_pos;
 
         let difference = new_pos - old_pos;
 
         if difference.x.abs() > 10 * 8 || difference.y.abs() > 10 * 8 {
-            self.init(vram, new_pos);
-            return;
+            return self.init_partial(vram, new_pos);
         }
 
         self.current_pos = new_pos;
@@ -599,6 +639,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             .into();
 
         self.map.set_scroll_pos(new_scroll);
+
+        PartialUpdateStatus::Done
     }
 
     pub fn show(&mut self) {
