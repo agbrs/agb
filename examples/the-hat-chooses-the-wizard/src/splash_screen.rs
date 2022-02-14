@@ -55,6 +55,19 @@ pub fn show_splash_screen(
                 TileSetting::from_raw(y * 30 + x),
             );
         }
+
+        if let Some(ref mut mixer) = mixer {
+            if let Some(ref mut music_box) = music_box {
+                music_box.before_frame(mixer);
+            }
+            mixer.frame();
+        }
+
+        vblank.wait_for_vblank();
+
+        if let Some(ref mut mixer) = mixer {
+            mixer.after_vblank();
+        }
     }
 
     map.commit();
@@ -84,6 +97,7 @@ pub fn show_splash_screen(
     }
 
     map.hide();
+    map.clear(vram);
 
     vram.remove_tileset(tile_set_ref);
 }
