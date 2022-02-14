@@ -19,9 +19,6 @@ use super::{
     DISPLAY_CONTROL,
 };
 
-const TILE_BACKGROUND: MemoryMapped1DArray<u32, { 2048 * 8 }> =
-    unsafe { MemoryMapped1DArray::new(0x0600_0000) };
-
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
