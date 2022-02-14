@@ -774,7 +774,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::background.palettes);
-    let mut world_display = tiled.background(Priority::P0);
+    let mut splash_screen = tiled.background(Priority::P0);
 
     let tile_set_ref = vram.add_tileset(TileSet::new(
         tile_sheet::background.tiles,
@@ -785,7 +785,7 @@ fn main(mut agb: agb::Gba) -> ! {
         splash_screen::SplashScreen::Start,
         None,
         None,
-        &mut world_display,
+        &mut splash_screen,
         &mut vram,
     );
 
@@ -799,7 +799,7 @@ fn main(mut agb: agb::Gba) -> ! {
 
         for y in 0..32u16 {
             for x in 0..32u16 {
-                world_display.set_tile(
+                splash_screen.set_tile(
                     &mut vram,
                     (x, y).into(),
                     tile_set_ref,
@@ -808,8 +808,8 @@ fn main(mut agb: agb::Gba) -> ! {
             }
         }
 
-        world_display.commit();
-        world_display.show();
+        splash_screen.commit();
+        splash_screen.show();
 
         object.enable();
 
@@ -830,15 +830,15 @@ fn main(mut agb: agb::Gba) -> ! {
             mixer.after_vblank();
 
             level_display::write_level(
-                &mut world_display,
+                &mut splash_screen,
                 current_level / 8 + 1,
                 current_level % 8 + 1,
                 tile_set_ref,
                 &mut vram,
             );
 
-            world_display.commit();
-            world_display.show();
+            splash_screen.commit();
+            splash_screen.show();
 
             music_box.before_frame(&mut mixer);
             mixer.frame();
@@ -909,7 +909,7 @@ fn main(mut agb: agb::Gba) -> ! {
 
             level.show_backgrounds();
 
-            world_display.hide();
+            splash_screen.hide();
 
             loop {
                 match level
@@ -946,7 +946,7 @@ fn main(mut agb: agb::Gba) -> ! {
             splash_screen::SplashScreen::End,
             Some(&mut mixer),
             Some(&mut music_box),
-            &mut world_display,
+            &mut splash_screen,
             &mut vram,
         );
     }
