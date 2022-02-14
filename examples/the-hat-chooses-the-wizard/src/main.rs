@@ -807,6 +807,7 @@ fn main(mut agb: agb::Gba) -> ! {
             }
         }
 
+        world_display.commit();
         world_display.show();
 
         object.enable();
@@ -835,6 +836,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 &mut vram,
             );
 
+            world_display.commit();
             world_display.show();
 
             music_box.before_frame(&mut mixer);
