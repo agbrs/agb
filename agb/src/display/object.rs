@@ -277,7 +277,7 @@ impl<'a, 'b> Object<'a, 'b> {
             let attrs: [u8; 6] = core::mem::transmute(attrs);
             (OBJECT_ATTRIBUTE_MEMORY as *mut u8)
                 .add(self.loan.index as usize * (4 * 2))
-                .copy_from(attrs.as_ptr(), attrs.len())
+                .copy_from_nonoverlapping(attrs.as_ptr(), attrs.len())
         };
     }
 }
@@ -359,7 +359,7 @@ impl SpriteController {
 
             unsafe {
                 dest.as_ptr()
-                    .copy_from(sprite.data.as_ptr(), sprite.data.len())
+                    .copy_from_nonoverlapping(sprite.data.as_ptr(), sprite.data.len())
             }
 
             let storage = Storage::from_sprite_ptr(dest);
@@ -393,7 +393,7 @@ impl SpriteControllerInner {
             unsafe {
                 dest.as_ptr()
                     .cast::<u16>()
-                    .copy_from(palette.colours.as_ptr(), palette.colours.len())
+                    .copy_from_nonoverlapping(palette.colours.as_ptr(), palette.colours.len())
             }
 
             let storage = Storage::from_palette_ptr(dest);
