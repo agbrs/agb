@@ -657,7 +657,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 
     fn hide_backgrounds(&mut self) {
         self.background.background.hide();
-        self.background.background.hide();
+        self.background.foreground.hide();
     }
 
     fn clear_backgrounds(&mut self, vram: &mut VRamManager) {
@@ -775,11 +775,26 @@ fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::background.palettes);
     let mut splash_screen = tiled.background(Priority::P0);
+    let mut world_display = tiled.background(Priority::P0);
 
     let tile_set_ref = vram.add_tileset(TileSet::new(
         tile_sheet::background.tiles,
         TileFormat::FourBpp,
     ));
+
+    for y in 0..32u16 {
+        for x in 0..32u16 {
+            world_display.set_tile(
+                &mut vram,
+                (x, y).into(),
+                tile_set_ref,
+                TileSetting::from_raw(level_display::BLANK),
+            );
+        }
+    }
+
+    world_display.commit();
+    world_display.show();
 
     splash_screen::show_splash_screen(
         splash_screen::SplashScreen::Start,
@@ -790,26 +805,14 @@ fn main(mut agb: agb::Gba) -> ! {
     );
 
     loop {
+        vram.set_background_palettes(tile_sheet::background.palettes);
+
         let mut object = agb.display.object.get();
         let mut timer_controller = agb.timers.timers();
         let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
 
         object.set_sprite_palettes(object_sheet::object_sheet.palettes);
         object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
-
-        for y in 0..32u16 {
-            for x in 0..32u16 {
-                splash_screen.set_tile(
-                    &mut vram,
-                    (x, y).into(),
-                    tile_set_ref,
-                    TileSetting::from_raw(level_display::BLANK),
-                );
-            }
-        }
-
-        splash_screen.commit();
-        splash_screen.show();
 
         object.enable();
 
@@ -830,22 +833,20 @@ fn main(mut agb: agb::Gba) -> ! {
             mixer.after_vblank();
 
             level_display::write_level(
-                &mut splash_screen,
+                &mut world_display,
                 current_level / 8 + 1,
                 current_level % 8 + 1,
                 tile_set_ref,
                 &mut vram,
             );
 
-            splash_screen.commit();
-            splash_screen.show();
+            world_display.commit();
+            world_display.show();
 
             music_box.before_frame(&mut mixer);
             mixer.frame();
             vblank.wait_for_vblank();
             mixer.after_vblank();
-
-            vram.set_background_palettes(tile_sheet::background.palettes);
 
             let mut background = InfiniteScrolledMap::new(
                 tiled.background(Priority::P2),
@@ -909,7 +910,7 @@ fn main(mut agb: agb::Gba) -> ! {
 
             level.show_backgrounds();
 
-            splash_screen.hide();
+            world_display.hide();
 
             loop {
                 match level
