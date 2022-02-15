@@ -1,9 +1,11 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
 use core::cell::RefCell;
+use core::hash::BuildHasherDefault;
 use core::ptr::NonNull;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
 use modular_bitfield::{bitfield, BitfieldSpecifier};
+use rustc_hash::FxHasher;
 
 use hashbrown::{hash_map::Entry, HashMap};
 
@@ -141,8 +143,8 @@ pub struct Object<'a, 'b> {
 }
 
 struct SpriteControllerInner {
-    palette: HashMap<PaletteId, Storage>,
-    sprite: HashMap<SpriteId, Storage>,
+    palette: HashMap<PaletteId, Storage, BuildHasherDefault<FxHasher>>,
+    sprite: HashMap<SpriteId, Storage, BuildHasherDefault<FxHasher>>,
 }
 
 pub struct SpriteController {
@@ -378,8 +380,8 @@ impl SpriteController {
 impl SpriteControllerInner {
     fn new() -> Self {
         Self {
-            palette: HashMap::new(),
-            sprite: HashMap::new(),
+            palette: HashMap::default(),
+            sprite: HashMap::default(),
         }
     }
     fn get_palette(&mut self, palette: &'static Palette16) -> Option<u16> {
