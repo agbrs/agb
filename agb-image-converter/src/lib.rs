@@ -5,6 +5,7 @@ use std::path::Path;
 
 use quote::{format_ident, quote};
 
+mod aseprite;
 mod colour;
 mod config;
 mod image_loader;
