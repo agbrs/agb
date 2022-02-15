@@ -64,6 +64,18 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
+#[macro_export]
+macro_rules! include_aseprite {
+    ($aseprite_path: expr) => {{
+        use $crate::display::object::{Size, Sprite, Tag, TagMap};
+        use $crate::display::palette16::Palette16;
+        use $crate::phf;
+
+        $crate::include_aseprite_inner!($aseprite_path);
+
+        (SPRITES, TAGS)
+    }};
+}
 
 pub struct TagMap(phf::Map<&'static str, Tag>);
 
