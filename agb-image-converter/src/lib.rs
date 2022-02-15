@@ -57,7 +57,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let images = config.images();
     let image_code = images.iter().map(|(image_name, &image)| {
-        convert_image(image, parent, &image_name, &config.crate_prefix())
+        convert_image(image, parent, image_name, &config.crate_prefix())
     });
 
     let module = quote! {
