@@ -173,6 +173,7 @@ impl ObjectController {
     pub(crate) fn new() -> Self {
         DISPLAY_CONTROL.set_bits(1, 1, 0x6);
         DISPLAY_CONTROL.set_bits(1, 1, 0xC);
+        DISPLAY_CONTROL.set_bits(0, 1, 0x7);
 
         for i in 0..128 {
             unsafe {
