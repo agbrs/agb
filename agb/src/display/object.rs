@@ -12,7 +12,7 @@ use hashbrown::{hash_map::Entry, HashMap};
 const BYTES_PER_TILE_4BPP: usize = 32;
 
 use super::palette16::Palette16;
-use super::{palette16, Priority, DISPLAY_CONTROL};
+use super::{Priority, DISPLAY_CONTROL};
 use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::fixnum::Vector2D;
