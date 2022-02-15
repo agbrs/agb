@@ -29,6 +29,7 @@ bare-metal = "1.0"
 hashbrown = "0.12.0"
 modular-bitfield = "0.11.2"
 rustc-hash =  { version = "1.0", default-features = false }
+phf = { version = "0.10", default-features = false, features = ["macros"] }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

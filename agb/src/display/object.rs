@@ -2,7 +2,9 @@ use alloc::vec::Vec;
 use core::alloc::Layout;
 use core::cell::RefCell;
 use core::hash::BuildHasherDefault;
+use core::ops::Deref;
 use core::ptr::NonNull;
+use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
 use modular_bitfield::{bitfield, BitfieldSpecifier};
 use rustc_hash::FxHasher;
@@ -62,6 +64,77 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
+
+pub struct TagMap(phf::Map<&'static str, Tag>);
+
+impl TagMap {
+    pub const fn new(map: phf::Map<&'static str, Tag>) -> Self {
+        Self(map)
+    }
+}
+
+impl Deref for TagMap {
+    type Target = phf::Map<&'static str, Tag>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Direction {
+    Forward,
+    Backward,
+    Pingpong,
+}
+
+impl Direction {
+    const fn from_usize(a: usize) -> Self {
+        match a {
+            0 => Direction::Forward,
+            1 => Direction::Backward,
+            2 => Direction::Pingpong,
+            _ => panic!("Invalid direction, this is a bug in image converter or agb"),
+        }
+    }
+}
+
+pub struct Tag {
+    sprites: *const Sprite,
+    len: usize,
+    direction: Direction,
+}
+
+impl Tag {
+    pub fn get_sprites(&self) -> &'static [Sprite] {
+        unsafe { slice::from_raw_parts(self.sprites, self.len) }
+    }
+
+    pub fn get_sprite(&self, idx: usize) -> &'static Sprite {
+        &self.get_sprites()[idx]
+    }
+
+    pub fn get_animation_sprite(&self, idx: usize) -> &'static Sprite {
+        let len_sub_1 = self.len - 1;
+        match self.direction {
+            Direction::Forward => self.get_sprite(idx % self.len),
+            Direction::Backward => self.get_sprite(len_sub_1 - (idx % self.len)),
+            Direction::Pingpong => self.get_sprite(
+                (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize).abs()
+                    as usize,
+            ),
+        }
+    }
+
+    pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
+        assert!(from <= to);
+        Self {
+            sprites: &sprites[from] as *const Sprite,
+            len: to - from + 1,
+            direction: Direction::from_usize(direction),
+        }
+    }
+}
+
 impl Size {
     const fn number_of_tiles(self) -> usize {
         match self {
@@ -81,6 +154,24 @@ impl Size {
     }
     const fn shape_size(self) -> (u8, u8) {
         (self as u8 >> 2, self as u8 & 0b11)
+    }
+
+    pub const fn from_width_height(width: usize, height: usize) -> Self {
+        match (width, height) {
+            (8, 8) => Size::S8x8,
+            (16, 16) => Size::S16x16,
+            (32, 32) => Size::S32x32,
+            (64, 64) => Size::S64x64,
+            (16, 8) => Size::S16x8,
+            (32, 8) => Size::S32x8,
+            (32, 16) => Size::S32x16,
+            (64, 32) => Size::S64x32,
+            (8, 16) => Size::S8x16,
+            (8, 32) => Size::S8x32,
+            (16, 32) => Size::S16x32,
+            (32, 64) => Size::S32x64,
+            (_, _) => panic!("Bad width and height!"),
+        }
     }
 }
 
@@ -327,6 +418,13 @@ impl Sprite {
     }
     fn layout(&self) -> Layout {
         Layout::from_size_align(self.size.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
+    }
+    pub const fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
+        Self {
+            palette,
+            data,
+            size,
+        }
     }
 }
 
