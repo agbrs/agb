@@ -277,10 +277,12 @@ impl<'a, 'b> Object<'a, 'b> {
         };
 
         unsafe {
-            let attrs: [u8; 6] = core::mem::transmute(attrs);
-            (OBJECT_ATTRIBUTE_MEMORY as *mut u8)
-                .add(self.loan.index as usize * (4 * 2))
-                .copy_from_nonoverlapping(attrs.as_ptr(), attrs.len())
+            let attrs: [u16; 3] = core::mem::transmute(attrs);
+            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.loan.index as usize * 4);
+
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
         };
     }
 }
