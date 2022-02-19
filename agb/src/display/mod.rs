@@ -5,6 +5,8 @@ use video::Video;
 
 use self::object::ObjectControl;
 
+mod tiled;
+
 /// Graphics mode 0. Four regular backgrounds.
 pub mod background;
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
