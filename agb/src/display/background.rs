@@ -70,7 +70,7 @@ pub struct RegularMap {
     tiles_dirty: bool,
 }
 
-pub const TRANSPARENT_TILE_INDEX: u16 = 1 << 10 - 1;
+pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl RegularMap {
     fn new(background_id: u8, screenblock: u8, priority: Priority) -> Self {
