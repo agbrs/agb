@@ -5,10 +5,9 @@ extern crate alloc;
 
 use agb::{
     display::{
-        background::{
-            InfiniteScrolledMap, PartialUpdateStatus, TileFormat, TileSet, TileSetting, VRamManager,
-        },
+        background::{InfiniteScrolledMap, PartialUpdateStatus, TileSetting, VRamManager},
         object::{ObjectControl, ObjectStandard, Size},
+        tiled::{TileFormat, TileSet},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},

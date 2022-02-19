@@ -5,7 +5,7 @@ use video::Video;
 
 use self::object::ObjectControl;
 
-mod tiled;
+pub mod tiled;
 
 /// Graphics mode 0. Four regular backgrounds.
 pub mod background;

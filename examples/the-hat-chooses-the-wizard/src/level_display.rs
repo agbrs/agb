@@ -1,5 +1,6 @@
 use agb::display::{
-    background::{RegularMap, TileSetReference, TileSetting, VRamManager},
+    background::{RegularMap, TileSetting, VRamManager},
+    tiled::TileSetReference,
     HEIGHT, WIDTH,
 };
 
