@@ -70,6 +70,8 @@ pub struct RegularMap {
     tiles_dirty: bool,
 }
 
+pub const TRANSPARENT_TILE_INDEX: u16 = 1 << 10 - 1;
+
 impl RegularMap {
     fn new(background_id: u8, screenblock: u8, priority: Priority) -> Self {
         Self {
@@ -101,7 +103,7 @@ impl RegularMap {
 
         let tile_index = tile_setting.index();
 
-        let new_tile = if tile_index != 0 {
+        let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
             Tile::new(new_tile_idx, tile_setting)
         } else {
