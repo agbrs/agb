@@ -1,18 +1,12 @@
-use core::cell::RefCell;
-use core::ops::{Deref, DerefMut};
-
 use alloc::boxed::Box;
 
 pub use super::tiled::VRamManager;
-use super::tiled::{RegularMap, TileSetReference, TileSetting};
+use super::tiled::{MapLoan, RegularMap, TileSetReference, TileSetting};
 
-use crate::bitarray::Bitarray;
 use crate::{
     display,
     fixnum::{Rect, Vector2D},
 };
-
-use super::{set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority};
 
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
@@ -239,72 +233,5 @@ fn div_ceil(x: i32, y: i32) -> i32 {
         (x + 1) / y + 1
     } else {
         x / y
-    }
-}
-
-pub struct Tiled0 {
-    regular: RefCell<Bitarray<1>>,
-}
-
-impl Tiled0 {
-    pub(crate) unsafe fn new() -> Self {
-        set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
-        set_graphics_mode(DisplayMode::Tiled0);
-
-        Self {
-            regular: Default::default(),
-        }
-    }
-
-    pub fn background(&self, priority: Priority) -> MapLoan<'_, RegularMap> {
-        let mut regular = self.regular.borrow_mut();
-        let new_background = regular.first_zero().unwrap();
-        if new_background >= 4 {
-            panic!("can only have 4 active backgrounds");
-        }
-
-        let bg = RegularMap::new(new_background as u8, (new_background + 16) as u8, priority);
-
-        regular.set(new_background, true);
-
-        MapLoan::new(bg, new_background as u8, &self.regular)
-    }
-}
-
-pub struct MapLoan<'a, T> {
-    map: T,
-    background_id: u8,
-    regular_map_list: &'a RefCell<Bitarray<1>>,
-}
-
-impl<'a, T> Deref for MapLoan<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.map
-    }
-}
-
-impl<'a, T> DerefMut for MapLoan<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.map
-    }
-}
-
-impl<'a, T> MapLoan<'a, T> {
-    fn new(map: T, background_id: u8, regular_map_list: &'a RefCell<Bitarray<1>>) -> Self {
-        MapLoan {
-            map,
-            background_id,
-            regular_map_list,
-        }
-    }
-}
-
-impl<'a, T> Drop for MapLoan<'a, T> {
-    fn drop(&mut self) {
-        self.regular_map_list
-            .borrow_mut()
-            .set(self.background_id as usize, false);
     }
 }

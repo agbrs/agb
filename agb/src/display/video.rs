@@ -1,7 +1,7 @@
 use super::{
-    background::{Tiled0, VRamManager},
     bitmap3::Bitmap3,
     bitmap4::Bitmap4,
+    tiled::{Tiled0, VRamManager},
 };
 
 #[non_exhaustive]
