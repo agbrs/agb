@@ -5,10 +5,6 @@ use video::Video;
 
 use self::object::ObjectControl;
 
-pub mod tiled;
-
-/// Graphics mode 0. Four regular backgrounds.
-pub mod background;
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
 /// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
@@ -21,6 +17,8 @@ pub mod object;
 pub mod palette16;
 /// Data produced by agb-image-converter
 pub mod tile_data;
+/// Graphics mode 0. Four regular backgrounds.
+pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
 

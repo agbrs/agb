@@ -1,7 +1,9 @@
+mod infinite_scrolled_map;
 mod map;
 mod tiled0;
 mod vram_manager;
 
+pub use infinite_scrolled_map::InfiniteScrolledMap;
 pub use map::{MapLoan, RegularMap};
 pub use tiled0::Tiled0;
 pub use vram_manager::{TileFormat, TileIndex, TileSet, TileSetReference, VRamManager};
