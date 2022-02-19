@@ -1,10 +1,5 @@
-use alloc::vec::Vec;
-
-use core::hash::BuildHasherDefault;
-use hashbrown::HashMap;
-use rustc_hash::FxHasher;
-
 use alloc::vec;
+use alloc::vec::Vec;
 
 use crate::{
     display::palette16,
@@ -48,6 +43,10 @@ pub struct TileSet<'a> {
 impl<'a> TileSet<'a> {
     pub fn new(tiles: &'a [u32], format: TileFormat) -> Self {
         Self { tiles, format }
+    }
+
+    fn num_tiles(&self) -> usize {
+        self.tiles.len() / self.format.tile_size() * 4
     }
 }
 
@@ -114,7 +113,7 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: HashMap<TileReference, (u16, u16), BuildHasherDefault<FxHasher>>,
+    tile_set_to_vram: Vec<Vec<(u16, u16)>>,
     references: Vec<VRamState>,
     vram_free_pointer: Option<usize>,
 }
@@ -128,7 +127,7 @@ impl<'a> VRamManager<'a> {
             generation: 0,
             free_pointer: None,
 
-            tile_set_to_vram: HashMap::default(),
+            tile_set_to_vram: Default::default(),
             references: vec![VRamState::Free(0)],
             vram_free_pointer: None,
         }
@@ -138,6 +137,7 @@ impl<'a> VRamManager<'a> {
         let generation = self.generation;
         self.generation = self.generation.wrapping_add(1);
 
+        let num_tiles = tileset.num_tiles();
         let tileset = ArenaStorageItem::Data(tileset, generation);
 
         let index = if let Some(ptr) = self.free_pointer.take() {
@@ -157,6 +157,10 @@ impl<'a> VRamManager<'a> {
             self.tilesets.push(tileset);
             self.tilesets.len() - 1
         };
+
+        self.tile_set_to_vram
+            .resize(self.tilesets.len(), Default::default());
+        self.tile_set_to_vram[index] = vec![Default::default(); num_tiles];
 
         TileSetReference::new(index as u16, generation)
     }
@@ -185,10 +189,13 @@ impl<'a> VRamManager<'a> {
 
     pub(crate) fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
         let tile_ref = TileReference(tile_set_ref.id, tile);
-        if let Some(&reference) = self.tile_set_to_vram.get(&tile_ref) {
+        let reference = self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize];
+        if reference != Default::default() {
             if reference.1 == tile_set_ref.generation {
                 self.references[reference.0 as usize].increase_reference();
                 return TileIndex(reference.0 as u16);
+            } else {
+                panic!("Tileset unloaded but not cleared from vram");
             }
         }
 
@@ -236,10 +243,8 @@ impl<'a> VRamManager<'a> {
             );
         }
 
-        self.tile_set_to_vram.insert(
-            TileReference(tile_set_ref.id, tile),
-            (index_to_copy_into as u16, tile_set_ref.generation),
-        );
+        self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize] =
+            (index_to_copy_into as u16, tile_set_ref.generation);
 
         TileIndex(index_to_copy_into as u16)
     }
@@ -259,7 +264,7 @@ impl<'a> VRamManager<'a> {
             self.references[index] = VRamState::Free(END_OF_FREE_LIST_MARKER);
         }
 
-        self.tile_set_to_vram.remove(&tile_ref);
+        self.tile_set_to_vram[tile_ref.0 as usize][tile_ref.1 as usize] = Default::default();
 
         self.vram_free_pointer = Some(index);
     }
