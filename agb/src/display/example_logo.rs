@@ -1,7 +1,4 @@
-use super::{
-    background::{RegularMap, TileSetting},
-    tiled::{TileFormat, TileSet, VRamManager},
-};
+use super::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager};
 
 crate::include_gfx!("gfx/agb_logo.toml");
 

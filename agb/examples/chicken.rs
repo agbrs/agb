@@ -2,8 +2,8 @@
 #![no_main]
 
 use agb::{
-    display::tiled::{TileFormat, TileSet},
-    display::{background::TileSetting, object::ObjectStandard, HEIGHT, WIDTH},
+    display::tiled::{TileFormat, TileSet, TileSetting},
+    display::{object::ObjectStandard, HEIGHT, WIDTH},
     input::Button,
 };
 use core::convert::TryInto;
