@@ -14,8 +14,8 @@ use rng::get_random;
 
 use agb::{
     display::{
-        background::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
         object::{ObjectControl, ObjectStandard},
+        tiled::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Rect, Vector2D},

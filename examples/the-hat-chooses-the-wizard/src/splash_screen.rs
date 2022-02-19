@@ -1,9 +1,6 @@
 use super::sfx::MusicBox;
 use agb::{
-    display::{
-        background::{RegularMap, TileSetting, VRamManager},
-        tiled::{TileFormat, TileSet},
-    },
+    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager},
     sound::mixer::Mixer,
 };
 
