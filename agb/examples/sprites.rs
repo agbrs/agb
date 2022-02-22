@@ -6,8 +6,10 @@ extern crate alloc;
 use agb::display::object::{ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
 
-const SPRITE_TAGS: (&[Sprite], &TagMap) =
-    agb::include_aseprite!("../examples/the-purple-night/gfx/objects.aseprite");
+const SPRITE_TAGS: (&[Sprite], &TagMap) = agb::include_aseprite!(
+    "../examples/the-purple-night/gfx/objects.aseprite",
+    "../examples/the-purple-night/gfx/boss.aseprite"
+);
 const SPRITES: &[Sprite] = SPRITE_TAGS.0;
 const TAG_MAP: &TagMap = SPRITE_TAGS.1;
 
@@ -59,13 +61,14 @@ fn all_tags(gfx: &ObjectController) {
     let mut objs = Vec::new();
 
     for (i, v) in TAG_MAP.values().enumerate() {
-        let x = (i % 14) as i32;
-        let y = (i / 14) as i32;
-        let mut obj = gfx
-            .get_object(gfx.get_sprite(v.get_sprite(0)).unwrap())
-            .unwrap();
+        let x = (i % 7) as i32;
+        let y = (i / 7) as i32;
+        let sprite = v.get_sprite(0);
+        let (size_x, size_y) = sprite.size().to_width_height();
+        let (size_x, size_y) = (size_x as i32, size_y as i32);
+        let mut obj = gfx.get_object(gfx.get_sprite(sprite).unwrap()).unwrap();
         obj.show();
-        obj.set_position((x * 16 + 8, y * 16 + 8).into());
+        obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
         objs.push((obj, v));
     }
 
