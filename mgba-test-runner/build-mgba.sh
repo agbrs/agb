@@ -5,6 +5,11 @@ OUT_DIRECTORY=$2
 CURRENT_DIRECTORY=$(pwd)
 
 cd ${OUT_DIRECTORY}
+
+if [[ -f libmgba-cycle.a ]]; then
+	exit 0
+fi
+
 curl -L https://github.com/mgba-emu/mgba/archive/refs/tags/${MGBA_VERSION}.tar.gz -o mgba-${MGBA_VERSION}.tar.gz
 tar -xvf mgba-${MGBA_VERSION}.tar.gz
 cd mgba-${MGBA_VERSION}
