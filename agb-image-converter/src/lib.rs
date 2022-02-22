@@ -4,6 +4,7 @@ use proc_macro2::Literal;
 use syn::parse::Parser;
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
 
+use std::path::PathBuf;
 use std::{iter, path::Path, str};
 
 use quote::{format_ident, quote, ToTokens};
@@ -97,16 +98,10 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
 
-    let filenames: Vec<String> = parsed
+    let filenames: Vec<PathBuf> = parsed
         .iter()
         .map(|s| s.value())
-        .map(|s| {
-            Path::new(&root)
-                .join(&*s)
-                .as_path()
-                .to_string_lossy()
-                .into_owned()
-        })
+        .map(|s| Path::new(&root).join(&*s))
         .collect();
 
     for filename in filenames.iter() {
@@ -184,6 +179,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         .flatten();
 
     let include_paths = filenames.iter().map(|s| {
+        let s = s.as_os_str().to_string_lossy();
         quote! {
             const _: &[u8] = include_bytes!(#s);
         }

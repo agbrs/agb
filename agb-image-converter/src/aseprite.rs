@@ -62,10 +62,11 @@ pub struct Frame2 {
     pub h: u32,
 }
 
-pub fn generate_from_file(filename: &str) -> (Aseprite, DynamicImage) {
+pub fn generate_from_file(filename: &Path) -> (Aseprite, DynamicImage) {
     let out_dir = std::env::var("OUT_DIR").expect("Expected OUT_DIR");
 
-    let output_filename = Path::new(&out_dir).join(&*filename);
+    let output_filename = Path::new(&out_dir).join(filename.file_name().unwrap());
+
     let image_output = output_filename.with_extension("png");
     let json_output = output_filename.with_extension("json");
 
