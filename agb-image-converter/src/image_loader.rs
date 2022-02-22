@@ -13,6 +13,10 @@ pub(crate) struct Image {
 impl Image {
     pub fn load_from_file(image_path: &path::Path) -> Self {
         let img = image::open(image_path).expect("Expected image to exist");
+        Self::load_from_dyn_image(img)
+    }
+
+    pub fn load_from_dyn_image(img: image::DynamicImage) -> Self {
         let (width, height) = img.dimensions();
 
         let width = width as usize;
