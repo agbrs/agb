@@ -40,12 +40,12 @@ const TILE_SPRITE: usize = 0x06010000;
 const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
 
 pub struct Sprite {
-    pub palette: &'static Palette16,
-    pub data: &'static [u8],
-    pub size: Size,
+    palette: &'static Palette16,
+    data: &'static [u8],
+    size: Size,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Size {
     // stored as attr0 attr1
     S8x8 = 0b00_00,
@@ -66,12 +66,12 @@ pub enum Size {
 
 #[macro_export]
 macro_rules! include_aseprite {
-    ($aseprite_path: expr) => {{
+    ($($aseprite_path: expr),*) => {{
         use $crate::display::object::{Size, Sprite, Tag, TagMap};
         use $crate::display::palette16::Palette16;
         use $crate::phf;
 
-        $crate::include_aseprite_inner!($aseprite_path);
+        $crate::include_aseprite_inner!($($aseprite_path),*);
 
         (SPRITES, TAGS)
     }};
@@ -183,6 +183,23 @@ impl Size {
             (16, 32) => Size::S16x32,
             (32, 64) => Size::S32x64,
             (_, _) => panic!("Bad width and height!"),
+        }
+    }
+
+    pub const fn to_width_height(self) -> (usize, usize) {
+        match self {
+            Size::S8x8 => (8, 8),
+            Size::S16x16 => (16, 16),
+            Size::S32x32 => (32, 32),
+            Size::S64x64 => (64, 64),
+            Size::S16x8 => (16, 8),
+            Size::S32x8 => (32, 8),
+            Size::S32x16 => (32, 16),
+            Size::S64x32 => (64, 32),
+            Size::S8x16 => (8, 16),
+            Size::S8x32 => (8, 32),
+            Size::S16x32 => (16, 32),
+            Size::S32x64 => (32, 64),
         }
     }
 }
@@ -438,6 +455,9 @@ impl Sprite {
             size,
         }
     }
+    pub const fn size(&self) -> Size {
+        self.size
+    }
 }
 
 impl SpriteController {
@@ -519,8 +539,7 @@ impl SpriteControllerInner {
     }
 
     fn return_sprite(&mut self, sprite: &'static Sprite) {
-        let entry = self
-            .sprite
+        self.sprite
             .entry(sprite.get_id())
             .and_replace_entry_with(|_, mut storage| {
                 storage.count -= 1;
@@ -532,10 +551,7 @@ impl SpriteControllerInner {
                 }
             });
 
-        match entry {
-            Entry::Occupied(_) => {}
-            Entry::Vacant(_) => self.return_palette(sprite.palette),
-        }
+        self.return_palette(sprite.palette)
     }
 
     fn return_palette(&mut self, palette: &'static Palette16) {
