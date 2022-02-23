@@ -136,9 +136,7 @@ pub use agb_macros::entry;
 
 pub use agb_sound_converter::include_wav;
 
-#[cfg(feature = "alloc")]
 extern crate alloc;
-#[cfg(feature = "alloc")]
 mod agb_alloc;
 
 mod arena;
