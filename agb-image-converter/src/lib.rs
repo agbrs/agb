@@ -16,6 +16,7 @@ mod image_loader;
 mod palette16;
 mod rust_generator;
 
+use image::GenericImageView;
 use image_loader::Image;
 
 use colour::Colour;
@@ -93,7 +94,6 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
     let mut optimiser = palette16::Palette16Optimiser::new();
     let mut images = Vec::new();
-    let mut frames = Vec::new();
     let mut tags = Vec::new();
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
@@ -105,24 +105,18 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         .collect();
 
     for filename in filenames.iter() {
-        let (json, image) = aseprite::generate_from_file(filename);
-        let tile_size = json.frames[0].frame.w;
+        let (frames, tag) = aseprite::generate_from_file(filename);
 
-        for frame in json.frames.iter() {
-            assert!(frame.frame.w == tile_size);
-            assert!(
-                frame.frame.w == frame.frame.h
-                    && frame.frame.w.is_power_of_two()
-                    && frame.frame.w <= 32
-            );
+        tags.push((tag, images.len()));
+
+        for frame in frames {
+            let width = frame.width();
+            assert!(width == frame.height() && width.is_power_of_two() && width <= 32);
+
+            let image = Image::load_from_dyn_image(frame);
+            add_to_optimiser(&mut optimiser, &image, width as usize);
+            images.push(image);
         }
-
-        let image = Image::load_from_dyn_image(image);
-
-        add_to_optimiser(&mut optimiser, &image, tile_size as usize);
-        images.push(image);
-        frames.push(json.frames.clone());
-        tags.push(json.meta.frame_tags.clone());
     }
 
     let optimised_results = optimiser.optimise_palettes(None);
@@ -138,17 +132,16 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
     });
 
     let mut pre = 0;
-    let sprites = frames
+    let sprites = images
         .iter()
-        .flatten()
         .zip(assignments.iter())
         .map(|(f, assignment)| {
             let start: usize = pre;
-            let end: usize = pre + (f.frame.w as usize / 8) * (f.frame.h as usize / 8) * 32;
+            let end: usize = pre + (f.width / 8) * (f.height / 8) * 32;
             let data = ByteString(&tile_data[start..end]);
             pre = end;
-            let width = f.frame.w as usize;
-            let height = f.frame.h as usize;
+            let width = f.width;
+            let height = f.height;
             quote! {
                 Sprite::new(
                     &PALETTES[#assignment],
@@ -160,15 +153,13 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
     let tags = tags
         .iter()
-        .enumerate()
-        .map(|(i, tag)| {
-            tag.iter().map(move |tag| (i, tag)).map(|(i, tag)| {
-                let offset: usize = frames[0..i].iter().map(|s| s.len()).sum();
-                let start = tag.from as usize + offset;
-                let end = tag.to as usize + offset;
-                let direction = tag.direction as usize;
+        .map(|(tag, num_images)| {
+            tag.iter().map(move |tag| {
+                let start = tag.from_frame() as usize + num_images;
+                let end = tag.to_frame() as usize + num_images;
+                let direction = tag.animation_direction() as usize;
 
-                let name = &tag.name;
+                let name = tag.name();
                 assert!(start <= end, "Tag {} has start > end", name);
 
                 quote! {
