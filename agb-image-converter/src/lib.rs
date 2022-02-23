@@ -311,3 +311,18 @@ fn palete_tile_data(
 
     (palette_data, tile_data, assignments)
 }
+
+#[cfg(test)]
+mod tests {
+    use asefile::AnimationDirection;
+
+    #[test]
+    // These directions defined in agb and have these values. This is important
+    // when outputting code for agb. If more animation directions are added then
+    // we will have to support them there.
+    fn directions_to_agb() {
+        assert_eq!(AnimationDirection::Forward as usize, 0);
+        assert_eq!(AnimationDirection::Reverse as usize, 1);
+        assert_eq!(AnimationDirection::PingPong as usize, 2);
+    }
+}
