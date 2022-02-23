@@ -9,7 +9,7 @@ use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
 use modular_bitfield::{bitfield, BitfieldSpecifier};
 use rustc_hash::FxHasher;
 
-use hashbrown::{hash_map::Entry, HashMap};
+use hashbrown::HashMap;
 
 const BYTES_PER_TILE_4BPP: usize = 32;
 
