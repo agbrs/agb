@@ -2,7 +2,7 @@
 
 function update_lockfiles() {
     for toml in **/Cargo.toml; do 
-        (cd "$(dirname "$toml")" && cargo generate-lockfile)
+        (cd "$(dirname "$toml")" && cargo update)
     done
 }
 
