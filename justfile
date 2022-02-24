@@ -8,6 +8,10 @@ test:
 clean:
     just _all-crates _clean
 
+run-example example:
+    just _build-example "{{example}}"
+    mgba-qt "$CARGO_TARGET_DIR/thumbv4t-none-eabi/debug/examples/{{example}}"
+
 ci: && build-roms
     just _all-crates _build
     just _all-crates _test-debug
@@ -65,3 +69,6 @@ _clippy crate:
     if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo clippy); fi
 _clean crate:
     (cd "{{crate}}" && cargo clean)
+
+_build-example example:
+    (cd agb && cargo build "--example={{example}}")
