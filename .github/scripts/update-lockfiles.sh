@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 function update_lockfiles() {
-    for toml in **/Cargo.toml; do 
-        (cd "$(dirname "$toml")" && cargo update)
-    done
+    find . -name Cargo.lock -execdir cargo update \;
 }
 
 update_lockfiles
