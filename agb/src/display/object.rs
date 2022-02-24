@@ -258,6 +258,7 @@ impl Attributes {
 
 pub struct Object<'a, 'b> {
     sprite: SpriteBorrow<'a>,
+    previous_sprite: SpriteBorrow<'a>,
     loan: Loan<'b>,
     attrs: Attributes,
 }
@@ -316,8 +317,10 @@ impl ObjectController {
             index: inner.pop()?,
             free_list: &self.free_objects,
         };
+        let p_sprite = sprite.clone();
         Some(Object {
             sprite,
+            previous_sprite: p_sprite,
             loan,
             attrs: Attributes::new(),
         })
@@ -363,8 +366,18 @@ impl<'a, 'b> Object<'a, 'b> {
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attrs.a1a.set_x(x as u16);
-        self.attrs.a1s.set_x(x as u16);
+        self.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
+        self.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
+        self
+    }
+
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.attrs.a2.set_priority(priority);
+        self
+    }
+
+    pub fn hide(&mut self) -> &mut Self {
+        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
         self
     }
 
@@ -376,12 +389,12 @@ impl<'a, 'b> Object<'a, 'b> {
 
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         self.attrs.a0.set_y(position.y as u8);
-        self.attrs.a1a.set_x(position.x as u16);
-        self.attrs.a1s.set_x(position.x as u16);
+        self.attrs.a1a.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self.attrs.a1s.set_x(position.x.rem_euclid(1 << 9) as u16);
         self
     }
 
-    pub fn commit(&self) {
+    pub fn commit(&mut self) {
         let mode = self.attrs.a0.object_mode();
         let attrs: [[u8; 2]; 3] = match mode {
             ObjectMode::Normal => [
@@ -404,6 +417,7 @@ impl<'a, 'b> Object<'a, 'b> {
             ptr.add(1).write_volatile(attrs[1]);
             ptr.add(2).write_volatile(attrs[2]);
         };
+        self.previous_sprite = self.sprite.clone();
     }
 }
 
@@ -576,6 +590,20 @@ impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
         let mut inner = self.controller.borrow_mut();
         inner.return_sprite(self.id.get_sprite())
+    }
+}
+
+impl<'a> Clone for SpriteBorrow<'a> {
+    fn clone(&self) -> Self {
+        let mut inner = self.controller.borrow_mut();
+        inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
+        let _ = inner.get_palette(self.id.get_sprite().palette).unwrap();
+        Self {
+            id: self.id,
+            sprite_location: self.sprite_location,
+            palette_location: self.palette_location,
+            controller: self.controller,
+        }
     }
 }
 

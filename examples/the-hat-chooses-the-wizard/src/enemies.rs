@@ -1,6 +1,8 @@
-use super::{object_tiles, sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
+use crate::TAG_MAP;
+
+use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
 use agb::{
-    display::object::{ObjectControl, Size},
+    display::object::{ObjectController, Size},
     fixnum::Vector2D,
 };
 
@@ -28,11 +30,11 @@ pub enum EnemyUpdateState {
 }
 
 impl<'a> Enemy<'a> {
-    pub fn new_slime(object: &'a ObjectControl, start_pos: Vector2D<FixedNumberType>) -> Self {
+    pub fn new_slime(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
         Enemy::Slime(Slime::new(object, start_pos + (0, 1).into()))
     }
 
-    pub fn new_snail(object: &'a ObjectControl, start_pos: Vector2D<FixedNumberType>) -> Self {
+    pub fn new_snail(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
         Enemy::Snail(Snail::new(object, start_pos))
     }
 
@@ -45,6 +47,7 @@ impl<'a> Enemy<'a> {
 
     pub fn update(
         &mut self,
+        controller: &'a ObjectController,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -52,8 +55,12 @@ impl<'a> Enemy<'a> {
         sfx_player: &mut SfxPlayer,
     ) -> EnemyUpdateState {
         let update_state = match self {
-            Enemy::Slime(slime) => slime.update(level, player_pos, hat_state, timer, sfx_player),
-            Enemy::Snail(snail) => snail.update(level, player_pos, hat_state, timer, sfx_player),
+            Enemy::Slime(slime) => {
+                slime.update(controller, level, player_pos, hat_state, timer, sfx_player)
+            }
+            Enemy::Snail(snail) => {
+                snail.update(controller, level, player_pos, hat_state, timer, sfx_player)
+            }
             Enemy::Empty => UpdateState::Nothing,
         };
 
@@ -82,7 +89,7 @@ struct EnemyInfo<'a> {
 
 impl<'a> EnemyInfo<'a> {
     fn new(
-        object: &'a ObjectControl,
+        object: &'a ObjectController,
         start_pos: Vector2D<FixedNumberType>,
         collision: Vector2D<u16>,
     ) -> Self {
@@ -123,19 +130,18 @@ pub struct Slime<'a> {
 }
 
 impl<'a> Slime<'a> {
-    fn new(object: &'a ObjectControl, start_pos: Vector2D<FixedNumberType>) -> Self {
+    fn new(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
         let mut slime = Slime {
             enemy_info: EnemyInfo::new(object, start_pos, (14u16, 14u16).into()),
             state: SlimeState::Idle,
         };
-
-        slime.enemy_info.entity.sprite.set_sprite_size(Size::S16x16);
 
         slime
     }
 
     fn update(
         &mut self,
+        controller: &'a ObjectController,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -147,11 +153,13 @@ impl<'a> Slime<'a> {
 
         match self.state {
             SlimeState::Idle => {
-                let offset = (timer / 16 % 2) * 4;
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SLIME_IDLE_START + offset as u16);
+                let offset = (timer / 16) as usize;
+
+                let tag = TAG_MAP.get("Slime Idle").unwrap();
+                let frame = tag.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
 
                 if (self.enemy_info.entity.position - player_pos).magnitude_squared()
                     < (64 * 64).into()
@@ -178,7 +186,7 @@ impl<'a> Slime<'a> {
                 }
             }
             SlimeState::Jumping(jumping_start_frame) => {
-                let offset = (timer - jumping_start_frame) / 4;
+                let offset = (timer - jumping_start_frame) as usize / 4;
 
                 if timer == jumping_start_frame + 1 {
                     sfx_player.slime_jump();
@@ -188,12 +196,11 @@ impl<'a> Slime<'a> {
                     self.enemy_info.entity.velocity = (0, 0).into();
                     self.state = SlimeState::Idle;
                 } else {
-                    let sprite_offset = if offset >= 4 { 7 - offset } else { offset };
+                    let tag = TAG_MAP.get("Slime Jump").unwrap();
+                    let frame = tag.get_animation_sprite(offset);
+                    let sprite = controller.get_sprite(frame).unwrap();
 
-                    self.enemy_info
-                        .entity
-                        .sprite
-                        .set_tile_id(object_tiles::SLIME_JUMP_START + (sprite_offset * 4) as u16);
+                    self.enemy_info.entity.sprite.set_sprite(sprite);
                 }
 
                 if player_has_collided {
@@ -209,17 +216,18 @@ impl<'a> Slime<'a> {
                     sfx_player.slime_death();
                 }
 
-                let offset = (timer - dying_start_frame) / 4;
+                let offset = (timer - dying_start_frame) as usize / 4;
                 self.enemy_info.entity.velocity = (0, 0).into();
 
                 if offset >= 4 {
                     return UpdateState::Remove;
                 }
 
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SLIME_SPLAT_START + (offset * 4) as u16);
+                let tag = TAG_MAP.get("Slime splat").unwrap();
+                let frame = tag.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
             }
         }
 
@@ -247,13 +255,11 @@ pub struct Snail<'a> {
 }
 
 impl<'a> Snail<'a> {
-    fn new(object: &'a ObjectControl, start_pos: Vector2D<FixedNumberType>) -> Self {
+    fn new(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
         let mut snail = Snail {
             enemy_info: EnemyInfo::new(object, start_pos, (16u16, 16u16).into()),
             state: SnailState::Idle(0),
         };
-
-        snail.enemy_info.entity.sprite.set_sprite_size(Size::S16x16);
 
         snail
     }
@@ -264,6 +270,7 @@ impl<'a> Snail<'a> {
 
     fn update(
         &mut self,
+        controller: &'a ObjectController,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -288,10 +295,11 @@ impl<'a> Snail<'a> {
                     }
                 }
 
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SNAIL_IDLE_START);
+                let tag = TAG_MAP.get("Snail Idle").unwrap();
+                let frame = tag.get_animation_sprite(0);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
                 if player_has_collided {
                     if hat_state != HatState::WizardTowards {
                         return UpdateState::KillPlayer;
@@ -301,17 +309,18 @@ impl<'a> Snail<'a> {
                 }
             }
             SnailState::Emerging(time) => {
-                let offset = (timer - time) / 4;
+                let offset = (timer - time) as usize / 4;
 
                 if offset >= 5 {
                     self.state = SnailState::Moving(timer);
                 }
                 self.enemy_info.entity.velocity = (0, 0).into();
 
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SNAIL_EMERGE_START + (offset * 4) as u16);
+                let tag = TAG_MAP.get("Snail Emerge").unwrap();
+                let frame = tag.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
 
                 if player_has_collided {
                     if hat_state != HatState::WizardTowards {
@@ -328,12 +337,13 @@ impl<'a> Snail<'a> {
                     sfx_player.snail_retreat();
                 }
 
-                let offset = (timer - time) / 8 % 2;
+                let offset = (timer - time) as usize / 8;
 
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SNAIL_MOVE + (offset * 4) as u16);
+                let tag = TAG_MAP.get("Snail Move").unwrap();
+                let frame = tag.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
 
                 if timer % 32 == 0 {
                     let x_vel: FixedNumberType =
@@ -358,16 +368,17 @@ impl<'a> Snail<'a> {
                 }
             }
             SnailState::Retreating(time) => {
-                let offset = 5 - (timer - time) / 4;
+                let offset = 5 - (timer - time) as usize / 4;
 
                 if offset == 0 {
                     self.state = SnailState::Idle(timer);
                 }
 
-                self.enemy_info
-                    .entity
-                    .sprite
-                    .set_tile_id(object_tiles::SNAIL_EMERGE_START + (offset * 4) as u16);
+                let tag = TAG_MAP.get("Snail Emerge").unwrap();
+                let frame = tag.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
                 self.enemy_info.entity.velocity = (0, 0).into();
 
                 if player_has_collided {
@@ -383,18 +394,26 @@ impl<'a> Snail<'a> {
                     sfx_player.snail_death();
                 }
 
-                let offset = (timer - time) / 4;
-                let tile_id = if offset < 5 {
-                    object_tiles::SNAIL_EMERGE_START + ((5 - offset) * 4) as u16
+                let offset = (timer - time) as usize / 4;
+                let frame = if offset < 5 {
+                    TAG_MAP
+                        .get("Snail Emerge")
+                        .unwrap()
+                        .get_animation_sprite(5 - offset)
                 } else if offset == 5 {
-                    object_tiles::SNAIL_IDLE_START
+                    TAG_MAP.get("Snail Idle").unwrap().get_animation_sprite(0)
                 } else if offset < 5 + 7 {
-                    object_tiles::SNAIL_DEATH_START + ((offset - 5) * 4) as u16
+                    TAG_MAP
+                        .get("Snail Death")
+                        .unwrap()
+                        .get_animation_sprite(offset - 5)
                 } else {
                     return UpdateState::Remove;
                 };
 
-                self.enemy_info.entity.sprite.set_tile_id(tile_id);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.enemy_info.entity.sprite.set_sprite(sprite);
                 self.enemy_info.entity.velocity = (0, 0).into();
             }
         }
