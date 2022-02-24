@@ -1,12 +1,12 @@
-build: _build-roms
+build: build-roms
 
-ci: && _build-roms
+ci: && build-roms
     just _all-crates _build
     just _all-crates _test-debug
     just _all-crates _test-release
     just _all-crates _clippy
 
-_build-roms:
+build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
     just _build-rom "examples/the-hat-chooses-the-wizard" "HATWIZARD"
 
@@ -16,6 +16,8 @@ _build-roms:
 
 _build-rom folder name:
     #!/usr/bin/env bash
+    set -euxo pipefail
+
     GAME_FOLDER="{{folder}}"
     INTERNAL_NAME="{{name}}"
 

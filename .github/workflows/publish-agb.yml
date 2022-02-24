@@ -26,8 +26,9 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         run: bash .github/scripts/update-template-repo.sh
 
+      - uses: extractions/setup-just@v1
       - name: Build the examples
-        run: bash .github/scripts/build-example-gba-files.sh
+        run: just build-roms
       - name: Upload examples to the release
         uses: svenstaro/upload-release-action@v2
         with:
