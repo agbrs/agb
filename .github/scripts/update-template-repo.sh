@@ -10,9 +10,6 @@ set -x # print every command before it runs
 
 CLONE_DIR=$(mktemp -d)
 
-# Setup git
-git config --global user.email "gw@ilym.me" # TODO: Have an email address for agb bot
-git config --global user.name "GBA bot"
 git clone --single-branch --branch master "https://$GITHUB_USERNAME:$API_TOKEN_GITHUB@github.com/agbrs/template.git" "$CLONE_DIR"
 
 # Copy the .git directory to a different place so we can ensure that only the relevant template stuff stays
@@ -26,5 +23,5 @@ VERSION=$(git describe)
 COMMIT_MESSAGE="Update to $VERSION"
 
 git -C "$TEMP_DIR" add .
-git -C "$TEMP_DIR" commit -m "$COMMIT_MESSAGE"
+git -C "$TEMP_DIR" -c user.email="gw@ilym.me" -c user.name="GBA bot" commit -m "$COMMIT_MESSAGE"
 git -C "$TEMP_DIR" push origin HEAD
