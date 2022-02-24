@@ -16,6 +16,12 @@ run-example-release example:
     just _build-example-release "{{example}}"
     mgba-qt "$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/{{example}}"
 
+run-game game:
+    (cd "examples/{{game}}" && cargo run --release)
+
+run-game-debug game:
+    (cd "examples/{{game}}" && cargo run)
+
 ci: && build-roms
     just _all-crates _build
     just _all-crates _test-debug
