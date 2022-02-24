@@ -17,6 +17,9 @@ build-roms:
 build-book:
     (cd book && mdbook build)
 
+update-lockfiles:
+    bash .github/scripts/update-lockfiles.sh
+
 _build-rom folder name:
     #!/usr/bin/env bash
     set -euxo pipefail
