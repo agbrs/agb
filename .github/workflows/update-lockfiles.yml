@@ -18,4 +18,5 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
     - name: Update lock files
-      run: bash .github/scripts/update-lockfiles.sh
+      uses: extractions/setup-just@v1
+      run: just update-lockfiles
