@@ -12,6 +12,10 @@ run-example example:
     just _build-example "{{example}}"
     mgba-qt "$CARGO_TARGET_DIR/thumbv4t-none-eabi/debug/examples/{{example}}"
 
+run-example-release example:
+    just _build-example-release "{{example}}"
+    mgba-qt "$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/{{example}}"
+
 ci: && build-roms
     just _all-crates _build
     just _all-crates _test-debug
@@ -72,3 +76,5 @@ _clean crate:
 
 _build-example example:
     (cd agb && cargo build "--example={{example}}")
+_build-example-release example:
+    (cd agb && cargo build "--example={{example}}" --release)
