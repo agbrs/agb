@@ -10,12 +10,12 @@ const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
 #[cfg(debug_assertions)]
-const unsafe fn debug_unreachable_unchecked() -> ! {
-    unreachable!();
+unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
+    unreachable!(message);
 }
 
 #[cfg(not(debug_assertions))]
-const unsafe fn debug_unreachable_unchecked() -> ! {
+const unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
     use core::hint::unreachable_unchecked;
 
     unreachable_unchecked();
@@ -88,7 +88,7 @@ impl VRamState {
         if let VRamState::ReferenceCounted(count, _) = self {
             *count += 1;
         } else {
-            unsafe { debug_unreachable_unchecked() };
+            unsafe { debug_unreachable_unchecked("Cannot increase reference count of free item") };
         }
     }
 
@@ -97,7 +97,7 @@ impl VRamState {
             *count -= 1;
             (*count, *tile_ref)
         } else {
-            unsafe { debug_unreachable_unchecked() };
+            unsafe { debug_unreachable_unchecked("Cannot decrease reference count of free item") };
         }
     }
 }
@@ -151,7 +151,7 @@ impl<'a> VRamManager<'a> {
                     self.tilesets[ptr] = tileset;
                     ptr
                 }
-                _ => unsafe { debug_unreachable_unchecked() },
+                _ => unsafe { debug_unreachable_unchecked("Free pointer cannot point to data") },
             }
         } else {
             self.tilesets.push(tileset);
@@ -183,7 +183,7 @@ impl<'a> VRamManager<'a> {
 
                 self.free_pointer = Some(tile_set_ref.id as usize);
             }
-            _ => unsafe { debug_unreachable_unchecked() },
+            _ => panic!("Must remove valid tileset"),
         }
     }
 
@@ -206,7 +206,9 @@ impl<'a> VRamManager<'a> {
                         self.vram_free_pointer = Some(next_free as usize);
                     }
                 }
-                VRamState::ReferenceCounted(_, _) => unsafe { debug_unreachable_unchecked() },
+                VRamState::ReferenceCounted(_, _) => unsafe {
+                    debug_unreachable_unchecked("Free pointer must point to free item")
+                },
             }
 
             self.references[ptr] = VRamState::ReferenceCounted(1, tile_ref);
@@ -228,7 +230,7 @@ impl<'a> VRamManager<'a> {
             let tile_offset = (tile as usize) * data.format.tile_size() / 4;
             &data.tiles[tile_offset..(tile_offset + data.format.tile_size() / 4)]
         } else {
-            unsafe { debug_unreachable_unchecked() };
+            panic!("Tile set ref must point to existing tile set");
         };
 
         let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
