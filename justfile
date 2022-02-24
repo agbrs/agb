@@ -1,6 +1,6 @@
 build: _build-roms
 
-ci:
+ci: && _build-roms
     just _all-crates _build
     just _all-crates _test-debug
     just _all-crates _test-release
