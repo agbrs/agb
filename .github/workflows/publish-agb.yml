@@ -41,8 +41,7 @@ jobs:
       - name: Install mdbook
         run: cargo install mdbook
       - name: Build the book
-        run: mdbook build
-        working-directory: book
+        run: just build-book
       - name: Deploy the book
         uses: JamesIves/github-pages-deploy-action@v4.2.5
         with:

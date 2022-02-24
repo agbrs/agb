@@ -14,6 +14,9 @@ build-roms:
 
     (cd examples/target && zip examples.zip examples/*.gba)
 
+build-book:
+    (cd book && mdbook build)
+
 _build-rom folder name:
     #!/usr/bin/env bash
     set -euxo pipefail
