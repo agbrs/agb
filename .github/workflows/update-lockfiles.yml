@@ -1,0 +1,19 @@
+name: Update lockfiles
+
+on:
+  push:
+    branches: [ 'renovate/*' ]
+  pull_request:
+    branches: [ 'renovate/*' ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Set CARGO_TARGET_DIR
+      run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
+    - name: Update lock files
+      run: bash .github/scripts/update-lockfiles.sh
