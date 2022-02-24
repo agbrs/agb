@@ -15,5 +15,7 @@ jobs:
     steps:
     - name: Set CARGO_TARGET_DIR
       run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
+    - name: Check out repository
+      uses: actions/checkout@v2
     - name: Update lock files
       run: bash .github/scripts/update-lockfiles.sh
