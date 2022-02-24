@@ -1,4 +1,12 @@
+export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
+
 build: build-roms
+
+test:
+    just _all-crates _test-debug
+
+clean:
+    just _all-crates _clean
 
 ci: && build-roms
     just _all-crates _build
@@ -55,3 +63,5 @@ _test-debug crate:
     if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo test); fi
 _clippy crate:
     if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo clippy); fi
+_clean crate:
+    (cd "{{crate}}" && cargo clean)
