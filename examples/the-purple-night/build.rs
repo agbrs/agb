@@ -67,7 +67,7 @@ fn main() {
     write!(&mut writer, "{}", output).unwrap();
 }
 
-fn extract_tiles<'a>(layer: &'a tiled::LayerData) -> impl Iterator<Item = u16> + 'a {
+fn extract_tiles(layer: &'_ tiled::LayerData) -> impl Iterator<Item = u16> + '_ {
     match layer {
         tiled::LayerData::Finite(tiles) => {
             tiles.iter().flat_map(|row| row.iter().map(|tile| tile.gid))
@@ -84,17 +84,14 @@ fn get_map_id(tileid: u32) -> u16 {
     }
 }
 
-fn get_spawn_locations<'a>(
-    object_group: &'a tiled::ObjectGroup,
+fn get_spawn_locations(
+    object_group: &tiled::ObjectGroup,
     enemy_type: &str,
-) -> (
-    impl Iterator<Item = u16> + 'a,
-    impl Iterator<Item = u16> + 'a,
-) {
+) -> (Vec<u16>, Vec<u16>) {
     let mut spawns = object_group
         .objects
         .iter()
-        .filter(|object| &object.obj_type == enemy_type)
+        .filter(|object| object.obj_type == enemy_type)
         .map(|object| (object.x as u16, object.y as u16))
         .collect::<Vec<_>>();
 
@@ -103,5 +100,5 @@ fn get_spawn_locations<'a>(
     let xs = spawns.iter().map(|pos| pos.0).collect::<Vec<_>>();
     let ys = spawns.iter().map(|pos| pos.1).collect::<Vec<_>>();
 
-    (xs.into_iter(), ys.into_iter())
+    (xs, ys)
 }
