@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check if gba.ld files are identical
         run: find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
       - name: Check if gba_mb.ld files are identical
