@@ -43,6 +43,7 @@ pub struct SoundChannel {
 }
 
 impl SoundChannel {
+    #[inline(always)]
     pub fn new(data: &'static [u8]) -> Self {
         SoundChannel {
             data,
@@ -57,6 +58,7 @@ impl SoundChannel {
         }
     }
 
+    #[inline(always)]
     pub fn new_high_priority(data: &'static [u8]) -> Self {
         SoundChannel {
             data,
@@ -71,16 +73,19 @@ impl SoundChannel {
         }
     }
 
+    #[inline(always)]
     pub fn should_loop(&mut self) -> &mut Self {
         self.should_loop = true;
         self
     }
 
+    #[inline(always)]
     pub fn playback(&mut self, playback_speed: Num<usize, 8>) -> &mut Self {
         self.playback_speed = playback_speed;
         self
     }
 
+    #[inline(always)]
     pub fn panning(&mut self, panning: Num<i16, 4>) -> &mut Self {
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
@@ -89,6 +94,7 @@ impl SoundChannel {
         self
     }
 
+    #[inline(always)]
     pub fn volume(&mut self, volume: Num<i16, 4>) -> &mut Self {
         assert!(volume <= Num::new(1), "volume must be <= 1");
         assert!(volume >= Num::new(0), "volume must be >= 0");
@@ -97,12 +103,14 @@ impl SoundChannel {
         self
     }
 
+    #[inline(always)]
     pub fn stereo(&mut self) -> &mut Self {
         self.is_stereo = true;
 
         self
     }
 
+    #[inline(always)]
     pub fn stop(&mut self) {
         self.is_done = true
     }
