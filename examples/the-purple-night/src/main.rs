@@ -6,6 +6,8 @@ extern crate alloc;
 mod rng;
 mod sfx;
 
+use core::cmp::Ordering;
+
 use alloc::vec::Vec;
 
 use rng::get_random;
@@ -324,7 +326,7 @@ impl SwordState {
             *counter = 0;
         }
         match self {
-            SwordState::LongSword => (0 + *counter / 8) * 4,
+            SwordState::LongSword => (*counter / 8) * 4,
             SwordState::ShortSword => (41 + *counter / 8) * 4,
             SwordState::Dagger => (96 + *counter / 8) * 4,
             SwordState::Swordless => (154 + *counter / 8) * 4,
@@ -943,12 +945,10 @@ impl SlimeData {
                     .set_tile_id((29 + self.sprite_offset / 16) * 4);
 
                 if (player.entity.position - entity.position).manhattan_distance() < 40.into() {
-                    let direction = if player.entity.position.x > entity.position.x {
-                        Tri::Positive
-                    } else if player.entity.position.x < entity.position.x {
-                        Tri::Negative
-                    } else {
-                        Tri::Zero
+                    let direction = match player.entity.position.x.cmp(&entity.position.x) {
+                        Ordering::Equal => Tri::Zero,
+                        Ordering::Greater => Tri::Positive,
+                        Ordering::Less => Tri::Negative,
                     };
 
                     self.slime_state = SlimeState::Chasing(direction);
@@ -1200,14 +1200,18 @@ impl EmuData {
                             .signum();
                     entity.velocity.x = velocity;
 
-                    if velocity > 0.into() {
-                        entity.sprite.set_hflip(true);
-                        self.state = EmuState::Charging(Tri::Positive);
-                    } else if velocity < 0.into() {
-                        self.state = EmuState::Charging(Tri::Negative);
-                        entity.sprite.set_hflip(false);
-                    } else {
-                        self.state = EmuState::Idle;
+                    match velocity.cmp(&0.into()) {
+                        Ordering::Greater => {
+                            entity.sprite.set_hflip(true);
+                            self.state = EmuState::Charging(Tri::Positive);
+                        }
+                        Ordering::Less => {
+                            self.state = EmuState::Charging(Tri::Negative);
+                            entity.sprite.set_hflip(false);
+                        }
+                        Ordering::Equal => {
+                            self.state = EmuState::Idle;
+                        }
                     }
                 }
 
@@ -1916,13 +1920,12 @@ impl<'a> Game<'a> {
         }
 
         self.input.update();
-        match self.player.update(&self.input, &self.level, sfx) {
-            UpdateInstruction::CreateParticle(data, position) => {
-                let new_particle = Particle::new(object_controller, data, position);
+        if let UpdateInstruction::CreateParticle(data, position) =
+            self.player.update(&self.input, &self.level, sfx)
+        {
+            let new_particle = Particle::new(object_controller, data, position);
 
-                self.particles.insert(new_particle);
-            }
-            _ => {}
+            self.particles.insert(new_particle);
         }
 
         let mut remove = Vec::with_capacity(10);
