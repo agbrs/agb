@@ -1,11 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::{
-    display::palette16,
-    dma::dma_copy,
-    memory_mapped::{MemoryMapped, MemoryMapped1DArray},
-};
+use crate::{display::palette16, dma::dma_copy, memory_mapped::MemoryMapped1DArray};
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };

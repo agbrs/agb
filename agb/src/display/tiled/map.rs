@@ -2,7 +2,7 @@ use core::cell::RefCell;
 use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
-use crate::display::{self, Priority, DISPLAY_CONTROL};
+use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
