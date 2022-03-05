@@ -375,7 +375,7 @@ impl SwordState {
         }
     }
     fn jump_attack_frame(self, timer: u16) -> u16 {
-        (self.jump_attack_duration() - timer) / 8
+        (self.jump_attack_duration().saturating_sub(timer)) / 8
     }
     fn hold_frame(self) -> u16 {
         7
