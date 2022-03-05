@@ -12,7 +12,7 @@ unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
 }
 
 #[cfg(not(debug_assertions))]
-const unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
+const unsafe fn debug_unreachable_unchecked(_message: &'static str) -> ! {
     use core::hint::unreachable_unchecked;
 
     unreachable_unchecked();
