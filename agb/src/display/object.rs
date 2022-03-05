@@ -157,6 +157,7 @@ impl Tag {
         &self.get_sprites()[idx]
     }
 
+    #[inline]
     pub fn get_animation_sprite(&self, idx: usize) -> &'static Sprite {
         let len_sub_1 = self.len - 1;
         match self.direction {
