@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut};
 use crate::bitarray::Bitarray;
 use crate::display::{self, Priority, DISPLAY_CONTROL};
 use crate::fixnum::Vector2D;
-use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
+use crate::memory_mapped::MemoryMapped;
 
 use super::{Tile, TileSetReference, TileSetting, VRamManager};
 
@@ -102,18 +102,12 @@ impl RegularMap {
 
         let screenblock_memory = self.screenblock_memory();
 
-        let scroll_pos = self.get_scroll_pos();
-        let start_x = scroll_pos.x / 8;
-        let end_x = div_ceil(scroll_pos.x as i32 + display::WIDTH, 8) as u16 + 1;
-
-        let start_y = scroll_pos.y / 8;
-        let end_y = div_ceil(scroll_pos.y as i32 + display::HEIGHT, 8) as u16 + 1;
-
-        for y in start_y..end_y {
-            for x in start_x..end_x {
-                let id = y.rem_euclid(32) * 32 + x.rem_euclid(32);
-                screenblock_memory.set(id as usize, self.tiles[id as usize].0);
-            }
+        unsafe {
+            dma_copy(
+                self.tiles.as_ptr() as *const u16,
+                screenblock_memory,
+                32 * 32,
+            );
         }
 
         self.tiles_dirty = false;
@@ -140,8 +134,8 @@ impl RegularMap {
         unsafe { MemoryMapped::new(0x0400_0012 + 4 * self.background_id as usize) }
     }
 
-    const fn screenblock_memory(&self) -> MemoryMapped1DArray<u16, { 32 * 32 }> {
-        unsafe { MemoryMapped1DArray::new(0x0600_0000 + 0x1000 * self.screenblock as usize / 2) }
+    const fn screenblock_memory(&self) -> *mut u16 {
+        (0x0600_0000 + 0x1000 * self.screenblock as usize / 2) as *mut u16
     }
 }
 
@@ -195,4 +189,29 @@ fn div_ceil(x: i32, y: i32) -> i32 {
     } else {
         x / y
     }
+}
+
+const fn dma_source_addr(dma: usize) -> usize {
+    0x0400_00b0 + 0x0c * dma
+}
+
+const fn dma_dest_addr(dma: usize) -> usize {
+    0x0400_00b4 + 0x0c * dma
+}
+
+const fn dma_control_addr(dma: usize) -> usize {
+    0x0400_00b8 + 0x0c * dma
+}
+
+const DMA3_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_source_addr(3)) };
+const DMA3_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_dest_addr(3)) };
+const DMA3_CONTROL: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_control_addr(3)) };
+
+unsafe fn dma_copy(src: *const u16, dest: *mut u16, count: usize) {
+    assert!(count < u16::MAX as usize);
+
+    DMA3_SOURCE_ADDR.set(src as u32);
+    DMA3_DEST_ADDR.set(dest as u32);
+
+    DMA3_CONTROL.set(count as u32 | (1 << 31));
 }
