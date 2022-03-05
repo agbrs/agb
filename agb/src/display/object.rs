@@ -99,7 +99,7 @@ impl TagMap {
     pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
         Self { tags }
     }
-    pub const fn get(&'static self, tag: &str) -> Option<&'static Tag> {
+    pub const fn try_get(&'static self, tag: &str) -> Option<&'static Tag> {
         let mut i = 0;
         while i < self.tags.len() {
             let s = self.tags[i].0;
@@ -111,6 +111,13 @@ impl TagMap {
         }
 
         None
+    }
+    pub const fn get(&'static self, tag: &str) -> &'static Tag {
+        let t = self.try_get(tag);
+        match t {
+            Some(t) => t,
+            None => panic!("The requested tag does not exist"),
+        }
     }
     pub fn values(&self) -> impl Iterator<Item = &'static Tag> {
         self.tags.iter().map(|x| &x.1)

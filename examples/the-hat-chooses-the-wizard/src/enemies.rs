@@ -2,9 +2,18 @@ use crate::TAG_MAP;
 
 use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
 use agb::{
-    display::object::{ObjectController, Size},
+    display::object::{ObjectController, Size, Tag},
     fixnum::Vector2D,
 };
+
+const SLIME_IDLE: &Tag = TAG_MAP.get("Slime Idle");
+const SLIME_JUMP: &Tag = TAG_MAP.get("Slime Jump");
+const SLIME_SPLAT: &Tag = TAG_MAP.get("Slime splat");
+
+const SNAIL_EMERGE: &Tag = TAG_MAP.get("Snail Emerge");
+const SNAIL_MOVE: &Tag = TAG_MAP.get("Snail Move");
+const SNAIL_DEATH: &Tag = TAG_MAP.get("Snail Death");
+const SNAIL_IDLE: &Tag = TAG_MAP.get("Snail Idle");
 
 enum UpdateState {
     Nothing,
@@ -155,8 +164,7 @@ impl<'a> Slime<'a> {
             SlimeState::Idle => {
                 let offset = (timer / 16) as usize;
 
-                let tag = TAG_MAP.get("Slime Idle").unwrap();
-                let frame = tag.get_animation_sprite(offset);
+                let frame = SLIME_IDLE.get_animation_sprite(offset);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -196,8 +204,7 @@ impl<'a> Slime<'a> {
                     self.enemy_info.entity.velocity = (0, 0).into();
                     self.state = SlimeState::Idle;
                 } else {
-                    let tag = TAG_MAP.get("Slime Jump").unwrap();
-                    let frame = tag.get_animation_sprite(offset);
+                    let frame = SLIME_JUMP.get_animation_sprite(offset);
                     let sprite = controller.get_sprite(frame).unwrap();
 
                     self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -223,8 +230,7 @@ impl<'a> Slime<'a> {
                     return UpdateState::Remove;
                 }
 
-                let tag = TAG_MAP.get("Slime splat").unwrap();
-                let frame = tag.get_animation_sprite(offset);
+                let frame = SLIME_SPLAT.get_animation_sprite(offset);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -295,8 +301,7 @@ impl<'a> Snail<'a> {
                     }
                 }
 
-                let tag = TAG_MAP.get("Snail Idle").unwrap();
-                let frame = tag.get_animation_sprite(0);
+                let frame = SNAIL_IDLE.get_animation_sprite(0);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -316,8 +321,7 @@ impl<'a> Snail<'a> {
                 }
                 self.enemy_info.entity.velocity = (0, 0).into();
 
-                let tag = TAG_MAP.get("Snail Emerge").unwrap();
-                let frame = tag.get_animation_sprite(offset);
+                let frame = SNAIL_EMERGE.get_animation_sprite(offset);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -339,8 +343,7 @@ impl<'a> Snail<'a> {
 
                 let offset = (timer - time) as usize / 8;
 
-                let tag = TAG_MAP.get("Snail Move").unwrap();
-                let frame = tag.get_animation_sprite(offset);
+                let frame = SNAIL_MOVE.get_animation_sprite(offset);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -374,8 +377,7 @@ impl<'a> Snail<'a> {
                     self.state = SnailState::Idle(timer);
                 }
 
-                let tag = TAG_MAP.get("Snail Emerge").unwrap();
-                let frame = tag.get_animation_sprite(offset);
+                let frame = SNAIL_EMERGE.get_animation_sprite(offset);
                 let sprite = controller.get_sprite(frame).unwrap();
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
@@ -396,17 +398,11 @@ impl<'a> Snail<'a> {
 
                 let offset = (timer - time) as usize / 4;
                 let frame = if offset < 5 {
-                    TAG_MAP
-                        .get("Snail Emerge")
-                        .unwrap()
-                        .get_animation_sprite(5 - offset)
+                    SNAIL_EMERGE.get_animation_sprite(5 - offset)
                 } else if offset == 5 {
-                    TAG_MAP.get("Snail Idle").unwrap().get_animation_sprite(0)
+                    SNAIL_IDLE.get_animation_sprite(0)
                 } else if offset < 5 + 7 {
-                    TAG_MAP
-                        .get("Snail Death")
-                        .unwrap()
-                        .get_animation_sprite(offset - 5)
+                    SNAIL_DEATH.get_animation_sprite(offset - 5)
                 } else {
                     return UpdateState::Remove;
                 };
