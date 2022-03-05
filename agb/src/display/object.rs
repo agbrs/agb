@@ -69,7 +69,6 @@ macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
         use $crate::display::object::{Size, Sprite, Tag, TagMap};
         use $crate::display::palette16::Palette16;
-        use $crate::phf;
 
         $crate::include_aseprite_inner!($($aseprite_path),*);
 
@@ -77,18 +76,44 @@ macro_rules! include_aseprite {
     }};
 }
 
-pub struct TagMap(phf::Map<&'static str, Tag>);
-
-impl TagMap {
-    pub const fn new(map: phf::Map<&'static str, Tag>) -> Self {
-        Self(map)
-    }
+pub struct TagMap {
+    tags: &'static [(&'static str, Tag)],
 }
 
-impl Deref for TagMap {
-    type Target = phf::Map<&'static str, Tag>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
+const fn const_byte_compare(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+impl TagMap {
+    pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
+        Self { tags }
+    }
+    pub const fn get(&'static self, tag: &str) -> Option<&'static Tag> {
+        let mut i = 0;
+        while i < self.tags.len() {
+            let s = self.tags[i].0;
+            if const_byte_compare(s.as_bytes(), tag.as_bytes()) {
+                return Some(&self.tags[i].1);
+            }
+
+            i += 1;
+        }
+
+        None
+    }
+    pub fn values(&self) -> impl Iterator<Item = &'static Tag> {
+        self.tags.iter().map(|x| &x.1)
     }
 }
 
@@ -317,10 +342,9 @@ impl ObjectController {
             index: inner.pop()?,
             free_list: &self.free_objects,
         };
-        let p_sprite = sprite.clone();
         Some(Object {
+            previous_sprite: sprite.clone(),
             sprite,
-            previous_sprite: p_sprite,
             loan,
             attrs: Attributes::new(),
         })

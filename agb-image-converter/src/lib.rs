@@ -151,23 +151,20 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             }
         });
 
-    let tags = tags
-        .iter()
-        .map(|(tag, num_images)| {
-            tag.iter().map(move |tag| {
-                let start = tag.from_frame() as usize + num_images;
-                let end = tag.to_frame() as usize + num_images;
-                let direction = tag.animation_direction() as usize;
+    let tags = tags.iter().flat_map(|(tag, num_images)| {
+        tag.iter().map(move |tag| {
+            let start = tag.from_frame() as usize + num_images;
+            let end = tag.to_frame() as usize + num_images;
+            let direction = tag.animation_direction() as usize;
 
-                let name = tag.name();
-                assert!(start <= end, "Tag {} has start > end", name);
+            let name = tag.name();
+            assert!(start <= end, "Tag {} has start > end", name);
 
-                quote! {
-                    #name => Tag::new(SPRITES, #start, #end, #direction)
-                }
-            })
+            quote! {
+                (#name, Tag::new(SPRITES, #start, #end, #direction))
+            }
         })
-        .flatten();
+    });
 
     let include_paths = filenames.iter().map(|s| {
         let s = s.as_os_str().to_string_lossy();
@@ -189,9 +186,9 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         ];
 
         const TAGS: &TagMap = &TagMap::new(
-            phf::phf_map! {
+            &[
                 #(#tags),*
-            }
+            ]
         );
 
     };

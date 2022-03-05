@@ -113,7 +113,6 @@
 pub use agb_image_converter::include_gfx;
 
 pub use agb_image_converter::include_aseprite_inner;
-pub use phf;
 
 /// This macro declares the entry point to your game written using `agb`.
 ///
