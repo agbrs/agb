@@ -68,15 +68,19 @@ pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self
 macro_rules! fixed_width_unsigned_integer_impl {
     ($T: ty) => {
         impl FixedWidthUnsignedInteger for $T {
+            #[inline(always)]
             fn zero() -> Self {
                 0
             }
+            #[inline(always)]
             fn one() -> Self {
                 1
             }
+            #[inline(always)]
             fn ten() -> Self {
                 10
             }
+            #[inline(always)]
             fn from_as_i32(v: i32) -> Self {
                 v as $T
             }
@@ -87,6 +91,7 @@ macro_rules! fixed_width_unsigned_integer_impl {
 macro_rules! fixed_width_signed_integer_impl {
     ($T: ty) => {
         impl FixedWidthSignedInteger for $T {
+            #[inline(always)]
             fn fixed_abs(self) -> Self {
                 self.abs()
             }
