@@ -19,7 +19,7 @@ pub struct Level {
 }
 
 mod object_tiles {
-    pub const WIZARD_TILE_START: u16 = 0 * 4;
+    pub const WIZARD_TILE_START: u16 = 0;
     pub const WIZARD_JUMP: u16 = 4 * 4;
     pub const WIZARD_FALL_START: u16 = 5 * 4;
 
@@ -504,7 +504,7 @@ impl<'a> Player<'a> {
         let hat_base_tile = match self.num_recalls {
             0 => object_tiles::HAT_TILE_START,
             1 => object_tiles::HAT_TILE_START_SECOND,
-            2 | _ => object_tiles::HAT_TILE_START_THIRD,
+            _ => object_tiles::HAT_TILE_START_THIRD,
         };
 
         match self.facing {
@@ -540,7 +540,7 @@ impl<'a> Player<'a> {
                 let hat_sprite_divider = match self.num_recalls {
                     0 => 1,
                     1 => 2,
-                    2 | _ => 4,
+                    _ => 4,
                 };
 
                 let hat_sprite_offset = timer / hat_sprite_divider % 10;

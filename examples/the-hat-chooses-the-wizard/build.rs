@@ -174,14 +174,14 @@ mod tiled_export {
 
             pub const fn get_level() -> Level {{
                 Level {{
-                    background: &TILEMAP,
-                    foreground: &BACKGROUND,
+                    background: TILEMAP,
+                    foreground: BACKGROUND,
                     dimensions: Vector2D {{x: WIDTH, y: HEIGHT}},
-                    collision: &crate::map_tiles::tilemap::TILE_DATA,
+                    collision: crate::map_tiles::tilemap::TILE_DATA,
     
-                    enemy_stops: &ENEMY_STOPS,
-                    slimes: &SLIMES,
-                    snails: &SNAILS,
+                    enemy_stops: ENEMY_STOPS,
+                    slimes: SLIMES,
+                    snails: SNAILS,
                     start_pos: START_POS,
                 }}
             }}
