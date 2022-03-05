@@ -11,7 +11,7 @@ const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
 
 #[cfg(debug_assertions)]
 unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
-    unreachable!(message);
+    unreachable!("{}", message);
 }
 
 #[cfg(not(debug_assertions))]
