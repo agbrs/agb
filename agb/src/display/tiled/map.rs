@@ -181,13 +181,3 @@ impl<'a, T> Drop for MapLoan<'a, T> {
             .set(self.background_id as usize, false);
     }
 }
-
-fn div_ceil(x: i32, y: i32) -> i32 {
-    if x > 0 && y > 0 {
-        (x - 1) / y + 1
-    } else if x < 0 && y < 0 {
-        (x + 1) / y + 1
-    } else {
-        x / y
-    }
-}
