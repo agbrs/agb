@@ -15,7 +15,7 @@ use rng::get_random;
 use agb::{
     display::{
         background::{BackgroundDistributor, BackgroundRegular},
-        object::{ObjectControl, ObjectStandard},
+        object::{Object, ObjectController, Sprite, Tag, TagMap},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Rect, Vector2D},
@@ -23,7 +23,34 @@ use agb::{
 };
 use generational_arena::Arena;
 
-agb::include_gfx!("gfx/objects.toml");
+const SPRITE_TAGS: (&[Sprite], &TagMap) =
+    agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
+const TAG_MAP: &TagMap = SPRITE_TAGS.1;
+
+const LONGSWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
+const LONGSWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
+const LONGSWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
+const LONGSWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
+const LONGSWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
+
+const SHORTSWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
+const SHORTSWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
+const SHORTSWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
+const SHORTSWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
+const SHORTSWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
+
+const KNIFE_IDLE: &Tag = TAG_MAP.get("idle - knife");
+const KNIFE_WALK: &Tag = TAG_MAP.get("walk - knife");
+const KNIFE_JUMP: &Tag = TAG_MAP.get("jump - knife");
+const KNIFE_ATTACK: &Tag = TAG_MAP.get("attack - knife");
+const KNIFE_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - knife");
+
+const SWORDLESS_IDLE: &Tag = TAG_MAP.get("idle swordless");
+const SWORDLESS_WALK: &Tag = TAG_MAP.get("walk swordless");
+const SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
+const SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
+const SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
+
 agb::include_gfx!("gfx/background.toml");
 
 type Number = FixedNum<8>;
@@ -127,7 +154,7 @@ impl Level {
 }
 
 struct Entity<'a> {
-    sprite: ObjectStandard<'a>,
+    sprite: Object<'a, 'a>,
     position: Vector2D<Number>,
     velocity: Vector2D<Number>,
     collision_mask: Rect<u16>,
@@ -135,8 +162,11 @@ struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    fn new(object_controller: &'a ObjectControl, collision_mask: Rect<u16>) -> Self {
-        let mut sprite = object_controller.get_object_standard();
+    fn new(object_controller: &'a ObjectController, collision_mask: Rect<u16>) -> Self {
+        let s = object_controller
+            .get_sprite(LONGSWORD_IDLE.get_sprite(0))
+            .unwrap();
+        let mut sprite = object_controller.get_object(s).unwrap();
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
@@ -321,34 +351,30 @@ impl SwordState {
             SwordState::Swordless => Number::new(6) / 256,
         }
     }
-    fn idle_animation(self, counter: &mut u16) -> u16 {
-        if *counter >= 4 * 8 {
-            *counter = 0;
-        }
+    fn idle_animation(self, counter: u16) -> &'static Sprite {
+        let counter = counter as usize;
         match self {
-            SwordState::LongSword => (*counter / 8) * 4,
-            SwordState::ShortSword => (41 + *counter / 8) * 4,
-            SwordState::Dagger => (96 + *counter / 8) * 4,
-            SwordState::Swordless => (154 + *counter / 8) * 4,
+            SwordState::LongSword => LONGSWORD_IDLE.get_animation_sprite(counter / 8),
+            SwordState::ShortSword => SHORTSWORD_IDLE.get_animation_sprite(counter / 8),
+            SwordState::Dagger => KNIFE_IDLE.get_animation_sprite(counter / 8),
+            SwordState::Swordless => SWORDLESS_IDLE.get_animation_sprite(counter / 8),
         }
     }
-    fn jump_offset(self) -> u16 {
+    fn jump_tag(self) -> &'static Tag {
         match self {
-            SwordState::LongSword => 10,
-            SwordState::ShortSword => 51,
-            SwordState::Dagger => 106,
-            SwordState::Swordless => 164,
+            SwordState::LongSword => LONGSWORD_JUMP,
+            SwordState::ShortSword => SHORTSWORD_JUMP,
+            SwordState::Dagger => KNIFE_JUMP,
+            SwordState::Swordless => SWORDLESS_JUMP,
         }
     }
-    fn walk_animation(self, counter: &mut u16) -> u16 {
-        if *counter >= 6 * 4 {
-            *counter = 0;
-        }
+    fn walk_animation(self, counter: u16) -> &'static Sprite {
+        let counter = counter as usize;
         match self {
-            SwordState::LongSword => (4 + *counter / 4) * 4,
-            SwordState::ShortSword => (45 + *counter / 4) * 4,
-            SwordState::Dagger => (100 + *counter / 4) * 4,
-            SwordState::Swordless => (158 + *counter / 4) * 4,
+            SwordState::LongSword => LONGSWORD_WALK.get_animation_sprite(counter / 4),
+            SwordState::ShortSword => SHORTSWORD_WALK.get_animation_sprite(counter / 4),
+            SwordState::Dagger => KNIFE_WALK.get_animation_sprite(counter / 4),
+            SwordState::Swordless => SWORDLESS_WALK.get_animation_sprite(counter / 4),
         }
     }
     fn attack_duration(self) -> u16 {
@@ -375,19 +401,19 @@ impl SwordState {
             SwordState::Swordless => (self.attack_duration() - timer) / 8,
         }
     }
+    fn jump_attack_tag(self) -> &'static Tag {
+        match self {
+            SwordState::LongSword => LONGSWORD_JUMP_ATTACK,
+            SwordState::ShortSword => SHORTSWORD_JUMP_ATTACK,
+            SwordState::Dagger => KNIFE_JUMP_ATTACK,
+            SwordState::Swordless => SWORDLESS_JUMP_ATTACK,
+        }
+    }
     fn jump_attack_frame(self, timer: u16) -> u16 {
         (self.jump_attack_duration() - timer) / 8
     }
     fn hold_frame(self) -> u16 {
         7
-    }
-    fn jump_attack_hold_frame(self) -> u16 {
-        match self {
-            SwordState::LongSword => 13,
-            SwordState::ShortSword => 54,
-            SwordState::Dagger => 109,
-            SwordState::Swordless => 0,
-        }
     }
 
     fn cooldown_time(self) -> u16 {
@@ -398,26 +424,15 @@ impl SwordState {
             SwordState::Swordless => 0,
         }
     }
-    fn to_sprite_id(self, frame: u16) -> u16 {
+    fn attack_tag(self) -> &'static Tag {
         match self {
-            SwordState::LongSword => (16 + frame) * 4,
-            SwordState::ShortSword => (57 + frame) * 4,
-            SwordState::Dagger => (112 + frame) * 4,
-            SwordState::Swordless => 0,
+            SwordState::LongSword => LONGSWORD_ATTACK,
+            SwordState::ShortSword => SHORTSWORD_ATTACK,
+            SwordState::Dagger => KNIFE_ATTACK,
+            SwordState::Swordless => SWORDLESS_ATTACK,
         }
     }
-    fn to_jump_sprite_id(self, frame: u16) -> u16 {
-        if frame == self.jump_attack_hold_frame() {
-            frame * 4
-        } else {
-            match self {
-                SwordState::LongSword => (24 + frame) * 4,
-                SwordState::ShortSword => (65 + frame) * 4,
-                SwordState::Dagger => (120 + frame) * 4,
-                SwordState::Swordless => 0,
-            }
-        }
-    }
+
     fn fudge(self, frame: u16) -> i32 {
         match self {
             SwordState::LongSword => long_sword_fudge(frame),
@@ -520,15 +535,15 @@ struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    fn new(object_controller: &'a ObjectControl) -> Player {
+    fn new(object_controller: &'a ObjectController) -> Player {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),
         );
-        entity
-            .sprite
-            .set_sprite_size(agb::display::object::Size::S16x16);
-        entity.sprite.set_tile_id(0);
+        let s = object_controller
+            .get_sprite(LONGSWORD_IDLE.get_sprite(0))
+            .unwrap();
+        entity.sprite.set_sprite(s);
         entity.sprite.show();
         entity.position = (144, 0).into();
         entity.sprite.commit();
@@ -549,6 +564,7 @@ impl<'a> Player<'a> {
 
     fn update(
         &mut self,
+        controller: &'a ObjectController,
         buttons: &ButtonController,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -580,13 +596,15 @@ impl<'a> Player<'a> {
                         self.entity.sprite.set_hflip(self.facing == Tri::Negative);
                         self.entity.velocity.x += self.sword.ground_walk_force() * x as i32;
                         if self.entity.velocity.x.abs() > Number::new(1) / 10 {
-                            self.entity
-                                .sprite
-                                .set_tile_id(self.sword.walk_animation(&mut self.sprite_offset));
+                            let sprite = controller
+                                .get_sprite(self.sword.walk_animation(self.sprite_offset))
+                                .unwrap();
+                            self.entity.sprite.set_sprite(sprite);
                         } else {
-                            self.entity
-                                .sprite
-                                .set_tile_id(self.sword.idle_animation(&mut self.sprite_offset));
+                            let sprite = controller
+                                .get_sprite(self.sword.idle_animation(self.sprite_offset))
+                                .unwrap();
+                            self.entity.sprite.set_sprite(sprite);
                         }
 
                         if b_press && self.sword != SwordState::Swordless {
@@ -604,9 +622,11 @@ impl<'a> Player<'a> {
                         *a -= 1;
                         let frame = self.sword.attack_frame(*a);
                         self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
-                        self.entity
-                            .sprite
-                            .set_tile_id(self.sword.to_sprite_id(frame));
+                        let tag = self.sword.attack_tag();
+                        let sprite = controller
+                            .get_sprite(tag.get_animation_sprite(frame as usize))
+                            .unwrap();
+                        self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.ground_attack_hurtbox(frame);
 
@@ -618,9 +638,11 @@ impl<'a> Player<'a> {
                         *a -= 1;
                         let frame = self.sword.hold_frame();
                         self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
-                        self.entity
-                            .sprite
-                            .set_tile_id(self.sword.to_sprite_id(frame));
+                        let tag = self.sword.attack_tag();
+                        let sprite = controller
+                            .get_sprite(tag.get_animation_sprite(frame as usize))
+                            .unwrap();
+                        self.entity.sprite.set_sprite(sprite);
                         if *a == 0 {
                             self.attack_timer = AttackTimer::Idle;
                         }
@@ -632,7 +654,7 @@ impl<'a> Player<'a> {
 
                 match &mut self.attack_timer {
                     AttackTimer::Idle => {
-                        let sprite = if self.sprite_offset < 3 * 4 {
+                        let frame = if self.sprite_offset < 3 * 4 {
                             self.sprite_offset / 4
                         } else if self.entity.velocity.y.abs() < Number::new(1) / 5 {
                             3
@@ -643,9 +665,11 @@ impl<'a> Player<'a> {
                         } else {
                             2
                         };
-                        self.entity
-                            .sprite
-                            .set_tile_id((sprite + self.sword.jump_offset()) * 4);
+                        let tag = self.sword.jump_tag();
+                        let sprite = controller
+                            .get_sprite(tag.get_animation_sprite(frame as usize))
+                            .unwrap();
+                        self.entity.sprite.set_sprite(sprite);
 
                         if x != Tri::Zero {
                             self.facing = x;
@@ -665,9 +689,11 @@ impl<'a> Player<'a> {
                     AttackTimer::Attack(a) => {
                         *a -= 1;
                         let frame = self.sword.jump_attack_frame(*a);
-                        self.entity
-                            .sprite
-                            .set_tile_id(self.sword.to_jump_sprite_id(frame));
+                        let tag = self.sword.jump_attack_tag();
+                        let sprite = controller
+                            .get_sprite(tag.get_animation_sprite(frame as usize))
+                            .unwrap();
+                        self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.air_attack_hurtbox(frame);
 
@@ -799,9 +825,10 @@ impl BatData {
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -814,6 +841,8 @@ impl BatData {
             .unwrap_or(false);
         let should_damage = entity.collider().touches(player.entity.collider());
 
+        const BAT_IDLE: &Tag = TAG_MAP.get("bat");
+
         match &mut self.bat_state {
             BatState::Idle => {
                 self.sprite_offset += 1;
@@ -825,7 +854,10 @@ impl BatData {
                     sfx.bat_flap();
                 }
 
-                entity.sprite.set_tile_id((78 + self.sprite_offset / 8) * 4);
+                let sprite = BAT_IDLE.get_sprite(self.sprite_offset as usize / 8);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 if (entity.position - player.entity.position).manhattan_distance() < 50.into() {
                     self.bat_state = BatState::Chasing(300);
@@ -856,7 +888,11 @@ impl BatData {
                 if self.sprite_offset >= 9 * 2 {
                     self.sprite_offset = 0;
                 }
-                entity.sprite.set_tile_id((78 + self.sprite_offset / 2) * 4);
+
+                let sprite = BAT_IDLE.get_sprite(self.sprite_offset as usize / 2);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 if self.sprite_offset == 2 * 5 {
                     sfx.bat_flap();
@@ -879,7 +915,12 @@ impl BatData {
                 }
             }
             BatState::Dead => {
-                entity.sprite.set_tile_id(87 * 4);
+                const BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
+                let sprite = BAT_DEAD.get_sprite(0);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
+
                 let gravity: Number = 1.into();
                 let gravity = gravity / 16;
                 entity.velocity.x = 0.into();
@@ -917,9 +958,10 @@ impl SlimeData {
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -940,9 +982,12 @@ impl SlimeData {
                     self.sprite_offset = 0;
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((29 + self.sprite_offset / 16) * 4);
+                const IDLE: &Tag = TAG_MAP.get("slime idle");
+
+                let sprite = IDLE.get_sprite(self.sprite_offset as usize / 16);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 if (player.entity.position - entity.position).manhattan_distance() < 40.into() {
                     let direction = match player.entity.position.x.cmp(&entity.position.x) {
@@ -977,7 +1022,12 @@ impl SlimeData {
                         sfx.slime_boing();
                     }
 
-                    entity.sprite.set_tile_id((frame + 31) * 4);
+                    const CHASE: &Tag = TAG_MAP.get("Slime jump");
+
+                    let sprite = CHASE.get_sprite(frame as usize);
+                    let sprite = controller.get_sprite(sprite).unwrap();
+
+                    entity.sprite.set_sprite(sprite);
 
                     entity.velocity.x = match frame {
                         2 | 3 | 4 => (Number::new(1) / 5) * Number::new(*direction as i32),
@@ -1003,7 +1053,11 @@ impl SlimeData {
             }
             SlimeState::Dead(count) => {
                 if *count < 5 * 4 {
-                    entity.sprite.set_tile_id((36 + *count / 4) * 4);
+                    const DEATH: &Tag = TAG_MAP.get("Slime death");
+                    let sprite = DEATH.get_sprite(*count as usize / 4);
+                    let sprite = controller.get_sprite(sprite).unwrap();
+
+                    entity.sprite.set_sprite(sprite);
                     *count += 1;
                 } else {
                     return UpdateInstruction::Remove;
@@ -1033,9 +1087,10 @@ impl MiniFlameData {
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
         sfx: &mut sfx::Sfx,
@@ -1051,6 +1106,8 @@ impl MiniFlameData {
 
         self.sprite_offset += 1;
 
+        const ANGRY: &Tag = TAG_MAP.get("angry boss");
+
         match &mut self.state {
             MiniFlameState::Idle(frames) => {
                 *frames -= 1;
@@ -1065,13 +1122,9 @@ impl MiniFlameData {
                         entity.velocity = resulting_direction.normalise() * Number::new(2);
                     }
                 } else {
-                    if self.sprite_offset >= 12 * 8 {
-                        self.sprite_offset = 0;
-                    }
-
-                    entity
-                        .sprite
-                        .set_tile_id((137 + self.sprite_offset / 8) * 4);
+                    let sprite = ANGRY.get_animation_sprite(self.sprite_offset as usize / 8);
+                    let sprite = controller.get_sprite(sprite).unwrap();
+                    entity.sprite.set_sprite(sprite);
 
                     entity.velocity = (0.into(), Number::new(-1) / Number::new(4)).into();
                 }
@@ -1113,17 +1166,13 @@ impl MiniFlameData {
                     instruction = UpdateInstruction::DamagePlayer;
                 }
 
-                if self.sprite_offset >= 12 * 2 {
-                    self.sprite_offset = 0;
-                }
-
                 if entity.velocity.manhattan_distance() < Number::new(1) / Number::new(4) {
                     self.state = MiniFlameState::Idle(90);
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((137 + self.sprite_offset / 2) * 4);
+                let sprite = ANGRY.get_animation_sprite(self.sprite_offset as usize / 2);
+                let sprite = controller.get_sprite(sprite).unwrap();
+                entity.sprite.set_sprite(sprite);
             }
             MiniFlameState::Dead => {
                 entity.velocity = (0, 0).into();
@@ -1131,9 +1180,11 @@ impl MiniFlameData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((148 + self.sprite_offset / 12) * 4);
+                const DEATH: &Tag = TAG_MAP.get("angry boss dead");
+
+                let sprite = DEATH.get_animation_sprite(self.sprite_offset as usize / 12);
+                let sprite = controller.get_sprite(sprite).unwrap();
+                entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
             }
@@ -1165,9 +1216,10 @@ impl EmuData {
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -1189,9 +1241,11 @@ impl EmuData {
                     self.sprite_offset = 0;
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((170 + self.sprite_offset / 16) * 4);
+                const IDLE: &Tag = TAG_MAP.get("emu - idle");
+
+                let sprite = IDLE.get_sprite(self.sprite_offset as usize / 16);
+                let sprite = controller.get_sprite(sprite).unwrap();
+                entity.sprite.set_sprite(sprite);
 
                 if (entity.position.y - player.entity.position.y).abs() < 10.into() {
                     let velocity = Number::new(1)
@@ -1234,9 +1288,11 @@ impl EmuData {
                     sfx.emu_step();
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((173 + self.sprite_offset / 2) * 4);
+                const WALK: &Tag = TAG_MAP.get("emu-walk");
+
+                let sprite = WALK.get_sprite(self.sprite_offset as usize / 2);
+                let sprite = controller.get_sprite(sprite).unwrap();
+                entity.sprite.set_sprite(sprite);
 
                 let gravity: Number = 1.into();
                 let gravity = gravity / 16;
@@ -1287,9 +1343,12 @@ impl EmuData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                entity
-                    .sprite
-                    .set_tile_id((177 + self.sprite_offset / 4) * 4);
+                const DEATH: &Tag = TAG_MAP.get("emu - die");
+
+                let sprite = DEATH.get_animation_sprite(self.sprite_offset as usize / 4);
+                let sprite = controller.get_sprite(sprite).unwrap();
+                entity.sprite.set_sprite(sprite);
+
                 self.sprite_offset += 1;
             }
         }
@@ -1317,27 +1376,32 @@ impl EnemyData {
         }
     }
 
-    fn tile_id(&self) -> u16 {
+    fn sprite(&self) -> &'static Sprite {
+        const SLIME: &Tag = TAG_MAP.get("slime idle");
+        const BAT: &Tag = TAG_MAP.get("bat");
+        const MINI_FLAME: &Tag = TAG_MAP.get("angry boss");
+        const EMU: &Tag = TAG_MAP.get("emu - idle");
         match self {
-            EnemyData::Slime(_) => 29,
-            EnemyData::Bat(_) => 78,
-            EnemyData::MiniFlame(_) => 137,
-            EnemyData::Emu(_) => 170,
+            EnemyData::Slime(_) => SLIME.get_sprite(0),
+            EnemyData::Bat(_) => BAT.get_sprite(0),
+            EnemyData::MiniFlame(_) => MINI_FLAME.get_sprite(0),
+            EnemyData::Emu(_) => EMU.get_sprite(0),
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
     ) -> UpdateInstruction {
         match self {
-            EnemyData::Slime(data) => data.update(entity, player, level, sfx),
-            EnemyData::Bat(data) => data.update(entity, player, level, sfx),
-            EnemyData::MiniFlame(data) => data.update(entity, player, level, sfx),
-            EnemyData::Emu(data) => data.update(entity, player, level, sfx),
+            EnemyData::Slime(data) => data.update(controller, entity, player, level, sfx),
+            EnemyData::Bat(data) => data.update(controller, entity, player, level, sfx),
+            EnemyData::MiniFlame(data) => data.update(controller, entity, player, level, sfx),
+            EnemyData::Emu(data) => data.update(controller, entity, player, level, sfx),
         }
     }
 }
@@ -1348,13 +1412,13 @@ struct Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
-    fn new(object_controller: &'a ObjectControl, enemy_data: EnemyData) -> Self {
+    fn new(object_controller: &'a ObjectController, enemy_data: EnemyData) -> Self {
         let mut entity = Entity::new(object_controller, enemy_data.collision_mask());
 
-        entity
-            .sprite
-            .set_sprite_size(agb::display::object::Size::S16x16);
-        entity.sprite.set_tile_id(enemy_data.tile_id());
+        let sprite = enemy_data.sprite();
+        let sprite = object_controller.get_sprite(sprite).unwrap();
+
+        entity.sprite.set_sprite(sprite);
         entity.sprite.show();
 
         entity.sprite.commit();
@@ -1362,8 +1426,15 @@ impl<'a> Enemy<'a> {
         Self { entity, enemy_data }
     }
 
-    fn update(&mut self, player: &Player, level: &Level, sfx: &mut sfx::Sfx) -> UpdateInstruction {
-        self.enemy_data.update(&mut self.entity, player, level, sfx)
+    fn update(
+        &mut self,
+        controller: &'a ObjectController,
+        player: &Player,
+        level: &Level,
+        sfx: &mut sfx::Sfx,
+    ) -> UpdateInstruction {
+        self.enemy_data
+            .update(controller, &mut self.entity, player, level, sfx)
     }
 }
 
@@ -1394,9 +1465,10 @@ impl ParticleData {
         }
     }
 
-    fn update(
+    fn update<'a>(
         &mut self,
-        entity: &mut Entity,
+        controller: &'a ObjectController,
+        entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
     ) -> UpdateInstruction {
@@ -1406,7 +1478,11 @@ impl ParticleData {
                     return UpdateInstruction::Remove;
                 }
 
-                entity.sprite.set_tile_id((70 + *frame / 3) * 4);
+                const DUST: &Tag = TAG_MAP.get("dust");
+                let sprite = DUST.get_sprite(*frame as usize / 3);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 *frame += 1;
                 UpdateInstruction::None
@@ -1416,7 +1492,11 @@ impl ParticleData {
                     return UpdateInstruction::Remove; // have played the animation 6 times
                 }
 
-                entity.sprite.set_tile_id((88 + (*frame / 3) % 8) * 4);
+                const HEALTH: &Tag = TAG_MAP.get("Heath");
+                let sprite = HEALTH.get_animation_sprite(*frame as usize / 3);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 if *frame < 8 * 3 * 3 {
                     entity.velocity.y = Number::new(-1) / 2;
@@ -1438,7 +1518,11 @@ impl ParticleData {
                 UpdateInstruction::None
             }
             ParticleData::BossHealer(frame, target) => {
-                entity.sprite.set_tile_id((88 + (*frame / 3) % 8) * 4);
+                const HEALTH: &Tag = TAG_MAP.get("Heath");
+                let sprite = HEALTH.get_animation_sprite(*frame as usize / 3);
+                let sprite = controller.get_sprite(sprite).unwrap();
+
+                entity.sprite.set_sprite(sprite);
 
                 if *frame < 8 * 3 * 3 {
                     entity.velocity.y = Number::new(-1) / 2;
@@ -1471,7 +1555,7 @@ struct Particle<'a> {
 
 impl<'a> Particle<'a> {
     fn new(
-        object_controller: &'a ObjectControl,
+        object_controller: &'a ObjectController,
         particle_data: ParticleData,
         position: Vector2D<Number>,
     ) -> Self {
@@ -1480,11 +1564,6 @@ impl<'a> Particle<'a> {
             Rect::new((0u16, 0u16).into(), (0u16, 0u16).into()),
         );
 
-        entity
-            .sprite
-            .set_sprite_size(agb::display::object::Size::S16x16);
-        entity.sprite.set_tile_id(particle_data.tile_id() * 4);
-        entity.sprite.show();
         entity.position = position;
 
         Self {
@@ -1493,8 +1572,15 @@ impl<'a> Particle<'a> {
         }
     }
 
-    fn update(&mut self, player: &Player, level: &Level) -> UpdateInstruction {
-        self.particle_data.update(&mut self.entity, player, level)
+    fn update(
+        &mut self,
+        controller: &'a ObjectController,
+        player: &Player,
+        level: &Level,
+    ) -> UpdateInstruction {
+        self.entity.sprite.show();
+        self.particle_data
+            .update(controller, &mut self.entity, player, level)
     }
 }
 
@@ -1515,14 +1601,14 @@ impl<'a> BossState<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectControl,
+        object_controller: &'a ObjectController,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
         match self {
             BossState::Active(boss) => boss.update(enemies, object_controller, player, sfx),
             BossState::Following(boss) => {
-                boss.update(player);
+                boss.update(object_controller, player);
                 BossInstruction::None
             }
             BossState::NotSpawned => BossInstruction::None,
@@ -1550,15 +1636,13 @@ struct FollowingBoss<'a> {
 }
 
 impl<'a> FollowingBoss<'a> {
-    fn new(object_controller: &'a ObjectControl, position: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a ObjectController, position: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (0_u16, 0_u16).into()),
         );
         entity.position = position;
-        entity
-            .sprite
-            .set_sprite_size(agb::display::object::Size::S16x16);
+
         Self {
             entity,
             following: true,
@@ -1567,11 +1651,11 @@ impl<'a> FollowingBoss<'a> {
             gone: false,
         }
     }
-    fn update(&mut self, player: &Player) {
+    fn update(&mut self, controller: &'a ObjectController, player: &Player) {
         let difference = player.entity.position - self.entity.position;
         self.timer += 1;
 
-        if self.to_hole {
+        let frame = if self.to_hole {
             let target: Vector2D<Number> = (17 * 8, -3 * 8).into();
             let difference = target - self.entity.position;
             if difference.manhattan_distance() < 1.into() {
@@ -1580,26 +1664,30 @@ impl<'a> FollowingBoss<'a> {
                 self.entity.velocity = difference.normalise() * 2;
             }
 
-            let frame = (self.timer / 8) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
+            self.timer / 8
         } else if self.timer < 120 {
-            let frame = (self.timer / 20) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
+            self.timer / 20
         } else if self.following {
             self.entity.velocity = difference / 16;
             if difference.manhattan_distance() < 20.into() {
                 self.following = false;
             }
-            let frame = (self.timer / 8) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
+            self.timer / 8
         } else {
             self.entity.velocity = (0, 0).into();
             if difference.manhattan_distance() > 60.into() {
                 self.following = true;
             }
-            let frame = (self.timer / 16) % 12;
-            self.entity.sprite.set_tile_id((125 + frame as u16) * 4);
-        }
+            self.timer / 16
+        };
+
+        const BOSS: &Tag = TAG_MAP.get("happy boss");
+
+        let sprite = BOSS.get_animation_sprite(frame as usize);
+        let sprite = controller.get_sprite(sprite).unwrap();
+
+        self.entity.sprite.set_sprite(sprite);
+
         self.entity.update_position_without_collision();
     }
 
@@ -1632,15 +1720,11 @@ enum BossInstruction {
 }
 
 impl<'a> Boss<'a> {
-    fn new(object_controller: &'a ObjectControl, screen_coords: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a ObjectController, screen_coords: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (28_u16, 28_u16).into()),
         );
-        entity
-            .sprite
-            .set_sprite_size(agb::display::object::Size::S32x32);
-        entity.sprite.set_palette(1);
         entity.position = screen_coords + (144, 136).into();
         Self {
             entity,
@@ -1655,7 +1739,7 @@ impl<'a> Boss<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectControl,
+        object_controller: &'a ObjectController,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
@@ -1731,8 +1815,14 @@ impl<'a> Boss<'a> {
             BossActiveState::WaitUntilKilled => 3.into(),
         };
         self.timer += 1;
-        let frame = (self.timer / animation_rate) % 12;
-        self.entity.sprite.set_tile_id(784 + (frame as u16) * 16);
+        let frame = self.timer / animation_rate;
+
+        const BOSS: &Tag = TAG_MAP.get("Boss");
+
+        let sprite = BOSS.get_animation_sprite(frame as usize);
+        let sprite = object_controller.get_sprite(sprite).unwrap();
+
+        self.entity.sprite.set_sprite(sprite);
 
         self.entity.update_position_without_collision();
         instruction
@@ -1753,7 +1843,7 @@ impl<'a> Boss<'a> {
         self.entity
             .commit_with_size(offset + shake, (32, 32).into());
     }
-    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a ObjectControl) {
+    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a ObjectController) {
         for _ in 0..(6 - self.health) {
             let x_offset: Number = Number::from_raw(get_random()).rem_euclid(2.into()) - 1;
             let y_offset: Number = Number::from_raw(get_random()).rem_euclid(2.into()) - 1;
@@ -1825,7 +1915,7 @@ impl<'a> Game<'a> {
 
     fn advance_frame(
         &mut self,
-        object_controller: &'a ObjectControl,
+        object_controller: &'a ObjectController,
         sfx: &mut sfx::Sfx,
     ) -> GameStatus {
         let mut state = GameStatus::Continue;
@@ -1921,7 +2011,7 @@ impl<'a> Game<'a> {
 
         self.input.update();
         if let UpdateInstruction::CreateParticle(data, position) =
-            self.player.update(&self.input, &self.level, sfx)
+            self.player.update(object_controller, &self.input, &self.level, sfx)
         {
             let new_particle = Particle::new(object_controller, data, position);
 
@@ -1935,7 +2025,7 @@ impl<'a> Game<'a> {
                 continue;
             }
 
-            match enemy.update(&self.player, &self.level, sfx) {
+            match enemy.update(object_controller, &self.player, &self.level, sfx) {
                 UpdateInstruction::Remove => {
                     remove.push(idx);
                 }
@@ -1989,7 +2079,7 @@ impl<'a> Game<'a> {
         let mut remove = Vec::with_capacity(10);
 
         for (idx, particle) in self.particles.iter_mut() {
-            match particle.update(&self.player, &self.level) {
+            match particle.update(object_controller, &self.player, &self.level) {
                 UpdateInstruction::Remove => remove.push(idx),
                 UpdateInstruction::HealBossAndRemove => {
                     sfx.sunrise();
@@ -2040,7 +2130,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn load_enemies(&mut self, object_controller: &'a ObjectControl) {
+    fn load_enemies(&mut self, object_controller: &'a ObjectController) {
         if self.slime_load < self.level.slime_spawns.len() {
             for (idx, slime_spawn) in self
                 .level
@@ -2111,7 +2201,7 @@ impl<'a> Game<'a> {
     }
 
     fn new(
-        object: &'a ObjectControl,
+        object: &'a ObjectController,
         level: Level,
         background_distributor: &'a mut BackgroundDistributor,
         start_at_boss: bool,
@@ -2146,16 +2236,6 @@ impl<'a> Game<'a> {
 }
 
 fn game_with_level(gba: &mut agb::Gba) {
-    {
-        let object = gba.display.object.get();
-        object.set_sprite_palettes(&[
-            objects::objects.palettes[0].clone(),
-            objects::boss.palettes[0].clone(),
-        ]);
-        object.set_sprite_tilemap(objects::objects.tiles);
-        object.set_sprite_tilemap_at_idx(8192 - objects::boss.tiles.len(), objects::boss.tiles);
-    }
-
     let vblank = agb::interrupt::VBlank::get();
     vblank.wait_for_vblank();
 
@@ -2172,8 +2252,7 @@ fn game_with_level(gba: &mut agb::Gba) {
         let mut background = gba.display.video.tiled0();
         background.set_background_palettes(background::background.palettes);
         background.set_background_tilemap(0, background::background.tiles);
-        let mut object = gba.display.object.get();
-        object.enable();
+        let object = gba.display.object.get();
 
         let mut game = Game::new(
             &object,
