@@ -67,13 +67,30 @@ pub enum Size {
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
-        use $crate::display::object::{Size, Sprite, Tag, TagMap};
+        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
 
         $crate::include_aseprite_inner!($($aseprite_path),*);
 
-        (SPRITES, TAGS)
+        &Graphics::new(SPRITES, TAGS)
     }};
+}
+
+pub struct Graphics {
+    sprites: &'static [Sprite],
+    tag_map: &'static TagMap,
+}
+
+impl Graphics {
+    pub const fn new(sprites: &'static [Sprite], tag_map: &'static TagMap) -> Self {
+        Self { sprites, tag_map }
+    }
+    pub const fn tags(&self) -> &TagMap {
+        self.tag_map
+    }
+    pub const fn sprites(&self) -> &[Sprite] {
+        self.sprites
+    }
 }
 
 pub struct TagMap {
@@ -170,8 +187,10 @@ impl Tag {
         }
     }
 
+    #[doc(hidden)]
     pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
         assert!(from <= to);
+        assert!(to < sprites.len());
         Self {
             sprites: &sprites[from] as *const Sprite,
             len: to - from + 1,
