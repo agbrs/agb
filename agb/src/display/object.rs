@@ -368,11 +368,21 @@ impl ObjectController {
             index: inner.pop()?,
             free_list: &self.free_objects,
         };
+
+        let mut attrs = Attributes::new();
+
+        attrs.a2.set_tile_index(sprite.sprite_location);
+        let shape_size = sprite.id.get_sprite().size.shape_size();
+        attrs.a2.set_palete_bank(sprite.palette_location as u8);
+        attrs.a0.set_shape(shape_size.0);
+        attrs.a1a.set_size(shape_size.1);
+        attrs.a1s.set_size(shape_size.1);
+
         Some(Object {
             previous_sprite: sprite.clone(),
             sprite,
             loan,
-            attrs: Attributes::new(),
+            attrs,
         })
     }
 
