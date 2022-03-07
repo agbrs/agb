@@ -1,9 +1,10 @@
 use crate::memory_mapped::MemoryMapped;
 use bitflags::bitflags;
 
+use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
-use self::object::ObjectControl;
+use self::object::ObjectController;
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
@@ -69,8 +70,8 @@ pub struct Display {
 pub struct ObjectDistribution {}
 
 impl ObjectDistribution {
-    pub fn get(&mut self) -> ObjectControl {
-        ObjectControl::new()
+    pub fn get(&mut self) -> ObjectController {
+        ObjectController::new()
     }
 }
 
@@ -109,7 +110,7 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(BitfieldSpecifier, Clone, Copy)]
 pub enum Priority {
     P0 = 0,
     P1 = 1,

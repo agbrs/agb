@@ -27,6 +27,7 @@ ci: && build-roms
     just _all-crates _test-debug
     just _all-crates _test-release
     just _all-crates _clippy
+    just build-book
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"

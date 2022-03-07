@@ -2,10 +2,12 @@ use core::alloc::Layout;
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
-mod block_allocator;
-mod bump_allocator;
+pub(crate) mod block_allocator;
+pub(crate) mod bump_allocator;
 
 use block_allocator::BlockAllocator;
+
+use self::bump_allocator::StartEnd;
 
 struct SendNonNull<T>(NonNull<T>);
 unsafe impl<T> Send for SendNonNull<T> {}
@@ -33,7 +35,12 @@ impl<T> DerefMut for SendNonNull<T> {
 const EWRAM_END: usize = 0x0204_0000;
 
 #[global_allocator]
-static GLOBAL_ALLOC: BlockAllocator = unsafe { BlockAllocator::new() };
+static GLOBAL_ALLOC: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: get_data_end,
+        end: || EWRAM_END,
+    })
+};
 
 #[cfg(test)]
 pub unsafe fn number_of_blocks() -> u32 {
@@ -47,6 +54,16 @@ fn alloc_error(layout: Layout) -> ! {
         layout.size(),
         layout.align()
     );
+}
+
+fn get_data_end() -> usize {
+    extern "C" {
+        static __ewram_data_end: usize;
+    }
+
+    // TODO: This seems completely wrong, but without the &, rust generates
+    // a double dereference :/. Maybe a bug in nightly?
+    (unsafe { &__ewram_data_end }) as *const _ as usize
 }
 
 #[cfg(test)]
@@ -117,5 +134,20 @@ mod test {
 
         assert_eq!(v1[40], 137);
         assert_eq!(v2[78], 1075);
+    }
+
+    #[test_case]
+    fn should_return_data_end_somewhere_in_ewram(_gba: &mut crate::Gba) {
+        let data_end = get_data_end();
+
+        assert!(
+            0x0200_0000 <= data_end,
+            "data end should be bigger than 0x0200_0000, got {}",
+            data_end
+        );
+        assert!(
+            0x0204_0000 > data_end,
+            "data end should be smaller than 0x0203_0000"
+        );
     }
 }

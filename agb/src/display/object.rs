@@ -1,124 +1,50 @@
+use alloc::vec::Vec;
+use core::alloc::Layout;
 use core::cell::RefCell;
+use core::hash::BuildHasherDefault;
+use core::ptr::NonNull;
+use core::slice;
+use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
+use modular_bitfield::{bitfield, BitfieldSpecifier};
+use rustc_hash::FxHasher;
 
-use super::{palette16, Priority, DISPLAY_CONTROL};
-use crate::bitarray::Bitarray;
+use hashbrown::HashMap;
+
+const BYTES_PER_TILE_4BPP: usize = 32;
+
+use super::palette16::Palette16;
+use super::{Priority, DISPLAY_CONTROL};
+use crate::agb_alloc::block_allocator::BlockAllocator;
+use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::fixnum::Vector2D;
-use crate::memory_mapped::MemoryMapped1DArray;
 
-type AffineLoan<'a> = crate::arena::Loan<'a, 32>;
-type AffineArena = crate::arena::Arena<32>;
+use attributes::*;
 
-const OBJECT_ATTRIBUTE_MEMORY: MemoryMapped1DArray<u16, 512> =
-    unsafe { MemoryMapped1DArray::new(0x0700_0000) };
-const PALETTE_SPRITE: MemoryMapped1DArray<u16, 256> =
-    unsafe { MemoryMapped1DArray::new(0x0500_0200) };
-const TILE_SPRITE: MemoryMapped1DArray<u32, { 1024 * 8 }> =
-    unsafe { MemoryMapped1DArray::new(0x06010000) };
+static SPRITE_ALLOCATOR: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: || TILE_SPRITE,
+        end: || TILE_SPRITE + 1024 * 8 * 4,
+    })
+};
 
-/// Handles distributing objects and matrices along with operations that effect all objects.
-/// You can create an instance of this using the Gba struct.
-///
-/// This handles distribution of sprites, ensuring that object ids are not reused and are
-/// returned to the pool once you're done handling them.
-///
-/// # Examples
-///
-/// ```
-/// # #![no_std]
-/// # #![no_main]
-/// #
-/// # use agb::Gba;
-/// #
-/// # #[agb::entry]
-/// # fn main() -> ! {
-/// let mut gba = Gba::new();
-/// let mut object = gba.display.object.get();
-/// #
-/// #    loop {}
-/// # }
-/// ```
-pub struct ObjectControl {
-    objects: RefCell<Bitarray<4>>,
-    affines: AffineArena,
+static PALETTE_ALLOCATOR: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: || PALETTE_SPRITE,
+        end: || PALETTE_SPRITE + 0x200,
+    })
+};
+
+const PALETTE_SPRITE: usize = 0x0500_0200;
+const TILE_SPRITE: usize = 0x06010000;
+const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
+
+pub struct Sprite {
+    palette: &'static Palette16,
+    data: &'static [u8],
+    size: Size,
 }
 
-struct ObjectLoan<'a> {
-    index: u8,
-    objects: &'a RefCell<Bitarray<4>>,
-}
-
-/// The standard object, without rotation.
-///
-/// You should create this from an instance of ObjectControl created using the Gba struct. Note that
-/// no changes made to this will be visible until `commit()` is called. You should call `commit()` during
-/// vblank to ensure that you get no visual artifacts.
-///
-/// This struct implements a sort of builder pattern, allowing you to chain settings together.
-///
-/// # Examples
-///
-/// ```
-/// # #![no_std]
-/// # #![no_main]
-/// #
-/// # use agb::Gba;
-/// use agb::display::object::Size;
-///
-/// # #[agb::entry]
-/// # fn main() -> ! {
-/// #    let mut gba = Gba::new();
-/// let mut object = gba.display.object.get();
-///
-/// let mut my_new_object = object.get_object_standard();
-/// my_new_object.set_x(50)
-///     .set_y(50)
-///     .set_sprite_Size(Size::S8x8)
-///     .set_tile_id(7)
-///     .show();
-///
-/// // some time later in vblank
-/// my_new_object.commit();
-/// #    loop {}
-/// # }
-/// ```
-pub struct ObjectStandard<'a> {
-    attributes: ObjectAttribute,
-    loan: ObjectLoan<'a>,
-}
-
-/// The affine object, with potential for using a transformation matrix to alter
-/// how the sprite is rendered to screen.
-pub struct ObjectAffine<'a> {
-    attributes: ObjectAttribute,
-    loan: ObjectLoan<'a>,
-    aff_loan: Option<AffineLoan<'a>>,
-}
-
-/// Refers to an affine matrix in the OAM. Includes both an index and the
-/// components of the affine matrix.
-pub struct AffineMatrix<'a> {
-    pub attributes: AffineMatrixAttributes,
-    loan: AffineLoan<'a>,
-}
-
-/// The components of the affine matrix. The components are fixed point 8:8.
-/// TODO is a type that can handle fixed point arithmetic.
-pub struct AffineMatrixAttributes {
-    pub p_a: i16,
-    pub p_b: i16,
-    pub p_c: i16,
-    pub p_d: i16,
-}
-
-#[allow(dead_code)]
-enum Mode {
-    Normal = 0,
-    Affine = 1,
-    Hidden = 2,
-    AffineDouble = 3,
-}
-
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Size {
     // stored as attr0 attr1
     S8x8 = 0b00_00,
@@ -137,401 +63,670 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
-impl ObjectStandard<'_> {
-    /// Commits the object to OAM such that the updated version is displayed on
-    /// screen. Recommend to do this during VBlank.
-    pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.loan.index) }
+#[macro_export]
+macro_rules! include_aseprite {
+    ($($aseprite_path: expr),*) => {{
+        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
+        use $crate::display::palette16::Palette16;
+
+        $crate::include_aseprite_inner!($($aseprite_path),*);
+
+        &Graphics::new(SPRITES, TAGS)
+    }};
+}
+
+pub struct Graphics {
+    sprites: &'static [Sprite],
+    tag_map: &'static TagMap,
+}
+
+impl Graphics {
+    pub const fn new(sprites: &'static [Sprite], tag_map: &'static TagMap) -> Self {
+        Self { sprites, tag_map }
     }
-
-    /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attributes.set_x(x);
-
-        self
+    pub const fn tags(&self) -> &TagMap {
+        self.tag_map
     }
-
-    /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.attributes.set_y(y);
-
-        self
-    }
-
-    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
-    pub fn set_tile_id(&mut self, id: u16) -> &mut Self {
-        self.attributes.set_tile_id(id);
-
-        self
-    }
-
-    /// Sets whether the sprite is horizontally mirrored or not.
-    pub fn set_hflip(&mut self, hflip: bool) -> &mut Self {
-        self.attributes.set_hflip(hflip);
-
-        self
-    }
-
-    /// Sets the sprite size, will read tiles in x major order to construct this.
-    pub fn set_sprite_size(&mut self, size: Size) -> &mut Self {
-        self.attributes.set_size(size);
-
-        self
-    }
-
-    /// Show the object on screen.
-    pub fn show(&mut self) -> &mut Self {
-        self.attributes.set_mode(Mode::Normal);
-
-        self
-    }
-
-    /// Hide the object and do not render.
-    pub fn hide(&mut self) -> &mut Self {
-        self.attributes.set_mode(Mode::Hidden);
-
-        self
-    }
-
-    /// Sets the palette to use for this sprite
-    pub fn set_palette(&mut self, palette: u16) -> &mut Self {
-        self.attributes.set_palette(palette);
-
-        self
-    }
-
-    /// Sets the x and y position of the object, performing casts as nessesary
-    /// to fit within the bits allocated for this purpose.
-    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        let x = position.x as u16;
-        let y = position.y as u16;
-        self.attributes.set_x(x);
-        self.attributes.set_y(y);
-
-        self
-    }
-
-    /// Sets the priority (used for z ordering) of this sprite
-    pub fn set_priority(&mut self, p: Priority) -> &mut Self {
-        self.attributes.set_priority(p);
-
-        self
+    pub const fn sprites(&self) -> &[Sprite] {
+        self.sprites
     }
 }
 
-impl<'a> ObjectAffine<'a> {
-    /// Commits the object to OAM such that the updated version is displayed on
-    /// screen. Recommend to do this during VBlank.
-    pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.loan.index) }
+pub struct TagMap {
+    tags: &'static [(&'static str, Tag)],
+}
+
+const fn const_byte_compare(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
     }
 
-    /// Sets the x coordinate of the sprite on screen.
-    pub fn set_x(&mut self, x: u16) {
-        self.attributes.set_x(x)
-    }
-    /// Sets the y coordinate of the sprite on screen.
-    pub fn set_y(&mut self, y: u16) {
-        self.attributes.set_y(y)
-    }
-    /// Sets the index of the tile to use as the sprite. Potentially a temporary function.
-    pub fn set_tile_id(&mut self, id: u16) {
-        self.attributes.set_tile_id(id)
-    }
-    /// Sets the sprite size, will read tiles in x major order to construct this.
-    pub fn set_sprite_size(&mut self, size: Size) {
-        self.attributes.set_size(size);
-    }
-
-    /// Show the object on screen. Panics if affine matrix has not been set.
-    pub fn show(&mut self) {
-        if self.aff_loan.is_none() {
-            panic!("affine matrix should be set")
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false;
         }
-        self.attributes.set_mode(Mode::Affine)
+        i += 1;
     }
-    /// Hide the object and do not render the sprite.
-    pub fn hide(&mut self) {
-        self.attributes.set_mode(Mode::Hidden)
-    }
-
-    /// Sets the affine matrix to use. Changing the affine matrix will change
-    /// how the sprite is rendered.
-    pub fn set_affine_mat(&mut self, aff: &AffineMatrix<'a>) {
-        self.attributes.set_affine(aff.loan.my_index);
-        self.aff_loan = Some(aff.loan.clone());
-    }
-
-    /// Sets the x and y position of the object, performing casts as nessesary
-    /// to fit within the bits allocated for this purpose.
-    pub fn set_position(&mut self, position: Vector2D<i32>) {
-        let x = position.x as u16;
-        let y = position.y as u16;
-        self.attributes.set_x(x);
-        self.attributes.set_y(y);
-    }
-
-    pub fn set_priority(&mut self, p: Priority) {
-        self.attributes.set_priority(p)
-    }
+    true
 }
 
-fn set_bits(current: u16, value: u16, length: u16, shift: u16) -> u16 {
-    let mask: u16 = (1 << length) - 1;
-    (current & !(mask << shift)) | ((value & mask) << shift)
-}
+impl TagMap {
+    pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
+        Self { tags }
+    }
+    pub const fn try_get(&'static self, tag: &str) -> Option<&'static Tag> {
+        let mut i = 0;
+        while i < self.tags.len() {
+            let s = self.tags[i].0;
+            if const_byte_compare(s.as_bytes(), tag.as_bytes()) {
+                return Some(&self.tags[i].1);
+            }
 
-impl Drop for ObjectLoan<'_> {
-    fn drop(&mut self) {
-        let attributes = ObjectAttribute::new();
-        unsafe {
-            attributes.commit(self.index);
+            i += 1;
         }
-        let mut objs = self.objects.borrow_mut();
-        objs.set(self.index as usize, false);
+
+        None
+    }
+    pub const fn get(&'static self, tag: &str) -> &'static Tag {
+        let t = self.try_get(tag);
+        match t {
+            Some(t) => t,
+            None => panic!("The requested tag does not exist"),
+        }
+    }
+    pub fn values(&self) -> impl Iterator<Item = &'static Tag> {
+        self.tags.iter().map(|x| &x.1)
     }
 }
 
-struct ObjectAttribute {
-    a0: u16,
-    a1: u16,
-    a2: u16,
+#[derive(Clone, Copy)]
+enum Direction {
+    Forward,
+    Backward,
+    Pingpong,
 }
 
-impl ObjectAttribute {
-    unsafe fn commit(&self, index: u8) {
-        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4, self.a0);
-        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4 + 1, self.a1);
-        OBJECT_ATTRIBUTE_MEMORY.set(index as usize * 4 + 2, self.a2);
-    }
-
-    fn set_hflip(&mut self, hflip: bool) {
-        self.a1 = set_bits(self.a1, hflip as u16, 1, 0xC);
-    }
-
-    fn set_size(&mut self, size: Size) {
-        let a1 = size as u16 & 0b11;
-        let a0 = (size as u16 >> 2) & 0b11;
-
-        self.a0 = set_bits(self.a0, a0, 2, 0xE);
-        self.a1 = set_bits(self.a1, a1, 2, 0xE);
-    }
-
-    fn set_palette(&mut self, palette: u16) {
-        self.a2 = set_bits(self.a2, palette, 4, 0xC);
-    }
-
-    fn set_x(&mut self, x: u16) {
-        self.a1 = set_bits(self.a1, x, 9, 0);
-    }
-
-    fn set_y(&mut self, y: u16) {
-        self.a0 = set_bits(self.a0, y, 8, 0)
-    }
-
-    fn set_tile_id(&mut self, id: u16) {
-        self.a2 = set_bits(self.a2, id, 10, 0);
-    }
-
-    fn set_mode(&mut self, mode: Mode) {
-        self.a0 = set_bits(self.a0, mode as u16, 2, 8);
-    }
-
-    fn set_affine(&mut self, aff_id: u8) {
-        self.a1 = set_bits(self.a1, aff_id as u16, 5, 0x9);
-    }
-
-    fn set_priority(&mut self, p: Priority) {
-        self.a2 = set_bits(self.a2, p as u16, 2, 0x0A);
+impl Direction {
+    const fn from_usize(a: usize) -> Self {
+        match a {
+            0 => Direction::Forward,
+            1 => Direction::Backward,
+            2 => Direction::Pingpong,
+            _ => panic!("Invalid direction, this is a bug in image converter or agb"),
+        }
     }
 }
 
-impl AffineMatrix<'_> {
-    /// Commits matrix to OAM, will cause any objects using this matrix to be updated.
-    pub fn commit(&self) {
-        unsafe { self.attributes.commit(self.loan.my_index) };
+pub struct Tag {
+    sprites: *const Sprite,
+    len: usize,
+    direction: Direction,
+}
+
+impl Tag {
+    pub fn get_sprites(&self) -> &'static [Sprite] {
+        unsafe { slice::from_raw_parts(self.sprites, self.len) }
+    }
+
+    pub fn get_sprite(&self, idx: usize) -> &'static Sprite {
+        &self.get_sprites()[idx]
+    }
+
+    #[inline]
+    pub fn get_animation_sprite(&self, idx: usize) -> &'static Sprite {
+        let len_sub_1 = self.len - 1;
+        match self.direction {
+            Direction::Forward => self.get_sprite(idx % self.len),
+            Direction::Backward => self.get_sprite(len_sub_1 - (idx % self.len)),
+            Direction::Pingpong => self.get_sprite(
+                (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize).abs()
+                    as usize,
+            ),
+        }
+    }
+
+    #[doc(hidden)]
+    pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
+        assert!(from <= to);
+        assert!(to < sprites.len());
+        Self {
+            sprites: &sprites[from] as *const Sprite,
+            len: to - from + 1,
+            direction: Direction::from_usize(direction),
+        }
     }
 }
 
-impl AffineMatrixAttributes {
-    #[allow(clippy::identity_op)]
-    unsafe fn commit(&self, index: u8) {
-        let index = index as usize * 4;
-        OBJECT_ATTRIBUTE_MEMORY.set((index + 0) * 4 + 3, self.p_a as u16);
-        OBJECT_ATTRIBUTE_MEMORY.set((index + 1) * 4 + 3, self.p_b as u16);
-        OBJECT_ATTRIBUTE_MEMORY.set((index + 2) * 4 + 3, self.p_c as u16);
-        OBJECT_ATTRIBUTE_MEMORY.set((index + 3) * 4 + 3, self.p_d as u16);
+impl Size {
+    const fn number_of_tiles(self) -> usize {
+        match self {
+            Size::S8x8 => 1,
+            Size::S16x16 => 4,
+            Size::S32x32 => 16,
+            Size::S64x64 => 64,
+            Size::S16x8 => 2,
+            Size::S32x8 => 4,
+            Size::S32x16 => 8,
+            Size::S64x32 => 32,
+            Size::S8x16 => 2,
+            Size::S8x32 => 4,
+            Size::S16x32 => 8,
+            Size::S32x64 => 32,
+        }
+    }
+    const fn shape_size(self) -> (u8, u8) {
+        (self as u8 >> 2, self as u8 & 0b11)
+    }
+
+    pub const fn from_width_height(width: usize, height: usize) -> Self {
+        match (width, height) {
+            (8, 8) => Size::S8x8,
+            (16, 16) => Size::S16x16,
+            (32, 32) => Size::S32x32,
+            (64, 64) => Size::S64x64,
+            (16, 8) => Size::S16x8,
+            (32, 8) => Size::S32x8,
+            (32, 16) => Size::S32x16,
+            (64, 32) => Size::S64x32,
+            (8, 16) => Size::S8x16,
+            (8, 32) => Size::S8x32,
+            (16, 32) => Size::S16x32,
+            (32, 64) => Size::S32x64,
+            (_, _) => panic!("Bad width and height!"),
+        }
+    }
+
+    pub const fn to_width_height(self) -> (usize, usize) {
+        match self {
+            Size::S8x8 => (8, 8),
+            Size::S16x16 => (16, 16),
+            Size::S32x32 => (32, 32),
+            Size::S64x64 => (64, 64),
+            Size::S16x8 => (16, 8),
+            Size::S32x8 => (32, 8),
+            Size::S32x16 => (32, 16),
+            Size::S64x32 => (64, 32),
+            Size::S8x16 => (8, 16),
+            Size::S8x32 => (8, 32),
+            Size::S16x32 => (16, 32),
+            Size::S32x64 => (32, 64),
+        }
     }
 }
 
-impl ObjectAttribute {
+pub struct SpriteBorrow<'a> {
+    id: SpriteId,
+    sprite_location: u16,
+    palette_location: u16,
+    controller: &'a RefCell<SpriteControllerInner>,
+}
+
+#[derive(Clone, Copy)]
+struct Storage {
+    location: u16,
+    count: u16,
+}
+
+impl Storage {
+    fn from_sprite_ptr(d: NonNull<u8>) -> Self {
+        Self {
+            location: (((d.as_ptr() as usize) - TILE_SPRITE) / BYTES_PER_TILE_4BPP) as u16,
+            count: 1,
+        }
+    }
+    fn from_palette_ptr(d: NonNull<u8>) -> Self {
+        Self {
+            location: ((d.as_ptr() as usize - PALETTE_SPRITE) / Palette16::layout().size()) as u16,
+            count: 1,
+        }
+    }
+    fn as_palette_ptr(&self) -> *mut u8 {
+        (self.location as usize * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
+    }
+    fn as_sprite_ptr(&self) -> *mut u8 {
+        (self.location as usize * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
+    }
+}
+
+struct Attributes {
+    a0: ObjectAttribute0,
+    a1s: ObjectAttribute1Standard,
+    a1a: ObjectAttribute1Affine,
+    a2: ObjectAttribute2,
+}
+
+impl Attributes {
     fn new() -> Self {
-        let mut o = ObjectAttribute {
-            a0: 0,
-            a1: 0,
-            a2: 0,
-        };
-        o.set_mode(Mode::Hidden);
-        o
+        Self {
+            a0: ObjectAttribute0::new(),
+            a1s: ObjectAttribute1Standard::new(),
+            a1a: ObjectAttribute1Affine::new(),
+            a2: ObjectAttribute2::new(),
+        }
     }
 }
 
-impl ObjectControl {
+pub struct Object<'a, 'b> {
+    sprite: SpriteBorrow<'a>,
+    previous_sprite: SpriteBorrow<'a>,
+    loan: Loan<'b>,
+    attrs: Attributes,
+}
+
+struct SpriteControllerInner {
+    palette: HashMap<PaletteId, Storage, BuildHasherDefault<FxHasher>>,
+    sprite: HashMap<SpriteId, Storage, BuildHasherDefault<FxHasher>>,
+}
+
+pub struct SpriteController {
+    inner: RefCell<SpriteControllerInner>,
+}
+
+struct Loan<'a> {
+    index: u8,
+    free_list: &'a RefCell<Vec<u8>>,
+}
+
+impl Drop for Loan<'_> {
+    fn drop(&mut self) {
+        let mut list = self.free_list.borrow_mut();
+        list.push(self.index);
+    }
+}
+
+pub struct ObjectController {
+    free_affine_matricies: RefCell<Vec<u8>>,
+    free_objects: RefCell<Vec<u8>>,
+    sprite_controller: SpriteController,
+}
+
+impl ObjectController {
     pub(crate) fn new() -> Self {
-        let o = ObjectAttribute::new();
-        for index in 0..128 {
-            unsafe { o.commit(index) };
-        }
-        ObjectControl {
-            objects: RefCell::new(Bitarray::new()),
-            affines: AffineArena::new(),
-        }
-    }
+        DISPLAY_CONTROL.set_bits(1, 1, 0x6);
+        DISPLAY_CONTROL.set_bits(1, 1, 0xC);
+        DISPLAY_CONTROL.set_bits(0, 1, 0x7);
 
-    fn set_sprite_tilemap_entry(&self, index: usize, data: u32) {
-        TILE_SPRITE.set(index, data);
-    }
-
-    /// Copies raw palettes to the background palette without any checks.
-    pub fn set_sprite_palette_raw(&self, colour: &[u16]) {
-        for (index, &entry) in colour.iter().enumerate() {
-            self.set_sprite_palette_entry(index, entry)
-        }
-    }
-    fn set_sprite_palette_entry(&self, index: usize, colour: u16) {
-        PALETTE_SPRITE.set(index, colour)
-    }
-
-    fn set_sprite_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
-        for (colour_index, &colour) in palette.colours.iter().enumerate() {
-            PALETTE_SPRITE.set(pal_index as usize * 16 + colour_index, colour);
-        }
-    }
-
-    pub fn set_sprite_palettes(&self, palettes: &[palette16::Palette16]) {
-        for (palette_index, entry) in palettes.iter().enumerate() {
-            self.set_sprite_palette(palette_index as u8, entry)
-        }
-    }
-
-    /// Copies tiles to the sprite tilemap without any checks.
-    pub fn set_sprite_tilemap(&self, tiles: &[u32]) {
-        for (index, &tile) in tiles.iter().enumerate() {
-            self.set_sprite_tilemap_entry(index, tile)
-        }
-    }
-
-    pub fn set_sprite_tilemap_at_idx(&self, idx: usize, tiles: &[u32]) {
-        for (index, &tile) in tiles.iter().enumerate() {
-            self.set_sprite_tilemap_entry(index + idx, tile)
-        }
-    }
-
-    /// Enable objects on the GBA.
-    pub fn enable(&mut self) {
-        let disp = DISPLAY_CONTROL.get();
-        let disp = disp | (1 << 0x0C);
-        DISPLAY_CONTROL.set(disp);
-    }
-
-    /// Disable objects, objects won't be rendered.
-    pub fn disable(&mut self) {
-        let disp = DISPLAY_CONTROL.get();
-        let disp = disp & !(1 << 0x0C);
-        DISPLAY_CONTROL.set(disp);
-    }
-
-    fn get_unused_object_index(&self) -> u8 {
-        let mut objects = self.objects.borrow_mut();
-        for index in 0..128 {
-            if !objects.get(index).unwrap() {
-                objects.set(index, true);
-                return index as u8;
+        for i in 0..128 {
+            unsafe {
+                (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                    .add(i * 4)
+                    .write_volatile(0b10 << 8)
             }
         }
-        panic!("object id must be less than 128");
-    }
 
-    /// Get an unused standard object. Panics if more than 128 objects are
-    /// obtained.
-    pub fn get_object_standard(&self) -> ObjectStandard {
-        let id = self.get_unused_object_index();
-        ObjectStandard {
-            attributes: ObjectAttribute::new(),
-            loan: ObjectLoan {
-                objects: &self.objects,
-                index: id,
-            },
+        Self {
+            free_objects: RefCell::new((0..128).collect()),
+            free_affine_matricies: RefCell::new((0..32).collect()),
+            sprite_controller: SpriteController::new(),
         }
     }
 
-    /// Get an unused affine object. Panics if more than 128 objects are
-    /// obtained.
-    pub fn get_object_affine(&self) -> ObjectAffine {
-        let id = self.get_unused_object_index();
-        ObjectAffine {
-            attributes: ObjectAttribute::new(),
-            loan: ObjectLoan {
-                objects: &self.objects,
-                index: id,
-            },
-            aff_loan: None,
-        }
+    pub fn get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
+        let mut inner = self.free_objects.borrow_mut();
+        let loan = Loan {
+            index: inner.pop()?,
+            free_list: &self.free_objects,
+        };
+
+        let mut attrs = Attributes::new();
+
+        attrs.a2.set_tile_index(sprite.sprite_location);
+        let shape_size = sprite.id.get_sprite().size.shape_size();
+        attrs.a2.set_palete_bank(sprite.palette_location as u8);
+        attrs.a0.set_shape(shape_size.0);
+        attrs.a1a.set_size(shape_size.1);
+        attrs.a1s.set_size(shape_size.1);
+
+        Some(Object {
+            previous_sprite: sprite.clone(),
+            sprite,
+            loan,
+            attrs,
+        })
     }
 
-    /// Get an unused affine matrix. Panics if more than 32 affine matricies are
-    /// obtained.
-    pub fn get_affine(&self) -> AffineMatrix {
-        AffineMatrix {
-            attributes: AffineMatrixAttributes {
-                p_a: 0,
-                p_b: 0,
-                p_c: 0,
-                p_d: 0,
-            },
-            loan: self
-                .affines
-                .get_next_free()
-                .expect("there are no affines avaliable"),
+    pub fn get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
+        self.sprite_controller.get_sprite(sprite)
+    }
+}
+
+impl Drop for Object<'_, '_> {
+    fn drop(&mut self) {
+        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
+        self.commit();
+    }
+}
+
+impl<'a, 'b> Object<'a, 'b> {
+    pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
+        self.attrs.a2.set_tile_index(sprite.sprite_location);
+        let shape_size = sprite.id.get_sprite().size.shape_size();
+        self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
+        self.attrs.a0.set_shape(shape_size.0);
+        self.attrs.a1a.set_size(shape_size.1);
+        self.attrs.a1s.set_size(shape_size.1);
+        self.sprite = sprite;
+    }
+
+    pub fn show(&mut self) -> &mut Self {
+        self.attrs.a0.set_object_mode(ObjectMode::Normal);
+
+        self
+    }
+
+    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
+        self.attrs.a1s.set_horizontal_flip(flip);
+        self
+    }
+
+    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
+        self.attrs.a1s.set_vertical_flip(flip);
+        self
+    }
+
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
+        self.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
+        self
+    }
+
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.attrs.a2.set_priority(priority);
+        self
+    }
+
+    pub fn hide(&mut self) -> &mut Self {
+        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
+        self
+    }
+
+    pub fn set_y(&mut self, y: u16) -> &mut Self {
+        self.attrs.a0.set_y(y as u8);
+
+        self
+    }
+
+    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
+        self.attrs.a0.set_y(position.y as u8);
+        self.attrs.a1a.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self.attrs.a1s.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self
+    }
+
+    pub fn commit(&mut self) {
+        let mode = self.attrs.a0.object_mode();
+        let attrs: [[u8; 2]; 3] = match mode {
+            ObjectMode::Normal => [
+                self.attrs.a0.into_bytes(),
+                self.attrs.a1s.into_bytes(),
+                self.attrs.a2.into_bytes(),
+            ],
+            _ => [
+                self.attrs.a0.into_bytes(),
+                self.attrs.a1a.into_bytes(),
+                self.attrs.a2.into_bytes(),
+            ],
+        };
+
+        unsafe {
+            let attrs: [u16; 3] = core::mem::transmute(attrs);
+            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.loan.index as usize * 4);
+
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
+        };
+        self.previous_sprite = self.sprite.clone();
+    }
+}
+
+/// The Sprite Id is a thin wrapper around the pointer to the sprite in
+/// rom and is therefore a unique identifier to a sprite
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct SpriteId(usize);
+
+impl SpriteId {
+    fn get_sprite(self) -> &'static Sprite {
+        // # Safety
+        // This must be constructed using the get_id of a sprite, so
+        // they are always valid and always static
+        unsafe { (self.0 as *const Sprite).as_ref().unwrap_unchecked() }
+    }
+}
+
+/// The palette id is a thin wrapper around the pointer to the palette in rom
+/// and is therefore a unique reference to a palette
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+struct PaletteId(usize);
+
+impl PaletteId {
+    fn get_palette(self) -> &'static Palette16 {
+        unsafe { (self.0 as *const Palette16).as_ref().unwrap_unchecked() }
+    }
+}
+
+impl Palette16 {
+    fn get_id(&'static self) -> PaletteId {
+        PaletteId(self as *const _ as usize)
+    }
+    const fn layout() -> Layout {
+        Layout::new::<Self>()
+    }
+}
+
+impl Sprite {
+    fn get_id(&'static self) -> SpriteId {
+        SpriteId(self as *const _ as usize)
+    }
+    fn layout(&self) -> Layout {
+        Layout::from_size_align(self.size.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
+    }
+    pub const fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
+        Self {
+            palette,
+            data,
+            size,
+        }
+    }
+    pub const fn size(&self) -> Size {
+        self.size
+    }
+}
+
+impl SpriteController {
+    fn new() -> Self {
+        Self {
+            inner: RefCell::new(SpriteControllerInner::new()),
+        }
+    }
+    fn get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
+        let mut inner = self.inner.borrow_mut();
+        let id = sprite.get_id();
+        if let Some(storage) = inner.sprite.get_mut(&id) {
+            storage.count += 1;
+            let location = storage.location;
+            let palette_location = inner.get_palette(sprite.palette).unwrap();
+            Some(SpriteBorrow {
+                id,
+                palette_location,
+                sprite_location: location,
+                controller: &self.inner,
+            })
+        } else {
+            // layout is non zero sized, so this is safe to call
+
+            let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
+            let palette_location = inner.get_palette(sprite.palette);
+            let palette_location = match palette_location {
+                Some(a) => a,
+                None => {
+                    unsafe { SPRITE_ALLOCATOR.dealloc(dest.as_ptr(), sprite.layout()) }
+                    return None;
+                }
+            };
+
+            unsafe {
+                dest.as_ptr()
+                    .copy_from_nonoverlapping(sprite.data.as_ptr(), sprite.data.len())
+            }
+
+            let storage = Storage::from_sprite_ptr(dest);
+            inner.sprite.insert(id, storage);
+
+            Some(SpriteBorrow {
+                id,
+                controller: &self.inner,
+                palette_location,
+                sprite_location: storage.location,
+            })
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    #[test_case]
-    fn get_and_release_object(gba: &mut crate::Gba) {
-        let objs = gba.display.object.get();
+impl SpriteControllerInner {
+    fn new() -> Self {
+        Self {
+            palette: HashMap::default(),
+            sprite: HashMap::default(),
+        }
+    }
+    fn get_palette(&mut self, palette: &'static Palette16) -> Option<u16> {
+        let id = palette.get_id();
+        if let Some(storage) = self.palette.get_mut(&id) {
+            storage.count += 1;
+            Some(storage.location)
+        } else {
+            let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
 
-        let _o1 = {
-            let o0 = objs.get_object_standard();
-            let o1 = objs.get_object_standard();
-            assert_eq!(o0.loan.index, 0);
-            assert_eq!(o1.loan.index, 1);
-            o1
-        };
+            unsafe {
+                dest.as_ptr()
+                    .cast::<u16>()
+                    .copy_from_nonoverlapping(palette.colours.as_ptr(), palette.colours.len())
+            }
 
-        let o0 = objs.get_object_standard();
-        assert_eq!(o0.loan.index, 0);
-        let o2 = objs.get_object_affine();
-        assert_eq!(o2.loan.index, 2);
+            let storage = Storage::from_palette_ptr(dest);
+            self.palette.insert(id, storage);
+
+            Some(storage.location)
+        }
     }
 
-    #[test_case]
-    fn get_and_release_affine(gba: &mut crate::Gba) {
-        let objs = gba.display.object.get();
+    fn return_sprite(&mut self, sprite: &'static Sprite) {
+        self.sprite
+            .entry(sprite.get_id())
+            .and_replace_entry_with(|_, mut storage| {
+                storage.count -= 1;
+                if storage.count == 0 {
+                    unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) }
+                    None
+                } else {
+                    Some(storage)
+                }
+            });
 
-        let _a1 = {
-            let a0 = objs.get_affine();
-            let a1 = objs.get_affine();
-            assert_eq!(a0.loan.my_index, 0);
-            assert_eq!(a1.loan.my_index, 1);
-            a1
-        };
+        self.return_palette(sprite.palette)
+    }
 
-        let a0 = objs.get_affine();
-        assert_eq!(a0.loan.my_index, 0);
-        let a2 = objs.get_affine();
-        assert_eq!(a2.loan.my_index, 2);
+    fn return_palette(&mut self, palette: &'static Palette16) {
+        let id = palette.get_id();
+        self.palette
+            .entry(id)
+            .and_replace_entry_with(|_, mut storage| {
+                storage.count -= 1;
+                if storage.count == 0 {
+                    unsafe {
+                        PALETTE_ALLOCATOR.dealloc(storage.as_palette_ptr(), Palette16::layout());
+                    }
+                    None
+                } else {
+                    Some(storage)
+                }
+            });
+    }
+}
+
+impl<'a> Drop for SpriteBorrow<'a> {
+    fn drop(&mut self) {
+        let mut inner = self.controller.borrow_mut();
+        inner.return_sprite(self.id.get_sprite())
+    }
+}
+
+impl<'a> Clone for SpriteBorrow<'a> {
+    fn clone(&self) -> Self {
+        let mut inner = self.controller.borrow_mut();
+        inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
+        let _ = inner.get_palette(self.id.get_sprite().palette).unwrap();
+        Self {
+            id: self.id,
+            sprite_location: self.sprite_location,
+            palette_location: self.palette_location,
+            controller: self.controller,
+        }
+    }
+}
+
+#[derive(BitfieldSpecifier, Clone, Copy)]
+enum ObjectMode {
+    Normal,
+    Affine,
+    Disabled,
+    AffineDouble,
+}
+
+#[derive(BitfieldSpecifier, Clone, Copy)]
+#[bits = 2]
+enum GraphicsMode {
+    Normal,
+    AlphaBlending,
+    Window,
+}
+
+#[derive(BitfieldSpecifier, Clone, Copy)]
+enum ColourMode {
+    Four,
+    Eight,
+}
+
+#[allow(dead_code)]
+mod attributes {
+    use super::*;
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute0 {
+        pub y: B8,
+        pub object_mode: ObjectMode,
+        pub graphics_mode: GraphicsMode,
+        pub mosaic: bool,
+        pub colour_mode: ColourMode,
+        pub shape: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute1Standard {
+        pub x: B9,
+        #[skip]
+        __: B3,
+        pub horizontal_flip: bool,
+        pub vertical_flip: bool,
+        pub size: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute1Affine {
+        pub x: B9,
+        pub affine_index: B5,
+        pub size: B2,
+    }
+
+    #[bitfield]
+    #[derive(Clone, Copy)]
+    pub(super) struct ObjectAttribute2 {
+        pub tile_index: B10,
+        pub priority: Priority,
+        pub palete_bank: B4,
     }
 }

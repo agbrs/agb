@@ -3,8 +3,10 @@ use proc_macro::TokenStream;
 
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use rand::Rng;
 use syn::{FnArg, Ident, ItemFn, Pat, ReturnType, Token, Type, Visibility};
+
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 #[proc_macro_attribute]
 pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -57,7 +59,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         "Must pass no args to #[agb::entry] macro"
     );
 
-    let fn_name = random_ident();
+    let fn_name = hashed_ident(&f);
 
     let attrs = f.attrs;
     let stmts = f.block.stmts;
@@ -98,18 +100,13 @@ pub fn num(input: TokenStream) -> TokenStream {
     quote!((#integer, #fractional)).into()
 }
 
-fn random_ident() -> Ident {
-    let mut rng = rand::thread_rng();
-    Ident::new(
-        &(0..16)
-            .map(|i| {
-                if i == 0 || rng.gen() {
-                    (b'a' + rng.gen::<u8>() % 25) as char
-                } else {
-                    (b'0' + rng.gen::<u8>() % 10) as char
-                }
-            })
-            .collect::<String>(),
-        Span::call_site(),
-    )
+fn hashed_ident<T: Hash>(f: &T) -> Ident {
+    let hash = calculate_hash(f);
+    Ident::new(&format!("_agb_main_func_{}", hash), Span::call_site())
+}
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }

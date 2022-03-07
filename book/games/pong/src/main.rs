@@ -10,42 +10,27 @@
 // which won't be a particularly clear error message.
 #![no_main]
 
-use agb::display::object::Size;
+use agb::display::object::{Graphics, Tag};
 use agb::Gba;
 
-// Put all the graphics related code in the gfx module
-mod gfx {
-    use agb::display::object::ObjectControl;
-
-    // Import the sprites into this module. This will create a `sprites` module
-    // and within that will be a constant called `sprites` which houses all the
-    // palette and tile data.
-    agb::include_gfx!("gfx/sprites.toml");
-
-    // Loads the sprites tile data and palette data into VRAM
-    pub fn load_sprite_data(object: &mut ObjectControl) {
-        object.set_sprite_palettes(sprites::sprites.palettes);
-        object.set_sprite_tilemap(sprites::sprites.tiles);
-    }
-}
+const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly.
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
-    let _tiled = gba.display.video.tiled0();
-    let mut object = gba.display.object.get();
-    gfx::load_sprite_data(&mut object);
-    object.enable();
+    let object = gba.display.object.get();
 
-    let mut ball = object.get_object_standard();
+    const BALL: &Tag = GRAPHICS.tags().get("Ball");
+    let ball_sprite = object
+        .get_sprite(BALL.get_sprite(0))
+        .expect("We should be able to load a sprite");
+    let mut ball = object
+        .get_object(ball_sprite)
+        .expect("We should have enoguh space to store an object");
 
-    ball.set_x(50)
-        .set_y(50)
-        .set_sprite_size(Size::S16x16)
-        .set_tile_id(4 * 2)
-        .show();
+    ball.set_x(50).set_y(50).show();
 
     let mut ball_x = 50;
     let mut ball_y = 50;

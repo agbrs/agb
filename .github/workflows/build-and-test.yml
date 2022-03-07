@@ -33,5 +33,9 @@ jobs:
     - name: Install gbafix
       run: cargo install gbafix
     - uses: extractions/setup-just@v1
+    - name: Setup mdBook
+      uses: peaceiris/actions-mdbook@v1
+      with:
+        mdbook-version: '0.4.13'
     - name: Build and test all crates
       run: just ci
