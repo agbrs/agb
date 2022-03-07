@@ -1,3 +1,4 @@
+#[repr(C)]
 #[derive(Clone)]
 pub struct Palette16 {
     pub(crate) colours: [u16; 16],

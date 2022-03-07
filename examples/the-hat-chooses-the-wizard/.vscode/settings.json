@@ -2,5 +2,10 @@
     "files.associations": {
         "*.tsx": "xml",
         "*.tmx": "xml"
-    }
+    },
+    "rust-analyzer.checkOnSave.allTargets": false,
+    "rust-analyzer.checkOnSave.extraArgs": [
+        "--target",
+        "thumbv4t-none-eabi"
+    ]
 }

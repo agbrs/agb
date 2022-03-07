@@ -1,6 +1,0 @@
-version = "1.0"
-
-[image.object_sheet]
-filename = "object_sheet.png"
-tile_size = "8x8"
-transparent_colour = "2ce8f4"

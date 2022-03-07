@@ -151,12 +151,12 @@ impl Palette16Optimiser {
             let mut a_colour_is_used = false;
 
             for current_palette in unsatisfied_palettes {
-                if palette.union_length(&current_palette) > MAX_COLOURS_PER_PALETTE {
+                if palette.union_length(current_palette) > MAX_COLOURS_PER_PALETTE {
                     continue;
                 }
 
                 for colour in &current_palette.colours {
-                    if palette.colours.contains(&colour) {
+                    if palette.colours.contains(colour) {
                         continue;
                     }
 

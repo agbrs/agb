@@ -15,8 +15,7 @@ lto = true
 debug = true
 
 [features]
-default = ["alloc"]
-alloc = []
+default = []
 freq18157 = ["agb_sound_converter/freq18157"]
 
 [dependencies]
@@ -26,6 +25,9 @@ agb_sound_converter = { version = "0.1.0", path = "../agb-sound-converter" }
 agb_macros = { version = "0.1.0", path = "../agb-macros" }
 agb_fixnum = { version = "0.1.0", path = "../agb-fixnum" }
 bare-metal = "1.0"
+hashbrown = "0.12.0"
+modular-bitfield = "0.11.2"
+rustc-hash =  { version = "1.0", default-features = false }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"

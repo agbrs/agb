@@ -18,27 +18,6 @@ pub struct Level {
     start_pos: (i32, i32),
 }
 
-mod object_tiles {
-    pub const WIZARD_TILE_START: u16 = 0;
-    pub const WIZARD_JUMP: u16 = 4 * 4;
-    pub const WIZARD_FALL_START: u16 = 5 * 4;
-
-    pub const HAT_TILE_START: u16 = 9 * 4;
-    pub const HAT_TILE_START_SECOND: u16 = 28 * 4;
-    pub const HAT_TILE_START_THIRD: u16 = 38 * 4;
-
-    pub const SLIME_IDLE_START: u16 = 19 * 4;
-    pub const SLIME_JUMP_START: u16 = 20 * 4;
-    pub const SLIME_SPLAT_START: u16 = 24 * 4;
-
-    pub const SNAIL_IDLE_START: u16 = 48 * 4;
-    pub const SNAIL_EMERGE_START: u16 = 49 * 4;
-    pub const SNAIL_MOVE: u16 = 54 * 4;
-    pub const SNAIL_DEATH_START: u16 = 56 * 4;
-}
-
-agb::include_gfx!("gfx/object_sheet.toml");
-
 mod map_tiles {
 
     use super::Level;
@@ -106,25 +85,37 @@ agb::include_gfx!("gfx/tile_sheet.toml");
 use agb::{
     display::{
         background::BackgroundRegular,
-        object::{ObjectControl, ObjectStandard, Size},
+        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
 };
 
+const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
+const TAG_MAP: &TagMap = GRAPHICS.tags();
+
+const WALKING: &Tag = TAG_MAP.get("Walking");
+const JUMPING: &Tag = TAG_MAP.get("Jumping");
+const FALLING: &Tag = TAG_MAP.get("Falling");
+const PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
+const HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
+const HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
+const HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
+
 type FixedNumberType = FixedNum<10>;
 
 pub struct Entity<'a> {
-    sprite: ObjectStandard<'a>,
+    sprite: Object<'a, 'a>,
     position: Vector2D<FixedNumberType>,
     velocity: Vector2D<FixedNumberType>,
     collision_mask: Vector2D<u16>,
 }
 
 impl<'a> Entity<'a> {
-    pub fn new(object: &'a ObjectControl, collision_mask: Vector2D<u16>) -> Self {
-        let mut sprite = object.get_object_standard();
+    pub fn new(object: &'a ObjectController, collision_mask: Vector2D<u16>) -> Self {
+        let dummy_sprite = object.get_sprite(WALKING.get_sprite(0)).unwrap();
+        let mut sprite = object.get_object(dummy_sprite).unwrap();
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
@@ -360,14 +351,16 @@ fn ping_pong(i: i32, n: i32) -> i32 {
 }
 
 impl<'a> Player<'a> {
-    fn new(controller: &'a ObjectControl, start_position: Vector2D<FixedNumberType>) -> Self {
-        let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
+    fn new(controller: &'a ObjectController, start_position: Vector2D<FixedNumberType>) -> Self {
         let mut wizard = Entity::new(controller, (6_u16, 14_u16).into());
+        let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
 
-        wizard.sprite.set_tile_id(object_tiles::WIZARD_TILE_START);
-        hat.sprite.set_tile_id(object_tiles::HAT_TILE_START);
-        wizard.sprite.set_sprite_size(Size::S16x16);
-        hat.sprite.set_sprite_size(Size::S16x16);
+        wizard
+            .sprite
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)).unwrap());
+        hat.sprite
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)).unwrap());
+
         wizard.sprite.show();
         hat.sprite.show();
 
@@ -393,6 +386,7 @@ impl<'a> Player<'a> {
     fn update_frame(
         &mut self,
         input: &ButtonController,
+        controller: &'a ObjectController,
         timer: i32,
         level: &Level,
         enemies: &[enemies::Enemy],
@@ -467,23 +461,27 @@ impl<'a> Player<'a> {
             self.wizard.velocity = self.wizard.update_position(level);
 
             if self.wizard.velocity.x.abs() > 0.into() {
-                let offset = (ping_pong(timer / 16, 4)) as u16;
+                let offset = (ping_pong(timer / 16, 4)) as usize;
                 self.wizard_frame = offset as u8;
 
-                self.wizard
-                    .sprite
-                    .set_tile_id(object_tiles::WIZARD_TILE_START + offset * 4);
+                let frame = WALKING.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.wizard.sprite.set_sprite(sprite);
             }
 
             if self.wizard.velocity.y < -FixedNumberType::new(1) / 16 {
                 // going up
                 self.wizard_frame = 5;
 
-                self.wizard.sprite.set_tile_id(object_tiles::WIZARD_JUMP);
+                let frame = JUMPING.get_animation_sprite(0);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.wizard.sprite.set_sprite(sprite);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
                 // going down
                 let offset = if self.wizard.velocity.y * 2 > 3.into() {
-                    ((timer / 4) % 4) as u16
+                    (timer / 4) as usize
                 } else {
                     // Don't flap beard unless going quickly
                     0
@@ -491,9 +489,10 @@ impl<'a> Player<'a> {
 
                 self.wizard_frame = 0;
 
-                self.wizard
-                    .sprite
-                    .set_tile_id(object_tiles::WIZARD_FALL_START + offset * 4);
+                let frame = FALLING.get_animation_sprite(offset);
+                let sprite = controller.get_sprite(frame).unwrap();
+
+                self.wizard.sprite.set_sprite(sprite);
             }
 
             if input.x_tri() != agb::input::Tri::Zero {
@@ -502,19 +501,23 @@ impl<'a> Player<'a> {
         }
 
         let hat_base_tile = match self.num_recalls {
-            0 => object_tiles::HAT_TILE_START,
-            1 => object_tiles::HAT_TILE_START_SECOND,
-            _ => object_tiles::HAT_TILE_START_THIRD,
+            0 => HAT_SPIN_1,
+            1 => HAT_SPIN_2,
+            _ => HAT_SPIN_3,
         };
 
         match self.facing {
             agb::input::Tri::Negative => {
                 self.wizard.sprite.set_hflip(true);
-                self.hat.sprite.set_tile_id(hat_base_tile + 4 * 5);
+                self.hat
+                    .sprite
+                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(5)).unwrap());
             }
             agb::input::Tri::Positive => {
                 self.wizard.sprite.set_hflip(false);
-                self.hat.sprite.set_tile_id(hat_base_tile);
+                self.hat
+                    .sprite
+                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(0)).unwrap());
             }
             _ => {}
         }
@@ -543,11 +546,13 @@ impl<'a> Player<'a> {
                     _ => 4,
                 };
 
-                let hat_sprite_offset = timer / hat_sprite_divider % 10;
+                let hat_sprite_offset = (timer / hat_sprite_divider) as usize;
 
-                self.hat
-                    .sprite
-                    .set_tile_id(hat_base_tile + (hat_sprite_offset * 4) as u16);
+                self.hat.sprite.set_sprite(
+                    controller
+                        .get_sprite(hat_base_tile.get_animation_sprite(hat_sprite_offset))
+                        .unwrap(),
+                );
 
                 if self.hat_slow_counter < 30 && self.hat.velocity.magnitude() < 2.into() {
                     self.hat.velocity = (0, 0).into();
@@ -578,9 +583,11 @@ impl<'a> Player<'a> {
                 self.hat.position = self.wizard.position - hat_resting_position;
             }
             HatState::WizardTowards => {
-                self.hat
-                    .sprite
-                    .set_tile_id(hat_base_tile + 4 * (timer / 2 % 10) as u16);
+                self.hat.sprite.set_sprite(
+                    controller
+                        .get_sprite(hat_base_tile.get_animation_sprite(timer as usize / 2))
+                        .unwrap(),
+                );
                 let distance_vector =
                     self.hat.position - self.wizard.position + hat_resting_position;
                 let distance = distance_vector.magnitude();
@@ -617,7 +624,7 @@ enum UpdateState {
 impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
-        object_control: &'a ObjectControl,
+        object_control: &'a ObjectController,
         background: &'a mut BackgroundRegular<'b>,
         foreground: &'a mut BackgroundRegular<'b>,
         input: ButtonController,
@@ -676,22 +683,26 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self) -> bool {
+    fn dead_update(&mut self, controller: &'a ObjectController) -> bool {
         self.timer += 1;
+
+        let frame = PLAYER_DEATH.get_animation_sprite(self.timer as usize / 8);
+        let sprite = controller.get_sprite(frame).unwrap();
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;
-        self.player
-            .wizard
-            .sprite
-            .set_tile_id((self.timer / 8 % 2 * 4 + 63 * 4) as u16);
+        self.player.wizard.sprite.set_sprite(sprite);
 
         self.player.wizard.commit_position(self.background.position);
 
         self.player.wizard.position.y - self.background.position.y < (HEIGHT + 8).into()
     }
 
-    fn update_frame(&mut self, sfx_player: &mut sfx::SfxPlayer) -> UpdateState {
+    fn update_frame(
+        &mut self,
+        controller: &'a ObjectController,
+        sfx_player: &mut sfx::SfxPlayer,
+    ) -> UpdateState {
         self.timer += 1;
         self.input.update();
 
@@ -699,6 +710,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 
         self.player.update_frame(
             &self.input,
+            controller,
             self.timer,
             self.background.level,
             &self.enemies,
@@ -707,6 +719,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 
         for enemy in self.enemies.iter_mut() {
             match enemy.update(
+                controller,
                 self.background.level,
                 self.player.wizard.position,
                 self.player.hat_state,
@@ -784,8 +797,6 @@ fn main(mut agb: agb::Gba) -> ! {
 
         tiled.set_background_palettes(tile_sheet::background.palettes);
         tiled.set_background_tilemap(0, tile_sheet::background.tiles);
-        object.set_sprite_palettes(object_sheet::object_sheet.palettes);
-        object.set_sprite_tilemap(object_sheet::object_sheet.tiles);
 
         let mut world_display = tiled.get_raw_regular().unwrap();
         world_display.clear(level_display::BLANK);
@@ -793,7 +804,6 @@ fn main(mut agb: agb::Gba) -> ! {
 
         let mut background = tiled.get_regular().unwrap();
         let mut foreground = tiled.get_regular().unwrap();
-        object.enable();
 
         mixer.enable();
         let mut music_box = sfx::MusicBox::new();
@@ -856,11 +866,12 @@ fn main(mut agb: agb::Gba) -> ! {
             world_display.hide();
 
             loop {
-                match level.update_frame(&mut sfx::SfxPlayer::new(&mut mixer, &music_box)) {
+                match level.update_frame(&object, &mut sfx::SfxPlayer::new(&mut mixer, &music_box))
+                {
                     UpdateState::Normal => {}
                     UpdateState::Dead => {
                         level.dead_start();
-                        while level.dead_update() {
+                        while level.dead_update(&object) {
                             music_box.before_frame(&mut mixer);
                             mixer.frame();
                             vblank.wait_for_vblank();
