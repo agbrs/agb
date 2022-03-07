@@ -393,10 +393,10 @@ impl SwordState {
     }
     fn attack_frame(self, timer: u16) -> u16 {
         match self {
-            SwordState::LongSword => (self.attack_duration() - timer) / 8,
-            SwordState::ShortSword => (self.attack_duration() - timer) / 8,
-            SwordState::Dagger => (self.attack_duration() - timer) / 8,
-            SwordState::Swordless => (self.attack_duration() - timer) / 8,
+            SwordState::LongSword => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::ShortSword => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::Dagger => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::Swordless => (self.attack_duration().saturating_sub(timer)) / 8,
         }
     }
     fn jump_attack_tag(self) -> &'static Tag {
