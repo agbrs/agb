@@ -85,15 +85,15 @@ agb::include_gfx!("gfx/tile_sheet.toml");
 use agb::{
     display::{
         background::BackgroundRegular,
-        object::{Object, ObjectController, Sprite, Tag, TagMap},
+        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
 };
 
-const SPRITE_TAGS: (&[Sprite], &TagMap) = agb::include_aseprite!("gfx/sprites.aseprite");
-const TAG_MAP: &TagMap = SPRITE_TAGS.1;
+const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
+const TAG_MAP: &TagMap = GRAPHICS.tags();
 
 const WALKING: &Tag = TAG_MAP.get("Walking");
 const JUMPING: &Tag = TAG_MAP.get("Jumping");

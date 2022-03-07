@@ -15,7 +15,7 @@ use rng::get_random;
 use agb::{
     display::{
         background::{BackgroundDistributor, BackgroundRegular},
-        object::{Object, ObjectController, Sprite, Tag, TagMap},
+        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Rect, Vector2D},
@@ -23,9 +23,8 @@ use agb::{
 };
 use generational_arena::Arena;
 
-const SPRITE_TAGS: (&[Sprite], &TagMap) =
-    agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
-const TAG_MAP: &TagMap = SPRITE_TAGS.1;
+const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
+const TAG_MAP: &TagMap = GRAPHICS.tags();
 
 const LONGSWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
 const LONGSWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
@@ -2011,7 +2010,8 @@ impl<'a> Game<'a> {
 
         self.input.update();
         if let UpdateInstruction::CreateParticle(data, position) =
-            self.player.update(object_controller, &self.input, &self.level, sfx)
+            self.player
+                .update(object_controller, &self.input, &self.level, sfx)
         {
             let new_particle = Particle::new(object_controller, data, position);
 
