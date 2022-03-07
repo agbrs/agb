@@ -3,15 +3,15 @@
 
 extern crate alloc;
 
-use agb::display::object::{ObjectController, Sprite, TagMap};
+use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
 
-const SPRITE_TAGS: (&[Sprite], &TagMap) = agb::include_aseprite!(
+const GRAPHICS: &Graphics = agb::include_aseprite!(
     "../examples/the-purple-night/gfx/objects.aseprite",
     "../examples/the-purple-night/gfx/boss.aseprite"
 );
-const SPRITES: &[Sprite] = SPRITE_TAGS.0;
-const TAG_MAP: &TagMap = SPRITE_TAGS.1;
+const SPRITES: &[Sprite] = GRAPHICS.sprites();
+const TAG_MAP: &TagMap = GRAPHICS.tags();
 
 fn all_sprites(gfx: &ObjectController) {
     let mut input = agb::input::ButtonController::new();
