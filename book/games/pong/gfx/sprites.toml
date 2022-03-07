@@ -1,6 +1,0 @@
-version = "1.0"
-
-[image.sprites]
-filename = "sprites.png"
-tile_size = "16x16"
-transparent_colour = "ff0044"
