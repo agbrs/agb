@@ -72,7 +72,9 @@ impl RegularMap {
 
     pub fn clear(&mut self, vram: &mut VRamManager) {
         for tile in self.tiles.iter_mut() {
-            vram.remove_tile(tile.tile_index());
+            if *tile != Tile::default() {
+                vram.remove_tile(tile.tile_index());
+            }
 
             *tile = Tile::default();
         }

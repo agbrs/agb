@@ -1,10 +1,28 @@
+use core::{alloc::Layout, ptr::NonNull};
+
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::{display::palette16, dma::dma_copy, memory_mapped::MemoryMapped1DArray};
+use crate::{
+    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
+    display::palette16,
+    dma::dma_copy,
+    memory_mapped::MemoryMapped1DArray,
+};
+
+const TILE_RAM_START: usize = 0x0600_0000;
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
+
+static TILE_ALLOCATOR: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: || TILE_RAM_START,
+        end: || TILE_RAM_START + 0x8000,
+    })
+};
+
+const TILE_LAYOUT: Layout = unsafe { Layout::from_size_align_unchecked(8 * 8 / 2, 8 * 8 / 2) };
 
 #[cfg(debug_assertions)]
 unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
@@ -63,8 +81,8 @@ impl TileSetReference {
 pub struct TileIndex(u16);
 
 impl TileIndex {
-    pub(crate) const fn new(index: u16) -> Self {
-        Self(index)
+    pub(crate) const fn new(index: usize) -> Self {
+        Self(index as u16)
     }
 
     pub(crate) const fn index(&self) -> u16 {
@@ -73,31 +91,7 @@ impl TileIndex {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct TileReference(u16, u16);
-
-enum VRamState {
-    ReferenceCounted(u16, TileReference),
-    Free(u16),
-}
-
-impl VRamState {
-    fn increase_reference(&mut self) {
-        if let VRamState::ReferenceCounted(count, _) = self {
-            *count += 1;
-        } else {
-            unsafe { debug_unreachable_unchecked("Cannot increase reference count of free item") };
-        }
-    }
-
-    fn decrease_reference(&mut self) -> (u16, TileReference) {
-        if let VRamState::ReferenceCounted(count, tile_ref) = self {
-            *count -= 1;
-            (*count, *tile_ref)
-        } else {
-            unsafe { debug_unreachable_unchecked("Cannot decrease reference count of free item") };
-        }
-    }
-}
+struct TileReference(NonNull<u32>);
 
 enum ArenaStorageItem<T> {
     EndOfFreeList,
@@ -110,12 +104,9 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: Vec<Vec<(u16, u16)>>,
-    references: Vec<VRamState>,
-    vram_free_pointer: Option<usize>,
+    tile_set_to_vram: Vec<Vec<Option<TileReference>>>,
+    reference_counts: Vec<(u16, Option<(TileSetReference, u16)>)>,
 }
-
-const END_OF_FREE_LIST_MARKER: u16 = u16::MAX;
 
 impl<'a> VRamManager<'a> {
     pub fn new() -> Self {
@@ -125,8 +116,7 @@ impl<'a> VRamManager<'a> {
             free_pointer: None,
 
             tile_set_to_vram: Default::default(),
-            references: vec![VRamState::Free(0)],
-            vram_free_pointer: None,
+            reference_counts: Default::default(),
         }
     }
 
@@ -184,37 +174,27 @@ impl<'a> VRamManager<'a> {
         }
     }
 
+    fn index_from_reference(reference: TileReference) -> usize {
+        let difference = reference.0.as_ptr() as usize - TILE_RAM_START;
+        difference / (8 * 8 / 2)
+    }
+
+    fn reference_from_index(index: TileIndex) -> TileReference {
+        let ptr = (index.index() * (8 * 8 / 2)) as usize + TILE_RAM_START;
+        TileReference(NonNull::new(ptr as *mut _).unwrap())
+    }
+
     pub(crate) fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
-        let tile_ref = TileReference(tile_set_ref.id, tile);
         let reference = self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize];
-        if reference != Default::default() {
-            if reference.1 == tile_set_ref.generation {
-                self.references[reference.0 as usize].increase_reference();
-                return TileIndex(reference.0 as u16);
-            } else {
-                panic!("Tileset unloaded but not cleared from vram");
-            }
+
+        if let Some(reference) = reference {
+            let index = Self::index_from_reference(reference);
+            self.reference_counts[index].0 += 1;
+            return TileIndex::new(index);
         }
 
-        let index_to_copy_into = if let Some(ptr) = self.vram_free_pointer.take() {
-            match self.references[ptr] {
-                VRamState::Free(next_free) => {
-                    if next_free != END_OF_FREE_LIST_MARKER {
-                        self.vram_free_pointer = Some(next_free as usize);
-                    }
-                }
-                VRamState::ReferenceCounted(_, _) => unsafe {
-                    debug_unreachable_unchecked("Free pointer must point to free item")
-                },
-            }
-
-            self.references[ptr] = VRamState::ReferenceCounted(1, tile_ref);
-            ptr
-        } else {
-            self.references
-                .push(VRamState::ReferenceCounted(1, tile_ref));
-            self.references.len() - 1
-        };
+        let new_reference: NonNull<u32> =
+            unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
 
         let tile_slice = if let ArenaStorageItem::Data(data, generation) =
             &self.tilesets[tile_set_ref.id as usize]
@@ -232,40 +212,50 @@ impl<'a> VRamManager<'a> {
 
         let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
 
-        const TILE_BACKGROUND_ADDRESS: usize = 0x0600_0000;
         unsafe {
             dma_copy(
                 tile_slice.as_ptr() as *const u16,
-                (TILE_BACKGROUND_ADDRESS as *mut u16)
-                    .add(index_to_copy_into * tile_size_in_half_words),
+                new_reference.as_ptr() as *mut u16,
                 tile_size_in_half_words,
             );
         }
 
-        self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize] =
-            (index_to_copy_into as u16, tile_set_ref.generation);
+        let tile_reference = TileReference(new_reference);
 
-        TileIndex(index_to_copy_into as u16)
+        let index = Self::index_from_reference(tile_reference);
+
+        self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize] = Some(tile_reference);
+
+        self.reference_counts
+            .resize(self.reference_counts.len().max(index + 1), (0, None));
+
+        self.reference_counts[index] = (1, Some((tile_set_ref, tile)));
+
+        TileIndex::new(index)
     }
 
     pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
-        let index = tile_index.0 as usize;
+        let index = tile_index.index() as usize;
+        assert!(
+            self.reference_counts[index].0 > 0,
+            "Trying to decrease the reference count of {} below 0",
+            index
+        );
 
-        let (new_count, tile_ref) = self.references[index].decrease_reference();
+        self.reference_counts[index].0 -= 1;
 
-        if new_count != 0 {
+        if self.reference_counts[index].0 != 0 {
             return;
         }
 
-        if let Some(ptr) = self.vram_free_pointer {
-            self.references[index] = VRamState::Free(ptr as u16);
-        } else {
-            self.references[index] = VRamState::Free(END_OF_FREE_LIST_MARKER);
+        let tile_reference = Self::reference_from_index(tile_index);
+        unsafe {
+            TILE_ALLOCATOR.dealloc(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
         }
 
-        self.tile_set_to_vram[tile_ref.0 as usize][tile_ref.1 as usize] = Default::default();
-
-        self.vram_free_pointer = Some(index);
+        let tile_ref = self.reference_counts[index].1.unwrap();
+        self.tile_set_to_vram[tile_ref.0.id as usize][tile_ref.1 as usize] = None;
+        self.reference_counts[index].1 = None;
     }
 
     /// Copies raw palettes to the background palette without any checks.
