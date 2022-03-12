@@ -61,9 +61,9 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let object = gba.display.object.get();
 
-    let sprite = object.get_sprite(&ChickenSprites[0]).unwrap();
+    let sprite = object.get_sprite(&ChickenSprites[0]);
     let mut chicken = Character {
-        object: object.get_object(sprite).unwrap(),
+        object: object.get_object(sprite),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,
@@ -143,23 +143,19 @@ fn update_chicken_object<'a>(
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken.object.set_sprite(
-                    object
-                        .get_sprite(&ChickenSprites[frame_ranger(frame_count, 1, 3, 10)])
-                        .unwrap(),
+                    object.get_sprite(&ChickenSprites[frame_ranger(frame_count, 1, 3, 10)]),
                 );
             } else {
                 chicken
                     .object
-                    .set_sprite(object.get_sprite(&ChickenSprites[0]).unwrap());
+                    .set_sprite(object.get_sprite(&ChickenSprites[0]));
             }
         }
         State::Upwards => {}
         State::Flapping => {
-            chicken.object.set_sprite(
-                object
-                    .get_sprite(&ChickenSprites[frame_ranger(frame_count, 4, 5, 5)])
-                    .unwrap(),
-            );
+            chicken
+                .object
+                .set_sprite(object.get_sprite(&ChickenSprites[frame_ranger(frame_count, 4, 5, 5)]));
         }
     }
 
