@@ -45,8 +45,8 @@ fn main() {
         pub const CLOUD_MAP: &[u16] = &[#(#cloud_tiles),*];
         pub const BACKGROUND_MAP: &[u16] = &[#(#background_tiles),*];
         pub const FOREGROUND_MAP: &[u16] = &[#(#foreground_tiles),*];
-        pub const WIDTH: u32 = #width;
-        pub const HEIGHT: u32 = #height;
+        pub const WIDTH: i32 = #width as i32;
+        pub const HEIGHT: i32 = #height as i32;
 
         pub const SLIME_SPAWNS_X: &[u16] = &[#(#slimes_x),*];
         pub const SLIME_SPAWNS_Y: &[u16] = &[#(#slimes_y),*];

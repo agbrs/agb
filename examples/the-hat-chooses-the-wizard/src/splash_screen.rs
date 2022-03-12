@@ -1,5 +1,8 @@
 use super::sfx::MusicBox;
-use agb::sound::mixer::Mixer;
+use agb::{
+    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager},
+    sound::mixer::Mixer,
+};
 
 agb::include_gfx!("gfx/splash_screens.toml");
 
@@ -9,39 +12,77 @@ pub enum SplashScreen {
 }
 
 pub fn show_splash_screen(
-    agb: &mut agb::Gba,
     which: SplashScreen,
     mut mixer: Option<&mut Mixer>,
     mut music_box: Option<&mut MusicBox>,
+    map: &mut RegularMap,
+    vram: &mut VRamManager,
 ) {
-    let mut tiled = agb.display.video.tiled0();
-
-    match which {
+    map.set_scroll_pos((0u16, 0u16).into());
+    let (tile_set_ref, palette) = match which {
         SplashScreen::Start => {
-            tiled.set_background_tilemap(0, splash_screens::splash.tiles);
-            tiled.set_background_palettes(splash_screens::splash.palettes);
+            let tile_set_ref = vram.add_tileset(TileSet::new(
+                splash_screens::splash.tiles,
+                TileFormat::FourBpp,
+            ));
+
+            (tile_set_ref, splash_screens::splash.palettes)
         }
         SplashScreen::End => {
-            tiled.set_background_tilemap(0, splash_screens::thanks_for_playing.tiles);
-            tiled.set_background_palettes(splash_screens::thanks_for_playing.palettes);
+            let tile_set_ref = vram.add_tileset(TileSet::new(
+                splash_screens::thanks_for_playing.tiles,
+                TileFormat::FourBpp,
+            ));
+
+            (tile_set_ref, splash_screens::thanks_for_playing.palettes)
+        }
+    };
+
+    let vblank = agb::interrupt::VBlank::get();
+
+    let mut input = agb::input::ButtonController::new();
+
+    if let Some(ref mut mixer) = mixer {
+        if let Some(ref mut music_box) = music_box {
+            music_box.before_frame(mixer);
+        }
+        mixer.frame();
+    }
+
+    vblank.wait_for_vblank();
+
+    if let Some(ref mut mixer) = mixer {
+        mixer.after_vblank();
+    }
+
+    for y in 0..20u16 {
+        for x in 0..30u16 {
+            map.set_tile(
+                vram,
+                (x, y).into(),
+                tile_set_ref,
+                TileSetting::from_raw(y * 30 + x),
+            );
+        }
+
+        if let Some(ref mut mixer) = mixer {
+            if let Some(ref mut music_box) = music_box {
+                music_box.before_frame(mixer);
+            }
+            mixer.frame();
+        }
+
+        vblank.wait_for_vblank();
+
+        if let Some(ref mut mixer) = mixer {
+            mixer.after_vblank();
         }
     }
-    let vblank = agb::interrupt::VBlank::get();
-    let mut splash_screen_display = tiled.get_regular().unwrap();
 
-    let mut entries: [u16; 30 * 20] = [0; 30 * 20];
-    for tile_id in 0..(30 * 20) {
-        entries[tile_id as usize] = tile_id;
-    }
-    let mut input = agb::input::ButtonController::new();
-    splash_screen_display.set_map(agb::display::background::Map::new(
-        &entries,
-        (30_u32, 20_u32).into(),
-        0,
-    ));
-    splash_screen_display.set_position((0, 0).into());
-    splash_screen_display.commit();
-    splash_screen_display.show();
+    map.commit();
+    vram.set_background_palettes(palette);
+    map.show();
+
     loop {
         input.update();
         if input.is_just_pressed(
@@ -64,5 +105,9 @@ pub fn show_splash_screen(
             mixer.after_vblank();
         }
     }
-    splash_screen_display.hide();
+
+    map.hide();
+    map.clear(vram);
+
+    vram.remove_tileset(tile_set_ref);
 }

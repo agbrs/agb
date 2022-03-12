@@ -8,20 +8,22 @@ mod sfx;
 
 use core::cmp::Ordering;
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use rng::get_random;
 
 use agb::{
     display::{
-        background::{BackgroundDistributor, BackgroundRegular},
         object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
+        tiled::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
+    interrupt::VBlank,
 };
 use generational_arena::Arena;
+use sfx::Sfx;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
 const TAG_MAP: &TagMap = GRAPHICS.tags();
@@ -54,45 +56,36 @@ agb::include_gfx!("gfx/background.toml");
 
 type Number = FixedNum<8>;
 
-struct Level {
-    background: BackgroundRegular<'static>,
-    foreground: BackgroundRegular<'static>,
-    clouds: BackgroundRegular<'static>,
+struct Level<'a> {
+    background: InfiniteScrolledMap<'a>,
+    foreground: InfiniteScrolledMap<'a>,
+    clouds: InfiniteScrolledMap<'a>,
 
     slime_spawns: Vec<(u16, u16)>,
     bat_spawns: Vec<(u16, u16)>,
     emu_spawns: Vec<(u16, u16)>,
 }
 
-impl Level {
+impl<'a> Level<'a> {
     fn load_level(
-        mut backdrop: BackgroundRegular<'static>,
-        mut foreground: BackgroundRegular<'static>,
-        mut clouds: BackgroundRegular<'static>,
+        mut backdrop: InfiniteScrolledMap<'a>,
+        mut foreground: InfiniteScrolledMap<'a>,
+        mut clouds: InfiniteScrolledMap<'a>,
+        start_pos: Vector2D<i32>,
+        vram: &mut VRamManager,
+        sfx: &mut Sfx,
     ) -> Self {
-        backdrop.set_position(Vector2D::new(0, 0));
-        backdrop.set_map(agb::display::background::Map::new(
-            tilemap::BACKGROUND_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        backdrop.set_priority(Priority::P2);
+        let vblank = VBlank::get();
 
-        foreground.set_position(Vector2D::new(0, 0));
-        foreground.set_map(agb::display::background::Map::new(
-            tilemap::FOREGROUND_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        foreground.set_priority(Priority::P0);
+        let mut between_updates = || {
+            sfx.frame();
+            vblank.wait_for_vblank();
+            sfx.after_vblank();
+        };
 
-        clouds.set_position(Vector2D::new(0, -5));
-        clouds.set_map(agb::display::background::Map::new(
-            tilemap::CLOUD_MAP,
-            Vector2D::new(tilemap::WIDTH, tilemap::HEIGHT),
-            0,
-        ));
-        clouds.set_priority(Priority::P3);
+        backdrop.init(vram, start_pos, &mut between_updates);
+        foreground.init(vram, start_pos, &mut between_updates);
+        clouds.init(vram, start_pos / 4, &mut between_updates);
 
         backdrop.commit();
         foreground.commit();
@@ -149,6 +142,12 @@ impl Level {
         } else {
             None
         }
+    }
+
+    fn clear(&mut self, vram: &mut VRamManager) {
+        self.background.clear(vram);
+        self.foreground.clear(vram);
+        self.clouds.clear(vram);
     }
 }
 
@@ -392,10 +391,10 @@ impl SwordState {
     }
     fn attack_frame(self, timer: u16) -> u16 {
         match self {
-            SwordState::LongSword => (self.attack_duration() - timer) / 8,
-            SwordState::ShortSword => (self.attack_duration() - timer) / 8,
-            SwordState::Dagger => (self.attack_duration() - timer) / 8,
-            SwordState::Swordless => (self.attack_duration() - timer) / 8,
+            SwordState::LongSword => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::ShortSword => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::Dagger => (self.attack_duration().saturating_sub(timer)) / 8,
+            SwordState::Swordless => (self.attack_duration().saturating_sub(timer)) / 8,
         }
     }
     fn jump_attack_tag(self) -> &'static Tag {
@@ -407,7 +406,7 @@ impl SwordState {
         }
     }
     fn jump_attack_frame(self, timer: u16) -> u16 {
-        (self.jump_attack_duration() - timer) / 8
+        (self.jump_attack_duration().saturating_sub(timer)) / 8
     }
     fn hold_frame(self) -> u16 {
         7
@@ -1870,7 +1869,7 @@ struct Game<'a> {
     player: Player<'a>,
     input: ButtonController,
     frame_count: u32,
-    level: Level,
+    level: Level<'a>,
     offset: Vector2D<Number>,
     shake_time: u16,
     sunrise_timer: u16,
@@ -1883,8 +1882,6 @@ struct Game<'a> {
     boss: BossState<'a>,
     move_state: MoveState,
     fade_count: u16,
-
-    background_distributor: &'a mut BackgroundDistributor,
 }
 
 enum MoveState {
@@ -1902,9 +1899,14 @@ impl<'a> Game<'a> {
         }
     }
 
+    fn clear(&mut self, vram: &mut VRamManager) {
+        self.level.clear(vram);
+    }
+
     fn advance_frame(
         &mut self,
         object_controller: &'a ObjectController,
+        vram: &mut VRamManager,
         sfx: &mut sfx::Sfx,
     ) -> GameStatus {
         let mut state = GameStatus::Continue;
@@ -1924,7 +1926,7 @@ impl<'a> Game<'a> {
                 self.offset.x = (tilemap::WIDTH as i32 * 8 - 248).into();
             }
             MoveState::FollowingPlayer => {
-                Game::update_sunrise(self.background_distributor, self.sunrise_timer);
+                Game::update_sunrise(vram, self.sunrise_timer);
                 if self.sunrise_timer < 120 {
                     self.sunrise_timer += 1;
                 } else {
@@ -1946,7 +1948,7 @@ impl<'a> Game<'a> {
                     if boss.gone {
                         self.fade_count += 1;
                         self.fade_count = self.fade_count.min(600);
-                        Game::update_fade_out(self.background_distributor, self.fade_count);
+                        Game::update_fade_out(vram, self.fade_count);
                     }
                 }
             }
@@ -2049,18 +2051,11 @@ impl<'a> Game<'a> {
         self.player.commit(this_frame_offset);
         self.boss.commit(this_frame_offset);
 
-        self.level
-            .background
-            .set_position(this_frame_offset.floor());
-        self.level
-            .foreground
-            .set_position(this_frame_offset.floor());
-        self.level
-            .clouds
-            .set_position(this_frame_offset.floor() / 4);
-        self.level.background.commit();
-        self.level.foreground.commit();
-        self.level.clouds.commit();
+        let background_offset = (this_frame_offset.floor().x, 8).into();
+
+        self.level.background.set_pos(vram, background_offset);
+        self.level.foreground.set_pos(vram, background_offset);
+        self.level.clouds.set_pos(vram, background_offset / 4);
 
         for i in remove {
             self.enemies.remove(i);
@@ -2104,6 +2099,10 @@ impl<'a> Game<'a> {
                 .entity
                 .commit_with_fudge(this_frame_offset, (0, 0).into());
         }
+
+        self.level.background.commit();
+        self.level.foreground.commit();
+        self.level.clouds.commit();
 
         for i in remove {
             self.particles.remove(i);
@@ -2162,7 +2161,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn update_sunrise(background_distributor: &'a mut BackgroundDistributor, time: u16) {
+    fn update_sunrise(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
         let a = modified_palette.get_colour(0);
@@ -2173,10 +2172,10 @@ impl<'a> Game<'a> {
 
         let modified_palettes = [modified_palette];
 
-        background_distributor.set_background_palettes(&modified_palettes);
+        vram.set_background_palettes(&modified_palettes);
     }
 
-    fn update_fade_out(background_distributor: &'a mut BackgroundDistributor, time: u16) {
+    fn update_fade_out(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
         let c = modified_palette.get_colour(2);
@@ -2187,15 +2186,10 @@ impl<'a> Game<'a> {
 
         let modified_palettes = [modified_palette];
 
-        background_distributor.set_background_palettes(&modified_palettes);
+        vram.set_background_palettes(&modified_palettes);
     }
 
-    fn new(
-        object: &'a ObjectController,
-        level: Level,
-        background_distributor: &'a mut BackgroundDistributor,
-        start_at_boss: bool,
-    ) -> Self {
+    fn new(object: &'a ObjectController, level: Level<'a>, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
         let mut offset = (8, 8).into();
         if start_at_boss {
@@ -2219,8 +2213,6 @@ impl<'a> Game<'a> {
             move_state: MoveState::Advancing,
             sunrise_timer: 0,
             fade_count: 0,
-
-            background_distributor,
         }
     }
 }
@@ -2239,19 +2231,68 @@ fn game_with_level(gba: &mut agb::Gba) {
     let mut start_at_boss = false;
 
     loop {
-        let mut background = gba.display.video.tiled0();
-        background.set_background_palettes(background::background.palettes);
-        background.set_background_tilemap(0, background::background.tiles);
+        let (background, mut vram) = gba.display.video.tiled0();
+
+        vram.set_background_palettes(background::background.palettes);
+
+        let tileset_ref = vram.add_tileset(TileSet::new(
+            background::background.tiles,
+            TileFormat::FourBpp,
+        ));
+
         let object = gba.display.object.get();
+
+        let backdrop = InfiniteScrolledMap::new(
+            background.background(Priority::P2),
+            Box::new(move |pos| {
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        *tilemap::BACKGROUND_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
+                    ),
+                )
+            }),
+        );
+
+        let foreground = InfiniteScrolledMap::new(
+            background.background(Priority::P0),
+            Box::new(move |pos| {
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        *tilemap::FOREGROUND_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
+                    ),
+                )
+            }),
+        );
+
+        let clouds = InfiniteScrolledMap::new(
+            background.background(Priority::P3),
+            Box::new(move |pos| {
+                (
+                    tileset_ref,
+                    TileSetting::from_raw(
+                        *tilemap::CLOUD_MAP
+                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                            .unwrap_or(&0),
+                    ),
+                )
+            }),
+        );
+
+        let start_pos = if start_at_boss {
+            (130 * 8, 8).into()
+        } else {
+            (8, 8).into()
+        };
 
         let mut game = Game::new(
             &object,
-            Level::load_level(
-                background.get_regular().unwrap(),
-                background.get_regular().unwrap(),
-                background.get_regular().unwrap(),
-            ),
-            &mut background,
+            Level::load_level(backdrop, foreground, clouds, start_pos, &mut vram, &mut sfx),
             start_at_boss,
         );
 
@@ -2259,7 +2300,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.frame();
             vblank.wait_for_vblank();
             sfx.after_vblank();
-            match game.advance_frame(&object, &mut sfx) {
+            match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
                     break false;
@@ -2270,7 +2311,9 @@ fn game_with_level(gba: &mut agb::Gba) {
             }
 
             get_random(); // advance RNG to make it less predictable between runs
-        }
+        };
+
+        game.clear(&mut vram);
     }
 }
 

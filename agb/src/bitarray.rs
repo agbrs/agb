@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Bitarray<const N: usize> {
     a: [u32; N],
 }
@@ -21,7 +22,26 @@ impl<const N: usize> Bitarray<N> {
         let value_mask = value << (index % 32);
         self.a[index / 32] = self.a[index / 32] & !mask | value_mask
     }
+
+    pub fn first_zero(&self) -> Option<usize> {
+        for index in 0..N * 32 {
+            if let Some(bit) = self.get(index) {
+                if !bit {
+                    return Some(index);
+                }
+            }
+        }
+
+        None
+    }
 }
+
+impl<const N: usize> Default for Bitarray<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

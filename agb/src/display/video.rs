@@ -1,4 +1,8 @@
-use super::{background::BackgroundDistributor, bitmap3::Bitmap3, bitmap4::Bitmap4};
+use super::{
+    bitmap3::Bitmap3,
+    bitmap4::Bitmap4,
+    tiled::{Tiled0, VRamManager},
+};
 
 #[non_exhaustive]
 pub struct Video {}
@@ -14,7 +18,7 @@ impl Video {
         unsafe { Bitmap4::new() }
     }
 
-    pub fn tiled0(&mut self) -> BackgroundDistributor {
-        unsafe { BackgroundDistributor::new() }
+    pub fn tiled0(&mut self) -> (Tiled0, VRamManager<'_>) {
+        (unsafe { Tiled0::new() }, VRamManager::new())
     }
 }

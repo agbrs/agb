@@ -142,6 +142,7 @@ mod arena;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
+mod dma;
 /// Button inputs to the system.
 pub mod input;
 #[doc(hidden)] // hide for now as the implementation in here is unsound
