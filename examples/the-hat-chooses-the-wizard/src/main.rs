@@ -114,8 +114,8 @@ pub struct Entity<'a> {
 
 impl<'a> Entity<'a> {
     pub fn new(object: &'a ObjectController, collision_mask: Vector2D<u16>) -> Self {
-        let dummy_sprite = object.get_sprite(WALKING.get_sprite(0)).unwrap();
-        let mut sprite = object.get_object(dummy_sprite).unwrap();
+        let dummy_sprite = object.get_sprite(WALKING.get_sprite(0));
+        let mut sprite = object.get_object(dummy_sprite);
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
@@ -357,9 +357,9 @@ impl<'a> Player<'a> {
 
         wizard
             .sprite
-            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)).unwrap());
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)));
         hat.sprite
-            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)).unwrap());
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.get_sprite(0)));
 
         wizard.sprite.show();
         hat.sprite.show();
@@ -465,7 +465,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = offset as u8;
 
                 let frame = WALKING.get_animation_sprite(offset);
-                let sprite = controller.get_sprite(frame).unwrap();
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -475,7 +475,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 5;
 
                 let frame = JUMPING.get_animation_sprite(0);
-                let sprite = controller.get_sprite(frame).unwrap();
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
@@ -490,7 +490,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 0;
 
                 let frame = FALLING.get_animation_sprite(offset);
-                let sprite = controller.get_sprite(frame).unwrap();
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -511,13 +511,13 @@ impl<'a> Player<'a> {
                 self.wizard.sprite.set_hflip(true);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(5)).unwrap());
+                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(5)));
             }
             agb::input::Tri::Positive => {
                 self.wizard.sprite.set_hflip(false);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(0)).unwrap());
+                    .set_sprite(controller.get_sprite(hat_base_tile.get_sprite(0)));
             }
             _ => {}
         }
@@ -549,9 +549,7 @@ impl<'a> Player<'a> {
                 let hat_sprite_offset = (timer / hat_sprite_divider) as usize;
 
                 self.hat.sprite.set_sprite(
-                    controller
-                        .get_sprite(hat_base_tile.get_animation_sprite(hat_sprite_offset))
-                        .unwrap(),
+                    controller.get_sprite(hat_base_tile.get_animation_sprite(hat_sprite_offset)),
                 );
 
                 if self.hat_slow_counter < 30 && self.hat.velocity.magnitude() < 2.into() {
@@ -584,9 +582,7 @@ impl<'a> Player<'a> {
             }
             HatState::WizardTowards => {
                 self.hat.sprite.set_sprite(
-                    controller
-                        .get_sprite(hat_base_tile.get_animation_sprite(timer as usize / 2))
-                        .unwrap(),
+                    controller.get_sprite(hat_base_tile.get_animation_sprite(timer as usize / 2)),
                 );
                 let distance_vector =
                     self.hat.position - self.wizard.position + hat_resting_position;
@@ -687,7 +683,7 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.get_animation_sprite(self.timer as usize / 8);
-        let sprite = controller.get_sprite(frame).unwrap();
+        let sprite = controller.get_sprite(frame);
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;

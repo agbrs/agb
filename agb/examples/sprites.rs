@@ -19,9 +19,7 @@ fn all_sprites(gfx: &ObjectController) {
 
     for y in 0..9 {
         for x in 0..14 {
-            let mut obj = gfx
-                .get_object(gfx.get_sprite(&SPRITES[0]).unwrap())
-                .unwrap();
+            let mut obj = gfx.get_object(gfx.get_sprite(&SPRITES[0]));
             obj.show();
             obj.set_position((x * 16 + 8, y * 16 + 8).into());
             objs.push(obj);
@@ -49,7 +47,7 @@ fn all_sprites(gfx: &ObjectController) {
             let objs_len = objs.len();
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i * SPRITES.len() / objs_len) % SPRITES.len();
-                obj.set_sprite(gfx.get_sprite(&SPRITES[this_image]).unwrap());
+                obj.set_sprite(gfx.get_sprite(&SPRITES[this_image]));
                 obj.commit();
             }
         }
@@ -66,7 +64,7 @@ fn all_tags(gfx: &ObjectController) {
         let sprite = v.get_sprite(0);
         let (size_x, size_y) = sprite.size().to_width_height();
         let (size_x, size_y) = (size_x as i32, size_y as i32);
-        let mut obj = gfx.get_object(gfx.get_sprite(sprite).unwrap()).unwrap();
+        let mut obj = gfx.get_object(gfx.get_sprite(sprite));
         obj.show();
         obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
         objs.push((obj, v));
@@ -91,7 +89,7 @@ fn all_tags(gfx: &ObjectController) {
         if count % 5 == 0 {
             image += 1;
             for (obj, tag) in objs.iter_mut() {
-                obj.set_sprite(gfx.get_sprite(tag.get_animation_sprite(image)).unwrap());
+                obj.set_sprite(gfx.get_sprite(tag.get_animation_sprite(image)));
                 obj.commit();
             }
         }

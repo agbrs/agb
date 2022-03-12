@@ -362,7 +362,11 @@ impl ObjectController {
         }
     }
 
-    pub fn get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
+    pub fn get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
+        self.try_get_object(sprite).expect("No object avaliable")
+    }
+
+    pub fn try_get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
         let mut inner = self.free_objects.borrow_mut();
         let loan = Loan {
             index: inner.pop()?,
@@ -386,8 +390,14 @@ impl ObjectController {
         })
     }
 
-    pub fn get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        self.sprite_controller.get_sprite(sprite)
+    pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
+        self.sprite_controller
+            .try_get_sprite(sprite)
+            .expect("No slot for sprite available")
+    }
+
+    pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
+        self.sprite_controller.try_get_sprite(sprite)
     }
 }
 
@@ -540,7 +550,7 @@ impl SpriteController {
             inner: RefCell::new(SpriteControllerInner::new()),
         }
     }
-    fn get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
+    fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let mut inner = self.inner.borrow_mut();
         let id = sprite.get_id();
         if let Some(storage) = inner.sprite.get_mut(&id) {

@@ -24,10 +24,10 @@ fn main(mut gba: Gba) -> ! {
 
     const BALL: &Tag = GRAPHICS.tags().get("Ball");
     let ball_sprite = object
-        .get_sprite(BALL.get_sprite(0))
+        .try_get_sprite(BALL.get_sprite(0))
         .expect("We should be able to load a sprite");
     let mut ball = object
-        .get_object(ball_sprite)
+        .try_get_object(ball_sprite)
         .expect("We should have enoguh space to store an object");
 
     ball.set_x(50).set_y(50).show();
