@@ -364,7 +364,7 @@ impl ObjectController {
     }
 
     pub fn get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
-        self.try_get_object(sprite).expect("No object avaliable")
+        self.try_get_object(sprite).expect("No object available")
     }
 
     pub fn try_get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
