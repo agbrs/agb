@@ -260,8 +260,8 @@ impl<'a> VRamManager<'a> {
 
     /// Copies raw palettes to the background palette without any checks.
     pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
-        for (index, &colour) in palette.iter().enumerate() {
-            PALETTE_BACKGROUND.set(index, colour);
+        unsafe {
+            dma_copy16(palette.as_ptr(), PALETTE_BACKGROUND.as_ptr(), palette.len());
         }
     }
 
