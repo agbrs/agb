@@ -22,12 +22,11 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: && build-roms
+ci: && build-roms build-book
     just _all-crates _build
     just _all-crates _test-debug
     just _all-crates _test-release
     just _all-crates _clippy
-    just build-book
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -67,17 +66,17 @@ _build-rom folder name:
 _all-crates target:
     for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
-        just "{{target}}" "$PROJECT_DIR"; \
+        just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
 
 _build crate:
     (cd "{{crate}}" && cargo build)
 _test-release crate:
-    if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo test --release); fi
+    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo test --release" } else { "" } }}
 _test-debug crate:
-    if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo test); fi
+    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo test" } else { "" } }}
 _clippy crate:
-    if echo "{{crate}}" | grep -qE '^agb'; then (cd "{{crate}}" && cargo clippy); fi
+    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo clippy" } else { "" } }}
 _clean crate:
     (cd "{{crate}}" && cargo clean)
 
