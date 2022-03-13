@@ -109,7 +109,7 @@ pub struct VRamManager<'a> {
 }
 
 impl<'a> VRamManager<'a> {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             tilesets: Vec::new(),
             generation: 0,
