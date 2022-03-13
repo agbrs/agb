@@ -16,6 +16,7 @@ use super::palette16::Palette16;
 use super::{Priority, DISPLAY_CONTROL};
 use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
+use crate::dma;
 use crate::fixnum::Vector2D;
 
 use attributes::*;
@@ -577,8 +578,11 @@ impl SpriteController {
             };
 
             unsafe {
-                dest.as_ptr()
-                    .copy_from_nonoverlapping(sprite.data.as_ptr(), sprite.data.len())
+                dma::dma_copy(
+                    sprite.data.as_ptr().cast(),
+                    dest.as_ptr().cast(),
+                    sprite.data.len() / 2,
+                );
             }
 
             let storage = Storage::from_sprite_ptr(dest);
@@ -610,9 +614,11 @@ impl SpriteControllerInner {
             let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
 
             unsafe {
-                dest.as_ptr()
-                    .cast::<u16>()
-                    .copy_from_nonoverlapping(palette.colours.as_ptr(), palette.colours.len())
+                dma::dma_copy(
+                    palette.colours.as_ptr().cast(),
+                    dest.as_ptr().cast(),
+                    palette.colours.len(),
+                );
             }
 
             let storage = Storage::from_palette_ptr(dest);
