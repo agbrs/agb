@@ -16,7 +16,7 @@ const DMA3_SOURCE_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_sourc
 const DMA3_DEST_ADDR: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_dest_addr(3)) };
 const DMA3_CONTROL: MemoryMapped<u32> = unsafe { MemoryMapped::new(dma_control_addr(3)) };
 
-pub(crate) unsafe fn dma_copy(src: *const u16, dest: *mut u16, count: usize) {
+pub(crate) unsafe fn dma_copy16(src: *const u16, dest: *mut u16, count: usize) {
     assert!(count < u16::MAX as usize);
 
     DMA3_SOURCE_ADDR.set(src as u32);

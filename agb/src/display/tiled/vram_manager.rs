@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
-    dma::dma_copy,
+    dma::dma_copy16,
     memory_mapped::MemoryMapped1DArray,
 };
 
@@ -213,7 +213,7 @@ impl<'a> VRamManager<'a> {
         let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
 
         unsafe {
-            dma_copy(
+            dma_copy16(
                 tile_slice.as_ptr() as *const u16,
                 new_reference.as_ptr() as *mut u16,
                 tile_size_in_half_words,

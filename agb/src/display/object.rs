@@ -578,7 +578,7 @@ impl SpriteController {
             };
 
             unsafe {
-                dma::dma_copy(
+                dma::dma_copy16(
                     sprite.data.as_ptr().cast(),
                     dest.as_ptr().cast(),
                     sprite.data.len() / 2,
@@ -614,7 +614,7 @@ impl SpriteControllerInner {
             let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
 
             unsafe {
-                dma::dma_copy(
+                dma::dma_copy16(
                     palette.colours.as_ptr().cast(),
                     dest.as_ptr().cast(),
                     palette.colours.len(),
