@@ -1,3 +1,4 @@
 target
 /out
 template/Cargo.lock
+agb*/Cargo.lock
