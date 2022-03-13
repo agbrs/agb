@@ -3,7 +3,7 @@ use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
 use crate::display::{Priority, DISPLAY_CONTROL};
-use crate::dma::dma_copy;
+use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
@@ -106,7 +106,7 @@ impl RegularMap {
         let screenblock_memory = self.screenblock_memory();
 
         unsafe {
-            dma_copy(
+            dma_copy16(
                 self.tiles.as_ptr() as *const u16,
                 screenblock_memory,
                 32 * 32,

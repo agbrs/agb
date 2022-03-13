@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
-    dma::dma_copy,
+    dma::dma_copy16,
     memory_mapped::MemoryMapped1DArray,
 };
 
@@ -213,7 +213,7 @@ impl<'a> VRamManager<'a> {
         let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
 
         unsafe {
-            dma_copy(
+            dma_copy16(
                 tile_slice.as_ptr() as *const u16,
                 new_reference.as_ptr() as *mut u16,
                 tile_size_in_half_words,
@@ -260,14 +260,18 @@ impl<'a> VRamManager<'a> {
 
     /// Copies raw palettes to the background palette without any checks.
     pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
-        for (index, &colour) in palette.iter().enumerate() {
-            PALETTE_BACKGROUND.set(index, colour);
+        unsafe {
+            dma_copy16(palette.as_ptr(), PALETTE_BACKGROUND.as_ptr(), palette.len());
         }
     }
 
     fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
-        for (colour_index, &colour) in palette.colours.iter().enumerate() {
-            PALETTE_BACKGROUND.set(pal_index as usize * 16 + colour_index, colour);
+        unsafe {
+            dma_copy16(
+                palette.colours.as_ptr(),
+                PALETTE_BACKGROUND.as_ptr().add(16 * pal_index as usize),
+                palette.colours.len(),
+            );
         }
     }
 
