@@ -11,9 +11,9 @@ debug = true
 
 [dependencies]
 regex = "1"
-anyhow = "1.0"
-image = { version = "0.24.1", default-features = false, features = [ "png", "bmp" ] }
+anyhow = "1"
+image = { version = "0.24", default-features = false, features = [ "png", "bmp" ] }
 
 [build-dependencies]
-cc = { version = "1.0", features = ["parallel"] }
-bindgen = "0.59.2"
+cc = { version = "1", features = ["parallel"] }
+bindgen = "0.59"
