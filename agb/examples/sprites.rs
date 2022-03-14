@@ -5,6 +5,7 @@ extern crate alloc;
 
 use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
+use bare_metal::CriticalSection;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
     "../examples/the-purple-night/gfx/objects.aseprite",
@@ -99,6 +100,19 @@ fn all_tags(gfx: &ObjectController) {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get();
+
+    let timers = gba.timers.timers();
+    let mut my_timer = timers.timer0;
+    my_timer.set_interrupt(true);
+    my_timer.set_overflow_amount(10000);
+    my_timer.set_enabled(true);
+
+    agb::add_interrupt_handler!(
+        agb::interrupt::Interrupt::Timer0,
+        |_key: &CriticalSection| {
+            agb::println!("{:#010x}", agb::get_program_counter_before_interrupt());
+        }
+    );
 
     loop {
         all_tags(&gfx);

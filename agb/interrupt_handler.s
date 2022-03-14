@@ -1,3 +1,4 @@
+
 @ An interrupt handler that simply acknowledges all interrupts
     .arm
     .global InterruptHandler
@@ -13,6 +14,10 @@ InterruptHandler:
     ldrh r1, [r2] @ load 16 bit interrupt enable to r1
     ldrh r3, [r2, #2] @ load 16 bit interrupt request to r3
     and r0, r1, r3 @ interrupts both enabled and requested
+
+    ldr r1, [sp, #20]
+    ldr r3, =agb_rs__program_counter
+    str r1, [r3]
 
     @ change to system mode
     mrs r1, cpsr
@@ -43,3 +48,10 @@ InterruptHandler:
 
     bx lr @ return to bios
 .pool
+
+
+.section .iwram
+    .global agb_rs__program_counter
+    .balign 4
+agb_rs__program_counter:
+    .word 0

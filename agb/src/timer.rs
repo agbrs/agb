@@ -90,6 +90,11 @@ impl Timer {
         self.control_register().set_bits(bit, 1, 2);
     }
 
+    pub fn set_interrupt(&mut self, interrupt: bool) {
+        let bit = interrupt as u16;
+        self.control_register().set_bits(bit, 1, 6);
+    }
+
     fn data_register(&self) -> MemoryMapped<u16> {
         timer_data(self.get_timer_number())
     }
