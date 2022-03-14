@@ -10,6 +10,6 @@ description = "Macro for declaring the entry point for a game using the agb libr
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.86", features = ["full", "extra-traits"] }
+syn = { version = "1.0.87", features = ["full", "extra-traits"] }
 proc-macro2 = "1.0.36"
 quote = "1.0.15"
