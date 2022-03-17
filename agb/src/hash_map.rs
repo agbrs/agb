@@ -43,10 +43,16 @@ pub struct HashMap<K, V> {
 
 impl<K, V> HashMap<K, V> {
     pub fn new() -> Self {
+        Self::with_capacity(16)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        let next_power_of_2 = find_next_power_of_2(capacity);
+
         Self {
             number_of_elements: 0,
             max_distance_to_initial_bucket: 0,
-            nodes: iter::repeat_with(|| None).take(16).collect(),
+            nodes: iter::repeat_with(|| None).take(next_power_of_2).collect(),
             hasher: Default::default(),
         }
     }
@@ -59,6 +65,15 @@ impl<K, V> HashMap<K, V> {
 const fn fast_mod(len: usize, hash: HashType) -> usize {
     debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
     (hash as usize) & (len - 1)
+}
+
+const fn find_next_power_of_2(n: usize) -> usize {
+    let mut next_power_of_2 = 1;
+    while next_power_of_2 <= n {
+        next_power_of_2 *= 2;
+    }
+
+    next_power_of_2
 }
 
 impl<K, V> HashMap<K, V>
