@@ -20,13 +20,16 @@ where
     K: Sized,
     V: Sized,
 {
-    fn with_new_key_value(&self, new_key: K, new_value: V) -> Self {
-        Self {
-            hash: self.hash,
-            distance_to_initial_bucket: self.distance_to_initial_bucket,
-            key: new_key,
-            value: new_value,
-        }
+    fn with_new_key_value(self, new_key: K, new_value: V) -> (Self, V) {
+        (
+            Self {
+                hash: self.hash,
+                distance_to_initial_bucket: self.distance_to_initial_bucket,
+                key: new_key,
+                value: new_value,
+            },
+            self.value,
+        )
     }
 }
 
@@ -50,6 +53,10 @@ impl<K, V> HashMap<K, V> {
             hasher: Default::default(),
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.number_of_elements
+    }
 }
 
 fn fast_mod(len: usize, hash: HashType) -> usize {
@@ -62,7 +69,7 @@ where
     K: Eq,
 {
     fn get_location(&self, key: &K, hash: HashType) -> Option<usize> {
-        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket + 1 {
+        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
             let location = fast_mod(self.nodes.len(), hash + distance_to_initial_bucket);
 
             let node = &self.nodes[location];
@@ -83,28 +90,44 @@ impl<K, V> HashMap<K, V>
 where
     K: Eq + Hash,
 {
-    pub fn put(&mut self, key: K, value: V) {
-        let mut hasher = self.hasher.build_hasher();
-        key.hash(&mut hasher);
-        let hash = hasher.finish() as HashType;
+    pub fn put(&mut self, key: K, value: V) -> Option<V> {
+        let hash = self.hash(&key);
 
         if let Some(location) = self.get_location(&key, hash) {
-            let old_node = self.nodes[location].as_ref().unwrap();
-            self.nodes[location] = Some(old_node.with_new_key_value(key, value));
+            let old_node = self.nodes[location].take().unwrap();
+            let (new_node, old_value) = old_node.with_new_key_value(key, value);
+            self.nodes[location] = Some(new_node);
 
-            return;
+            return Some(old_value);
         }
 
         self.insert_new(key, value, hash);
+        None
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
+        let hash = self.hash(key);
+
+        self.get_location(key, hash)
+            .map(|location| &self.nodes[location].as_ref().unwrap().value)
+    }
+
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        let hash = self.hash(key);
+
+        self.get_location(key, hash)
+            .map(|location| self.remove_from_location(location))
+    }
+}
+
+impl<K, V> HashMap<K, V>
+where
+    K: Hash,
+{
+    fn hash(&self, key: &K) -> HashType {
         let mut hasher = self.hasher.build_hasher();
         key.hash(&mut hasher);
-        let hash = hasher.finish() as HashType;
-
-        self.get_location(&key, hash)
-            .map(|location| &self.nodes[location].as_ref().unwrap().value)
+        hasher.finish() as HashType
     }
 }
 
@@ -144,6 +167,29 @@ impl<K, V> HashMap<K, V> {
 
         self.number_of_elements += 1;
     }
+
+    fn remove_from_location(&mut self, location: usize) -> V {
+        let mut current_location = location;
+
+        let result = loop {
+            let next_location = fast_mod(self.nodes.len(), (current_location + 1) as HashType);
+
+            // if the next node is empty, then we can clear the current node
+            if self.nodes[next_location].is_none() {
+                break self.nodes[current_location].take().unwrap();
+            }
+
+            self.nodes.swap(current_location, next_location);
+            self.nodes[current_location]
+                .as_mut()
+                .unwrap()
+                .distance_to_initial_bucket -= 1;
+            current_location = next_location;
+        };
+
+        self.number_of_elements -= 1;
+        result.value
+    }
 }
 
 #[cfg(test)]
@@ -152,7 +198,7 @@ mod test {
     use crate::Gba;
 
     #[test_case]
-    fn can_store_up_to_initial_capacity_elements(_gba: &mut Gba) {
+    fn can_store_and_retrieve_8_elements(_gba: &mut Gba) {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -162,5 +208,44 @@ mod test {
         for i in 0..8 {
             assert_eq!(map.get(&i), Some(&(i % 4)));
         }
+    }
+
+    #[test_case]
+    fn can_get_the_length(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..8 {
+            map.put(i / 2, true);
+        }
+
+        assert_eq!(map.len(), 4);
+    }
+
+    #[test_case]
+    fn returns_none_if_element_does_not_exist(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..8 {
+            map.put(i, i % 3);
+        }
+
+        assert_eq!(map.get(&12), None);
+    }
+
+    #[test_case]
+    fn can_delete_entries(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..8 {
+            map.put(i, i % 3);
+        }
+
+        for i in 0..4 {
+            map.remove(&i);
+        }
+
+        assert_eq!(map.len(), 4);
+        assert_eq!(map.get(&3), None);
+        assert_eq!(map.get(&7), Some(&1));
     }
 }
