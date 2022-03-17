@@ -33,7 +33,7 @@ where
     }
 }
 
-struct HashMap<K, V> {
+pub struct HashMap<K, V> {
     number_of_elements: usize,
     max_distance_to_initial_bucket: u32,
     nodes: Vec<Option<Node<K, V>>>,
