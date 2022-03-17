@@ -192,6 +192,39 @@ impl<K, V> HashMap<K, V> {
     }
 }
 
+pub struct Iter<'a, K: 'a, V: 'a> {
+    map: &'a HashMap<K, V>,
+    at: usize,
+}
+
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.at >= self.map.nodes.len() {
+                return None;
+            }
+
+            if let Some(node) = &self.map.nodes[self.at] {
+                self.at += 1;
+                return Some((&node.key, &node.value));
+            }
+
+            self.at += 1;
+        }
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { map: self, at: 0 }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -247,5 +280,25 @@ mod test {
         assert_eq!(map.len(), 4);
         assert_eq!(map.get(&3), None);
         assert_eq!(map.get(&7), Some(&1));
+    }
+
+    #[test_case]
+    fn can_iterate_through_all_entries(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..8 {
+            map.put(i, i);
+        }
+
+        let mut max_found = -1;
+        let mut num_found = 0;
+
+        for (_, value) in map.into_iter() {
+            max_found = max_found.max(*value);
+            num_found += 1;
+        }
+
+        assert_eq!(num_found, 8);
+        assert_eq!(max_found, 7);
     }
 }
