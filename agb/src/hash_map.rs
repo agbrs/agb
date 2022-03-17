@@ -59,7 +59,7 @@ impl<K, V> HashMap<K, V> {
     }
 }
 
-fn fast_mod(len: usize, hash: HashType) -> usize {
+const fn fast_mod(len: usize, hash: HashType) -> usize {
     debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
     (hash as usize) & (len - 1)
 }
