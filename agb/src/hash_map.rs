@@ -33,10 +33,24 @@ where
     }
 }
 
+struct NodeStorage<K, V>(Vec<Option<Node<K, V>>>);
+
+impl<K, V> NodeStorage<K, V> {
+    fn with_size(capacity: usize) -> Self {
+        let next_power_of_2 = find_next_power_of_2(capacity);
+
+        Self(iter::repeat_with(|| None).take(next_power_of_2).collect())
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
 pub struct HashMap<K, V> {
     number_of_elements: usize,
     max_distance_to_initial_bucket: u32,
-    nodes: Vec<Option<Node<K, V>>>,
+    nodes: NodeStorage<K, V>,
 
     hasher: BuildHasherDefault<FxHasher>,
 }
@@ -47,12 +61,10 @@ impl<K, V> HashMap<K, V> {
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        let next_power_of_2 = find_next_power_of_2(capacity);
-
         Self {
             number_of_elements: 0,
             max_distance_to_initial_bucket: 0,
-            nodes: iter::repeat_with(|| None).take(next_power_of_2).collect(),
+            nodes: NodeStorage::with_size(capacity),
             hasher: Default::default(),
         }
     }
@@ -84,7 +96,7 @@ where
         for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
             let location = fast_mod(self.nodes.len(), hash + distance_to_initial_bucket);
 
-            let node = &self.nodes[location];
+            let node = &self.nodes.0[location];
             if let Some(node) = node {
                 if &node.key == key {
                     return Some(location);
@@ -106,9 +118,9 @@ where
         let hash = self.hash(&key);
 
         if let Some(location) = self.get_location(&key, hash) {
-            let old_node = self.nodes[location].take().unwrap();
+            let old_node = self.nodes.0[location].take().unwrap();
             let (new_node, old_value) = old_node.with_new_key_value(key, value);
-            self.nodes[location] = Some(new_node);
+            self.nodes.0[location] = Some(new_node);
 
             return Some(old_value);
         }
@@ -121,7 +133,7 @@ where
         let hash = self.hash(key);
 
         self.get_location(key, hash)
-            .map(|location| &self.nodes[location].as_ref().unwrap().value)
+            .map(|location| &self.nodes.0[location].as_ref().unwrap().value)
     }
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
@@ -159,7 +171,7 @@ impl<K, V> HashMap<K, V> {
 
         loop {
             let location = fast_mod(self.nodes.len(), hash + new_node.distance_to_initial_bucket);
-            let current_node = self.nodes[location].as_mut();
+            let current_node = self.nodes.0[location].as_mut();
 
             if let Some(current_node) = current_node {
                 if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
@@ -170,7 +182,7 @@ impl<K, V> HashMap<K, V> {
                     mem::swap(&mut new_node, current_node);
                 }
             } else {
-                self.nodes[location] = Some(new_node);
+                self.nodes.0[location] = Some(new_node);
                 break;
             }
 
@@ -187,12 +199,12 @@ impl<K, V> HashMap<K, V> {
             let next_location = fast_mod(self.nodes.len(), (current_location + 1) as HashType);
 
             // if the next node is empty, then we can clear the current node
-            if self.nodes[next_location].is_none() {
-                break self.nodes[current_location].take().unwrap();
+            if self.nodes.0[next_location].is_none() {
+                break self.nodes.0[current_location].take().unwrap();
             }
 
-            self.nodes.swap(current_location, next_location);
-            self.nodes[current_location]
+            self.nodes.0.swap(current_location, next_location);
+            self.nodes.0[current_location]
                 .as_mut()
                 .unwrap()
                 .distance_to_initial_bucket -= 1;
@@ -218,7 +230,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
                 return None;
             }
 
-            if let Some(node) = &self.map.nodes[self.at] {
+            if let Some(node) = &self.map.nodes.0[self.at] {
                 self.at += 1;
                 return Some((&node.key, &node.value));
             }
