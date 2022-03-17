@@ -160,6 +160,8 @@ pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 
+mod hash_map;
+
 #[cfg(not(test))]
 #[panic_handler]
 #[allow(unused_must_use)]
