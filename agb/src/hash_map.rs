@@ -1,7 +1,7 @@
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use core::{
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
-    mem,
+    iter, mem,
 };
 
 use rustc_hash::FxHasher;
@@ -46,10 +46,7 @@ impl<K, V> HashMap<K, V> {
         Self {
             number_of_elements: 0,
             max_distance_to_initial_bucket: 0,
-            nodes: vec![
-                None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-                None, None,
-            ],
+            nodes: iter::repeat_with(|| None).take(16).collect(),
             hasher: Default::default(),
         }
     }
