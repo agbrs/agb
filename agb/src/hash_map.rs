@@ -147,6 +147,10 @@ impl<K, V> HashMap<K, V> {
         self.number_of_elements
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.number_of_elements == 0
+    }
+
     pub fn resize(&mut self, new_size: usize) {
         assert!(
             new_size >= self.nodes.len(),
