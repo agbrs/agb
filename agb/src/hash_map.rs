@@ -98,10 +98,18 @@ impl<K, V> NodeStorage<K, V> {
         let result = loop {
             let next_location = fast_mod(self.len(), (current_location + 1) as HashType);
 
-            // if the next node is empty, then we can clear the current node
-            if self.0[next_location].is_none() {
+            // if the next node is empty, or the next location has 0 distance to initial bucket then
+            // we can clear the current node
+            if self.0[next_location].is_none()
+                || self.0[next_location]
+                    .as_ref()
+                    .unwrap()
+                    .distance_to_initial_bucket
+                    == 0
+            {
                 break self.0[current_location].take().unwrap();
             }
+            if self.0[next_location].is_none() {}
 
             self.0.swap(current_location, next_location);
             self.0[current_location]
