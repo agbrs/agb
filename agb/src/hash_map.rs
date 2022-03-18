@@ -171,6 +171,12 @@ impl<K, V> HashMap<K, V> {
     }
 }
 
+impl<K, V> Default for HashMap<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 const fn fast_mod(len: usize, hash: HashType) -> usize {
     debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
     (hash as usize) & (len - 1)
@@ -233,6 +239,13 @@ where
 
         self.get_location(key, hash)
             .map(|location| &self.nodes.0[location].as_ref().unwrap().value)
+    }
+
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        let hash = self.hash(key);
+
+        self.get_location(key, hash)
+            .map(|location| &mut self.nodes.0[location].as_mut().unwrap().value)
     }
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
