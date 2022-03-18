@@ -164,16 +164,14 @@ impl<K, V> HashMap<K, V> {
         let mut new_max_distance_to_initial_bucket = 0;
         let number_of_elements = self.number_of_elements;
 
-        for node in self.nodes.0.drain(..) {
-            if let Some(node) = node {
-                new_max_distance_to_initial_bucket = new_node_storage.insert_new(
-                    node.key,
-                    node.value,
-                    node.hash,
-                    number_of_elements,
-                    new_max_distance_to_initial_bucket,
-                );
-            }
+        for node in self.nodes.0.drain(..).flatten() {
+            new_max_distance_to_initial_bucket = new_node_storage.insert_new(
+                node.key,
+                node.value,
+                node.hash,
+                number_of_elements,
+                new_max_distance_to_initial_bucket,
+            );
         }
 
         self.nodes = new_node_storage;
