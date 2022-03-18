@@ -37,9 +37,9 @@ struct NodeStorage<K, V>(Vec<Option<Node<K, V>>>);
 
 impl<K, V> NodeStorage<K, V> {
     fn with_size(capacity: usize) -> Self {
-        let next_power_of_2 = find_next_power_of_2(capacity);
+        assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
-        Self(iter::repeat_with(|| None).take(next_power_of_2).collect())
+        Self(iter::repeat_with(|| None).take(capacity).collect())
     }
 
     fn len(&self) -> usize {
@@ -140,20 +140,40 @@ impl<K, V> HashMap<K, V> {
     pub fn len(&self) -> usize {
         self.number_of_elements
     }
+
+    pub fn resize(&mut self, new_size: usize) {
+        assert!(
+            new_size >= self.nodes.len(),
+            "Can only increase the size of a hash map"
+        );
+        if new_size == self.nodes.len() {
+            return;
+        }
+
+        let mut new_node_storage = NodeStorage::with_size(new_size);
+        let mut new_max_distance_to_initial_bucket = 0;
+        let number_of_elements = self.number_of_elements;
+
+        for node in self.nodes.0.drain(..) {
+            if let Some(node) = node {
+                new_max_distance_to_initial_bucket = new_node_storage.insert_new(
+                    node.key,
+                    node.value,
+                    node.hash,
+                    number_of_elements,
+                    new_max_distance_to_initial_bucket,
+                );
+            }
+        }
+
+        self.nodes = new_node_storage;
+        self.max_distance_to_initial_bucket = new_max_distance_to_initial_bucket;
+    }
 }
 
 const fn fast_mod(len: usize, hash: HashType) -> usize {
     debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
     (hash as usize) & (len - 1)
-}
-
-const fn find_next_power_of_2(n: usize) -> usize {
-    let mut next_power_of_2 = 1;
-    while next_power_of_2 <= n {
-        next_power_of_2 *= 2;
-    }
-
-    next_power_of_2
 }
 
 impl<K, V> HashMap<K, V>
@@ -191,6 +211,10 @@ where
             self.nodes.0[location] = Some(new_node);
 
             return Some(old_value);
+        }
+
+        if self.nodes.len() * 85 / 100 <= self.number_of_elements {
+            self.resize(self.nodes.len() * 2);
         }
 
         self.max_distance_to_initial_bucket = self.nodes.insert_new(
@@ -344,5 +368,18 @@ mod test {
 
         assert_eq!(num_found, 8);
         assert_eq!(max_found, 7);
+    }
+
+    #[test_case]
+    fn can_insert_more_than_initial_capacity(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..65 {
+            map.put(i, i % 4);
+        }
+
+        for i in 0..65 {
+            assert_eq!(map.get(&i), Some(&(i % 4)));
+        }
     }
 }
