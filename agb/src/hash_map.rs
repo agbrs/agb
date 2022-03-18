@@ -66,7 +66,10 @@ impl<K, V> NodeStorage<K, V> {
         let mut max_distance_to_initial_bucket = max_distance_to_initial_bucket;
 
         loop {
-            let location = fast_mod(self.len(), hash + new_node.distance_to_initial_bucket);
+            let location = fast_mod(
+                self.len(),
+                new_node.hash + new_node.distance_to_initial_bucket,
+            );
             let current_node = self.0[location].as_mut();
 
             if let Some(current_node) = current_node {
@@ -463,6 +466,67 @@ mod test {
 
         for i in 0..65 {
             assert_eq!(map.get(&i), Some(&(i % 4)));
+        }
+    }
+
+    struct RandomNumberGenerator {
+        state: [u32; 4],
+    }
+
+    impl RandomNumberGenerator {
+        const fn new() -> Self {
+            Self {
+                state: [1014776995, 476057059, 3301633994, 706340607],
+            }
+        }
+
+        fn next(&mut self) -> i32 {
+            let result = (self.state[0].wrapping_add(self.state[3]))
+                .rotate_left(7)
+                .wrapping_mul(9);
+            let t = self.state[1].wrapping_shr(9);
+
+            self.state[2] ^= self.state[0];
+            self.state[3] ^= self.state[1];
+            self.state[1] ^= self.state[2];
+            self.state[0] ^= self.state[3];
+
+            self.state[2] ^= t;
+            self.state[3] = self.state[3].rotate_left(11);
+
+            result as i32
+        }
+    }
+
+    #[test_case]
+    fn extreme_case(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+        let mut rng = RandomNumberGenerator::new();
+
+        let mut answers: [Option<i32>; 128] = [None; 128];
+
+        for _ in 0..5_000 {
+            let command = rng.next().rem_euclid(2);
+            let key = rng.next().rem_euclid(128);
+            let value = rng.next();
+
+            match command {
+                0 => {
+                    // insert
+                    answers[key as usize] = Some(value);
+                    map.insert(key, value);
+                }
+                1 => {
+                    // remove
+                    answers[key as usize] = None;
+                    map.remove(&key);
+                }
+                _ => {}
+            }
+
+            for (i, answer) in answers.iter().enumerate() {
+                assert_eq!(map.get(&(i as i32)), answer.as_ref());
+            }
         }
     }
 }
