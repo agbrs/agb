@@ -45,6 +45,74 @@ impl<K, V> NodeStorage<K, V> {
     fn len(&self) -> usize {
         self.0.len()
     }
+
+    fn insert_new(
+        &mut self,
+        key: K,
+        value: V,
+        hash: HashType,
+        number_of_elements: usize,
+        max_distance_to_initial_bucket: u32,
+    ) -> u32 {
+        debug_assert!(
+            self.len() * 85 / 100 > number_of_elements,
+            "Do not have space to insert into len {} with {number_of_elements}",
+            self.len()
+        );
+
+        let mut new_node = Node {
+            hash,
+            distance_to_initial_bucket: 0,
+            key,
+            value,
+        };
+
+        let mut max_distance_to_initial_bucket = max_distance_to_initial_bucket;
+
+        loop {
+            let location = fast_mod(self.len(), hash + new_node.distance_to_initial_bucket);
+            let current_node = self.0[location].as_mut();
+
+            if let Some(current_node) = current_node {
+                if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
+                    max_distance_to_initial_bucket = new_node
+                        .distance_to_initial_bucket
+                        .max(max_distance_to_initial_bucket);
+
+                    mem::swap(&mut new_node, current_node);
+                }
+            } else {
+                self.0[location] = Some(new_node);
+                break;
+            }
+
+            new_node.distance_to_initial_bucket += 1;
+        }
+
+        max_distance_to_initial_bucket
+    }
+
+    fn remove_from_location(&mut self, location: usize) -> V {
+        let mut current_location = location;
+
+        let result = loop {
+            let next_location = fast_mod(self.len(), (current_location + 1) as HashType);
+
+            // if the next node is empty, then we can clear the current node
+            if self.0[next_location].is_none() {
+                break self.0[current_location].take().unwrap();
+            }
+
+            self.0.swap(current_location, next_location);
+            self.0[current_location]
+                .as_mut()
+                .unwrap()
+                .distance_to_initial_bucket -= 1;
+            current_location = next_location;
+        };
+
+        result.value
+    }
 }
 
 pub struct HashMap<K, V> {
@@ -125,7 +193,14 @@ where
             return Some(old_value);
         }
 
-        self.insert_new(key, value, hash);
+        self.max_distance_to_initial_bucket = self.nodes.insert_new(
+            key,
+            value,
+            hash,
+            self.number_of_elements,
+            self.max_distance_to_initial_bucket,
+        );
+        self.number_of_elements += 1;
         None
     }
 
@@ -140,7 +215,11 @@ where
         let hash = self.hash(key);
 
         self.get_location(key, hash)
-            .map(|location| self.remove_from_location(location))
+            .map(|location| self.nodes.remove_from_location(location))
+            .map(|value| {
+                self.number_of_elements -= 1;
+                value
+            })
     }
 }
 
@@ -155,66 +234,7 @@ where
     }
 }
 
-impl<K, V> HashMap<K, V> {
-    fn insert_new(&mut self, key: K, value: V, hash: HashType) {
-        // if we need to resize
-        if self.nodes.len() * 85 / 100 < self.number_of_elements {
-            todo!("resize not implemented yet");
-        }
-
-        let mut new_node = Node {
-            hash,
-            distance_to_initial_bucket: 0,
-            key,
-            value,
-        };
-
-        loop {
-            let location = fast_mod(self.nodes.len(), hash + new_node.distance_to_initial_bucket);
-            let current_node = self.nodes.0[location].as_mut();
-
-            if let Some(current_node) = current_node {
-                if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
-                    self.max_distance_to_initial_bucket = new_node
-                        .distance_to_initial_bucket
-                        .max(self.max_distance_to_initial_bucket);
-
-                    mem::swap(&mut new_node, current_node);
-                }
-            } else {
-                self.nodes.0[location] = Some(new_node);
-                break;
-            }
-
-            new_node.distance_to_initial_bucket += 1;
-        }
-
-        self.number_of_elements += 1;
-    }
-
-    fn remove_from_location(&mut self, location: usize) -> V {
-        let mut current_location = location;
-
-        let result = loop {
-            let next_location = fast_mod(self.nodes.len(), (current_location + 1) as HashType);
-
-            // if the next node is empty, then we can clear the current node
-            if self.nodes.0[next_location].is_none() {
-                break self.nodes.0[current_location].take().unwrap();
-            }
-
-            self.nodes.0.swap(current_location, next_location);
-            self.nodes.0[current_location]
-                .as_mut()
-                .unwrap()
-                .distance_to_initial_bucket -= 1;
-            current_location = next_location;
-        };
-
-        self.number_of_elements -= 1;
-        result.value
-    }
-}
+impl<K, V> HashMap<K, V> {}
 
 pub struct Iter<'a, K: 'a, V: 'a> {
     map: &'a HashMap<K, V>,
