@@ -8,18 +8,14 @@ use rustc_hash::FxHasher;
 
 type HashType = u32;
 
-struct Node<K: Sized, V: Sized> {
+struct Node<K, V> {
     hash: HashType,
     distance_to_initial_bucket: u32,
     key: K,
     value: V,
 }
 
-impl<K, V> Node<K, V>
-where
-    K: Sized,
-    V: Sized,
-{
+impl<K, V> Node<K, V> {
     fn with_new_key_value(self, new_key: K, new_value: V) -> (Self, V) {
         (
             Self {
