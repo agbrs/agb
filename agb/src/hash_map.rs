@@ -202,7 +202,7 @@ impl<K, V> HashMap<K, V>
 where
     K: Eq + Hash,
 {
-    pub fn put(&mut self, key: K, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
         if let Some(location) = self.get_location(&key, hash) {
@@ -303,7 +303,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..8 {
-            map.put(i, i % 4);
+            map.insert(i, i % 4);
         }
 
         for i in 0..8 {
@@ -316,7 +316,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..8 {
-            map.put(i / 2, true);
+            map.insert(i / 2, true);
         }
 
         assert_eq!(map.len(), 4);
@@ -327,7 +327,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..8 {
-            map.put(i, i % 3);
+            map.insert(i, i % 3);
         }
 
         assert_eq!(map.get(&12), None);
@@ -338,7 +338,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..8 {
-            map.put(i, i % 3);
+            map.insert(i, i % 3);
         }
 
         for i in 0..4 {
@@ -355,7 +355,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..8 {
-            map.put(i, i);
+            map.insert(i, i);
         }
 
         let mut max_found = -1;
@@ -375,7 +375,7 @@ mod test {
         let mut map = HashMap::new();
 
         for i in 0..65 {
-            map.put(i, i % 4);
+            map.insert(i, i % 4);
         }
 
         for i in 0..65 {
