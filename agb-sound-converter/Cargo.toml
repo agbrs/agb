@@ -22,6 +22,6 @@ freq18157 = []
 
 [dependencies]
 hound = "3.4.0"
-syn = "1.0.88"
+syn = "1.0.89"
 proc-macro2 = "1.0.36"
 quote = "1.0.15"

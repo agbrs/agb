@@ -13,7 +13,7 @@ proc-macro = true
 image = { version = "0.23", default-features = false, features = [ "png", "bmp" ] }
 toml = "0.5.8"
 serde = { version = "1.0", features = ["derive"] }
-syn = "1.0.88"
+syn = "1.0.89"
 proc-macro2 = "1.0.36"
 quote = "1.0.15"
 asefile = "0.3.2"
