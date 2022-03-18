@@ -9,6 +9,7 @@ impl Palette16 {
         Palette16 { colours }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     pub fn update_colour(&mut self, index: usize, colour: u16) {
         self.colours[index] = colour;
     }
