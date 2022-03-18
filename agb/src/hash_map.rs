@@ -244,8 +244,11 @@ where
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
-        self.get_location(key, hash)
-            .map(|location| &mut self.nodes.0[location].as_mut().unwrap().value)
+        if let Some(location) = self.get_location(key, hash) {
+            Some(&mut self.nodes.0[location].as_mut().unwrap().value)
+        } else {
+            None
+        }
     }
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
@@ -270,8 +273,6 @@ where
         hasher.finish() as HashType
     }
 }
-
-impl<K, V> HashMap<K, V> {}
 
 pub struct Iter<'a, K: 'a, V: 'a> {
     map: &'a HashMap<K, V>,
@@ -303,6 +304,72 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
 
     fn into_iter(self) -> Self::IntoIter {
         Iter { map: self, at: 0 }
+    }
+}
+
+pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    entry: &'a mut Node<K, V>,
+}
+
+pub struct VacantEntry<'a, K: 'a, V: 'a> {
+    key: K,
+    map: &'a mut HashMap<K, V>,
+}
+
+impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
+    pub fn insert(self, value: V)
+    where
+        K: Hash + Eq,
+    {
+        self.map.insert(self.key, value);
+    }
+}
+
+pub enum Entry<'a, K: 'a, V: 'a> {
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
+}
+
+impl<'a, K, V> Entry<'a, K, V>
+where
+    K: Hash + Eq,
+{
+    pub fn or_insert(self, value: V) {
+        match self {
+            Entry::Occupied(_) => {}
+            Entry::Vacant(e) => e.insert(value),
+        }
+    }
+
+    pub fn and_modify<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut V),
+    {
+        match self {
+            Entry::Occupied(e) => {
+                f(&mut e.entry.value);
+                Entry::Occupied(e)
+            }
+            Entry::Vacant(e) => Entry::Vacant(e),
+        }
+    }
+}
+
+impl<'a, K, V> HashMap<K, V>
+where
+    K: Hash + Eq,
+{
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
+        let hash = self.hash(&key);
+        let location = self.get_location(&key, hash);
+
+        if let Some(location) = location {
+            Entry::Occupied(OccupiedEntry {
+                entry: self.nodes.0[location].as_mut().unwrap(),
+            })
+        } else {
+            Entry::Vacant(VacantEntry { key, map: self })
+        }
     }
 }
 
