@@ -75,10 +75,6 @@ impl<K, V> NodeStorage<K, V> {
 
             if let Some(current_node) = current_node {
                 if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
-                    max_distance_to_initial_bucket = new_node
-                        .distance_to_initial_bucket
-                        .max(max_distance_to_initial_bucket);
-
                     mem::swap(&mut new_node, current_node);
                 }
             } else {
@@ -87,6 +83,9 @@ impl<K, V> NodeStorage<K, V> {
             }
 
             new_node.distance_to_initial_bucket += 1;
+            max_distance_to_initial_bucket = new_node
+                .distance_to_initial_bucket
+                .max(max_distance_to_initial_bucket);
         }
 
         max_distance_to_initial_bucket
