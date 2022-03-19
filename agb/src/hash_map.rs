@@ -44,15 +44,15 @@ impl<K, V> NodeStorage<K, V> {
         }
     }
 
-    fn len(&self) -> usize {
+    fn capacity(&self) -> usize {
         self.nodes.len()
     }
 
     fn insert_new(&mut self, key: K, value: V, hash: HashType, number_of_elements: usize) {
         debug_assert!(
-            self.len() * 85 / 100 > number_of_elements,
+            self.capacity() * 85 / 100 > number_of_elements,
             "Do not have space to insert into len {} with {number_of_elements}",
-            self.len()
+            self.capacity()
         );
 
         let mut new_node = Node {
@@ -64,7 +64,7 @@ impl<K, V> NodeStorage<K, V> {
 
         loop {
             let location = fast_mod(
-                self.len(),
+                self.capacity(),
                 new_node.hash + new_node.distance_to_initial_bucket as HashType,
             );
             let current_node = self.nodes[location].as_mut();
@@ -89,7 +89,7 @@ impl<K, V> NodeStorage<K, V> {
         let mut current_location = location;
 
         let result = loop {
-            let next_location = fast_mod(self.len(), (current_location + 1) as HashType);
+            let next_location = fast_mod(self.capacity(), (current_location + 1) as HashType);
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
@@ -169,15 +169,15 @@ impl<K, V> HashMap<K, V> {
 
     pub fn resize(&mut self, new_size: usize) {
         assert!(
-            new_size >= self.nodes.len(),
+            new_size >= self.nodes.capacity(),
             "Can only increase the size of a hash map"
         );
-        if new_size == self.nodes.len() {
+        if new_size == self.nodes.capacity() {
             return;
         }
 
         let mut new_node_storage = NodeStorage::with_size(new_size);
-        let mut new_max_distance_to_initial_bucket = 0;
+
         let number_of_elements = self.number_of_elements;
 
         for node in self.nodes.nodes.drain(..).flatten() {
@@ -223,8 +223,8 @@ where
             return Some(old_value);
         }
 
-        if self.nodes.len() * 85 / 100 <= self.number_of_elements {
-            self.resize(self.nodes.len() * 2);
+        if self.nodes.capacity() * 85 / 100 <= self.number_of_elements {
+            self.resize(self.nodes.capacity() * 2);
         }
 
         self.nodes
@@ -283,7 +283,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.len() {
+            if self.at >= self.map.nodes.capacity() {
                 return None;
             }
 
