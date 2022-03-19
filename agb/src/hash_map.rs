@@ -29,27 +29,26 @@ impl<K, V> Node<K, V> {
     }
 }
 
-struct NodeStorage<K, V>(Vec<Option<Node<K, V>>>);
+struct NodeStorage<K, V> {
+    nodes: Vec<Option<Node<K, V>>>,
+    max_distance_to_initial_bucket: i32,
+}
 
 impl<K, V> NodeStorage<K, V> {
     fn with_size(capacity: usize) -> Self {
         assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
-        Self(iter::repeat_with(|| None).take(capacity).collect())
+        Self {
+            nodes: iter::repeat_with(|| None).take(capacity).collect(),
+            max_distance_to_initial_bucket: 0,
+        }
     }
 
     fn len(&self) -> usize {
-        self.0.len()
+        self.nodes.len()
     }
 
-    fn insert_new(
-        &mut self,
-        key: K,
-        value: V,
-        hash: HashType,
-        number_of_elements: usize,
-        max_distance_to_initial_bucket: i32,
-    ) -> i32 {
+    fn insert_new(&mut self, key: K, value: V, hash: HashType, number_of_elements: usize) {
         debug_assert!(
             self.len() * 85 / 100 > number_of_elements,
             "Do not have space to insert into len {} with {number_of_elements}",
@@ -63,31 +62,27 @@ impl<K, V> NodeStorage<K, V> {
             value,
         };
 
-        let mut max_distance_to_initial_bucket = max_distance_to_initial_bucket;
-
         loop {
             let location = fast_mod(
                 self.len(),
                 new_node.hash + new_node.distance_to_initial_bucket as HashType,
             );
-            let current_node = self.0[location].as_mut();
+            let current_node = self.nodes[location].as_mut();
 
             if let Some(current_node) = current_node {
                 if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
                     mem::swap(&mut new_node, current_node);
                 }
             } else {
-                self.0[location] = Some(new_node);
+                self.nodes[location] = Some(new_node);
                 break;
             }
 
             new_node.distance_to_initial_bucket += 1;
-            max_distance_to_initial_bucket = new_node
+            self.max_distance_to_initial_bucket = new_node
                 .distance_to_initial_bucket
-                .max(max_distance_to_initial_bucket);
+                .max(self.max_distance_to_initial_bucket);
         }
-
-        max_distance_to_initial_bucket
     }
 
     fn remove_from_location(&mut self, location: usize) -> V {
@@ -98,19 +93,19 @@ impl<K, V> NodeStorage<K, V> {
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
-            if self.0[next_location].is_none()
-                || self.0[next_location]
+            if self.nodes[next_location].is_none()
+                || self.nodes[next_location]
                     .as_ref()
                     .unwrap()
                     .distance_to_initial_bucket
                     == 0
             {
-                break self.0[current_location].take().unwrap();
+                break self.nodes[current_location].take().unwrap();
             }
-            if self.0[next_location].is_none() {}
+            if self.nodes[next_location].is_none() {}
 
-            self.0.swap(current_location, next_location);
-            self.0[current_location]
+            self.nodes.swap(current_location, next_location);
+            self.nodes[current_location]
                 .as_mut()
                 .unwrap()
                 .distance_to_initial_bucket -= 1;
@@ -119,11 +114,33 @@ impl<K, V> NodeStorage<K, V> {
 
         result.value
     }
+
+    fn get_location(&self, key: &K, hash: HashType) -> Option<usize>
+    where
+        K: Eq,
+    {
+        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
+            let location = fast_mod(
+                self.nodes.len(),
+                hash + distance_to_initial_bucket as HashType,
+            );
+
+            let node = &self.nodes[location];
+            if let Some(node) = node {
+                if &node.key == key {
+                    return Some(location);
+                }
+            } else {
+                return None;
+            }
+        }
+
+        None
+    }
 }
 
 pub struct HashMap<K, V> {
     number_of_elements: usize,
-    max_distance_to_initial_bucket: i32,
     nodes: NodeStorage<K, V>,
 
     hasher: BuildHasherDefault<FxHasher>,
@@ -137,7 +154,6 @@ impl<K, V> HashMap<K, V> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             number_of_elements: 0,
-            max_distance_to_initial_bucket: 0,
             nodes: NodeStorage::with_size(capacity),
             hasher: Default::default(),
         }
@@ -164,18 +180,11 @@ impl<K, V> HashMap<K, V> {
         let mut new_max_distance_to_initial_bucket = 0;
         let number_of_elements = self.number_of_elements;
 
-        for node in self.nodes.0.drain(..).flatten() {
-            new_max_distance_to_initial_bucket = new_node_storage.insert_new(
-                node.key,
-                node.value,
-                node.hash,
-                number_of_elements,
-                new_max_distance_to_initial_bucket,
-            );
+        for node in self.nodes.nodes.drain(..).flatten() {
+            new_node_storage.insert_new(node.key, node.value, node.hash, number_of_elements);
         }
 
         self.nodes = new_node_storage;
-        self.max_distance_to_initial_bucket = new_max_distance_to_initial_bucket;
     }
 }
 
@@ -195,23 +204,7 @@ where
     K: Eq,
 {
     fn get_location(&self, key: &K, hash: HashType) -> Option<usize> {
-        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
-            let location = fast_mod(
-                self.nodes.len(),
-                hash + distance_to_initial_bucket as HashType,
-            );
-
-            let node = &self.nodes.0[location];
-            if let Some(node) = node {
-                if &node.key == key {
-                    return Some(location);
-                }
-            } else {
-                return None;
-            }
-        }
-
-        None
+        self.nodes.get_location(key, hash)
     }
 }
 
@@ -223,9 +216,9 @@ where
         let hash = self.hash(&key);
 
         if let Some(location) = self.get_location(&key, hash) {
-            let old_node = self.nodes.0[location].take().unwrap();
+            let old_node = self.nodes.nodes[location].take().unwrap();
             let (new_node, old_value) = old_node.with_new_key_value(key, value);
-            self.nodes.0[location] = Some(new_node);
+            self.nodes.nodes[location] = Some(new_node);
 
             return Some(old_value);
         }
@@ -234,13 +227,8 @@ where
             self.resize(self.nodes.len() * 2);
         }
 
-        self.max_distance_to_initial_bucket = self.nodes.insert_new(
-            key,
-            value,
-            hash,
-            self.number_of_elements,
-            self.max_distance_to_initial_bucket,
-        );
+        self.nodes
+            .insert_new(key, value, hash, self.number_of_elements);
         self.number_of_elements += 1;
         None
     }
@@ -249,14 +237,14 @@ where
         let hash = self.hash(key);
 
         self.get_location(key, hash)
-            .map(|location| &self.nodes.0[location].as_ref().unwrap().value)
+            .map(|location| &self.nodes.nodes[location].as_ref().unwrap().value)
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
         if let Some(location) = self.get_location(key, hash) {
-            Some(&mut self.nodes.0[location].as_mut().unwrap().value)
+            Some(&mut self.nodes.nodes[location].as_mut().unwrap().value)
         } else {
             None
         }
@@ -299,7 +287,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
                 return None;
             }
 
-            if let Some(node) = &self.map.nodes.0[self.at] {
+            if let Some(node) = &self.map.nodes.nodes[self.at] {
                 self.at += 1;
                 return Some((&node.key, &node.value));
             }
@@ -376,7 +364,7 @@ where
 
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
-                entry: self.nodes.0[location].as_mut().unwrap(),
+                entry: self.nodes.nodes[location].as_mut().unwrap(),
             })
         } else {
             Entry::Vacant(VacantEntry { key, map: self })
