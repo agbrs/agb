@@ -32,6 +32,8 @@ impl<K, V> Node<K, V> {
 struct NodeStorage<K, V> {
     nodes: Vec<Option<Node<K, V>>>,
     max_distance_to_initial_bucket: i32,
+
+    number_of_items: usize,
 }
 
 impl<K, V> NodeStorage<K, V> {
@@ -41,6 +43,7 @@ impl<K, V> NodeStorage<K, V> {
         Self {
             nodes: iter::repeat_with(|| None).take(capacity).collect(),
             max_distance_to_initial_bucket: 0,
+            number_of_items: 0,
         }
     }
 
@@ -48,11 +51,16 @@ impl<K, V> NodeStorage<K, V> {
         self.nodes.len()
     }
 
-    fn insert_new(&mut self, key: K, value: V, hash: HashType, number_of_elements: usize) {
+    fn len(&self) -> usize {
+        self.number_of_items
+    }
+
+    fn insert_new(&mut self, key: K, value: V, hash: HashType) {
         debug_assert!(
-            self.capacity() * 85 / 100 > number_of_elements,
-            "Do not have space to insert into len {} with {number_of_elements}",
-            self.capacity()
+            self.capacity() * 85 / 100 > self.len(),
+            "Do not have space to insert into len {} with {}",
+            self.capacity(),
+            self.len()
         );
 
         let mut new_node = Node {
@@ -83,6 +91,8 @@ impl<K, V> NodeStorage<K, V> {
                 .distance_to_initial_bucket
                 .max(self.max_distance_to_initial_bucket);
         }
+
+        self.number_of_items += 1;
     }
 
     fn remove_from_location(&mut self, location: usize) -> V {
@@ -112,6 +122,8 @@ impl<K, V> NodeStorage<K, V> {
             current_location = next_location;
         };
 
+        self.number_of_items -= 1;
+
         result.value
     }
 
@@ -140,7 +152,6 @@ impl<K, V> NodeStorage<K, V> {
 }
 
 pub struct HashMap<K, V> {
-    number_of_elements: usize,
     nodes: NodeStorage<K, V>,
 
     hasher: BuildHasherDefault<FxHasher>,
@@ -153,18 +164,17 @@ impl<K, V> HashMap<K, V> {
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            number_of_elements: 0,
             nodes: NodeStorage::with_size(capacity),
             hasher: Default::default(),
         }
     }
 
     pub fn len(&self) -> usize {
-        self.number_of_elements
+        self.nodes.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.number_of_elements == 0
+        self.len() == 0
     }
 
     pub fn resize(&mut self, new_size: usize) {
@@ -178,10 +188,8 @@ impl<K, V> HashMap<K, V> {
 
         let mut new_node_storage = NodeStorage::with_size(new_size);
 
-        let number_of_elements = self.number_of_elements;
-
         for node in self.nodes.nodes.drain(..).flatten() {
-            new_node_storage.insert_new(node.key, node.value, node.hash, number_of_elements);
+            new_node_storage.insert_new(node.key, node.value, node.hash);
         }
 
         self.nodes = new_node_storage;
@@ -223,13 +231,11 @@ where
             return Some(old_value);
         }
 
-        if self.nodes.capacity() * 85 / 100 <= self.number_of_elements {
+        if self.nodes.capacity() * 85 / 100 <= self.len() {
             self.resize(self.nodes.capacity() * 2);
         }
 
-        self.nodes
-            .insert_new(key, value, hash, self.number_of_elements);
-        self.number_of_elements += 1;
+        self.nodes.insert_new(key, value, hash);
         None
     }
 
@@ -255,10 +261,6 @@ where
 
         self.get_location(key, hash)
             .map(|location| self.nodes.remove_from_location(location))
-            .map(|value| {
-                self.number_of_elements -= 1;
-                value
-            })
     }
 }
 
