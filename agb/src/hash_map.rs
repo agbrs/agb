@@ -228,10 +228,13 @@ impl<K, V> NodeStorage<K, V> {
     }
 }
 
-pub struct HashMap<K, V> {
+pub struct HashMap<K, V, H = BuildHasherDefault<FxHasher>>
+where
+    H: BuildHasher,
+{
     nodes: NodeStorage<K, V>,
 
-    hasher: BuildHasherDefault<FxHasher>,
+    hasher: H,
 }
 
 impl<K, V> HashMap<K, V> {
