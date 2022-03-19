@@ -209,21 +209,12 @@ const fn fast_mod(len: usize, hash: HashType) -> usize {
 
 impl<K, V> HashMap<K, V>
 where
-    K: Eq,
-{
-    fn get_location(&self, key: &K, hash: HashType) -> Option<usize> {
-        self.nodes.get_location(key, hash)
-    }
-}
-
-impl<K, V> HashMap<K, V>
-where
     K: Eq + Hash,
 {
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
-        if let Some(location) = self.get_location(&key, hash) {
+        if let Some(location) = self.nodes.get_location(&key, hash) {
             let old_node = self.nodes.nodes[location].take().unwrap();
             let (new_node, old_value) = old_node.with_new_key_value(key, value);
             self.nodes.nodes[location] = Some(new_node);
@@ -242,14 +233,15 @@ where
     pub fn get(&self, key: &K) -> Option<&V> {
         let hash = self.hash(key);
 
-        self.get_location(key, hash)
+        self.nodes
+            .get_location(key, hash)
             .map(|location| &self.nodes.nodes[location].as_ref().unwrap().value)
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
-        if let Some(location) = self.get_location(key, hash) {
+        if let Some(location) = self.nodes.get_location(key, hash) {
             Some(&mut self.nodes.nodes[location].as_mut().unwrap().value)
         } else {
             None
@@ -259,7 +251,8 @@ where
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let hash = self.hash(key);
 
-        self.get_location(key, hash)
+        self.nodes
+            .get_location(key, hash)
             .map(|location| self.nodes.remove_from_location(location))
     }
 }
@@ -362,7 +355,7 @@ where
 {
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let hash = self.hash(&key);
-        let location = self.get_location(&key, hash);
+        let location = self.nodes.get_location(&key, hash);
 
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
