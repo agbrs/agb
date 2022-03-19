@@ -10,7 +10,7 @@ type HashType = u32;
 
 struct Node<K, V> {
     hash: HashType,
-    distance_to_initial_bucket: u32,
+    distance_to_initial_bucket: i32,
     key: K,
     value: V,
 }
@@ -48,8 +48,8 @@ impl<K, V> NodeStorage<K, V> {
         value: V,
         hash: HashType,
         number_of_elements: usize,
-        max_distance_to_initial_bucket: u32,
-    ) -> u32 {
+        max_distance_to_initial_bucket: i32,
+    ) -> i32 {
         debug_assert!(
             self.len() * 85 / 100 > number_of_elements,
             "Do not have space to insert into len {} with {number_of_elements}",
@@ -68,7 +68,7 @@ impl<K, V> NodeStorage<K, V> {
         loop {
             let location = fast_mod(
                 self.len(),
-                new_node.hash + new_node.distance_to_initial_bucket,
+                new_node.hash + new_node.distance_to_initial_bucket as HashType,
             );
             let current_node = self.0[location].as_mut();
 
@@ -123,7 +123,7 @@ impl<K, V> NodeStorage<K, V> {
 
 pub struct HashMap<K, V> {
     number_of_elements: usize,
-    max_distance_to_initial_bucket: u32,
+    max_distance_to_initial_bucket: i32,
     nodes: NodeStorage<K, V>,
 
     hasher: BuildHasherDefault<FxHasher>,
@@ -196,7 +196,10 @@ where
 {
     fn get_location(&self, key: &K, hash: HashType) -> Option<usize> {
         for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
-            let location = fast_mod(self.nodes.len(), hash + distance_to_initial_bucket);
+            let location = fast_mod(
+                self.nodes.len(),
+                hash + distance_to_initial_bucket as HashType,
+            );
 
             let node = &self.nodes.0[location];
             if let Some(node) = node {
