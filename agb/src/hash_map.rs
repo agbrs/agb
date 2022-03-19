@@ -314,8 +314,7 @@ where
 
         self.nodes
             .get_location(key, hash)
-            .map(|location| self.nodes.nodes[location].get_value_ref())
-            .flatten()
+            .and_then(|location| self.nodes.nodes[location].get_value_ref())
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
