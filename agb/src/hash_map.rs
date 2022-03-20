@@ -10,225 +10,6 @@ use rustc_hash::FxHasher;
 
 type HashType = u32;
 
-struct Node<K, V> {
-    hash: HashType,
-
-    // distance_to_initial_bucket = -1 => key and value are uninit.
-    // distance_to_initial_bucket >= 0 => key and value are init
-    distance_to_initial_bucket: i32,
-    key: MaybeUninit<K>,
-    value: MaybeUninit<V>,
-}
-
-impl<K, V> Node<K, V> {
-    fn with_new_key_value(mut self, new_key: K, new_value: V) -> (Self, Option<V>) {
-        (
-            Self {
-                hash: self.hash,
-                distance_to_initial_bucket: self.distance_to_initial_bucket,
-                key: MaybeUninit::new(new_key),
-                value: MaybeUninit::new(new_value),
-            },
-            self.take_key_value().map(|(_, v, _)| v),
-        )
-    }
-
-    fn new() -> Self {
-        Self {
-            hash: 0,
-            distance_to_initial_bucket: -1,
-            key: MaybeUninit::uninit(),
-            value: MaybeUninit::uninit(),
-        }
-    }
-
-    fn new_with(key: K, value: V, hash: HashType) -> Self {
-        Self {
-            hash,
-            distance_to_initial_bucket: 0,
-            key: MaybeUninit::new(key),
-            value: MaybeUninit::new(value),
-        }
-    }
-
-    fn value_ref(&self) -> Option<&V> {
-        if self.has_value() {
-            Some(unsafe { self.value.assume_init_ref() })
-        } else {
-            None
-        }
-    }
-
-    fn value_mut(&mut self) -> Option<&mut V> {
-        if self.has_value() {
-            Some(unsafe { self.value.assume_init_mut() })
-        } else {
-            None
-        }
-    }
-
-    fn key_ref(&self) -> Option<&K> {
-        if self.distance_to_initial_bucket >= 0 {
-            Some(unsafe { self.key.assume_init_ref() })
-        } else {
-            None
-        }
-    }
-
-    fn has_value(&self) -> bool {
-        self.distance_to_initial_bucket >= 0
-    }
-
-    fn take(&mut self) -> Self {
-        mem::take(self)
-    }
-
-    fn take_key_value(&mut self) -> Option<(K, V, HashType)> {
-        if self.has_value() {
-            let key = mem::replace(&mut self.key, MaybeUninit::uninit());
-            let value = mem::replace(&mut self.value, MaybeUninit::uninit());
-            self.distance_to_initial_bucket = -1;
-
-            Some(unsafe { (key.assume_init(), value.assume_init(), self.hash) })
-        } else {
-            None
-        }
-    }
-}
-
-impl<K, V> Drop for Node<K, V> {
-    fn drop(&mut self) {
-        if self.distance_to_initial_bucket >= 0 {
-            unsafe { ptr::drop_in_place(self.key.as_mut_ptr()) };
-            unsafe { ptr::drop_in_place(self.value.as_mut_ptr()) };
-        }
-    }
-}
-
-impl<K, V> Default for Node<K, V> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-struct NodeStorage<K, V> {
-    nodes: Vec<Node<K, V>>,
-    max_distance_to_initial_bucket: i32,
-
-    number_of_items: usize,
-}
-
-impl<K, V> NodeStorage<K, V> {
-    fn with_size(capacity: usize) -> Self {
-        assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
-
-        Self {
-            nodes: iter::repeat_with(Default::default).take(capacity).collect(),
-            max_distance_to_initial_bucket: 0,
-            number_of_items: 0,
-        }
-    }
-
-    fn capacity(&self) -> usize {
-        self.nodes.len()
-    }
-
-    fn len(&self) -> usize {
-        self.number_of_items
-    }
-
-    fn insert_new(&mut self, key: K, value: V, hash: HashType) {
-        debug_assert!(
-            self.capacity() * 85 / 100 > self.len(),
-            "Do not have space to insert into len {} with {}",
-            self.capacity(),
-            self.len()
-        );
-
-        let mut new_node = Node::new_with(key, value, hash);
-
-        loop {
-            let location = fast_mod(
-                self.capacity(),
-                new_node.hash + new_node.distance_to_initial_bucket as HashType,
-            );
-            let current_node = &mut self.nodes[location];
-
-            if current_node.has_value() {
-                if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
-                    mem::swap(&mut new_node, current_node);
-                }
-            } else {
-                self.nodes[location] = new_node;
-                break;
-            }
-
-            new_node.distance_to_initial_bucket += 1;
-            self.max_distance_to_initial_bucket = new_node
-                .distance_to_initial_bucket
-                .max(self.max_distance_to_initial_bucket);
-        }
-
-        self.number_of_items += 1;
-    }
-
-    fn remove_from_location(&mut self, location: usize) -> V {
-        let mut current_location = location;
-        self.number_of_items -= 1;
-
-        loop {
-            let next_location = fast_mod(self.capacity(), (current_location + 1) as HashType);
-
-            // if the next node is empty, or the next location has 0 distance to initial bucket then
-            // we can clear the current node
-            if !self.nodes[next_location].has_value()
-                || self.nodes[next_location].distance_to_initial_bucket == 0
-            {
-                return self.nodes[current_location].take_key_value().unwrap().1;
-            }
-
-            self.nodes.swap(current_location, next_location);
-            self.nodes[current_location].distance_to_initial_bucket -= 1;
-            current_location = next_location;
-        }
-    }
-
-    fn get_location(&self, key: &K, hash: HashType) -> Option<usize>
-    where
-        K: Eq,
-    {
-        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
-            let location = fast_mod(
-                self.nodes.len(),
-                hash + distance_to_initial_bucket as HashType,
-            );
-
-            let node = &self.nodes[location];
-            if let Some(node_key_ref) = node.key_ref() {
-                if node_key_ref == key {
-                    return Some(location);
-                }
-            } else {
-                return None;
-            }
-        }
-
-        None
-    }
-
-    fn resized_to(&mut self, new_size: usize) -> Self {
-        let mut new_node_storage = Self::with_size(new_size);
-
-        for mut node in self.nodes.drain(..) {
-            if let Some((key, value, hash)) = node.take_key_value() {
-                new_node_storage.insert_new(key, value, hash);
-            }
-        }
-
-        new_node_storage
-    }
-}
-
 pub struct HashMap<K, V, H = BuildHasherDefault<FxHasher>>
 where
     H: BuildHasher,
@@ -439,6 +220,225 @@ where
         } else {
             Entry::Vacant(VacantEntry { key, map: self })
         }
+    }
+}
+
+struct NodeStorage<K, V> {
+    nodes: Vec<Node<K, V>>,
+    max_distance_to_initial_bucket: i32,
+
+    number_of_items: usize,
+}
+
+impl<K, V> NodeStorage<K, V> {
+    fn with_size(capacity: usize) -> Self {
+        assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
+
+        Self {
+            nodes: iter::repeat_with(Default::default).take(capacity).collect(),
+            max_distance_to_initial_bucket: 0,
+            number_of_items: 0,
+        }
+    }
+
+    fn capacity(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn len(&self) -> usize {
+        self.number_of_items
+    }
+
+    fn insert_new(&mut self, key: K, value: V, hash: HashType) {
+        debug_assert!(
+            self.capacity() * 85 / 100 > self.len(),
+            "Do not have space to insert into len {} with {}",
+            self.capacity(),
+            self.len()
+        );
+
+        let mut new_node = Node::new_with(key, value, hash);
+
+        loop {
+            let location = fast_mod(
+                self.capacity(),
+                new_node.hash + new_node.distance_to_initial_bucket as HashType,
+            );
+            let current_node = &mut self.nodes[location];
+
+            if current_node.has_value() {
+                if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
+                    mem::swap(&mut new_node, current_node);
+                }
+            } else {
+                self.nodes[location] = new_node;
+                break;
+            }
+
+            new_node.distance_to_initial_bucket += 1;
+            self.max_distance_to_initial_bucket = new_node
+                .distance_to_initial_bucket
+                .max(self.max_distance_to_initial_bucket);
+        }
+
+        self.number_of_items += 1;
+    }
+
+    fn remove_from_location(&mut self, location: usize) -> V {
+        let mut current_location = location;
+        self.number_of_items -= 1;
+
+        loop {
+            let next_location = fast_mod(self.capacity(), (current_location + 1) as HashType);
+
+            // if the next node is empty, or the next location has 0 distance to initial bucket then
+            // we can clear the current node
+            if !self.nodes[next_location].has_value()
+                || self.nodes[next_location].distance_to_initial_bucket == 0
+            {
+                return self.nodes[current_location].take_key_value().unwrap().1;
+            }
+
+            self.nodes.swap(current_location, next_location);
+            self.nodes[current_location].distance_to_initial_bucket -= 1;
+            current_location = next_location;
+        }
+    }
+
+    fn get_location(&self, key: &K, hash: HashType) -> Option<usize>
+    where
+        K: Eq,
+    {
+        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
+            let location = fast_mod(
+                self.nodes.len(),
+                hash + distance_to_initial_bucket as HashType,
+            );
+
+            let node = &self.nodes[location];
+            if let Some(node_key_ref) = node.key_ref() {
+                if node_key_ref == key {
+                    return Some(location);
+                }
+            } else {
+                return None;
+            }
+        }
+
+        None
+    }
+
+    fn resized_to(&mut self, new_size: usize) -> Self {
+        let mut new_node_storage = Self::with_size(new_size);
+
+        for mut node in self.nodes.drain(..) {
+            if let Some((key, value, hash)) = node.take_key_value() {
+                new_node_storage.insert_new(key, value, hash);
+            }
+        }
+
+        new_node_storage
+    }
+}
+
+struct Node<K, V> {
+    hash: HashType,
+
+    // distance_to_initial_bucket = -1 => key and value are uninit.
+    // distance_to_initial_bucket >= 0 => key and value are init
+    distance_to_initial_bucket: i32,
+    key: MaybeUninit<K>,
+    value: MaybeUninit<V>,
+}
+
+impl<K, V> Node<K, V> {
+    fn with_new_key_value(mut self, new_key: K, new_value: V) -> (Self, Option<V>) {
+        (
+            Self {
+                hash: self.hash,
+                distance_to_initial_bucket: self.distance_to_initial_bucket,
+                key: MaybeUninit::new(new_key),
+                value: MaybeUninit::new(new_value),
+            },
+            self.take_key_value().map(|(_, v, _)| v),
+        )
+    }
+
+    fn new() -> Self {
+        Self {
+            hash: 0,
+            distance_to_initial_bucket: -1,
+            key: MaybeUninit::uninit(),
+            value: MaybeUninit::uninit(),
+        }
+    }
+
+    fn new_with(key: K, value: V, hash: HashType) -> Self {
+        Self {
+            hash,
+            distance_to_initial_bucket: 0,
+            key: MaybeUninit::new(key),
+            value: MaybeUninit::new(value),
+        }
+    }
+
+    fn value_ref(&self) -> Option<&V> {
+        if self.has_value() {
+            Some(unsafe { self.value.assume_init_ref() })
+        } else {
+            None
+        }
+    }
+
+    fn value_mut(&mut self) -> Option<&mut V> {
+        if self.has_value() {
+            Some(unsafe { self.value.assume_init_mut() })
+        } else {
+            None
+        }
+    }
+
+    fn key_ref(&self) -> Option<&K> {
+        if self.distance_to_initial_bucket >= 0 {
+            Some(unsafe { self.key.assume_init_ref() })
+        } else {
+            None
+        }
+    }
+
+    fn has_value(&self) -> bool {
+        self.distance_to_initial_bucket >= 0
+    }
+
+    fn take(&mut self) -> Self {
+        mem::take(self)
+    }
+
+    fn take_key_value(&mut self) -> Option<(K, V, HashType)> {
+        if self.has_value() {
+            let key = mem::replace(&mut self.key, MaybeUninit::uninit());
+            let value = mem::replace(&mut self.value, MaybeUninit::uninit());
+            self.distance_to_initial_bucket = -1;
+
+            Some(unsafe { (key.assume_init(), value.assume_init(), self.hash) })
+        } else {
+            None
+        }
+    }
+}
+
+impl<K, V> Drop for Node<K, V> {
+    fn drop(&mut self) {
+        if self.distance_to_initial_bucket >= 0 {
+            unsafe { ptr::drop_in_place(self.key.as_mut_ptr()) };
+            unsafe { ptr::drop_in_place(self.value.as_mut_ptr()) };
+        }
+    }
+}
+
+impl<K, V> Default for Node<K, V> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
