@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use core::{
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
-    iter,
+    iter::{self, FromIterator},
     mem::{self, MaybeUninit},
+    ops::Index,
     ptr,
 };
 
@@ -301,6 +302,50 @@ where
         } else {
             Entry::Vacant(VacantEntry { key, map: self })
         }
+    }
+}
+
+impl<K, V> FromIterator<(K, V)> for HashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        let mut map = HashMap::new();
+        map.extend(iter);
+        map
+    }
+}
+
+impl<K, V> Extend<(K, V)> for HashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn extend<T: IntoIterator<Item = (K, V)>>(&mut self, iter: T) {
+        for (k, v) in iter {
+            self.insert(k, v);
+        }
+    }
+}
+
+impl<K, V> Index<&K> for HashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    type Output = V;
+
+    fn index(&self, key: &K) -> &V {
+        self.get(key).expect("no entry found for key")
+    }
+}
+
+impl<K, V> Index<K> for HashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    type Output = V;
+
+    fn index(&self, key: K) -> &V {
+        self.get(&key).expect("no entry found for key")
     }
 }
 
@@ -879,5 +924,111 @@ mod test {
         }
 
         drop_registry.assert_dropped_n_times(id1, 2);
+    }
+
+    // Following test cases copied from the rust source
+    // https://github.com/rust-lang/rust/blob/master/library/std/src/collections/hash/map/tests.rs
+    mod rust_std_tests {
+        use crate::{
+            hash_map::{Entry::*, HashMap},
+            Gba,
+        };
+
+        #[test_case]
+        fn test_entry(_gba: &mut Gba) {
+            let xs = [(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
+
+            let mut map: HashMap<_, _> = xs.iter().cloned().collect();
+
+            // Existing key (insert)
+            match map.entry(1) {
+                Vacant(_) => unreachable!(),
+                Occupied(mut view) => {
+                    assert_eq!(view.get(), &10);
+                    assert_eq!(view.insert(100), 10);
+                }
+            }
+            assert_eq!(map.get(&1).unwrap(), &100);
+            assert_eq!(map.len(), 6);
+
+            // Existing key (update)
+            match map.entry(2) {
+                Vacant(_) => unreachable!(),
+                Occupied(mut view) => {
+                    let v = view.get_mut();
+                    let new_v = (*v) * 10;
+                    *v = new_v;
+                }
+            }
+            assert_eq!(map.get(&2).unwrap(), &200);
+            assert_eq!(map.len(), 6);
+
+            // Existing key (take)
+            match map.entry(3) {
+                Vacant(_) => unreachable!(),
+                Occupied(view) => {
+                    assert_eq!(view.remove(), 30);
+                }
+            }
+            assert_eq!(map.get(&3), None);
+            assert_eq!(map.len(), 5);
+
+            // Inexistent key (insert)
+            match map.entry(10) {
+                Occupied(_) => unreachable!(),
+                Vacant(view) => {
+                    assert_eq!(*view.insert(1000), 1000);
+                }
+            }
+            assert_eq!(map.get(&10).unwrap(), &1000);
+            assert_eq!(map.len(), 6);
+        }
+
+        #[test_case]
+        fn test_occupied_entry_key(_gba: &mut Gba) {
+            let mut a = HashMap::new();
+            let key = "hello there";
+            let value = "value goes here";
+            assert!(a.is_empty());
+            a.insert(key, value);
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+
+            match a.entry(key) {
+                Vacant(_) => panic!(),
+                Occupied(e) => assert_eq!(key, *e.key()),
+            }
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+        }
+
+        #[test_case]
+        fn test_vacant_entry_key(_gba: &mut Gba) {
+            let mut a = HashMap::new();
+            let key = "hello there";
+            let value = "value goes here";
+
+            assert!(a.is_empty());
+            match a.entry(key) {
+                Occupied(_) => panic!(),
+                Vacant(e) => {
+                    assert_eq!(key, *e.key());
+                    e.insert(value);
+                }
+            }
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+        }
+
+        #[test_case]
+        fn test_index(_gba: &mut Gba) {
+            let mut map = HashMap::new();
+
+            map.insert(1, 2);
+            map.insert(2, 1);
+            map.insert(3, 4);
+
+            assert_eq!(map[&2], 1);
+        }
     }
 }
