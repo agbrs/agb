@@ -161,8 +161,20 @@ pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
-    fn value_mut(self) -> &'a mut V {
+    pub fn key(&self) -> &K {
+        &self.key
+    }
+
+    pub fn get(&self) -> &V {
+        self.entry.value_ref().unwrap()
+    }
+
+    pub fn into_mut(self) -> &'a mut V {
         self.entry.value_mut().unwrap()
+    }
+
+    pub fn insert(&mut self, value: V) -> V {
+        self.entry.replace_value(value)
     }
 }
 
@@ -172,7 +184,7 @@ pub struct VacantEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
-    fn insert(self, value: V) -> &'a mut V
+    pub fn insert(self, value: V) -> &'a mut V
     where
         K: Hash + Eq,
     {
@@ -191,7 +203,7 @@ where
 {
     pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
-            Entry::Occupied(e) => e.value_mut(),
+            Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => e.insert(value),
         }
     }
@@ -201,7 +213,7 @@ where
         F: FnOnce() -> V,
     {
         match self {
-            Entry::Occupied(e) => e.value_mut(),
+            Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => e.insert(f()),
         }
     }
@@ -211,7 +223,7 @@ where
         F: FnOnce(&K) -> V,
     {
         match self {
-            Entry::Occupied(e) => e.value_mut(),
+            Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => {
                 let value = f(&e.key);
                 e.insert(value)
@@ -237,7 +249,7 @@ where
         V: Default,
     {
         match self {
-            Entry::Occupied(e) => e.value_mut(),
+            Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => e.insert(Default::default()),
         }
     }
@@ -395,8 +407,8 @@ impl<K, V> NodeStorage<K, V> {
         new_node_storage
     }
 
-    fn replace_at_location(&mut self, location: usize, key: K, value: V) -> Option<V> {
-        self.nodes[location].replace(key, value).map(|(k, v)| v)
+    fn replace_at_location(&mut self, location: usize, key: K, value: V) -> V {
+        self.nodes[location].replace(key, value).1
     }
 }
 
@@ -469,12 +481,21 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    fn replace(&mut self, key: K, value: V) -> Option<(K, V)> {
+    fn replace_value(&mut self, value: V) -> V {
+        if self.has_value() {
+            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
+            unsafe { old_value.assume_init() }
+        } else {
+            panic!("Cannot replace an unininitalised node");
+        }
+    }
+
+    fn replace(&mut self, key: K, value: V) -> (K, V) {
         if self.has_value() {
             let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
             let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
 
-            Some(unsafe { (old_key.assume_init(), old_value.assume_init()) })
+            unsafe { (old_key.assume_init(), old_value.assume_init()) }
         } else {
             panic!("Cannot replace an uninitialised node");
         }
