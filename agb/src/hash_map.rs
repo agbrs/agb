@@ -258,12 +258,12 @@ impl<K, V> NodeStorage<K, V> {
         loop {
             let location = fast_mod(
                 self.capacity(),
-                new_node.hash + new_node.distance_to_initial_bucket as HashType,
+                new_node.hash + new_node.get_distance() as HashType,
             );
             let current_node = &mut self.nodes[location];
 
             if current_node.has_value() {
-                if current_node.distance_to_initial_bucket <= new_node.distance_to_initial_bucket {
+                if current_node.get_distance() <= new_node.get_distance() {
                     mem::swap(&mut new_node, current_node);
                 }
             } else {
@@ -271,9 +271,9 @@ impl<K, V> NodeStorage<K, V> {
                 break;
             }
 
-            new_node.distance_to_initial_bucket += 1;
+            new_node.increment_distance();
             self.max_distance_to_initial_bucket = new_node
-                .distance_to_initial_bucket
+                .get_distance()
                 .max(self.max_distance_to_initial_bucket);
         }
 
@@ -290,13 +290,13 @@ impl<K, V> NodeStorage<K, V> {
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
             if !self.nodes[next_location].has_value()
-                || self.nodes[next_location].distance_to_initial_bucket == 0
+                || self.nodes[next_location].get_distance() == 0
             {
                 return self.nodes[current_location].take_key_value().unwrap().1;
             }
 
             self.nodes.swap(current_location, next_location);
-            self.nodes[current_location].distance_to_initial_bucket -= 1;
+            self.nodes[current_location].decrement_distance();
             current_location = next_location;
         }
     }
@@ -419,6 +419,21 @@ impl<K, V> Node<K, V> {
         } else {
             panic!("Cannot replace an uninitialised node");
         }
+    }
+
+    fn increment_distance(&mut self) {
+        self.distance_to_initial_bucket += 1;
+    }
+
+    fn decrement_distance(&mut self) {
+        self.distance_to_initial_bucket -= 1;
+        if self.distance_to_initial_bucket < 0 {
+            panic!("Cannot decrement distance to below 0");
+        }
+    }
+
+    fn get_distance(&self) -> i32 {
+        self.distance_to_initial_bucket
     }
 }
 
