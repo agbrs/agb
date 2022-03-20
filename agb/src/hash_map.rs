@@ -51,7 +51,7 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    fn get_value_ref(&self) -> Option<&V> {
+    fn value_ref(&self) -> Option<&V> {
         if self.has_value() {
             Some(unsafe { self.value.assume_init_ref() })
         } else {
@@ -59,7 +59,7 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    fn get_value_mut(&mut self) -> Option<&mut V> {
+    fn value_mut(&mut self) -> Option<&mut V> {
         if self.has_value() {
             Some(unsafe { self.value.assume_init_mut() })
         } else {
@@ -310,14 +310,14 @@ where
 
         self.nodes
             .get_location(key, hash)
-            .and_then(|location| self.nodes.nodes[location].get_value_ref())
+            .and_then(|location| self.nodes.nodes[location].value_ref())
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
         if let Some(location) = self.nodes.get_location(key, hash) {
-            self.nodes.nodes[location].get_value_mut()
+            self.nodes.nodes[location].value_mut()
         } else {
             None
         }
@@ -361,7 +361,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
             self.at += 1;
 
             if node.has_value() {
-                return Some((node.key_ref().unwrap(), node.get_value_ref().unwrap()));
+                return Some((node.key_ref().unwrap(), node.value_ref().unwrap()));
             }
         }
     }
@@ -416,7 +416,7 @@ where
     {
         match self {
             Entry::Occupied(e) => {
-                f(e.entry.get_value_mut().unwrap());
+                f(e.entry.value_mut().unwrap());
                 Entry::Occupied(e)
             }
             Entry::Vacant(e) => Entry::Vacant(e),
