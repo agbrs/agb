@@ -568,7 +568,7 @@ mod test {
 
         for _ in 0..5_000 {
             let command = rng.next().rem_euclid(2);
-            let key = rng.next().rem_euclid(128);
+            let key = rng.next().rem_euclid(answers.len() as i32);
             let value = rng.next();
 
             match command {
