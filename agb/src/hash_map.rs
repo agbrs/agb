@@ -215,6 +215,18 @@ impl<K, V> NodeStorage<K, V> {
 
         None
     }
+
+    fn resized_to(&mut self, new_size: usize) -> Self {
+        let mut new_node_storage = Self::with_size(new_size);
+
+        for mut node in self.nodes.drain(..) {
+            if let Some((key, value, hash)) = node.take_key_value() {
+                new_node_storage.insert_new(key, value, hash);
+            }
+        }
+
+        new_node_storage
+    }
 }
 
 pub struct HashMap<K, V, H = BuildHasherDefault<FxHasher>>
@@ -255,15 +267,7 @@ impl<K, V> HashMap<K, V> {
             return;
         }
 
-        let mut new_node_storage = NodeStorage::with_size(new_size);
-
-        for mut node in self.nodes.nodes.drain(..) {
-            if let Some((key, value, hash)) = node.take_key_value() {
-                new_node_storage.insert_new(key, value, hash);
-            }
-        }
-
-        self.nodes = new_node_storage;
+        self.nodes = self.nodes.resized_to(new_size);
     }
 }
 
