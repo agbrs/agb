@@ -187,6 +187,19 @@ where
         }
     }
 
+    pub fn or_insert_with_key<F>(self, f: F)
+    where
+        F: FnOnce(&K) -> V,
+    {
+        match self {
+            Entry::Occupied(_) => {}
+            Entry::Vacant(e) => {
+                let value = f(&e.key);
+                e.map.insert(e.key, value);
+            }
+        }
+    }
+
     pub fn and_modify<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut V),
