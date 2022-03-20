@@ -152,6 +152,8 @@ mod memory_mapped;
 pub mod mgba;
 /// Implementation of fixnums for working with non-integer values.
 pub use agb_fixnum as fixnum;
+/// Contains an implementation of a hashmap which suits the gameboy advance's hardware
+pub mod hash_map;
 mod single;
 /// Implements sound output.
 pub mod sound;

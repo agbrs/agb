@@ -6,9 +6,6 @@ use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
 use modular_bitfield::{bitfield, BitfieldSpecifier};
-use rustc_hash::FxHasher;
-
-use hashbrown::HashMap;
 
 const BYTES_PER_TILE_4BPP: usize = 32;
 
@@ -18,6 +15,7 @@ use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::dma;
 use crate::fixnum::Vector2D;
+use crate::hash_map::HashMap;
 
 use attributes::*;
 
@@ -316,8 +314,8 @@ pub struct Object<'a, 'b> {
 }
 
 struct SpriteControllerInner {
-    palette: HashMap<PaletteId, Storage, BuildHasherDefault<FxHasher>>,
-    sprite: HashMap<SpriteId, Storage, BuildHasherDefault<FxHasher>>,
+    palette: HashMap<PaletteId, Storage>,
+    sprite: HashMap<SpriteId, Storage>,
 }
 
 pub struct SpriteController {
@@ -629,36 +627,31 @@ impl SpriteControllerInner {
     }
 
     fn return_sprite(&mut self, sprite: &'static Sprite) {
-        self.sprite
-            .entry(sprite.get_id())
-            .and_replace_entry_with(|_, mut storage| {
-                storage.count -= 1;
-                if storage.count == 0 {
-                    unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) }
-                    None
-                } else {
-                    Some(storage)
-                }
-            });
+        let storage = self.sprite.get_mut(&sprite.get_id());
+
+        if let Some(storage) = storage {
+            storage.count -= 1;
+
+            if storage.count == 0 {
+                unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) };
+                self.sprite.remove(&sprite.get_id());
+            }
+        }
 
         self.return_palette(sprite.palette)
     }
 
     fn return_palette(&mut self, palette: &'static Palette16) {
         let id = palette.get_id();
-        self.palette
-            .entry(id)
-            .and_replace_entry_with(|_, mut storage| {
-                storage.count -= 1;
-                if storage.count == 0 {
-                    unsafe {
-                        PALETTE_ALLOCATOR.dealloc(storage.as_palette_ptr(), Palette16::layout());
-                    }
-                    None
-                } else {
-                    Some(storage)
-                }
-            });
+
+        if let Some(storage) = self.palette.get_mut(&id) {
+            storage.count -= 1;
+
+            if storage.count == 0 {
+                unsafe { PALETTE_ALLOCATOR.dealloc(storage.as_palette_ptr(), Palette16::layout()) };
+                self.palette.remove(&id);
+            }
+        }
     }
 }
 
