@@ -157,7 +157,8 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
 
 pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
     key: K,
-    entry: &'a mut Node<K, V>,
+    map: &'a mut HashMap<K, V>,
+    location: usize,
 }
 
 impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
@@ -165,16 +166,29 @@ impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
         &self.key
     }
 
+    pub fn remove_entry(self) -> (K, V) {
+        let old_value = self.map.nodes.remove_from_location(self.location);
+        (self.key, old_value)
+    }
+
     pub fn get(&self) -> &V {
-        self.entry.value_ref().unwrap()
+        self.map.nodes.nodes[self.location].value_ref().unwrap()
+    }
+
+    pub fn get_mut(&mut self) -> &mut V {
+        self.map.nodes.nodes[self.location].value_mut().unwrap()
     }
 
     pub fn into_mut(self) -> &'a mut V {
-        self.entry.value_mut().unwrap()
+        self.map.nodes.nodes[self.location].value_mut().unwrap()
     }
 
     pub fn insert(&mut self, value: V) -> V {
-        self.entry.replace_value(value)
+        self.map.nodes.nodes[self.location].replace_value(value)
+    }
+
+    pub fn remove(self) -> V {
+        self.map.nodes.remove_from_location(self.location)
     }
 }
 
@@ -236,8 +250,8 @@ where
         F: FnOnce(&mut V),
     {
         match self {
-            Entry::Occupied(e) => {
-                f(e.entry.value_mut().unwrap());
+            Entry::Occupied(mut e) => {
+                f(e.get_mut());
                 Entry::Occupied(e)
             }
             Entry::Vacant(e) => Entry::Vacant(e),
@@ -273,7 +287,8 @@ where
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
                 key,
-                entry: &mut self.nodes.nodes[location],
+                location,
+                map: self,
             })
         } else {
             Entry::Vacant(VacantEntry { key, map: self })
