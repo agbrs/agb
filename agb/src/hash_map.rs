@@ -439,7 +439,7 @@ impl<K, V> Node<K, V> {
 
 impl<K, V> Drop for Node<K, V> {
     fn drop(&mut self) {
-        if self.distance_to_initial_bucket >= 0 {
+        if self.has_value() {
             unsafe { ptr::drop_in_place(self.key.as_mut_ptr()) };
             unsafe { ptr::drop_in_place(self.value.as_mut_ptr()) };
         }
