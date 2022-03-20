@@ -198,6 +198,14 @@ pub struct VacantEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
+    pub fn key(&self) -> &K {
+        &self.key
+    }
+
+    pub fn into_key(self) -> K {
+        self.key
+    }
+
     pub fn insert(self, value: V) -> &'a mut V
     where
         K: Hash + Eq,
