@@ -163,7 +163,7 @@ pub struct VacantEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
-    pub fn insert(self, value: V)
+    fn insert(self, value: V)
     where
         K: Hash + Eq,
     {
@@ -195,7 +195,7 @@ where
             Entry::Occupied(_) => {}
             Entry::Vacant(e) => {
                 let value = f(&e.key);
-                e.map.insert(e.key, value);
+                e.insert(value);
             }
         }
     }
