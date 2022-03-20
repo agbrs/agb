@@ -602,19 +602,34 @@ mod test {
         }
     }
 
+    #[derive(Clone)]
     struct Droppable<'a> {
         id: usize,
         drop_registry: &'a DropRegistry,
     }
 
-    impl<'a> Drop for Droppable<'a> {
+    impl Hash for Droppable<'_> {
+        fn hash<H: Hasher>(&self, hasher: &mut H) {
+            hasher.write_usize(self.id);
+        }
+    }
+
+    impl PartialEq for Droppable<'_> {
+        fn eq(&self, other: &Self) -> bool {
+            self.id == other.id
+        }
+    }
+
+    impl Eq for Droppable<'_> {}
+
+    impl Drop for Droppable<'_> {
         fn drop(&mut self) {
             self.drop_registry.dropped(self.id);
         }
     }
 
     struct DropRegistry {
-        are_dropped: RefCell<Vec<bool>>,
+        are_dropped: RefCell<Vec<i32>>,
     }
 
     impl DropRegistry {
@@ -625,7 +640,7 @@ mod test {
         }
 
         pub fn new_droppable(&self) -> Droppable<'_> {
-            self.are_dropped.borrow_mut().push(false);
+            self.are_dropped.borrow_mut().push(0);
             Droppable {
                 id: self.are_dropped.borrow().len() - 1,
                 drop_registry: self,
@@ -633,15 +648,19 @@ mod test {
         }
 
         pub fn dropped(&self, id: usize) {
-            self.are_dropped.borrow_mut()[id] = true;
+            self.are_dropped.borrow_mut()[id] += 1;
         }
 
-        pub fn assert_dropped(&self, id: usize) {
-            assert!(self.are_dropped.borrow()[id]);
+        pub fn assert_dropped_once(&self, id: usize) {
+            assert_eq!(self.are_dropped.borrow()[id], 1);
         }
 
         pub fn assert_not_dropped(&self, id: usize) {
-            assert!(!self.are_dropped.borrow()[id]);
+            assert_eq!(self.are_dropped.borrow()[id], 0);
+        }
+
+        pub fn assert_dropped_n_times(&self, id: usize, num_drops: i32) {
+            assert_eq!(self.are_dropped.borrow()[id], num_drops);
         }
     }
 
@@ -665,11 +684,11 @@ mod test {
             drop_registry.assert_not_dropped(id2);
 
             map.remove(&1);
-            drop_registry.assert_dropped(id1);
+            drop_registry.assert_dropped_once(id1);
             drop_registry.assert_not_dropped(id2);
         }
 
-        drop_registry.assert_dropped(id2);
+        drop_registry.assert_dropped_once(id2);
     }
 
     #[test_case]
@@ -689,10 +708,32 @@ mod test {
             drop_registry.assert_not_dropped(id1);
             map.insert(1, droppable2);
 
-            drop_registry.assert_dropped(id1);
+            drop_registry.assert_dropped_once(id1);
             drop_registry.assert_not_dropped(id2);
         }
 
-        drop_registry.assert_dropped(id2);
+        drop_registry.assert_dropped_once(id2);
+    }
+
+    #[test_case]
+    fn correctly_drops_key_on_override(_gba: &mut Gba) {
+        let drop_registry = DropRegistry::new();
+
+        let droppable1 = drop_registry.new_droppable();
+        let droppable1a = droppable1.clone();
+
+        let id1 = droppable1.id;
+
+        {
+            let mut map = HashMap::new();
+
+            map.insert(droppable1, 1);
+            drop_registry.assert_not_dropped(id1);
+            map.insert(droppable1a, 2);
+
+            drop_registry.assert_dropped_once(id1);
+        }
+
+        drop_registry.assert_dropped_n_times(id1, 2);
     }
 }
