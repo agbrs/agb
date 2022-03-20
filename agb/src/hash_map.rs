@@ -71,11 +71,7 @@ where
         let hash = self.hash(&key);
 
         if let Some(location) = self.nodes.get_location(&key, hash) {
-            let old_node = self.nodes.nodes[location].take();
-            let (new_node, old_value) = old_node.with_new_key_value(key, value);
-            self.nodes.nodes[location] = new_node;
-
-            return old_value;
+            return self.nodes.replace_at_location(location, key, value);
         }
 
         if self.nodes.capacity() * 85 / 100 <= self.len() {
@@ -339,6 +335,10 @@ impl<K, V> NodeStorage<K, V> {
 
         new_node_storage
     }
+
+    fn replace_at_location(&mut self, location: usize, key: K, value: V) -> Option<V> {
+        self.nodes[location].replace(key, value).map(|(k, v)| v)
+    }
 }
 
 struct Node<K, V> {
@@ -352,18 +352,6 @@ struct Node<K, V> {
 }
 
 impl<K, V> Node<K, V> {
-    fn with_new_key_value(mut self, new_key: K, new_value: V) -> (Self, Option<V>) {
-        (
-            Self {
-                hash: self.hash,
-                distance_to_initial_bucket: self.distance_to_initial_bucket,
-                key: MaybeUninit::new(new_key),
-                value: MaybeUninit::new(new_value),
-            },
-            self.take_key_value().map(|(_, v, _)| v),
-        )
-    }
-
     fn new() -> Self {
         Self {
             hash: 0,
@@ -410,10 +398,6 @@ impl<K, V> Node<K, V> {
         self.distance_to_initial_bucket >= 0
     }
 
-    fn take(&mut self) -> Self {
-        mem::take(self)
-    }
-
     fn take_key_value(&mut self) -> Option<(K, V, HashType)> {
         if self.has_value() {
             let key = mem::replace(&mut self.key, MaybeUninit::uninit());
@@ -423,6 +407,17 @@ impl<K, V> Node<K, V> {
             Some(unsafe { (key.assume_init(), value.assume_init(), self.hash) })
         } else {
             None
+        }
+    }
+
+    fn replace(&mut self, key: K, value: V) -> Option<(K, V)> {
+        if self.has_value() {
+            let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
+            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
+
+            Some(unsafe { (old_key.assume_init(), old_value.assume_init()) })
+        } else {
+            panic!("Cannot replace an uninitialised node");
         }
     }
 }
