@@ -558,6 +558,41 @@ mod test {
         }
     }
 
+    struct NoisyDrop {
+        i: i32,
+        dropped: bool,
+    }
+
+    impl NoisyDrop {
+        fn new(i: i32) -> Self {
+            Self { i, dropped: false }
+        }
+    }
+
+    impl PartialEq for NoisyDrop {
+        fn eq(&self, other: &Self) -> bool {
+            self.i == other.i
+        }
+    }
+
+    impl Eq for NoisyDrop {}
+
+    impl Hash for NoisyDrop {
+        fn hash<H: Hasher>(&self, hasher: &mut H) {
+            hasher.write_i32(self.i);
+        }
+    }
+
+    impl Drop for NoisyDrop {
+        fn drop(&mut self) {
+            if self.dropped {
+                panic!("NoisyDropped dropped twice");
+            }
+
+            self.dropped = true;
+        }
+    }
+
     #[test_case]
     fn extreme_case(_gba: &mut Gba) {
         let mut map = HashMap::new();
@@ -574,18 +609,21 @@ mod test {
                 0 => {
                     // insert
                     answers[key as usize] = Some(value);
-                    map.insert(key, value);
+                    map.insert(NoisyDrop::new(key), NoisyDrop::new(value));
                 }
                 1 => {
                     // remove
                     answers[key as usize] = None;
-                    map.remove(&key);
+                    map.remove(&NoisyDrop::new(key));
                 }
                 _ => {}
             }
 
             for (i, answer) in answers.iter().enumerate() {
-                assert_eq!(map.get(&(i as i32)), answer.as_ref());
+                assert_eq!(
+                    map.get(&NoisyDrop::new(i as i32)).map(|nd| &nd.i),
+                    answer.as_ref()
+                );
             }
         }
     }
