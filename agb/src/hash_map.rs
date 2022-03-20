@@ -67,19 +67,21 @@ impl<K, V> HashMap<K, V>
 where
     K: Eq + Hash,
 {
-    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: K, value: V) -> &mut V {
         let hash = self.hash(&key);
 
-        if let Some(location) = self.nodes.get_location(&key, hash) {
-            return self.nodes.replace_at_location(location, key, value);
-        }
+        let location = if let Some(location) = self.nodes.get_location(&key, hash) {
+            self.nodes.replace_at_location(location, key, value);
+            location
+        } else {
+            if self.nodes.capacity() * 85 / 100 <= self.len() {
+                self.resize(self.nodes.capacity() * 2);
+            }
 
-        if self.nodes.capacity() * 85 / 100 <= self.len() {
-            self.resize(self.nodes.capacity() * 2);
-        }
+            self.nodes.insert_new(key, value, hash)
+        };
 
-        self.nodes.insert_new(key, value, hash);
-        None
+        self.nodes.nodes[location].value_mut().unwrap()
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
@@ -154,7 +156,14 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
 }
 
 pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    key: K,
     entry: &'a mut Node<K, V>,
+}
+
+impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
+    fn value_mut(self) -> &'a mut V {
+        self.entry.value_mut().unwrap()
+    }
 }
 
 pub struct VacantEntry<'a, K: 'a, V: 'a> {
@@ -163,11 +172,11 @@ pub struct VacantEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
-    fn insert(self, value: V)
+    fn insert(self, value: V) -> &'a mut V
     where
         K: Hash + Eq,
     {
-        self.map.insert(self.key, value);
+        self.map.insert(self.key, value)
     }
 }
 
@@ -180,22 +189,32 @@ impl<'a, K, V> Entry<'a, K, V>
 where
     K: Hash + Eq,
 {
-    pub fn or_insert(self, value: V) {
+    pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
-            Entry::Occupied(_) => {}
+            Entry::Occupied(e) => e.value_mut(),
             Entry::Vacant(e) => e.insert(value),
         }
     }
 
-    pub fn or_insert_with_key<F>(self, f: F)
+    pub fn or_insert_with<F>(self, f: F) -> &'a mut V
+    where
+        F: FnOnce() -> V,
+    {
+        match self {
+            Entry::Occupied(e) => e.value_mut(),
+            Entry::Vacant(e) => e.insert(f()),
+        }
+    }
+
+    pub fn or_insert_with_key<F>(self, f: F) -> &'a mut V
     where
         F: FnOnce(&K) -> V,
     {
         match self {
-            Entry::Occupied(_) => {}
+            Entry::Occupied(e) => e.value_mut(),
             Entry::Vacant(e) => {
                 let value = f(&e.key);
-                e.insert(value);
+                e.insert(value)
             }
         }
     }
@@ -212,6 +231,23 @@ where
             Entry::Vacant(e) => Entry::Vacant(e),
         }
     }
+
+    pub fn or_default(self) -> &'a mut V
+    where
+        V: Default,
+    {
+        match self {
+            Entry::Occupied(e) => e.value_mut(),
+            Entry::Vacant(e) => e.insert(Default::default()),
+        }
+    }
+
+    pub fn key(&self) -> &K {
+        match self {
+            Entry::Occupied(e) => &e.key,
+            Entry::Vacant(e) => &e.key,
+        }
+    }
 }
 
 impl<'a, K, V> HashMap<K, V>
@@ -224,6 +260,7 @@ where
 
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
+                key,
                 entry: &mut self.nodes.nodes[location],
             })
         } else {
@@ -258,7 +295,7 @@ impl<K, V> NodeStorage<K, V> {
         self.number_of_items
     }
 
-    fn insert_new(&mut self, key: K, value: V, hash: HashType) {
+    fn insert_new(&mut self, key: K, value: V, hash: HashType) -> usize {
         debug_assert!(
             self.capacity() * 85 / 100 > self.len(),
             "Do not have space to insert into len {} with {}",
@@ -267,6 +304,7 @@ impl<K, V> NodeStorage<K, V> {
         );
 
         let mut new_node = Node::new_with(key, value, hash);
+        let mut inserted_location = usize::MAX;
 
         loop {
             let location = fast_mod(
@@ -278,9 +316,16 @@ impl<K, V> NodeStorage<K, V> {
             if current_node.has_value() {
                 if current_node.get_distance() <= new_node.get_distance() {
                     mem::swap(&mut new_node, current_node);
+
+                    if inserted_location == usize::MAX {
+                        inserted_location = location;
+                    }
                 }
             } else {
                 self.nodes[location] = new_node;
+                if inserted_location == usize::MAX {
+                    inserted_location = location;
+                }
                 break;
             }
 
@@ -291,6 +336,7 @@ impl<K, V> NodeStorage<K, V> {
         }
 
         self.number_of_items += 1;
+        inserted_location
     }
 
     fn remove_from_location(&mut self, location: usize) -> V {
