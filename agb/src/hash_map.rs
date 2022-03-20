@@ -21,7 +21,7 @@ struct Node<K, V> {
 }
 
 impl<K, V> Node<K, V> {
-    fn with_new_key_value(self, new_key: K, new_value: V) -> (Self, Option<V>) {
+    fn with_new_key_value(mut self, new_key: K, new_value: V) -> (Self, Option<V>) {
         (
             Self {
                 hash: self.hash,
@@ -29,7 +29,7 @@ impl<K, V> Node<K, V> {
                 key: MaybeUninit::new(new_key),
                 value: MaybeUninit::new(new_value),
             },
-            self.get_owned_value(),
+            self.take_key_value().map(|(_, v, _)| v),
         )
     }
 
@@ -62,17 +62,6 @@ impl<K, V> Node<K, V> {
     fn get_value_mut(&mut self) -> Option<&mut V> {
         if self.has_value() {
             Some(unsafe { self.value.assume_init_mut() })
-        } else {
-            None
-        }
-    }
-
-    fn get_owned_value(mut self) -> Option<V> {
-        if self.has_value() {
-            let value = mem::replace(&mut self.value, MaybeUninit::uninit());
-            self.distance_to_initial_bucket = -1;
-
-            Some(unsafe { value.assume_init() })
         } else {
             None
         }
