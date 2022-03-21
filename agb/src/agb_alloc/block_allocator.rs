@@ -157,6 +157,11 @@ impl BlockAllocator {
     }
 
     pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        self.dealloc_no_normalise(ptr, layout);
+        self.normalise();
+    }
+
+    pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
         let new_layout = Block::either_layout(layout).pad_to_align();
         free(|key| {
             let mut state = self.state.borrow(*key).borrow_mut();
@@ -195,7 +200,6 @@ impl BlockAllocator {
                 }
             }
         });
-        self.normalise();
     }
 }
 
