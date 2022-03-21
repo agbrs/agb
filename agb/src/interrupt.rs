@@ -227,6 +227,18 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 }
 
 #[must_use]
+/// Adds an interrupt handler as long as the returned value is alive. The
+/// closure takes a [`CriticalSection`] which can be used for mutexes.
+///
+/// [`CriticalSection`]: bare_metal::CriticalSection
+///
+/// # Examples
+///
+/// ```
+/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: &CriticalSection| {
+///     println!("Woah there! There's been a vblank!");
+/// });
+/// ```
 pub fn add_interrupt_handler<'a>(
     interrupt: Interrupt,
     handler: impl Fn(&CriticalSection) + 'a,
@@ -264,6 +276,10 @@ pub fn add_interrupt_handler<'a>(
     do_with_inner(interrupt, inner)
 }
 
+/// How you can access mutexes outside of interrupts by being given a
+/// [`CriticalSection`]
+///
+/// [`CriticalSection`]: bare_metal::CriticalSection
 pub fn free<F, R>(f: F) -> R
 where
     F: FnOnce(&CriticalSection) -> R,
