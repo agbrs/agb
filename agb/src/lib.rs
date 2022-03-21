@@ -145,7 +145,7 @@ pub mod display;
 mod dma;
 /// Button inputs to the system.
 pub mod input;
-#[doc(hidden)] // hide for now as the implementation in here is unsound
+/// Interacting with the GBA interrupts
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.

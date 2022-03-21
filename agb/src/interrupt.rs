@@ -4,6 +4,7 @@ use core::{
     pin::Pin,
 };
 
+use alloc::boxed::Box;
 use bare_metal::CriticalSection;
 
 use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
@@ -94,7 +95,7 @@ fn disable_interrupts() {
 }
 
 struct InterruptRoot {
-    next: Cell<*const InterruptClosure>,
+    next: Cell<*const InterruptInner>,
     count: Cell<i32>,
     interrupt: Interrupt,
 }
@@ -153,16 +154,60 @@ extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) -> u16 {
     interrupt
 }
 
-pub struct InterruptClosureBounded<'a> {
-    c: InterruptClosure,
-    _phantom: PhantomData<&'a ()>,
-    _unpin: PhantomPinned,
+struct InterruptInner {
+    next: Cell<*const InterruptInner>,
+    root: *const InterruptRoot,
+    closure: *const dyn Fn(&CriticalSection),
+    _pin: PhantomPinned,
 }
 
-struct InterruptClosure {
-    closure: *const (dyn Fn(&CriticalSection)),
-    next: Cell<*const InterruptClosure>,
+unsafe fn create_interrupt_inner(
+    c: impl Fn(&CriticalSection),
     root: *const InterruptRoot,
+) -> Pin<Box<InterruptInner>> {
+    let c = Box::new(c);
+    let c: &dyn Fn(&CriticalSection) = Box::leak(c);
+    let c: &dyn Fn(&CriticalSection) = core::mem::transmute(c);
+    Box::pin(InterruptInner {
+        next: Cell::new(core::ptr::null()),
+        root,
+        closure: c,
+        _pin: PhantomPinned,
+    })
+}
+
+impl Drop for InterruptInner {
+    fn drop(&mut self) {
+        inner_drop(unsafe { Pin::new_unchecked(self) });
+        fn inner_drop(this: Pin<&mut InterruptInner>) {
+            // drop the closure allocation safely
+            let _closure_box =
+                unsafe { Box::from_raw(this.closure as *mut dyn Fn(&CriticalSection)) };
+
+            // perform the rest of the drop sequence
+            let root = unsafe { &*this.root };
+            root.reduce();
+            let mut c = root.next.get();
+            let own_pointer = &*this as *const _;
+            if c == own_pointer {
+                unsafe { &*this.root }.next.set(this.next.get());
+                return;
+            }
+            loop {
+                let p = unsafe { &*c }.next.get();
+                if p == own_pointer {
+                    unsafe { &*c }.next.set(this.next.get());
+                    return;
+                }
+                c = p;
+            }
+        }
+    }
+}
+
+pub struct InterruptHandler<'a> {
+    _inner: Pin<Box<InterruptInner>>,
+    _lifetime: PhantomData<&'a ()>,
 }
 
 impl InterruptRoot {
@@ -177,103 +222,64 @@ impl InterruptRoot {
     }
 }
 
-impl Drop for InterruptClosure {
-    fn drop(&mut self) {
-        let root = unsafe { &*self.root };
-        root.reduce();
-        let mut c = root.next.get();
-        let own_pointer = self as *const _;
-        if c == own_pointer {
-            unsafe { &*self.root }.next.set(self.next.get());
-            return;
-        }
-        loop {
-            let p = unsafe { &*c }.next.get();
-            if p == own_pointer {
-                unsafe { &*c }.next.set(self.next.get());
-                return;
-            }
-            c = p;
-        }
-    }
-}
-
 fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
     unsafe { &INTERRUPT_TABLE[interrupt as usize] }
 }
 
-fn get_interrupt_handle_root<'a>(
-    f: &'a dyn Fn(&CriticalSection),
-    root: &InterruptRoot,
-) -> InterruptClosureBounded<'a> {
-    InterruptClosureBounded {
-        c: InterruptClosure {
-            closure: unsafe { core::mem::transmute(f as *const _) },
-            next: Cell::new(core::ptr::null()),
-            root: root as *const _,
-        },
-        _phantom: PhantomData,
-        _unpin: PhantomPinned,
-    }
-}
-
-/// The [add_interrupt_handler!] macro should be used instead of this function.
-/// Creates an interrupt handler from a closure.
-pub fn get_interrupt_handle(
-    f: &(dyn Fn(&CriticalSection) + Send + Sync),
+#[must_use]
+/// Adds an interrupt handler as long as the returned value is alive. The
+/// closure takes a [`CriticalSection`] which can be used for mutexes.
+///
+/// [`CriticalSection`]: bare_metal::CriticalSection
+///
+/// # Examples
+///
+/// ```
+/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: &CriticalSection| {
+///     println!("Woah there! There's been a vblank!");
+/// });
+/// ```
+pub fn add_interrupt_handler<'a>(
     interrupt: Interrupt,
-) -> InterruptClosureBounded {
-    let root = interrupt_to_root(interrupt);
-
-    get_interrupt_handle_root(f, root)
-}
-
-/// The [add_interrupt_handler!] macro should be used instead of this.
-/// Adds an interrupt handler to the interrupt table such that when that
-/// interrupt is triggered the closure is called.
-pub fn add_interrupt<'a>(interrupt: Pin<&'a InterruptClosureBounded<'a>>) {
-    free(|_| {
-        let root = unsafe { &*interrupt.c.root };
-        root.add();
-        let mut c = root.next.get();
-        if c.is_null() {
-            root.next.set((&interrupt.c) as *const _);
-            return;
-        }
-        loop {
-            let p = unsafe { &*c }.next.get();
-            if p.is_null() {
-                unsafe { &*c }.next.set((&interrupt.c) as *const _);
+    handler: impl Fn(&CriticalSection) + 'a,
+) -> InterruptHandler<'a> {
+    fn do_with_inner<'a>(
+        interrupt: Interrupt,
+        inner: Pin<Box<InterruptInner>>,
+    ) -> InterruptHandler<'a> {
+        free(|_| {
+            let root = interrupt_to_root(interrupt);
+            root.add();
+            let mut c = root.next.get();
+            if c.is_null() {
+                root.next.set((&*inner) as *const _);
                 return;
             }
+            loop {
+                let p = unsafe { &*c }.next.get();
+                if p.is_null() {
+                    unsafe { &*c }.next.set((&*inner) as *const _);
+                    return;
+                }
 
-            c = p;
+                c = p;
+            }
+        });
+
+        InterruptHandler {
+            _inner: inner,
+            _lifetime: PhantomData,
         }
-    })
+    }
+    let root = interrupt_to_root(interrupt) as *const _;
+    let inner = unsafe { create_interrupt_inner(handler, root) };
+    do_with_inner(interrupt, inner)
 }
 
-#[macro_export]
-/// Creates a new interrupt handler in the current scope, when this scope drops
-/// the interrupt handler is removed. Note that this returns nothing, but some
-/// stack space is used. The interrupt handler is of the form `Fn(Key) + Send +
-/// Sync` where Key can be used to unlock a mutex without checking whether
-/// interrupts need to be disabled, as during an interrupt interrupts are
-/// disabled.
+/// How you can access mutexes outside of interrupts by being given a
+/// [`CriticalSection`]
 ///
-/// # Usage
-/// ```
-/// add_interrupt_handler!(Interrupt::VBlank, |key| agb::println!("hello world!"));
-/// ```
-///
-macro_rules! add_interrupt_handler {
-    ($interrupt: expr, $handler: expr) => {
-        let a = $handler;
-        let a = $crate::interrupt::get_interrupt_handle(&a, $interrupt);
-        let a = unsafe { core::pin::Pin::new_unchecked(&a) };
-        $crate::interrupt::add_interrupt(a);
-    };
-}
-
+/// [`CriticalSection`]: bare_metal::CriticalSection
 pub fn free<F, R>(f: F) -> R
 where
     F: FnOnce(&CriticalSection) -> R,
@@ -322,14 +328,12 @@ mod tests {
         {
             let counter = Mutex::new(RefCell::new(0));
             let counter_2 = Mutex::new(RefCell::new(0));
-            add_interrupt_handler!(Interrupt::VBlank, |key: &CriticalSection| *counter
-                .borrow(*key)
-                .borrow_mut() +=
-                1);
-            add_interrupt_handler!(Interrupt::VBlank, |key: &CriticalSection| *counter_2
-                .borrow(*key)
-                .borrow_mut() +=
-                1);
+            let _a = add_interrupt_handler(Interrupt::VBlank, |key: &CriticalSection| {
+                *counter.borrow(*key).borrow_mut() += 1
+            });
+            let _b = add_interrupt_handler(Interrupt::VBlank, |key: &CriticalSection| {
+                *counter_2.borrow(*key).borrow_mut() += 1
+            });
 
             let vblank = VBlank::get();
 

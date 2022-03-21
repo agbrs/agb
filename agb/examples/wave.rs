@@ -28,7 +28,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let back = Mutex::new(RefCell::new(BackCosines { cosines, row: 0 }));
 
-    agb::add_interrupt_handler!(Interrupt::HBlank, |key: &CriticalSection| {
+    let _a = agb::interrupt::add_interrupt_handler(Interrupt::HBlank, |key: &CriticalSection| {
         let mut backc = back.borrow(*key).borrow_mut();
         let deflection = backc.cosines[backc.row % 32];
         unsafe { ((0x0400_0010) as *mut u16).write_volatile(deflection) }

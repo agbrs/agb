@@ -55,6 +55,11 @@ b .Initialise_mb
     ldr r2, =__iwram_rom_length_halfwords
     swi 0x000B0000
 
+    @ enable interrupts
+    ldr r0, =0x04000208
+    ldr r1, =1
+    str r1, [r0]
+
     @ put zero in both r0 and r1
     @ This corresponds to zero for argc and argv (which would technically be required for a c runtime)
     ldr r0, =0
