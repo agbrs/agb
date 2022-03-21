@@ -657,7 +657,7 @@ impl<K, V> NodeStorage<K, V> {
     where
         K: Eq,
     {
-        for distance_to_initial_bucket in 0..=self.max_distance_to_initial_bucket {
+        for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
             let location = fast_mod(
                 self.nodes.len(),
                 hash + distance_to_initial_bucket as HashType,
