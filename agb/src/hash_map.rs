@@ -11,51 +11,141 @@ use rustc_hash::FxHasher;
 
 type HashType = u32;
 
-pub struct HashMap<K, V, H = BuildHasherDefault<FxHasher>>
-where
-    H: BuildHasher,
-{
+// # Robin Hood Hash Tables
+//
+// The problem with regular hash tables where failing to find a slot for a specific
+// key will result in a linear search for the first free slot is that often these
+// slots can end up being quite far away from the original chosen location in fuller
+// hash tables. In Java, the hash table will resize when it is more than 2 thirds full
+// which is quite wasteful in terms of space. Robin Hood hash tables can be much
+// fuller before needing to resize and also keeps search times lower.
+//
+// The key concept is to keep the distance from the initial bucket chosen for a given
+// key to a minimum. We shall call this distance the "distance to the initial bucket"
+// or DIB for short. With each key - value pair, we store its DIB. When inserting
+// a value into the hashtable, we check to see if there is an element in the initial
+// bucket. If there is, we move onto the next value. Then, we check to see if there
+// is already a value there and if there is, we check its DIB. If our DIB is greater
+// than or equal to the DIB of the value that is already there, we swap the working
+// value and the current entry. This continues until an empty slot is found.
+//
+// Using this technique, the average DIB is kept fairly low which decreases search
+// times. As a simple search time optimisation, the maximum DIB is kept track of
+// and so we will only need to search as far as that in order to know whether or
+// not a given element is in the hash table.
+//
+// # Deletion
+//
+// Special mention is given to deletion. Unfortunately, the maximum DIB is not
+// kept track of after deletion, since we would not only need to keep track of
+// the maximum DIB but also the number of elements which have that maximum DIB.
+//
+// In order to delete an element, we search to see if it exists. If it does,
+// we remove that element and then iterate through the array from that point
+// and move each element back one space (updating its DIB). If the DIB of the
+// element we are trying to remove is 0, then we stop this algorithm.
+//
+// This means that deletion will lower the average DIB of the elements and
+// keep searching and insertion fast.
+//
+// # Rehashing
+//
+// Currently, no incremental rehashing takes place. Once the HashMap becomes
+// more than 85% full (this value may change when I do some benchmarking),
+// a new list is allocated with double the capacity and the entire node list
+// is migrated.
+
+/// A hash map implemented very simply using robin hood hashing.
+///
+/// HashMap uses FxHasher internally, which is a very fast hashing algorithm used
+/// by rustc and firefox in non-adversarial places. It is incredibly fast, and good
+/// enough for most cases.
+///
+/// It is required that the keys implement the [`Eq`] and [`Hash`] traits, although this
+/// can be frequently achieved by using `#[derive(PartialEq, Eq, Hash)]`. If you
+/// implement these yourself, it is important that the following property holds:
+///
+/// `k1 == k2 => hash(k1) == hash(k2)`
+///
+/// It is a logic error for the key to be modified in such a way that the key's hash, as
+/// determined by the [`Hash`] trait, or its equality as determined by the [`Eq`] trait,
+/// changes while it is in the map. The behaviour for such a logic error is not specified,
+/// but will not result in undefined behaviour. This could include panics, incorrect results,
+/// aborts, memory leaks and non-termination.
+///
+/// The API surface provided is incredibly similar to the
+/// [std::collections::HashMap](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
+/// implementation with fewer guarantees, and better optimised for the GameBoy Advance.
+///
+/// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
+/// [`Hash`]: https://doc.rust-lang.org/core/hash/trait.Hash.html
+pub struct HashMap<K, V> {
     nodes: NodeStorage<K, V>,
 
-    hasher: H,
+    hasher: BuildHasherDefault<FxHasher>,
 }
 
 impl<K, V> HashMap<K, V> {
+    /// Creates a `HashMap`
     pub fn new() -> Self {
-        Self::with_capacity(16)
+        Self::with_size(16)
     }
 
-    pub fn with_capacity(capacity: usize) -> Self {
+    /// Creates an empty `HashMap` with specified internal size. The size must be a power of 2
+    pub fn with_size(size: usize) -> Self {
         Self {
-            nodes: NodeStorage::with_size(capacity),
+            nodes: NodeStorage::with_size(size),
             hasher: Default::default(),
         }
     }
 
+    /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
+    /// internal size may be larger as it must be a power of 2
+    pub fn with_capacity(capacity: usize) -> Self {
+        for i in 0..32 {
+            let attempted_size = 1usize << i;
+            if attempted_size * 85 / 100 > capacity {
+                return Self::with_size(attempted_size);
+            }
+        }
+
+        panic!(
+            "Failed to come up with a size which satisfies capacity {}",
+            capacity
+        );
+    }
+
+    /// Returns the number of elements in the map
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
+    /// Returns the number of elements the map can hold
     pub fn capacity(&self) -> usize {
-        self.nodes.capacity()
+        self.nodes.capacity() * 85 / 100
     }
 
+    /// An iterator visiting all keys in an arbitrary order
     pub fn keys(&self) -> impl Iterator<Item = &'_ K> {
         self.iter().map(|(k, _)| k)
     }
 
+    /// An iterator visiting all values in an arbitrary order
     pub fn values(&self) -> impl Iterator<Item = &'_ V> {
         self.iter().map(|(_, v)| v)
     }
 
+    /// An iterator visiting all values in an arbitrary order allowing for mutation
     pub fn values_mut(&mut self) -> impl Iterator<Item = &'_ mut V> {
         self.iter_mut().map(|(_, v)| v)
     }
 
+    /// Removes all elements from the map
     pub fn clear(&mut self) {
         self.nodes = NodeStorage::with_size(self.capacity());
     }
 
+    /// An iterator visiting all key-value pairs in an arbitrary order
     pub fn iter(&self) -> impl Iterator<Item = (&'_ K, &'_ V)> {
         self.nodes
             .nodes
@@ -63,6 +153,7 @@ impl<K, V> HashMap<K, V> {
             .filter_map(|node| node.key_value_ref())
     }
 
+    /// An iterator visiting all key-value pairs in an arbitrary order, with mutable references to the values
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ K, &'_ mut V)> {
         self.nodes
             .nodes
@@ -70,11 +161,12 @@ impl<K, V> HashMap<K, V> {
             .filter_map(|node| node.key_value_mut())
     }
 
+    /// Returns `true` if the map contains no elements
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    pub fn resize(&mut self, new_size: usize) {
+    fn resize(&mut self, new_size: usize) {
         assert!(
             new_size >= self.nodes.capacity(),
             "Can only increase the size of a hash map"
@@ -102,6 +194,13 @@ impl<K, V> HashMap<K, V>
 where
     K: Eq + Hash,
 {
+    /// Inserts a key-value pair into the map.
+    ///
+    /// If the map did not have this key present, [`None`] is returned.
+    ///
+    /// If the map did have this key present, the value is updated and the old value
+    /// is returned. The key is not updated, which matters for types that can be `==`
+    /// without being identical.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
@@ -135,11 +234,13 @@ where
         self.nodes.nodes[location].value_mut().unwrap()
     }
 
+    /// Returns `true` if the map contains a value for the specified key.
     pub fn contains_key(&self, k: &K) -> bool {
         let hash = self.hash(k);
         self.nodes.get_location(k, hash).is_some()
     }
 
+    /// Returns the key-value pair corresponding to the supplied key
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         let hash = self.hash(key);
 
@@ -148,10 +249,14 @@ where
             .and_then(|location| self.nodes.nodes[location].key_value_ref())
     }
 
+    /// Returns a reference to the value corresponding to the key. Returns [`None`] if there is
+    /// no element in the map with the given key.
     pub fn get(&self, key: &K) -> Option<&V> {
         self.get_key_value(key).map(|(_, v)| v)
     }
 
+    /// Returns a mutable reference to the value corresponding to the key. Return [`None`] if
+    /// there is no element in the map with the given key.
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
@@ -162,6 +267,8 @@ where
         }
     }
 
+    /// Removes the given key from the map. Returns the current value if it existed, or [`None`]
+    /// if it did not.
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let hash = self.hash(key);
 
@@ -215,6 +322,7 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
     }
 }
 
+/// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
 pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
     key: K,
     map: &'a mut HashMap<K, V>,
@@ -222,50 +330,71 @@ pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
+    /// Gets a reference to the key in the entry.
     pub fn key(&self) -> &K {
         &self.key
     }
 
+    /// Take the ownership of the key and value from the map.
     pub fn remove_entry(self) -> (K, V) {
         let old_value = self.map.nodes.remove_from_location(self.location);
         (self.key, old_value)
     }
 
+    /// Gets a reference to the value in the entry.
     pub fn get(&self) -> &V {
         self.map.nodes.nodes[self.location].value_ref().unwrap()
     }
 
+    /// Gets a mutable reference to the value in the entry.
+    ///
+    /// If you need a reference to the `OccupiedEntry` which may outlive the destruction
+    /// of the `Entry` value, see [`into_mut`].
+    ///
+    /// [`into_mut`]: Self::into_mut
     pub fn get_mut(&mut self) -> &mut V {
         self.map.nodes.nodes[self.location].value_mut().unwrap()
     }
 
+    /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
+    /// a lifetime bound to the map itself.
+    ///
+    /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
+    ///
+    /// [`get_mut`]: Self::get_mut
     pub fn into_mut(self) -> &'a mut V {
         self.map.nodes.nodes[self.location].value_mut().unwrap()
     }
 
+    /// Sets the value of the entry and returns the entry's old value.
     pub fn insert(&mut self, value: V) -> V {
         self.map.nodes.nodes[self.location].replace_value(value)
     }
 
+    /// Takes the value out of the entry and returns it.
     pub fn remove(self) -> V {
         self.map.nodes.remove_from_location(self.location)
     }
 }
 
+/// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
 pub struct VacantEntry<'a, K: 'a, V: 'a> {
     key: K,
     map: &'a mut HashMap<K, V>,
 }
 
 impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
+    /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
     pub fn key(&self) -> &K {
         &self.key
     }
 
+    /// Take ownership of the key
     pub fn into_key(self) -> K {
         self.key
     }
 
+    /// Sets the value of the entry with the `VacantEntry`'s key and returns a mutable reference to it.
     pub fn insert(self, value: V) -> &'a mut V
     where
         K: Hash + Eq,
@@ -274,8 +403,15 @@ impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
     }
 }
 
+/// A view into a single entry in a map, which may be vacant or occupied.
+///
+/// This is constructed using the [`entry`] method on [`HashMap`]
+///
+/// [`entry`]: HashMap::entry()
 pub enum Entry<'a, K: 'a, V: 'a> {
+    /// An occupied entry
     Occupied(OccupiedEntry<'a, K, V>),
+    /// A vacant entry
     Vacant(VacantEntry<'a, K, V>),
 }
 
@@ -283,6 +419,8 @@ impl<'a, K, V> Entry<'a, K, V>
 where
     K: Hash + Eq,
 {
+    /// Ensures a value is in the entry by inserting the given value, and returns a mutable
+    /// reference to the value in the entry.
     pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
             Entry::Occupied(e) => e.into_mut(),
@@ -290,6 +428,8 @@ where
         }
     }
 
+    /// Ensures a value is in the entry by inserting the result of the function if empty, and
+    /// returns a mutable reference to the value in the entry.
     pub fn or_insert_with<F>(self, f: F) -> &'a mut V
     where
         F: FnOnce() -> V,
@@ -300,6 +440,12 @@ where
         }
     }
 
+    /// Ensures a value is in the entry by inserting the result of the function if empty, and
+    /// returns a mutable reference to the value in the entry. This method allows for key-derived
+    /// values for insertion by providing the function with a reference to the key.
+    ///
+    /// The reference to the moved key is provided so that cloning or copying the key is unnecessary,
+    /// unlike with `.or_insert_with(|| ...)`.
     pub fn or_insert_with_key<F>(self, f: F) -> &'a mut V
     where
         F: FnOnce(&K) -> V,
@@ -313,6 +459,8 @@ where
         }
     }
 
+    /// Provides in-place mutable access to an occupied entry before any potential inserts
+    /// into the map.
     pub fn and_modify<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut V),
@@ -326,6 +474,8 @@ where
         }
     }
 
+    /// Ensures a value is in th entry by inserting the default value if empty. Returns a
+    /// mutable reference to the value in the entry.
     pub fn or_default(self) -> &'a mut V
     where
         V: Default,
@@ -336,6 +486,7 @@ where
         }
     }
 
+    /// Returns a reference to this entry's key.
     pub fn key(&self) -> &K {
         match self {
             Entry::Occupied(e) => &e.key,
@@ -348,6 +499,7 @@ impl<'a, K, V> HashMap<K, V>
 where
     K: Hash + Eq,
 {
+    /// Gets the given key's corresponding entry in the map for in-place manipulation.
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let hash = self.hash(&key);
         let location = self.nodes.get_location(&key, hash);
