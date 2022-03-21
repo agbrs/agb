@@ -36,6 +36,40 @@ impl<K, V> HashMap<K, V> {
         self.nodes.len()
     }
 
+    pub fn capacity(&self) -> usize {
+        self.nodes.capacity()
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &'_ K> {
+        self.iter().map(|(k, _)| k)
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &'_ V> {
+        self.iter().map(|(_, v)| v)
+    }
+
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &'_ mut V> {
+        self.iter_mut().map(|(_, v)| v)
+    }
+
+    pub fn clear(&mut self) {
+        self.nodes = NodeStorage::with_size(self.capacity());
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&'_ K, &'_ V)> {
+        self.nodes
+            .nodes
+            .iter()
+            .filter_map(|node| node.key_value_ref())
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ K, &'_ mut V)> {
+        self.nodes
+            .nodes
+            .iter_mut()
+            .filter_map(|node| node.key_value_mut())
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -85,12 +119,21 @@ where
         self.nodes.nodes[location].value_mut().unwrap()
     }
 
-    pub fn get(&self, key: &K) -> Option<&V> {
+    pub fn contains_key(&self, k: &K) -> bool {
+        let hash = self.hash(k);
+        self.nodes.get_location(k, hash).is_some()
+    }
+
+    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         let hash = self.hash(key);
 
         self.nodes
             .get_location(key, hash)
-            .and_then(|location| self.nodes.nodes[location].value_ref())
+            .and_then(|location| self.nodes.nodes[location].key_value_ref())
+    }
+
+    pub fn get(&self, key: &K) -> Option<&V> {
+        self.get_key_value(key).map(|(_, v)| v)
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
@@ -528,6 +571,22 @@ impl<K, V> Node<K, V> {
     fn key_ref(&self) -> Option<&K> {
         if self.distance_to_initial_bucket >= 0 {
             Some(unsafe { self.key.assume_init_ref() })
+        } else {
+            None
+        }
+    }
+
+    fn key_value_ref(&self) -> Option<(&K, &V)> {
+        if self.has_value() {
+            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_ref()) })
+        } else {
+            None
+        }
+    }
+
+    fn key_value_mut(&mut self) -> Option<(&K, &mut V)> {
+        if self.has_value() {
+            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_mut()) })
         } else {
             None
         }
