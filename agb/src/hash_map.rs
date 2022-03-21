@@ -1,3 +1,5 @@
+//! A lot of the documentation for this module was copied straight out of the rust
+//! standard library. The implementation however is not.
 use alloc::vec::Vec;
 use core::{
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
