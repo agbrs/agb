@@ -51,17 +51,17 @@ impl TileFormat {
 }
 
 pub struct TileSet<'a> {
-    tiles: &'a [u32],
+    tiles: &'a [u8],
     format: TileFormat,
 }
 
 impl<'a> TileSet<'a> {
-    pub fn new(tiles: &'a [u32], format: TileFormat) -> Self {
+    pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
 
     fn num_tiles(&self) -> usize {
-        self.tiles.len() / self.format.tile_size() * 4
+        self.tiles.len() / self.format.tile_size()
     }
 }
 
@@ -204,8 +204,8 @@ impl<'a> VRamManager<'a> {
                 "Stale tile data requested"
             );
 
-            let tile_offset = (tile as usize) * data.format.tile_size() / 4;
-            &data.tiles[tile_offset..(tile_offset + data.format.tile_size() / 4)]
+            let tile_offset = (tile as usize) * data.format.tile_size();
+            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
         } else {
             panic!("Tile set ref must point to existing tile set");
         };
