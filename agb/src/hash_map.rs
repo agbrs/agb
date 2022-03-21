@@ -102,7 +102,23 @@ impl<K, V> HashMap<K, V>
 where
     K: Eq + Hash,
 {
-    pub fn insert(&mut self, key: K, value: V) -> &mut V {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+        let hash = self.hash(&key);
+
+        if let Some(location) = self.nodes.get_location(&key, hash) {
+            Some(self.nodes.replace_at_location(location, key, value))
+        } else {
+            if self.nodes.capacity() * 85 / 100 <= self.len() {
+                self.resize(self.nodes.capacity() * 2);
+            }
+
+            self.nodes.insert_new(key, value, hash);
+
+            None
+        }
+    }
+
+    fn insert_and_get(&mut self, key: K, value: V) -> &'_ mut V {
         let hash = self.hash(&key);
 
         let location = if let Some(location) = self.nodes.get_location(&key, hash) {
@@ -254,7 +270,7 @@ impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
     where
         K: Hash + Eq,
     {
-        self.map.insert(self.key, value)
+        self.map.insert_and_get(self.key, value)
     }
 }
 
