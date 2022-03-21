@@ -1,12 +1,12 @@
 use core::{alloc::Layout, ptr::NonNull};
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
     dma::dma_copy16,
+    hash_map::HashMap,
     memory_mapped::MemoryMapped1DArray,
 };
 
@@ -51,12 +51,12 @@ impl TileFormat {
 }
 
 pub struct TileSet<'a> {
-    tiles: &'a [u32],
+    tiles: &'a [u8],
     format: TileFormat,
 }
 
 impl<'a> TileSet<'a> {
-    pub fn new(tiles: &'a [u32], format: TileFormat) -> Self {
+    pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
 
@@ -104,18 +104,20 @@ pub struct VRamManager<'a> {
     generation: u16,
     free_pointer: Option<usize>,
 
-    tile_set_to_vram: Vec<Vec<Option<TileReference>>>,
+    tile_set_to_vram: HashMap<(u16, u16), TileReference>,
     reference_counts: Vec<(u16, Option<(TileSetReference, u16)>)>,
 }
 
 impl<'a> VRamManager<'a> {
     pub(crate) fn new() -> Self {
+        let tile_set_to_vram: HashMap<(u16, u16), TileReference> = HashMap::with_capacity(256);
+
         Self {
             tilesets: Vec::new(),
             generation: 0,
             free_pointer: None,
 
-            tile_set_to_vram: Default::default(),
+            tile_set_to_vram,
             reference_counts: Default::default(),
         }
     }
@@ -124,7 +126,6 @@ impl<'a> VRamManager<'a> {
         let generation = self.generation;
         self.generation = self.generation.wrapping_add(1);
 
-        let num_tiles = tileset.num_tiles();
         let tileset = ArenaStorageItem::Data(tileset, generation);
 
         let index = if let Some(ptr) = self.free_pointer.take() {
@@ -144,10 +145,6 @@ impl<'a> VRamManager<'a> {
             self.tilesets.push(tileset);
             self.tilesets.len() - 1
         };
-
-        self.tile_set_to_vram
-            .resize(self.tilesets.len(), Default::default());
-        self.tile_set_to_vram[index] = vec![Default::default(); num_tiles];
 
         TileSetReference::new(index as u16, generation)
     }
@@ -185,10 +182,10 @@ impl<'a> VRamManager<'a> {
     }
 
     pub(crate) fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
-        let reference = self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize];
+        let reference = self.tile_set_to_vram.get(&(tile_set_ref.id, tile));
 
         if let Some(reference) = reference {
-            let index = Self::index_from_reference(reference);
+            let index = Self::index_from_reference(*reference);
             self.reference_counts[index].0 += 1;
             return TileIndex::new(index);
         }
@@ -204,13 +201,13 @@ impl<'a> VRamManager<'a> {
                 "Stale tile data requested"
             );
 
-            let tile_offset = (tile as usize) * data.format.tile_size() / 4;
-            &data.tiles[tile_offset..(tile_offset + data.format.tile_size() / 4)]
+            let tile_offset = (tile as usize) * data.format.tile_size();
+            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
         } else {
             panic!("Tile set ref must point to existing tile set");
         };
 
-        let tile_size_in_half_words = TileFormat::FourBpp.tile_size() / 2;
+        let tile_size_in_half_words = tile_slice.len() / 2;
 
         unsafe {
             dma_copy16(
@@ -224,7 +221,8 @@ impl<'a> VRamManager<'a> {
 
         let index = Self::index_from_reference(tile_reference);
 
-        self.tile_set_to_vram[tile_set_ref.id as usize][tile as usize] = Some(tile_reference);
+        self.tile_set_to_vram
+            .insert((tile_set_ref.id, tile), tile_reference);
 
         self.reference_counts
             .resize(self.reference_counts.len().max(index + 1), (0, None));
@@ -250,11 +248,11 @@ impl<'a> VRamManager<'a> {
 
         let tile_reference = Self::reference_from_index(tile_index);
         unsafe {
-            TILE_ALLOCATOR.dealloc(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
+            TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
         }
 
         let tile_ref = self.reference_counts[index].1.unwrap();
-        self.tile_set_to_vram[tile_ref.0.id as usize][tile_ref.1 as usize] = None;
+        self.tile_set_to_vram.remove(&(tile_ref.0.id, tile_ref.1));
         self.reference_counts[index].1 = None;
     }
 

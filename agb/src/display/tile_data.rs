@@ -2,14 +2,14 @@ use crate::display::palette16::Palette16;
 
 pub struct TileData {
     pub palettes: &'static [Palette16],
-    pub tiles: &'static [u32],
+    pub tiles: &'static [u8],
     pub palette_assignments: &'static [u8],
 }
 
 impl TileData {
     pub const fn new(
         palettes: &'static [Palette16],
-        tiles: &'static [u32],
+        tiles: &'static [u8],
         palette_assignments: &'static [u8],
     ) -> Self {
         TileData {
