@@ -360,3 +360,14 @@ mod tests {
         );
     }
 }
+
+#[must_use]
+pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandler {
+    timer.set_interrupt(true);
+    timer.set_overflow_amount(period);
+    timer.set_enabled(true);
+
+    add_interrupt_handler(timer.get_interrupt(), |_key: &CriticalSection| {
+        crate::println!("{:#010x}", crate::get_program_counter_before_interrupt());
+    })
+}

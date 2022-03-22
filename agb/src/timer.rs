@@ -106,6 +106,17 @@ impl Timer {
     fn get_timer_number(&self) -> usize {
         self.timer_number as usize
     }
+
+    pub fn get_interrupt(&self) -> crate::interrupt::Interrupt {
+        use crate::interrupt::Interrupt;
+        match self.timer_number {
+            0 => Interrupt::Timer0,
+            1 => Interrupt::Timer1,
+            2 => Interrupt::Timer2,
+            3 => Interrupt::Timer3,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[non_exhaustive]

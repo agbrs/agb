@@ -101,18 +101,9 @@ fn all_tags(gfx: &ObjectController) {
 fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get();
 
-    let timers = gba.timers.timers();
-    let mut my_timer = timers.timer0;
-    my_timer.set_interrupt(true);
-    my_timer.set_overflow_amount(10000);
-    my_timer.set_enabled(true);
+    let mut timers = gba.timers.timers();
 
-    agb::add_interrupt_handler!(
-        agb::interrupt::Interrupt::Timer0,
-        |_key: &CriticalSection| {
-            agb::println!("{:#010x}", agb::get_program_counter_before_interrupt());
-        }
-    );
+    let _a = agb::interrupt::profiler(&mut timers.timer0, 5000);
 
     loop {
         all_tags(&gfx);
