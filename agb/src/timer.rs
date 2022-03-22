@@ -90,6 +90,11 @@ impl Timer {
         self.control_register().set_bits(bit, 1, 2);
     }
 
+    pub fn set_interrupt(&mut self, interrupt: bool) {
+        let bit = interrupt as u16;
+        self.control_register().set_bits(bit, 1, 6);
+    }
+
     fn data_register(&self) -> MemoryMapped<u16> {
         timer_data(self.get_timer_number())
     }
@@ -100,6 +105,17 @@ impl Timer {
 
     fn get_timer_number(&self) -> usize {
         self.timer_number as usize
+    }
+
+    pub fn get_interrupt(&self) -> crate::interrupt::Interrupt {
+        use crate::interrupt::Interrupt;
+        match self.timer_number {
+            0 => Interrupt::Timer0,
+            1 => Interrupt::Timer1,
+            2 => Interrupt::Timer2,
+            3 => Interrupt::Timer3,
+            _ => unreachable!(),
+        }
     }
 }
 

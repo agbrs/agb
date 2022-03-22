@@ -407,3 +407,11 @@ mod test {
         }
     }
 }
+
+#[inline(never)]
+pub fn get_program_counter_before_interrupt() -> u32 {
+    extern "C" {
+        static mut agb_rs__program_counter: u32;
+    }
+    unsafe { agb_rs__program_counter }
+}
