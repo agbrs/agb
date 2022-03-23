@@ -85,7 +85,7 @@ impl<'a> Mixer<'a> {
         panic!("Cannot play more than 8 sounds at once");
     }
 
-    pub fn get_channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
+    pub fn channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
         if let Some(channel) = &mut self.channels[id.0] {
             if self.indices[id.0] == id.1 && !channel.is_done {
                 return Some(channel);

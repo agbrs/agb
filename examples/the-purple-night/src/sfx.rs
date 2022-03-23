@@ -45,7 +45,7 @@ impl<'a> Sfx<'a> {
 
     pub fn stop_music(&mut self) {
         if let Some(bgm) = &self.bgm {
-            let channel = self.mixer.get_channel(bgm).unwrap();
+            let channel = self.mixer.channel(bgm).unwrap();
             channel.stop();
         }
         self.bgm = None;
@@ -53,7 +53,7 @@ impl<'a> Sfx<'a> {
 
     pub fn purple_night(&mut self) {
         if let Some(bgm) = &self.bgm {
-            let channel = self.mixer.get_channel(bgm).unwrap();
+            let channel = self.mixer.channel(bgm).unwrap();
             channel.stop();
         }
 
@@ -64,7 +64,7 @@ impl<'a> Sfx<'a> {
 
     pub fn sunrise(&mut self) {
         if let Some(bgm) = &self.bgm {
-            let channel = self.mixer.get_channel(bgm).unwrap();
+            let channel = self.mixer.channel(bgm).unwrap();
             channel.stop();
         }
 
@@ -75,7 +75,7 @@ impl<'a> Sfx<'a> {
 
     pub fn boss(&mut self) {
         if let Some(bgm) = &self.bgm {
-            let channel = self.mixer.get_channel(bgm).unwrap();
+            let channel = self.mixer.channel(bgm).unwrap();
             channel.stop();
         }
 
