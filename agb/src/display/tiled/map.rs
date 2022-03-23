@@ -121,7 +121,7 @@ impl RegularMap {
         self.y_scroll = pos.y;
     }
 
-    pub fn get_scroll_pos(&self) -> Vector2D<u16> {
+    pub fn scroll_pos(&self) -> Vector2D<u16> {
         (self.x_scroll, self.y_scroll).into()
     }
 

@@ -9,7 +9,7 @@ use crate::{
 
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
-    get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+    tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
 
     current_pos: Vector2D<i32>,
     offset: Vector2D<i32>,
@@ -26,11 +26,11 @@ pub enum PartialUpdateStatus {
 impl<'a> InfiniteScrolledMap<'a> {
     pub fn new(
         map: MapLoan<'a, RegularMap>,
-        get_tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+        tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
     ) -> Self {
         Self {
             map,
-            get_tile,
+            tile,
             current_pos: (0, 0).into(),
             offset: (0, 0).into(),
             copied_up_to: 0,
@@ -79,7 +79,7 @@ impl<'a> InfiniteScrolledMap<'a> {
         {
             for (x_idx, x) in (x_start..x_end).enumerate() {
                 let pos = (x, y).into();
-                let (tile_set_ref, tile_setting) = (self.get_tile)(pos);
+                let (tile_set_ref, tile_setting) = (self.tile)(pos);
 
                 self.map.set_tile(
                     vram,
@@ -172,7 +172,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             .iter()
             .chain(horizontal_rect_to_update.iter())
         {
-            let (tile_set_ref, tile_setting) = (self.get_tile)((tile_x, tile_y).into());
+            let (tile_set_ref, tile_setting) = (self.tile)((tile_x, tile_y).into());
 
             self.map.set_tile(
                 vram,
@@ -186,7 +186,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             );
         }
 
-        let current_scroll = self.map.get_scroll_pos();
+        let current_scroll = self.map.scroll_pos();
         let new_scroll = (
             (current_scroll.x as i32 + difference.x).rem_euclid(32 * 8) as u16,
             (current_scroll.y as i32 + difference.y).rem_euclid(32 * 8) as u16,
