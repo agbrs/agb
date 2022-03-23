@@ -72,7 +72,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let object = gba.display.object.get();
 
-    let sprite = object.sprite(&ChickenSprites[0]);
+    let sprite = object.sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
         object: object.object(sprite),
         position: Vector2D {
@@ -154,17 +154,19 @@ fn update_chicken_object<'a>(
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken.object.set_sprite(
-                    object.sprite(&ChickenSprites[frame_ranger(frame_count, 1, 3, 10)]),
+                    object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
                 );
             } else {
-                chicken.object.set_sprite(object.sprite(&ChickenSprites[0]));
+                chicken
+                    .object
+                    .set_sprite(object.sprite(&CHICKEN_SPRITES[0]));
             }
         }
         State::Upwards => {}
         State::Flapping => {
             chicken
                 .object
-                .set_sprite(object.sprite(&ChickenSprites[frame_ranger(frame_count, 4, 5, 5)]));
+                .set_sprite(object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
         }
     }
 
@@ -249,12 +251,12 @@ fn handle_collision(
 
 // Below is the data for the sprites
 
-static ChickenPalette: Palette16 =
+static CHICKEN_PALETTE: Palette16 =
     Palette16::new([0x7C1E, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
-static ChickenSprites: &[Sprite] = &[
+static CHICKEN_SPRITES: &[Sprite] = &[
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x11, 0x10, 0x00, 0x10, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
@@ -263,7 +265,7 @@ static ChickenSprites: &[Sprite] = &[
         Size::S8x8,
     ),
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x11, 0x10, 0x00, 0x10, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x10, 0x00,
@@ -272,7 +274,7 @@ static ChickenSprites: &[Sprite] = &[
         Size::S8x8,
     ),
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x11, 0x10, 0x00, 0x10, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x10, 0x01, 0x00, 0x10, 0x01, 0x10, 0x00,
@@ -281,7 +283,7 @@ static ChickenSprites: &[Sprite] = &[
         Size::S8x8,
     ),
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x11, 0x10, 0x00, 0x10, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x11, 0x01, 0x00,
@@ -290,7 +292,7 @@ static ChickenSprites: &[Sprite] = &[
         Size::S8x8,
     ),
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x11, 0x11, 0x11, 0x10, 0x10, 0x11, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
@@ -299,7 +301,7 @@ static ChickenSprites: &[Sprite] = &[
         Size::S8x8,
     ),
     Sprite::new(
-        &ChickenPalette,
+        &CHICKEN_PALETTE,
         &[
             0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x11, 0x10, 0x11, 0x11, 0x01, 0x10, 0x11,
             0x11, 0x01, 0x10, 0x11, 0x11, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
