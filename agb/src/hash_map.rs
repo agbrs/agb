@@ -831,7 +831,7 @@ mod test {
     use core::cell::RefCell;
 
     use super::*;
-    use crate::{rng, Gba};
+    use crate::{rng::RandomNumberGenerator, Gba};
 
     #[test_case]
     fn can_store_and_retrieve_8_elements(_gba: &mut Gba) {
@@ -956,13 +956,14 @@ mod test {
     #[test_case]
     fn extreme_case(_gba: &mut Gba) {
         let mut map = HashMap::new();
+        let mut rng = RandomNumberGenerator::new();
 
         let mut answers: [Option<i32>; 128] = [None; 128];
 
         for _ in 0..5_000 {
-            let command = rng::next().rem_euclid(2);
-            let key = rng::next().rem_euclid(answers.len() as i32);
-            let value = rng::next();
+            let command = rng.next().rem_euclid(2);
+            let key = rng.next().rem_euclid(answers.len() as i32);
+            let value = rng.next();
 
             match command {
                 0 => {
