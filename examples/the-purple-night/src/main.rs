@@ -3,14 +3,11 @@
 
 extern crate alloc;
 
-mod rng;
 mod sfx;
 
 use core::cmp::Ordering;
 
 use alloc::{boxed::Box, vec::Vec};
-
-use rng::get_random;
 
 use agb::{
     display::{
@@ -21,6 +18,7 @@ use agb::{
     fixnum::{FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
     interrupt::VBlank,
+    rng,
 };
 use generational_arena::Arena;
 use sfx::Sfx;
@@ -1117,7 +1115,7 @@ impl MiniFlameData {
                     self.sprite_offset = 0;
                     self.state = MiniFlameState::Dead;
 
-                    if get_random() % 4 == 0 {
+                    if rng::next() % 4 == 0 {
                         instruction = UpdateInstruction::CreateParticle(
                             ParticleData::new_health(),
                             entity.position,
@@ -1140,7 +1138,7 @@ impl MiniFlameData {
                     self.sprite_offset = 0;
                     self.state = MiniFlameState::Dead;
 
-                    if get_random() % 4 == 0 {
+                    if rng::next() % 4 == 0 {
                         instruction = UpdateInstruction::CreateParticle(
                             ParticleData::new_health(),
                             entity.position,
@@ -1705,7 +1703,7 @@ impl<'a> Boss<'a> {
         Self {
             entity,
             health: 5,
-            target_location: get_random().rem_euclid(5) as u8,
+            target_location: rng::next().rem_euclid(5) as u8,
             state: BossActiveState::Damaged(60),
             timer: 0,
             screen_coords,
@@ -1806,9 +1804,9 @@ impl<'a> Boss<'a> {
     fn commit(&mut self, offset: Vector2D<Number>) {
         let shake = if self.shake_magnitude != 0.into() {
             (
-                Number::from_raw(get_random()).rem_euclid(self.shake_magnitude)
+                Number::from_raw(rng::next()).rem_euclid(self.shake_magnitude)
                     - self.shake_magnitude / 2,
-                Number::from_raw(get_random()).rem_euclid(self.shake_magnitude)
+                Number::from_raw(rng::next()).rem_euclid(self.shake_magnitude)
                     - self.shake_magnitude / 2,
             )
                 .into()
@@ -1821,8 +1819,8 @@ impl<'a> Boss<'a> {
     }
     fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a ObjectController) {
         for _ in 0..(6 - self.health) {
-            let x_offset: Number = Number::from_raw(get_random()).rem_euclid(2.into()) - 1;
-            let y_offset: Number = Number::from_raw(get_random()).rem_euclid(2.into()) - 1;
+            let x_offset: Number = Number::from_raw(rng::next()).rem_euclid(2.into()) - 1;
+            let y_offset: Number = Number::from_raw(rng::next()).rem_euclid(2.into()) - 1;
             let mut flame = Enemy::new(
                 object_controller,
                 EnemyData::MiniFlame(MiniFlameData::new()),
@@ -1835,7 +1833,7 @@ impl<'a> Boss<'a> {
 
     fn get_next_target_location(&self) -> u8 {
         loop {
-            let a = get_random().rem_euclid(5) as u8;
+            let a = rng::next().rem_euclid(5) as u8;
             if a != self.target_location {
                 break a;
             }
@@ -1980,8 +1978,8 @@ impl<'a> Game<'a> {
         if self.shake_time > 0 {
             let size = self.shake_time.min(4) as i32;
             let offset: Vector2D<Number> = (
-                Number::from_raw(get_random()) % size - Number::new(size) / 2,
-                Number::from_raw(get_random()) % size - Number::new(size) / 2,
+                Number::from_raw(rng::next()) % size - Number::new(size) / 2,
+                Number::from_raw(rng::next()) % size - Number::new(size) / 2,
             )
                 .into();
             this_frame_offset += offset;
@@ -2298,7 +2296,7 @@ fn game_with_level(gba: &mut agb::Gba) {
                 }
             }
 
-            get_random(); // advance RNG to make it less predictable between runs
+            rng::next(); // advance RNG to make it less predictable between runs
         };
 
         game.clear(&mut vram);
