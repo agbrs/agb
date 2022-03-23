@@ -602,12 +602,12 @@ impl<K, V> NodeStorage<K, V> {
         loop {
             let location = fast_mod(
                 self.capacity(),
-                new_node.hash + new_node.get_distance() as HashType,
+                new_node.hash + new_node.distance() as HashType,
             );
             let current_node = &mut self.nodes[location];
 
             if current_node.has_value() {
-                if current_node.get_distance() <= new_node.get_distance() {
+                if current_node.distance() <= new_node.distance() {
                     mem::swap(&mut new_node, current_node);
 
                     if inserted_location == usize::MAX {
@@ -623,9 +623,8 @@ impl<K, V> NodeStorage<K, V> {
             }
 
             new_node.increment_distance();
-            self.max_distance_to_initial_bucket = new_node
-                .get_distance()
-                .max(self.max_distance_to_initial_bucket);
+            self.max_distance_to_initial_bucket =
+                new_node.distance().max(self.max_distance_to_initial_bucket);
         }
 
         self.number_of_items += 1;
@@ -641,9 +640,7 @@ impl<K, V> NodeStorage<K, V> {
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
-            if !self.nodes[next_location].has_value()
-                || self.nodes[next_location].get_distance() == 0
-            {
+            if !self.nodes[next_location].has_value() || self.nodes[next_location].distance() == 0 {
                 return self.nodes[current_location].take_key_value().unwrap().1;
             }
 
@@ -809,7 +806,7 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    fn get_distance(&self) -> i32 {
+    fn distance(&self) -> i32 {
         self.distance_to_initial_bucket
     }
 }
