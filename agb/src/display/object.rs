@@ -335,7 +335,6 @@ impl Drop for Loan<'_> {
 }
 
 pub struct ObjectController {
-    free_affine_matricies: RefCell<Vec<u8>>,
     free_objects: RefCell<Vec<u8>>,
     sprite_controller: SpriteController,
 }
@@ -356,7 +355,6 @@ impl ObjectController {
 
         Self {
             free_objects: RefCell::new((0..128).collect()),
-            free_affine_matricies: RefCell::new((0..32).collect()),
             sprite_controller: SpriteController::new(),
         }
     }
