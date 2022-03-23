@@ -498,7 +498,7 @@ struct SpriteId(usize);
 impl SpriteId {
     fn sprite(self) -> &'static Sprite {
         // # Safety
-        // This must be constructed using the get_id of a sprite, so
+        // This must be constructed using the id() of a sprite, so
         // they are always valid and always static
         unsafe { (self.0 as *const Sprite).as_ref().unwrap_unchecked() }
     }
@@ -516,7 +516,7 @@ impl PaletteId {
 }
 
 impl Palette16 {
-    fn get_id(&'static self) -> PaletteId {
+    fn id(&'static self) -> PaletteId {
         PaletteId(self as *const _ as usize)
     }
     const fn layout() -> Layout {
@@ -525,7 +525,7 @@ impl Palette16 {
 }
 
 impl Sprite {
-    fn get_id(&'static self) -> SpriteId {
+    fn id(&'static self) -> SpriteId {
         SpriteId(self as *const _ as usize)
     }
     fn layout(&self) -> Layout {
@@ -551,11 +551,11 @@ impl SpriteController {
     }
     fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let mut inner = self.inner.borrow_mut();
-        let id = sprite.get_id();
+        let id = sprite.id();
         if let Some(storage) = inner.sprite.get_mut(&id) {
             storage.count += 1;
             let location = storage.location;
-            let palette_location = inner.get_palette(sprite.palette).unwrap();
+            let palette_location = inner.palette(sprite.palette).unwrap();
             Some(SpriteBorrow {
                 id,
                 palette_location,
@@ -566,7 +566,7 @@ impl SpriteController {
             // layout is non zero sized, so this is safe to call
 
             let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
-            let palette_location = inner.get_palette(sprite.palette);
+            let palette_location = inner.palette(sprite.palette);
             let palette_location = match palette_location {
                 Some(a) => a,
                 None => {
@@ -603,8 +603,8 @@ impl SpriteControllerInner {
             sprite: HashMap::default(),
         }
     }
-    fn get_palette(&mut self, palette: &'static Palette16) -> Option<u16> {
-        let id = palette.get_id();
+    fn palette(&mut self, palette: &'static Palette16) -> Option<u16> {
+        let id = palette.id();
         if let Some(storage) = self.palette.get_mut(&id) {
             storage.count += 1;
             Some(storage.location)
@@ -627,14 +627,14 @@ impl SpriteControllerInner {
     }
 
     fn return_sprite(&mut self, sprite: &'static Sprite) {
-        let storage = self.sprite.get_mut(&sprite.get_id());
+        let storage = self.sprite.get_mut(&sprite.id());
 
         if let Some(storage) = storage {
             storage.count -= 1;
 
             if storage.count == 0 {
                 unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) };
-                self.sprite.remove(&sprite.get_id());
+                self.sprite.remove(&sprite.id());
             }
         }
 
@@ -642,7 +642,7 @@ impl SpriteControllerInner {
     }
 
     fn return_palette(&mut self, palette: &'static Palette16) {
-        let id = palette.get_id();
+        let id = palette.id();
 
         if let Some(storage) = self.palette.get_mut(&id) {
             storage.count -= 1;
@@ -666,7 +666,7 @@ impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
         let mut inner = self.controller.borrow_mut();
         inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
-        let _ = inner.get_palette(self.id.sprite().palette).unwrap();
+        let _ = inner.palette(self.id.sprite().palette).unwrap();
         Self {
             id: self.id,
             sprite_location: self.sprite_location,
