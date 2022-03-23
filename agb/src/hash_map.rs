@@ -206,7 +206,7 @@ where
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
-        if let Some(location) = self.nodes.get_location(&key, hash) {
+        if let Some(location) = self.nodes.location(&key, hash) {
             Some(self.nodes.replace_at_location(location, key, value))
         } else {
             if self.nodes.capacity() * 85 / 100 <= self.len() {
@@ -222,7 +222,7 @@ where
     fn insert_and_get(&mut self, key: K, value: V) -> &'_ mut V {
         let hash = self.hash(&key);
 
-        let location = if let Some(location) = self.nodes.get_location(&key, hash) {
+        let location = if let Some(location) = self.nodes.location(&key, hash) {
             self.nodes.replace_at_location(location, key, value);
             location
         } else {
@@ -239,7 +239,7 @@ where
     /// Returns `true` if the map contains a value for the specified key.
     pub fn contains_key(&self, k: &K) -> bool {
         let hash = self.hash(k);
-        self.nodes.get_location(k, hash).is_some()
+        self.nodes.location(k, hash).is_some()
     }
 
     /// Returns the key-value pair corresponding to the supplied key
@@ -247,7 +247,7 @@ where
         let hash = self.hash(key);
 
         self.nodes
-            .get_location(key, hash)
+            .location(key, hash)
             .and_then(|location| self.nodes.nodes[location].key_value_ref())
     }
 
@@ -262,7 +262,7 @@ where
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
-        if let Some(location) = self.nodes.get_location(key, hash) {
+        if let Some(location) = self.nodes.location(key, hash) {
             self.nodes.nodes[location].value_mut()
         } else {
             None
@@ -275,7 +275,7 @@ where
         let hash = self.hash(key);
 
         self.nodes
-            .get_location(key, hash)
+            .location(key, hash)
             .map(|location| self.nodes.remove_from_location(location))
     }
 }
@@ -504,7 +504,7 @@ where
     /// Gets the given key's corresponding entry in the map for in-place manipulation.
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let hash = self.hash(&key);
-        let location = self.nodes.get_location(&key, hash);
+        let location = self.nodes.location(&key, hash);
 
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
@@ -653,7 +653,7 @@ impl<K, V> NodeStorage<K, V> {
         }
     }
 
-    fn get_location(&self, key: &K, hash: HashType) -> Option<usize>
+    fn location(&self, key: &K, hash: HashType) -> Option<usize>
     where
         K: Eq,
     {
