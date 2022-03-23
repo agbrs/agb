@@ -24,7 +24,7 @@ fn main(mut gba: Gba) -> ! {
 
     const BALL: &Tag = GRAPHICS.tags().get("Ball");
     let ball_sprite = object.sprite(BALL.sprite(0));
-    let mut ball = object.get_object(ball_sprite);
+    let mut ball = object.object(ball_sprite);
 
     ball.set_x(50).set_y(50).show();
 

@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let sprite = object.sprite(&ChickenSprites[0]);
     let mut chicken = Character {
-        object: object.get_object(sprite),
+        object: object.object(sprite),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,

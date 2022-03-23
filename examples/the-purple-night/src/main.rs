@@ -162,7 +162,7 @@ struct Entity<'a> {
 impl<'a> Entity<'a> {
     fn new(object_controller: &'a ObjectController, collision_mask: Rect<u16>) -> Self {
         let s = object_controller.sprite(LONGSWORD_IDLE.sprite(0));
-        let mut sprite = object_controller.get_object(s);
+        let mut sprite = object_controller.object(s);
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,

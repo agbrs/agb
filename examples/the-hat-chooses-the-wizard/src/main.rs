@@ -120,7 +120,7 @@ pub struct Entity<'a> {
 impl<'a> Entity<'a> {
     pub fn new(object: &'a ObjectController, collision_mask: Vector2D<u16>) -> Self {
         let dummy_sprite = object.sprite(WALKING.sprite(0));
-        let mut sprite = object.get_object(dummy_sprite);
+        let mut sprite = object.object(dummy_sprite);
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
