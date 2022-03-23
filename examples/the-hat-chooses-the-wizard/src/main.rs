@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
+        object::{Graphics, Object, ObjectController, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, TileFormat, TileSet, TileSetting, VRamManager,
         },
@@ -813,7 +813,7 @@ fn main(mut agb: agb::Gba) -> ! {
     loop {
         vram.set_background_palettes(tile_sheet::background.palettes);
 
-        let mut object = agb.display.object.get();
+        let object = agb.display.object.get();
         let mut timer_controller = agb.timers.timers();
         let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
 

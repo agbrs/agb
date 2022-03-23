@@ -2,7 +2,7 @@ use crate::TAG_MAP;
 
 use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
 use agb::{
-    display::object::{ObjectController, Size, Tag},
+    display::object::{ObjectController, Tag},
     fixnum::Vector2D,
 };
 
@@ -140,7 +140,7 @@ pub struct Slime<'a> {
 
 impl<'a> Slime<'a> {
     fn new(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
-        let mut slime = Slime {
+        let slime = Slime {
             enemy_info: EnemyInfo::new(object, start_pos, (14u16, 14u16).into()),
             state: SlimeState::Idle,
         };
@@ -262,7 +262,7 @@ pub struct Snail<'a> {
 
 impl<'a> Snail<'a> {
     fn new(object: &'a ObjectController, start_pos: Vector2D<FixedNumberType>) -> Self {
-        let mut snail = Snail {
+        let snail = Snail {
             enemy_info: EnemyInfo::new(object, start_pos, (16u16, 16u16).into()),
             state: SnailState::Idle(0),
         };
