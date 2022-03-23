@@ -21,7 +21,7 @@ pub enum Divider {
 }
 
 impl Divider {
-    fn get_as_bits(&self) -> u16 {
+    fn as_bits(&self) -> u16 {
         use Divider::*;
 
         match self {
@@ -71,13 +71,12 @@ impl Timer {
         self.data_register().set(count_up_value);
     }
 
-    pub fn get_value(&self) -> u16 {
+    pub fn value(&self) -> u16 {
         self.data_register().get()
     }
 
     pub fn set_divider(&mut self, divider: Divider) {
-        self.control_register()
-            .set_bits(divider.get_as_bits(), 2, 0);
+        self.control_register().set_bits(divider.as_bits(), 2, 0);
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {
@@ -96,18 +95,18 @@ impl Timer {
     }
 
     fn data_register(&self) -> MemoryMapped<u16> {
-        timer_data(self.get_timer_number())
+        timer_data(self.timer_number())
     }
 
     fn control_register(&self) -> MemoryMapped<u16> {
-        timer_control(self.get_timer_number())
+        timer_control(self.timer_number())
     }
 
-    fn get_timer_number(&self) -> usize {
+    fn timer_number(&self) -> usize {
         self.timer_number as usize
     }
 
-    pub fn get_interrupt(&self) -> crate::interrupt::Interrupt {
+    pub fn interrupt(&self) -> crate::interrupt::Interrupt {
         use crate::interrupt::Interrupt;
         match self.timer_number {
             0 => Interrupt::Timer0,

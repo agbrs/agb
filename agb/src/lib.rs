@@ -138,7 +138,6 @@ pub use agb_sound_converter::include_wav;
 extern crate alloc;
 mod agb_alloc;
 
-mod arena;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
@@ -409,7 +408,7 @@ mod test {
 }
 
 #[inline(never)]
-pub fn get_program_counter_before_interrupt() -> u32 {
+pub(crate) fn program_counter_before_interrupt() -> u32 {
     extern "C" {
         static mut agb_rs__program_counter: u32;
     }

@@ -206,7 +206,7 @@ where
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
-        if let Some(location) = self.nodes.get_location(&key, hash) {
+        if let Some(location) = self.nodes.location(&key, hash) {
             Some(self.nodes.replace_at_location(location, key, value))
         } else {
             if self.nodes.capacity() * 85 / 100 <= self.len() {
@@ -222,7 +222,7 @@ where
     fn insert_and_get(&mut self, key: K, value: V) -> &'_ mut V {
         let hash = self.hash(&key);
 
-        let location = if let Some(location) = self.nodes.get_location(&key, hash) {
+        let location = if let Some(location) = self.nodes.location(&key, hash) {
             self.nodes.replace_at_location(location, key, value);
             location
         } else {
@@ -239,7 +239,7 @@ where
     /// Returns `true` if the map contains a value for the specified key.
     pub fn contains_key(&self, k: &K) -> bool {
         let hash = self.hash(k);
-        self.nodes.get_location(k, hash).is_some()
+        self.nodes.location(k, hash).is_some()
     }
 
     /// Returns the key-value pair corresponding to the supplied key
@@ -247,7 +247,7 @@ where
         let hash = self.hash(key);
 
         self.nodes
-            .get_location(key, hash)
+            .location(key, hash)
             .and_then(|location| self.nodes.nodes[location].key_value_ref())
     }
 
@@ -262,7 +262,7 @@ where
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let hash = self.hash(key);
 
-        if let Some(location) = self.nodes.get_location(key, hash) {
+        if let Some(location) = self.nodes.location(key, hash) {
             self.nodes.nodes[location].value_mut()
         } else {
             None
@@ -275,7 +275,7 @@ where
         let hash = self.hash(key);
 
         self.nodes
-            .get_location(key, hash)
+            .location(key, hash)
             .map(|location| self.nodes.remove_from_location(location))
     }
 }
@@ -504,7 +504,7 @@ where
     /// Gets the given key's corresponding entry in the map for in-place manipulation.
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let hash = self.hash(&key);
-        let location = self.nodes.get_location(&key, hash);
+        let location = self.nodes.location(&key, hash);
 
         if let Some(location) = location {
             Entry::Occupied(OccupiedEntry {
@@ -602,12 +602,12 @@ impl<K, V> NodeStorage<K, V> {
         loop {
             let location = fast_mod(
                 self.capacity(),
-                new_node.hash + new_node.get_distance() as HashType,
+                new_node.hash + new_node.distance() as HashType,
             );
             let current_node = &mut self.nodes[location];
 
             if current_node.has_value() {
-                if current_node.get_distance() <= new_node.get_distance() {
+                if current_node.distance() <= new_node.distance() {
                     mem::swap(&mut new_node, current_node);
 
                     if inserted_location == usize::MAX {
@@ -623,9 +623,8 @@ impl<K, V> NodeStorage<K, V> {
             }
 
             new_node.increment_distance();
-            self.max_distance_to_initial_bucket = new_node
-                .get_distance()
-                .max(self.max_distance_to_initial_bucket);
+            self.max_distance_to_initial_bucket =
+                new_node.distance().max(self.max_distance_to_initial_bucket);
         }
 
         self.number_of_items += 1;
@@ -641,9 +640,7 @@ impl<K, V> NodeStorage<K, V> {
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
-            if !self.nodes[next_location].has_value()
-                || self.nodes[next_location].get_distance() == 0
-            {
+            if !self.nodes[next_location].has_value() || self.nodes[next_location].distance() == 0 {
                 return self.nodes[current_location].take_key_value().unwrap().1;
             }
 
@@ -653,7 +650,7 @@ impl<K, V> NodeStorage<K, V> {
         }
     }
 
-    fn get_location(&self, key: &K, hash: HashType) -> Option<usize>
+    fn location(&self, key: &K, hash: HashType) -> Option<usize>
     where
         K: Eq,
     {
@@ -809,7 +806,7 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    fn get_distance(&self) -> i32 {
+    fn distance(&self) -> i32 {
         self.distance_to_initial_bucket
     }
 }

@@ -25,7 +25,7 @@ fn main(mut gba: Gba) -> ! {
         input.update();
 
         {
-            if let Some(channel) = mixer.get_channel(&channel_id) {
+            if let Some(channel) = mixer.channel(&channel_id) {
                 let half: Num<i16, 4> = Num::new(1) / 2;
                 let half_usize: Num<usize, 8> = Num::new(1) / 2;
                 match input.x_tri() {

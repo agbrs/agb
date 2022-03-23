@@ -375,7 +375,7 @@ pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandle
     timer.set_overflow_amount(period);
     timer.set_enabled(true);
 
-    add_interrupt_handler(timer.get_interrupt(), |_key: &CriticalSection| {
-        crate::println!("{:#010x}", crate::get_program_counter_before_interrupt());
+    add_interrupt_handler(timer.interrupt(), |_key: &CriticalSection| {
+        crate::println!("{:#010x}", crate::program_counter_before_interrupt());
     })
 }

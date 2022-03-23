@@ -16,7 +16,7 @@ impl Palette16 {
         self.colours[index] = colour;
     }
 
-    pub fn get_colour(&self, index: usize) -> u16 {
+    pub fn colour(&self, index: usize) -> u16 {
         self.colours[index]
     }
 }

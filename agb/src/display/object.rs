@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
 use core::cell::RefCell;
-use core::hash::BuildHasherDefault;
+
 use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
@@ -164,21 +164,21 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn get_sprites(&self) -> &'static [Sprite] {
+    pub fn sprites(&self) -> &'static [Sprite] {
         unsafe { slice::from_raw_parts(self.sprites, self.len) }
     }
 
-    pub fn get_sprite(&self, idx: usize) -> &'static Sprite {
-        &self.get_sprites()[idx]
+    pub fn sprite(&self, idx: usize) -> &'static Sprite {
+        &self.sprites()[idx]
     }
 
     #[inline]
-    pub fn get_animation_sprite(&self, idx: usize) -> &'static Sprite {
+    pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
         let len_sub_1 = self.len - 1;
         match self.direction {
-            Direction::Forward => self.get_sprite(idx % self.len),
-            Direction::Backward => self.get_sprite(len_sub_1 - (idx % self.len)),
-            Direction::Pingpong => self.get_sprite(
+            Direction::Forward => self.sprite(idx % self.len),
+            Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
+            Direction::Pingpong => self.sprite(
                 (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize).abs()
                     as usize,
             ),
@@ -335,7 +335,6 @@ impl Drop for Loan<'_> {
 }
 
 pub struct ObjectController {
-    free_affine_matricies: RefCell<Vec<u8>>,
     free_objects: RefCell<Vec<u8>>,
     sprite_controller: SpriteController,
 }
@@ -356,12 +355,11 @@ impl ObjectController {
 
         Self {
             free_objects: RefCell::new((0..128).collect()),
-            free_affine_matricies: RefCell::new((0..32).collect()),
             sprite_controller: SpriteController::new(),
         }
     }
 
-    pub fn get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
+    pub fn object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
         self.try_get_object(sprite).expect("No object available")
     }
 
@@ -375,7 +373,7 @@ impl ObjectController {
         let mut attrs = Attributes::new();
 
         attrs.a2.set_tile_index(sprite.sprite_location);
-        let shape_size = sprite.id.get_sprite().size.shape_size();
+        let shape_size = sprite.id.sprite().size.shape_size();
         attrs.a2.set_palete_bank(sprite.palette_location as u8);
         attrs.a0.set_shape(shape_size.0);
         attrs.a1a.set_size(shape_size.1);
@@ -389,7 +387,7 @@ impl ObjectController {
         })
     }
 
-    pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
+    pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
         self.sprite_controller
             .try_get_sprite(sprite)
             .expect("No slot for sprite available")
@@ -410,7 +408,7 @@ impl Drop for Object<'_, '_> {
 impl<'a, 'b> Object<'a, 'b> {
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
         self.attrs.a2.set_tile_index(sprite.sprite_location);
-        let shape_size = sprite.id.get_sprite().size.shape_size();
+        let shape_size = sprite.id.sprite().size.shape_size();
         self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
         self.attrs.a0.set_shape(shape_size.0);
         self.attrs.a1a.set_size(shape_size.1);
@@ -496,9 +494,9 @@ impl<'a, 'b> Object<'a, 'b> {
 struct SpriteId(usize);
 
 impl SpriteId {
-    fn get_sprite(self) -> &'static Sprite {
+    fn sprite(self) -> &'static Sprite {
         // # Safety
-        // This must be constructed using the get_id of a sprite, so
+        // This must be constructed using the id() of a sprite, so
         // they are always valid and always static
         unsafe { (self.0 as *const Sprite).as_ref().unwrap_unchecked() }
     }
@@ -509,14 +507,8 @@ impl SpriteId {
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct PaletteId(usize);
 
-impl PaletteId {
-    fn get_palette(self) -> &'static Palette16 {
-        unsafe { (self.0 as *const Palette16).as_ref().unwrap_unchecked() }
-    }
-}
-
 impl Palette16 {
-    fn get_id(&'static self) -> PaletteId {
+    fn id(&'static self) -> PaletteId {
         PaletteId(self as *const _ as usize)
     }
     const fn layout() -> Layout {
@@ -525,7 +517,7 @@ impl Palette16 {
 }
 
 impl Sprite {
-    fn get_id(&'static self) -> SpriteId {
+    fn id(&'static self) -> SpriteId {
         SpriteId(self as *const _ as usize)
     }
     fn layout(&self) -> Layout {
@@ -551,11 +543,11 @@ impl SpriteController {
     }
     fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let mut inner = self.inner.borrow_mut();
-        let id = sprite.get_id();
+        let id = sprite.id();
         if let Some(storage) = inner.sprite.get_mut(&id) {
             storage.count += 1;
             let location = storage.location;
-            let palette_location = inner.get_palette(sprite.palette).unwrap();
+            let palette_location = inner.palette(sprite.palette).unwrap();
             Some(SpriteBorrow {
                 id,
                 palette_location,
@@ -566,7 +558,7 @@ impl SpriteController {
             // layout is non zero sized, so this is safe to call
 
             let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
-            let palette_location = inner.get_palette(sprite.palette);
+            let palette_location = inner.palette(sprite.palette);
             let palette_location = match palette_location {
                 Some(a) => a,
                 None => {
@@ -603,8 +595,8 @@ impl SpriteControllerInner {
             sprite: HashMap::default(),
         }
     }
-    fn get_palette(&mut self, palette: &'static Palette16) -> Option<u16> {
-        let id = palette.get_id();
+    fn palette(&mut self, palette: &'static Palette16) -> Option<u16> {
+        let id = palette.id();
         if let Some(storage) = self.palette.get_mut(&id) {
             storage.count += 1;
             Some(storage.location)
@@ -627,14 +619,14 @@ impl SpriteControllerInner {
     }
 
     fn return_sprite(&mut self, sprite: &'static Sprite) {
-        let storage = self.sprite.get_mut(&sprite.get_id());
+        let storage = self.sprite.get_mut(&sprite.id());
 
         if let Some(storage) = storage {
             storage.count -= 1;
 
             if storage.count == 0 {
                 unsafe { SPRITE_ALLOCATOR.dealloc(storage.as_sprite_ptr(), sprite.layout()) };
-                self.sprite.remove(&sprite.get_id());
+                self.sprite.remove(&sprite.id());
             }
         }
 
@@ -642,7 +634,7 @@ impl SpriteControllerInner {
     }
 
     fn return_palette(&mut self, palette: &'static Palette16) {
-        let id = palette.get_id();
+        let id = palette.id();
 
         if let Some(storage) = self.palette.get_mut(&id) {
             storage.count -= 1;
@@ -658,7 +650,7 @@ impl SpriteControllerInner {
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
         let mut inner = self.controller.borrow_mut();
-        inner.return_sprite(self.id.get_sprite())
+        inner.return_sprite(self.id.sprite())
     }
 }
 
@@ -666,7 +658,7 @@ impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
         let mut inner = self.controller.borrow_mut();
         inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
-        let _ = inner.get_palette(self.id.get_sprite().palette).unwrap();
+        let _ = inner.palette(self.id.sprite().palette).unwrap();
         Self {
             id: self.id,
             sprite_location: self.sprite_location,

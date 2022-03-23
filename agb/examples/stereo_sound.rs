@@ -25,10 +25,10 @@ fn main(mut gba: Gba) -> ! {
     let mut frame_counter = 0i32;
     loop {
         vblank_provider.wait_for_vblank();
-        let before_mixing_cycles = timer.get_value();
+        let before_mixing_cycles = timer.value();
         mixer.after_vblank();
         mixer.frame();
-        let after_mixing_cycles = timer.get_value();
+        let after_mixing_cycles = timer.value();
 
         frame_counter = frame_counter.wrapping_add(1);
 
