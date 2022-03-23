@@ -59,10 +59,6 @@ impl<'a> TileSet<'a> {
     pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
-
-    fn num_tiles(&self) -> usize {
-        self.tiles.len() / self.format.tile_size() * 4
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
