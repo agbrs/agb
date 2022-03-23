@@ -2160,8 +2160,8 @@ impl<'a> Game<'a> {
     fn update_sunrise(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
-        let a = modified_palette.get_colour(0);
-        let b = modified_palette.get_colour(1);
+        let a = modified_palette.colour(0);
+        let b = modified_palette.colour(1);
 
         modified_palette.update_colour(0, interpolate_colour(a, 17982, time, 120));
         modified_palette.update_colour(1, interpolate_colour(b, 22427, time, 120));
@@ -2174,7 +2174,7 @@ impl<'a> Game<'a> {
     fn update_fade_out(vram: &mut VRamManager, time: u16) {
         let mut modified_palette = background::background.palettes[0].clone();
 
-        let c = modified_palette.get_colour(2);
+        let c = modified_palette.colour(2);
 
         modified_palette.update_colour(0, interpolate_colour(17982, 0x7FFF, time, 600));
         modified_palette.update_colour(1, interpolate_colour(22427, 0x7FFF, time, 600));
