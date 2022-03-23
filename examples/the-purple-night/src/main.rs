@@ -1441,14 +1441,6 @@ impl ParticleData {
         Self::BossHealer(0, target)
     }
 
-    fn tile_id(&self) -> u16 {
-        match self {
-            ParticleData::Dust(_) => 70,
-            ParticleData::Health(_) => 88,
-            ParticleData::BossHealer(_, _) => 88,
-        }
-    }
-
     fn update<'a>(
         &mut self,
         controller: &'a ObjectController,
