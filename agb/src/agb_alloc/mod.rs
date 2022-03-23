@@ -37,7 +37,7 @@ const EWRAM_END: usize = 0x0204_0000;
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
-        start: get_data_end,
+        start: data_end,
         end: || EWRAM_END,
     })
 };
@@ -56,7 +56,7 @@ fn alloc_error(layout: Layout) -> ! {
     );
 }
 
-fn get_data_end() -> usize {
+fn data_end() -> usize {
     extern "C" {
         static __ewram_data_end: usize;
     }
@@ -138,7 +138,7 @@ mod test {
 
     #[test_case]
     fn should_return_data_end_somewhere_in_ewram(_gba: &mut crate::Gba) {
-        let data_end = get_data_end();
+        let data_end = data_end();
 
         assert!(
             0x0200_0000 <= data_end,
