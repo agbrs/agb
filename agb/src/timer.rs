@@ -21,7 +21,7 @@ pub enum Divider {
 }
 
 impl Divider {
-    fn get_as_bits(&self) -> u16 {
+    fn as_bits(&self) -> u16 {
         use Divider::*;
 
         match self {
@@ -76,8 +76,7 @@ impl Timer {
     }
 
     pub fn set_divider(&mut self, divider: Divider) {
-        self.control_register()
-            .set_bits(divider.get_as_bits(), 2, 0);
+        self.control_register().set_bits(divider.as_bits(), 2, 0);
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {
