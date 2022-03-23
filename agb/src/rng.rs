@@ -15,6 +15,10 @@ impl RandomNumberGenerator {
         }
     }
 
+    pub const fn new_with_seed(seed: [u32; 4]) -> Self {
+        Self { state: seed }
+    }
+
     pub fn next(&mut self) -> i32 {
         let result = (self.state[0].wrapping_add(self.state[3]))
             .rotate_left(7)
