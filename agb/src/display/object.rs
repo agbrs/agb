@@ -164,21 +164,21 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn get_sprites(&self) -> &'static [Sprite] {
+    pub fn sprites(&self) -> &'static [Sprite] {
         unsafe { slice::from_raw_parts(self.sprites, self.len) }
     }
 
-    pub fn get_sprite(&self, idx: usize) -> &'static Sprite {
-        &self.get_sprites()[idx]
+    pub fn sprite(&self, idx: usize) -> &'static Sprite {
+        &self.sprites()[idx]
     }
 
     #[inline]
-    pub fn get_animation_sprite(&self, idx: usize) -> &'static Sprite {
+    pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
         let len_sub_1 = self.len - 1;
         match self.direction {
-            Direction::Forward => self.get_sprite(idx % self.len),
-            Direction::Backward => self.get_sprite(len_sub_1 - (idx % self.len)),
-            Direction::Pingpong => self.get_sprite(
+            Direction::Forward => self.sprite(idx % self.len),
+            Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
+            Direction::Pingpong => self.sprite(
                 (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize).abs()
                     as usize,
             ),
@@ -375,7 +375,7 @@ impl ObjectController {
         let mut attrs = Attributes::new();
 
         attrs.a2.set_tile_index(sprite.sprite_location);
-        let shape_size = sprite.id.get_sprite().size.shape_size();
+        let shape_size = sprite.id.sprite().size.shape_size();
         attrs.a2.set_palete_bank(sprite.palette_location as u8);
         attrs.a0.set_shape(shape_size.0);
         attrs.a1a.set_size(shape_size.1);
@@ -389,7 +389,7 @@ impl ObjectController {
         })
     }
 
-    pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
+    pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
         self.sprite_controller
             .try_get_sprite(sprite)
             .expect("No slot for sprite available")
@@ -410,7 +410,7 @@ impl Drop for Object<'_, '_> {
 impl<'a, 'b> Object<'a, 'b> {
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
         self.attrs.a2.set_tile_index(sprite.sprite_location);
-        let shape_size = sprite.id.get_sprite().size.shape_size();
+        let shape_size = sprite.id.sprite().size.shape_size();
         self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
         self.attrs.a0.set_shape(shape_size.0);
         self.attrs.a1a.set_size(shape_size.1);
@@ -496,7 +496,7 @@ impl<'a, 'b> Object<'a, 'b> {
 struct SpriteId(usize);
 
 impl SpriteId {
-    fn get_sprite(self) -> &'static Sprite {
+    fn sprite(self) -> &'static Sprite {
         // # Safety
         // This must be constructed using the get_id of a sprite, so
         // they are always valid and always static
@@ -658,7 +658,7 @@ impl SpriteControllerInner {
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
         let mut inner = self.controller.borrow_mut();
-        inner.return_sprite(self.id.get_sprite())
+        inner.return_sprite(self.id.sprite())
     }
 }
 
@@ -666,7 +666,7 @@ impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
         let mut inner = self.controller.borrow_mut();
         inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
-        let _ = inner.get_palette(self.id.get_sprite().palette).unwrap();
+        let _ = inner.get_palette(self.id.sprite().palette).unwrap();
         Self {
             id: self.id,
             sprite_location: self.sprite_location,
