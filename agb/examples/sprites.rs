@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
-use bare_metal::CriticalSection;
+
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
     "../examples/the-purple-night/gfx/objects.aseprite",

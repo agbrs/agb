@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
 use core::cell::RefCell;
-use core::hash::BuildHasherDefault;
+
 use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
