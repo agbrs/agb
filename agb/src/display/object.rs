@@ -509,12 +509,6 @@ impl SpriteId {
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct PaletteId(usize);
 
-impl PaletteId {
-    fn get_palette(self) -> &'static Palette16 {
-        unsafe { (self.0 as *const Palette16).as_ref().unwrap_unchecked() }
-    }
-}
-
 impl Palette16 {
     fn id(&'static self) -> PaletteId {
         PaletteId(self as *const _ as usize)
