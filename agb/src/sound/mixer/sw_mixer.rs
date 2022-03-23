@@ -141,7 +141,7 @@ impl MixerBuffer {
     }
 
     fn swap(&mut self) {
-        let (left_buffer, right_buffer) = self.get_write_buffer().split_at(SOUND_BUFFER_SIZE);
+        let (left_buffer, right_buffer) = self.write_buffer().split_at(SOUND_BUFFER_SIZE);
 
         hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
@@ -150,7 +150,7 @@ impl MixerBuffer {
     }
 
     fn clear(&mut self) {
-        self.get_write_buffer().fill(0);
+        self.write_buffer().fill(0);
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
@@ -202,13 +202,13 @@ impl MixerBuffer {
             channel.pos += playback_speed * SOUND_BUFFER_SIZE;
         }
 
-        let write_buffer = self.get_write_buffer();
+        let write_buffer = self.write_buffer();
         unsafe {
             agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
         }
     }
 
-    fn get_write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {
+    fn write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {
         if self.buffer_1_active {
             &mut self.buffer2.0
         } else {
