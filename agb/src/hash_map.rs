@@ -106,7 +106,7 @@ impl<K, V> HashMap<K, V> {
     pub fn with_capacity(capacity: usize) -> Self {
         for i in 0..32 {
             let attempted_size = 1usize << i;
-            if attempted_size * 85 / 100 > capacity {
+            if number_before_resize(attempted_size) > capacity {
                 return Self::with_size(attempted_size);
             }
         }
@@ -124,7 +124,7 @@ impl<K, V> HashMap<K, V> {
 
     /// Returns the number of elements the map can hold
     pub fn capacity(&self) -> usize {
-        self.nodes.capacity() * 85 / 100
+        self.nodes.capacity()
     }
 
     /// An iterator visiting all keys in an arbitrary order
@@ -144,7 +144,7 @@ impl<K, V> HashMap<K, V> {
 
     /// Removes all elements from the map
     pub fn clear(&mut self) {
-        self.nodes = NodeStorage::with_size(self.capacity());
+        self.nodes = NodeStorage::with_size(self.nodes.backing_vec_size());
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order
@@ -170,10 +170,10 @@ impl<K, V> HashMap<K, V> {
 
     fn resize(&mut self, new_size: usize) {
         assert!(
-            new_size >= self.nodes.capacity(),
+            new_size >= self.nodes.backing_vec_size(),
             "Can only increase the size of a hash map"
         );
-        if new_size == self.nodes.capacity() {
+        if new_size == self.nodes.backing_vec_size() {
             return;
         }
 
@@ -209,8 +209,8 @@ where
         if let Some(location) = self.nodes.location(&key, hash) {
             Some(self.nodes.replace_at_location(location, key, value))
         } else {
-            if self.nodes.capacity() * 85 / 100 <= self.len() {
-                self.resize(self.nodes.capacity() * 2);
+            if self.nodes.capacity() <= self.len() {
+                self.resize(self.nodes.backing_vec_size() * 2);
             }
 
             self.nodes.insert_new(key, value, hash);
@@ -226,8 +226,8 @@ where
             self.nodes.replace_at_location(location, key, value);
             location
         } else {
-            if self.nodes.capacity() * 85 / 100 <= self.len() {
-                self.resize(self.nodes.capacity() * 2);
+            if self.nodes.capacity() <= self.len() {
+                self.resize(self.nodes.backing_vec_size() * 2);
             }
 
             self.nodes.insert_new(key, value, hash)
@@ -301,7 +301,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.capacity() {
+            if self.at >= self.map.nodes.backing_vec_size() {
                 return None;
             }
 
@@ -562,11 +562,16 @@ where
     }
 }
 
+const fn number_before_resize(capacity: usize) -> usize {
+    capacity * 85 / 100
+}
+
 struct NodeStorage<K, V> {
     nodes: Vec<Node<K, V>>,
     max_distance_to_initial_bucket: i32,
 
     number_of_items: usize,
+    max_number_before_resize: usize,
 }
 
 impl<K, V> NodeStorage<K, V> {
@@ -577,10 +582,15 @@ impl<K, V> NodeStorage<K, V> {
             nodes: iter::repeat_with(Default::default).take(capacity).collect(),
             max_distance_to_initial_bucket: 0,
             number_of_items: 0,
+            max_number_before_resize: number_before_resize(capacity),
         }
     }
 
     fn capacity(&self) -> usize {
+        self.max_number_before_resize
+    }
+
+    fn backing_vec_size(&self) -> usize {
         self.nodes.len()
     }
 
@@ -590,9 +600,9 @@ impl<K, V> NodeStorage<K, V> {
 
     fn insert_new(&mut self, key: K, value: V, hash: HashType) -> usize {
         debug_assert!(
-            self.capacity() * 85 / 100 > self.len(),
+            self.capacity() > self.len(),
             "Do not have space to insert into len {} with {}",
-            self.capacity(),
+            self.backing_vec_size(),
             self.len()
         );
 
@@ -601,7 +611,7 @@ impl<K, V> NodeStorage<K, V> {
 
         loop {
             let location = fast_mod(
-                self.capacity(),
+                self.backing_vec_size(),
                 new_node.hash + new_node.distance() as HashType,
             );
             let current_node = &mut self.nodes[location];
@@ -636,7 +646,8 @@ impl<K, V> NodeStorage<K, V> {
         self.number_of_items -= 1;
 
         loop {
-            let next_location = fast_mod(self.capacity(), (current_location + 1) as HashType);
+            let next_location =
+                fast_mod(self.backing_vec_size(), (current_location + 1) as HashType);
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
