@@ -236,32 +236,9 @@ impl<'a> VRamManager<'a> {
 
         let new_reference: NonNull<u32> =
             unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
-
-        let tile_slice = if let ArenaStorageItem::Data(data, generation) =
-            &self.tilesets[tile_set_ref.id as usize]
-        {
-            debug_assert_eq!(
-                *generation, tile_set_ref.generation,
-                "Stale tile data requested"
-            );
-
-            let tile_offset = (tile as usize) * data.format.tile_size();
-            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
-        } else {
-            panic!("Tile set ref must point to existing tile set");
-        };
-
-        let tile_size_in_half_words = tile_slice.len() / 2;
-
-        unsafe {
-            dma_copy16(
-                tile_slice.as_ptr() as *const u16,
-                new_reference.as_ptr() as *mut u16,
-                tile_size_in_half_words,
-            );
-        }
-
         let tile_reference = TileReference(new_reference);
+
+        self.copy_tile_to_location(tile_set_ref, tile, tile_reference);
 
         let index = Self::index_from_reference(tile_reference);
 
