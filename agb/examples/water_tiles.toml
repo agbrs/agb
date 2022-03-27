@@ -1,0 +1,5 @@
+version = "1.0"
+
+[image.water_tiles]
+filename = "water_tiles.png"
+tile_size = "8x8"
