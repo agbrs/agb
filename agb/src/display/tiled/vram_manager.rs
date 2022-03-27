@@ -177,6 +177,39 @@ impl<'a> VRamManager<'a> {
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
+    fn copy_tile_to_location(
+        &self,
+        tile_set_ref: TileSetReference,
+        tile_id: u16,
+        tile_reference: TileReference,
+    ) {
+        let tile_slice = if let ArenaStorageItem::Data(data, generation) =
+            &self.tilesets[tile_set_ref.id as usize]
+        {
+            debug_assert_eq!(
+                *generation, tile_set_ref.generation,
+                "Stale tile data requested"
+            );
+
+            let tile_offset = (tile_id as usize) * data.format.tile_size();
+            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
+        } else {
+            panic!("Target tile set ref must point to an existing tile set reference")
+        };
+
+        let tile_size_in_half_words = tile_slice.len() / 2;
+
+        let target_location = tile_reference.0.as_ptr() as *mut _;
+
+        unsafe {
+            dma_copy16(
+                tile_slice.as_ptr() as *const u16,
+                target_location,
+                tile_size_in_half_words,
+            )
+        };
+    }
+
     pub fn replace_tile(
         &mut self,
         source_tile_set_ref: TileSetReference,
@@ -188,31 +221,7 @@ impl<'a> VRamManager<'a> {
             .tile_set_to_vram
             .get(&(source_tile_set_ref.id, source_tile))
         {
-            let tile_slice = if let ArenaStorageItem::Data(data, generation) =
-                &self.tilesets[target_tile_set_ref.id as usize]
-            {
-                debug_assert_eq!(
-                    *generation, target_tile_set_ref.generation,
-                    "Stale tile data requested"
-                );
-
-                let tile_offset = (target_tile as usize) * data.format.tile_size();
-                &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
-            } else {
-                panic!("Target tile set ref must point to an existing tile set reference")
-            };
-
-            let tile_size_in_half_words = tile_slice.len() / 2;
-
-            let target_location = reference.0.as_ptr() as *mut _;
-
-            unsafe {
-                dma_copy16(
-                    tile_slice.as_ptr() as *const u16,
-                    target_location,
-                    tile_size_in_half_words,
-                )
-            };
+            self.copy_tile_to_location(target_tile_set_ref, target_tile, reference);
         }
     }
 
