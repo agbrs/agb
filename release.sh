@@ -67,7 +67,7 @@ sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 
 # Also update the lock file
 (cd "$DIRECTORY" && cargo update)
-git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"
+git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"  || echo "Failed to git add a file, continuing anyway"
 
 if [ "$PROJECT" = "agb" ]; then
     # also update the agb version in the template and the examples
@@ -78,7 +78,7 @@ if [ "$PROJECT" = "agb" ]; then
         EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
         sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
         (cd "$EXAMPLE_DIR" && cargo update)
-        git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock}
+        git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock} || echo "Failed to git add a file, continuing anyway"
     done
 else
     PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
@@ -87,7 +87,7 @@ else
         sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
         (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
 
-        git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}"
+        git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}" || echo "Failed to git add a file, continuing anyway"
     done
 fi
 
