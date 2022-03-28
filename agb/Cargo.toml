@@ -21,7 +21,7 @@ freq18157 = ["agb_sound_converter/freq18157"]
 [dependencies]
 bitflags = "1"
 agb_image_converter = { version = "0.7.0", path = "../agb-image-converter" }
-agb_sound_converter = { version = "0.1.0", path = "../agb-sound-converter" }
+agb_sound_converter = { version = "0.2.0", path = "../agb-sound-converter" }
 agb_macros = { version = "0.2.0", path = "../agb-macros" }
 agb_fixnum = { version = "0.1.0", path = "../agb-fixnum" }
 bare-metal = "1"

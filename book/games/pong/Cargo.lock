@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "agb_sound_converter"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hound",
  "proc-macro2",
