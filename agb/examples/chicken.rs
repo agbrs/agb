@@ -53,7 +53,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.set_background_palette_raw(&MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
-    let tileset_ref = vram.add_tileset(tileset);
 
     let mut background = gfx.background(agb::display::Priority::P0);
 
@@ -62,7 +61,7 @@ fn main(mut gba: agb::Gba) -> ! {
         background.set_tile(
             &mut vram,
             (i % 32, i / 32).into(),
-            tileset_ref,
+            &tileset,
             TileSetting::from_raw(tile),
         );
     }

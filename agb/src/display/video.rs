@@ -18,7 +18,7 @@ impl Video {
         unsafe { Bitmap4::new() }
     }
 
-    pub fn tiled0(&mut self) -> (Tiled0, VRamManager<'_>) {
+    pub fn tiled0(&mut self) -> (Tiled0, VRamManager) {
         (unsafe { Tiled0::new() }, VRamManager::new())
     }
 }

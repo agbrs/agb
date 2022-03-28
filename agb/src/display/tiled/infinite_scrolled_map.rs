@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use super::{MapLoan, RegularMap, TileSetReference, TileSetting, VRamManager};
+use super::{MapLoan, RegularMap, TileSet, TileSetting, VRamManager};
 
 use crate::{
     display,
@@ -9,7 +9,7 @@ use crate::{
 
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
-    tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+    tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting)>,
 
     current_pos: Vector2D<i32>,
     offset: Vector2D<i32>,
@@ -26,7 +26,7 @@ pub enum PartialUpdateStatus {
 impl<'a> InfiniteScrolledMap<'a> {
     pub fn new(
         map: MapLoan<'a, RegularMap>,
-        tile: Box<dyn Fn(Vector2D<i32>) -> (TileSetReference, TileSetting)>,
+        tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting)>,
     ) -> Self {
         Self {
             map,
@@ -79,12 +79,12 @@ impl<'a> InfiniteScrolledMap<'a> {
         {
             for (x_idx, x) in (x_start..x_end).enumerate() {
                 let pos = (x, y).into();
-                let (tile_set_ref, tile_setting) = (self.tile)(pos);
+                let (tileset, tile_setting) = (self.tile)(pos);
 
                 self.map.set_tile(
                     vram,
                     (x_idx as u16, (y_idx + copy_from as usize) as u16).into(),
-                    tile_set_ref,
+                    tileset,
                     tile_setting,
                 );
             }
@@ -172,7 +172,7 @@ impl<'a> InfiniteScrolledMap<'a> {
             .iter()
             .chain(horizontal_rect_to_update.iter())
         {
-            let (tile_set_ref, tile_setting) = (self.tile)((tile_x, tile_y).into());
+            let (tileset, tile_setting) = (self.tile)((tile_x, tile_y).into());
 
             self.map.set_tile(
                 vram,
@@ -181,7 +181,7 @@ impl<'a> InfiniteScrolledMap<'a> {
                     (tile_y - self.offset.y).rem_euclid(32) as u16,
                 )
                     .into(),
-                tile_set_ref,
+                tileset,
                 tile_setting,
             );
         }
