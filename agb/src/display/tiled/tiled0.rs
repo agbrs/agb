@@ -2,7 +2,7 @@ use core::cell::RefCell;
 
 use crate::{
     bitarray::Bitarray,
-    display::{set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, Priority},
+    display::{set_graphics_mode, DisplayMode, Priority},
 };
 
 use super::{MapLoan, RegularMap};
@@ -13,7 +13,6 @@ pub struct Tiled0 {
 
 impl Tiled0 {
     pub(crate) unsafe fn new() -> Self {
-        set_graphics_settings(GraphicsSettings::empty() | GraphicsSettings::SPRITE1_D);
         set_graphics_mode(DisplayMode::Tiled0);
 
         Self {

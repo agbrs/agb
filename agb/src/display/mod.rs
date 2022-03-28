@@ -89,6 +89,9 @@ unsafe fn set_graphics_mode(mode: DisplayMode) {
     let current = current & (!0b111);
     let s = current | (mode as u16 & 0b111);
 
+    // disable blank screen
+    let s = s & !(1 << 7);
+
     DISPLAY_CONTROL.set(s);
 }
 
