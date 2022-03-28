@@ -19,7 +19,7 @@ mv "$CLONE_DIR/.git" "$TEMP_DIR/.git"
 cp -rva template/. "$TEMP_DIR"
 
 # git describe will give a unique, friendly name for the current commit to make it easier to track where this came from
-VERSION=$(git describe)
+VERSION=$(git describe --tags)
 COMMIT_MESSAGE="Update to $VERSION"
 
 git -C "$TEMP_DIR" add .
