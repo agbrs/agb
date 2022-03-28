@@ -2223,18 +2223,15 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         vram.set_background_palettes(background::background.palettes);
 
-        let tileset_ref = vram.add_tileset(TileSet::new(
-            background::background.tiles,
-            TileFormat::FourBpp,
-        ));
+        let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
 
         let object = gba.display.object.get();
 
         let backdrop = InfiniteScrolledMap::new(
             background.background(Priority::P2),
-            Box::new(move |pos| {
+            Box::new(|pos| {
                 (
-                    tileset_ref,
+                    &tileset,
                     TileSetting::from_raw(
                         *tilemap::BACKGROUND_MAP
                             .get((pos.x + tilemap::WIDTH * pos.y) as usize)
@@ -2246,9 +2243,9 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         let foreground = InfiniteScrolledMap::new(
             background.background(Priority::P0),
-            Box::new(move |pos| {
+            Box::new(|pos| {
                 (
-                    tileset_ref,
+                    &tileset,
                     TileSetting::from_raw(
                         *tilemap::FOREGROUND_MAP
                             .get((pos.x + tilemap::WIDTH * pos.y) as usize)
@@ -2260,9 +2257,9 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         let clouds = InfiniteScrolledMap::new(
             background.background(Priority::P3),
-            Box::new(move |pos| {
+            Box::new(|pos| {
                 (
-                    tileset_ref,
+                    &tileset,
                     TileSetting::from_raw(
                         *tilemap::CLOUD_MAP
                             .get((pos.x + tilemap::WIDTH * pos.y) as usize)

@@ -9,7 +9,7 @@ use crate::{
 
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
-    tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting)>,
+    tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
 
     current_pos: Vector2D<i32>,
     offset: Vector2D<i32>,
@@ -26,7 +26,7 @@ pub enum PartialUpdateStatus {
 impl<'a> InfiniteScrolledMap<'a> {
     pub fn new(
         map: MapLoan<'a, RegularMap>,
-        tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting)>,
+        tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
     ) -> Self {
         Self {
             map,
