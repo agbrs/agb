@@ -9,8 +9,6 @@ You should not create the Gba struct yourself, instead having it be passed into 
 
 The Gba struct is used to take advantage of rust's borrow checker, and lean on it to ensure that access to the Game Boy Advance hardware is done 'sensibly'.
 You won't have to worry about 2 bits of your code modifying data in the wrong way!
-This struct is a 'singleton', so you cannot create another instance of it.
-Attempting to do so will result in a panic which by default crashes the game.
 
 # How all agb games start
 
@@ -20,7 +18,7 @@ Replace the content of the `main` function with the following:
 # #![no_std]
 # #![no_main]
 # #[agb::entry]
-# fn main() -> ! {
+# fn main(mut _gba: Gba) -> ! {
 loop {} // infinite loop for now
 # }
 ```
