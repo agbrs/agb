@@ -1,6 +1,6 @@
 [package]
 name = "agb"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
 description = "Library for Game Boy Advance Development"
