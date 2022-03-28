@@ -84,9 +84,43 @@ impl TileInTileSetReference {
     }
 }
 
+#[derive(Clone, Default)]
+struct TileReferenceCount {
+    reference_count: u16,
+    tile_in_tile_set: Option<TileInTileSetReference>,
+}
+
+impl TileReferenceCount {
+    fn new(tile_in_tile_set: TileInTileSetReference) -> Self {
+        Self {
+            reference_count: 1,
+            tile_in_tile_set: Some(tile_in_tile_set),
+        }
+    }
+
+    fn increment_reference_count(&mut self) {
+        self.reference_count += 1;
+    }
+
+    fn decrement_reference_count(&mut self) -> u16 {
+        assert!(
+            self.reference_count > 0,
+            "Trying to decrease the reference count below 0",
+        );
+
+        self.reference_count -= 1;
+        self.reference_count
+    }
+
+    fn clear(&mut self) {
+        self.reference_count = 0;
+        self.tile_in_tile_set = None;
+    }
+}
+
 pub struct VRamManager {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
-    reference_counts: Vec<(u16, Option<TileInTileSetReference>)>,
+    reference_counts: Vec<TileReferenceCount>,
 }
 
 impl VRamManager {
@@ -117,7 +151,7 @@ impl VRamManager {
 
         if let Some(reference) = reference {
             let index = Self::index_from_reference(*reference);
-            self.reference_counts[index].0 += 1;
+            self.reference_counts[index].increment_reference_count();
             return TileIndex::new(index);
         }
 
@@ -132,25 +166,23 @@ impl VRamManager {
         self.tile_set_to_vram
             .insert(TileInTileSetReference::new(tile_set, tile), tile_reference);
 
-        self.reference_counts
-            .resize(self.reference_counts.len().max(index + 1), (0, None));
+        self.reference_counts.resize(
+            self.reference_counts.len().max(index + 1),
+            Default::default(),
+        );
 
-        self.reference_counts[index] = (1, Some(TileInTileSetReference::new(tile_set, tile)));
+        self.reference_counts[index] =
+            TileReferenceCount::new(TileInTileSetReference::new(tile_set, tile));
 
         TileIndex::new(index)
     }
 
     pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
         let index = tile_index.index() as usize;
-        assert!(
-            self.reference_counts[index].0 > 0,
-            "Trying to decrease the reference count of {} below 0",
-            index
-        );
 
-        self.reference_counts[index].0 -= 1;
+        let new_reference_count = self.reference_counts[index].decrement_reference_count();
 
-        if self.reference_counts[index].0 != 0 {
+        if new_reference_count != 0 {
             return;
         }
 
@@ -159,9 +191,13 @@ impl VRamManager {
             TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
         }
 
-        let tile_ref = self.reference_counts[index].1.as_ref().unwrap();
+        let tile_ref = self.reference_counts[index]
+            .tile_in_tile_set
+            .as_ref()
+            .unwrap();
+
         self.tile_set_to_vram.remove(tile_ref);
-        self.reference_counts[index].1 = None;
+        self.reference_counts[index].clear();
     }
 
     pub fn replace_tile(
