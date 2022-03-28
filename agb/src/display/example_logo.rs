@@ -6,7 +6,6 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     vram.set_background_palettes(agb_logo::test_logo.palettes);
 
     let background_tilemap = TileSet::new(agb_logo::test_logo.tiles, TileFormat::FourBpp);
-    let background_tilemap_reference = vram.add_tileset(background_tilemap);
 
     for y in 0..20 {
         for x in 0..30 {
@@ -15,12 +14,7 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
             let palette_entry = agb_logo::test_logo.palette_assignments[tile_id as usize];
             let tile_setting = TileSetting::new(tile_id, false, false, palette_entry);
 
-            map.set_tile(
-                vram,
-                (x, y).into(),
-                background_tilemap_reference,
-                tile_setting,
-            );
+            map.set_tile(vram, (x, y).into(), &background_tilemap, tile_setting);
         }
     }
 

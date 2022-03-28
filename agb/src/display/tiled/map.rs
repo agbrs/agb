@@ -7,7 +7,7 @@ use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
-use super::{Tile, TileSetReference, TileSetting, VRamManager};
+use super::{Tile, TileSet, TileSetting, VRamManager};
 
 pub struct RegularMap {
     background_id: u8,
@@ -42,7 +42,7 @@ impl RegularMap {
         &mut self,
         vram: &mut VRamManager,
         pos: Vector2D<u16>,
-        tileset_ref: TileSetReference,
+        tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
         let pos = (pos.x + pos.y * 32) as usize;
@@ -55,7 +55,7 @@ impl RegularMap {
         let tile_index = tile_setting.index();
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
-            let new_tile_idx = vram.add_tile(tileset_ref, tile_index);
+            let new_tile_idx = vram.add_tile(tileset, tile_index);
             Tile::new(new_tile_idx, tile_setting)
         } else {
             Tile::default()

@@ -783,17 +783,14 @@ fn main(mut agb: agb::Gba) -> ! {
     let mut splash_screen = tiled.background(Priority::P0);
     let mut world_display = tiled.background(Priority::P0);
 
-    let tile_set_ref = vram.add_tileset(TileSet::new(
-        tile_sheet::background.tiles,
-        TileFormat::FourBpp,
-    ));
+    let tileset = TileSet::new(tile_sheet::background.tiles, TileFormat::FourBpp);
 
     for y in 0..32u16 {
         for x in 0..32u16 {
             world_display.set_tile(
                 &mut vram,
                 (x, y).into(),
-                tile_set_ref,
+                &tileset,
                 TileSetting::from_raw(level_display::BLANK),
             );
         }
@@ -837,7 +834,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 &mut world_display,
                 current_level / 8 + 1,
                 current_level % 8 + 1,
-                tile_set_ref,
+                &tileset,
                 &mut vram,
             );
 
@@ -849,12 +846,13 @@ fn main(mut agb: agb::Gba) -> ! {
             vblank.wait_for_vblank();
             mixer.after_vblank();
 
+            let map_current_level = current_level;
             let mut background = InfiniteScrolledMap::new(
                 tiled.background(Priority::P2),
-                Box::new(move |pos: Vector2D<i32>| {
-                    let level = &map_tiles::LEVELS[current_level as usize];
+                Box::new(|pos: Vector2D<i32>| {
+                    let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
-                        tile_set_ref,
+                        &tileset,
                         TileSetting::from_raw(
                             *level
                                 .background
@@ -866,10 +864,10 @@ fn main(mut agb: agb::Gba) -> ! {
             );
             let mut foreground = InfiniteScrolledMap::new(
                 tiled.background(Priority::P0),
-                Box::new(move |pos: Vector2D<i32>| {
-                    let level = &map_tiles::LEVELS[current_level as usize];
+                Box::new(|pos: Vector2D<i32>| {
+                    let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
-                        tile_set_ref,
+                        &tileset,
                         TileSetting::from_raw(
                             *level
                                 .foreground

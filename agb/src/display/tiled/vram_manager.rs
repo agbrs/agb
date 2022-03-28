@@ -24,18 +24,6 @@ static TILE_ALLOCATOR: BlockAllocator = unsafe {
 
 const TILE_LAYOUT: Layout = unsafe { Layout::from_size_align_unchecked(8 * 8 / 2, 8 * 8 / 2) };
 
-#[cfg(debug_assertions)]
-unsafe fn debug_unreachable_unchecked(message: &'static str) -> ! {
-    unreachable!("{}", message);
-}
-
-#[cfg(not(debug_assertions))]
-const unsafe fn debug_unreachable_unchecked(_message: &'static str) -> ! {
-    use core::hint::unreachable_unchecked;
-
-    unreachable_unchecked();
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum TileFormat {
     FourBpp,
@@ -59,17 +47,9 @@ impl<'a> TileSet<'a> {
     pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
-}
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct TileSetReference {
-    id: u16,
-    generation: u16,
-}
-
-impl TileSetReference {
-    fn new(id: u16, generation: u16) -> Self {
-        Self { id, generation }
+    fn reference(&self) -> NonNull<[u8]> {
+        self.tiles.into()
     }
 }
 
@@ -89,81 +69,68 @@ impl TileIndex {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct TileReference(NonNull<u32>);
 
-enum ArenaStorageItem<T> {
-    EndOfFreeList,
-    NextFree(usize),
-    Data(T, u16),
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct TileInTileSetReference {
+    tileset: NonNull<[u8]>,
+    tile: u16,
 }
 
-pub struct VRamManager<'a> {
-    tilesets: Vec<ArenaStorageItem<TileSet<'a>>>,
-    generation: u16,
-    free_pointer: Option<usize>,
-
-    tile_set_to_vram: HashMap<(u16, u16), TileReference>,
-    reference_counts: Vec<(u16, Option<(TileSetReference, u16)>)>,
-}
-
-impl<'a> VRamManager<'a> {
-    pub(crate) fn new() -> Self {
-        let tile_set_to_vram: HashMap<(u16, u16), TileReference> = HashMap::with_capacity(256);
-
+impl TileInTileSetReference {
+    fn new(tileset: &'_ TileSet<'_>, tile: u16) -> Self {
         Self {
-            tilesets: Vec::new(),
-            generation: 0,
-            free_pointer: None,
+            tileset: tileset.reference(),
+            tile,
+        }
+    }
+}
 
-            tile_set_to_vram,
-            reference_counts: Default::default(),
+#[derive(Clone, Default)]
+struct TileReferenceCount {
+    reference_count: u16,
+    tile_in_tile_set: Option<TileInTileSetReference>,
+}
+
+impl TileReferenceCount {
+    fn new(tile_in_tile_set: TileInTileSetReference) -> Self {
+        Self {
+            reference_count: 1,
+            tile_in_tile_set: Some(tile_in_tile_set),
         }
     }
 
-    pub fn add_tileset(&mut self, tileset: TileSet<'a>) -> TileSetReference {
-        let generation = self.generation;
-        self.generation = self.generation.wrapping_add(1);
-
-        let tileset = ArenaStorageItem::Data(tileset, generation);
-
-        let index = if let Some(ptr) = self.free_pointer.take() {
-            match self.tilesets[ptr] {
-                ArenaStorageItem::EndOfFreeList => {
-                    self.tilesets[ptr] = tileset;
-                    ptr
-                }
-                ArenaStorageItem::NextFree(next_free) => {
-                    self.free_pointer = Some(next_free);
-                    self.tilesets[ptr] = tileset;
-                    ptr
-                }
-                _ => unsafe { debug_unreachable_unchecked("Free pointer cannot point to data") },
-            }
-        } else {
-            self.tilesets.push(tileset);
-            self.tilesets.len() - 1
-        };
-
-        TileSetReference::new(index as u16, generation)
+    fn increment_reference_count(&mut self) {
+        self.reference_count += 1;
     }
 
-    pub fn remove_tileset(&mut self, tile_set_ref: TileSetReference) {
-        let tileset = &self.tilesets[tile_set_ref.id as usize];
+    fn decrement_reference_count(&mut self) -> u16 {
+        assert!(
+            self.reference_count > 0,
+            "Trying to decrease the reference count below 0",
+        );
 
-        match tileset {
-            ArenaStorageItem::Data(_, generation) => {
-                debug_assert_eq!(
-                    *generation, tile_set_ref.generation,
-                    "Tileset generation must be the same when removing"
-                );
+        self.reference_count -= 1;
+        self.reference_count
+    }
 
-                self.tilesets[tile_set_ref.id as usize] = if let Some(ptr) = self.free_pointer {
-                    ArenaStorageItem::NextFree(ptr)
-                } else {
-                    ArenaStorageItem::EndOfFreeList
-                };
+    fn clear(&mut self) {
+        self.reference_count = 0;
+        self.tile_in_tile_set = None;
+    }
+}
 
-                self.free_pointer = Some(tile_set_ref.id as usize);
-            }
-            _ => panic!("Must remove valid tileset"),
+pub struct VRamManager {
+    tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
+    reference_counts: Vec<TileReferenceCount>,
+}
+
+impl VRamManager {
+    pub(crate) fn new() -> Self {
+        let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
+            HashMap::with_capacity(256);
+
+        Self {
+            tile_set_to_vram,
+            reference_counts: Default::default(),
         }
     }
 
@@ -177,12 +144,14 @@ impl<'a> VRamManager<'a> {
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
-    pub(crate) fn add_tile(&mut self, tile_set_ref: TileSetReference, tile: u16) -> TileIndex {
-        let reference = self.tile_set_to_vram.get(&(tile_set_ref.id, tile));
+    pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
+        let reference = self
+            .tile_set_to_vram
+            .get(&TileInTileSetReference::new(tile_set, tile));
 
         if let Some(reference) = reference {
             let index = Self::index_from_reference(*reference);
-            self.reference_counts[index].0 += 1;
+            self.reference_counts[index].increment_reference_count();
             return TileIndex::new(index);
         }
 
@@ -190,32 +159,30 @@ impl<'a> VRamManager<'a> {
             unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
         let tile_reference = TileReference(new_reference);
 
-        self.copy_tile_to_location(tile_set_ref, tile, tile_reference);
+        self.copy_tile_to_location(tile_set, tile, tile_reference);
 
         let index = Self::index_from_reference(tile_reference);
 
         self.tile_set_to_vram
-            .insert((tile_set_ref.id, tile), tile_reference);
+            .insert(TileInTileSetReference::new(tile_set, tile), tile_reference);
 
-        self.reference_counts
-            .resize(self.reference_counts.len().max(index + 1), (0, None));
+        self.reference_counts.resize(
+            self.reference_counts.len().max(index + 1),
+            Default::default(),
+        );
 
-        self.reference_counts[index] = (1, Some((tile_set_ref, tile)));
+        self.reference_counts[index] =
+            TileReferenceCount::new(TileInTileSetReference::new(tile_set, tile));
 
         TileIndex::new(index)
     }
 
     pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
         let index = tile_index.index() as usize;
-        assert!(
-            self.reference_counts[index].0 > 0,
-            "Trying to decrease the reference count of {} below 0",
-            index
-        );
 
-        self.reference_counts[index].0 -= 1;
+        let new_reference_count = self.reference_counts[index].decrement_reference_count();
 
-        if self.reference_counts[index].0 != 0 {
+        if new_reference_count != 0 {
             return;
         }
 
@@ -224,45 +191,39 @@ impl<'a> VRamManager<'a> {
             TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
         }
 
-        let tile_ref = self.reference_counts[index].1.unwrap();
-        self.tile_set_to_vram.remove(&(tile_ref.0.id, tile_ref.1));
-        self.reference_counts[index].1 = None;
+        let tile_ref = self.reference_counts[index]
+            .tile_in_tile_set
+            .as_ref()
+            .unwrap();
+
+        self.tile_set_to_vram.remove(tile_ref);
+        self.reference_counts[index].clear();
     }
 
     pub fn replace_tile(
         &mut self,
-        source_tile_set_ref: TileSetReference,
+        source_tile_set: &TileSet<'_>,
         source_tile: u16,
-        target_tile_set_ref: TileSetReference,
+        target_tile_set: &TileSet<'_>,
         target_tile: u16,
     ) {
         if let Some(&reference) = self
             .tile_set_to_vram
-            .get(&(source_tile_set_ref.id, source_tile))
+            .get(&TileInTileSetReference::new(source_tile_set, source_tile))
         {
-            self.copy_tile_to_location(target_tile_set_ref, target_tile, reference);
+            self.copy_tile_to_location(target_tile_set, target_tile, reference);
         }
     }
 
     fn copy_tile_to_location(
         &self,
-        tile_set_ref: TileSetReference,
+        tile_set: &TileSet<'_>,
         tile_id: u16,
         tile_reference: TileReference,
     ) {
-        let tile_slice = if let ArenaStorageItem::Data(data, generation) =
-            &self.tilesets[tile_set_ref.id as usize]
-        {
-            debug_assert_eq!(
-                *generation, tile_set_ref.generation,
-                "Stale tile data requested"
-            );
-
-            let tile_offset = (tile_id as usize) * data.format.tile_size();
-            &data.tiles[tile_offset..(tile_offset + data.format.tile_size())]
-        } else {
-            panic!("Target tile set ref must point to an existing tile set reference")
-        };
+        let tile_size = tile_set.format.tile_size();
+        let tile_offset = (tile_id as usize) * tile_size;
+        let tile_slice = &tile_set.tiles[tile_offset..(tile_offset + tile_size)];
 
         let tile_size_in_half_words = tile_slice.len() / 2;
 

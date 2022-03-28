@@ -6,7 +6,7 @@ mod vram_manager;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use map::{MapLoan, RegularMap};
 pub use tiled0::Tiled0;
-pub use vram_manager::{TileFormat, TileIndex, TileSet, TileSetReference, VRamManager};
+pub use vram_manager::{TileFormat, TileIndex, TileSet, VRamManager};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]

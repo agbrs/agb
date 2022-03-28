@@ -1,5 +1,5 @@
 use agb::display::{
-    tiled::{RegularMap, TileSetReference, TileSetting, VRamManager},
+    tiled::{RegularMap, TileSet, TileSetting, VRamManager},
     HEIGHT, WIDTH,
 };
 
@@ -12,7 +12,7 @@ pub fn write_level(
     map: &mut RegularMap,
     world: u32,
     level: u32,
-    tile_set_ref: TileSetReference,
+    tileset: &'_ TileSet<'_>,
     vram: &mut VRamManager,
 ) {
     for (i, &tile) in [
@@ -30,7 +30,7 @@ pub fn write_level(
         map.set_tile(
             vram,
             (i as u16, 0).into(),
-            tile_set_ref,
+            &tileset,
             TileSetting::from_raw(tile),
         );
     }
