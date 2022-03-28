@@ -69,14 +69,29 @@ impl TileIndex {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct TileReference(NonNull<u32>);
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct TileInTileSetReference {
+    tileset: NonNull<[u8]>,
+    tile: u16,
+}
+
+impl TileInTileSetReference {
+    fn new(tileset: &'_ TileSet<'_>, tile: u16) -> Self {
+        Self {
+            tileset: tileset.reference(),
+            tile,
+        }
+    }
+}
+
 pub struct VRamManager {
-    tile_set_to_vram: HashMap<(NonNull<[u8]>, u16), TileReference>,
-    reference_counts: Vec<(u16, Option<(NonNull<[u8]>, u16)>)>,
+    tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
+    reference_counts: Vec<(u16, Option<TileInTileSetReference>)>,
 }
 
 impl VRamManager {
     pub(crate) fn new() -> Self {
-        let tile_set_to_vram: HashMap<(NonNull<[u8]>, u16), TileReference> =
+        let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
             HashMap::with_capacity(256);
 
         Self {
@@ -96,7 +111,9 @@ impl VRamManager {
     }
 
     pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
-        let reference = self.tile_set_to_vram.get(&(tile_set.reference(), tile));
+        let reference = self
+            .tile_set_to_vram
+            .get(&TileInTileSetReference::new(tile_set, tile));
 
         if let Some(reference) = reference {
             let index = Self::index_from_reference(*reference);
@@ -113,12 +130,12 @@ impl VRamManager {
         let index = Self::index_from_reference(tile_reference);
 
         self.tile_set_to_vram
-            .insert((tile_set.reference(), tile), tile_reference);
+            .insert(TileInTileSetReference::new(tile_set, tile), tile_reference);
 
         self.reference_counts
             .resize(self.reference_counts.len().max(index + 1), (0, None));
 
-        self.reference_counts[index] = (1, Some((tile_set.reference(), tile)));
+        self.reference_counts[index] = (1, Some(TileInTileSetReference::new(tile_set, tile)));
 
         TileIndex::new(index)
     }
@@ -142,8 +159,8 @@ impl VRamManager {
             TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
         }
 
-        let tile_ref = self.reference_counts[index].1.unwrap();
-        self.tile_set_to_vram.remove(&tile_ref);
+        let tile_ref = self.reference_counts[index].1.as_ref().unwrap();
+        self.tile_set_to_vram.remove(tile_ref);
         self.reference_counts[index].1 = None;
     }
 
@@ -156,7 +173,7 @@ impl VRamManager {
     ) {
         if let Some(&reference) = self
             .tile_set_to_vram
-            .get(&(source_tile_set.reference(), source_tile))
+            .get(&TileInTileSetReference::new(source_tile_set, source_tile))
         {
             self.copy_tile_to_location(target_tile_set, target_tile, reference);
         }
