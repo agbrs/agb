@@ -241,7 +241,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// ```
 pub fn add_interrupt_handler<'a>(
     interrupt: Interrupt,
-    handler: impl Fn(&CriticalSection) + 'a,
+    handler: impl Fn(&CriticalSection) + Send + Sync + 'a,
 ) -> InterruptHandler<'a> {
     fn do_with_inner<'a>(
         interrupt: Interrupt,
