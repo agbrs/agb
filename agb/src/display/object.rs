@@ -310,6 +310,7 @@ impl Storage {
     }
 }
 
+#[derive(PartialEq, Eq)]
 struct Attributes {
     a0: ObjectAttribute0,
     a1s: ObjectAttribute1Standard,
@@ -326,13 +327,37 @@ impl Attributes {
             a2: ObjectAttribute2::new(),
         }
     }
+
+    fn commit(&self, location: usize) {
+        let mode = self.a0.object_mode();
+        let attrs: [[u8; 2]; 3] = match mode {
+            ObjectMode::Normal => [
+                self.a0.into_bytes(),
+                self.a1s.into_bytes(),
+                self.a2.into_bytes(),
+            ],
+            _ => [
+                self.a0.into_bytes(),
+                self.a1a.into_bytes(),
+                self.a2.into_bytes(),
+            ],
+        };
+
+        unsafe {
+            let attrs: [u16; 3] = core::mem::transmute(attrs);
+            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(location * 4);
+
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
+        };
+    }
 }
 
 pub struct Object<'a, 'b> {
     sprite: SpriteBorrow<'a>,
     previous_sprite: SpriteBorrow<'a>,
     loan: Loan<'b>,
-    attrs: Attributes,
 }
 
 struct SpriteControllerInner {
@@ -347,28 +372,51 @@ struct Loan<'a> {
 
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
-        let list = unsafe { &mut get_object_controller().free_objects };
-        list.push(self.index);
+        let s = unsafe { get_object_controller() };
+        s.free_object.push(self.index);
+        s.shadow_oam[self.index as usize] = None;
     }
+}
+
+#[derive(PartialEq, Eq)]
+struct ObjectInner {
+    attrs: Attributes,
+    z: i32,
 }
 
 struct ObjectControllerStatic {
     free_affine_matricies: Vec<u8>,
-    free_objects: Vec<u8>,
+    free_object: Vec<u8>,
+    shadow_oam: Vec<Option<ObjectInner>>,
+    z_order: Vec<u8>,
     sprite_controller: SpriteControllerInner,
 }
 
 impl ObjectControllerStatic {
     unsafe fn new() -> Self {
         Self {
-            free_objects: (0..128).collect(),
+            shadow_oam: (0..128).map(|_| None).collect(),
+            z_order: (0..128).collect(),
+            free_object: (0..128).collect(),
             free_affine_matricies: (0..32).collect(),
             sprite_controller: SpriteControllerInner::new(),
         }
     }
+
+    fn update_z_ordering(&mut self) {
+        let shadow_oam = &self.shadow_oam;
+        self.z_order.sort_by_key(|&a| {
+            shadow_oam[a as usize]
+                .as_ref()
+                .map(|s| s.z)
+                .unwrap_or(i32::MAX)
+        });
+    }
 }
 
-pub struct ObjectController {}
+pub struct ObjectController {
+    phantom: PhantomData<UnsafeCell<()>>,
+}
 
 impl Drop for ObjectController {
     fn drop(&mut self) {
@@ -378,7 +426,25 @@ impl Drop for ObjectController {
     }
 }
 
+const HIDDEN_VALUE: u16 = 0b10 << 8;
+
 impl ObjectController {
+    pub fn commit(&self) {
+        let s = unsafe { get_object_controller() };
+
+        for (i, &z) in s.z_order.iter().enumerate() {
+            if let Some(o) = &s.shadow_oam[z as usize] {
+                o.attrs.commit(i);
+            } else {
+                unsafe {
+                    (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                        .add(i * 4)
+                        .write_volatile(HIDDEN_VALUE)
+                }
+            }
+        }
+    }
+
     pub(crate) fn new() -> Self {
         DISPLAY_CONTROL.set_bits(1, 1, 0x6);
         DISPLAY_CONTROL.set_bits(1, 1, 0xC);
@@ -388,12 +454,14 @@ impl ObjectController {
             unsafe {
                 (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
                     .add(i * 4)
-                    .write_volatile(0b10 << 8)
+                    .write_volatile(HIDDEN_VALUE)
             }
         }
 
         unsafe { init_object_controller() };
-        Self {}
+        Self {
+            phantom: PhantomData,
+        }
     }
 
     pub fn object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
@@ -402,10 +470,6 @@ impl ObjectController {
 
     pub fn try_get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
         let s = unsafe { get_object_controller() };
-        let loan = Loan {
-            index: s.free_objects.pop()?,
-            phantom: PhantomData,
-        };
 
         let mut attrs = Attributes::new();
 
@@ -416,11 +480,21 @@ impl ObjectController {
         attrs.a1a.set_size(shape_size.1);
         attrs.a1s.set_size(shape_size.1);
 
+        let index = s.free_object.pop()?;
+
+        s.shadow_oam[index as usize] = Some(ObjectInner { attrs, z: 0 });
+
+        let loan = Loan {
+            index: index as u8,
+            phantom: PhantomData,
+        };
+
+        s.update_z_ordering();
+
         Some(Object {
             previous_sprite: sprite.clone(),
             sprite,
             loan,
-            attrs,
         })
     }
 
@@ -435,93 +509,87 @@ impl ObjectController {
     }
 }
 
-impl Drop for Object<'_, '_> {
-    fn drop(&mut self) {
-        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
-        self.commit();
-    }
-}
-
 impl<'a, 'b> Object<'a, 'b> {
+    #[inline(always)]
+    fn object_inner(&mut self) -> &mut ObjectInner {
+        let s = unsafe { get_object_controller() };
+        unsafe {
+            s.shadow_oam[self.loan.index as usize]
+                .as_mut()
+                .unwrap_unchecked()
+        }
+    }
+
+    #[inline(always)]
+    fn attrs(&mut self) -> &mut Attributes {
+        &mut self.object_inner().attrs
+    }
+
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
-        self.attrs.a2.set_tile_index(sprite.sprite_location);
+        self.attrs().a2.set_tile_index(sprite.sprite_location);
         let shape_size = sprite.id.sprite().size.shape_size();
-        self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
-        self.attrs.a0.set_shape(shape_size.0);
-        self.attrs.a1a.set_size(shape_size.1);
-        self.attrs.a1s.set_size(shape_size.1);
+        self.attrs()
+            .a2
+            .set_palete_bank(sprite.palette_location as u8);
+        self.attrs().a0.set_shape(shape_size.0);
+        self.attrs().a1a.set_size(shape_size.1);
+        self.attrs().a1s.set_size(shape_size.1);
+        self.previous_sprite = self.sprite.clone();
         self.sprite = sprite;
     }
 
     pub fn show(&mut self) -> &mut Self {
-        self.attrs.a0.set_object_mode(ObjectMode::Normal);
+        self.attrs().a0.set_object_mode(ObjectMode::Normal);
 
         self
     }
 
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
-        self.attrs.a1s.set_horizontal_flip(flip);
+        self.attrs().a1s.set_horizontal_flip(flip);
         self
     }
 
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
-        self.attrs.a1s.set_vertical_flip(flip);
+        self.attrs().a1s.set_vertical_flip(flip);
         self
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
-        self.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
+        self.attrs().a1a.set_x(x.rem_euclid(1 << 9) as u16);
+        self.attrs().a1s.set_x(x.rem_euclid(1 << 9) as u16);
         self
     }
 
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
-        self.attrs.a2.set_priority(priority);
+        self.attrs().a2.set_priority(priority);
         self
     }
 
     pub fn hide(&mut self) -> &mut Self {
-        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
+        self.attrs().a0.set_object_mode(ObjectMode::Disabled);
         self
     }
 
     pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.attrs.a0.set_y(y as u8);
+        self.attrs().a0.set_y(y as u8);
+
+        self
+    }
+
+    pub fn set_z(&mut self, z: i32) -> &mut Self {
+        self.object_inner().z = z;
+        unsafe {
+            get_object_controller().update_z_ordering();
+        }
 
         self
     }
 
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        self.attrs.a0.set_y(position.y as u8);
-        self.attrs.a1a.set_x(position.x.rem_euclid(1 << 9) as u16);
-        self.attrs.a1s.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self.attrs().a0.set_y(position.y as u8);
+        self.attrs().a1a.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self.attrs().a1s.set_x(position.x.rem_euclid(1 << 9) as u16);
         self
-    }
-
-    pub fn commit(&mut self) {
-        let mode = self.attrs.a0.object_mode();
-        let attrs: [[u8; 2]; 3] = match mode {
-            ObjectMode::Normal => [
-                self.attrs.a0.into_bytes(),
-                self.attrs.a1s.into_bytes(),
-                self.attrs.a2.into_bytes(),
-            ],
-            _ => [
-                self.attrs.a0.into_bytes(),
-                self.attrs.a1a.into_bytes(),
-                self.attrs.a2.into_bytes(),
-            ],
-        };
-
-        unsafe {
-            let attrs: [u16; 3] = core::mem::transmute(attrs);
-            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.loan.index as usize * 4);
-
-            ptr.add(0).write_volatile(attrs[0]);
-            ptr.add(1).write_volatile(attrs[1]);
-            ptr.add(2).write_volatile(attrs[2]);
-        };
-        self.previous_sprite = self.sprite.clone();
     }
 }
 
@@ -732,7 +800,7 @@ enum ColourMode {
 mod attributes {
     use super::*;
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute0 {
         pub y: B8,
         pub object_mode: ObjectMode,
@@ -743,7 +811,7 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute1Standard {
         pub x: B9,
         #[skip]
@@ -754,7 +822,7 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute1Affine {
         pub x: B9,
         pub affine_index: B5,
@@ -762,7 +830,7 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute2 {
         pub tile_index: B10,
         pub priority: Priority,
@@ -772,8 +840,6 @@ mod attributes {
 
 #[cfg(test)]
 mod tests {
-    use crate::interrupt::add_interrupt_handler;
-
     use super::*;
     use core::mem::size_of;
 
