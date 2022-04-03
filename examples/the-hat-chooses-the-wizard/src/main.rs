@@ -258,7 +258,6 @@ impl<'a> Entity<'a> {
         } else {
             self.sprite.show();
         }
-        self.sprite.commit();
     }
 }
 
@@ -356,8 +355,7 @@ impl<'a> Player<'a> {
         wizard.sprite.show();
         hat.sprite.show();
 
-        wizard.sprite.commit();
-        hat.sprite.commit();
+        hat.sprite.set_z(-1);
 
         wizard.position = start_position;
         hat.position = start_position - (0, 10).into();
@@ -498,22 +496,6 @@ impl<'a> Player<'a> {
             _ => HAT_SPIN_3,
         };
 
-        match self.facing {
-            agb::input::Tri::Negative => {
-                self.wizard.sprite.set_hflip(true);
-                self.hat
-                    .sprite
-                    .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
-            }
-            agb::input::Tri::Positive => {
-                self.wizard.sprite.set_hflip(false);
-                self.hat
-                    .sprite
-                    .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
-            }
-            _ => {}
-        }
-
         let hat_resting_position = match self.wizard_frame {
             1 | 2 => (0, 9).into(),
             5 => (0, 10).into(),
@@ -571,6 +553,21 @@ impl<'a> Player<'a> {
                 self.hat_slow_counter = 0;
                 self.hat_left_range = false;
                 self.hat.position = self.wizard.position - hat_resting_position;
+                match self.facing {
+                    agb::input::Tri::Negative => {
+                        self.wizard.sprite.set_hflip(true);
+                        self.hat
+                            .sprite
+                            .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
+                    }
+                    agb::input::Tri::Positive => {
+                        self.wizard.sprite.set_hflip(false);
+                        self.hat
+                            .sprite
+                            .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
+                    }
+                    _ => {}
+                }
             }
             HatState::WizardTowards => {
                 self.hat.sprite.set_sprite(
@@ -907,6 +904,8 @@ fn main(mut agb: agb::Gba) -> ! {
                 mixer.after_vblank();
             }
 
+            object.commit();
+
             level.show_backgrounds();
 
             world_display.hide();
@@ -925,6 +924,7 @@ fn main(mut agb: agb::Gba) -> ! {
                             mixer.frame();
                             vblank.wait_for_vblank();
                             mixer.after_vblank();
+                            object.commit();
                         }
                         break;
                     }
@@ -938,6 +938,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 mixer.frame();
                 vblank.wait_for_vblank();
                 mixer.after_vblank();
+                object.commit();
             }
 
             level.hide_backgrounds();

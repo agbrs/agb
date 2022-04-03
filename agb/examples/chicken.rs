@@ -88,7 +88,8 @@ fn main(mut gba: agb::Gba) -> ! {
         .object
         .set_y((chicken.position.y >> 8).try_into().unwrap());
     chicken.object.show();
-    chicken.object.commit();
+
+    object.commit();
 
     let acceleration = 1 << 4;
     let gravity = 1 << 4;
@@ -133,8 +134,7 @@ fn main(mut gba: agb::Gba) -> ! {
         restrict_to_screen(&mut chicken);
         update_chicken_object(&mut chicken, &object, state, frame_count);
 
-        // Commit the chicken to vram
-        chicken.object.commit();
+        object.commit();
     }
 }
 

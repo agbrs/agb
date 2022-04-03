@@ -6,7 +6,6 @@ extern crate alloc;
 use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
 
-
 const GRAPHICS: &Graphics = agb::include_aseprite!(
     "../examples/the-purple-night/gfx/objects.aseprite",
     "../examples/the-purple-night/gfx/boss.aseprite"
@@ -49,7 +48,7 @@ fn all_sprites(gfx: &ObjectController) {
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i * SPRITES.len() / objs_len) % SPRITES.len();
                 obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
-                obj.commit();
+                gfx.commit();
             }
         }
     }
@@ -91,8 +90,8 @@ fn all_tags(gfx: &ObjectController) {
             image += 1;
             for (obj, tag) in objs.iter_mut() {
                 obj.set_sprite(gfx.sprite(tag.animation_sprite(image)));
-                obj.commit();
             }
+            gfx.commit();
         }
     }
 }
@@ -100,10 +99,6 @@ fn all_tags(gfx: &ObjectController) {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get();
-
-    let mut timers = gba.timers.timers();
-
-    let _a = agb::interrupt::profiler(&mut timers.timer0, 5000);
 
     loop {
         all_tags(&gfx);
