@@ -152,7 +152,7 @@ impl<'a> Level<'a> {
 }
 
 struct Entity<'a> {
-    sprite: Object<'a, 'a>,
+    sprite: Object<'a>,
     position: Vector2D<Number>,
     velocity: Vector2D<Number>,
     collision_mask: Rect<u16>,

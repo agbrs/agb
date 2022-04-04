@@ -111,7 +111,7 @@ const HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
 type FixedNumberType = FixedNum<10>;
 
 pub struct Entity<'a> {
-    sprite: Object<'a, 'a>,
+    sprite: Object<'a>,
     position: Vector2D<FixedNumberType>,
     velocity: Vector2D<FixedNumberType>,
     collision_mask: Vector2D<u16>,

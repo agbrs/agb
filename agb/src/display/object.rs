@@ -354,10 +354,8 @@ impl Attributes {
     }
 }
 
-pub struct Object<'a, 'b> {
-    sprite: SpriteBorrow<'a>,
-    previous_sprite: SpriteBorrow<'a>,
-    loan: Loan<'b>,
+pub struct Object<'a> {
+    loan: Loan<'a>,
 }
 
 struct SpriteControllerInner {
@@ -378,9 +376,10 @@ impl Drop for Loan<'_> {
     }
 }
 
-#[derive(PartialEq, Eq)]
 struct ObjectInner {
     attrs: Attributes,
+    sprite: SpriteBorrow<'static>,
+    previous_sprite: SpriteBorrow<'static>,
     z: i32,
 }
 
@@ -433,8 +432,12 @@ impl ObjectController {
         let s = unsafe { get_object_controller() };
 
         for (i, &z) in s.z_order.iter().enumerate() {
-            if let Some(o) = &s.shadow_oam[z as usize] {
+            if let Some(o) = &mut s.shadow_oam[z as usize] {
                 o.attrs.commit(i);
+
+                let mut a = o.sprite.clone();
+                core::mem::swap(&mut o.previous_sprite, &mut a);
+                a.drop(&mut s.sprite_controller);
             } else {
                 unsafe {
                     (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
@@ -464,11 +467,11 @@ impl ObjectController {
         }
     }
 
-    pub fn object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
+    pub fn object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Object<'a> {
         self.try_get_object(sprite).expect("No object available")
     }
 
-    pub fn try_get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
+    pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
         let s = unsafe { get_object_controller() };
 
         let mut attrs = Attributes::new();
@@ -482,7 +485,14 @@ impl ObjectController {
 
         let index = s.free_object.pop()?;
 
-        s.shadow_oam[index as usize] = Some(ObjectInner { attrs, z: 0 });
+        let new_sprite: SpriteBorrow<'static> = unsafe { core::mem::transmute(sprite) };
+
+        s.shadow_oam[index as usize] = Some(ObjectInner {
+            attrs,
+            z: 0,
+            previous_sprite: new_sprite.clone(),
+            sprite: new_sprite,
+        });
 
         let loan = Loan {
             index: index as u8,
@@ -491,11 +501,7 @@ impl ObjectController {
 
         s.update_z_ordering();
 
-        Some(Object {
-            previous_sprite: sprite.clone(),
-            sprite,
-            loan,
-        })
+        Some(Object { loan })
     }
 
     pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
@@ -509,7 +515,7 @@ impl ObjectController {
     }
 }
 
-impl<'a, 'b> Object<'a, 'b> {
+impl<'a> Object<'a> {
     #[inline(always)]
     fn object_inner(&mut self) -> &mut ObjectInner {
         let s = unsafe { get_object_controller() };
@@ -534,8 +540,7 @@ impl<'a, 'b> Object<'a, 'b> {
         self.attrs().a0.set_shape(shape_size.0);
         self.attrs().a1a.set_size(shape_size.1);
         self.attrs().a1s.set_size(shape_size.1);
-        self.previous_sprite = self.sprite.clone();
-        self.sprite = sprite;
+        self.object_inner().sprite = unsafe { core::mem::transmute(sprite) };
     }
 
     pub fn show(&mut self) -> &mut Self {
@@ -751,6 +756,13 @@ impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
         let s = unsafe { get_object_controller() };
         s.sprite_controller.return_sprite(self.id.sprite())
+    }
+}
+
+impl<'a> SpriteBorrow<'a> {
+    fn drop(self, s: &mut SpriteControllerInner) {
+        s.return_sprite(self.id.sprite());
+        core::mem::forget(self);
     }
 }
 

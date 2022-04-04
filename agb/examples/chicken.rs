@@ -20,7 +20,7 @@ enum State {
 }
 
 struct Character<'a> {
-    object: Object<'a, 'a>,
+    object: Object<'a>,
     position: Vector2D,
     velocity: Vector2D,
 }
