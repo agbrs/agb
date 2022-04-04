@@ -1,6 +1,6 @@
 use core::{alloc::Layout, ptr::NonNull};
 
-use alloc::vec::Vec;
+use alloc::{slice, vec::Vec};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
@@ -118,6 +118,29 @@ impl TileReferenceCount {
     }
 }
 
+#[non_exhaustive]
+pub struct DynamicTile<'a> {
+    pub tile_data: &'a mut [u8],
+}
+
+impl DynamicTile<'_> {
+    pub fn tile_set(&self) -> TileSet<'_> {
+        let tiles = unsafe {
+            slice::from_raw_parts_mut(
+                TILE_RAM_START as *mut u8,
+                1024 * TileFormat::FourBpp.tile_size(),
+            )
+        };
+
+        TileSet::new(tiles, TileFormat::FourBpp)
+    }
+
+    pub fn tile_index(&self) -> u16 {
+        let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
+        (difference / (8 * 8 / 2)) as u16
+    }
+}
+
 pub struct VRamManager {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
@@ -142,6 +165,46 @@ impl VRamManager {
     fn reference_from_index(index: TileIndex) -> TileReference {
         let ptr = (index.index() * (8 * 8 / 2)) as usize + TILE_RAM_START;
         TileReference(NonNull::new(ptr as *mut _).unwrap())
+    }
+
+    pub fn new_dynamic_tile<'a>(&mut self) -> DynamicTile<'a> {
+        let tile_format = TileFormat::FourBpp;
+        let new_reference: NonNull<u32> =
+            unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
+        let tile_reference = TileReference(new_reference);
+
+        let index = Self::index_from_reference(tile_reference);
+
+        let tiles = unsafe {
+            slice::from_raw_parts_mut(TILE_RAM_START as *mut u8, 1024 * tile_format.tile_size())
+        };
+
+        let tile_set = TileSet::new(tiles, tile_format);
+
+        self.tile_set_to_vram.insert(
+            TileInTileSetReference::new(&tile_set, index as u16),
+            tile_reference,
+        );
+
+        self.reference_counts.resize(
+            self.reference_counts.len().max(index + 1),
+            Default::default(),
+        );
+        self.reference_counts[index] =
+            TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index as u16));
+
+        DynamicTile {
+            tile_data: &mut tiles
+                [index * tile_format.tile_size()..(index + 1) * tile_format.tile_size()],
+        }
+    }
+
+    pub fn remove_dynamic_tile(&mut self, dynamic_tile: DynamicTile<'_>) {
+        let pointer = NonNull::new(dynamic_tile.tile_data.as_mut_ptr() as *mut _).unwrap();
+        let tile_reference = TileReference(pointer);
+
+        let tile_index = Self::index_from_reference(tile_reference);
+        self.remove_tile(TileIndex::new(tile_index));
     }
 
     pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
