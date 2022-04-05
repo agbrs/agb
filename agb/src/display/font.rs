@@ -1,3 +1,4 @@
+use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
 use super::tiled::{RegularMap, TileSetting, VRamManager};
@@ -54,8 +55,7 @@ impl Font {
 impl Font {
     pub fn render_text(
         &self,
-        tile_x: u16,
-        tile_y: u16,
+        tile_pos: Vector2D<u16>,
         text: &str,
         foreground_colour: u8,
         background_colour: u8,
@@ -115,7 +115,7 @@ impl Font {
         for ((x, y), tile) in tiles.into_iter() {
             bg.set_tile(
                 vram_manager,
-                (tile_x + x as u16, tile_y + y as u16).into(),
+                (tile_pos.x + x as u16, tile_pos.y + y as u16).into(),
                 &tile.tile_set(),
                 TileSetting::from_raw(tile.tile_index()),
             );

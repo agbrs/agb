@@ -36,8 +36,7 @@ fn main(mut gba: agb::Gba) -> ! {
     vram.remove_dynamic_tile(background_tile);
 
     FONT.render_text(
-        0,
-        3,
+        (0u16, 3u16).into(),
         "Hello, World!\nThis is a font rendering example",
         1,
         2,
