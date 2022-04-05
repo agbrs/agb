@@ -15,17 +15,24 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut bg = gfx.background(Priority::P0);
 
-    for y in 0..20u16 {
-        for x in 0..30u16 {
+    for y in 0..20u32 {
+        for x in 0..30u32 {
             let dynamic_tile = vram.new_dynamic_tile();
 
             for (i, bit) in dynamic_tile.tile_data.iter_mut().enumerate() {
-                *bit = ((((x + i as u16) % 8) << 4) | ((y + i as u16) % 8)) as u8
+                let i = i as u32;
+                let mut value = 0;
+
+                for j in 0..4 {
+                    value |= (value << 8) | (x + i) % 8 | ((y + j) % 8) << 4;
+                }
+
+                *bit = value;
             }
 
             bg.set_tile(
                 &mut vram,
-                (x, y).into(),
+                (x as u16, y as u16).into(),
                 &dynamic_tile.tile_set(),
                 TileSetting::from_raw(dynamic_tile.tile_index()),
             );
