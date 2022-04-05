@@ -33,11 +33,17 @@ impl FontLetter {
 
 pub struct Font {
     letters: &'static [FontLetter],
+    line_height: i32,
+    ascent: i32,
 }
 
 impl Font {
-    pub const fn new(letters: &'static [FontLetter]) -> Self {
-        Self { letters }
+    pub const fn new(letters: &'static [FontLetter], line_height: i32, ascent: i32) -> Self {
+        Self {
+            letters,
+            line_height,
+            ascent,
+        }
     }
 
     fn letter(&self, letter: char) -> &'static FontLetter {
@@ -89,11 +95,12 @@ impl Font {
             let letter = self.letter(c);
 
             let xmin = (current_x_pos + letter.xmin as i32).max(0);
+            let y_start = current_y_pos + self.ascent - letter.height as i32 - letter.ymin as i32;
 
             for letter_y in 0..(letter.height as i32) {
                 for letter_x in 0..(letter.width as i32) {
                     let x = letter_x + xmin;
-                    let y = current_y_pos + letter_y;
+                    let y = y_start + letter_y;
 
                     let px = letter.data[(letter_x + letter_y * letter.width as i32) as usize];
 

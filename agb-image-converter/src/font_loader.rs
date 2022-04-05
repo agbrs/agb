@@ -22,11 +22,17 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     )
     .expect("Invalid font data");
 
+    let line_metrics = font.horizontal_line_metrics(pixels_per_em).unwrap();
+
+    let line_height = line_metrics.new_line_size as i32;
+    let ascent = line_metrics.ascent as i32;
+
     let font = (0..128)
         .map(|i| font.rasterize(char::from_u32(i).unwrap(), pixels_per_em))
         .map(|(metrics, bitmap)| {
             let width = metrics.width;
             let height = metrics.height;
+
             LetterData {
                 width,
                 height,
@@ -57,6 +63,6 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         });
 
     quote![
-        agb::display::Font::new(&[#(#font),*])
+        agb::display::Font::new(&[#(#font),*], #line_height, #ascent)
     ]
 }
