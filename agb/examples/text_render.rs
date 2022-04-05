@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::{
-    display::{palette16::Palette16, tiled::TileSetting, Font, Priority},
+    display::{tiled::TileSetting, Font, Priority},
     include_font,
 };
 
@@ -13,10 +13,10 @@ fn main(mut gba: agb::Gba) -> ! {
     let (gfx, mut vram) = gba.display.video.tiled0();
     let vblank = agb::interrupt::VBlank::get();
 
-    vram.set_background_palettes(&[Palette16::new([
+    vram.set_background_palette_raw(&[
         0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    ])]);
+    ]);
 
     let background_tile = vram.new_dynamic_tile().fill_with(0);
 
