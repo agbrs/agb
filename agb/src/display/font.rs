@@ -88,12 +88,19 @@ impl Font {
         };
 
         let mut current_x_pos = 0i32;
+        let mut current_y_pos = 0i32;
 
         for c in text.chars() {
+            if c == '\n' {
+                current_y_pos += self.line_height;
+                current_x_pos = 0;
+                continue;
+            }
+
             let letter = self.letter(c);
 
             let xmin = (current_x_pos + letter.xmin as i32).max(0);
-            let y_start = self.ascent - letter.height as i32 - letter.ymin as i32;
+            let y_start = current_y_pos + self.ascent - letter.height as i32 - letter.ymin as i32;
 
             for letter_y in 0..(letter.height as i32) {
                 for letter_x in 0..(letter.width as i32) {

@@ -6,7 +6,7 @@ use agb::{
     include_font,
 };
 
-const FONT: Font = include_font!("examples/RobotoCondensed-Regular.ttf", 14);
+const FONT: Font = include_font!("examples/unscii-8.ttf", 8);
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
@@ -35,7 +35,15 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.remove_dynamic_tile(background_tile);
 
-    FONT.render_text(3, 3, "Hello, World!", 1, 2, &mut bg, &mut vram);
+    FONT.render_text(
+        0,
+        3,
+        "Hello, World!\nThis is a font rendering example",
+        1,
+        2,
+        &mut bg,
+        &mut vram,
+    );
 
     bg.commit();
     bg.show();
