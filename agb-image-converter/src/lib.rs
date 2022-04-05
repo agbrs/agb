@@ -5,7 +5,6 @@ use syn::parse::Parser;
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
 use syn::{Expr, ExprLit, Lit};
 
-use std::fs::File;
 use std::path::PathBuf;
 use std::{iter, path::Path, str};
 
