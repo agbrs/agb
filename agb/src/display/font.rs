@@ -59,7 +59,6 @@ impl Font {
         text: &str,
         foreground_colour: u8,
         background_colour: u8,
-        _max_width: i32,
         bg: &mut RegularMap,
         vram_manager: &mut VRamManager,
     ) -> i32 {
@@ -89,13 +88,12 @@ impl Font {
         };
 
         let mut current_x_pos = 0i32;
-        let current_y_pos = 0i32;
 
         for c in text.chars() {
             let letter = self.letter(c);
 
             let xmin = (current_x_pos + letter.xmin as i32).max(0);
-            let y_start = current_y_pos + self.ascent - letter.height as i32 - letter.ymin as i32;
+            let y_start = self.ascent - letter.height as i32 - letter.ymin as i32;
 
             for letter_y in 0..(letter.height as i32) {
                 for letter_x in 0..(letter.width as i32) {
@@ -125,6 +123,6 @@ impl Font {
             }
         }
 
-        1
+        current_x_pos
     }
 }

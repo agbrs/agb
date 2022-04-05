@@ -35,7 +35,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.remove_dynamic_tile(background_tile);
 
-    FONT.render_text(3, 3, "Hello, World!", 1, 2, 100, &mut bg, &mut vram);
+    FONT.render_text(3, 3, "Hello, World!", 1, 2, &mut bg, &mut vram);
 
     bg.commit();
     bg.show();
