@@ -61,7 +61,7 @@ impl Font {
         background_colour: u8,
         bg: &mut RegularMap,
         vram_manager: &mut VRamManager,
-    ) -> i32 {
+    ) -> (i32, i32) {
         let mut tiles: Vec<Vec<DynamicTile>> = vec![];
 
         let mut render_pixel = |x: u16, y: u16| {
@@ -130,6 +130,6 @@ impl Font {
             }
         }
 
-        current_x_pos
+        (current_x_pos, current_y_pos + self.line_height)
     }
 }
