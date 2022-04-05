@@ -931,4 +931,36 @@ mod tests {
     fn size_of_ObjectControllerReference(_: &mut crate::Gba) {
         assert_eq!(size_of::<ObjectControllerReference>(), 0);
     }
+
+    #[test_case]
+    fn object_usage(gba: &mut crate::Gba) {
+        const GRAPHICS: &Graphics = include_aseprite!(
+            "../examples/the-purple-night/gfx/objects.aseprite",
+            "../examples/the-purple-night/gfx/boss.aseprite"
+        );
+
+        const BOSS: &Tag = GRAPHICS.tags().get("Boss");
+        const EMU: &Tag = GRAPHICS.tags().get("emu - idle");
+
+        let object = gba.display.object.get();
+
+        let mut objects: Vec<_> = alloc::vec![
+            object.object(object.sprite(BOSS.sprite(0))),
+            object.object(object.sprite(EMU.sprite(0))),
+        ]
+        .into_iter()
+        .map(Some)
+        .collect();
+
+        object.commit();
+
+        let x = objects[0].as_mut().unwrap();
+        x.set_hflip(true);
+        x.set_vflip(true);
+        x.set_position((1, 1).into());
+        x.set_z(100);
+        x.set_sprite(object.sprite(BOSS.sprite(2)));
+
+        object.commit();
+    }
 }
