@@ -324,6 +324,39 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
     }
 }
 
+pub struct IterOwned<K, V> {
+    map: HashMap<K, V>,
+    at: usize,
+}
+
+impl<K, V> Iterator for IterOwned<K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.at >= self.map.nodes.backing_vec_size() {
+                return None;
+            }
+
+            let maybe_kv = self.map.nodes.nodes[self.at].take_key_value();
+            self.at += 1;
+
+            if let Some((k, v, _)) = maybe_kv {
+                return Some((k, v));
+            }
+        }
+    }
+}
+
+impl<K, V> IntoIterator for HashMap<K, V> {
+    type Item = (K, V);
+    type IntoIter = IterOwned<K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IterOwned { map: self, at: 0 }
+    }
+}
+
 /// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
 pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
     key: K,
@@ -908,7 +941,7 @@ mod test {
         let mut num_found = 0;
 
         for (_, value) in map.into_iter() {
-            max_found = max_found.max(*value);
+            max_found = max_found.max(value);
             num_found += 1;
         }
 

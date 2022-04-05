@@ -1,6 +1,6 @@
-use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
+use crate::hash_map::HashMap;
 
-use alloc::{vec, vec::Vec};
+use super::tiled::{RegularMap, TileSetting, VRamManager};
 
 pub struct FontLetter {
     width: u8,
@@ -62,7 +62,7 @@ impl Font {
         bg: &mut RegularMap,
         vram_manager: &mut VRamManager,
     ) -> (i32, i32) {
-        let mut tiles: Vec<Vec<DynamicTile>> = vec![];
+        let mut tiles = HashMap::new();
 
         let mut render_pixel = |x: u16, y: u16| {
             let tile_x = (x / 8) as usize;
@@ -70,21 +70,15 @@ impl Font {
             let inner_x = x % 8;
             let inner_y = y % 8;
 
-            if tiles.len() <= tile_x {
-                tiles.resize_with(tile_x + 1, || vec![]);
-            }
-
-            let x_dynamic_tiles = &mut tiles[tile_x];
-            if x_dynamic_tiles.len() <= tile_y {
-                x_dynamic_tiles.resize_with(tile_y + 1, || {
-                    vram_manager.new_dynamic_tile().fill_with(background_colour)
-                });
-            }
-
             let colour = foreground_colour as u32;
 
             let index = (inner_x + inner_y * 8) as usize;
-            tiles[tile_x][tile_y].tile_data[index / 8] |= colour << ((index % 8) * 4);
+
+            let tile = tiles
+                .entry((tile_x, tile_y))
+                .or_insert_with(|| vram_manager.new_dynamic_tile().fill_with(background_colour));
+
+            tile.tile_data[index / 8] |= colour << ((index % 8) * 4);
         };
 
         let mut current_x_pos = 0i32;
@@ -118,16 +112,14 @@ impl Font {
             current_x_pos += letter.advance_width as i32;
         }
 
-        for (x, x_tiles) in tiles.into_iter().enumerate() {
-            for (y, tile) in x_tiles.into_iter().enumerate() {
-                bg.set_tile(
-                    vram_manager,
-                    (tile_x + x as u16, tile_y + y as u16).into(),
-                    &tile.tile_set(),
-                    TileSetting::from_raw(tile.tile_index()),
-                );
-                vram_manager.remove_dynamic_tile(tile);
-            }
+        for ((x, y), tile) in tiles.into_iter() {
+            bg.set_tile(
+                vram_manager,
+                (tile_x + x as u16, tile_y + y as u16).into(),
+                &tile.tile_set(),
+                TileSetting::from_raw(tile.tile_index()),
+            );
+            vram_manager.remove_dynamic_tile(tile);
         }
 
         (current_x_pos, current_y_pos + self.line_height)
