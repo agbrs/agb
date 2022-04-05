@@ -48,7 +48,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
             let width = letter_data.width as u8;
             let xmin = letter_data.xmin as i8;
             let ymin = letter_data.ymin as i8;
-            let advance_width = letter_data.advance_width as u8;
+            let advance_width = letter_data.advance_width.ceil() as u8;
 
             quote!(
                 agb::display::FontLetter::new(

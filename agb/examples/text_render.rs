@@ -6,7 +6,7 @@ use agb::{
     include_font,
 };
 
-const FONT: Font = include_font!("examples/unscii-8.ttf", 8);
+const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
