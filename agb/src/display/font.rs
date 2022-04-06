@@ -1,3 +1,5 @@
+use core::fmt::{Error, Write};
+
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
@@ -53,16 +55,45 @@ impl Font {
 }
 
 impl Font {
-    pub fn render_text(
-        &self,
+    pub fn render_text<'a>(
+        &'a self,
         tile_pos: Vector2D<u16>,
-        text: &str,
         foreground_colour: u8,
         background_colour: u8,
-        bg: &mut RegularMap,
-        vram_manager: &mut VRamManager,
-    ) -> (i32, i32) {
+        bg: &'a mut RegularMap,
+        vram_manager: &'a mut VRamManager,
+    ) -> TextRenderer<'a> {
+        TextRenderer {
+            current_x_pos: 0,
+            current_y_pos: 0,
+            font: self,
+            tile_pos,
+            vram_manager,
+            bg,
+            background_colour,
+            foreground_colour,
+        }
+    }
+}
+
+pub struct TextRenderer<'a> {
+    current_x_pos: i32,
+    current_y_pos: i32,
+    font: &'a Font,
+    tile_pos: Vector2D<u16>,
+    vram_manager: &'a mut VRamManager,
+    bg: &'a mut RegularMap,
+    background_colour: u8,
+    foreground_colour: u8,
+}
+
+impl<'a> Write for TextRenderer<'a> {
+    fn write_str(&mut self, text: &str) -> Result<(), Error> {
         let mut tiles = HashMap::new();
+
+        let vram_manager = &mut self.vram_manager;
+        let foreground_colour = self.foreground_colour;
+        let background_colour = self.background_colour;
 
         let mut render_pixel = |x: u16, y: u16| {
             let tile_x = (x / 8) as usize;
@@ -81,20 +112,18 @@ impl Font {
             tile.tile_data[index / 8] |= colour << ((index % 8) * 4);
         };
 
-        let mut current_x_pos = 0i32;
-        let mut current_y_pos = 0i32;
-
         for c in text.chars() {
             if c == '\n' {
-                current_y_pos += self.line_height;
-                current_x_pos = 0;
+                self.current_y_pos += self.font.line_height;
+                self.current_x_pos = 0;
                 continue;
             }
 
-            let letter = self.letter(c);
+            let letter = self.font.letter(c);
 
-            let x_start = (current_x_pos + letter.xmin as i32).max(0);
-            let y_start = current_y_pos + self.ascent - letter.height as i32 - letter.ymin as i32;
+            let x_start = (self.current_x_pos + letter.xmin as i32).max(0);
+            let y_start =
+                self.current_y_pos + self.font.ascent - letter.height as i32 - letter.ymin as i32;
 
             for letter_y in 0..(letter.height as i32) {
                 for letter_x in 0..(letter.width as i32) {
@@ -109,19 +138,19 @@ impl Font {
                 }
             }
 
-            current_x_pos += letter.advance_width as i32;
+            self.current_x_pos += letter.advance_width as i32;
         }
 
         for ((x, y), tile) in tiles.into_iter() {
-            bg.set_tile(
-                vram_manager,
-                (tile_pos.x + x as u16, tile_pos.y + y as u16).into(),
+            self.bg.set_tile(
+                self.vram_manager,
+                (self.tile_pos.x + x as u16, self.tile_pos.y + y as u16).into(),
                 &tile.tile_set(),
                 TileSetting::from_raw(tile.tile_index()),
             );
-            vram_manager.remove_dynamic_tile(tile);
+            self.vram_manager.remove_dynamic_tile(tile);
         }
 
-        (current_x_pos, current_y_pos + self.line_height)
+        Ok(())
     }
 }

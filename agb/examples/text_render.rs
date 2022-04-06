@@ -6,6 +6,8 @@ use agb::{
     include_font,
 };
 
+use core::fmt::Write;
+
 const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 
 #[agb::entry]
@@ -35,14 +37,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.remove_dynamic_tile(background_tile);
 
-    FONT.render_text(
-        (0u16, 3u16).into(),
-        "Hello, World!\nThis is a font rendering example",
-        1,
-        2,
-        &mut bg,
-        &mut vram,
-    );
+    let mut writer = FONT.render_text((0u16, 3u16).into(), 1, 2, &mut bg, &mut vram);
+
+    writeln!(&mut writer, "Hello, World!").unwrap();
+    writeln!(&mut writer, "This is a font rendering example").unwrap();
 
     bg.commit();
     bg.show();
