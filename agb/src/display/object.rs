@@ -425,12 +425,13 @@ struct Loan<'a> {
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
         let mut s = unsafe { get_object_controller(&self.phantom) };
-        s.free_object.push(self.index);
 
-        let o = s.shadow_oam[self.index as usize].take();
-        let o = unsafe { o.unwrap_unchecked() };
-        o.previous_sprite.drop(&mut s.sprite_controller);
-        o.sprite.drop(&mut s.sprite_controller);
+        unsafe {
+            s.shadow_oam[self.index as usize]
+                .as_mut()
+                .unwrap_unchecked()
+                .destroy = true
+        };
     }
 }
 
@@ -438,6 +439,7 @@ struct ObjectInner {
     attrs: Attributes,
     sprite: SpriteBorrow<'static>,
     previous_sprite: SpriteBorrow<'static>,
+    destroy: bool,
     z: i32,
 }
 
@@ -493,11 +495,25 @@ impl ObjectController {
 
         for (i, &z) in s.z_order.iter().enumerate() {
             if let Some(o) = &mut s.shadow_oam[z as usize] {
-                o.attrs.commit(i);
+                if o.destroy {
+                    s.free_object.push(z);
 
-                let mut a = o.sprite.clone(&mut s.sprite_controller);
-                core::mem::swap(&mut o.previous_sprite, &mut a);
-                a.drop(&mut s.sprite_controller);
+                    unsafe {
+                        (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                            .add((i as usize) * 4)
+                            .write_volatile(HIDDEN_VALUE)
+                    }
+
+                    let a = unsafe { s.shadow_oam[z as usize].take().unwrap_unchecked() };
+                    a.previous_sprite.drop(&mut s.sprite_controller);
+                    a.sprite.drop(&mut s.sprite_controller);
+                } else {
+                    o.attrs.commit(i);
+
+                    let mut a = o.sprite.clone(&mut s.sprite_controller);
+                    core::mem::swap(&mut o.previous_sprite, &mut a);
+                    a.drop(&mut s.sprite_controller);
+                }
             } else {
                 unsafe {
                     (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
@@ -551,6 +567,7 @@ impl ObjectController {
             attrs,
             z: 0,
             previous_sprite: new_sprite.clone(&mut s.sprite_controller),
+            destroy: false,
             sprite: new_sprite,
         });
 
