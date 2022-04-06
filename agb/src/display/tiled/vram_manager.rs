@@ -120,7 +120,21 @@ impl TileReferenceCount {
 
 #[non_exhaustive]
 pub struct DynamicTile<'a> {
-    pub tile_data: &'a mut [u8],
+    pub tile_data: &'a mut [u32],
+}
+
+impl DynamicTile<'_> {
+    pub fn fill_with(self, colour_index: u8) -> Self {
+        let colour_index = colour_index as u32;
+
+        let mut value = 0;
+        for i in 0..8 {
+            value |= colour_index << (i * 4);
+        }
+
+        self.tile_data.fill(value);
+        self
+    }
 }
 
 impl DynamicTile<'_> {
@@ -194,8 +208,15 @@ impl VRamManager {
             TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index as u16));
 
         DynamicTile {
-            tile_data: &mut tiles
-                [index * tile_format.tile_size()..(index + 1) * tile_format.tile_size()],
+            tile_data: unsafe {
+                slice::from_raw_parts_mut(
+                    tiles
+                        .as_mut_ptr()
+                        .add((index * tile_format.tile_size()) as usize)
+                        .cast(),
+                    tile_format.tile_size() / core::mem::size_of::<u32>(),
+                )
+            },
         }
     }
 

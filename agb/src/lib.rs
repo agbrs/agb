@@ -114,6 +114,8 @@ pub use agb_image_converter::include_gfx;
 
 pub use agb_image_converter::include_aseprite_inner;
 
+pub use agb_image_converter::include_font;
+
 /// This macro declares the entry point to your game written using `agb`.
 ///
 /// It is already included in the template, but your `main` function must be annotated with `#[agb::entry]`, takes 1 argument and never returns.

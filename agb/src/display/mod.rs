@@ -23,6 +23,9 @@ pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
 
+mod font;
+pub use font::{Font, FontLetter};
+
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
 pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };

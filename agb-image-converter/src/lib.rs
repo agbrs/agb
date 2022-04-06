@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::Parser;
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
+use syn::{Expr, ExprLit, Lit};
 
 use std::path::PathBuf;
 use std::{iter, path::Path, str};
@@ -12,6 +13,7 @@ use quote::{format_ident, quote, ToTokens};
 mod aseprite;
 mod colour;
 mod config;
+mod font_loader;
 mod image_loader;
 mod palette16;
 mod rust_generator;
@@ -307,6 +309,58 @@ fn palete_tile_data(
     let assignments = optimiser.assignments.clone();
 
     (palette_data, tile_data, assignments)
+}
+
+#[proc_macro]
+pub fn include_font(input: TokenStream) -> TokenStream {
+    let parser = Punctuated::<Expr, syn::Token![,]>::parse_separated_nonempty;
+    let parsed = match parser.parse(input) {
+        Ok(e) => e,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    let all_args: Vec<_> = parsed.into_iter().collect();
+    if all_args.len() != 2 {
+        panic!("Include_font requires 2 arguments, got {}", all_args.len());
+    }
+
+    let filename = match &all_args[0] {
+        Expr::Lit(ExprLit {
+            lit: Lit::Str(str_lit),
+            ..
+        }) => str_lit.value(),
+        _ => panic!("Expected literal string as first argument to include_font"),
+    };
+
+    let font_size = match &all_args[1] {
+        Expr::Lit(ExprLit {
+            lit: Lit::Float(value),
+            ..
+        }) => value.base10_parse::<f32>().expect("Invalid float literal"),
+        Expr::Lit(ExprLit {
+            lit: Lit::Int(value),
+            ..
+        }) => value
+            .base10_parse::<i32>()
+            .expect("Invalid integer literal") as f32,
+        _ => panic!("Expected literal float or integer as second argument to include_font"),
+    };
+
+    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+    let path = Path::new(&root).join(&*filename);
+
+    let file_content = std::fs::read(&path).expect("Failed to read ttf file");
+
+    let rendered = font_loader::load_font(&file_content, font_size);
+
+    let include_path = path.to_string_lossy();
+
+    quote!({
+        let _ = include_bytes!(#include_path);
+
+        #rendered
+    })
+    .into()
 }
 
 #[cfg(test)]
