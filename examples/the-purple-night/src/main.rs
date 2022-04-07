@@ -152,7 +152,7 @@ impl<'a> Level<'a> {
 }
 
 struct Entity<'a> {
-    sprite: Object<'a, 'a>,
+    sprite: Object<'a>,
     position: Vector2D<Number>,
     velocity: Vector2D<Number>,
     collision_mask: Rect<u16>,
@@ -285,7 +285,6 @@ impl<'a> Entity<'a> {
                 self.sprite.show();
             }
         }
-        self.sprite.commit();
     }
 
     fn commit_with_size(&mut self, offset: Vector2D<Number>, size: Vector2D<i32>) {
@@ -304,7 +303,6 @@ impl<'a> Entity<'a> {
                 self.sprite.show();
             }
         }
-        self.sprite.commit();
     }
 }
 
@@ -540,7 +538,6 @@ impl<'a> Player<'a> {
         entity.sprite.set_sprite(s);
         entity.sprite.show();
         entity.position = (144, 0).into();
-        entity.sprite.commit();
 
         Player {
             entity,
@@ -1404,8 +1401,6 @@ impl<'a> Enemy<'a> {
 
         entity.sprite.set_sprite(sprite);
         entity.sprite.show();
-
-        entity.sprite.commit();
 
         Self { entity, enemy_data }
     }
@@ -2285,6 +2280,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.frame();
             vblank.wait_for_vblank();
             sfx.after_vblank();
+            object.commit();
             match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {

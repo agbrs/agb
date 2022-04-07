@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
-use core::cell::RefCell;
 
+use core::cell::UnsafeCell;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
+use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
@@ -16,8 +19,81 @@ use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::dma;
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
+use crate::interrupt::free;
+
+use bare_metal::Mutex;
+use core::cell::RefCell;
 
 use attributes::*;
+
+static mut OBJECT_CONTROLLER: MaybeUninit<ObjectControllerStatic> = MaybeUninit::uninit();
+
+unsafe fn init_object_controller() {
+    OBJECT_CONTROLLER.write(ObjectControllerStatic::new());
+}
+
+unsafe fn uninit_object_controller() {
+    OBJECT_CONTROLLER.assume_init_drop()
+}
+
+struct ObjectControllerRef {}
+
+impl Deref for ObjectControllerRef {
+    type Target = ObjectControllerStatic;
+    fn deref(&self) -> &'static ObjectControllerStatic {
+        unsafe { OBJECT_CONTROLLER.assume_init_ref() }
+    }
+}
+
+impl DerefMut for ObjectControllerRef {
+    fn deref_mut(&mut self) -> &'static mut ObjectControllerStatic {
+        unsafe { OBJECT_CONTROLLER.assume_init_mut() }
+    }
+}
+
+#[cfg(debug_assertions)]
+static OBJECT_REFS_CURRENT: Mutex<RefCell<i32>> = Mutex::new(RefCell::new(0));
+
+impl ObjectControllerRef {
+    fn new() -> Self {
+        #[cfg(debug_assertions)]
+        {
+            let a = free(|c| {
+                let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+                let a = *b;
+                *b += 1;
+                a
+            });
+            assert_eq!(a, 0);
+        }
+
+        Self {}
+    }
+
+    unsafe fn very_unsafe_borrow(&self) -> &'static mut ObjectControllerStatic {
+        OBJECT_CONTROLLER.assume_init_mut()
+    }
+}
+
+#[cfg(debug_assertions)]
+impl Drop for ObjectControllerRef {
+    fn drop(&mut self) {
+        free(|c| {
+            let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+            *b -= 1;
+        })
+    }
+}
+
+unsafe fn get_object_controller(_r: &ObjectControllerReference) -> ObjectControllerRef {
+    ObjectControllerRef::new()
+}
+
+/// Include this type if you call `get_object_controller` in impl block. This
+/// helps you use the right lifetimes and doesn't impl Sync (using from two
+/// "threads" without syncronisation is not safe), but sending to another
+/// "thread" is safe.
+type ObjectControllerReference<'a> = PhantomData<&'a UnsafeCell<()>>;
 
 static SPRITE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
@@ -258,7 +334,7 @@ pub struct SpriteBorrow<'a> {
     id: SpriteId,
     sprite_location: u16,
     palette_location: u16,
-    controller: &'a RefCell<SpriteControllerInner>,
+    phantom: ObjectControllerReference<'a>,
 }
 
 #[derive(Clone, Copy)]
@@ -288,6 +364,7 @@ impl Storage {
     }
 }
 
+#[derive(PartialEq, Eq)]
 struct Attributes {
     a0: ObjectAttribute0,
     a1s: ObjectAttribute1Standard,
@@ -304,13 +381,35 @@ impl Attributes {
             a2: ObjectAttribute2::new(),
         }
     }
+
+    fn commit(&self, location: usize) {
+        let mode = self.a0.object_mode();
+        let attrs: [[u8; 2]; 3] = match mode {
+            ObjectMode::Normal => [
+                self.a0.into_bytes(),
+                self.a1s.into_bytes(),
+                self.a2.into_bytes(),
+            ],
+            _ => [
+                self.a0.into_bytes(),
+                self.a1a.into_bytes(),
+                self.a2.into_bytes(),
+            ],
+        };
+
+        unsafe {
+            let attrs: [u16; 3] = core::mem::transmute(attrs);
+            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(location * 4);
+
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
+        };
+    }
 }
 
-pub struct Object<'a, 'b> {
-    sprite: SpriteBorrow<'a>,
-    previous_sprite: SpriteBorrow<'a>,
-    loan: Loan<'b>,
-    attrs: Attributes,
+pub struct Object<'a> {
+    loan: Loan<'a>,
 }
 
 struct SpriteControllerInner {
@@ -318,28 +417,113 @@ struct SpriteControllerInner {
     sprite: HashMap<SpriteId, Storage>,
 }
 
-pub struct SpriteController {
-    inner: RefCell<SpriteControllerInner>,
-}
-
 struct Loan<'a> {
     index: u8,
-    free_list: &'a RefCell<Vec<u8>>,
+    phantom: ObjectControllerReference<'a>,
 }
 
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
-        let mut list = self.free_list.borrow_mut();
-        list.push(self.index);
+        let mut s = unsafe { get_object_controller(&self.phantom) };
+
+        unsafe {
+            s.shadow_oam[self.index as usize]
+                .as_mut()
+                .unwrap_unchecked()
+                .destroy = true
+        };
+    }
+}
+
+struct ObjectInner {
+    attrs: Attributes,
+    sprite: SpriteBorrow<'static>,
+    previous_sprite: SpriteBorrow<'static>,
+    destroy: bool,
+    z: i32,
+}
+
+struct ObjectControllerStatic {
+    free_affine_matricies: Vec<u8>,
+    free_object: Vec<u8>,
+    shadow_oam: Vec<Option<ObjectInner>>,
+    z_order: Vec<u8>,
+    sprite_controller: SpriteControllerInner,
+}
+
+impl ObjectControllerStatic {
+    unsafe fn new() -> Self {
+        Self {
+            shadow_oam: (0..128).map(|_| None).collect(),
+            z_order: (0..128).collect(),
+            free_object: (0..128).collect(),
+            free_affine_matricies: (0..32).collect(),
+            sprite_controller: SpriteControllerInner::new(),
+        }
+    }
+
+    fn update_z_ordering(&mut self) {
+        let shadow_oam = &self.shadow_oam;
+        self.z_order.sort_by_key(|&a| {
+            shadow_oam[a as usize]
+                .as_ref()
+                .map(|s| s.z)
+                .unwrap_or(i32::MAX)
+        });
     }
 }
 
 pub struct ObjectController {
-    free_objects: RefCell<Vec<u8>>,
-    sprite_controller: SpriteController,
+    phantom: ObjectControllerReference<'static>,
 }
 
+impl Drop for ObjectController {
+    fn drop(&mut self) {
+        unsafe {
+            uninit_object_controller();
+        }
+    }
+}
+
+const HIDDEN_VALUE: u16 = 0b10 << 8;
+
 impl ObjectController {
+    pub fn commit(&self) {
+        let mut s = unsafe { get_object_controller(&self.phantom) };
+
+        let s = &mut *s;
+
+        for (i, &z) in s.z_order.iter().enumerate() {
+            if let Some(o) = &mut s.shadow_oam[z as usize] {
+                if o.destroy {
+                    s.free_object.push(z);
+
+                    unsafe {
+                        (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                            .add((i as usize) * 4)
+                            .write_volatile(HIDDEN_VALUE)
+                    }
+
+                    let a = unsafe { s.shadow_oam[z as usize].take().unwrap_unchecked() };
+                    a.previous_sprite.drop(&mut s.sprite_controller);
+                    a.sprite.drop(&mut s.sprite_controller);
+                } else {
+                    o.attrs.commit(i);
+
+                    let mut a = o.sprite.clone(&mut s.sprite_controller);
+                    core::mem::swap(&mut o.previous_sprite, &mut a);
+                    a.drop(&mut s.sprite_controller);
+                }
+            } else {
+                unsafe {
+                    (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
+                        .add(i * 4)
+                        .write_volatile(HIDDEN_VALUE)
+                }
+            }
+        }
+    }
+
     pub(crate) fn new() -> Self {
         DISPLAY_CONTROL.set_bits(1, 1, 0x6);
         DISPLAY_CONTROL.set_bits(1, 1, 0xC);
@@ -349,26 +533,22 @@ impl ObjectController {
             unsafe {
                 (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
                     .add(i * 4)
-                    .write_volatile(0b10 << 8)
+                    .write_volatile(HIDDEN_VALUE)
             }
         }
 
+        unsafe { init_object_controller() };
         Self {
-            free_objects: RefCell::new((0..128).collect()),
-            sprite_controller: SpriteController::new(),
+            phantom: PhantomData,
         }
     }
 
-    pub fn object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Object<'b, 'a> {
+    pub fn object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Object<'a> {
         self.try_get_object(sprite).expect("No object available")
     }
 
-    pub fn try_get_object<'a, 'b>(&'a self, sprite: SpriteBorrow<'b>) -> Option<Object<'b, 'a>> {
-        let mut inner = self.free_objects.borrow_mut();
-        let loan = Loan {
-            index: inner.pop()?,
-            free_list: &self.free_objects,
-        };
+    pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
+        let mut s = unsafe { get_object_controller(&self.phantom) };
 
         let mut attrs = Attributes::new();
 
@@ -379,112 +559,133 @@ impl ObjectController {
         attrs.a1a.set_size(shape_size.1);
         attrs.a1s.set_size(shape_size.1);
 
-        Some(Object {
-            previous_sprite: sprite.clone(),
-            sprite,
-            loan,
+        let index = s.free_object.pop()?;
+
+        let new_sprite: SpriteBorrow<'static> = unsafe { core::mem::transmute(sprite) };
+
+        s.shadow_oam[index as usize] = Some(ObjectInner {
             attrs,
-        })
+            z: 0,
+            previous_sprite: new_sprite.clone(&mut s.sprite_controller),
+            destroy: false,
+            sprite: new_sprite,
+        });
+
+        let loan = Loan {
+            index: index as u8,
+            phantom: PhantomData,
+        };
+
+        s.update_z_ordering();
+
+        Some(Object { loan })
     }
 
     pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
-        self.sprite_controller
-            .try_get_sprite(sprite)
+        self.try_get_sprite(sprite)
             .expect("No slot for sprite available")
     }
 
     pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        self.sprite_controller.try_get_sprite(sprite)
+        let s = unsafe { get_object_controller(&self.phantom) };
+        unsafe {
+            s.very_unsafe_borrow()
+                .sprite_controller
+                .try_get_sprite(sprite)
+        }
     }
 }
 
-impl Drop for Object<'_, '_> {
-    fn drop(&mut self) {
-        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
-        self.commit();
+impl<'a> Object<'a> {
+    #[inline(always)]
+    unsafe fn object_inner(&mut self) -> &mut ObjectInner {
+        let s = get_object_controller(&self.loan.phantom);
+        s.very_unsafe_borrow().shadow_oam[self.loan.index as usize]
+            .as_mut()
+            .unwrap_unchecked()
     }
-}
 
-impl<'a, 'b> Object<'a, 'b> {
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
-        self.attrs.a2.set_tile_index(sprite.sprite_location);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a2.set_tile_index(sprite.sprite_location);
         let shape_size = sprite.id.sprite().size.shape_size();
-        self.attrs.a2.set_palete_bank(sprite.palette_location as u8);
-        self.attrs.a0.set_shape(shape_size.0);
-        self.attrs.a1a.set_size(shape_size.1);
-        self.attrs.a1s.set_size(shape_size.1);
-        self.sprite = sprite;
+        object_inner
+            .attrs
+            .a2
+            .set_palete_bank(sprite.palette_location as u8);
+        object_inner.attrs.a0.set_shape(shape_size.0);
+        object_inner.attrs.a1a.set_size(shape_size.1);
+        object_inner.attrs.a1s.set_size(shape_size.1);
+        object_inner.sprite = unsafe { core::mem::transmute(sprite) };
     }
 
     pub fn show(&mut self) -> &mut Self {
-        self.attrs.a0.set_object_mode(ObjectMode::Normal);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a0.set_object_mode(ObjectMode::Normal);
 
         self
     }
 
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
-        self.attrs.a1s.set_horizontal_flip(flip);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a1s.set_horizontal_flip(flip);
         self
     }
 
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
-        self.attrs.a1s.set_vertical_flip(flip);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a1s.set_vertical_flip(flip);
         self
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
-        self.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
+        object_inner.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
         self
     }
 
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
-        self.attrs.a2.set_priority(priority);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a2.set_priority(priority);
         self
     }
 
     pub fn hide(&mut self) -> &mut Self {
-        self.attrs.a0.set_object_mode(ObjectMode::Disabled);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a0.set_object_mode(ObjectMode::Disabled);
         self
     }
 
     pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.attrs.a0.set_y(y as u8);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a0.set_y(y as u8);
+
+        self
+    }
+
+    pub fn set_z(&mut self, z: i32) -> &mut Self {
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.z = z;
+        unsafe {
+            get_object_controller(&self.loan.phantom).update_z_ordering();
+        }
 
         self
     }
 
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        self.attrs.a0.set_y(position.y as u8);
-        self.attrs.a1a.set_x(position.x.rem_euclid(1 << 9) as u16);
-        self.attrs.a1s.set_x(position.x.rem_euclid(1 << 9) as u16);
+        let object_inner = unsafe { self.object_inner() };
+        object_inner.attrs.a0.set_y(position.y as u8);
+        object_inner
+            .attrs
+            .a1a
+            .set_x(position.x.rem_euclid(1 << 9) as u16);
+        object_inner
+            .attrs
+            .a1s
+            .set_x(position.x.rem_euclid(1 << 9) as u16);
         self
-    }
-
-    pub fn commit(&mut self) {
-        let mode = self.attrs.a0.object_mode();
-        let attrs: [[u8; 2]; 3] = match mode {
-            ObjectMode::Normal => [
-                self.attrs.a0.into_bytes(),
-                self.attrs.a1s.into_bytes(),
-                self.attrs.a2.into_bytes(),
-            ],
-            _ => [
-                self.attrs.a0.into_bytes(),
-                self.attrs.a1a.into_bytes(),
-                self.attrs.a2.into_bytes(),
-            ],
-        };
-
-        unsafe {
-            let attrs: [u16; 3] = core::mem::transmute(attrs);
-            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.loan.index as usize * 4);
-
-            ptr.add(0).write_volatile(attrs[0]);
-            ptr.add(1).write_volatile(attrs[1]);
-            ptr.add(2).write_volatile(attrs[2]);
-        };
-        self.previous_sprite = self.sprite.clone();
     }
 }
 
@@ -535,30 +736,25 @@ impl Sprite {
     }
 }
 
-impl SpriteController {
-    fn new() -> Self {
-        Self {
-            inner: RefCell::new(SpriteControllerInner::new()),
-        }
-    }
-    fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        let mut inner = self.inner.borrow_mut();
+impl SpriteControllerInner {
+    fn try_get_sprite(&mut self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let id = sprite.id();
-        if let Some(storage) = inner.sprite.get_mut(&id) {
+        if let Some(storage) = self.sprite.get_mut(&id) {
             storage.count += 1;
             let location = storage.location;
-            let palette_location = inner.palette(sprite.palette).unwrap();
+            let palette_location = self.palette(sprite.palette).unwrap();
             Some(SpriteBorrow {
                 id,
                 palette_location,
                 sprite_location: location,
-                controller: &self.inner,
+                phantom: PhantomData,
             })
         } else {
             // layout is non zero sized, so this is safe to call
 
             let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
-            let palette_location = inner.palette(sprite.palette);
+
+            let palette_location = self.palette(sprite.palette);
             let palette_location = match palette_location {
                 Some(a) => a,
                 None => {
@@ -576,13 +772,13 @@ impl SpriteController {
             }
 
             let storage = Storage::from_sprite_ptr(dest);
-            inner.sprite.insert(id, storage);
+            self.sprite.insert(id, storage);
 
             Some(SpriteBorrow {
                 id,
-                controller: &self.inner,
                 palette_location,
                 sprite_location: storage.location,
+                phantom: PhantomData,
             })
         }
     }
@@ -649,22 +845,33 @@ impl SpriteControllerInner {
 
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
-        let mut inner = self.controller.borrow_mut();
-        inner.return_sprite(self.id.sprite())
+        let mut s = unsafe { get_object_controller(&self.phantom) };
+        s.sprite_controller.return_sprite(self.id.sprite())
+    }
+}
+
+impl<'a> SpriteBorrow<'a> {
+    fn drop(self, s: &mut SpriteControllerInner) {
+        s.return_sprite(self.id.sprite());
+        core::mem::forget(self);
+    }
+
+    fn clone(&self, s: &mut SpriteControllerInner) -> Self {
+        s.sprite.entry(self.id).and_modify(|a| a.count += 1);
+        let _ = s.palette(self.id.sprite().palette).unwrap();
+        Self {
+            id: self.id,
+            sprite_location: self.sprite_location,
+            palette_location: self.palette_location,
+            phantom: PhantomData,
+        }
     }
 }
 
 impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
-        let mut inner = self.controller.borrow_mut();
-        inner.sprite.entry(self.id).and_modify(|a| a.count += 1);
-        let _ = inner.palette(self.id.sprite().palette).unwrap();
-        Self {
-            id: self.id,
-            sprite_location: self.sprite_location,
-            palette_location: self.palette_location,
-            controller: self.controller,
-        }
+        let mut s = unsafe { get_object_controller(&self.phantom) };
+        self.clone(&mut s.sprite_controller)
     }
 }
 
@@ -694,7 +901,7 @@ enum ColourMode {
 mod attributes {
     use super::*;
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute0 {
         pub y: B8,
         pub object_mode: ObjectMode,
@@ -705,7 +912,7 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute1Standard {
         pub x: B9,
         #[skip]
@@ -716,7 +923,7 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute1Affine {
         pub x: B9,
         pub affine_index: B5,
@@ -724,10 +931,53 @@ mod attributes {
     }
 
     #[bitfield]
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) struct ObjectAttribute2 {
         pub tile_index: B10,
         pub priority: Priority,
         pub palete_bank: B4,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::mem::size_of;
+
+    #[test_case]
+    fn size_of_ObjectControllerReference(_: &mut crate::Gba) {
+        assert_eq!(size_of::<ObjectControllerReference>(), 0);
+    }
+
+    #[test_case]
+    fn object_usage(gba: &mut crate::Gba) {
+        const GRAPHICS: &Graphics = include_aseprite!(
+            "../examples/the-purple-night/gfx/objects.aseprite",
+            "../examples/the-purple-night/gfx/boss.aseprite"
+        );
+
+        const BOSS: &Tag = GRAPHICS.tags().get("Boss");
+        const EMU: &Tag = GRAPHICS.tags().get("emu - idle");
+
+        let object = gba.display.object.get();
+
+        let mut objects: Vec<_> = alloc::vec![
+            object.object(object.sprite(BOSS.sprite(0))),
+            object.object(object.sprite(EMU.sprite(0))),
+        ]
+        .into_iter()
+        .map(Some)
+        .collect();
+
+        object.commit();
+
+        let x = objects[0].as_mut().unwrap();
+        x.set_hflip(true);
+        x.set_vflip(true);
+        x.set_position((1, 1).into());
+        x.set_z(100);
+        x.set_sprite(object.sprite(BOSS.sprite(2)));
+
+        object.commit();
     }
 }

@@ -48,6 +48,6 @@ fn main(mut gba: Gba) -> ! {
         ball.set_x(ball_x as u16).set_y(ball_y as u16);
 
         agb::display::busy_wait_for_vblank();
-        ball.commit();
+        object.commit();
     }
 }
