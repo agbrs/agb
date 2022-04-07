@@ -3,7 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
-use super::tiled::{RegularMap, TileSetting, VRamManager};
+use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
 
 pub struct FontLetter {
     width: u8,
@@ -72,6 +72,7 @@ impl Font {
             bg,
             background_colour,
             foreground_colour,
+            tiles: Default::default(),
         }
     }
 }
@@ -85,13 +86,13 @@ pub struct TextRenderer<'a> {
     bg: &'a mut RegularMap,
     background_colour: u8,
     foreground_colour: u8,
+    tiles: HashMap<(usize, usize), DynamicTile<'a>>,
 }
 
 impl<'a> Write for TextRenderer<'a> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
-        let mut tiles = HashMap::new();
-
         let vram_manager = &mut self.vram_manager;
+        let tiles = &mut self.tiles;
         let foreground_colour = self.foreground_colour;
         let background_colour = self.background_colour;
 
