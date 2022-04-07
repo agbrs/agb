@@ -161,3 +161,13 @@ impl<'a> TextRenderer<'a> {
         }
     }
 }
+
+impl<'a> Drop for TextRenderer<'a> {
+    fn drop(&mut self) {
+        let tiles = core::mem::take(&mut self.tiles);
+
+        for (_, tile) in tiles.into_iter() {
+            self.vram_manager.remove_dynamic_tile(tile);
+        }
+    }
+}
