@@ -142,6 +142,14 @@ impl<'a> Write for TextRenderer<'a> {
             self.current_x_pos += letter.advance_width as i32;
         }
 
+        Ok(())
+    }
+}
+
+impl<'a> TextRenderer<'a> {
+    pub fn commit(mut self) {
+        let tiles = core::mem::take(&mut self.tiles);
+
         for ((x, y), tile) in tiles.into_iter() {
             self.bg.set_tile(
                 self.vram_manager,
@@ -151,7 +159,5 @@ impl<'a> Write for TextRenderer<'a> {
             );
             self.vram_manager.remove_dynamic_tile(tile);
         }
-
-        Ok(())
     }
 }
