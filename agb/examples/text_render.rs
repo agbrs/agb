@@ -42,6 +42,8 @@ fn main(mut gba: agb::Gba) -> ! {
     writeln!(&mut writer, "Hello, World!").unwrap();
     writeln!(&mut writer, "This is a font rendering example").unwrap();
 
+    writer.commit();
+
     bg.commit();
     bg.show();
 
