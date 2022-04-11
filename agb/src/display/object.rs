@@ -255,8 +255,8 @@ impl Tag {
             Direction::Forward => self.sprite(idx % self.len),
             Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
             Direction::Pingpong => self.sprite(
-                (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize).abs()
-                    as usize,
+                (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize)
+                    .unsigned_abs(),
             ),
         }
     }
