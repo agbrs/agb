@@ -1,5 +1,5 @@
-use super::rng::get_random;
 use agb::fixnum::Num;
+use agb::rng;
 use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 
 const BAT_DEATH: &[u8] = agb::include_wav!("sfx/BatDeath.wav");
@@ -85,7 +85,7 @@ impl<'a> Sfx<'a> {
     }
 
     pub fn jump(&mut self) {
-        let r = get_random() % 3;
+        let r = rng::gen() % 3;
 
         let channel = match r {
             0 => SoundChannel::new(JUMP1),

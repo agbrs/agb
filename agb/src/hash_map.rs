@@ -875,7 +875,7 @@ mod test {
     use core::cell::RefCell;
 
     use super::*;
-    use crate::Gba;
+    use crate::{rng::RandomNumberGenerator, Gba};
 
     #[test_case]
     fn can_store_and_retrieve_8_elements(_gba: &mut Gba) {
@@ -962,35 +962,6 @@ mod test {
         }
     }
 
-    struct RandomNumberGenerator {
-        state: [u32; 4],
-    }
-
-    impl RandomNumberGenerator {
-        const fn new() -> Self {
-            Self {
-                state: [1014776995, 476057059, 3301633994, 706340607],
-            }
-        }
-
-        fn next(&mut self) -> i32 {
-            let result = (self.state[0].wrapping_add(self.state[3]))
-                .rotate_left(7)
-                .wrapping_mul(9);
-            let t = self.state[1].wrapping_shr(9);
-
-            self.state[2] ^= self.state[0];
-            self.state[3] ^= self.state[1];
-            self.state[1] ^= self.state[2];
-            self.state[0] ^= self.state[3];
-
-            self.state[2] ^= t;
-            self.state[3] = self.state[3].rotate_left(11);
-
-            result as i32
-        }
-    }
-
     struct NoisyDrop {
         i: i32,
         dropped: bool,
@@ -1034,9 +1005,9 @@ mod test {
         let mut answers: [Option<i32>; 128] = [None; 128];
 
         for _ in 0..5_000 {
-            let command = rng.next().rem_euclid(2);
-            let key = rng.next().rem_euclid(answers.len() as i32);
-            let value = rng.next();
+            let command = rng.gen().rem_euclid(2);
+            let key = rng.gen().rem_euclid(answers.len() as i32);
+            let value = rng.gen();
 
             match command {
                 0 => {
