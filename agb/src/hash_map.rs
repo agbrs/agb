@@ -961,9 +961,9 @@ mod test {
         let mut answers: [Option<i32>; 128] = [None; 128];
 
         for _ in 0..5_000 {
-            let command = rng.next().rem_euclid(2);
-            let key = rng.next().rem_euclid(answers.len() as i32);
-            let value = rng.next();
+            let command = rng.gen().rem_euclid(2);
+            let key = rng.gen().rem_euclid(answers.len() as i32);
+            let value = rng.gen();
 
             match command {
                 0 => {

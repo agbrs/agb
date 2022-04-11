@@ -85,7 +85,7 @@ impl<'a> Sfx<'a> {
     }
 
     pub fn jump(&mut self) {
-        let r = rng::next() % 3;
+        let r = rng::gen() % 3;
 
         let channel = match r {
             0 => SoundChannel::new(JUMP1),

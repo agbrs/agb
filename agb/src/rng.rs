@@ -32,7 +32,7 @@ impl RandomNumberGenerator {
     }
 
     /// Returns the next value for the random number generator
-    pub fn next(&mut self) -> i32 {
+    pub fn gen(&mut self) -> i32 {
         let result = (self.state[0].wrapping_add(self.state[3]))
             .rotate_left(7)
             .wrapping_mul(9);
@@ -54,8 +54,8 @@ static GLOBAL_RNG: Mutex<RefCell<RandomNumberGenerator>> =
     Mutex::new(RefCell::new(RandomNumberGenerator::new()));
 
 /// Using a global random number generator, provides the next random number
-pub fn next() -> i32 {
-    free(|cs| GLOBAL_RNG.borrow(*cs).borrow_mut().next())
+pub fn gen() -> i32 {
+    free(|cs| GLOBAL_RNG.borrow(*cs).borrow_mut().gen())
 }
 
 #[cfg(test)]
@@ -69,7 +69,7 @@ mod test {
 
         let mut rng = RandomNumberGenerator::new();
         for _ in 0..500 {
-            values[(rng.next().rem_euclid(16)) as usize] += 1;
+            values[(rng.gen().rem_euclid(16)) as usize] += 1;
         }
 
         for (i, &value) in values.iter().enumerate() {
@@ -87,7 +87,7 @@ mod test {
         let mut values: [u32; 16] = Default::default();
 
         for _ in 0..500 {
-            values[super::next().rem_euclid(16) as usize] += 1;
+            values[super::gen().rem_euclid(16) as usize] += 1;
         }
 
         for (i, &value) in values.iter().enumerate() {
