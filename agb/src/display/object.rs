@@ -961,22 +961,26 @@ mod tests {
 
         let object = gba.display.object.get();
 
-        let mut objects: Vec<_> = alloc::vec![
-            object.object(object.sprite(BOSS.sprite(0))),
-            object.object(object.sprite(EMU.sprite(0))),
-        ]
-        .into_iter()
-        .map(Some)
-        .collect();
+        {
+            let mut objects: Vec<_> = alloc::vec![
+                object.object(object.sprite(BOSS.sprite(0))),
+                object.object(object.sprite(EMU.sprite(0))),
+            ]
+            .into_iter()
+            .map(Some)
+            .collect();
 
-        object.commit();
+            object.commit();
 
-        let x = objects[0].as_mut().unwrap();
-        x.set_hflip(true);
-        x.set_vflip(true);
-        x.set_position((1, 1).into());
-        x.set_z(100);
-        x.set_sprite(object.sprite(BOSS.sprite(2)));
+            let x = objects[0].as_mut().unwrap();
+            x.set_hflip(true);
+            x.set_vflip(true);
+            x.set_position((1, 1).into());
+            x.set_z(100);
+            x.set_sprite(object.sprite(BOSS.sprite(2)));
+
+            object.commit();
+        }
 
         object.commit();
     }

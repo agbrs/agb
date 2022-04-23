@@ -51,7 +51,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
             let advance_width = letter_data.advance_width.ceil() as u8;
 
             quote!(
-                agb::display::FontLetter::new(
+                display::FontLetter::new(
                     #width,
                     #height,
                     #data_raw,
@@ -63,6 +63,6 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         });
 
     quote![
-        agb::display::Font::new(&[#(#font),*], #line_height, #ascent)
+        display::Font::new(&[#(#font),*], #line_height, #ascent)
     ]
 }
