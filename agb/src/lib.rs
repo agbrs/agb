@@ -4,7 +4,6 @@
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
-#![deny(clippy::all)]
 #![feature(alloc_error_handler)]
 
 //! # agb
