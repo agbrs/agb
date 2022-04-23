@@ -154,9 +154,11 @@ impl<'a> TextRenderer<'a> {
 
                     for letter_x in letter_x_start..letter_x_end {
                         let x = letter_x - letter_offset_x;
-                        let px = letter.data[(x + y * letter.width as i32) as usize];
+                        let pos = x + y * letter.width as i32;
+                        let px_line = letter.data[(pos / 8) as usize];
+                        let px = (px_line >> (pos & 7)) & 1;
 
-                        if px > 100 {
+                        if px != 0 {
                             masks[(letter_y & 7) as usize] |=
                                 (foreground_colour as u32) << ((letter_x & 7) * 4);
                             zero = false;

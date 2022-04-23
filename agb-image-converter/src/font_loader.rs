@@ -33,10 +33,24 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
             let width = metrics.width;
             let height = metrics.height;
 
+            let rendered = bitmap
+                .chunks(8)
+                .map(|chunk| {
+                    let mut output = 0u8;
+                    for (i, &value) in chunk.iter().enumerate() {
+                        if value > 100 {
+                            output |= 1 << i;
+                        }
+                    }
+
+                    output
+                })
+                .collect();
+
             LetterData {
                 width,
                 height,
-                rendered: bitmap,
+                rendered,
                 xmin: metrics.xmin,
                 ymin: metrics.ymin,
                 advance_width: metrics.advance_width,
