@@ -3,9 +3,9 @@ export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_direc
 build: build-roms
 
 build-debug:
-    just _all-crates _build-debug
+    just _build-debug agb
 build-release:
-    just  _build-release agb
+    just _build-release agb
 clippy:
     just _all-crates _clippy
 
@@ -61,7 +61,7 @@ _build-rom folder name:
     TARGET_FOLDER="${CARGO_TARGET_DIR:-$GAME_FOLDER/target}"
     GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
 
-    (cd "$GAME_FOLDER" && cargo clippy && cargo build --release --target thumbv4t-none-eabi)
+    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi)
 
     mkdir -p examples/target/examples
 
