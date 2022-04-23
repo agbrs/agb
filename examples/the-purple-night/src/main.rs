@@ -85,9 +85,9 @@ impl<'a> Level<'a> {
         foreground.init(vram, start_pos, &mut between_updates);
         clouds.init(vram, start_pos / 4, &mut between_updates);
 
-        backdrop.commit();
-        foreground.commit();
-        clouds.commit();
+        backdrop.commit(vram);
+        foreground.commit(vram);
+        clouds.commit(vram);
 
         backdrop.show();
         foreground.show();
@@ -2081,9 +2081,9 @@ impl<'a> Game<'a> {
                 .commit_with_fudge(this_frame_offset, (0, 0).into());
         }
 
-        self.level.background.commit();
-        self.level.foreground.commit();
-        self.level.clouds.commit();
+        self.level.background.commit(vram);
+        self.level.foreground.commit(vram);
+        self.level.clouds.commit(vram);
 
         for i in remove {
             self.particles.remove(i);

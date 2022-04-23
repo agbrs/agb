@@ -116,6 +116,10 @@ impl TileReferenceCount {
         self.reference_count = 0;
         self.tile_in_tile_set = None;
     }
+
+    fn current_count(&self) -> u16 {
+        self.reference_count
+    }
 }
 
 #[non_exhaustive]
@@ -279,6 +283,9 @@ impl VRamManager {
     pub(crate) fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
             let index = tile_index.index() as usize;
+            if self.reference_counts[index].current_count() > 0 {
+                continue; // it has since been added back
+            }
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {

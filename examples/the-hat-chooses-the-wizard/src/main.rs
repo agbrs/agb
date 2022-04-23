@@ -273,8 +273,8 @@ impl<'a, 'b> Map<'a, 'b> {
         self.background.set_pos(vram, self.position.floor());
         self.foreground.set_pos(vram, self.position.floor());
 
-        self.background.commit();
-        self.foreground.commit();
+        self.background.commit(vram);
+        self.foreground.commit(vram);
     }
 
     pub fn init_background(&mut self, vram: &mut VRamManager) -> PartialUpdateStatus {
@@ -793,7 +793,7 @@ fn main(mut agb: agb::Gba) -> ! {
         }
     }
 
-    world_display.commit();
+    world_display.commit(&mut vram);
     world_display.show();
 
     splash_screen::show_splash_screen(
@@ -835,7 +835,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 &mut vram,
             );
 
-            world_display.commit();
+            world_display.commit(&mut vram);
             world_display.show();
 
             music_box.before_frame(&mut mixer);

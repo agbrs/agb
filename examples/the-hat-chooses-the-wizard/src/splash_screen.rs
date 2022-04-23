@@ -76,7 +76,7 @@ pub fn show_splash_screen(
         }
     }
 
-    map.commit();
+    map.commit(vram);
     vram.set_background_palettes(palette);
     map.show();
 
