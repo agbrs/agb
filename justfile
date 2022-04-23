@@ -87,7 +87,7 @@ _test-debug crate:
     just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
 _clippy crate:
-    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo clippy" } else { "" } }}
+    (cd "{{crate}}" && cargo clippy --examples --tests)
 _clean crate:
     (cd "{{crate}}" && cargo clean)
 

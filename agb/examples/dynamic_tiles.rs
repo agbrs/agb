@@ -24,7 +24,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 let mut value = 0;
 
                 for j in 0..4 {
-                    value |= (value << 8) | (x + i) % 8 | ((y + j) % 8) << 4;
+                    value |= (value << 8) | ((x + i) % 8) | ((y + j) % 8) << 4;
                 }
 
                 *bit = value;
