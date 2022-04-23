@@ -112,9 +112,19 @@
 /// ```
 pub use agb_image_converter::include_gfx;
 
+#[doc(hidden)]
 pub use agb_image_converter::include_aseprite_inner;
 
-pub use agb_image_converter::include_font;
+#[doc(hidden)]
+pub use agb_image_converter::include_font as include_font_inner;
+
+#[macro_export]
+macro_rules! include_font {
+    ($font_path: literal, $font_size: literal) => {{
+        use $crate::display;
+        $crate::include_font_inner!($font_path, $font_size)
+    }};
+}
 
 /// This macro declares the entry point to your game written using `agb`.
 ///

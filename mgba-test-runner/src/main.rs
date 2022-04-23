@@ -3,6 +3,7 @@
 mod runner;
 use anyhow::{anyhow, Error};
 use image::io::Reader;
+use image::GenericImage;
 use io::Write;
 use regex::Regex;
 use runner::VideoBuffer;
@@ -135,15 +136,14 @@ fn rgba_to_gba_to_rgba(c: [u8; 4]) -> [u8; 4] {
 
 fn check_image_match(image_path: &str, video_buffer: &VideoBuffer) -> Result<(), Error> {
     let expected_image = Reader::open(image_path)?.decode()?;
-    let expected = expected_image
-        .as_rgba8()
-        .ok_or(anyhow!("cannot convert to rgba8"))?;
+    let expected = expected_image.to_rgba8();
 
     let (buf_dim_x, buf_dim_y) = video_buffer.get_size();
     let (exp_dim_x, exp_dim_y) = expected.dimensions();
     if (buf_dim_x != exp_dim_x) || (buf_dim_y != exp_dim_y) {
         return Err(anyhow!("image sizes do not match"));
     }
+
     for y in 0..buf_dim_y {
         for x in 0..buf_dim_x {
             let video_pixel = video_buffer.get_pixel(x, y);
@@ -151,10 +151,37 @@ fn check_image_match(image_path: &str, video_buffer: &VideoBuffer) -> Result<(),
             let video_pixel = gba_colour_to_rgba(video_pixel);
             let image_pixel = rgba_to_gba_to_rgba(image_pixel.0);
             if image_pixel != video_pixel {
-                return Err(anyhow!("images do not match"));
+                let output_file = write_video_buffer(video_buffer);
+
+                return Err(anyhow!(
+                    "images do not match, actual output written to {}",
+                    output_file
+                ));
             }
         }
     }
 
     Ok(())
+}
+
+fn write_video_buffer(video_buffer: &VideoBuffer) -> String {
+    let (width, height) = video_buffer.get_size();
+    let mut output_image = image::DynamicImage::new_rgba8(width, height);
+
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = video_buffer.get_pixel(x, y);
+            let pixel_as_rgba = gba_colour_to_rgba(pixel);
+
+            output_image.put_pixel(x, y, pixel_as_rgba.into())
+        }
+    }
+
+    let output_folder = std::env::temp_dir();
+    let output_file = "mgba-test-runner-output.png"; // TODO make this random
+
+    let output_file = output_folder.join(output_file);
+    let _ = output_image.save_with_format(&output_file, image::ImageFormat::Png);
+
+    output_file.to_string_lossy().into_owned()
 }

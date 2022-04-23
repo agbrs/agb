@@ -86,33 +86,11 @@ pub struct TextRenderer<'a> {
     bg: &'a mut RegularMap,
     background_colour: u8,
     foreground_colour: u8,
-    tiles: HashMap<(usize, usize), DynamicTile<'a>>,
+    tiles: HashMap<(i32, i32), DynamicTile<'a>>,
 }
 
 impl<'a> Write for TextRenderer<'a> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
-        let vram_manager = &mut self.vram_manager;
-        let tiles = &mut self.tiles;
-        let foreground_colour = self.foreground_colour;
-        let background_colour = self.background_colour;
-
-        let mut render_pixel = |x: u16, y: u16| {
-            let tile_x = (x / 8) as usize;
-            let tile_y = (y / 8) as usize;
-            let inner_x = x % 8;
-            let inner_y = y % 8;
-
-            let colour = foreground_colour as u32;
-
-            let index = (inner_x + inner_y * 8) as usize;
-
-            let tile = tiles
-                .entry((tile_x, tile_y))
-                .or_insert_with(|| vram_manager.new_dynamic_tile().fill_with(background_colour));
-
-            tile.tile_data[index / 8] |= colour << ((index % 8) * 4);
-        };
-
         for c in text.chars() {
             if c == '\n' {
                 self.current_y_pos += self.font.line_height;
@@ -122,22 +100,7 @@ impl<'a> Write for TextRenderer<'a> {
 
             let letter = self.font.letter(c);
 
-            let x_start = (self.current_x_pos + letter.xmin as i32).max(0);
-            let y_start =
-                self.current_y_pos + self.font.ascent - letter.height as i32 - letter.ymin as i32;
-
-            for letter_y in 0..(letter.height as i32) {
-                for letter_x in 0..(letter.width as i32) {
-                    let x = x_start + letter_x;
-                    let y = y_start + letter_y;
-
-                    let px = letter.data[(letter_x + letter_y * letter.width as i32) as usize];
-
-                    if px > 100 {
-                        render_pixel(x as u16, y as u16);
-                    }
-                }
-            }
+            self.render_letter(letter);
 
             self.current_x_pos += letter.advance_width as i32;
         }
@@ -146,7 +109,76 @@ impl<'a> Write for TextRenderer<'a> {
     }
 }
 
+fn div_ceil(quotient: i32, divisor: i32) -> i32 {
+    (quotient + divisor - 1) / divisor
+}
+
 impl<'a> TextRenderer<'a> {
+    fn render_letter(&mut self, letter: &FontLetter) {
+        let vram_manager = &mut self.vram_manager;
+        let foreground_colour = self.foreground_colour;
+        let background_colour = self.background_colour;
+
+        let x_start = (self.current_x_pos + letter.xmin as i32).max(0);
+        let y_start =
+            self.current_y_pos + self.font.ascent - letter.height as i32 - letter.ymin as i32;
+
+        let x_tile_start = x_start / 8;
+        let y_tile_start = y_start / 8;
+
+        let letter_offset_x = x_start.rem_euclid(8);
+        let letter_offset_y = y_start.rem_euclid(8);
+
+        let x_tiles = div_ceil(letter.width as i32 + letter_offset_x, 8);
+        let y_tiles = div_ceil(letter.height as i32 + letter_offset_y, 8);
+
+        for letter_y_tile in 0..(y_tiles + 1) {
+            let letter_y_start = 0.max(letter_offset_y - 8 * letter_y_tile) + 8 * letter_y_tile;
+            let letter_y_end =
+                (letter_offset_y + letter.height as i32).min((letter_y_tile + 1) * 8);
+
+            let tile_y = y_tile_start + letter_y_tile;
+
+            for letter_x_tile in 0..(x_tiles + 1) {
+                let letter_x_start = 0.max(letter_offset_x - 8 * letter_x_tile) + 8 * letter_x_tile;
+                let letter_x_end =
+                    (letter_offset_x + letter.width as i32).min((letter_x_tile + 1) * 8);
+
+                let tile_x = x_tile_start + letter_x_tile;
+
+                let mut masks = [0u32; 8];
+                let mut zero = true;
+
+                for letter_y in letter_y_start..letter_y_end {
+                    let y = letter_y - letter_offset_y;
+
+                    for letter_x in letter_x_start..letter_x_end {
+                        let x = letter_x - letter_offset_x;
+                        let pos = x + y * letter.width as i32;
+                        let px_line = letter.data[(pos / 8) as usize];
+                        let px = (px_line >> (pos & 7)) & 1;
+
+                        if px != 0 {
+                            masks[(letter_y & 7) as usize] |=
+                                (foreground_colour as u32) << ((letter_x & 7) * 4);
+                            zero = false;
+                        }
+                    }
+                }
+
+                if !zero {
+                    let tile = self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
+                        vram_manager.new_dynamic_tile().fill_with(background_colour)
+                    });
+
+                    for (i, tile_data_line) in tile.tile_data.iter_mut().enumerate() {
+                        *tile_data_line |= masks[i];
+                    }
+                }
+            }
+        }
+    }
+
     pub fn commit(mut self) {
         let tiles = core::mem::take(&mut self.tiles);
 
@@ -169,5 +201,50 @@ impl<'a> Drop for TextRenderer<'a> {
         for (_, tile) in tiles.into_iter() {
             self.vram_manager.remove_dynamic_tile(tile);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
+
+    #[test_case]
+    fn font_display(gba: &mut crate::Gba) {
+        let (gfx, mut vram) = gba.display.video.tiled0();
+
+        let mut bg = gfx.background(crate::display::Priority::P0);
+
+        vram.set_background_palette_raw(&[
+            0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
+            0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        ]);
+
+        let background_tile = vram.new_dynamic_tile().fill_with(0);
+
+        for y in 0..20u16 {
+            for x in 0..30u16 {
+                bg.set_tile(
+                    &mut vram,
+                    (x, y).into(),
+                    &background_tile.tile_set(),
+                    TileSetting::from_raw(background_tile.tile_index()),
+                );
+            }
+        }
+
+        vram.remove_dynamic_tile(background_tile);
+
+        let mut writer = FONT.render_text((0u16, 3u16).into(), 1, 2, &mut bg, &mut vram);
+
+        writeln!(&mut writer, "Hello, World!").unwrap();
+        writeln!(&mut writer, "This is a font rendering example").unwrap();
+
+        writer.commit();
+
+        bg.commit();
+        bg.show();
+
+        crate::test_runner::assert_image_output("examples/font/font-test-output.png");
     }
 }

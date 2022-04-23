@@ -311,6 +311,13 @@ fn palete_tile_data(
     (palette_data, tile_data, assignments)
 }
 
+fn flatten_group(expr: &Expr) -> &Expr {
+    match expr {
+        Expr::Group(group) => &group.expr,
+        _ => expr,
+    }
+}
+
 #[proc_macro]
 pub fn include_font(input: TokenStream) -> TokenStream {
     let parser = Punctuated::<Expr, syn::Token![,]>::parse_separated_nonempty;
@@ -324,7 +331,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         panic!("Include_font requires 2 arguments, got {}", all_args.len());
     }
 
-    let filename = match &all_args[0] {
+    let filename = match flatten_group(&all_args[0]) {
         Expr::Lit(ExprLit {
             lit: Lit::Str(str_lit),
             ..
@@ -332,7 +339,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         _ => panic!("Expected literal string as first argument to include_font"),
     };
 
-    let font_size = match &all_args[1] {
+    let font_size = match flatten_group(&all_args[1]) {
         Expr::Lit(ExprLit {
             lit: Lit::Float(value),
             ..
