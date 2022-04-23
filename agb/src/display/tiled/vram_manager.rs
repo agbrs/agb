@@ -348,12 +348,8 @@ impl VRamManager {
     }
 
     fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
-        unsafe {
-            dma_copy16(
-                palette.colours.as_ptr(),
-                PALETTE_BACKGROUND.as_ptr().add(16 * pal_index as usize),
-                palette.colours.len(),
-            );
+        for (colour_index, &colour) in palette.colours.iter().enumerate() {
+            PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
         }
     }
 
