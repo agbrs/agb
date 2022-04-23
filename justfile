@@ -1,10 +1,20 @@
 export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
-export RUSTFLAGS := "-D warnings -D clippy::all"
 
 build: build-roms
 
+build-debug:
+    just _all-crates _build-debug
+build-release:
+    just  _build-release agb
+clippy:
+    just _all-crates _clippy
+
 test:
-    just _all-crates _test-debug
+    just _test-debug agb
+    just _test-debug agb-fixnum
+
+test-release:
+    just _test-release agb
 
 clean:
     just _all-crates _clean
@@ -23,11 +33,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: && build-roms build-book
-    just _all-crates _build
-    just _all-crates _test-debug
-    just _all-crates _test-release
-    just _all-crates _clippy
+ci: build-debug clippy test build-release test-release build-roms build-book
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -55,7 +61,7 @@ _build-rom folder name:
     TARGET_FOLDER="${CARGO_TARGET_DIR:-$GAME_FOLDER/target}"
     GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
 
-    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi)
+    (cd "$GAME_FOLDER" && cargo clippy && cargo build --release --target thumbv4t-none-eabi)
 
     mkdir -p examples/target/examples
 
@@ -65,17 +71,21 @@ _build-rom folder name:
     cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
 
 _all-crates target:
-    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do \
+    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
 
-_build crate:
-    (cd "{{crate}}" && cargo build)
+_build-debug crate:
+    (cd "{{crate}}" && cargo build --examples --tests)
+_build-release crate:
+    (cd "{{crate}}" && cargo build --release --examples --tests)
 _test-release crate:
-    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo test --release" } else { "" } }}
+    just _build-release {{crate}}
+    (cd "{{crate}}" && cargo test --release)
 _test-debug crate:
-    {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo test" } else { "" } }}
+    just _build-debug {{crate}}
+    (cd "{{crate}}" && cargo test)
 _clippy crate:
     {{ if crate =~ 'agb.*' { "cd " + crate + " && cargo clippy" } else { "" } }}
 _clean crate:
