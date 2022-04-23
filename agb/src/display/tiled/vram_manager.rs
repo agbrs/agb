@@ -158,6 +158,8 @@ impl DynamicTile<'_> {
 pub struct VRamManager {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
+
+    indices_to_gc: Vec<TileIndex>,
 }
 
 impl VRamManager {
@@ -168,6 +170,7 @@ impl VRamManager {
         Self {
             tile_set_to_vram,
             reference_counts: Default::default(),
+            indices_to_gc: Default::default(),
         }
     }
 
@@ -270,18 +273,26 @@ impl VRamManager {
             return;
         }
 
-        let tile_reference = Self::reference_from_index(tile_index);
-        unsafe {
-            TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
+        self.indices_to_gc.push(tile_index);
+    }
+
+    pub(crate) fn gc(&mut self) {
+        for tile_index in self.indices_to_gc.drain(..) {
+            let index = tile_index.index() as usize;
+
+            let tile_reference = Self::reference_from_index(tile_index);
+            unsafe {
+                TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
+            }
+
+            let tile_ref = self.reference_counts[index]
+                .tile_in_tile_set
+                .as_ref()
+                .unwrap();
+
+            self.tile_set_to_vram.remove(tile_ref);
+            self.reference_counts[index].clear();
         }
-
-        let tile_ref = self.reference_counts[index]
-            .tile_in_tile_set
-            .as_ref()
-            .unwrap();
-
-        self.tile_set_to_vram.remove(tile_ref);
-        self.reference_counts[index].clear();
     }
 
     pub fn replace_tile(

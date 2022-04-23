@@ -206,8 +206,8 @@ impl<'a> InfiniteScrolledMap<'a> {
         self.map.hide();
     }
 
-    pub fn commit(&mut self) {
-        self.map.commit();
+    pub fn commit(&mut self, vram: &mut VRamManager) {
+        self.map.commit(vram);
     }
 
     pub fn clear(&mut self, vram: &mut VRamManager) {

@@ -44,20 +44,20 @@ fn main(mut gba: agb::Gba) -> ! {
 
     writer.commit();
 
-    bg.commit();
+    bg.commit(&mut vram);
     bg.show();
 
     let mut frame = 0;
 
     loop {
-        vblank.wait_for_vblank();
-
         let mut writer = FONT.render_text((4u16, 0u16).into(), 1, 2, &mut bg, &mut vram);
 
         writeln!(&mut writer, "Frame {}", frame).unwrap();
         writer.commit();
-        bg.commit();
 
         frame += 1;
+
+        vblank.wait_for_vblank();
+        bg.commit(&mut vram);
     }
 }

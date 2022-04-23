@@ -18,7 +18,7 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
         }
     }
 
-    map.commit();
+    map.commit(vram);
     map.show();
 }
 #[cfg(test)]
