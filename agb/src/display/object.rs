@@ -19,10 +19,6 @@ use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::dma;
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
-use crate::interrupt::free;
-
-use bare_metal::Mutex;
-use core::cell::RefCell;
 
 use attributes::*;
 
@@ -52,13 +48,14 @@ impl DerefMut for ObjectControllerRef {
 }
 
 #[cfg(debug_assertions)]
-static OBJECT_REFS_CURRENT: Mutex<RefCell<i32>> = Mutex::new(RefCell::new(0));
+static OBJECT_REFS_CURRENT: bare_metal::Mutex<core::cell::RefCell<i32>> =
+    bare_metal::Mutex::new(core::cell::RefCell::new(0));
 
 impl ObjectControllerRef {
     fn new() -> Self {
         #[cfg(debug_assertions)]
         {
-            let a = free(|c| {
+            let a = crate::interrupt::free(|c| {
                 let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
                 let a = *b;
                 *b += 1;
@@ -78,7 +75,7 @@ impl ObjectControllerRef {
 #[cfg(debug_assertions)]
 impl Drop for ObjectControllerRef {
     fn drop(&mut self) {
-        free(|c| {
+        crate::interrupt::free(|c| {
             let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
             *b -= 1;
         })
@@ -444,7 +441,7 @@ struct ObjectInner {
 }
 
 struct ObjectControllerStatic {
-    free_affine_matricies: Vec<u8>,
+    _free_affine_matricies: Vec<u8>,
     free_object: Vec<u8>,
     shadow_oam: Vec<Option<ObjectInner>>,
     z_order: Vec<u8>,
@@ -457,7 +454,7 @@ impl ObjectControllerStatic {
             shadow_oam: (0..128).map(|_| None).collect(),
             z_order: (0..128).collect(),
             free_object: (0..128).collect(),
-            free_affine_matricies: (0..32).collect(),
+            _free_affine_matricies: (0..32).collect(),
             sprite_controller: SpriteControllerInner::new(),
         }
     }
