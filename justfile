@@ -1,4 +1,5 @@
 export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
+export RUSTFLAGS := "-D warnings -D clippy::all"
 
 build: build-roms
 
