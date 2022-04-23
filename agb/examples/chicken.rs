@@ -67,7 +67,7 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     background.show();
-    background.commit();
+    background.commit(&mut vram);
 
     let object = gba.display.object.get();
 

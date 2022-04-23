@@ -41,7 +41,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    bg.commit();
+    bg.commit(&mut vram);
     bg.show();
 
     loop {

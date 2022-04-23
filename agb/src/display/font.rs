@@ -242,7 +242,7 @@ mod tests {
 
         writer.commit();
 
-        bg.commit();
+        bg.commit(&mut vram);
         bg.show();
 
         crate::test_runner::assert_image_output("examples/font/font-test-output.png");
