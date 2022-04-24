@@ -16,5 +16,5 @@ serde = { version = "1", features = ["derive"] }
 syn = { version = "1", features = ["full"] }
 proc-macro2 = "1"
 quote = "1"
-asefile = "0.3.4"
+asefile = "0.3.5"
 fontdue = "0.7"
