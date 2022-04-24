@@ -1,4 +1,5 @@
 export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
+CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all -Aclippy::empty-loop"
 
 build: build-roms
 
@@ -61,7 +62,7 @@ _build-rom folder name:
     TARGET_FOLDER="${CARGO_TARGET_DIR:-$GAME_FOLDER/target}"
     GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
 
-    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi)
+    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi -- {{CLIPPY_ARGUMENTS}})
 
     mkdir -p examples/target/examples
 
@@ -87,7 +88,7 @@ _test-debug crate:
     just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
 _clippy crate:
-    (cd "{{crate}}" && cargo clippy --examples --tests)
+    (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
     (cd "{{crate}}" && cargo clean)
 

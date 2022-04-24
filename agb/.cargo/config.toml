@@ -6,5 +6,5 @@ build-std-features = ["compiler-builtins-mem"]
 target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
-rustflags = ["-Clink-arg=-Tgba.ld", "-Ctarget-cpu=arm7tdmi", "-Dwarnings", "-Dclippy::all", "-Aclippy::empty-loop"]
+rustflags = ["-Clink-arg=-Tgba.ld", "-Ctarget-cpu=arm7tdmi"]
 runner = "mgba-test-runner"

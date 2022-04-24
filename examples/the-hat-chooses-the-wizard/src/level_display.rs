@@ -30,16 +30,10 @@ pub fn write_level(
         map.set_tile(
             vram,
             (i as u16, 0).into(),
-            &tileset,
+            tileset,
             TileSetting::from_raw(tile),
         );
     }
 
-    map.set_scroll_pos(
-        (
-            -(WIDTH / 2 - 7 as i32 * 8 / 2) as u16,
-            -(HEIGHT / 2 - 4) as u16,
-        )
-            .into(),
-    );
+    map.set_scroll_pos((-(WIDTH / 2 - 7 * 8 / 2) as u16, -(HEIGHT / 2 - 4) as u16).into());
 }
