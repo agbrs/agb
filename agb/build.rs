@@ -25,5 +25,11 @@ fn main() {
         String::from_utf8_lossy(&out.stderr)
     );
 
+    for warning_line in String::from_utf8_lossy(&out.stderr).split('\n') {
+        if !warning_line.is_empty() {
+            println!("cargo:warning={}", warning_line);
+        }
+    }
+
     println!("cargo:rustc-link-search={}", out_dir);
 }
