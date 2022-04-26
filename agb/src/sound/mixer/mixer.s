@@ -152,39 +152,66 @@ agb_arm_func agb_rs__mixer_add_stereo
 agb_arm_end agb_rs__mixer_add_stereo
 
 .macro clamp_s8 reg:req
-    cmn \reg, #127
-    mvnlt \reg, #127
+    cmn \reg, #128
+    mvnlt \reg, #128
 
-    cmp \reg, #128
-    movgt \reg, #128
+    cmp \reg, #127
+    movgt \reg, #127
 .endm
 
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4}
+    push {r4, r5, r6, r7, r8, r9, r10}
 
     ldr r2, agb_rs__buffer_size @ loop counter
     mov r4, r2
 
 1:
-    @ r12 = *r1; r1++
-    ldr r12, [r1], #4
+.macro load_sample left_reg:req right_reg:req
+    @ left_reg = *r1; r1++
+    ldr \left_reg, [r1], #4
 
-    lsl r3, r12, #16        @ r3 is going to be the right sample, push r12 left 16 bits first
-    asr r3, r3, #20         @ move r3 back to being the correct value
-    mov r12, r12, asr #20   @ r12 = left sample
+    lsl \right_reg, \left_reg, #16      @ push the sample 16 bits first
+    asr \right_reg, \right_reg, #20     @ move right sample back to being the correct value
+    mov \left_reg, \left_reg, asr #20   @ now we only have the left sample
 
-    clamp_s8 r12            @ clamp the audio to 8 bit values
-    clamp_s8 r3
+    clamp_s8 \left_reg                  @ clamp the audio to 8 bit values
+    clamp_s8 \right_reg
+.endm
 
-    strb r3, [r0, r4] @ *(r0 + r4 = SOUND_BUFFER_SIZE) = r3
-    strb r12, [r0], #1                @ *r0 = r12; r0++
+    load_sample r3, r12
+    load_sample r5, r6
+    load_sample r7, r8
+    load_sample r9, r10
 
-    subs r2, r2, #1      @ r2 -= 1
+    @ combine the four samples so we can store in 32-bit chunks
+    @ need to ensure that we don't overwrite the extra bit of the sample
+    and r3, r3, #255
+    and r12, r12, #255
+    and r5, r5, #255
+    and r6, r6, #255
+    and r7, r7, #255
+    and r8, r8, #255
+    and r9, r9, #255
+    and r10, r10, #255
+
+    @ combine all of the samples
+    orr r3, r3, r5, lsl #8
+    orr r3, r3, r7, lsl #16
+    orr r3, r3, r9, lsl #24
+
+    orr r12, r12, r6, lsl #8
+    orr r12, r12, r8, lsl #16
+    orr r12, r12, r10, lsl #24
+
+    str r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
+    str r12, [r0], #4      @ *r0 = r12; r0 += 4
+
+    subs r2, r2, #4      @ r2 -= 4
     bne 1b               @ loop if not 0
 
-    pop {r4}
+    pop {r4, r5, r6, r7, r8, r9, r10}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
