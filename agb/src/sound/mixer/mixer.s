@@ -169,18 +169,22 @@ agb_arm_func agb_rs__mixer_collapse
     mov r4, r2
 
 1:
-    @ r12 = *r1; r1++
-    ldr r12, [r1], #4
+.macro load_sample left_reg:req right_reg:req
+    @ left_reg = *r1; r1++
+    ldr \left_reg, [r1], #4
 
-    lsl r3, r12, #16        @ r3 is going to be the right sample, push r12 left 16 bits first
-    asr r3, r3, #20         @ move r3 back to being the correct value
-    mov r12, r12, asr #20   @ r12 = left sample
+    lsl \right_reg, \left_reg, #16      @ push the sample 16 bits first
+    asr \right_reg, \right_reg, #20     @ move right sample back to being the correct value
+    mov \left_reg, \left_reg, asr #20   @ now we only have the left sample
 
-    clamp_s8 r12            @ clamp the audio to 8 bit values
-    clamp_s8 r3
+    clamp_s8 \left_reg                  @ clamp the audio to 8 bit values
+    clamp_s8 \right_reg
+.endm
 
-    strb r3, [r0, r4] @ *(r0 + r4 = SOUND_BUFFER_SIZE) = r3
-    strb r12, [r0], #1                @ *r0 = r12; r0++
+    load_sample r3, r12
+
+    strb r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
+    strb r12, [r0], #1      @ *r0 = r12; r0++
 
     subs r2, r2, #1      @ r2 -= 1
     bne 1b               @ loop if not 0
