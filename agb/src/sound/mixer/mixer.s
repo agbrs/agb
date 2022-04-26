@@ -152,11 +152,11 @@ agb_arm_func agb_rs__mixer_add_stereo
 agb_arm_end agb_rs__mixer_add_stereo
 
 .macro clamp_s8 reg:req
-    cmn \reg, #127
-    mvnlt \reg, #127
+    cmn \reg, #128
+    mvnlt \reg, #128
 
-    cmp \reg, #128
-    movgt \reg, #128
+    cmp \reg, #127
+    movgt \reg, #127
 .endm
 
 agb_arm_func agb_rs__mixer_collapse
