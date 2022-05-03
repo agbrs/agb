@@ -8,6 +8,42 @@ pub use map::{MapLoan, RegularMap};
 pub use tiled0::Tiled0;
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
+pub enum RegularBackgroundSize {
+    Background32x32,
+    Background64x32,
+    Background32x64,
+    Background64x64,
+}
+
+impl RegularBackgroundSize {
+    pub fn width(&self) -> u32 {
+        match self {
+            RegularBackgroundSize::Background32x32 => 32,
+            RegularBackgroundSize::Background64x32 => 64,
+            RegularBackgroundSize::Background32x64 => 32,
+            RegularBackgroundSize::Background64x64 => 64,
+        }
+    }
+
+    pub fn height(&self) -> u32 {
+        match self {
+            RegularBackgroundSize::Background32x32 => 32,
+            RegularBackgroundSize::Background64x32 => 32,
+            RegularBackgroundSize::Background32x64 => 64,
+            RegularBackgroundSize::Background64x64 => 64,
+        }
+    }
+
+    pub(crate) fn size_flag(&self) -> u16 {
+        match self {
+            RegularBackgroundSize::Background32x32 => 0,
+            RegularBackgroundSize::Background64x32 => 1,
+            RegularBackgroundSize::Background32x64 => 2,
+            RegularBackgroundSize::Background64x64 => 3,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
 struct Tile(u16);
