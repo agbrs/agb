@@ -190,8 +190,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let current_scroll = self.map.scroll_pos();
         let new_scroll = (
-            size.rem_euclid_width(current_scroll.x as i32 + difference.x) as u16,
-            size.rem_euclid_height(current_scroll.y as i32 + difference.y) as u16,
+            size.rem_euclid_width_px(current_scroll.x as i32 + difference.x) as u16,
+            size.rem_euclid_height_px(current_scroll.y as i32 + difference.y) as u16,
         )
             .into();
 

@@ -55,6 +55,14 @@ impl RegularBackgroundSize {
     pub(crate) fn rem_euclid_height(&self, y: i32) -> u32 {
         (y as u32) & (self.height() - 1)
     }
+
+    pub(crate) fn rem_euclid_width_px(&self, x: i32) -> u32 {
+        (x as u32) & (self.width() * 8 - 1)
+    }
+
+    pub(crate) fn rem_euclid_height_px(&self, y: i32) -> u32 {
+        (y as u32) & (self.height() * 8 - 1)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
