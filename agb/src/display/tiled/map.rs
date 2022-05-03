@@ -9,6 +9,8 @@ use crate::memory_mapped::MemoryMapped;
 
 use super::{RegularBackgroundSize, Tile, TileSet, TileSetting, VRamManager};
 
+use alloc::{vec, vec::Vec};
+
 pub struct RegularMap {
     background_id: u8,
 
@@ -17,7 +19,7 @@ pub struct RegularMap {
     y_scroll: u16,
     priority: Priority,
 
-    tiles: [Tile; 32 * 32],
+    tiles: Vec<Tile>,
     tiles_dirty: bool,
 
     size: RegularBackgroundSize,
@@ -40,7 +42,7 @@ impl RegularMap {
             y_scroll: 0,
             priority,
 
-            tiles: [Tile::default(); 32 * 32],
+            tiles: vec![Default::default(); size.num_tiles()],
             tiles_dirty: true,
 
             size,
@@ -54,7 +56,7 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        let pos = (pos.x + pos.y * 32) as usize;
+        let pos = (pos.x + pos.y * self.size.width() as u16) as usize;
 
         let old_tile = self.tiles[pos];
         if old_tile != Tile::default() {
@@ -120,7 +122,7 @@ impl RegularMap {
             dma_copy16(
                 self.tiles.as_ptr() as *const u16,
                 screenblock_memory,
-                32 * 32,
+                self.size.num_tiles(),
             );
         }
 
@@ -134,6 +136,10 @@ impl RegularMap {
 
     pub fn scroll_pos(&self) -> Vector2D<u16> {
         (self.x_scroll, self.y_scroll).into()
+    }
+
+    pub(crate) fn size(&self) -> RegularBackgroundSize {
+        self.size
     }
 
     const fn bg_control_register(&self) -> MemoryMapped<u16> {

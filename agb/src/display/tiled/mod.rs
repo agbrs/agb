@@ -43,6 +43,10 @@ impl RegularBackgroundSize {
             RegularBackgroundSize::Background64x64 => 3,
         }
     }
+
+    pub(crate) fn num_tiles(&self) -> usize {
+        (self.width() * self.height()) as usize
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

@@ -63,8 +63,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
         let offset_scroll = (
-            offset.x.rem_euclid(32 * 8) as u16,
-            offset.y.rem_euclid(32 * 8) as u16,
+            offset.x.rem_euclid(self.map.size().width() as i32 * 8) as u16,
+            offset.y.rem_euclid(self.map.size().height() as i32 * 8) as u16,
         )
             .into();
 
@@ -120,6 +120,8 @@ impl<'a> InfiniteScrolledMap<'a> {
         let difference_tile_x = div_ceil(difference.x, 8);
         let difference_tile_y = div_ceil(difference.y, 8);
 
+        let size = self.map.size();
+
         let vertical_rect_to_update: Rect<i32> = if div_floor(old_pos.x, 8) != new_tile_x {
             // need to update the x line
             // calculate which direction we need to update
@@ -149,8 +151,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             // calculate which direction we need to update
             let direction = difference.y.signum();
 
-            // either need to update 30 or 31 tiles depending on whether the x coordinate is a perfect multiple
-            let x_tiles_to_update: i32 = 32;
+            // either need to update width - 2 or width - 1 tiles depending on whether the x coordinate is a perfect multiple
+            let x_tiles_to_update: i32 = size.width() as i32;
 
             let line_to_update = if direction < 0 {
                 // moving up so need to update the top
@@ -177,8 +179,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             self.map.set_tile(
                 vram,
                 (
-                    (tile_x - self.offset.x).rem_euclid(32) as u16,
-                    (tile_y - self.offset.y).rem_euclid(32) as u16,
+                    (tile_x - self.offset.x).rem_euclid(size.width() as i32) as u16,
+                    (tile_y - self.offset.y).rem_euclid(size.height() as i32) as u16,
                 )
                     .into(),
                 tileset,
@@ -188,8 +190,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let current_scroll = self.map.scroll_pos();
         let new_scroll = (
-            (current_scroll.x as i32 + difference.x).rem_euclid(32 * 8) as u16,
-            (current_scroll.y as i32 + difference.y).rem_euclid(32 * 8) as u16,
+            (current_scroll.x as i32 + difference.x).rem_euclid(size.width() as i32 * 8) as u16,
+            (current_scroll.y as i32 + difference.y).rem_euclid(size.height() as i32 * 8) as u16,
         )
             .into();
 
