@@ -53,6 +53,8 @@ impl RegularBackgroundSize {
         self.num_tiles() / (32 * 32)
     }
 
+    // This is hilariously complicated due to how the GBA stores the background screenblocks.
+    // See https://www.coranac.com/tonc/text/regbg.htm#sec-map for an explanation
     pub(crate) fn gba_offset(&self, pos: Vector2D<u16>) -> usize {
         let x_mod = pos.x & (self.width() as u16 - 1);
         let y_mod = pos.y & (self.height() as u16 - 1);
