@@ -8,6 +8,7 @@ pub use map::{MapLoan, RegularMap};
 pub use tiled0::Tiled0;
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RegularBackgroundSize {
     Background32x32,
     Background64x32,
