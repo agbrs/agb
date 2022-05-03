@@ -12,7 +12,10 @@ use alloc::{boxed::Box, vec::Vec};
 use agb::{
     display::{
         object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
-        tiled::{InfiniteScrolledMap, TileFormat, TileSet, TileSetting, VRamManager},
+        tiled::{
+            InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting,
+            VRamManager,
+        },
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Rect, Vector2D},
@@ -2221,7 +2224,7 @@ fn game_with_level(gba: &mut agb::Gba) {
         let object = gba.display.object.get();
 
         let backdrop = InfiniteScrolledMap::new(
-            background.background(Priority::P2),
+            background.background(Priority::P2, RegularBackgroundSize::Background32x32),
             Box::new(|pos| {
                 (
                     &tileset,
@@ -2235,7 +2238,7 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         let foreground = InfiniteScrolledMap::new(
-            background.background(Priority::P0),
+            background.background(Priority::P0, RegularBackgroundSize::Background32x32),
             Box::new(|pos| {
                 (
                     &tileset,
@@ -2249,7 +2252,7 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         let clouds = InfiniteScrolledMap::new(
-            background.background(Priority::P3),
+            background.background(Priority::P3, RegularBackgroundSize::Background32x32),
             Box::new(|pos| {
                 (
                     &tileset,
