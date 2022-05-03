@@ -3,6 +3,7 @@ mod map;
 mod tiled0;
 mod vram_manager;
 
+use agb_fixnum::Vector2D;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use map::{MapLoan, RegularMap};
 pub use tiled0::Tiled0;
@@ -50,6 +51,17 @@ impl RegularBackgroundSize {
 
     pub(crate) fn num_screen_blocks(&self) -> usize {
         self.num_tiles() / (32 * 32)
+    }
+
+    pub(crate) fn gba_offset(&self, pos: Vector2D<u16>) -> usize {
+        let x_mod = pos.x & (self.width() as u16 - 1);
+        let y_mod = pos.y & (self.height() as u16 - 1);
+
+        let screenblock = (x_mod / 32) + (y_mod / 32) * (self.width() as u16 / 32);
+
+        let pos = screenblock * 32 * 32 + (x_mod % 32 + 32 * (y_mod % 32));
+
+        pos as usize
     }
 
     pub(crate) fn tile_pos_x(&self, x: i32) -> u16 {

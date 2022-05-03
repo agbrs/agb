@@ -56,7 +56,7 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        let pos = (pos.x + pos.y * self.size.width() as u16) as usize;
+        let pos = self.size.gba_offset(pos);
 
         let old_tile = self.tiles[pos];
         if old_tile != Tile::default() {

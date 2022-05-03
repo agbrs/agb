@@ -63,8 +63,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
         let offset_scroll = (
-            self.map.size().rem_euclid_width(offset.x),
-            self.map.size().rem_euclid_height(offset.y),
+            self.map.size().tile_pos_x(offset.x),
+            self.map.size().tile_pos_y(offset.y),
         )
             .into();
 
@@ -179,8 +179,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             self.map.set_tile(
                 vram,
                 (
-                    size.rem_euclid_width(tile_x - self.offset.x),
-                    size.rem_euclid_height(tile_y - self.offset.y),
+                    size.tile_pos_x(tile_x - self.offset.x),
+                    size.tile_pos_y(tile_y - self.offset.y),
                 )
                     .into(),
                 tileset,
@@ -190,8 +190,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let current_scroll = self.map.scroll_pos();
         let new_scroll = (
-            size.rem_euclid_width_px(current_scroll.x as i32 + difference.x),
-            size.rem_euclid_height_px(current_scroll.y as i32 + difference.y),
+            size.px_offset_x(current_scroll.x as i32 + difference.x),
+            size.px_offset_y(current_scroll.y as i32 + difference.y),
         )
             .into();
 
