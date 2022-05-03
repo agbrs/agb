@@ -47,6 +47,14 @@ impl RegularBackgroundSize {
     pub(crate) fn num_tiles(&self) -> usize {
         (self.width() * self.height()) as usize
     }
+
+    pub(crate) fn rem_euclid_width(&self, x: i32) -> u32 {
+        (x as u32) & (self.width() - 1)
+    }
+
+    pub(crate) fn rem_euclid_height(&self, y: i32) -> u32 {
+        (y as u32) & (self.height() - 1)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -86,5 +94,33 @@ impl TileSetting {
 
     fn setting(self) -> u16 {
         self.0 & !((1 << 10) - 1)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test_case]
+    fn rem_euclid_width_works(_gba: &mut crate::Gba) {
+        use RegularBackgroundSize::*;
+
+        let sizes = [
+            Background32x32,
+            Background32x64,
+            Background64x32,
+            Background64x64,
+        ];
+
+        for size in sizes.iter() {
+            let width = size.width() as i32;
+
+            assert_eq!(size.rem_euclid_width(8), 8);
+            assert_eq!(size.rem_euclid_width(3 + width), 3);
+            assert_eq!(size.rem_euclid_width(7 + width * 9), 7);
+
+            assert_eq!(size.rem_euclid_width(-8), size.width() - 8);
+            assert_eq!(size.rem_euclid_width(-17 - width * 8), size.width() - 17);
+        }
     }
 }
