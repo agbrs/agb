@@ -48,6 +48,10 @@ impl RegularBackgroundSize {
         (self.width() * self.height()) as usize
     }
 
+    pub(crate) fn num_screen_blocks(&self) -> usize {
+        self.num_tiles() / (32 * 32)
+    }
+
     pub(crate) fn rem_euclid_width(&self, x: i32) -> u16 {
         ((x as u32) & (self.width() - 1)) as u16
     }

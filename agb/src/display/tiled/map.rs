@@ -164,7 +164,10 @@ impl RegularMap {
 pub struct MapLoan<'a, T> {
     map: T,
     background_id: u8,
+    screenblock_id: u8,
+    screenblock_length: u8,
     regular_map_list: &'a RefCell<Bitarray<1>>,
+    screenblock_list: &'a RefCell<Bitarray<1>>,
 }
 
 impl<'a, T> Deref for MapLoan<'a, T> {
@@ -185,12 +188,18 @@ impl<'a, T> MapLoan<'a, T> {
     pub(crate) fn new(
         map: T,
         background_id: u8,
+        screenblock_id: u8,
+        screenblock_length: u8,
         regular_map_list: &'a RefCell<Bitarray<1>>,
+        screenblock_list: &'a RefCell<Bitarray<1>>,
     ) -> Self {
         MapLoan {
             map,
             background_id,
+            screenblock_id,
+            screenblock_length,
             regular_map_list,
+            screenblock_list,
         }
     }
 }
@@ -200,5 +209,11 @@ impl<'a, T> Drop for MapLoan<'a, T> {
         self.regular_map_list
             .borrow_mut()
             .set(self.background_id as usize, false);
+
+        let mut screenblock_list = self.screenblock_list.borrow_mut();
+
+        for i in self.screenblock_id..self.screenblock_id + self.screenblock_length {
+            screenblock_list.set(i as usize, false);
+        }
     }
 }
