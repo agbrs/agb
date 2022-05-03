@@ -7,7 +7,7 @@ use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
-use super::{Tile, TileSet, TileSetting, VRamManager};
+use super::{RegularBackgroundSize, Tile, TileSet, TileSetting, VRamManager};
 
 pub struct RegularMap {
     background_id: u8,
@@ -19,12 +19,19 @@ pub struct RegularMap {
 
     tiles: [Tile; 32 * 32],
     tiles_dirty: bool,
+
+    size: RegularBackgroundSize,
 }
 
 pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl RegularMap {
-    pub(crate) fn new(background_id: u8, screenblock: u8, priority: Priority) -> Self {
+    pub(crate) fn new(
+        background_id: u8,
+        screenblock: u8,
+        priority: Priority,
+        size: RegularBackgroundSize,
+    ) -> Self {
         Self {
             background_id,
 
@@ -35,6 +42,8 @@ impl RegularMap {
 
             tiles: [Tile::default(); 32 * 32],
             tiles_dirty: true,
+
+            size,
         }
     }
 

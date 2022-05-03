@@ -5,7 +5,7 @@ use crate::{
     display::{set_graphics_mode, DisplayMode, Priority},
 };
 
-use super::{MapLoan, RegularMap};
+use super::{MapLoan, RegularBackgroundSize, RegularMap};
 
 pub struct Tiled0 {
     regular: RefCell<Bitarray<1>>,
@@ -20,14 +20,23 @@ impl Tiled0 {
         }
     }
 
-    pub fn background(&self, priority: Priority) -> MapLoan<'_, RegularMap> {
+    pub fn background(
+        &self,
+        priority: Priority,
+        size: RegularBackgroundSize,
+    ) -> MapLoan<'_, RegularMap> {
         let mut regular = self.regular.borrow_mut();
         let new_background = regular.first_zero().unwrap();
         if new_background >= 4 {
             panic!("can only have 4 active backgrounds");
         }
 
-        let bg = RegularMap::new(new_background as u8, (new_background + 16) as u8, priority);
+        let bg = RegularMap::new(
+            new_background as u8,
+            (new_background + 16) as u8,
+            priority,
+            size,
+        );
 
         regular.set(new_background, true);
 
