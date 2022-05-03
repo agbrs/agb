@@ -48,20 +48,20 @@ impl RegularBackgroundSize {
         (self.width() * self.height()) as usize
     }
 
-    pub(crate) fn rem_euclid_width(&self, x: i32) -> u32 {
-        (x as u32) & (self.width() - 1)
+    pub(crate) fn rem_euclid_width(&self, x: i32) -> u16 {
+        ((x as u32) & (self.width() - 1)) as u16
     }
 
-    pub(crate) fn rem_euclid_height(&self, y: i32) -> u32 {
-        (y as u32) & (self.height() - 1)
+    pub(crate) fn rem_euclid_height(&self, y: i32) -> u16 {
+        ((y as u32) & (self.height() - 1)) as u16
     }
 
-    pub(crate) fn rem_euclid_width_px(&self, x: i32) -> u32 {
-        (x as u32) & (self.width() * 8 - 1)
+    pub(crate) fn rem_euclid_width_px(&self, x: i32) -> u16 {
+        ((x as u32) & (self.width() * 8 - 1)) as u16
     }
 
-    pub(crate) fn rem_euclid_height_px(&self, y: i32) -> u32 {
-        (y as u32) & (self.height() * 8 - 1)
+    pub(crate) fn rem_euclid_height_px(&self, y: i32) -> u16 {
+        ((y as u32) & (self.height() * 8 - 1)) as u16
     }
 }
 
@@ -127,8 +127,11 @@ mod test {
             assert_eq!(size.rem_euclid_width(3 + width), 3);
             assert_eq!(size.rem_euclid_width(7 + width * 9), 7);
 
-            assert_eq!(size.rem_euclid_width(-8), size.width() - 8);
-            assert_eq!(size.rem_euclid_width(-17 - width * 8), size.width() - 17);
+            assert_eq!(size.rem_euclid_width(-8), (size.width() - 8) as u16);
+            assert_eq!(
+                size.rem_euclid_width(-17 - width * 8),
+                (size.width() - 17) as u16
+            );
         }
     }
 }
