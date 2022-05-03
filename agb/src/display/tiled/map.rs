@@ -104,7 +104,9 @@ impl RegularMap {
     }
 
     pub fn commit(&mut self, vram: &mut VRamManager) {
-        let new_bg_control_value = (self.priority as u16) | ((self.screenblock as u16) << 8);
+        let new_bg_control_value = (self.priority as u16)
+            | ((self.screenblock as u16) << 8)
+            | (self.size.size_flag() << 14);
 
         self.bg_control_register().set(new_bg_control_value);
         self.bg_h_offset().set(self.x_scroll);
