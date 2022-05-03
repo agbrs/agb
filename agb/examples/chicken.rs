@@ -6,6 +6,7 @@ use agb::{
     display::{
         object::{Object, ObjectController, Size, Sprite},
         palette16::Palette16,
+        tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
     },
     input::Button,
@@ -54,7 +55,10 @@ fn main(mut gba: agb::Gba) -> ! {
     vram.set_background_palette_raw(&MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
 
-    let mut background = gfx.background(agb::display::Priority::P0);
+    let mut background = gfx.background(
+        agb::display::Priority::P0,
+        RegularBackgroundSize::Background32x32,
+    );
 
     for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
