@@ -155,16 +155,18 @@ agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4, r5, r6, r7, r8, r9, r10}
+    push {r4, r5, r6, r7, r8, r9, r10, r11}
 
 CONST_0   .req r7
 CONST_FF  .req r8
 CONST_127 .req r9
 TEMP      .req r10
+SWAP_SIGN .req r11
 
     ldr CONST_0, =0
     ldr CONST_FF, =0xff
     ldr CONST_127, =127
+    ldr SWAP_SIGN, =0x80808080
 
     ldr r2, agb_rs__buffer_size @ loop counter
     mov r4, r2
@@ -201,9 +203,8 @@ TEMP      .req r10
     orr r3, r3, r5, lsl #24
     orr r12, r12, r6, lsl #24
 
-    ldr r5, =0x80808080
-    eor r3, r3, r5
-    eor r12, r12, r5
+    eor r3, r3, SWAP_SIGN
+    eor r12, r12, SWAP_SIGN
 
     str r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
     str r12, [r0], #4      @ *r0 = r12; r0 += 4
@@ -211,6 +212,6 @@ TEMP      .req r10
     subs r2, r2, #4      @ r2 -= 4
     bne 1b               @ loop if not 0
 
-    pop {r4, r5, r6, r7, r8, r9, r10}
+    pop {r4, r5, r6, r7, r8, r9, r10, r11}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
