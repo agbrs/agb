@@ -151,6 +151,15 @@ agb_arm_func agb_rs__mixer_add_stereo
 
 agb_arm_end agb_rs__mixer_add_stereo
 
+agb_arm_func agb_rs__mixer_collapse
+    @ Arguments:
+    @ r0 = target buffer (i8)
+    @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
+    push {r4, r5, r6}
+
+    ldr r2, agb_rs__buffer_size @ loop counter
+    mov r4, r2
+
 .macro clamp_s8 reg:req
     cmn \reg, #128
     mvnlt \reg, #128
@@ -161,16 +170,6 @@ agb_arm_end agb_rs__mixer_add_stereo
     and \reg, \reg, #255
 .endm
 
-agb_arm_func agb_rs__mixer_collapse
-    @ Arguments:
-    @ r0 = target buffer (i8)
-    @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4, r5, r6}
-
-    ldr r2, agb_rs__buffer_size @ loop counter
-    mov r4, r2
-
-1:
 .macro load_sample left_reg:req right_reg:req
     @ left_reg = *r1; r1++
     ldr \left_reg, [r1], #4
@@ -183,6 +182,7 @@ agb_arm_func agb_rs__mixer_collapse
     clamp_s8 \right_reg
 .endm
 
+1:
     load_sample r3, r12
 
     load_sample r5, r6
