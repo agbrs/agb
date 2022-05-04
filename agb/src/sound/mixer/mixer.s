@@ -178,7 +178,7 @@ TEMP      .req r10
     @ left_reg = *r1; r1++
     ldr \left_reg, [r1], #4
 
-    lsl \right_reg, \left_reg, #16      @ push the sample 16 bits first
+    mov \right_reg, \left_reg, lsl #16      @ push the sample 16 bits first
     add \right_reg, r9, \right_reg, asr #20     @ move right sample back to being the correct value
     add \left_reg, r9, \left_reg, asr #20   @ now we only have the left sample
 
