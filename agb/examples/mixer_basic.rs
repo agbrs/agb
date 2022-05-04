@@ -42,6 +42,8 @@ fn main(mut gba: Gba) -> ! {
 
                 if input.is_pressed(Button::L) {
                     channel.volume(half);
+                } else if input.is_pressed(Button::R) {
+                    channel.volume(20.into()); // intentionally introduce clipping
                 } else {
                     channel.volume(1.into());
                 }
