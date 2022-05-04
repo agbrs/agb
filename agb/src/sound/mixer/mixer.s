@@ -156,6 +156,24 @@ SWAP_SIGN .req r11
     ldr r2, agb_rs__buffer_size @ loop counter
     mov r4, r2
 
+@ The idea for this solution came from pimpmobile:
+@ https://github.com/kusma/pimpmobile/blob/f2b2be49e806ca2a0d99cf91b3838d6d10f86b7d/src/pimp_mixer_clip_arm.S
+@
+@ The register should be 127 bigger then what you actually want, and we'll correct for that later. Hence the
+@ add instructions in `load_sample`.
+@
+@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively,
+@ and we want to clamp the value between them.
+@
+@ The first instruction calculates `-((sample + 128) >> 8)`. If sample is between -128 and 127, then
+@ 0 <= sample + 128 <= 255 which means that shifting that right by 8 is 0. Hence the zero flag will be set, so
+@ the `andne` instruction won't execute.
+@
+@ If the sample is outside of a signed 8 bit value, then `sample >> 8` will either be -1 or 1 (we assume that samples)
+@ don't go too high, but the idea still works, so you can generalise this further if you want. This value is stored in TEMP
+@
+@ -1 has binary expansion (as a 32-bit integer) of all 1s and 1 of all zeros and then a 1.
+@ So (-1 logical >> 24) gives 11111111 and (1 logical >> 24) gives 00000000 so register is clamped between these two values.
 .macro clamp_s8 reg:req
     subs TEMP, CONST_0, \reg, asr #8
     andne \reg, CONST_FF, TEMP, lsr #24
