@@ -28,7 +28,7 @@ modifications_fallback:
 
 
 1:
-.macro mixer_add_loop
+.rept 4
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]           @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
@@ -38,12 +38,7 @@ modifications_fallback:
     mla r4, r6, r7, r4       @ r4 += r6 * r7 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-    mixer_add_loop
-    mixer_add_loop
-    mixer_add_loop
-    mixer_add_loop
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
@@ -69,7 +64,8 @@ same_modification:
     mov r5, #0                   @ current index we're reading from
     ldr r8, agb_rs__buffer_size @ the number of steps left
 
-.macro mixer_add_loop_simple
+1:
+.rept 4
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]            @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
@@ -81,13 +77,7 @@ same_modification:
     add r4, r4, r6, lsl r3   @ r4 += r6 << r3 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-1:
-    mixer_add_loop_simple
-    mixer_add_loop_simple
-    mixer_add_loop_simple
-    mixer_add_loop_simple
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
@@ -107,7 +97,9 @@ agb_arm_func agb_rs__mixer_add_stereo
 
     ldr r5, =0x00000FFF
 
-.macro mixer_add_loop_simple_stereo
+    ldr r8, agb_rs__buffer_size
+1:
+.rept 4
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
     ldr r4, [r1]             @ read the current value
@@ -134,14 +126,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     add r4, r4, r6, lsl #4  @ r4 += r6 << 4 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-    ldr r8, agb_rs__buffer_size
-1:
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
@@ -151,60 +136,78 @@ agb_arm_func agb_rs__mixer_add_stereo
 
 agb_arm_end agb_rs__mixer_add_stereo
 
-.macro clamp_s8 reg:req
-    cmn \reg, #128
-    mvnlt \reg, #128
-
-    cmp \reg, #127
-    movgt \reg, #127
-.endm
-
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4, r5, r6, r7, r8, r9, r10}
+    push {r4-r11}
+
+CONST_0   .req r7
+CONST_FF  .req r8
+CONST_127 .req r9
+TEMP      .req r10
+SWAP_SIGN .req r11
+
+    ldr CONST_0, =0
+    ldr CONST_FF, =0xff
+    ldr CONST_127, =127
+    ldr SWAP_SIGN, =0x80808080
 
     ldr r2, agb_rs__buffer_size @ loop counter
     mov r4, r2
 
-1:
+@ The idea for this solution came from pimpmobile:
+@ https://github.com/kusma/pimpmobile/blob/f2b2be49e806ca2a0d99cf91b3838d6d10f86b7d/src/pimp_mixer_clip_arm.S
+@
+@ The register should be 127 bigger then what you actually want, and we'll correct for that later. Hence the
+@ add instructions in `load_sample`.
+@
+@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively,
+@ and we want to clamp the value between them.
+@
+@ The first instruction calculates `-((sample + 128) >> 8)`. If sample is between -128 and 127, then
+@ 0 <= sample + 128 <= 255 which means that shifting that right by 8 is 0. Hence the zero flag will be set, so
+@ the `andne` instruction won't execute.
+@
+@ If the sample is outside of a signed 8 bit value, then `sample >> 8` will either be -1 or 1 (we assume that samples)
+@ don't go too high, but the idea still works, so you can generalise this further if you want. This value is stored in TEMP
+@
+@ -1 has binary expansion (as a 32-bit integer) of all 1s and 1 of all zeros and then a 1.
+@ So (-1 logical >> 24) gives 11111111 and (1 logical >> 24) gives 00000000 so register is clamped between these two values.
+.macro clamp_s8 reg:req
+    subs TEMP, CONST_0, \reg, asr #8
+    andne \reg, CONST_FF, TEMP, lsr #24
+.endm
+
 .macro load_sample left_reg:req right_reg:req
     @ left_reg = *r1; r1++
     ldr \left_reg, [r1], #4
 
-    lsl \right_reg, \left_reg, #16      @ push the sample 16 bits first
-    asr \right_reg, \right_reg, #20     @ move right sample back to being the correct value
-    mov \left_reg, \left_reg, asr #20   @ now we only have the left sample
+    mov \right_reg, \left_reg, lsl #16                 @ push the sample 16 bits first
+    add \right_reg, CONST_127, \right_reg, asr #20     @ move right sample back to being the correct value
+    add \left_reg, CONST_127, \left_reg, asr #20       @ now we only have the left sample
 
-    clamp_s8 \left_reg                  @ clamp the audio to 8 bit values
+    clamp_s8 \left_reg                                 @ clamp the audio to 8 bit values
     clamp_s8 \right_reg
 .endm
 
+1:
     load_sample r3, r12
+
     load_sample r5, r6
-    load_sample r7, r8
-    load_sample r9, r10
-
-    @ combine the four samples so we can store in 32-bit chunks
-    @ need to ensure that we don't overwrite the extra bit of the sample
-    and r3, r3, #255
-    and r12, r12, #255
-    and r5, r5, #255
-    and r6, r6, #255
-    and r7, r7, #255
-    and r8, r8, #255
-    and r9, r9, #255
-    and r10, r10, #255
-
-    @ combine all of the samples
     orr r3, r3, r5, lsl #8
-    orr r3, r3, r7, lsl #16
-    orr r3, r3, r9, lsl #24
-
     orr r12, r12, r6, lsl #8
-    orr r12, r12, r8, lsl #16
-    orr r12, r12, r10, lsl #24
+
+    load_sample r5, r6
+    orr r3, r3, r5, lsl #16
+    orr r12, r12, r6, lsl #16
+
+    load_sample r5, r6
+    orr r3, r3, r5, lsl #24
+    orr r12, r12, r6, lsl #24
+
+    eor r3, r3, SWAP_SIGN
+    eor r12, r12, SWAP_SIGN
 
     str r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
     str r12, [r0], #4      @ *r0 = r12; r0 += 4
@@ -212,6 +215,6 @@ agb_arm_func agb_rs__mixer_collapse
     subs r2, r2, #4      @ r2 -= 4
     bne 1b               @ loop if not 0
 
-    pop {r4, r5, r6, r7, r8, r9, r10}
+    pop {r4-r11}
     bx lr
 agb_arm_end agb_rs__mixer_collapse

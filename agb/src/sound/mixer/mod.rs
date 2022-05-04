@@ -96,7 +96,6 @@ impl SoundChannel {
 
     #[inline(always)]
     pub fn volume(&mut self, volume: Num<i16, 4>) -> &mut Self {
-        assert!(volume <= Num::new(1), "volume must be <= 1");
         assert!(volume >= Num::new(0), "volume must be >= 0");
 
         self.volume = volume;
