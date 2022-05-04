@@ -157,13 +157,15 @@ agb_arm_end agb_rs__mixer_add_stereo
 
     cmp \reg, #127
     movgt \reg, #127
+
+    and \reg, \reg, #255
 .endm
 
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4, r5, r6, r7, r8, r9, r10}
+    push {r4, r5, r6}
 
     ldr r2, agb_rs__buffer_size @ loop counter
     mov r4, r2
@@ -182,29 +184,18 @@ agb_arm_func agb_rs__mixer_collapse
 .endm
 
     load_sample r3, r12
+
     load_sample r5, r6
-    load_sample r7, r8
-    load_sample r9, r10
-
-    @ combine the four samples so we can store in 32-bit chunks
-    @ need to ensure that we don't overwrite the extra bit of the sample
-    and r3, r3, #255
-    and r12, r12, #255
-    and r5, r5, #255
-    and r6, r6, #255
-    and r7, r7, #255
-    and r8, r8, #255
-    and r9, r9, #255
-    and r10, r10, #255
-
-    @ combine all of the samples
     orr r3, r3, r5, lsl #8
-    orr r3, r3, r7, lsl #16
-    orr r3, r3, r9, lsl #24
-
     orr r12, r12, r6, lsl #8
-    orr r12, r12, r8, lsl #16
-    orr r12, r12, r10, lsl #24
+
+    load_sample r5, r6
+    orr r3, r3, r5, lsl #16
+    orr r12, r12, r6, lsl #16
+
+    load_sample r5, r6
+    orr r3, r3, r5, lsl #24
+    orr r12, r12, r6, lsl #24
 
     str r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
     str r12, [r0], #4      @ *r0 = r12; r0 += 4
@@ -212,6 +203,6 @@ agb_arm_func agb_rs__mixer_collapse
     subs r2, r2, #4      @ r2 -= 4
     bne 1b               @ loop if not 0
 
-    pop {r4, r5, r6, r7, r8, r9, r10}
+    pop {r4, r5, r6}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
