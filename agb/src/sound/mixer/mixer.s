@@ -28,7 +28,7 @@ modifications_fallback:
 
 
 1:
-.macro mixer_add_loop
+.rept 4
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]           @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
@@ -38,12 +38,7 @@ modifications_fallback:
     mla r4, r6, r7, r4       @ r4 += r6 * r7 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-    mixer_add_loop
-    mixer_add_loop
-    mixer_add_loop
-    mixer_add_loop
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
@@ -69,7 +64,8 @@ same_modification:
     mov r5, #0                   @ current index we're reading from
     ldr r8, agb_rs__buffer_size @ the number of steps left
 
-.macro mixer_add_loop_simple
+1:
+.rept 4
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]            @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
@@ -81,13 +77,7 @@ same_modification:
     add r4, r4, r6, lsl r3   @ r4 += r6 << r3 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-1:
-    mixer_add_loop_simple
-    mixer_add_loop_simple
-    mixer_add_loop_simple
-    mixer_add_loop_simple
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
@@ -107,7 +97,9 @@ agb_arm_func agb_rs__mixer_add_stereo
 
     ldr r5, =0x00000FFF
 
-.macro mixer_add_loop_simple_stereo
+    ldr r8, agb_rs__buffer_size
+1:
+.rept 4
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
     ldr r4, [r1]             @ read the current value
@@ -134,14 +126,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     add r4, r4, r6, lsl #4  @ r4 += r6 << 4 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
-.endm
-
-    ldr r8, agb_rs__buffer_size
-1:
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
-    mixer_add_loop_simple_stereo
+.endr
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
