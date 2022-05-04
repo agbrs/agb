@@ -157,19 +157,19 @@ SWAP_SIGN .req r11
     mov r4, r2
 
 .macro clamp_s8 reg:req
-    subs r10, r7, \reg, asr #8
-    andne \reg, r8, r10, lsr #24
+    subs TEMP, CONST_0, \reg, asr #8
+    andne \reg, CONST_FF, TEMP, lsr #24
 .endm
 
 .macro load_sample left_reg:req right_reg:req
     @ left_reg = *r1; r1++
     ldr \left_reg, [r1], #4
 
-    mov \right_reg, \left_reg, lsl #16      @ push the sample 16 bits first
-    add \right_reg, r9, \right_reg, asr #20     @ move right sample back to being the correct value
-    add \left_reg, r9, \left_reg, asr #20   @ now we only have the left sample
+    mov \right_reg, \left_reg, lsl #16                 @ push the sample 16 bits first
+    add \right_reg, CONST_127, \right_reg, asr #20     @ move right sample back to being the correct value
+    add \left_reg, CONST_127, \left_reg, asr #20       @ now we only have the left sample
 
-    clamp_s8 \left_reg                  @ clamp the audio to 8 bit values
+    clamp_s8 \left_reg                                 @ clamp the audio to 8 bit values
     clamp_s8 \right_reg
 .endm
 
