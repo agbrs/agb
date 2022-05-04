@@ -23,13 +23,15 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
 }
 #[cfg(test)]
 mod tests {
+    use crate::display::{tiled::RegularBackgroundSize, Priority};
+
     use super::*;
 
     #[test_case]
     fn logo_display(gba: &mut crate::Gba) {
         let (gfx, mut vram) = gba.display.video.tiled0();
 
-        let mut map = gfx.background(crate::display::Priority::P0);
+        let mut map = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
 
         display_logo(&mut map, &mut vram);
 

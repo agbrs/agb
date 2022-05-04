@@ -63,8 +63,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
         let offset_scroll = (
-            offset.x.rem_euclid(32 * 8) as u16,
-            offset.y.rem_euclid(32 * 8) as u16,
+            self.map.size().tile_pos_x(offset.x),
+            self.map.size().tile_pos_y(offset.y),
         )
             .into();
 
@@ -119,6 +119,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let difference_tile_x = div_ceil(difference.x, 8);
         let difference_tile_y = div_ceil(difference.y, 8);
+
+        let size = self.map.size();
 
         let vertical_rect_to_update: Rect<i32> = if div_floor(old_pos.x, 8) != new_tile_x {
             // need to update the x line
@@ -177,8 +179,8 @@ impl<'a> InfiniteScrolledMap<'a> {
             self.map.set_tile(
                 vram,
                 (
-                    (tile_x - self.offset.x).rem_euclid(32) as u16,
-                    (tile_y - self.offset.y).rem_euclid(32) as u16,
+                    size.tile_pos_x(tile_x - self.offset.x),
+                    size.tile_pos_y(tile_y - self.offset.y),
                 )
                     .into(),
                 tileset,
@@ -188,8 +190,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let current_scroll = self.map.scroll_pos();
         let new_scroll = (
-            (current_scroll.x as i32 + difference.x).rem_euclid(32 * 8) as u16,
-            (current_scroll.y as i32 + difference.y).rem_euclid(32 * 8) as u16,
+            size.px_offset_x(current_scroll.x as i32 + difference.x),
+            size.px_offset_y(current_scroll.y as i32 + difference.y),
         )
             .into();
 

@@ -7,7 +7,8 @@ use agb::{
     display::{
         object::{Graphics, Object, ObjectController, Tag, TagMap},
         tiled::{
-            InfiniteScrolledMap, PartialUpdateStatus, TileFormat, TileSet, TileSetting, VRamManager,
+            InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
+            TileSetting, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
@@ -777,8 +778,8 @@ impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
 fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::background.palettes);
-    let mut splash_screen = tiled.background(Priority::P0);
-    let mut world_display = tiled.background(Priority::P0);
+    let mut splash_screen = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut world_display = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
 
     let tileset = TileSet::new(tile_sheet::background.tiles, TileFormat::FourBpp);
 
@@ -845,7 +846,7 @@ fn main(mut agb: agb::Gba) -> ! {
 
             let map_current_level = current_level;
             let mut background = InfiniteScrolledMap::new(
-                tiled.background(Priority::P2),
+                tiled.background(Priority::P2, RegularBackgroundSize::Background32x64),
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
@@ -860,7 +861,7 @@ fn main(mut agb: agb::Gba) -> ! {
                 }),
             );
             let mut foreground = InfiniteScrolledMap::new(
-                tiled.background(Priority::P0),
+                tiled.background(Priority::P0, RegularBackgroundSize::Background64x32),
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (

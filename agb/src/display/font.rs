@@ -213,7 +213,10 @@ mod tests {
     fn font_display(gba: &mut crate::Gba) {
         let (gfx, mut vram) = gba.display.video.tiled0();
 
-        let mut bg = gfx.background(crate::display::Priority::P0);
+        let mut bg = gfx.background(
+            crate::display::Priority::P0,
+            crate::display::tiled::RegularBackgroundSize::Background32x32,
+        );
 
         vram.set_background_palette_raw(&[
             0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,

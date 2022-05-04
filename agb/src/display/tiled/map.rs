@@ -7,7 +7,9 @@ use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
-use super::{Tile, TileSet, TileSetting, VRamManager};
+use super::{RegularBackgroundSize, Tile, TileSet, TileSetting, VRamManager};
+
+use alloc::{vec, vec::Vec};
 
 pub struct RegularMap {
     background_id: u8,
@@ -17,14 +19,21 @@ pub struct RegularMap {
     y_scroll: u16,
     priority: Priority,
 
-    tiles: [Tile; 32 * 32],
+    tiles: Vec<Tile>,
     tiles_dirty: bool,
+
+    size: RegularBackgroundSize,
 }
 
 pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl RegularMap {
-    pub(crate) fn new(background_id: u8, screenblock: u8, priority: Priority) -> Self {
+    pub(crate) fn new(
+        background_id: u8,
+        screenblock: u8,
+        priority: Priority,
+        size: RegularBackgroundSize,
+    ) -> Self {
         Self {
             background_id,
 
@@ -33,8 +42,10 @@ impl RegularMap {
             y_scroll: 0,
             priority,
 
-            tiles: [Tile::default(); 32 * 32],
+            tiles: vec![Default::default(); size.num_tiles()],
             tiles_dirty: true,
+
+            size,
         }
     }
 
@@ -45,7 +56,7 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        let pos = (pos.x + pos.y * 32) as usize;
+        let pos = self.size.gba_offset(pos);
 
         let old_tile = self.tiles[pos];
         if old_tile != Tile::default() {
@@ -93,7 +104,9 @@ impl RegularMap {
     }
 
     pub fn commit(&mut self, vram: &mut VRamManager) {
-        let new_bg_control_value = (self.priority as u16) | ((self.screenblock as u16) << 8);
+        let new_bg_control_value = (self.priority as u16)
+            | ((self.screenblock as u16) << 8)
+            | (self.size.size_flag() << 14);
 
         self.bg_control_register().set(new_bg_control_value);
         self.bg_h_offset().set(self.x_scroll);
@@ -111,7 +124,7 @@ impl RegularMap {
             dma_copy16(
                 self.tiles.as_ptr() as *const u16,
                 screenblock_memory,
-                32 * 32,
+                self.size.num_tiles(),
             );
         }
 
@@ -125,6 +138,10 @@ impl RegularMap {
 
     pub fn scroll_pos(&self) -> Vector2D<u16> {
         (self.x_scroll, self.y_scroll).into()
+    }
+
+    pub(crate) fn size(&self) -> RegularBackgroundSize {
+        self.size
     }
 
     const fn bg_control_register(&self) -> MemoryMapped<u16> {
@@ -147,7 +164,10 @@ impl RegularMap {
 pub struct MapLoan<'a, T> {
     map: T,
     background_id: u8,
+    screenblock_id: u8,
+    screenblock_length: u8,
     regular_map_list: &'a RefCell<Bitarray<1>>,
+    screenblock_list: &'a RefCell<Bitarray<1>>,
 }
 
 impl<'a, T> Deref for MapLoan<'a, T> {
@@ -168,12 +188,18 @@ impl<'a, T> MapLoan<'a, T> {
     pub(crate) fn new(
         map: T,
         background_id: u8,
+        screenblock_id: u8,
+        screenblock_length: u8,
         regular_map_list: &'a RefCell<Bitarray<1>>,
+        screenblock_list: &'a RefCell<Bitarray<1>>,
     ) -> Self {
         MapLoan {
             map,
             background_id,
+            screenblock_id,
+            screenblock_length,
             regular_map_list,
+            screenblock_list,
         }
     }
 }
@@ -183,5 +209,11 @@ impl<'a, T> Drop for MapLoan<'a, T> {
         self.regular_map_list
             .borrow_mut()
             .set(self.background_id as usize, false);
+
+        let mut screenblock_list = self.screenblock_list.borrow_mut();
+
+        for i in self.screenblock_id..self.screenblock_id + self.screenblock_length {
+            screenblock_list.set(i as usize, false);
+        }
     }
 }

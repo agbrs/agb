@@ -4,7 +4,7 @@
 use core::cell::RefCell;
 
 use agb::{
-    display::example_logo,
+    display::{example_logo, tiled::RegularBackgroundSize},
     fixnum::FixedNum,
     interrupt::{free, Interrupt},
 };
@@ -19,7 +19,10 @@ struct BackCosines {
 fn main(mut gba: agb::Gba) -> ! {
     let (gfx, mut vram) = gba.display.video.tiled0();
 
-    let mut background = gfx.background(agb::display::Priority::P0);
+    let mut background = gfx.background(
+        agb::display::Priority::P0,
+        RegularBackgroundSize::Background32x32,
+    );
 
     example_logo::display_logo(&mut background, &mut vram);
 
