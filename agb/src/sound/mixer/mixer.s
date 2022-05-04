@@ -170,7 +170,6 @@ TEMP      .req r10
     mov r4, r2
 
 .macro clamp_s8 reg:req
-    add \reg, \reg, #127
     subs r10, r7, \reg, asr #8
     andne \reg, r8, r10, lsr #24
 .endm
@@ -180,8 +179,8 @@ TEMP      .req r10
     ldr \left_reg, [r1], #4
 
     lsl \right_reg, \left_reg, #16      @ push the sample 16 bits first
-    asr \right_reg, \right_reg, #20     @ move right sample back to being the correct value
-    mov \left_reg, \left_reg, asr #20   @ now we only have the left sample
+    add \right_reg, r9, \right_reg, asr #20     @ move right sample back to being the correct value
+    add \left_reg, r9, \left_reg, asr #20   @ now we only have the left sample
 
     clamp_s8 \left_reg                  @ clamp the audio to 8 bit values
     clamp_s8 \right_reg
