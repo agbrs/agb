@@ -607,7 +607,7 @@ enum UpdateState {
     Complete,
 }
 
-impl<'a, 'b, 'c> PlayingLevel<'a, 'b> {
+impl<'a, 'b> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
         object_control: &'a ObjectController,
