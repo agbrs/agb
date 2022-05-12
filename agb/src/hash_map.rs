@@ -530,7 +530,7 @@ where
     }
 }
 
-impl<'a, K, V> HashMap<K, V>
+impl<K, V> HashMap<K, V>
 where
     K: Hash + Eq,
 {
