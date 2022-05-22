@@ -27,11 +27,22 @@ impl Palette16 {
         self.colours.push(colour);
         true
     }
-    pub fn colour_index(&self, colour: Colour) -> u8 {
+
+    pub fn colour_index(&self, colour: Colour, transparent_colour: Option<Colour>) -> u8 {
+        let colour_to_search = match (transparent_colour, colour.is_transparent()) {
+            (Some(transparent_colour), true) => transparent_colour,
+            _ => colour,
+        };
+
         self.colours
             .iter()
-            .position(|c| *c == colour)
-            .expect("Can't get a colour index without it existing") as u8
+            .position(|c| *c == colour_to_search)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Can't get a colour index without it existing, looking for {:?}, got {:?}",
+                    colour, self.colours
+                )
+            }) as u8
     }
 
     fn union_length(&self, other: &Palette16) -> usize {
@@ -62,19 +73,22 @@ impl IntoIterator for Palette16 {
 pub(crate) struct Palette16Optimiser {
     palettes: Vec<Palette16>,
     colours: Vec<Colour>,
+    transparent_colour: Option<Colour>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Palette16OptimisationResults {
     pub optimised_palettes: Vec<Palette16>,
     pub assignments: Vec<usize>,
+    pub transparent_colour: Option<Colour>,
 }
 
 impl Palette16Optimiser {
-    pub fn new() -> Self {
+    pub fn new(transparent_colour: Option<Colour>) -> Self {
         Palette16Optimiser {
             palettes: vec![],
             colours: Vec::new(),
+            transparent_colour,
         }
     }
 
@@ -94,10 +108,7 @@ impl Palette16Optimiser {
         }
     }
 
-    pub fn optimise_palettes(
-        &self,
-        transparent_colour: Option<Colour>,
-    ) -> Palette16OptimisationResults {
+    pub fn optimise_palettes(&self) -> Palette16OptimisationResults {
         let mut assignments = vec![0; self.palettes.len()];
         let mut optimised_palettes = vec![];
 
@@ -108,7 +119,7 @@ impl Palette16Optimiser {
             .collect::<HashSet<Palette16>>();
 
         while !unsatisfied_palettes.is_empty() {
-            let palette = self.find_maximal_palette_for(&unsatisfied_palettes, transparent_colour);
+            let palette = self.find_maximal_palette_for(&unsatisfied_palettes);
 
             for test_palette in unsatisfied_palettes.clone() {
                 if test_palette.is_satisfied_by(&palette) {
@@ -132,17 +143,14 @@ impl Palette16Optimiser {
         Palette16OptimisationResults {
             optimised_palettes,
             assignments,
+            transparent_colour: self.transparent_colour,
         }
     }
 
-    fn find_maximal_palette_for(
-        &self,
-        unsatisfied_palettes: &HashSet<Palette16>,
-        transparent_colour: Option<Colour>,
-    ) -> Palette16 {
+    fn find_maximal_palette_for(&self, unsatisfied_palettes: &HashSet<Palette16>) -> Palette16 {
         let mut palette = Palette16::new();
 
-        if let Some(transparent_colour) = transparent_colour {
+        if let Some(transparent_colour) = self.transparent_colour {
             palette.add_colour(transparent_colour);
         }
 
