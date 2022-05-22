@@ -94,7 +94,9 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let mut optimiser = palette16::Palette16Optimiser::new();
+    let transparent_colour = Colour::from_rgb(255, 0, 255, 0);
+
+    let mut optimiser = palette16::Palette16Optimiser::new(Some(transparent_colour));
     let mut images = Vec::new();
     let mut tags = Vec::new();
 
@@ -116,12 +118,17 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             assert!(width == frame.height() && width.is_power_of_two() && width <= 32);
 
             let image = Image::load_from_dyn_image(frame);
-            add_to_optimiser(&mut optimiser, &image, width as usize);
+            add_to_optimiser(
+                &mut optimiser,
+                &image,
+                width as usize,
+                Some(transparent_colour),
+            );
             images.push(image);
         }
     }
 
-    let optimised_results = optimiser.optimise_palettes(None);
+    let optimised_results = optimiser.optimise_palettes();
 
     let (palette_data, tile_data, assignments) = palete_tile_data(&optimised_results, &images);
 
@@ -212,8 +219,8 @@ fn convert_image(
         panic!("Image size not a multiple of tile size");
     }
 
-    let optimiser = optimiser_for_image(&image, tile_size);
-    let optimisation_results = optimiser.optimise_palettes(settings.transparent_colour());
+    let optimiser = optimiser_for_image(&image, tile_size, settings.transparent_colour());
+    let optimisation_results = optimiser.optimise_palettes();
 
     rust_generator::generate_code(
         variable_name,
@@ -225,9 +232,13 @@ fn convert_image(
     )
 }
 
-fn optimiser_for_image(image: &Image, tile_size: usize) -> palette16::Palette16Optimiser {
-    let mut palette_optimiser = palette16::Palette16Optimiser::new();
-    add_to_optimiser(&mut palette_optimiser, image, tile_size);
+fn optimiser_for_image(
+    image: &Image,
+    tile_size: usize,
+    transparent_colour: Option<Colour>,
+) -> palette16::Palette16Optimiser {
+    let mut palette_optimiser = palette16::Palette16Optimiser::new(transparent_colour);
+    add_to_optimiser(&mut palette_optimiser, image, tile_size, transparent_colour);
     palette_optimiser
 }
 
@@ -235,6 +246,7 @@ fn add_to_optimiser(
     palette_optimiser: &mut palette16::Palette16Optimiser,
     image: &Image,
     tile_size: usize,
+    transparent_colour: Option<Colour>,
 ) {
     let tiles_x = image.width / tile_size;
     let tiles_y = image.height / tile_size;
@@ -247,7 +259,10 @@ fn add_to_optimiser(
                 for i in 0..tile_size {
                     let colour = image.colour(x * tile_size + i, y * tile_size + j);
 
-                    palette.add_colour(colour);
+                    palette.add_colour(match (colour.is_transparent(), transparent_colour) {
+                        (true, Some(transparent_colour)) => transparent_colour,
+                        _ => colour,
+                    });
                 }
             }
 
@@ -292,7 +307,9 @@ fn palete_tile_data(
                         for j in inner_y * 8..inner_y * 8 + 8 {
                             for i in inner_x * 8..inner_x * 8 + 8 {
                                 let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                                tile_data.push(palette.colour_index(colour));
+                                tile_data.push(
+                                    palette.colour_index(colour, optimiser.transparent_colour),
+                                );
                             }
                         }
                     }

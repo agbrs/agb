@@ -76,7 +76,7 @@ impl Image for ImageV1 {
             let g = u8::from_str_radix(&colour[2..4], 16).unwrap();
             let b = u8::from_str_radix(&colour[4..6], 16).unwrap();
 
-            return Some(Colour::from_rgb(r, g, b));
+            return Some(Colour::from_rgb(r, g, b, 255));
         }
 
         None

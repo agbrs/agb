@@ -51,7 +51,8 @@ pub(crate) fn generate_code(
                     for j in inner_y * 8..inner_y * 8 + 8 {
                         for i in inner_x * 8..inner_x * 8 + 8 {
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                            tile_data.push(palette.colour_index(colour));
+                            tile_data
+                                .push(palette.colour_index(colour, results.transparent_colour));
                         }
                     }
                 }

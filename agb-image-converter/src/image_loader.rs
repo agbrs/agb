@@ -25,7 +25,7 @@ impl Image {
         let mut colour_data = Vec::with_capacity(width * height);
 
         for (_, _, pixel) in img.pixels() {
-            colour_data.push(Colour::from_rgb(pixel[0], pixel[1], pixel[2]));
+            colour_data.push(Colour::from_rgb(pixel[0], pixel[1], pixel[2], pixel[3]));
         }
 
         Image {
