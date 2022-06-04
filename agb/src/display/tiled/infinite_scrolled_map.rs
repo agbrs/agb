@@ -7,6 +7,40 @@ use crate::{
     fixnum::{Rect, Vector2D},
 };
 
+/// The infinite scrolled map allows you to create a game space larger than a single GBA background.
+/// The abstraction allows only for static tiles, but it is possible to animate the tiles if needed.
+///
+/// When you create a new infinite scrolled map, you need to provide a background which it will render itself
+/// onto and a function which takes a Vector2D<i32> position and returns which tile should be rendered there.
+///
+/// The passed function should handle being out of bounds, as the scrolled map does buffer around the edges slightly.
+///
+/// Note that nothing is copied to video memory until you call [`.commit()`](`InfiniteScrolledMap::commit`), and you
+/// must call [`.clear()`](`InfiniteScrolledMap::clear`) before dropping the infinite scrolled map or you will leak video RAM.
+///
+/// # Example
+///
+/// ```
+/// let backdrop = InfiniteScrolledMap::new(
+///     background.background(Priority::P2, RegularBackgroundSize::Background32x32),
+///     Box::new(|pos| {
+///         (
+///             &tileset,
+///             TileSetting::from_raw(
+///                 *tilemap::BACKGROUND_MAP
+///                     .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+///                     .unwrap_or(&0),
+///             ),
+///         )
+///     }),
+/// );
+///
+/// // ...
+///
+/// backdrop.set_pos(&mut vram, (3, 5).into());
+/// backdrop.commit(&mut vram);
+/// backdrop.show();
+/// ```
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
     tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
@@ -24,6 +58,12 @@ pub enum PartialUpdateStatus {
 }
 
 impl<'a> InfiniteScrolledMap<'a> {
+    /// Creates a new infinite scrolled map wrapping the provided background using the given function to
+    /// position tiles.
+    ///
+    /// This will not actually render anything until either [`.init()`](`InfiniteScrolledMap::init`) or
+    /// [`.init_partial()`](`InfiniteScrolledMap::init_partial`) is called to set up VRam and this is then
+    /// [`committed`](`InfiniteScrolledMap::commit`).
     #[must_use]
     pub fn new(
         map: MapLoan<'a, RegularMap>,
