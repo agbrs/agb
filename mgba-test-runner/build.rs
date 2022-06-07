@@ -17,9 +17,6 @@ fn main() {
             String::from_utf8_lossy(&out.stderr),
         );
     }
-    println!("cargo:rustc-link-search={}", out_path.to_str().unwrap());
-    println!("cargo:rustc-link-lib=static={}", "mgba-cycle");
-    println!("cargo:rustc-link-lib=elf");
 
     cc::Build::new()
         .file("c/test-runner.c")
@@ -27,6 +24,10 @@ fn main() {
         .static_flag(true)
         .debug(true)
         .compile("test-runner");
+
+    println!("cargo:rustc-link-search={}", out_path.to_str().unwrap());
+    println!("cargo:rustc-link-lib=static={}", "mgba-cycle");
+    println!("cargo:rustc-link-lib=elf");
 
     let bindings = bindgen::Builder::default()
         .header("c/test-runner.h")
