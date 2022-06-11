@@ -45,14 +45,27 @@ impl Mixer {
         hw::set_sound_control_register_for_mixer();
     }
 
+    #[cfg(not(feature = "freq32768"))]
     pub fn frame(&mut self) {
         self.buffer.clear();
         self.buffer
             .write_channels(self.channels.iter_mut().flatten());
     }
 
+    #[cfg(not(feature = "freq32768"))]
     pub fn after_vblank(&mut self) {
         self.buffer.swap();
+    }
+
+    #[cfg(feature = "freq32768")]
+    pub fn frame(&mut self) {
+        if self.buffer.has_swapped() {
+            return;
+        }
+
+        self.buffer.clear();
+        self.buffer
+            .write_channels(self.channels.iter_mut().flatten());
     }
 
     pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
@@ -134,6 +147,7 @@ struct MixerBuffer {
     buffer2: SoundBuffer,
 
     buffer_1_active: bool,
+    swapped: bool,
 }
 
 impl MixerBuffer {
@@ -145,7 +159,12 @@ impl MixerBuffer {
             buffer2: SoundBuffer([0; constants::SOUND_BUFFER_SIZE * 2]),
 
             buffer_1_active: true,
+            swapped: false,
         }
+    }
+
+    fn has_swapped(&self) -> bool {
+        self.swapped
     }
 
     fn swap(&mut self) {
@@ -156,6 +175,7 @@ impl MixerBuffer {
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
 
         self.buffer_1_active = !self.buffer_1_active;
+        self.swapped = true;
     }
 
     fn clear(&mut self) {
@@ -218,6 +238,8 @@ impl MixerBuffer {
         unsafe {
             agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
         }
+
+        self.swapped = false;
     }
 
     fn write_buffer(&mut self) -> &mut [i8; constants::SOUND_BUFFER_SIZE * 2] {
