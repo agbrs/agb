@@ -18,25 +18,23 @@ pub enum RegularBackgroundSize {
 }
 
 impl RegularBackgroundSize {
+    #[must_use]
     pub fn width(&self) -> u32 {
         match self {
-            RegularBackgroundSize::Background32x32 => 32,
-            RegularBackgroundSize::Background64x32 => 64,
-            RegularBackgroundSize::Background32x64 => 32,
-            RegularBackgroundSize::Background64x64 => 64,
+            RegularBackgroundSize::Background32x64 | RegularBackgroundSize::Background32x32 => 32,
+            RegularBackgroundSize::Background64x64 | RegularBackgroundSize::Background64x32 => 64,
         }
     }
 
+    #[must_use]
     pub fn height(&self) -> u32 {
         match self {
-            RegularBackgroundSize::Background32x32 => 32,
-            RegularBackgroundSize::Background64x32 => 32,
-            RegularBackgroundSize::Background32x64 => 64,
-            RegularBackgroundSize::Background64x64 => 64,
+            RegularBackgroundSize::Background32x32 | RegularBackgroundSize::Background64x32 => 32,
+            RegularBackgroundSize::Background32x64 | RegularBackgroundSize::Background64x64 => 64,
         }
     }
 
-    pub(crate) fn size_flag(&self) -> u16 {
+    pub(crate) fn size_flag(self) -> u16 {
         match self {
             RegularBackgroundSize::Background32x32 => 0,
             RegularBackgroundSize::Background64x32 => 1,
@@ -45,17 +43,17 @@ impl RegularBackgroundSize {
         }
     }
 
-    pub(crate) fn num_tiles(&self) -> usize {
+    pub(crate) fn num_tiles(self) -> usize {
         (self.width() * self.height()) as usize
     }
 
-    pub(crate) fn num_screen_blocks(&self) -> usize {
+    pub(crate) fn num_screen_blocks(self) -> usize {
         self.num_tiles() / (32 * 32)
     }
 
     // This is hilariously complicated due to how the GBA stores the background screenblocks.
     // See https://www.coranac.com/tonc/text/regbg.htm#sec-map for an explanation
-    pub(crate) fn gba_offset(&self, pos: Vector2D<u16>) -> usize {
+    pub(crate) fn gba_offset(self, pos: Vector2D<u16>) -> usize {
         let x_mod = pos.x & (self.width() as u16 - 1);
         let y_mod = pos.y & (self.height() as u16 - 1);
 
@@ -66,19 +64,19 @@ impl RegularBackgroundSize {
         pos as usize
     }
 
-    pub(crate) fn tile_pos_x(&self, x: i32) -> u16 {
+    pub(crate) fn tile_pos_x(self, x: i32) -> u16 {
         ((x as u32) & (self.width() - 1)) as u16
     }
 
-    pub(crate) fn tile_pos_y(&self, y: i32) -> u16 {
+    pub(crate) fn tile_pos_y(self, y: i32) -> u16 {
         ((y as u32) & (self.height() - 1)) as u16
     }
 
-    pub(crate) fn px_offset_x(&self, x: i32) -> u16 {
+    pub(crate) fn px_offset_x(self, x: i32) -> u16 {
         ((x as u32) & (self.width() * 8 - 1)) as u16
     }
 
-    pub(crate) fn px_offset_y(&self, y: i32) -> u16 {
+    pub(crate) fn px_offset_y(self, y: i32) -> u16 {
         ((y as u32) & (self.height() * 8 - 1)) as u16
     }
 }
@@ -101,6 +99,7 @@ impl Tile {
 pub struct TileSetting(u16);
 
 impl TileSetting {
+    #[must_use]
     pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {
         Self(
             (tile_id & ((1 << 10) - 1))
@@ -110,6 +109,7 @@ impl TileSetting {
         )
     }
 
+    #[must_use]
     pub const fn from_raw(raw: u16) -> Self {
         Self(raw)
     }
