@@ -4,7 +4,7 @@
 use agb::sound::mixer::SoundChannel;
 use agb::{include_wav, Gba};
 
-// Music - "Let it in" by Josh Woodward, free download at http://joshwoodward.com
+// Music - "Crazy glue" by Josh Woodward, free download at http://joshwoodward.com
 const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
 
 #[agb::entry]
