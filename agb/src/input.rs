@@ -10,8 +10,8 @@ pub enum Tri {
 
 impl From<(bool, bool)> for Tri {
     fn from(a: (bool, bool)) -> Tri {
-        let b1 = a.0 as i8;
-        let b2 = a.1 as i8;
+        let b1 = i8::from(a.0);
+        let b2 = i8::from(a.1);
         unsafe { core::mem::transmute(b2 - b1) }
     }
 }
@@ -47,6 +47,7 @@ impl Default for ButtonController {
 }
 
 impl ButtonController {
+    #[must_use]
     pub fn new() -> Self {
         let pressed = !unsafe { BUTTON_INPUT.read_volatile() };
         ButtonController {
@@ -60,6 +61,7 @@ impl ButtonController {
         self.current = !unsafe { BUTTON_INPUT.read_volatile() };
     }
 
+    #[must_use]
     pub fn x_tri(&self) -> Tri {
         let left = self.is_pressed(Button::LEFT);
         let right = self.is_pressed(Button::RIGHT);
@@ -67,6 +69,7 @@ impl ButtonController {
         (left, right).into()
     }
 
+    #[must_use]
     pub fn y_tri(&self) -> Tri {
         let up = self.is_pressed(Button::UP);
         let down = self.is_pressed(Button::DOWN);
@@ -74,25 +77,30 @@ impl ButtonController {
         (up, down).into()
     }
 
+    #[must_use]
     pub fn is_pressed(&self, keys: Button) -> bool {
-        let currently_pressed = self.current as u32;
+        let currently_pressed = u32::from(self.current);
         let keys = keys.bits();
         (currently_pressed & keys) != 0
     }
+
+    #[must_use]
     pub fn is_released(&self, keys: Button) -> bool {
         !self.is_pressed(keys)
     }
 
+    #[must_use]
     pub fn is_just_pressed(&self, keys: Button) -> bool {
-        let current = self.current as u32;
-        let previous = self.previous as u32;
+        let current = u32::from(self.current);
+        let previous = u32::from(self.previous);
         let keys = keys.bits();
         ((current & keys) != 0) && ((previous & keys) == 0)
     }
 
+    #[must_use]
     pub fn is_just_released(&self, keys: Button) -> bool {
-        let current = self.current as u32;
-        let previous = self.previous as u32;
+        let current = u32::from(self.current);
+        let previous = u32::from(self.previous);
         let keys = keys.bits();
         ((current & keys) == 0) && ((previous & keys) != 0)
     }

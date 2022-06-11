@@ -17,10 +17,10 @@ impl<const N: usize> Bitarray<N> {
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
-        let value = value as u32;
+        let value = u32::from(value);
         let mask = 1 << (index % 32);
         let value_mask = value << (index % 32);
-        self.a[index / 32] = self.a[index / 32] & !mask | value_mask
+        self.a[index / 32] = self.a[index / 32] & !mask | value_mask;
     }
 
     pub fn first_zero(&self) -> Option<usize> {

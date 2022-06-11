@@ -21,7 +21,7 @@ pub enum Divider {
 }
 
 impl Divider {
-    fn as_bits(&self) -> u16 {
+    fn as_bits(self) -> u16 {
         use Divider::*;
 
         match self {
@@ -68,6 +68,7 @@ impl Timer {
         self
     }
 
+    #[must_use]
     pub fn value(&self) -> u16 {
         self.data_register().get()
     }
@@ -90,7 +91,7 @@ impl Timer {
     }
 
     pub fn set_interrupt(&mut self, interrupt: bool) -> &mut Self {
-        let bit = interrupt as u16;
+        let bit = u16::from(interrupt);
         self.control_register().set_bits(bit, 1, 6);
         self
     }
@@ -107,6 +108,7 @@ impl Timer {
         self.timer_number as usize
     }
 
+    #[must_use]
     pub fn interrupt(&self) -> crate::interrupt::Interrupt {
         use crate::interrupt::Interrupt;
         match self.timer_number {

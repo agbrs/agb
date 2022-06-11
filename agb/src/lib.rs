@@ -234,6 +234,7 @@ pub struct Gba {
 
 impl Gba {
     #[doc(hidden)]
+    #[must_use]
     pub unsafe fn new_in_entry() -> Self {
         GBASINGLE.take()
     }
@@ -365,7 +366,7 @@ mod test {
                 break;
             }
             vblank.wait_for_vblank();
-            counter += 1
+            counter += 1;
         }
     }
 

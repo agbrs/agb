@@ -179,6 +179,7 @@ unsafe fn create_interrupt_inner(
 impl Drop for InterruptInner {
     fn drop(&mut self) {
         inner_drop(unsafe { Pin::new_unchecked(self) });
+        #[allow(clippy::needless_pass_by_value)] // needed for safety reasons
         fn inner_drop(this: Pin<&mut InterruptInner>) {
             // drop the closure allocation safely
             let _closure_box =
@@ -300,6 +301,7 @@ pub struct VBlank {}
 impl VBlank {
     /// Handles setting up everything reqired to be able to use the wait for
     /// interrupt syscall.
+    #[must_use]
     pub fn get() -> Self {
         interrupt_to_root(Interrupt::VBlank).add();
         VBlank {}
@@ -329,10 +331,10 @@ mod tests {
             let counter = Mutex::new(RefCell::new(0));
             let counter_2 = Mutex::new(RefCell::new(0));
             let _a = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
-                *counter.borrow(key).borrow_mut() += 1
+                *counter.borrow(key).borrow_mut() += 1;
             });
             let _b = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
-                *counter_2.borrow(key).borrow_mut() += 1
+                *counter_2.borrow(key).borrow_mut() += 1;
             });
 
             let vblank = VBlank::get();
