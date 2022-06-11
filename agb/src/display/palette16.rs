@@ -5,6 +5,7 @@ pub struct Palette16 {
 }
 
 impl Palette16 {
+    #[must_use]
     pub const fn new(colours: [u16; 16]) -> Self {
         Palette16 { colours }
     }
@@ -16,6 +17,7 @@ impl Palette16 {
         self.colours[index] = colour;
     }
 
+    #[must_use]
     pub fn colour(&self, index: usize) -> u16 {
         self.colours[index]
     }
