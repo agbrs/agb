@@ -192,6 +192,7 @@ SWAP_SIGN .req r11
 .endm
 
 1:
+.rept 4
     load_sample r3, r12
 
     load_sample r5, r6
@@ -211,8 +212,9 @@ SWAP_SIGN .req r11
 
     str r3, [r0, r4]       @ *(r0 + (r4 = SOUND_BUFFER_SIZE)) = r3
     str r12, [r0], #4      @ *r0 = r12; r0 += 4
+.endr
 
-    subs r2, r2, #4      @ r2 -= 4
+    subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
     pop {r4-r11}
