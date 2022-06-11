@@ -5,9 +5,13 @@ use bare_metal::{CriticalSection, Mutex};
 use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
-use crate::fixnum::Num;
-use crate::interrupt::{add_interrupt_handler, free, Interrupt, InterruptHandler};
-use crate::timer::{Divider, Timer};
+use crate::{
+    fixnum::Num,
+    interrupt::free,
+    interrupt::{add_interrupt_handler, Interrupt, InterruptHandler},
+    timer::Divider,
+    timer::Timer,
+};
 
 // Defined in mixer.s
 extern "C" {
@@ -55,7 +59,8 @@ impl Mixer {
         free(|cs| self.buffer.swap(cs));
     }
 
-    #[cfg(feature = "freq32768")]
+    /// Note that if you set up an interrupt handler, you should not call `after_vblank` any more
+    /// You are still required to call `frame`
     pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
         let mut timer1 = unsafe { Timer::new(1) };
         timer1.set_cascade(true);
