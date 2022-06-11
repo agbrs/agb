@@ -24,6 +24,6 @@ impl Bitmap3 {
     pub fn draw_point(&mut self, x: i32, y: i32, colour: u16) {
         let x = x.try_into().unwrap();
         let y = y.try_into().unwrap();
-        BITMAP_MODE_3.set(x, y, colour)
+        BITMAP_MODE_3.set(x, y, colour);
     }
 }

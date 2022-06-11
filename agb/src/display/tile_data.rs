@@ -7,6 +7,7 @@ pub struct TileData {
 }
 
 impl TileData {
+    #[must_use]
     pub const fn new(
         palettes: &'static [Palette16],
         tiles: &'static [u8],
