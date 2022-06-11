@@ -8,7 +8,7 @@ use super::{SoundChannel, SoundPriority};
 use crate::{
     fixnum::Num,
     interrupt::free,
-    interrupt::{add_interrupt_handler, Interrupt, InterruptHandler},
+    interrupt::{add_interrupt_handler, InterruptHandler},
     timer::Divider,
     timer::Timer,
 };
@@ -63,13 +63,14 @@ impl Mixer {
     /// You are still required to call `frame`
     pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
         let mut timer1 = unsafe { Timer::new(1) };
-        timer1.set_cascade(true);
-        timer1.set_divider(Divider::Divider1);
-        timer1.set_interrupt(true);
-        timer1.set_overflow_amount(constants::SOUND_BUFFER_SIZE as u16);
-        timer1.set_enabled(true);
+        timer1
+            .set_cascade(true)
+            .set_divider(Divider::Divider1)
+            .set_interrupt(true)
+            .set_overflow_amount(constants::SOUND_BUFFER_SIZE as u16)
+            .set_enabled(true);
 
-        add_interrupt_handler(Interrupt::Timer1, move |cs| self.buffer.swap(cs))
+        add_interrupt_handler(timer1.interrupt(), move |cs| self.buffer.swap(cs))
     }
 
     pub fn frame(&mut self) {
