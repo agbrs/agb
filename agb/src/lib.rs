@@ -6,6 +6,15 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![feature(alloc_error_handler)]
 #![warn(clippy::all)]
+#![warn(clippy::must_use_candidate)]
+#![warn(clippy::trivially_copy_pass_by_ref)]
+#![warn(clippy::semicolon_if_nothing_returned)]
+#![warn(clippy::match_same_arms)]
+#![warn(clippy::cast_lossless)]
+#![warn(clippy::map_unwrap_or)]
+#![warn(clippy::needless_pass_by_value)]
+#![warn(clippy::redundant_closure_for_method_calls)]
+#![warn(clippy::cloned_instead_of_copied)]
 
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
