@@ -12,10 +12,14 @@ use std::{
 };
 use syn::parse_macro_input;
 
-#[cfg(not(feature = "freq18157"))]
+#[cfg(all(not(feature = "freq18157"), not(feature = "freq32768")))]
 const FREQUENCY: u32 = 10512;
 #[cfg(feature = "freq18157")]
 const FREQUENCY: u32 = 18157;
+#[cfg(feature = "freq32768")]
+const FREQUENCY: u32 = 32768;
+#[cfg(all(feature = "freq18157", feature = "freq32768"))]
+compile_error!("Must have at most one of freq18157 or freq32768 features enabled");
 
 #[proc_macro]
 pub fn include_wav(input: TokenStream) -> TokenStream {
