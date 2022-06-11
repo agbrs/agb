@@ -216,11 +216,11 @@ impl MixerBuffer {
     }
 
     fn should_calculate(&self) -> bool {
-        free(|cs| self.state.borrow(*cs).borrow().should_calculate())
+        free(|cs| self.state.borrow(cs).borrow().should_calculate())
     }
 
-    fn swap(&self, cs: &CriticalSection) {
-        let buffer = self.state.borrow(*cs).borrow_mut().playing_advanced();
+    fn swap(&self, cs: CriticalSection) {
+        let buffer = self.state.borrow(cs).borrow_mut().playing_advanced();
 
         let (left_buffer, right_buffer) = self.buffers[buffer]
             .0
@@ -282,7 +282,7 @@ impl MixerBuffer {
             channel.pos += playback_speed * constants::SOUND_BUFFER_SIZE;
         }
 
-        let write_buffer_index = free(|cs| self.state.borrow(*cs).borrow_mut().active_advanced());
+        let write_buffer_index = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
 
         let write_buffer = &mut self.buffers[write_buffer_index].0;
         cpu_fast_fill_i8(write_buffer, 0);

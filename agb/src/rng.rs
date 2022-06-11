@@ -55,7 +55,7 @@ static GLOBAL_RNG: Mutex<RefCell<RandomNumberGenerator>> =
 
 /// Using a global random number generator, provides the next random number
 pub fn gen() -> i32 {
-    free(|cs| GLOBAL_RNG.borrow(*cs).borrow_mut().gen())
+    free(|cs| GLOBAL_RNG.borrow(cs).borrow_mut().gen())
 }
 
 #[cfg(test)]

@@ -157,17 +157,17 @@ extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) -> u16 {
 struct InterruptInner {
     next: Cell<*const InterruptInner>,
     root: *const InterruptRoot,
-    closure: *const dyn Fn(&CriticalSection),
+    closure: *const dyn Fn(CriticalSection),
     _pin: PhantomPinned,
 }
 
 unsafe fn create_interrupt_inner(
-    c: impl Fn(&CriticalSection),
+    c: impl Fn(CriticalSection),
     root: *const InterruptRoot,
 ) -> Pin<Box<InterruptInner>> {
     let c = Box::new(c);
-    let c: &dyn Fn(&CriticalSection) = Box::leak(c);
-    let c: &dyn Fn(&CriticalSection) = core::mem::transmute(c);
+    let c: &dyn Fn(CriticalSection) = Box::leak(c);
+    let c: &dyn Fn(CriticalSection) = core::mem::transmute(c);
     Box::pin(InterruptInner {
         next: Cell::new(core::ptr::null()),
         root,
@@ -216,7 +216,7 @@ impl InterruptRoot {
         while !c.is_null() {
             let closure_ptr = unsafe { &*c }.closure;
             let closure_ref = unsafe { &*closure_ptr };
-            closure_ref(unsafe { &CriticalSection::new() });
+            closure_ref(unsafe { CriticalSection::new() });
             c = unsafe { &*c }.next.get();
         }
     }
@@ -241,7 +241,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// ```
 pub fn add_interrupt_handler<'a>(
     interrupt: Interrupt,
-    handler: impl Fn(&CriticalSection) + Send + Sync + 'a,
+    handler: impl Fn(CriticalSection) + Send + Sync + 'a,
 ) -> InterruptHandler<'a> {
     fn do_with_inner<'a>(
         interrupt: Interrupt,
@@ -282,13 +282,13 @@ pub fn add_interrupt_handler<'a>(
 /// [`CriticalSection`]: bare_metal::CriticalSection
 pub fn free<F, R>(f: F) -> R
 where
-    F: FnOnce(&CriticalSection) -> R,
+    F: FnOnce(CriticalSection) -> R,
 {
     let enabled = INTERRUPTS_ENABLED.get();
 
     disable_interrupts();
 
-    let r = f(unsafe { &CriticalSection::new() });
+    let r = f(unsafe { CriticalSection::new() });
 
     INTERRUPTS_ENABLED.set(enabled);
     r
@@ -328,17 +328,17 @@ mod tests {
         {
             let counter = Mutex::new(RefCell::new(0));
             let counter_2 = Mutex::new(RefCell::new(0));
-            let _a = add_interrupt_handler(Interrupt::VBlank, |key: &CriticalSection| {
-                *counter.borrow(*key).borrow_mut() += 1
+            let _a = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
+                *counter.borrow(key).borrow_mut() += 1
             });
-            let _b = add_interrupt_handler(Interrupt::VBlank, |key: &CriticalSection| {
-                *counter_2.borrow(*key).borrow_mut() += 1
+            let _b = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
+                *counter_2.borrow(key).borrow_mut() += 1
             });
 
             let vblank = VBlank::get();
 
             while free(|key| {
-                *counter.borrow(*key).borrow() < 100 || *counter_2.borrow(*key).borrow() < 100
+                *counter.borrow(key).borrow() < 100 || *counter_2.borrow(key).borrow() < 100
             }) {
                 vblank.wait_for_vblank();
             }
@@ -375,7 +375,7 @@ pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandle
     timer.set_overflow_amount(period);
     timer.set_enabled(true);
 
-    add_interrupt_handler(timer.interrupt(), |_key: &CriticalSection| {
+    add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
         crate::println!("{:#010x}", crate::program_counter_before_interrupt());
     })
 }

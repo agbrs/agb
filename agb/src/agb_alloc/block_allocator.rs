@@ -61,7 +61,7 @@ impl BlockAllocator {
     #[cfg(test)]
     pub unsafe fn number_of_blocks(&self) -> u32 {
         free(|key| {
-            let mut state = self.state.borrow(*key).borrow_mut();
+            let mut state = self.state.borrow(key).borrow_mut();
 
             let mut count = 0;
 
@@ -76,7 +76,7 @@ impl BlockAllocator {
     }
 
     /// Requests a brand new block from the inner bump allocator
-    fn new_block(&self, layout: Layout, cs: &CriticalSection) -> Option<NonNull<u8>> {
+    fn new_block(&self, layout: Layout, cs: CriticalSection) -> Option<NonNull<u8>> {
         let overall_layout = Block::either_layout(layout);
         self.inner_allocator.alloc_critical(overall_layout, cs)
     }
@@ -84,7 +84,7 @@ impl BlockAllocator {
     /// Merges blocks together to create a normalised list
     unsafe fn normalise(&self) {
         free(|key| {
-            let mut state = self.state.borrow(*key).borrow_mut();
+            let mut state = self.state.borrow(key).borrow_mut();
 
             let mut list_ptr = &mut state.first_free_block;
 
@@ -121,7 +121,7 @@ impl BlockAllocator {
             .unwrap();
 
         free(|key| {
-            let mut state = self.state.borrow(*key).borrow_mut();
+            let mut state = self.state.borrow(key).borrow_mut();
             let mut current_block = state.first_free_block;
             let mut list_ptr = &mut state.first_free_block;
             // This iterates the free list until it either finds a block that
@@ -164,7 +164,7 @@ impl BlockAllocator {
     pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
         let new_layout = Block::either_layout(layout).pad_to_align();
         free(|key| {
-            let mut state = self.state.borrow(*key).borrow_mut();
+            let mut state = self.state.borrow(key).borrow_mut();
 
             // note that this is a reference to a pointer
             let mut list_ptr = &mut state.first_free_block;

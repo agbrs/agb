@@ -56,7 +56,7 @@ impl ObjectControllerRef {
         #[cfg(debug_assertions)]
         {
             let a = crate::interrupt::free(|c| {
-                let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+                let mut b = OBJECT_REFS_CURRENT.borrow(c).borrow_mut();
                 let a = *b;
                 *b += 1;
                 a
@@ -76,7 +76,7 @@ impl ObjectControllerRef {
 impl Drop for ObjectControllerRef {
     fn drop(&mut self) {
         crate::interrupt::free(|c| {
-            let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+            let mut b = OBJECT_REFS_CURRENT.borrow(c).borrow_mut();
             *b -= 1;
         })
     }

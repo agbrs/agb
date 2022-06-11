@@ -59,7 +59,7 @@ type HashType = u32;
 
 /// A hash map implemented very simply using robin hood hashing.
 ///
-/// HashMap uses FxHasher internally, which is a very fast hashing algorithm used
+/// `HashMap` uses `FxHasher` internally, which is a very fast hashing algorithm used
 /// by rustc and firefox in non-adversarial places. It is incredibly fast, and good
 /// enough for most cases.
 ///
@@ -76,7 +76,7 @@ type HashType = u32;
 /// aborts, memory leaks and non-termination.
 ///
 /// The API surface provided is incredibly similar to the
-/// [std::collections::HashMap](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
+/// [`std::collections::HashMap`](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
 /// implementation with fewer guarantees, and better optimised for the GameBoy Advance.
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
