@@ -2,7 +2,6 @@ use core::arch::asm;
 
 // use crate::display::object::AffineMatrixAttributes;
 
-
 #[allow(non_snake_case)]
 
 pub fn halt() {
@@ -94,6 +93,9 @@ pub fn arc_tan(n: i16) -> i16 {
             "swi 0x09",
             in("r0") n,
             lateout("r0") result,
+            lateout("r1") _,
+            lateout("r2") _,
+            lateout("r3") _
         );
     }
     result
@@ -107,10 +109,34 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
             in("r0") x,
             in("r1") y,
             lateout("r0") result,
-
+            lateout("r2") _,
+            lateout("r3") _
         );
     }
     result
+}
+
+pub(crate) fn cpu_fast_fill_i8(input: &mut [i8], new_content: i32) {
+    assert_eq!(
+        input.len() % (4 * 8),
+        0,
+        "Input length must be divisible by 32"
+    );
+
+    let input_ptr = [new_content].as_ptr();
+    let output_ptr = input.as_mut_ptr();
+    let length_mode = (1 << 24) | // copy
+        (input.len() / 4);
+
+    unsafe {
+        asm!(
+            "swi 0x0c",
+            in("r0") input_ptr,
+            in("r1") output_ptr,
+            in("r2") length_mode,
+            lateout("r3") _,
+        );
+    }
 }
 
 // pub fn affine_matrix(
