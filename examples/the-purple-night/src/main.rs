@@ -2291,7 +2291,7 @@ fn game_with_level(gba: &mut agb::Gba) {
                 }
             }
 
-            rng::gen(); // advance RNG to make it less predictable between runs
+            let _ = rng::gen(); // advance RNG to make it less predictable between runs
         };
 
         game.clear(&mut vram);
