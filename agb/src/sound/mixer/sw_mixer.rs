@@ -96,9 +96,9 @@ impl Mixer {
     }
 }
 
-// I've picked one frequency that works nicely. But there are others that work nicely
-// which we may want to consider in the future: http://deku.gbadev.org/program/sound1.html
-#[cfg(not(feature = "freq18157"))]
+// These work perfectly with swapping the buffers every vblank
+// list here: http://deku.gbadev.org/program/sound1.html
+#[cfg(all(not(feature = "freq18157"), not(feature = "freq32768")))]
 mod constants {
     pub const SOUND_FREQUENCY: i32 = 10512;
     pub const SOUND_BUFFER_SIZE: usize = 176;
@@ -108,6 +108,12 @@ mod constants {
 mod constants {
     pub const SOUND_FREQUENCY: i32 = 18157;
     pub const SOUND_BUFFER_SIZE: usize = 304;
+}
+
+#[cfg(feature = "freq32768")]
+mod constants {
+    pub const SOUND_FREQUENCY: i32 = 32768;
+    pub const SOUND_BUFFER_SIZE: usize = 549;
 }
 
 fn set_asm_buffer_size() {
