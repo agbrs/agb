@@ -27,11 +27,11 @@ const BLUE_SPIRIT: &[u8] = agb::include_wav!("sfx/03 - Blue Spirit (Main Loop).w
 
 pub struct Sfx<'a> {
     bgm: Option<ChannelId>,
-    mixer: &'a mut Mixer<'a>,
+    mixer: &'a mut Mixer,
 }
 
 impl<'a> Sfx<'a> {
-    pub fn new(mixer: &'a mut Mixer<'a>) -> Self {
+    pub fn new(mixer: &'a mut Mixer) -> Self {
         Self { mixer, bgm: None }
     }
 

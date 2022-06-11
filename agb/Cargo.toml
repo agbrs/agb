@@ -17,6 +17,7 @@ debug = true
 [features]
 default = []
 freq18157 = ["agb_sound_converter/freq18157"]
+freq32768 = ["agb_sound_converter/freq32768"]
 
 [dependencies]
 bitflags = "1"
@@ -31,3 +32,7 @@ rustc-hash =  { version = "1", default-features = false }
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
 targets = []
+
+[[example]]
+name = "mixer_32768"
+required-features = ["freq32768"]

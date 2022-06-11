@@ -28,6 +28,8 @@ const FIFOB_DEST_ADDR: u32 = 0x0400_00a4;
 const SOUND_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0082) };
 const SOUND_CONTROL_X: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0084) };
 
+const SOUND_BIAS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0088) };
+
 const DMA_CONTROL_SETTING_FOR_SOUND: u16 = {
     let dest_fixed: u16 = 2 << 5; // dest addr control = fixed
     let repeat: u16 = 1 << 9;
@@ -89,6 +91,9 @@ pub(super) fn set_sound_control_register_for_mixer() {
 
     // master sound enable
     SOUND_CONTROL_X.set(1 << 7);
+
+    // Set the sound bias PWM resampling rate to 8bit at 65536Hz (default for most games)
+    SOUND_BIAS.set(SOUND_BIAS.get() | 1 << 14);
 }
 
 pub(super) fn set_timer_counter_for_frequency_and_enable(timer: &mut Timer, frequency: i32) {

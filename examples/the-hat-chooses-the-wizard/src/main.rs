@@ -809,8 +809,7 @@ fn main(mut agb: agb::Gba) -> ! {
         vram.set_background_palettes(tile_sheet::background.palettes);
 
         let object = agb.display.object.get();
-        let mut timer_controller = agb.timers.timers();
-        let mut mixer = agb.mixer.mixer(&mut timer_controller.timer0);
+        let mut mixer = agb.mixer.mixer();
 
         mixer.enable();
         let mut music_box = sfx::MusicBox::new();

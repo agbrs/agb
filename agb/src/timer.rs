@@ -40,8 +40,6 @@ pub struct Timer {
 
 #[non_exhaustive]
 pub struct Timers {
-    pub timer0: Timer,
-    pub timer1: Timer,
     pub timer2: Timer,
     pub timer3: Timer,
 }
@@ -49,8 +47,6 @@ pub struct Timers {
 impl Timers {
     pub(crate) unsafe fn new() -> Self {
         Self {
-            timer0: Timer::new(0),
-            timer1: Timer::new(1),
             timer2: Timer::new(2),
             timer3: Timer::new(3),
         }
@@ -58,7 +54,7 @@ impl Timers {
 }
 
 impl Timer {
-    unsafe fn new(timer_number: u16) -> Self {
+    pub(crate) unsafe fn new(timer_number: u16) -> Self {
         let new_timer = Self { timer_number };
         new_timer.data_register().set(0);
         new_timer.control_register().set(0);
@@ -66,32 +62,37 @@ impl Timer {
         new_timer
     }
 
-    pub fn set_overflow_amount(&mut self, n: u16) {
+    pub fn set_overflow_amount(&mut self, n: u16) -> &mut Self {
         let count_up_value = 0u16.wrapping_sub(n);
         self.data_register().set(count_up_value);
+        self
     }
 
     pub fn value(&self) -> u16 {
         self.data_register().get()
     }
 
-    pub fn set_divider(&mut self, divider: Divider) {
+    pub fn set_divider(&mut self, divider: Divider) -> &mut Self {
         self.control_register().set_bits(divider.as_bits(), 2, 0);
+        self
     }
 
-    pub fn set_enabled(&mut self, enabled: bool) {
+    pub fn set_enabled(&mut self, enabled: bool) -> &mut Self {
         let bit = if enabled { 1 } else { 0 };
         self.control_register().set_bits(bit, 1, 7);
+        self
     }
 
-    pub fn set_cascade(&mut self, cascade: bool) {
+    pub fn set_cascade(&mut self, cascade: bool) -> &mut Self {
         let bit = if cascade { 1 } else { 0 };
         self.control_register().set_bits(bit, 1, 2);
+        self
     }
 
-    pub fn set_interrupt(&mut self, interrupt: bool) {
+    pub fn set_interrupt(&mut self, interrupt: bool) -> &mut Self {
         let bit = interrupt as u16;
         self.control_register().set_bits(bit, 1, 6);
+        self
     }
 
     fn data_register(&self) -> MemoryMapped<u16> {

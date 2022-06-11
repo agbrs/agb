@@ -4,8 +4,8 @@
 use agb::sound::mixer::SoundChannel;
 use agb::{include_wav, Gba};
 
-// Music - "Let it in" by Josh Woodward, free download at http://joshwoodward.com
-const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
+// Music - "Crazy glue" by Josh Woodward, free download at http://joshwoodward.com
+const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
@@ -22,11 +22,12 @@ fn main(mut gba: Gba) -> ! {
     channel.stereo();
     mixer.play_sound(channel).unwrap();
 
+    let _interrupt = mixer.setup_interrupt_handler();
+
     let mut frame_counter = 0i32;
     loop {
         vblank_provider.wait_for_vblank();
         let before_mixing_cycles = timer.value();
-        mixer.after_vblank();
         mixer.frame();
         let after_mixing_cycles = timer.value();
 

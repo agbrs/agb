@@ -2205,8 +2205,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let vblank = agb::interrupt::VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut timers = gba.timers.timers();
-    let mut mixer = gba.mixer.mixer(&mut timers.timer0);
+    let mut mixer = gba.mixer.mixer();
     mixer.enable();
 
     let mut sfx = sfx::Sfx::new(&mut mixer);
