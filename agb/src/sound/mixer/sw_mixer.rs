@@ -1,8 +1,13 @@
+use core::cell::RefCell;
+
+use bare_metal::{CriticalSection, Mutex};
+
 use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
 use crate::fixnum::Num;
-use crate::timer::Timer;
+use crate::interrupt::{add_interrupt_handler, free, Interrupt, InterruptHandler};
+use crate::timer::{Divider, Timer};
 
 // Defined in mixer.s
 extern "C" {
@@ -31,7 +36,7 @@ pub struct ChannelId(usize, i32);
 
 impl Mixer {
     pub(super) fn new() -> Self {
-        Mixer {
+        Self {
             buffer: MixerBuffer::new(),
             channels: Default::default(),
             indices: Default::default(),
@@ -46,20 +51,24 @@ impl Mixer {
     }
 
     #[cfg(not(feature = "freq32768"))]
-    pub fn frame(&mut self) {
-        self.buffer.clear();
-        self.buffer
-            .write_channels(self.channels.iter_mut().flatten());
-    }
-
-    #[cfg(not(feature = "freq32768"))]
     pub fn after_vblank(&mut self) {
-        self.buffer.swap();
+        free(|cs| self.buffer.swap(cs));
     }
 
     #[cfg(feature = "freq32768")]
+    pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
+        let mut timer1 = unsafe { Timer::new(1) };
+        timer1.set_cascade(true);
+        timer1.set_divider(Divider::Divider1);
+        timer1.set_interrupt(true);
+        timer1.set_overflow_amount(constants::SOUND_BUFFER_SIZE as u16);
+        timer1.set_enabled(true);
+
+        add_interrupt_handler(Interrupt::Timer1, move |cs| self.buffer.swap(cs))
+    }
+
     pub fn frame(&mut self) {
-        if self.buffer.has_swapped() {
+        if !self.buffer.has_swapped() {
             return;
         }
 
@@ -126,7 +135,7 @@ mod constants {
 #[cfg(feature = "freq32768")]
 mod constants {
     pub const SOUND_FREQUENCY: i32 = 32768;
-    pub const SOUND_BUFFER_SIZE: usize = 549;
+    pub const SOUND_BUFFER_SIZE: usize = 560;
 }
 
 fn set_asm_buffer_size() {
@@ -146,6 +155,10 @@ struct MixerBuffer {
     buffer1: SoundBuffer, // alternating bytes left and right channels
     buffer2: SoundBuffer,
 
+    state: Mutex<RefCell<MixerBufferState>>,
+}
+
+struct MixerBufferState {
     buffer_1_active: bool,
     swapped: bool,
 }
@@ -158,28 +171,34 @@ impl MixerBuffer {
             buffer1: SoundBuffer([0; constants::SOUND_BUFFER_SIZE * 2]),
             buffer2: SoundBuffer([0; constants::SOUND_BUFFER_SIZE * 2]),
 
-            buffer_1_active: true,
-            swapped: false,
+            state: Mutex::new(RefCell::new(MixerBufferState {
+                buffer_1_active: true,
+                swapped: false,
+            })),
         }
     }
 
     fn has_swapped(&self) -> bool {
-        self.swapped
+        free(|cs| self.state.borrow(*cs).borrow().swapped)
     }
 
-    fn swap(&mut self) {
+    fn swap(&self, cs: &CriticalSection) {
         let (left_buffer, right_buffer) =
-            self.write_buffer().split_at(constants::SOUND_BUFFER_SIZE);
+            self.write_buffer(cs).split_at(constants::SOUND_BUFFER_SIZE);
 
         hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
 
-        self.buffer_1_active = !self.buffer_1_active;
-        self.swapped = true;
+        {
+            let mut state = self.state.borrow(*cs).borrow_mut();
+
+            state.buffer_1_active = !state.buffer_1_active;
+            state.swapped = true;
+        }
     }
 
     fn clear(&mut self) {
-        self.write_buffer().fill(0);
+        self.write_buffer_mut().fill(0);
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
@@ -234,19 +253,33 @@ impl MixerBuffer {
             channel.pos += playback_speed * constants::SOUND_BUFFER_SIZE;
         }
 
-        let write_buffer = self.write_buffer();
+        let write_buffer = self.write_buffer_mut();
         unsafe {
             agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
         }
 
-        self.swapped = false;
+        free(|cs| {
+            self.state.borrow(*cs).borrow_mut().swapped = false;
+        });
     }
 
-    fn write_buffer(&mut self) -> &mut [i8; constants::SOUND_BUFFER_SIZE * 2] {
-        if self.buffer_1_active {
+    fn write_buffer_mut(&mut self) -> &mut [i8; constants::SOUND_BUFFER_SIZE * 2] {
+        let buffer_1_active = free(|cs| self.state.borrow(*cs).borrow().buffer_1_active);
+
+        if buffer_1_active {
             &mut self.buffer2.0
         } else {
             &mut self.buffer1.0
+        }
+    }
+
+    fn write_buffer(&self, cs: &CriticalSection) -> &[i8; constants::SOUND_BUFFER_SIZE * 2] {
+        let buffer_1_active = self.state.borrow(*cs).borrow().buffer_1_active;
+
+        if buffer_1_active {
+            &self.buffer2.0
+        } else {
+            &self.buffer1.0
         }
     }
 }
