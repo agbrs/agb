@@ -41,7 +41,7 @@ impl Mixer {
     }
 
     pub fn enable(&mut self) {
-        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, SOUND_FREQUENCY);
+        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, constants::SOUND_FREQUENCY);
         hw::set_sound_control_register_for_mixer();
     }
 
@@ -99,14 +99,16 @@ impl Mixer {
 // I've picked one frequency that works nicely. But there are others that work nicely
 // which we may want to consider in the future: http://deku.gbadev.org/program/sound1.html
 #[cfg(not(feature = "freq18157"))]
-const SOUND_FREQUENCY: i32 = 10512;
-#[cfg(not(feature = "freq18157"))]
-const SOUND_BUFFER_SIZE: usize = 176;
+mod constants {
+    pub const SOUND_FREQUENCY: i32 = 10512;
+    pub const SOUND_BUFFER_SIZE: usize = 176;
+}
 
 #[cfg(feature = "freq18157")]
-const SOUND_FREQUENCY: i32 = 18157;
-#[cfg(feature = "freq18157")]
-const SOUND_BUFFER_SIZE: usize = 304;
+mod constants {
+    pub const SOUND_FREQUENCY: i32 = 18157;
+    pub const SOUND_BUFFER_SIZE: usize = 304;
+}
 
 fn set_asm_buffer_size() {
     extern "C" {
@@ -114,12 +116,12 @@ fn set_asm_buffer_size() {
     }
 
     unsafe {
-        agb_rs__buffer_size = SOUND_BUFFER_SIZE;
+        agb_rs__buffer_size = constants::SOUND_BUFFER_SIZE;
     }
 }
 
 #[repr(C, align(4))]
-struct SoundBuffer([i8; SOUND_BUFFER_SIZE * 2]);
+struct SoundBuffer([i8; constants::SOUND_BUFFER_SIZE * 2]);
 
 struct MixerBuffer {
     buffer1: SoundBuffer, // alternating bytes left and right channels
@@ -133,15 +135,16 @@ impl MixerBuffer {
         set_asm_buffer_size();
 
         MixerBuffer {
-            buffer1: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
-            buffer2: SoundBuffer([0; SOUND_BUFFER_SIZE * 2]),
+            buffer1: SoundBuffer([0; constants::SOUND_BUFFER_SIZE * 2]),
+            buffer2: SoundBuffer([0; constants::SOUND_BUFFER_SIZE * 2]),
 
             buffer_1_active: true,
         }
     }
 
     fn swap(&mut self) {
-        let (left_buffer, right_buffer) = self.write_buffer().split_at(SOUND_BUFFER_SIZE);
+        let (left_buffer, right_buffer) =
+            self.write_buffer().split_at(constants::SOUND_BUFFER_SIZE);
 
         hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
@@ -154,7 +157,8 @@ impl MixerBuffer {
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
-        let mut buffer: [Num<i16, 4>; SOUND_BUFFER_SIZE * 2] = [Num::new(0); SOUND_BUFFER_SIZE * 2];
+        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
+            [Num::new(0); constants::SOUND_BUFFER_SIZE * 2];
 
         for channel in channels {
             if channel.is_done {
@@ -170,7 +174,9 @@ impl MixerBuffer {
             let right_amount = ((channel.panning + 1) / 2) * channel.volume;
             let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-            if (channel.pos + playback_speed * SOUND_BUFFER_SIZE).floor() >= channel.data.len() {
+            if (channel.pos + playback_speed * constants::SOUND_BUFFER_SIZE).floor()
+                >= channel.data.len()
+            {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
                     channel.pos = 0.into();
@@ -199,7 +205,7 @@ impl MixerBuffer {
                 }
             }
 
-            channel.pos += playback_speed * SOUND_BUFFER_SIZE;
+            channel.pos += playback_speed * constants::SOUND_BUFFER_SIZE;
         }
 
         let write_buffer = self.write_buffer();
@@ -208,7 +214,7 @@ impl MixerBuffer {
         }
     }
 
-    fn write_buffer(&mut self) -> &mut [i8; SOUND_BUFFER_SIZE * 2] {
+    fn write_buffer(&mut self) -> &mut [i8; constants::SOUND_BUFFER_SIZE * 2] {
         if self.buffer_1_active {
             &mut self.buffer2.0
         } else {
