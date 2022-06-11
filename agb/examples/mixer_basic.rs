@@ -14,8 +14,7 @@ fn main(mut gba: Gba) -> ! {
     let mut input = ButtonController::new();
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut timers = gba.timers.timers();
-    let mut mixer = gba.mixer.mixer(&mut timers.timer0);
+    let mut mixer = gba.mixer.mixer();
     mixer.enable();
 
     let channel = SoundChannel::new(DEAD_CODE);

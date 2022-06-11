@@ -19,29 +19,29 @@ extern "C" {
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
 }
 
-pub struct Mixer<'a> {
+pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
 
-    timer: &'a mut Timer,
+    timer: Timer,
 }
 
 pub struct ChannelId(usize, i32);
 
-impl<'a> Mixer<'a> {
-    pub(super) fn new(timer: &'a mut Timer) -> Self {
+impl Mixer {
+    pub(super) fn new() -> Self {
         Mixer {
             buffer: MixerBuffer::new(),
             channels: Default::default(),
             indices: Default::default(),
 
-            timer,
+            timer: unsafe { Timer::new(0) },
         }
     }
 
     pub fn enable(&mut self) {
-        hw::set_timer_counter_for_frequency_and_enable(self.timer, SOUND_FREQUENCY);
+        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, SOUND_FREQUENCY);
         hw::set_sound_control_register_for_mixer();
     }
 

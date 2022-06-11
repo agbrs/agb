@@ -11,11 +11,11 @@ const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut timer_controller = gba.timers.timers();
-    let mut timer = timer_controller.timer1;
+    let timer_controller = gba.timers.timers();
+    let mut timer = timer_controller.timer2;
     timer.set_enabled(true);
 
-    let mut mixer = gba.mixer.mixer(&mut timer_controller.timer0);
+    let mut mixer = gba.mixer.mixer();
     mixer.enable();
 
     let mut channel = SoundChannel::new(LET_IT_IN);

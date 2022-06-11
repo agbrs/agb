@@ -40,8 +40,6 @@ pub struct Timer {
 
 #[non_exhaustive]
 pub struct Timers {
-    pub timer0: Timer,
-    pub timer1: Timer,
     pub timer2: Timer,
     pub timer3: Timer,
 }
@@ -49,8 +47,6 @@ pub struct Timers {
 impl Timers {
     pub(crate) unsafe fn new() -> Self {
         Self {
-            timer0: Timer::new(0),
-            timer1: Timer::new(1),
             timer2: Timer::new(2),
             timer3: Timer::new(3),
         }
@@ -58,7 +54,7 @@ impl Timers {
 }
 
 impl Timer {
-    unsafe fn new(timer_number: u16) -> Self {
+    pub(crate) unsafe fn new(timer_number: u16) -> Self {
         let new_timer = Self { timer_number };
         new_timer.data_register().set(0);
         new_timer.control_register().set(0);

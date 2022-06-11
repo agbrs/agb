@@ -60,13 +60,13 @@ impl MusicBox {
     }
 }
 
-pub struct SfxPlayer<'a, 'b> {
-    mixer: &'a mut Mixer<'b>,
+pub struct SfxPlayer<'a> {
+    mixer: &'a mut Mixer,
     frame: i32,
 }
 
-impl<'a, 'b> SfxPlayer<'a, 'b> {
-    pub fn new(mixer: &'a mut Mixer<'b>, music_box: &MusicBox) -> Self {
+impl<'a> SfxPlayer<'a> {
+    pub fn new(mixer: &'a mut Mixer, music_box: &MusicBox) -> Self {
         SfxPlayer {
             mixer,
             frame: music_box.frame,
