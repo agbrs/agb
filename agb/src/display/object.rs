@@ -82,9 +82,7 @@ impl Drop for ObjectControllerRef {
     }
 }
 
-// Required for safety reasons
-#[allow(clippy::trivially_copy_pass_by_ref)]
-unsafe fn get_object_controller(_r: &ObjectControllerReference) -> ObjectControllerRef {
+unsafe fn get_object_controller(_r: ObjectControllerReference) -> ObjectControllerRef {
     ObjectControllerRef::new()
 }
 
@@ -435,7 +433,7 @@ struct Loan<'a> {
 
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         unsafe {
             s.shadow_oam[self.index as usize]
@@ -496,7 +494,7 @@ const HIDDEN_VALUE: u16 = 0b10 << 8;
 
 impl ObjectController {
     pub fn commit(&self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         let s = &mut *s;
 
@@ -557,7 +555,7 @@ impl ObjectController {
 
     #[must_use]
     pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         let mut attrs = Attributes::new();
 
@@ -598,7 +596,7 @@ impl ObjectController {
 
     #[must_use]
     pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        let s = unsafe { get_object_controller(&self.phantom) };
+        let s = unsafe { get_object_controller(self.phantom) };
         unsafe {
             s.very_unsafe_borrow()
                 .sprite_controller
@@ -610,7 +608,7 @@ impl ObjectController {
 impl<'a> Object<'a> {
     #[inline(always)]
     unsafe fn object_inner(&mut self) -> &mut ObjectInner {
-        let s = get_object_controller(&self.loan.phantom);
+        let s = get_object_controller(self.loan.phantom);
         s.very_unsafe_borrow().shadow_oam[self.loan.index as usize]
             .as_mut()
             .unwrap_unchecked()
@@ -679,7 +677,7 @@ impl<'a> Object<'a> {
         let object_inner = unsafe { self.object_inner() };
         object_inner.z = z;
         unsafe {
-            get_object_controller(&self.loan.phantom).update_z_ordering();
+            get_object_controller(self.loan.phantom).update_z_ordering();
         }
 
         self
@@ -858,7 +856,7 @@ impl SpriteControllerInner {
 
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
         s.sprite_controller.return_sprite(self.id.sprite());
     }
 }
@@ -883,7 +881,7 @@ impl<'a> SpriteBorrow<'a> {
 
 impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
         self.clone(&mut s.sprite_controller)
     }
 }
