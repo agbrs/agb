@@ -5,7 +5,7 @@ use bare_metal::{CriticalSection, Mutex};
 use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
-use crate::syscall::cpu_fast_fill_i8;
+
 use crate::{
     fixnum::Num,
     interrupt::free,
@@ -245,9 +245,6 @@ impl MixerBuffer {
                 channel.playback_speed
             };
 
-            let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-            let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
-
             if (channel.pos + playback_speed * constants::SOUND_BUFFER_SIZE).floor()
                 >= channel.data.len()
             {
@@ -268,6 +265,9 @@ impl MixerBuffer {
                     );
                 }
             } else {
+                let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+                let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
                 unsafe {
                     agb_rs__mixer_add(
                         channel.data.as_ptr().add(channel.pos.floor()),
@@ -285,7 +285,6 @@ impl MixerBuffer {
         let write_buffer_index = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
 
         let write_buffer = &mut self.buffers[write_buffer_index].0;
-        cpu_fast_fill_i8(write_buffer, 0);
 
         unsafe {
             agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());

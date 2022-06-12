@@ -136,11 +136,33 @@ agb_arm_func agb_rs__mixer_add_stereo
 
 agb_arm_end agb_rs__mixer_add_stereo
 
+.section .iwram
+    .balign 4
+constant_zero:
+.rept 4
+    .word 0
+.endr
+
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
     push {r4-r11}
+
+    @ zero registers r4-r7 (4 of them)
+    mov r8, #constant_zero
+    ldm r8, {r4-r7}
+
+    @ get the size of the buffer
+    ldr r9, agb_rs__buffer_size
+    @ make a copy of the output buffer pointer
+    mov r10, r0
+1:
+    @ zero 4 words worth of the output buffer
+    stmia r10, {r4-r7}
+    subs r9, r9, #16
+    @ loop if we haven't zeroed everything
+    bne 1b
 
 CONST_0   .req r7
 CONST_FF  .req r8
