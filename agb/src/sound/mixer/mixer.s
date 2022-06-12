@@ -143,26 +143,39 @@ constant_zero:
     .word 0
 .endr
 
+agb_arm_func agb_rs__init_buffer
+    @ arguments:
+    @ r0 = target buffer
+    @ r1 = size in bytes (must be a multiple of 16)
+    push {r4-r5}
+
+    @ zero registers r3-r5
+    mov r2, #constant_zero
+    ldm r2, {r3-r5,r12}
+
+1:
+    @ zero 4 words worth of the buffer
+    stmia r0, {r3-r5,r12}
+    subs r1, r1, #16
+    @ loop if we haven't zeroed everything
+    bne 1b
+
+    pop {r4-r5}
+    bx lr
+agb_arm_end agb_rs__init_buffer
+
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
-    push {r4-r11}
 
-    @ zero registers r4-r7 (4 of them)
-    mov r8, #constant_zero
-    ldm r8, {r4-r7}
+    @ firstly clear the buffer
+    push {r0, r1, r4-r11, lr}
+    ldr r1, agb_rs__buffer_size
 
-    @ get the size of the buffer
-    ldr r9, agb_rs__buffer_size
-    @ make a copy of the output buffer pointer
-    mov r10, r0
-1:
-    @ zero 4 words worth of the output buffer
-    stmia r10, {r4-r7}
-    subs r9, r9, #16
-    @ loop if we haven't zeroed everything
-    bne 1b
+    bl agb_rs__init_buffer
+
+    pop {r0, r1}
 
 CONST_0   .req r7
 CONST_FF  .req r8
@@ -239,6 +252,6 @@ SWAP_SIGN .req r11
     subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
-    pop {r4-r11}
+    pop {r4-r11, lr}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
