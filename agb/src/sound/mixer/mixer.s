@@ -169,13 +169,7 @@ agb_arm_func agb_rs__mixer_collapse
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
 
-    @ firstly clear the buffer
-    push {r0, r1, r4-r11, lr}
-    ldr r1, agb_rs__buffer_size
-
-    bl agb_rs__init_buffer
-
-    pop {r0, r1}
+    push {r4-r11}
 
 CONST_0   .req r7
 CONST_FF  .req r8
@@ -252,6 +246,6 @@ SWAP_SIGN .req r11
     subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
-    pop {r4-r11, lr}
+    pop {r4-r11}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
