@@ -59,7 +59,7 @@ type HashType = u32;
 
 /// A hash map implemented very simply using robin hood hashing.
 ///
-/// HashMap uses FxHasher internally, which is a very fast hashing algorithm used
+/// `HashMap` uses `FxHasher` internally, which is a very fast hashing algorithm used
 /// by rustc and firefox in non-adversarial places. It is incredibly fast, and good
 /// enough for most cases.
 ///
@@ -76,7 +76,7 @@ type HashType = u32;
 /// aborts, memory leaks and non-termination.
 ///
 /// The API surface provided is incredibly similar to the
-/// [std::collections::HashMap](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
+/// [`std::collections::HashMap`](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
 /// implementation with fewer guarantees, and better optimised for the GameBoy Advance.
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
@@ -89,11 +89,13 @@ pub struct HashMap<K, V> {
 
 impl<K, V> HashMap<K, V> {
     /// Creates a `HashMap`
+    #[must_use]
     pub fn new() -> Self {
         Self::with_size(16)
     }
 
     /// Creates an empty `HashMap` with specified internal size. The size must be a power of 2
+    #[must_use]
     pub fn with_size(size: usize) -> Self {
         Self {
             nodes: NodeStorage::with_size(size),
@@ -103,6 +105,7 @@ impl<K, V> HashMap<K, V> {
 
     /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
     /// internal size may be larger as it must be a power of 2
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         for i in 0..32 {
             let attempted_size = 1usize << i;
@@ -118,11 +121,13 @@ impl<K, V> HashMap<K, V> {
     }
 
     /// Returns the number of elements in the map
+    #[must_use]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
     /// Returns the number of elements the map can hold
+    #[must_use]
     pub fn capacity(&self) -> usize {
         self.nodes.capacity()
     }
@@ -149,21 +154,16 @@ impl<K, V> HashMap<K, V> {
 
     /// An iterator visiting all key-value pairs in an arbitrary order
     pub fn iter(&self) -> impl Iterator<Item = (&'_ K, &'_ V)> {
-        self.nodes
-            .nodes
-            .iter()
-            .filter_map(|node| node.key_value_ref())
+        self.nodes.nodes.iter().filter_map(Node::key_value_ref)
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order, with mutable references to the values
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ K, &'_ mut V)> {
-        self.nodes
-            .nodes
-            .iter_mut()
-            .filter_map(|node| node.key_value_mut())
+        self.nodes.nodes.iter_mut().filter_map(Node::key_value_mut)
     }
 
     /// Returns `true` if the map contains no elements
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1179,7 +1179,7 @@ mod test {
         fn test_entry(_gba: &mut Gba) {
             let xs = [(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
 
-            let mut map: HashMap<_, _> = xs.iter().cloned().collect();
+            let mut map: HashMap<_, _> = xs.iter().copied().collect();
 
             // Existing key (insert)
             match map.entry(1) {

@@ -15,12 +15,14 @@ impl RandomNumberGenerator {
     /// Create a new random number generator with a fixed seed
     ///
     /// Note that this seed is guaranteed to be the same between minor releases.
+    #[must_use]
     pub const fn new() -> Self {
         Self::new_with_seed([1014776995, 476057059, 3301633994, 706340607])
     }
 
     /// Produces a random number generator with the given initial state / seed.
     /// None of the values can be 0.
+    #[must_use]
     pub const fn new_with_seed(seed: [u32; 4]) -> Self {
         // this can't be in a loop because const
         assert!(seed[0] != 0, "seed must not be 0");
@@ -54,8 +56,9 @@ static GLOBAL_RNG: Mutex<RefCell<RandomNumberGenerator>> =
     Mutex::new(RefCell::new(RandomNumberGenerator::new()));
 
 /// Using a global random number generator, provides the next random number
+#[must_use]
 pub fn gen() -> i32 {
-    free(|cs| GLOBAL_RNG.borrow(*cs).borrow_mut().gen())
+    free(|cs| GLOBAL_RNG.borrow(cs).borrow_mut().gen())
 }
 
 #[cfg(test)]

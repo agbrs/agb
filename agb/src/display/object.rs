@@ -29,7 +29,7 @@ unsafe fn init_object_controller() {
 }
 
 unsafe fn uninit_object_controller() {
-    OBJECT_CONTROLLER.assume_init_drop()
+    OBJECT_CONTROLLER.assume_init_drop();
 }
 
 struct ObjectControllerRef {}
@@ -56,7 +56,7 @@ impl ObjectControllerRef {
         #[cfg(debug_assertions)]
         {
             let a = crate::interrupt::free(|c| {
-                let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+                let mut b = OBJECT_REFS_CURRENT.borrow(c).borrow_mut();
                 let a = *b;
                 *b += 1;
                 a
@@ -76,13 +76,13 @@ impl ObjectControllerRef {
 impl Drop for ObjectControllerRef {
     fn drop(&mut self) {
         crate::interrupt::free(|c| {
-            let mut b = OBJECT_REFS_CURRENT.borrow(*c).borrow_mut();
+            let mut b = OBJECT_REFS_CURRENT.borrow(c).borrow_mut();
             *b -= 1;
-        })
+        });
     }
 }
 
-unsafe fn get_object_controller(_r: &ObjectControllerReference) -> ObjectControllerRef {
+unsafe fn get_object_controller(_r: ObjectControllerReference) -> ObjectControllerRef {
     ObjectControllerRef::new()
 }
 
@@ -153,12 +153,15 @@ pub struct Graphics {
 }
 
 impl Graphics {
+    #[must_use]
     pub const fn new(sprites: &'static [Sprite], tag_map: &'static TagMap) -> Self {
         Self { sprites, tag_map }
     }
+    #[must_use]
     pub const fn tags(&self) -> &TagMap {
         self.tag_map
     }
+    #[must_use]
     pub const fn sprites(&self) -> &[Sprite] {
         self.sprites
     }
@@ -184,9 +187,11 @@ const fn const_byte_compare(a: &[u8], b: &[u8]) -> bool {
 }
 
 impl TagMap {
+    #[must_use]
     pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
         Self { tags }
     }
+    #[must_use]
     pub const fn try_get(&'static self, tag: &str) -> Option<&'static Tag> {
         let mut i = 0;
         while i < self.tags.len() {
@@ -200,6 +205,7 @@ impl TagMap {
 
         None
     }
+    #[must_use]
     pub const fn get(&'static self, tag: &str) -> &'static Tag {
         let t = self.try_get(tag);
         match t {
@@ -237,15 +243,18 @@ pub struct Tag {
 }
 
 impl Tag {
+    #[must_use]
     pub fn sprites(&self) -> &'static [Sprite] {
         unsafe { slice::from_raw_parts(self.sprites, self.len) }
     }
 
+    #[must_use]
     pub fn sprite(&self, idx: usize) -> &'static Sprite {
         &self.sprites()[idx]
     }
 
     #[inline]
+    #[must_use]
     pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
         let len_sub_1 = self.len - 1;
         match self.direction {
@@ -259,6 +268,7 @@ impl Tag {
     }
 
     #[doc(hidden)]
+    #[must_use]
     pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
         assert!(from <= to);
         assert!(to < sprites.len());
@@ -291,6 +301,7 @@ impl Size {
         (self as u8 >> 2, self as u8 & 0b11)
     }
 
+    #[must_use]
     pub const fn from_width_height(width: usize, height: usize) -> Self {
         match (width, height) {
             (8, 8) => Size::S8x8,
@@ -309,6 +320,7 @@ impl Size {
         }
     }
 
+    #[must_use]
     pub const fn to_width_height(self) -> (usize, usize) {
         match self {
             Size::S8x8 => (8, 8),
@@ -353,10 +365,10 @@ impl Storage {
             count: 1,
         }
     }
-    fn as_palette_ptr(&self) -> *mut u8 {
+    fn as_palette_ptr(self) -> *mut u8 {
         (self.location as usize * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
     }
-    fn as_sprite_ptr(&self) -> *mut u8 {
+    fn as_sprite_ptr(self) -> *mut u8 {
         (self.location as usize * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
     }
 }
@@ -421,13 +433,13 @@ struct Loan<'a> {
 
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         unsafe {
             s.shadow_oam[self.index as usize]
                 .as_mut()
                 .unwrap_unchecked()
-                .destroy = true
+                .destroy = true;
         };
     }
 }
@@ -461,12 +473,8 @@ impl ObjectControllerStatic {
 
     fn update_z_ordering(&mut self) {
         let shadow_oam = &self.shadow_oam;
-        self.z_order.sort_by_key(|&a| {
-            shadow_oam[a as usize]
-                .as_ref()
-                .map(|s| s.z)
-                .unwrap_or(i32::MAX)
-        });
+        self.z_order
+            .sort_by_key(|&a| shadow_oam[a as usize].as_ref().map_or(i32::MAX, |s| s.z));
     }
 }
 
@@ -486,7 +494,7 @@ const HIDDEN_VALUE: u16 = 0b10 << 8;
 
 impl ObjectController {
     pub fn commit(&self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         let s = &mut *s;
 
@@ -498,7 +506,7 @@ impl ObjectController {
                     unsafe {
                         (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
                             .add((i as usize) * 4)
-                            .write_volatile(HIDDEN_VALUE)
+                            .write_volatile(HIDDEN_VALUE);
                     }
 
                     let a = unsafe { s.shadow_oam[z as usize].take().unwrap_unchecked() };
@@ -515,7 +523,7 @@ impl ObjectController {
                 unsafe {
                     (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
                         .add(i * 4)
-                        .write_volatile(HIDDEN_VALUE)
+                        .write_volatile(HIDDEN_VALUE);
                 }
             }
         }
@@ -530,7 +538,7 @@ impl ObjectController {
             unsafe {
                 (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
                     .add(i * 4)
-                    .write_volatile(HIDDEN_VALUE)
+                    .write_volatile(HIDDEN_VALUE);
             }
         }
 
@@ -540,12 +548,14 @@ impl ObjectController {
         }
     }
 
+    #[must_use]
     pub fn object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Object<'a> {
         self.try_get_object(sprite).expect("No object available")
     }
 
+    #[must_use]
     pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
 
         let mut attrs = Attributes::new();
 
@@ -578,13 +588,15 @@ impl ObjectController {
         Some(Object { loan })
     }
 
+    #[must_use]
     pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
         self.try_get_sprite(sprite)
             .expect("No slot for sprite available")
     }
 
+    #[must_use]
     pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        let s = unsafe { get_object_controller(&self.phantom) };
+        let s = unsafe { get_object_controller(self.phantom) };
         unsafe {
             s.very_unsafe_borrow()
                 .sprite_controller
@@ -596,7 +608,7 @@ impl ObjectController {
 impl<'a> Object<'a> {
     #[inline(always)]
     unsafe fn object_inner(&mut self) -> &mut ObjectInner {
-        let s = get_object_controller(&self.loan.phantom);
+        let s = get_object_controller(self.loan.phantom);
         s.very_unsafe_borrow().shadow_oam[self.loan.index as usize]
             .as_mut()
             .unwrap_unchecked()
@@ -665,7 +677,7 @@ impl<'a> Object<'a> {
         let object_inner = unsafe { self.object_inner() };
         object_inner.z = z;
         unsafe {
-            get_object_controller(&self.loan.phantom).update_z_ordering();
+            get_object_controller(self.loan.phantom).update_z_ordering();
         }
 
         self
@@ -721,6 +733,7 @@ impl Sprite {
     fn layout(&self) -> Layout {
         Layout::from_size_align(self.size.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
     }
+    #[must_use]
     pub const fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
         Self {
             palette,
@@ -728,6 +741,7 @@ impl Sprite {
             size,
         }
     }
+    #[must_use]
     pub const fn size(&self) -> Size {
         self.size
     }
@@ -823,7 +837,7 @@ impl SpriteControllerInner {
             }
         }
 
-        self.return_palette(sprite.palette)
+        self.return_palette(sprite.palette);
     }
 
     fn return_palette(&mut self, palette: &'static Palette16) {
@@ -842,8 +856,8 @@ impl SpriteControllerInner {
 
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
-        s.sprite_controller.return_sprite(self.id.sprite())
+        let mut s = unsafe { get_object_controller(self.phantom) };
+        s.sprite_controller.return_sprite(self.id.sprite());
     }
 }
 
@@ -867,7 +881,7 @@ impl<'a> SpriteBorrow<'a> {
 
 impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
-        let mut s = unsafe { get_object_controller(&self.phantom) };
+        let mut s = unsafe { get_object_controller(self.phantom) };
         self.clone(&mut s.sprite_controller)
     }
 }

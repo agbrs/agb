@@ -54,6 +54,7 @@ pub fn wait_for_vblank() {
     }
 }
 
+#[must_use]
 pub fn div(numerator: i32, denominator: i32) -> (i32, i32, i32) {
     let divide: i32;
     let modulo: i32;
@@ -71,6 +72,7 @@ pub fn div(numerator: i32, denominator: i32) -> (i32, i32, i32) {
     (divide, modulo, abs_divide)
 }
 
+#[must_use]
 pub fn sqrt(n: i32) -> i32 {
     let result: i32;
     unsafe {
@@ -86,6 +88,7 @@ pub fn sqrt(n: i32) -> i32 {
     result
 }
 
+#[must_use]
 pub fn arc_tan(n: i16) -> i16 {
     let result: i16;
     unsafe {
@@ -101,6 +104,7 @@ pub fn arc_tan(n: i16) -> i16 {
     result
 }
 
+#[must_use]
 pub fn arc_tan2(x: i16, y: i32) -> i16 {
     let result: i16;
     unsafe {

@@ -44,6 +44,7 @@ pub struct TileSet<'a> {
 }
 
 impl<'a> TileSet<'a> {
+    #[must_use]
     pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
@@ -53,7 +54,7 @@ impl<'a> TileSet<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct TileIndex(u16);
 
 impl TileIndex {
@@ -61,7 +62,7 @@ impl TileIndex {
         Self(index as u16)
     }
 
-    pub(crate) const fn index(&self) -> u16 {
+    pub(crate) const fn index(self) -> u16 {
         self.0
     }
 }
@@ -128,8 +129,9 @@ pub struct DynamicTile<'a> {
 }
 
 impl DynamicTile<'_> {
+    #[must_use]
     pub fn fill_with(self, colour_index: u8) -> Self {
-        let colour_index = colour_index as u32;
+        let colour_index = u32::from(colour_index);
 
         let mut value = 0;
         for i in 0..8 {
@@ -142,6 +144,7 @@ impl DynamicTile<'_> {
 }
 
 impl DynamicTile<'_> {
+    #[must_use]
     pub fn tile_set(&self) -> TileSet<'_> {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
@@ -153,6 +156,7 @@ impl DynamicTile<'_> {
         TileSet::new(tiles, TileFormat::FourBpp)
     }
 
+    #[must_use]
     pub fn tile_index(&self) -> u16 {
         let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
         (difference / (8 * 8 / 2)) as u16
@@ -188,6 +192,7 @@ impl VRamManager {
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
+    #[must_use]
     pub fn new_dynamic_tile<'a>(&mut self) -> DynamicTile<'a> {
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> =
@@ -227,6 +232,8 @@ impl VRamManager {
         }
     }
 
+    // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
+    #[allow(clippy::needless_pass_by_value)]
     pub fn remove_dynamic_tile(&mut self, dynamic_tile: DynamicTile<'_>) {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_mut_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
@@ -336,7 +343,7 @@ impl VRamManager {
                 tile_slice.as_ptr() as *const u16,
                 target_location,
                 tile_size_in_half_words,
-            )
+            );
         };
     }
 
@@ -356,7 +363,7 @@ impl VRamManager {
     /// Copies palettes to the background palettes without any checks.
     pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
-            self.set_background_palette(palette_index as u8, entry)
+            self.set_background_palette(palette_index as u8, entry);
         }
     }
 }

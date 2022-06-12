@@ -43,6 +43,7 @@ pub struct SoundChannel {
 
 impl SoundChannel {
     #[inline(always)]
+    #[must_use]
     pub fn new(data: &'static [u8]) -> Self {
         SoundChannel {
             data,
@@ -58,6 +59,7 @@ impl SoundChannel {
     }
 
     #[inline(always)]
+    #[must_use]
     pub fn new_high_priority(data: &'static [u8]) -> Self {
         SoundChannel {
             data,
@@ -110,6 +112,6 @@ impl SoundChannel {
 
     #[inline(always)]
     pub fn stop(&mut self) {
-        self.is_done = true
+        self.is_done = true;
     }
 }

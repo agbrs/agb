@@ -22,14 +22,17 @@ impl Sound {
         Sound {}
     }
 
+    #[must_use]
     pub fn channel1(&self) -> Channel1 {
         Channel1 {}
     }
 
+    #[must_use]
     pub fn channel2(&self) -> Channel2 {
         Channel2 {}
     }
 
+    #[must_use]
     pub fn noise(&self) -> Noise {
         Noise {}
     }
@@ -56,10 +59,10 @@ impl Channel1 {
         duty_cycle: DutyCycle,
     ) {
         CHANNEL_1_SWEEP.set(sweep_settings.as_bits());
-        let length_bits = length.unwrap_or(0) as u16;
+        let length_bits = u16::from(length.unwrap_or(0));
         assert!(length_bits < 64, "Length must be less than 64");
 
-        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let length_flag: u16 = length.map_or(0, |_| 1 << 14);
         let initial: u16 = 1 << 15;
 
         assert!(frequency < 2048, "Frequency must be less than 2048");
@@ -81,10 +84,10 @@ impl Channel2 {
         envelope_settings: &EnvelopeSettings,
         duty_cycle: DutyCycle,
     ) {
-        let length_bits = length.unwrap_or(0) as u16;
+        let length_bits = u16::from(length.unwrap_or(0));
         assert!(length_bits < 64, "Length must be less than 64");
 
-        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let length_flag: u16 = length.map_or(0, |_| 1 << 14);
         let initial: u16 = 1 << 15;
 
         assert!(frequency < 2048, "Frequency must be less than 2048");
@@ -107,7 +110,7 @@ impl Noise {
         counter_step_width_15: bool,
         shift_clock_frequency: u8,
     ) {
-        let length_bits = length.unwrap_or(0) as u16;
+        let length_bits = u16::from(length.unwrap_or(0));
         assert!(length_bits < 64, "length must be less than 16");
 
         assert!(
@@ -119,19 +122,19 @@ impl Noise {
             "frequency clock divider must be less than 16"
         );
 
-        let length_flag: u16 = length.map(|_| 1 << 14).unwrap_or(0);
+        let length_flag: u16 = length.map_or(0, |_| 1 << 14);
         let initial: u16 = 1 << 15;
 
         let counter_step_bit = if counter_step_width_15 { 0 } else { 1 << 3 };
 
         CHANNEL_4_LENGTH_ENVELOPE.set(length_bits | envelope_setting.as_bits());
         CHANNEL_4_FREQUENCY_CONTROL.set(
-            (frequency_divider as u16)
+            u16::from(frequency_divider)
                 | counter_step_bit
-                | ((shift_clock_frequency as u16) << 4)
+                | (u16::from(shift_clock_frequency) << 4)
                 | length_flag
                 | initial,
-        )
+        );
     }
 }
 
@@ -156,6 +159,7 @@ pub struct SweepSettings {
 }
 
 impl SweepSettings {
+    #[must_use]
     pub fn new(
         number_of_sweep_shifts: u8,
         sound_direction: SoundDirection,
@@ -175,9 +179,9 @@ impl SweepSettings {
     }
 
     fn as_bits(&self) -> u16 {
-        ((self.number_of_sweep_shifts as u16) & 0b111)
+        (u16::from(self.number_of_sweep_shifts) & 0b111)
             | ((1 - self.sound_direction.as_bits()) << 3) // sweep works backwards
-            | ((self.sweep_time as u16) & 0b111) << 4
+            | (u16::from(self.sweep_time) & 0b111) << 4
     }
 }
 
@@ -194,6 +198,7 @@ pub struct EnvelopeSettings {
 }
 
 impl EnvelopeSettings {
+    #[must_use]
     pub fn new(step_time: u8, direction: SoundDirection, initial_volume: u8) -> Self {
         assert!(step_time < 8, "Step time must be less than 8");
         assert!(initial_volume < 16, "Initial volume must be less that 16");
@@ -205,9 +210,9 @@ impl EnvelopeSettings {
     }
 
     fn as_bits(&self) -> u16 {
-        (self.step_time as u16) << 8
+        u16::from(self.step_time) << 8
             | (self.direction.as_bits() << 11)
-            | ((self.initial_volume as u16) << 12)
+            | (u16::from(self.initial_volume) << 12)
     }
 }
 
@@ -217,6 +222,7 @@ impl Default for EnvelopeSettings {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum DutyCycle {
     OneEighth,
     OneQuarter,
@@ -225,10 +231,10 @@ pub enum DutyCycle {
 }
 
 impl DutyCycle {
-    fn as_bits(&self) -> u16 {
+    fn as_bits(self) -> u16 {
         use DutyCycle::*;
 
-        match &self {
+        match self {
             OneEighth => 0,
             OneQuarter => 1,
             Half => 2,

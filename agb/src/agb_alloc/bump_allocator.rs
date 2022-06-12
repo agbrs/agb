@@ -26,13 +26,13 @@ impl BumpAllocator {
 }
 
 impl BumpAllocator {
-    pub fn alloc_critical(&self, layout: Layout, cs: &CriticalSection) -> Option<NonNull<u8>> {
-        let mut current_ptr = self.current_ptr.borrow(*cs).borrow_mut();
+    pub fn alloc_critical(&self, layout: Layout, cs: CriticalSection) -> Option<NonNull<u8>> {
+        let mut current_ptr = self.current_ptr.borrow(cs).borrow_mut();
 
         let ptr = if let Some(c) = *current_ptr {
             c.as_ptr() as usize
         } else {
-            (self.start_end.borrow(*cs).start)()
+            (self.start_end.borrow(cs).start)()
         };
 
         let alignment_bitmask = layout.align() - 1;
@@ -43,7 +43,7 @@ impl BumpAllocator {
         let resulting_ptr = ptr + amount_to_add;
         let new_current_ptr = resulting_ptr + layout.size();
 
-        if new_current_ptr as usize >= (self.start_end.borrow(*cs).end)() {
+        if new_current_ptr as usize >= (self.start_end.borrow(cs).end)() {
             return None;
         }
 

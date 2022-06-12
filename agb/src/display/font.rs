@@ -15,6 +15,7 @@ pub struct FontLetter {
 }
 
 impl FontLetter {
+    #[must_use]
     pub const fn new(
         width: u8,
         height: u8,
@@ -41,6 +42,7 @@ pub struct Font {
 }
 
 impl Font {
+    #[must_use]
     pub const fn new(letters: &'static [FontLetter], line_height: i32, ascent: i32) -> Self {
         Self {
             letters,
@@ -102,7 +104,7 @@ impl<'a> Write for TextRenderer<'a> {
 
             self.render_letter(letter);
 
-            self.current_x_pos += letter.advance_width as i32;
+            self.current_x_pos += i32::from(letter.advance_width);
         }
 
         Ok(())
@@ -119,9 +121,10 @@ impl<'a> TextRenderer<'a> {
         let foreground_colour = self.foreground_colour;
         let background_colour = self.background_colour;
 
-        let x_start = (self.current_x_pos + letter.xmin as i32).max(0);
-        let y_start =
-            self.current_y_pos + self.font.ascent - letter.height as i32 - letter.ymin as i32;
+        let x_start = (self.current_x_pos + i32::from(letter.xmin)).max(0);
+        let y_start = self.current_y_pos + self.font.ascent
+            - i32::from(letter.height)
+            - i32::from(letter.ymin);
 
         let x_tile_start = x_start / 8;
         let y_tile_start = y_start / 8;
@@ -129,20 +132,20 @@ impl<'a> TextRenderer<'a> {
         let letter_offset_x = x_start.rem_euclid(8);
         let letter_offset_y = y_start.rem_euclid(8);
 
-        let x_tiles = div_ceil(letter.width as i32 + letter_offset_x, 8);
-        let y_tiles = div_ceil(letter.height as i32 + letter_offset_y, 8);
+        let x_tiles = div_ceil(i32::from(letter.width) + letter_offset_x, 8);
+        let y_tiles = div_ceil(i32::from(letter.height) + letter_offset_y, 8);
 
         for letter_y_tile in 0..(y_tiles + 1) {
             let letter_y_start = 0.max(letter_offset_y - 8 * letter_y_tile) + 8 * letter_y_tile;
             let letter_y_end =
-                (letter_offset_y + letter.height as i32).min((letter_y_tile + 1) * 8);
+                (letter_offset_y + i32::from(letter.height)).min((letter_y_tile + 1) * 8);
 
             let tile_y = y_tile_start + letter_y_tile;
 
             for letter_x_tile in 0..(x_tiles + 1) {
                 let letter_x_start = 0.max(letter_offset_x - 8 * letter_x_tile) + 8 * letter_x_tile;
                 let letter_x_end =
-                    (letter_offset_x + letter.width as i32).min((letter_x_tile + 1) * 8);
+                    (letter_offset_x + i32::from(letter.width)).min((letter_x_tile + 1) * 8);
 
                 let tile_x = x_tile_start + letter_x_tile;
 
@@ -154,13 +157,13 @@ impl<'a> TextRenderer<'a> {
 
                     for letter_x in letter_x_start..letter_x_end {
                         let x = letter_x - letter_offset_x;
-                        let pos = x + y * letter.width as i32;
+                        let pos = x + y * i32::from(letter.width);
                         let px_line = letter.data[(pos / 8) as usize];
                         let px = (px_line >> (pos & 7)) & 1;
 
                         if px != 0 {
                             masks[(letter_y & 7) as usize] |=
-                                (foreground_colour as u32) << ((letter_x & 7) * 4);
+                                u32::from(foreground_colour) << ((letter_x & 7) * 4);
                             zero = false;
                         }
                     }

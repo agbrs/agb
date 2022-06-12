@@ -105,7 +105,7 @@ impl RegularMap {
 
     pub fn commit(&mut self, vram: &mut VRamManager) {
         let new_bg_control_value = (self.priority as u16)
-            | ((self.screenblock as u16) << 8)
+            | (u16::from(self.screenblock) << 8)
             | (self.size.size_flag() << 14);
 
         self.bg_control_register().set(new_bg_control_value);
@@ -136,6 +136,7 @@ impl RegularMap {
         self.y_scroll = pos.y;
     }
 
+    #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<u16> {
         (self.x_scroll, self.y_scroll).into()
     }

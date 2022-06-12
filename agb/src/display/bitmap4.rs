@@ -18,6 +18,7 @@ const BITMAP_PAGE_BACK_MODE_4: MemoryMapped2DArray<
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
+#[derive(Clone, Copy)]
 pub enum Page {
     Front = 0,
     Back = 1,
@@ -47,9 +48,9 @@ impl Bitmap4 {
 
         let c = addr.get(x_in_screen, y_in_screen);
         if x & 0b1 != 0 {
-            addr.set(x_in_screen, y_in_screen, c | (colour as u16) << 8);
+            addr.set(x_in_screen, y_in_screen, c | u16::from(colour) << 8);
         } else {
-            addr.set(x_in_screen, y_in_screen, c | colour as u16);
+            addr.set(x_in_screen, y_in_screen, c | u16::from(colour));
         }
     }
 
@@ -66,7 +67,7 @@ impl Bitmap4 {
             Page::Back
         };
 
-        self.draw_point_page(x, y, colour, page)
+        self.draw_point_page(x, y, colour, page);
     }
 
     /// Sets the colour of colour index in the background palette.

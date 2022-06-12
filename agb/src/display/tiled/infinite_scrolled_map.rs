@@ -24,6 +24,7 @@ pub enum PartialUpdateStatus {
 }
 
 impl<'a> InfiniteScrolledMap<'a> {
+    #[must_use]
     pub fn new(
         map: MapLoan<'a, RegularMap>,
         tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
@@ -190,8 +191,8 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let current_scroll = self.map.scroll_pos();
         let new_scroll = (
-            size.px_offset_x(current_scroll.x as i32 + difference.x),
-            size.px_offset_y(current_scroll.y as i32 + difference.y),
+            size.px_offset_x(i32::from(current_scroll.x) + difference.x),
+            size.px_offset_y(i32::from(current_scroll.y) + difference.y),
         )
             .into();
 
