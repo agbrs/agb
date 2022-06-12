@@ -150,13 +150,13 @@ agb_arm_func agb_rs__init_buffer
     push {r4-r5}
 
     @ zero registers r3-r5
-    mov r2, #constant_zero
+    ldr r2, =constant_zero
     ldm r2, {r3-r5,r12}
 
 1:
     @ zero 4 words worth of the buffer
-    stmia r0, {r3-r5,r12}
-    subs r1, r1, #16
+    stmia r0!, {r3-r5,r12}
+    subs r1, r1, #(4 * 4)
     @ loop if we haven't zeroed everything
     bne 1b
 
