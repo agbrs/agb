@@ -1,11 +1,13 @@
 use core::cell::RefCell;
+use core::mem;
+use core::mem::MaybeUninit;
 
 use bare_metal::{CriticalSection, Mutex};
 
 use super::hw;
 use super::hw::LeftOrRight;
 use super::{SoundChannel, SoundPriority};
-use crate::syscall::cpu_fast_fill_i8;
+
 use crate::{
     fixnum::Num,
     interrupt::free,
@@ -27,6 +29,8 @@ extern "C" {
     fn agb_rs__mixer_add_stereo(sound_data: *const u8, sound_buffer: *mut Num<i16, 4>);
 
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
+
+    fn agb_rs__init_buffer(buffer: *mut MaybeUninit<Num<i16, 4>>, size_in_bytes: usize);
 }
 
 pub struct Mixer {
@@ -231,8 +235,28 @@ impl MixerBuffer {
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
-        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
-            [Num::new(0); constants::SOUND_BUFFER_SIZE * 2];
+        // This code is equivalent to:
+        // let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
+        //     [Num::new(0); constants::SOUND_BUFFER_SIZE * 2];
+        // but the above uses approximately 7% of the CPU time if running at 32kHz
+        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] = {
+            // Create an uninitialized array of `MaybeUninit`. The `assume_init` is
+            // safe because the type we are claiming to have initialized here is a
+            // bunch of `MaybeUninit`s, which do not require initialization.
+            let mut data: [MaybeUninit<Num<i16, 4>>; constants::SOUND_BUFFER_SIZE * 2] =
+                unsafe { MaybeUninit::uninit().assume_init() };
+
+            // Actually init the array (by filling it with zeros) and then transmute it (which is safe because
+            // we have now zeroed everything)
+            unsafe {
+                agb_rs__init_buffer(
+                    data.as_mut_ptr(),
+                    mem::size_of::<Num<i16, 4>>() * data.len(),
+                );
+
+                mem::transmute(data)
+            }
+        };
 
         for channel in channels {
             if channel.is_done {
@@ -244,9 +268,6 @@ impl MixerBuffer {
             } else {
                 channel.playback_speed
             };
-
-            let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-            let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
             if (channel.pos + playback_speed * constants::SOUND_BUFFER_SIZE).floor()
                 >= channel.data.len()
@@ -268,6 +289,9 @@ impl MixerBuffer {
                     );
                 }
             } else {
+                let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+                let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
                 unsafe {
                     agb_rs__mixer_add(
                         channel.data.as_ptr().add(channel.pos.floor()),
@@ -285,7 +309,6 @@ impl MixerBuffer {
         let write_buffer_index = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
 
         let write_buffer = &mut self.buffers[write_buffer_index].0;
-        cpu_fast_fill_i8(write_buffer, 0);
 
         unsafe {
             agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());

@@ -120,29 +120,6 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-pub(crate) fn cpu_fast_fill_i8(input: &mut [i8], new_content: i32) {
-    assert_eq!(
-        input.len() % (4 * 8),
-        0,
-        "Input length must be divisible by 32"
-    );
-
-    let input_ptr = [new_content].as_ptr();
-    let output_ptr = input.as_mut_ptr();
-    let length_mode = (1 << 24) | // copy
-        (input.len() / 4);
-
-    unsafe {
-        asm!(
-            "swi 0x0c",
-            in("r0") input_ptr,
-            in("r1") output_ptr,
-            in("r2") length_mode,
-            lateout("r3") _,
-        );
-    }
-}
-
 // pub fn affine_matrix(
 //     x_scale: Num<i16, 8>,
 //     y_scale: Num<i16, 8>,
