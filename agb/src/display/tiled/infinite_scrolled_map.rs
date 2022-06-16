@@ -78,6 +78,17 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Initialises the map and fills it, calling the between_updates occasionally to allow you to ensure that
+    /// music keeps playing without interruption.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// background.init(&mut vram, start_position, || {
+    ///     vblank.wait_for_vblank();
+    ///     mixer.frame();
+    /// });
+    /// ```
     pub fn init(
         &mut self,
         vram: &mut VRamManager,
@@ -89,6 +100,23 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Does a partial initialisation of the background, rendering 2 rows.
+    /// This is because initialisation can take quite a while, so you will need to call
+    /// this method a few times to ensure that you update the entire frame.
+    ///
+    /// Returns [`PartialUpdateStatus::Done`] if complete, and [`PartialUpdateStatus::Continue`]
+    /// if you need to call this a few more times to fully update the screen.
+    ///
+    /// It is recommended you use [`.init()`](`InfiniteScrolledMap::init`) instead of this method
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// while background.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
+    ///     vblank.wait_for_vblank();
+    ///     mixer.frame();
+    /// }
+    /// ```
     pub fn init_partial(
         &mut self,
         vram: &mut VRamManager,
@@ -140,6 +168,8 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Set the top left corner of the map. You may need to call this method multiple times if
+    /// [`PartialUpdateStatus::Continue`] is returned.
     pub fn set_pos(
         &mut self,
         vram: &mut VRamManager,
@@ -241,18 +271,23 @@ impl<'a> InfiniteScrolledMap<'a> {
         PartialUpdateStatus::Done
     }
 
+    /// Makes the map visible
     pub fn show(&mut self) {
         self.map.show();
     }
 
+    /// Hides the map
     pub fn hide(&mut self) {
         self.map.hide();
     }
 
+    /// Copies data to vram. Needs to be called during vblank if possible
     pub fn commit(&mut self, vram: &mut VRamManager) {
         self.map.commit(vram);
     }
 
+    /// Clears the underlying map. You must call this before the scrolled map goes out of scope
+    /// or you will leak VRam.
     pub fn clear(&mut self, vram: &mut VRamManager) {
         self.map.clear(vram);
     }
