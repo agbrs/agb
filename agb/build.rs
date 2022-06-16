@@ -11,6 +11,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR environment variable must be specified");
+    let mut o_files = vec![];
 
     for &a in asm.iter() {
         println!("cargo:rerun-if-changed={}", a);
@@ -38,12 +39,29 @@ fn main() {
             "{}",
             String::from_utf8_lossy(&out.stderr)
         );
+
         for warning_line in String::from_utf8_lossy(&out.stderr).split('\n') {
             if !warning_line.is_empty() {
                 println!("cargo:warning={}", warning_line);
             }
         }
+
+        o_files.push(out_file_path);
     }
 
-    println!("cargo:rustc-link-search={}", out_dir);
+    let archive = format!("{out_dir}/agb.a");
+    let ar_out = std::process::Command::new("arm-none-eabi-ar")
+        .arg("-crs")
+        .arg(&archive)
+        .args(&o_files)
+        .output()
+        .expect("Failed to create static library");
+
+    assert!(
+        ar_out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ar_out.stderr)
+    );
+
+    println!("cargo:rustc-link-search={out_dir}");
 }
