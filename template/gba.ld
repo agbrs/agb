@@ -4,6 +4,9 @@ OUTPUT_ARCH(arm)
 ENTRY(__start)
 EXTERN(__RUST_INTERRUPT_HANDLER)
 
+EXTERN(__agbabi_memset)
+EXTERN(__agbabi_memcpy)
+
 MEMORY {
     ewram (w!x) : ORIGIN = 0x02000000, LENGTH = 256K
     iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K
