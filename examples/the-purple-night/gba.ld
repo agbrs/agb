@@ -15,12 +15,9 @@ __text_start = ORIGIN(rom);
 SECTIONS {
     . = __text_start;
 
-    .crt0 : {
-		KEEP (crt0.o(.text));
-		. = ALIGN(4);
-    } > rom
-
     .text : {
+        KEEP(*(.crt0));
+        *(.crt0 .crt0*);
         *(.text .text*);
         . = ALIGN(4);
     } > rom
