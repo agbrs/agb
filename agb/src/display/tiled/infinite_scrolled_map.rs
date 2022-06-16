@@ -7,6 +7,40 @@ use crate::{
     fixnum::{Rect, Vector2D},
 };
 
+/// The infinite scrolled map allows you to create a game space larger than a single GBA background.
+/// The abstraction allows only for static tiles, but it is possible to animate the tiles if needed.
+///
+/// When you create a new infinite scrolled map, you need to provide a background which it will render itself
+/// onto and a function which takes a Vector2D<i32> position and returns which tile should be rendered there.
+///
+/// The passed function should handle being out of bounds, as the scrolled map does buffer around the edges slightly.
+///
+/// Note that nothing is copied to video memory until you call [`.commit()`](`InfiniteScrolledMap::commit`), and you
+/// must call [`.clear()`](`InfiniteScrolledMap::clear`) before dropping the infinite scrolled map or you will leak video RAM.
+///
+/// # Example
+///
+/// ```
+/// let backdrop = InfiniteScrolledMap::new(
+///     background.background(Priority::P2, RegularBackgroundSize::Background32x32),
+///     Box::new(|pos| {
+///         (
+///             &tileset,
+///             TileSetting::from_raw(
+///                 *tilemap::BACKGROUND_MAP
+///                     .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+///                     .unwrap_or(&0),
+///             ),
+///         )
+///     }),
+/// );
+///
+/// // ...
+///
+/// backdrop.set_pos(&mut vram, (3, 5).into());
+/// backdrop.commit(&mut vram);
+/// backdrop.show();
+/// ```
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
     tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
@@ -24,6 +58,12 @@ pub enum PartialUpdateStatus {
 }
 
 impl<'a> InfiniteScrolledMap<'a> {
+    /// Creates a new infinite scrolled map wrapping the provided background using the given function to
+    /// position tiles.
+    ///
+    /// This will not actually render anything until either [`.init()`](`InfiniteScrolledMap::init`) or
+    /// [`.init_partial()`](`InfiniteScrolledMap::init_partial`) is called to set up VRam and this is then
+    /// [`committed`](`InfiniteScrolledMap::commit`).
     #[must_use]
     pub fn new(
         map: MapLoan<'a, RegularMap>,
@@ -38,6 +78,17 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Initialises the map and fills it, calling the between_updates occasionally to allow you to ensure that
+    /// music keeps playing without interruption.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// background.init(&mut vram, start_position, || {
+    ///     vblank.wait_for_vblank();
+    ///     mixer.frame();
+    /// });
+    /// ```
     pub fn init(
         &mut self,
         vram: &mut VRamManager,
@@ -49,6 +100,23 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Does a partial initialisation of the background, rendering 2 rows.
+    /// This is because initialisation can take quite a while, so you will need to call
+    /// this method a few times to ensure that you update the entire frame.
+    ///
+    /// Returns [`PartialUpdateStatus::Done`] if complete, and [`PartialUpdateStatus::Continue`]
+    /// if you need to call this a few more times to fully update the screen.
+    ///
+    /// It is recommended you use [`.init()`](`InfiniteScrolledMap::init`) instead of this method
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// while background.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
+    ///     vblank.wait_for_vblank();
+    ///     mixer.frame();
+    /// }
+    /// ```
     pub fn init_partial(
         &mut self,
         vram: &mut VRamManager,
@@ -100,6 +168,8 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
     }
 
+    /// Set the top left corner of the map. You may need to call this method multiple times if
+    /// [`PartialUpdateStatus::Continue`] is returned.
     pub fn set_pos(
         &mut self,
         vram: &mut VRamManager,
@@ -201,18 +271,23 @@ impl<'a> InfiniteScrolledMap<'a> {
         PartialUpdateStatus::Done
     }
 
+    /// Makes the map visible
     pub fn show(&mut self) {
         self.map.show();
     }
 
+    /// Hides the map
     pub fn hide(&mut self) {
         self.map.hide();
     }
 
+    /// Copies data to vram. Needs to be called during vblank if possible
     pub fn commit(&mut self, vram: &mut VRamManager) {
         self.map.commit(vram);
     }
 
+    /// Clears the underlying map. You must call this before the scrolled map goes out of scope
+    /// or you will leak VRam.
     pub fn clear(&mut self, vram: &mut VRamManager) {
         self.map.clear(vram);
     }
