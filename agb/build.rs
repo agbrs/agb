@@ -1,7 +1,13 @@
 use std::path;
 
 fn main() {
-    let asm = &["crt0.s", "interrupt_handler.s", "src/sound/mixer/mixer.s"];
+    let asm = &[
+        "crt0.s",
+        "interrupt_handler.s",
+        "src/sound/mixer/mixer.s",
+        "src/agbabi/memset.s",
+        "src/agbabi/memcpy.s",
+    ];
 
     println!("cargo:rerun-if-changed=gba.ld");
     println!("cargo:rerun-if-changed=gba_mb.ld");
@@ -50,6 +56,7 @@ fn main() {
     }
 
     let archive = format!("{out_dir}/agb.a");
+    let _ = std::fs::remove_file(&archive);
     let ar_out = std::process::Command::new("arm-none-eabi-ar")
         .arg("-crs")
         .arg(&archive)

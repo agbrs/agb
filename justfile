@@ -50,6 +50,10 @@ build-book:
 update-lockfiles:
     bash .github/scripts/update-lockfiles.sh
 
+update-linker-scripts:
+    find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
+    find -type f -name gba_mb.ld | grep -v ./agb/gba_mb.ld | xargs -n1 cp -v -- agb/gba_mb.ld
+
 _build-rom folder name:
     #!/usr/bin/env bash
     set -euxo pipefail
