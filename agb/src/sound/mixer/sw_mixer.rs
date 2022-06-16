@@ -1,6 +1,5 @@
 use core::cell::RefCell;
-use core::mem;
-use core::mem::MaybeUninit;
+use core::intrinsics::transmute;
 
 use bare_metal::{CriticalSection, Mutex};
 
@@ -29,8 +28,6 @@ extern "C" {
     fn agb_rs__mixer_add_stereo(sound_data: *const u8, sound_buffer: *mut Num<i16, 4>);
 
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
-
-    fn agb_rs__init_buffer(buffer: *mut MaybeUninit<Num<i16, 4>>, size_in_bytes: usize);
 }
 
 pub struct Mixer {
@@ -235,28 +232,8 @@ impl MixerBuffer {
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
-        // This code is equivalent to:
-        // let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
-        //     [Num::new(0); constants::SOUND_BUFFER_SIZE * 2];
-        // but the above uses approximately 7% of the CPU time if running at 32kHz
-        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] = {
-            // Create an uninitialized array of `MaybeUninit`. The `assume_init` is
-            // safe because the type we are claiming to have initialized here is a
-            // bunch of `MaybeUninit`s, which do not require initialization.
-            let mut data: [MaybeUninit<Num<i16, 4>>; constants::SOUND_BUFFER_SIZE * 2] =
-                unsafe { MaybeUninit::uninit().assume_init() };
-
-            // Actually init the array (by filling it with zeros) and then transmute it (which is safe because
-            // we have now zeroed everything)
-            unsafe {
-                agb_rs__init_buffer(
-                    data.as_mut_ptr(),
-                    mem::size_of::<Num<i16, 4>>() * data.len(),
-                );
-
-                mem::transmute(data)
-            }
-        };
+        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
+            unsafe { transmute([0i16; constants::SOUND_BUFFER_SIZE * 2]) };
 
         for channel in channels {
             if channel.is_done {

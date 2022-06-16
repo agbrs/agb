@@ -141,34 +141,6 @@ agb_arm_func agb_rs__mixer_add_stereo
 
 agb_arm_end agb_rs__mixer_add_stereo
 
-.section .iwram
-    .balign 4
-constant_zero:
-.rept 4
-    .word 0
-.endr
-
-agb_arm_func agb_rs__init_buffer
-    @ arguments:
-    @ r0 = target buffer
-    @ r1 = size in bytes (must be a multiple of 16)
-    push {r4-r5}
-
-    @ zero registers r3-r5
-    ldr r2, =constant_zero
-    ldm r2, {r3-r5,r12}
-
-1:
-    @ zero 4 words worth of the buffer
-    stmia r0!, {r3-r5,r12}
-    subs r1, r1, #(4 * 4)
-    @ loop if we haven't zeroed everything
-    bne 1b
-
-    pop {r4-r5}
-    bx lr
-agb_arm_end agb_rs__init_buffer
-
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
