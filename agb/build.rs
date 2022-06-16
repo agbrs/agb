@@ -1,7 +1,13 @@
 use std::path;
 
 fn main() {
-    let asm = &["crt0.s", "interrupt_handler.s", "src/sound/mixer/mixer.s"];
+    let asm = &[
+        "crt0.s",
+        "interrupt_handler.s",
+        "src/sound/mixer/mixer.s",
+        "src/agbabi/memset.s",
+        "src/agbabi/memcpy.s",
+    ];
 
     println!("cargo:rerun-if-changed=gba.ld");
     println!("cargo:rerun-if-changed=gba_mb.ld");
