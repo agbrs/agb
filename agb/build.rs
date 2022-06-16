@@ -50,6 +50,7 @@ fn main() {
     }
 
     let archive = format!("{out_dir}/agb.a");
+    let _ = std::fs::remove_file(&archive);
     let ar_out = std::process::Command::new("arm-none-eabi-ar")
         .arg("-crs")
         .arg(&archive)
