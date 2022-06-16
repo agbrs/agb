@@ -11,18 +11,17 @@ MEMORY {
 
 __text_start = ORIGIN(ewram);
 
+INPUT (agb.a)
+
 SECTIONS {
     . = __text_start;
 
-    .crt0 : {
-		KEEP (crt0.o(.text));
-		. = ALIGN(4);
-    } > ewram
-
     .text : {
+        KEEP(*(.crt0));
+        *(.crt0 .crt0*);
         *(.text .text*);
         . = ALIGN(4);
-    } > ewram
+    } > rom
     __text_end = .;
 
     .rodata : {

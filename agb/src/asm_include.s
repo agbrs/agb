@@ -1,5 +1,5 @@
 .macro agb_arm_func functionName:req
-.section .iwram, "ax", %progbits @ "ax" = allocatable and executable, %progbits = contains data
+.section .iwram
 .arm
 .align 2
 .global \functionName
