@@ -43,9 +43,7 @@ fn main() {
                 println!("cargo:warning={}", warning_line);
             }
         }
-        println!("cargo:rustc-link-arg={}", out_file_path);
     }
 
     println!("cargo:rustc-link-search={}", out_dir);
-    // println!("cargo:rustc-link-arg={}/crt0.o", out_dir);
 }

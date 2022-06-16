@@ -12,8 +12,15 @@ MEMORY {
 
 __text_start = ORIGIN(rom);
 
+INPUT (
+    crt0.o
+    interrupt_handler.o
+    mixer.o
+)
+
 SECTIONS {
     . = __text_start;
+
 
     .text : {
         KEEP(*(.crt0));
