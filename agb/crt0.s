@@ -1,7 +1,8 @@
-.include "src/asm_include.s"
 
     .arm
     .global __start
+    .section .crt0
+    .align
 __start:
     b .Initialise
 
@@ -73,6 +74,3 @@ b .Initialise_mb
 1:
     b 1b
 .pool
-
-.include "interrupt_handler.s"
-.include "src/sound/mixer/mixer.s"
