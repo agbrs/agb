@@ -1,5 +1,5 @@
 .macro agb_arm_func functionName:req
-.section .iwram
+.section .iwram.\functionName, "ax", %progbits
 .arm
 .align 2
 .global \functionName

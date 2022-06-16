@@ -1,6 +1,6 @@
 .include "src/asm_include.s"
 
-.section .iwram
+.section .iwram.buffer_size
     .global agb_rs__buffer_size
     .balign 4
 agb_rs__buffer_size:
@@ -26,7 +26,8 @@ modifications_fallback:
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, agb_rs__buffer_size @ the number of steps left
+    ldr r8, =agb_rs__buffer_size @ the number of steps left
+    ldr r8, [r8]
 
 
 1:
@@ -64,7 +65,8 @@ same_modification:
     bne 1b
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, agb_rs__buffer_size @ the number of steps left
+    ldr r8, =agb_rs__buffer_size @ the number of steps left
+    ldr r8, [r8]
 
 1:
 .rept 4
@@ -99,7 +101,8 @@ agb_arm_func agb_rs__mixer_add_stereo
 
     ldr r5, =0x00000FFF
 
-    ldr r8, agb_rs__buffer_size
+    ldr r8, =agb_rs__buffer_size
+    ldr r8, [r8]
 1:
 .rept 4
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
@@ -184,7 +187,8 @@ SWAP_SIGN .req r11
     ldr CONST_127, =127
     ldr SWAP_SIGN, =0x80808080
 
-    ldr r2, agb_rs__buffer_size @ loop counter
+    ldr r2, =agb_rs__buffer_size @ loop counter
+    ldr r2, [r2]
     mov r4, r2
 
 @ The idea for this solution came from pimpmobile:

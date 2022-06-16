@@ -2,7 +2,7 @@
 @ An interrupt handler that simply acknowledges all interrupts
     .arm
     .global InterruptHandler
-    .section .iwram, "ax"
+    .section .iwram, "ax", %progbits
     .align
 InterruptHandler:
     mov r2, #0x04000000 @ interrupt enable register location
@@ -50,7 +50,7 @@ InterruptHandler:
 .pool
 
 
-.section .iwram
+.section .iwram.program_counter
     .global agb_rs__program_counter
     .balign 4
 agb_rs__program_counter:
