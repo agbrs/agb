@@ -29,11 +29,11 @@ __aeabi_memcpy:
     bmi     .Lcopy1
     bcs     .Lcopy2
 
-    // If the number of bytes to copy is less than 4, we should just copy one byte at a time
-    cmp     r2, #4
-    bmi     .Lcopy1
-
 .Lcopy4:
+    // Handle <= 2 byte copies byte-by-byte
+    cmp     r2, #2
+    ble     .Lcopy1
+
     // Copy half and byte head
     rsb     r3, r0, #4
     movs    r3, r3, lsl #31
