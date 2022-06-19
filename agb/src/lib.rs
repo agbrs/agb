@@ -157,6 +157,7 @@ pub use agb_sound_converter::include_wav;
 extern crate alloc;
 mod agb_alloc;
 
+mod agbabi;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
