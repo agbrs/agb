@@ -807,6 +807,9 @@ fn main(mut agb: agb::Gba) -> ! {
     );
 
     loop {
+        world_display.commit(&mut vram);
+        world_display.show();
+
         vram.set_background_palettes(tile_sheet::background.palettes);
 
         let object = agb.display.object.get();
