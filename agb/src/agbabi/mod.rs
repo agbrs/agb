@@ -1,5 +1,42 @@
 #[cfg(test)]
 mod test {
+    mod memset {
+        use crate::Gba;
+        use alloc::vec;
+
+        extern "C" {
+            fn __aeabi_memset(dest: *mut u8, n: usize, v: u8);
+            fn __aeabi_memset4(dest: *mut u8, n: usize, v: u8);
+        }
+
+        #[test_case]
+        fn test_memset_with_different_sizes(_gba: &mut Gba) {
+            let mut values = vec![0u8; 100];
+
+            let v = 0x12;
+
+            for n in 0..80 {
+                values.fill(0xFF);
+
+                unsafe {
+                    __aeabi_memset4(values.as_mut_ptr().wrapping_offset(10), n, v);
+                }
+
+                for (i, &v) in values.iter().enumerate().take(10) {
+                    assert_eq!(v, 0xFF, "underrun at {}", i);
+                }
+
+                for i in 0..n {
+                    assert_eq!(values[10 + i], v, "incorrect value at {}", i + 10);
+                }
+
+                for (i, &v) in values.iter().enumerate().skip(10 + n) {
+                    assert_eq!(v, 0xFF, "overrun at {}", i);
+                }
+            }
+        }
+    }
+
     mod memcpy {
         use alloc::vec;
 
