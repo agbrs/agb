@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod test {
     mod memset {
+        use core::slice;
+
         use crate::Gba;
         use alloc::vec;
 
         extern "C" {
             fn __agbabi_memset(dest: *mut u8, n: usize, v: u8);
-            fn __aeabi_memset4(dest: *mut u8, n: usize, v: u8);
+            fn __aeabi_memset4(dest: *mut u32, n: usize, v: u8);
         }
 
         #[test_case]
@@ -35,6 +37,70 @@ mod test {
                     }
 
                     for (i, &v) in values.iter().enumerate().skip(o + n) {
+                        assert_eq!(v, 0xFF, "overrun at {i}, offset {o}, size {n}");
+                    }
+                }
+            }
+        }
+
+        #[test_case]
+        fn test_memset4_with_different_sizes_and_offsets(_gba: &mut Gba) {
+            let mut values = vec![0u32; 100];
+
+            let stored_value = 0x12;
+
+            for n in 0..80 {
+                for o in 0..10 {
+                    values.fill(0xFF);
+
+                    unsafe {
+                        __aeabi_memset4(values.as_mut_ptr().add(o), n * 4, stored_value);
+                    }
+
+                    for (i, &v) in values.iter().enumerate().take(o) {
+                        assert_eq!(v, 0xFF, "underrun at {i}, offset {o}, size {n}");
+                    }
+
+                    for (i, &v) in values.iter().enumerate().skip(o).take(n) {
+                        assert_eq!(
+                            v, 0x12121212,
+                            "incorrect value at {i}, offset {o}, size {n}"
+                        );
+                    }
+
+                    for (i, &v) in values.iter().enumerate().skip(o + n) {
+                        assert_eq!(v, 0xFF, "overrun at {i}, offset {o}, size {n}");
+                    }
+                }
+            }
+        }
+
+        #[test_case]
+        fn test_memset4_with_non_word_size_sizes_and_offsets(_gba: &mut Gba) {
+            let mut values = vec![0u32; 100];
+
+            let stored_value = 0x12;
+
+            for n in 0..80 {
+                for o in 0..10 {
+                    values.fill(0xFFFFFFFF);
+
+                    unsafe {
+                        __aeabi_memset4(values.as_mut_ptr().add(o), n, stored_value);
+                    }
+
+                    let values_bytes: &[u8] =
+                        unsafe { slice::from_raw_parts(values.as_ptr().cast(), values.len() * 4) };
+
+                    for (i, &v) in values_bytes.iter().enumerate().take(o * 4) {
+                        assert_eq!(v, 0xFF, "underrun at {i}, offset {o}, size {n}");
+                    }
+
+                    for (i, &v) in values_bytes.iter().enumerate().skip(o * 4).take(n) {
+                        assert_eq!(v, 0x12, "incorrect value at {i}, offset {o}, size {n}");
+                    }
+
+                    for (i, &v) in values_bytes.iter().enumerate().skip(o * 4 + n) {
                         assert_eq!(v, 0xFF, "overrun at {i}, offset {o}, size {n}");
                     }
                 }
