@@ -22,6 +22,10 @@
 __agbabi_memcpy:
     .global __aeabi_memcpy
 __aeabi_memcpy:
+    // Handle <= 2 byte copies byte-by-byte
+    cmp     r2, #2
+    ble     .Lcopy1
+
     // Check pointer alignment
     eor     r3, r1, r0
     // JoaoBapt carry & sign bit test
@@ -30,9 +34,6 @@ __aeabi_memcpy:
     bcs     .Lcopy2
 
 .Lcopy4:
-    // Handle <= 2 byte copies byte-by-byte
-    cmp     r2, #2
-    ble     .Lcopy1
 
     // Copy half and byte head
     rsb     r3, r0, #4
