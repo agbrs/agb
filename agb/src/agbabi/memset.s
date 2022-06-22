@@ -19,13 +19,13 @@
     .balign 4
 
     .section .iwram.__aeabi_memset, "ax", %progbits
-    .global __agbabi_memset
-__agbabi_memset:
     .global __aeabi_memclr
 __aeabi_memclr:
     mov     r2, #0
     b       .LskipShifts
 
+    .global __agbabi_memset
+__agbabi_memset:
     .global __aeabi_memset
 __aeabi_memset:
     mov     r2, r2, lsl #24

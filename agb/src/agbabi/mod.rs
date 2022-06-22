@@ -5,33 +5,38 @@ mod test {
         use alloc::vec;
 
         extern "C" {
-            fn __aeabi_memset(dest: *mut u8, n: usize, v: u8);
+            fn __agbabi_memset(dest: *mut u8, n: usize, v: u8);
             fn __aeabi_memset4(dest: *mut u8, n: usize, v: u8);
         }
 
         #[test_case]
-        fn test_memset_with_different_sizes(_gba: &mut Gba) {
+        fn test_memset_with_different_sizes_and_offsets(_gba: &mut Gba) {
             let mut values = vec![0u8; 100];
 
-            let v = 0x12;
+            let stored_value = 0x12;
 
             for n in 0..80 {
-                values.fill(0xFF);
+                for o in 0..10 {
+                    values.fill(0xFF);
 
-                unsafe {
-                    __aeabi_memset4(values.as_mut_ptr().wrapping_offset(10), n, v);
-                }
+                    unsafe {
+                        __agbabi_memset(values.as_mut_ptr().add(o), n, stored_value);
+                    }
 
-                for (i, &v) in values.iter().enumerate().take(10) {
-                    assert_eq!(v, 0xFF, "underrun at {}", i);
-                }
+                    for (i, &v) in values.iter().enumerate().take(o) {
+                        assert_eq!(v, 0xFF, "underrun at {i}, offset {o}, size {n}");
+                    }
 
-                for i in 0..n {
-                    assert_eq!(values[10 + i], v, "incorrect value at {}", i + 10);
-                }
+                    for (i, &v) in values.iter().enumerate().skip(o).take(n) {
+                        assert_eq!(
+                            v, stored_value,
+                            "incorrect value at {i}, offset {o}, size {n}"
+                        );
+                    }
 
-                for (i, &v) in values.iter().enumerate().skip(10 + n) {
-                    assert_eq!(v, 0xFF, "overrun at {}", i);
+                    for (i, &v) in values.iter().enumerate().skip(o + n) {
+                        assert_eq!(v, 0xFF, "overrun at {i}, offset {o}, size {n}");
+                    }
                 }
             }
         }
