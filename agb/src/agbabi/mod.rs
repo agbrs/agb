@@ -188,8 +188,8 @@ mod test {
             let mut output = vec![0u32; 100];
 
             for size in 0..80 {
-                for offset_input in 0..10 {
-                    for offset_output in 0..10 {
+                for offset_input in 0..8 {
+                    for offset_output in 0..8 {
                         // initialise the buffers
                         for (i, value) in input.iter_mut().enumerate() {
                             *value = i as u32;
@@ -224,8 +224,8 @@ mod test {
             let mut output = vec![0u32; 100];
 
             for size in 0..40 {
-                for offset_input in 0..10 {
-                    for offset_output in 0..10 {
+                for offset_input in 0..8 {
+                    for offset_output in 0..8 {
                         // initialise the buffers
                         for (i, value) in input.iter_mut().enumerate() {
                             *value = i as u32;
