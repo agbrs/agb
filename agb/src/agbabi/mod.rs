@@ -145,115 +145,37 @@ mod test {
         }
 
         #[test_case]
-        fn test_memcpy_bytes_with_different_sizes(_gba: &mut Gba) {
-            let mut input = vec![0u8; 70];
-            let mut output = vec![0u8; 70];
+        fn test_all_of_memcpy(_gba: &mut Gba) {
+            let mut input = vec![0u8; 100];
+            let mut output = vec![0u8; 100];
 
-            for size in 0..68 {
-                for (i, value) in input.iter_mut().enumerate() {
-                    *value = i as u8 * 3;
-                }
+            for size in 0..80 {
+                for offset_input in 0..10 {
+                    for offset_output in 0..10 {
+                        // initialise the buffers
+                        for (i, value) in input.iter_mut().enumerate() {
+                            *value = i as u8;
+                            output[i] = 0;
+                        }
 
-                output.fill(0);
+                        unsafe {
+                            __agbabi_memcpy(
+                                output.as_mut_ptr().add(offset_output),
+                                input.as_ptr().add(offset_input),
+                                size,
+                            );
+                        }
 
-                unsafe {
-                    __agbabi_memcpy(output.as_mut_ptr(), input.as_ptr(), size);
-                }
-
-                for i in 0..size {
-                    assert_eq!(input[i], output[i], "Failed with size = {size} at i = {i}");
-                }
-
-                for (i, value) in output.iter().enumerate().skip(size) {
-                    assert_eq!(*value, 0, "overrun with size = {size} at i = {i}");
-                }
-            }
-        }
-
-        #[test_case]
-        fn test_memcpy_bytes_output_offsetted_with_different_sizes(_gba: &mut Gba) {
-            let mut input = vec![0u8; 70];
-            let mut output = vec![0u8; 70];
-
-            for size in 0..60 {
-                for (i, value) in input.iter_mut().enumerate() {
-                    *value = i as u8 * 3;
-                }
-
-                output.fill(0);
-
-                unsafe {
-                    __agbabi_memcpy(output.as_mut_ptr().add(1), input.as_ptr(), size);
-                }
-
-                for i in 0..size {
-                    assert_eq!(
-                        input[i],
-                        output[i + 1],
-                        "Failed with size = {size} at i = {i}"
-                    );
-                }
-
-                for (i, value) in output.iter().enumerate().skip(size + 1) {
-                    assert_eq!(*value, 0, "overrun with size = {size} at i = {i}");
-                }
-            }
-        }
-
-        #[test_case]
-        fn test_memcpy_bytes_input_offsetted_with_different_sizes(_gba: &mut Gba) {
-            let mut input = vec![0u8; 70];
-            let mut output = vec![0u8; 70];
-
-            for size in 0..60 {
-                for (i, value) in input.iter_mut().enumerate() {
-                    *value = i as u8 * 3;
-                }
-
-                output.fill(0);
-
-                unsafe {
-                    __agbabi_memcpy(output.as_mut_ptr(), input.as_ptr().add(1), size);
-                }
-
-                for i in 0..size {
-                    assert_eq!(
-                        input[i + 1],
-                        output[i],
-                        "Failed with size = {size} at i = {i}"
-                    );
-                }
-
-                for (i, value) in output.iter().enumerate().skip(size) {
-                    assert_eq!(*value, 0, "overrun with size = {size} at i = {i}");
-                }
-            }
-        }
-
-        #[test_case]
-        fn test_memcpy_bytes_input_output_offsetted_with_different_sizes(_gba: &mut Gba) {
-            let mut input = vec![0u8; 70];
-            let mut output = vec![0u8; 70];
-
-            for size in 0..60 {
-                for (i, value) in input.iter_mut().enumerate() {
-                    *value = i as u8 * 3;
-                }
-
-                output.fill(0);
-
-                unsafe {
-                    __agbabi_memcpy(output.as_mut_ptr().add(1), input.as_ptr().add(1), size);
-                }
-
-                assert_eq!(output[0], 0);
-
-                for i in 1..size + 1 {
-                    assert_eq!(input[i], output[i], "Failed with size = {size} at i = {i}");
-                }
-
-                for (i, value) in output.iter().enumerate().skip(size + 1) {
-                    assert_eq!(*value, 0, "overrun with size = {size} at i = {i}");
+                        for (i, &v) in output.iter().enumerate() {
+                            if i < offset_output {
+                                assert_eq!(v, 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else if i < offset_output + size {
+                                assert_eq!(v, (i - offset_output + offset_input) as u8, "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else {
+                                assert_eq!(v, 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            }
+                        }
+                    }
                 }
             }
         }
