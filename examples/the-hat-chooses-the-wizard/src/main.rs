@@ -503,6 +503,22 @@ impl<'a> Player<'a> {
             _ => (0, 8).into(),
         };
 
+        match self.facing {
+            agb::input::Tri::Negative => {
+                self.wizard.sprite.set_hflip(true);
+                self.hat
+                    .sprite
+                    .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
+            }
+            agb::input::Tri::Positive => {
+                self.wizard.sprite.set_hflip(false);
+                self.hat
+                    .sprite
+                    .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
+            }
+            _ => {}
+        }
+
         match self.hat_state {
             HatState::Thrown => {
                 // hat is thrown, make hat move towards wizard
@@ -554,21 +570,6 @@ impl<'a> Player<'a> {
                 self.hat_slow_counter = 0;
                 self.hat_left_range = false;
                 self.hat.position = self.wizard.position - hat_resting_position;
-                match self.facing {
-                    agb::input::Tri::Negative => {
-                        self.wizard.sprite.set_hflip(true);
-                        self.hat
-                            .sprite
-                            .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
-                    }
-                    agb::input::Tri::Positive => {
-                        self.wizard.sprite.set_hflip(false);
-                        self.hat
-                            .sprite
-                            .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
-                    }
-                    _ => {}
-                }
             }
             HatState::WizardTowards => {
                 self.hat.sprite.set_sprite(
@@ -806,6 +807,9 @@ fn main(mut agb: agb::Gba) -> ! {
     );
 
     loop {
+        world_display.commit(&mut vram);
+        world_display.show();
+
         vram.set_background_palettes(tile_sheet::background.palettes);
 
         let object = agb.display.object.get();
