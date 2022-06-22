@@ -109,6 +109,8 @@ mod test {
     }
 
     mod memcpy {
+        use core::slice;
+
         use alloc::vec;
 
         use crate::Gba;
@@ -173,6 +175,85 @@ mod test {
                                 assert_eq!(v, (i - offset_output + offset_input) as u8, "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
                             } else {
                                 assert_eq!(v, 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[test_case]
+        fn test_all_of_memcpy4(_gba: &mut Gba) {
+            let mut input = vec![0u32; 100];
+            let mut output = vec![0u32; 100];
+
+            for size in 0..80 {
+                for offset_input in 0..10 {
+                    for offset_output in 0..10 {
+                        // initialise the buffers
+                        for (i, value) in input.iter_mut().enumerate() {
+                            *value = i as u32;
+                            output[i] = 0;
+                        }
+
+                        unsafe {
+                            __aeabi_memcpy4(
+                                output.as_mut_ptr().add(offset_output),
+                                input.as_ptr().add(offset_input),
+                                size * 4,
+                            );
+                        }
+
+                        for (i, &v) in output.iter().enumerate() {
+                            if i < offset_output {
+                                assert_eq!(v, 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else if i < offset_output + size {
+                                assert_eq!(v, (i - offset_output + offset_input) as u32, "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else {
+                                assert_eq!(v, 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[test_case]
+        fn test_all_of_memcpy4_non_word_length(_gba: &mut Gba) {
+            let mut input = vec![0u32; 100];
+            let mut output = vec![0u32; 100];
+
+            for size in 0..40 {
+                for offset_input in 0..10 {
+                    for offset_output in 0..10 {
+                        // initialise the buffers
+                        for (i, value) in input.iter_mut().enumerate() {
+                            *value = i as u32;
+                            output[i] = 0;
+                        }
+
+                        unsafe {
+                            __aeabi_memcpy4(
+                                output.as_mut_ptr().add(offset_output),
+                                input.as_ptr().add(offset_input),
+                                size * 4,
+                            );
+                        }
+
+                        let input_bytes: &[u8] = unsafe {
+                            slice::from_raw_parts(input.as_ptr().cast(), input.len() * 4)
+                        };
+                        let output_bytes: &[u8] = unsafe {
+                            slice::from_raw_parts(output.as_ptr().cast(), output.len() * 4)
+                        };
+
+                        for i in 0..input_bytes.len() {
+                            if i < offset_output * 4 {
+                                assert_eq!(output_bytes[i], 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else if i < offset_output * 4 + size * 4 {
+                                assert_eq!(output_bytes[i], input_bytes[i - offset_output * 4 + offset_input * 4], "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                            } else {
+                                assert_eq!(output_bytes[i], 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
                             }
                         }
                     }
