@@ -16,7 +16,7 @@
 */
 
     .arm
-    .balign 4
+    .align 2
 
     .section .iwram.__aeabi_memset, "ax", %progbits
     .global __aeabi_memclr
@@ -37,6 +37,7 @@ __aeabi_memset:
     // Handle <= 2 byte set byte-by-byte
     cmp     r1, #2
     bgt     .LskipShortHead
+    // JoaoBapt carry & sign bit test
     movs    r1, r1, lsl #31
     // Set byte and half
     strmib  r2, [r0], #1
@@ -45,8 +46,8 @@ __aeabi_memset:
     bx      lr
 
 .LskipShortHead:
-    // JoaoBapt carry & sign bit test
     rsb     r3, r0, #4
+    // JoaoBapt carry & sign bit test
     movs    r3, r3, lsl #31
     // Set half and byte head
     strmib  r2, [r0], #1
@@ -101,6 +102,7 @@ __agbabi_wordset4:
     bhs     .LsetWords
 
     // Set half and byte tail
+    // JoaoBapt carry & sign bit test
     movs    r3, r1, lsl #31
     strcsh  r2, [r0], #2
     strmib  r2, [r0]
