@@ -42,7 +42,7 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
     })
 };
 
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 pub unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }

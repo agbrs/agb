@@ -1,9 +1,15 @@
 #![no_std]
 // This appears to be needed for testing to work
-#![cfg_attr(test, no_main)]
-#![cfg_attr(test, feature(custom_test_frameworks))]
-#![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
-#![cfg_attr(test, reexport_test_harness_main = "test_main")]
+#![cfg_attr(any(test, feature = "testing"), no_main)]
+#![cfg_attr(any(test, feature = "testing"), feature(custom_test_frameworks))]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    test_runner(crate::test_runner::test_runner)
+)]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    reexport_test_harness_main = "test_main"
+)]
 #![feature(alloc_error_handler)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
@@ -183,7 +189,7 @@ pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 
-#[cfg(not(test))]
+#[cfg(not(any(test, feature = "testing")))]
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
@@ -249,8 +255,9 @@ impl Gba {
     }
 }
 
-#[cfg(test)]
-mod test_runner {
+#[cfg(any(test, feature = "testing"))]
+#[doc(hidden)]
+pub mod test_runner {
     use super::*;
 
     #[doc(hidden)]
@@ -320,8 +327,13 @@ mod test_runner {
         .unwrap();
     }
 
+    #[cfg(test)]
     #[entry]
     fn agb_test_main(gba: Gba) -> ! {
+        agb_start_tests(gba, test_main);
+    }
+
+    pub fn agb_start_tests(gba: Gba, test_main: impl Fn()) -> ! {
         unsafe { TEST_GBA = Some(gba) };
         test_main();
         #[allow(clippy::empty_loop)]
