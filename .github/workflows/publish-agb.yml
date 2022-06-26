@@ -49,7 +49,7 @@ jobs:
       - name: Build the book
         run: just build-book
       - name: Deploy the book
-        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        uses: JamesIves/github-pages-deploy-action@v4.3.4
         with:
           branch: gh-pages
           folder: book/book
