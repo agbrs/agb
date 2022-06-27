@@ -256,7 +256,45 @@ impl Gba {
 }
 
 #[cfg(any(test, feature = "testing"))]
-#[doc(hidden)]
+/// *Unstable* support for running tests using `agb`
+///
+/// In order to use this, you need to enable the unstable `custom_test_framework` feature and copy-paste
+/// the following into the top of your application:
+///
+/// ```
+/// #![cfg_attr(test, feature(custom_test_frameworks))]
+/// #![cfg_attr(test, reexport_test_harness_main = "test_main")]
+/// #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
+///
+/// #[cfg(test)]
+/// #[agb::entry]
+/// fn main(mut gba: agb::Gba) -> ! {
+///     agb::test_runner::agb_start_tests(gba, test_main);
+/// }
+/// ```
+///
+/// And ensure that your main does not build if testing, so do something similar to:
+///
+/// ```
+/// #[cfg(not(test))]
+/// #[agb::entry]
+/// fn main(mut gba: agb::Gba) -> ! {
+///     // ...
+/// }
+/// ```
+///
+/// With this support, you will be able to write tests which you can run using `mgba-test-runner`.
+/// Tests are written using `#[test_case]` rather than `#[test]`.
+///
+/// ```
+/// #[test_case]
+/// fn test_ping_pong(_gba: &mut Gba) {
+///     assert_eq!(1, 1);
+/// }
+/// ```
+///
+/// You can run the tests using `cargo test`, but it will work better through `mgba-test-runner` by
+/// running something along the lines of `CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test`.
 pub mod test_runner {
     use super::*;
 
