@@ -18,9 +18,9 @@ jobs:
           fetch-depth: 0
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATE_API }}
-      - name: Publish agb
-        run: cargo publish
-        working-directory: ./agb
+
+      - name: Publish crates
+        run: bash .github/scripts/publish-crate.sh
 
       - name: Update template repo
         env:
