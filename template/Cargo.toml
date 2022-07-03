@@ -9,6 +9,9 @@ edition = "2018"
 [dependencies]
 agb = "0.9.2"
 
+[dev-dependencies]
+agb = { version = "0.9.2", features = ["testing"] }
+
 [profile.release]
 panic = "abort"
 lto = true
