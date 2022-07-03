@@ -54,18 +54,15 @@ for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml; do
 
     # Also update the lock file
     (cd "$DIRECTORY" && cargo update)
-    maybe_git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock" || echo "Failed to git add a file, continuing anyway"
 
     if [ "$DIRECTORY" = "agb" ]; then
         # also update the agb version in the template and the examples
         sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
-        maybe_git add template/Cargo.toml
 
         for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
             EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
             sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
             (cd "$EXAMPLE_DIR" && cargo update)
-            maybe_git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock} || echo "Failed to git add a file, continuing anyway"
         done
     else
         PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$DIRECTORY" | tr - _)
@@ -73,16 +70,12 @@ for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml; do
         for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do
             sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
             (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
-
-            maybe_git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}" || echo "Failed to git add a file, continuing anyway"
         done
     fi
 done
 
 # Sanity check to make sure the build works
-for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
-    (cd "$(dirname "$CARGO_TOML_FILE")" && cargo test)
-done
+just ci
 
 for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
     EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
@@ -90,7 +83,7 @@ for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
 done
 
 # Commit the Cargo.toml changes
-maybe_git commit -m "Release v$VERSION"
+maybe_git commit -am "Release v$VERSION"
 
 # Tag the version
 maybe_git tag -a "$TAGNAME" -m "v$VERSION"
