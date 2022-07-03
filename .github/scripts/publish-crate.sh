@@ -2,7 +2,11 @@
 
 set -e # Fail if any command fails
 
-RELEASE_TAG=$(git tag --points-at HEAD)
+PROJECTS_TO_RELEASE_IN_ORDER="agb-fixnum agb-macros agb-image-converter agb-sound-converter agb"
 
-PROJECT=${RELEASE_TAG/\/*/}
-(cd "$PROJECT" && cargo publish)
+for PROJECT in $PROJECTS_TO_RELEASE_IN_ORDER; do
+   pushd "$PROJECT"
+   echo "Publishing $PROJECT"
+   cargo publish
+   popd
+done
