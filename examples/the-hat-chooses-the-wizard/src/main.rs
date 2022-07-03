@@ -4,12 +4,6 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-#[cfg(test)]
-#[agb::entry]
-fn main(mut gba: agb::Gba) -> ! {
-    agb::test_runner::agb_start_tests(gba, test_main);
-}
-
 extern crate alloc;
 
 use agb::{

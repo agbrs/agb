@@ -265,22 +265,12 @@ impl Gba {
 /// #![cfg_attr(test, feature(custom_test_frameworks))]
 /// #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 /// #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
-///
-/// #[cfg(test)]
-/// #[agb::entry]
-/// fn main(mut gba: agb::Gba) -> ! {
-///     agb::test_runner::agb_start_tests(gba, test_main);
-/// }
 /// ```
 ///
-/// And ensure that your main does not build if testing, so do something similar to:
-///
-/// ```
-/// #[cfg(not(test))]
-/// #[agb::entry]
-/// fn main(mut gba: agb::Gba) -> ! {
-///     // ...
-/// }
+/// And ensure you add agb with the `testing` feature to your `dev-dependencies`
+/// ```toml
+/// [dev-dependencies]
+/// agb = { version = "<same as in dependencies>", features = ["testing"] }
 /// ```
 ///
 /// With this support, you will be able to write tests which you can run using `mgba-test-runner`.
@@ -363,6 +353,13 @@ pub mod test_runner {
             mgba::DebugLevel::Info,
         )
         .unwrap();
+    }
+
+    // needed to fudge the #[entry] below
+    mod agb {
+        pub mod test_runner {
+            pub use super::super::agb_start_tests;
+        }
     }
 
     #[cfg(test)]
