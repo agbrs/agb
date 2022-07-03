@@ -33,7 +33,7 @@ function maybe_git() {
 }
 
 # Check that no out-standing changes in git
-if [ ! "$NO_COMMIT" = "" ] && [ -n "$(git status --porcelain)" ]; then
+if [ "$NO_COMMIT" = "" ] && [ -n "$(git status --porcelain)" ]; then
     echo "Uncommitted changes, please commit first"
     exit 1
 fi
