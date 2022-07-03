@@ -369,6 +369,7 @@ pub mod test_runner {
         loop {} // full implementation provided by the #[entry]
     }
 
+    #[doc(hidden)]
     pub fn agb_start_tests(gba: Gba, test_main: impl Fn()) -> ! {
         unsafe { TEST_GBA = Some(gba) };
         test_main();
