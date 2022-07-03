@@ -46,7 +46,7 @@ fi
 
 TAGNAME="v$VERSION"
 
-for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml; do
+for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml template/Cargo.toml; do
     DIRECTORY=$(dirname "$PROJECT_TOML_FILE")
 
     # Update the version in Cargo.toml
