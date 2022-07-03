@@ -365,7 +365,8 @@ pub mod test_runner {
     #[cfg(test)]
     #[entry]
     fn agb_test_main(gba: Gba) -> ! {
-        agb_start_tests(gba, test_main);
+        #[allow(clippy::empty_loop)]
+        loop {} // full implementation provided by the #[entry]
     }
 
     pub fn agb_start_tests(gba: Gba, test_main: impl Fn()) -> ! {
