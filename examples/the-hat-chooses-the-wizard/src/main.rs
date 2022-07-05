@@ -778,7 +778,6 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
     }
 }
 
-#[cfg(not(test))]
 #[agb::entry]
 fn agb_main(mut gba: agb::Gba) -> ! {
     main(gba);
