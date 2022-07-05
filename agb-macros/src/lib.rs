@@ -92,7 +92,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
             let mut #argument_name = unsafe { #argument_type ::new_in_entry() };
 
             if cfg!(test) {
-                agb::test_runner::agb_start_tests(#argument_name, test_main);
+                ::agb::test_runner::agb_start_tests(#argument_name, test_main);
             } else {
                 #(#stmts)*
             }
