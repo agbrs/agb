@@ -20,9 +20,38 @@ use crate::{
 ///
 /// # Example
 ///
-/// ```
-/// let backdrop = InfiniteScrolledMap::new(
-///     background.background(Priority::P2, RegularBackgroundSize::Background32x32),
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// extern crate alloc;
+///
+/// use alloc::boxed::Box;
+///
+/// use agb::display::tiled::{
+///     InfiniteScrolledMap,
+///     TileSetting,
+///     RegularBackgroundSize,
+///     TileSet,
+///     TileFormat,
+/// };
+/// use agb::display::Priority;
+///
+/// mod tilemap {
+///    pub const BACKGROUND_MAP: &[u16] = &[ // Probably load this from a file
+/// # 0, 1, 2];
+///    pub const WIDTH: i32 = // set it to some width
+/// # 12;
+///    pub const MAP_TILES: &[u8] = &[ // probably load this from a file
+/// # 0];
+/// }
+///
+/// # fn foo(mut gba: agb::Gba) {
+/// let (gfx, mut vram) = gba.display.video.tiled0();
+///
+/// let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+///
+/// let mut backdrop = InfiniteScrolledMap::new(
+///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
 ///     Box::new(|pos| {
 ///         (
 ///             &tileset,
@@ -40,6 +69,7 @@ use crate::{
 /// backdrop.set_pos(&mut vram, (3, 5).into());
 /// backdrop.commit(&mut vram);
 /// backdrop.show();
+/// # }
 /// ```
 pub struct InfiniteScrolledMap<'a> {
     map: MapLoan<'a, RegularMap>,
@@ -83,11 +113,57 @@ impl<'a> InfiniteScrolledMap<'a> {
     ///
     /// # Example
     ///
-    /// ```
-    /// background.init(&mut vram, start_position, || {
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # extern crate alloc;
+    /// #
+    /// # use alloc::boxed::Box;
+    /// #
+    /// # use agb::display::tiled::{
+    /// #    InfiniteScrolledMap,
+    /// #    TileSetting,
+    /// #    RegularBackgroundSize,
+    /// #    TileSet,
+    /// #    TileFormat,
+    /// # };
+    /// # use agb::display::Priority;
+    /// #
+    /// # mod tilemap {
+    /// #   pub const BACKGROUND_MAP: &[u16] = &[0, 1, 2];
+    /// #   pub const WIDTH: i32 = 12;
+    /// #   pub const MAP_TILES: &[u8] = &[0];
+    /// # }
+    /// #
+    /// # fn foo(mut gba: agb::Gba) {
+    /// # let (gfx, mut vram) = gba.display.video.tiled0();
+    /// #
+    /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+    /// #
+    /// # let mut backdrop = InfiniteScrolledMap::new(
+    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
+    /// #    Box::new(|pos| {
+    /// #        (
+    /// #            &tileset,
+    /// #            TileSetting::from_raw(
+    /// #                *tilemap::BACKGROUND_MAP
+    /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+    /// #                     .unwrap_or(&0),
+    /// #            ),
+    /// #        )
+    /// #    }),
+    /// # );
+    /// #
+    /// # let vblank = agb::interrupt::VBlank::get();
+    /// # let mut mixer = gba.mixer.mixer();
+    /// let start_position = agb::fixnum::Vector2D::new(10, 10);
+    /// backdrop.init(&mut vram, start_position, &mut || {
     ///     vblank.wait_for_vblank();
     ///     mixer.frame();
     /// });
+    /// # }
     /// ```
     pub fn init(
         &mut self,
@@ -111,11 +187,58 @@ impl<'a> InfiniteScrolledMap<'a> {
     ///
     /// # Example
     ///
-    /// ```
-    /// while background.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # extern crate alloc;
+    /// #
+    /// # use alloc::boxed::Box;
+    /// #
+    /// # use agb::display::tiled::{
+    /// #    InfiniteScrolledMap,
+    /// #    TileSetting,
+    /// #    RegularBackgroundSize,
+    /// #    TileSet,
+    /// #    TileFormat,
+    /// #    PartialUpdateStatus,
+    /// # };
+    /// # use agb::display::Priority;
+    /// #
+    /// # mod tilemap {
+    /// #   pub const BACKGROUND_MAP: &[u16] = &[0, 1, 2];
+    /// #   pub const WIDTH: i32 = 12;
+    /// #   pub const MAP_TILES: &[u8] = &[0];
+    /// # }
+    /// #
+    /// # fn foo(mut gba: agb::Gba) {
+    /// # let (gfx, mut vram) = gba.display.video.tiled0();
+    /// #
+    /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+    /// #
+    /// # let mut backdrop = InfiniteScrolledMap::new(
+    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
+    /// #    Box::new(|pos| {
+    /// #        (
+    /// #            &tileset,
+    /// #            TileSetting::from_raw(
+    /// #                *tilemap::BACKGROUND_MAP
+    /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+    /// #                     .unwrap_or(&0),
+    /// #            ),
+    /// #        )
+    /// #    }),
+    /// # );
+    /// #
+    /// # let vblank = agb::interrupt::VBlank::get();
+    /// # let mut mixer = gba.mixer.mixer();
+    /// let start_position = agb::fixnum::Vector2D::new(10, 10);
+    /// while backdrop.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
     ///     vblank.wait_for_vblank();
     ///     mixer.frame();
     /// }
+    /// # }
     /// ```
     pub fn init_partial(
         &mut self,

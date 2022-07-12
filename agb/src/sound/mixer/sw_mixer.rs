@@ -36,15 +36,28 @@ extern "C" {
 /// You should not create this struct directly, instead creating it through the [`Gba`](crate::Gba)
 /// struct as follows:
 ///
-/// ```
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::sound::mixer::*;
+/// # use agb::*;
+/// # fn foo(gba: &mut Gba) {
 /// let mut mixer = gba.mixer.mixer();
+/// # }
 /// ```
 ///
 /// # Example
 ///
-/// ```
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::sound::mixer::*;
+/// # use agb::*;
+/// # fn foo(gba: &mut Gba) {
+/// # let mut mixer = gba.mixer.mixer();
+/// # let vblank = agb::interrupt::VBlank::get();
 /// // Outside your main function in global scope:
-/// const MY_CRAZY_SOUND: &[u8] = include_wav!("sfx/my_crazy_sound.wav");
+/// const MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 ///
 /// // in your main function:
 /// let mut mixer = gba.mixer.mixer();
@@ -57,6 +70,7 @@ extern "C" {
 ///    vblank.wait_for_vblank();
 ///    mixer.after_vblank();   
 /// }
+/// # }
 /// ```
 pub struct Mixer {
     buffer: MixerBuffer,
@@ -72,12 +86,20 @@ pub struct Mixer {
 ///
 /// # Example
 ///
-/// ```
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::sound::mixer::*;
+/// # use agb::*;
+/// # fn foo(gba: &mut Gba) {
+/// # let mut mixer = gba.mixer.mixer();
+/// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
 /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
 /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
 ///
 /// // Later, stop that particular channel
-/// mixer.channel(bgm_channel_id).stop();
+/// mixer.channel(&bgm_channel_id).expect("Expected to still be playing").stop();
+/// # }
 /// ```
 pub struct ChannelId(usize, i32);
 
@@ -106,12 +128,20 @@ impl Mixer {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
+    /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
     ///     vblank.wait_for_vblank();
     ///     mixer.after_vblank();   
     /// }
+    /// # }
     /// ```
     #[cfg(not(feature = "freq32768"))]
     pub fn after_vblank(&mut self) {
@@ -127,7 +157,14 @@ impl Mixer {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
+    /// # let vblank = agb::interrupt::VBlank::get();
     /// // you must set this to a named variable to ensure that the scope is long enough
     /// let _mixer_interrupt = mixer.setup_interrupt_handler();
     ///
@@ -135,6 +172,7 @@ impl Mixer {
     ///    mixer.frame();
     ///    vblank.wait_for_vblank();
     /// }
+    /// # }
     /// ```
     pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
         let mut timer1 = unsafe { Timer::new(1) };
@@ -157,12 +195,20 @@ impl Mixer {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
+    /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
     ///     vblank.wait_for_vblank();
     ///     mixer.after_vblank(); // optional, only if not using interrupts
     /// }
+    /// # }
     /// ```
     pub fn frame(&mut self) {
         if !self.buffer.should_calculate() {
@@ -188,9 +234,17 @@ impl Mixer {
     ///
     /// # Example
     ///
-    /// ``` 
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
+    /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
+    /// # }
     /// ```
     pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
         for (i, channel) in self.channels.iter_mut().enumerate() {
@@ -229,12 +283,20 @@ impl Mixer {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
+    /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
     ///
     /// // Later, stop that particular channel
-    /// mixer.channel(bgm_channel_id).stop();
+    /// mixer.channel(&bgm_channel_id).expect("Expected still to be playing").stop();
+    /// # }
     /// ```
     pub fn channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
         if let Some(channel) = &mut self.channels[id.0] {

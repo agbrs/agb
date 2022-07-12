@@ -50,7 +50,7 @@
 ///
 /// This will generate something along the lines of the following:
 ///
-/// ```
+/// ```rust,ignore
 /// // module name comes from the name of the toml file, so `sprites` in this case because it is
 /// // called `sprites.toml`
 /// mod sprites {
@@ -75,7 +75,7 @@
 /// ```
 ///
 /// In `src/main.rs`
-/// ```
+/// ```rust,ignore
 /// mod gfx {
 ///     use agb::display::object::ObjectControl;
 ///
@@ -105,7 +105,7 @@
 /// ```
 ///
 /// In `src/main.rs`:
-/// ```
+/// ```rust,ignore
 /// mod gfx {
 ///     use agb::display::background::BackgroundDistributor;
 ///
@@ -139,7 +139,7 @@ macro_rules! include_font {
 /// Doing this will ensure that `agb` can correctly set up the environment to call your rust function on start up.
 ///
 /// # Examples
-/// ```
+/// ```no_run,rust
 /// #![no_std]
 /// #![no_main]
 ///
@@ -206,7 +206,7 @@ static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { G
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run,rust
 /// #![no_std]
 /// #![no_main]
 ///

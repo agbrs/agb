@@ -4,7 +4,7 @@
 use agb::fixnum::Num;
 use agb::input::{Button, ButtonController, Tri};
 use agb::sound::mixer::SoundChannel;
-use agb::{include_wav, Gba, fixnum::num};
+use agb::{fixnum::num, include_wav, Gba};
 
 // Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
 const DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
