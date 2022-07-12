@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! # agb mixer
 //!
 //! The agb software mixer allows for high performance playing of background music
