@@ -37,7 +37,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy test build-release test-release build-roms build-book
+ci: build-debug clippy test build-release test-release doctest-agb build-roms build-book
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
