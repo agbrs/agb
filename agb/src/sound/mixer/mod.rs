@@ -270,8 +270,8 @@ impl SoundChannel {
     /// Note that this only works for mono sounds. Stereo sounds will not change
     /// how fast they play.
     #[inline(always)]
-    pub fn playback(&mut self, playback_speed: Num<usize, 8>) -> &mut Self {
-        self.playback_speed = playback_speed;
+    pub fn playback(&mut self, playback_speed: impl Into<Num<usize, 8>>) -> &mut Self {
+        self.playback_speed = playback_speed.into();
         self
     }
 
@@ -283,7 +283,9 @@ impl SoundChannel {
     /// Defaults to 0 (meaning equal on left and right) and doesn't affect stereo
     /// sounds.
     #[inline(always)]
-    pub fn panning(&mut self, panning: Num<i16, 4>) -> &mut Self {
+    pub fn panning(&mut self, panning: impl Into<Num<i16, 4>>) -> &mut Self {
+        let panning = panning.into();
+
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
         debug_assert!(panning <= Num::new(1), "panning value must be <= 1");
 
@@ -296,7 +298,9 @@ impl SoundChannel {
     ///
     /// Must be a value >= 0 and defaults to 1.
     #[inline(always)]
-    pub fn volume(&mut self, volume: Num<i16, 4>) -> &mut Self {
+    pub fn volume(&mut self, volume: impl Into<Num<i16, 4>>) -> &mut Self {
+        let volume = volume.into();
+
         assert!(volume >= Num::new(0), "volume must be >= 0");
 
         self.volume = volume;
