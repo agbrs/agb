@@ -4,7 +4,7 @@
 use agb::fixnum::Num;
 use agb::input::{Button, ButtonController, Tri};
 use agb::sound::mixer::SoundChannel;
-use agb::{include_wav, Gba};
+use agb::{include_wav, Gba, fixnum::num};
 
 // Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
 const DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
@@ -25,26 +25,26 @@ fn main(mut gba: Gba) -> ! {
 
         {
             if let Some(channel) = mixer.channel(&channel_id) {
-                let half: Num<i16, 4> = Num::new(1) / 2;
-                let half_usize: Num<usize, 8> = Num::new(1) / 2;
+                let half: Num<i16, 4> = num!(0.5);
+                let half_usize: Num<usize, 8> = num!(0.5);
                 match input.x_tri() {
                     Tri::Negative => channel.panning(-half),
-                    Tri::Zero => channel.panning(0.into()),
+                    Tri::Zero => channel.panning(0),
                     Tri::Positive => channel.panning(half),
                 };
 
                 match input.y_tri() {
                     Tri::Negative => channel.playback(half_usize.change_base() + 1),
-                    Tri::Zero => channel.playback(1.into()),
+                    Tri::Zero => channel.playback(1),
                     Tri::Positive => channel.playback(half_usize),
                 };
 
                 if input.is_pressed(Button::L) {
                     channel.volume(half);
                 } else if input.is_pressed(Button::R) {
-                    channel.volume(20.into()); // intentionally introduce clipping
+                    channel.volume(20); // intentionally introduce clipping
                 } else {
-                    channel.volume(1.into());
+                    channel.volume(1);
                 }
             }
         }
