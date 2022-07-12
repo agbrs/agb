@@ -64,9 +64,9 @@
 //! vblank.wait_for_vblank();
 //! ```
 //!
-//! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10% 
+//! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10%
 //! depending on number of channels and frequency) to do the per-frame tasks, so should be done
-//! towards the end of the frame time (just before waiting for vblank) in order to give as much 
+//! towards the end of the frame time (just before waiting for vblank) in order to give as much
 //! time during vblank as possible for rendering related tasks.
 //!
 //! ## Loading a sample
@@ -80,7 +80,7 @@
 //! ```
 //! // Outside your main function in global scope:
 //! const MY_CRAZY_SOUND: &[u8] = include_wav!("sfx/my_crazy_sound.wav");
-//! 
+//!
 //! // Then to play the sound:
 //! let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
 //! channel.stereo();
@@ -102,6 +102,8 @@ pub use sw_mixer::Mixer;
 
 use crate::fixnum::Num;
 
+/// Controls access to the mixer and the underlying hardware it uses. A zero sized type that
+/// ensures that mixer access is exclusive.
 #[non_exhaustive]
 pub struct MixerController {}
 
@@ -110,6 +112,7 @@ impl MixerController {
         MixerController {}
     }
 
+    /// Get a [`Mixer`] in order to start producing sounds.
     pub fn mixer(&mut self) -> Mixer {
         Mixer::new()
     }
@@ -121,6 +124,52 @@ enum SoundPriority {
     Low,
 }
 
+/// Describes one sound which should be playing. This could be a sound effect or
+/// the background music. Use the factory methods on this to modify how it is played.
+///
+/// You _must_ set stereo sounds with [`.stereo()`](SoundChannel::stereo) or it will play as mono and at
+/// half the intended speed.
+///
+/// SoundChannels are very cheap to create, so don't worry about creating a brand new
+/// one for every single sound you want to play.
+///
+/// SoundChannels can be either 'low priority' or 'high priority'. A high priority
+/// sound channel will override 'low priority' sound channels which are already playing
+/// to ensure that it is always running. A 'low priority' sound channel will not override
+/// any other channel.
+///
+/// This is because you can only play up to 8 channels at once, and so high priority channels
+/// are prioritised over low priority channels to ensure that sounds that you always want
+/// playing will always play.
+///
+/// # Example
+///
+/// ## Playing background music (stereo)
+///
+/// Background music is generally considered 'high priority' because you likely want it to
+/// play regardless of whether you have lots of sound effects playing. You create a high
+/// priority sound channel using [`new_high_priority`](SoundChannel::new_high_priority).
+///
+/// ```
+/// // in global scope:
+/// const MY_BGM: [u8] = include_wav!("sfx/my_bgm.wav");
+///
+/// // somewhere in code
+/// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
+/// bgm.stereo().should_loop();
+/// let _ = mixer.play_sound(bgm);
+/// ```
+///
+/// ## Playing a sound effect
+///
+/// ```
+/// // in global scope:
+/// const JUMP_SOUND: [u8] = include_wav!("sfx/jump_sound.wav");
+///
+/// // somewhere in code
+/// let jump_sound = SoundChannel::new(MY_JUMP_SOUND);
+/// let _ = mixer.play_sound(jump_sound);
+/// ```
 pub struct SoundChannel {
     data: &'static [u8],
     pos: Num<usize, 8>,
@@ -138,6 +187,23 @@ pub struct SoundChannel {
 }
 
 impl SoundChannel {
+    /// Creates a new low priority [`SoundChannel`].
+    ///
+    /// A low priority sound channel will be overridden by a high priority one if
+    /// the mixer runs out of channels.
+    ///
+    /// Low priority sound channels are intended for sound effects.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // in global scope:
+    /// const JUMP_SOUND: [u8] = include_wav!("sfx/jump_sound.wav");
+    ///
+    /// // somewhere in code
+    /// let jump_sound = SoundChannel::new(MY_JUMP_SOUND);
+    /// let _ = mixer.play_sound(jump_sound);
+    /// ```
     #[inline(always)]
     #[must_use]
     pub fn new(data: &'static [u8]) -> Self {
@@ -154,6 +220,26 @@ impl SoundChannel {
         }
     }
 
+    /// Creates a new high priority [`SoundChannel`].
+    ///
+    /// A high priority sound channel will override low priority ones if
+    /// the mixer runs out of channels. They will also never be overriden
+    /// by other high priority channels.
+    ///
+    /// High priority channels are intended for background music and for
+    /// important, game breaking sound effects if you have any.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // in global scope:
+    /// const MY_BGM: [u8] = include_wav!("sfx/my_bgm.wav");
+    ///
+    /// // somewhere in code
+    /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
+    /// bgm.stereo().should_loop();
+    /// let _ = mixer.play_sound(bgm);
+    /// ```
     #[inline(always)]
     #[must_use]
     pub fn new_high_priority(data: &'static [u8]) -> Self {
@@ -170,18 +256,32 @@ impl SoundChannel {
         }
     }
 
+    /// Sets that a sound channel should loop back to the start once it has
+    /// finished playing rather than stopping.
     #[inline(always)]
     pub fn should_loop(&mut self) -> &mut Self {
         self.should_loop = true;
         self
     }
 
+    /// Sets the speed at which this should channel should be played. Defaults
+    /// to 1 with values between 0 and 1 being slower above 1 being faster.
+    ///
+    /// Note that this only works for mono sounds. Stereo sounds will not change
+    /// how fast they play.
     #[inline(always)]
     pub fn playback(&mut self, playback_speed: Num<usize, 8>) -> &mut Self {
         self.playback_speed = playback_speed;
         self
     }
 
+    /// Sets how far left or right the sound effect should be played.
+    /// Must be a value between -1 and 1 (inclusive). -1 means fully played
+    /// on the left, 1 fully on the right and values in between allowing for
+    /// partial levels.
+    ///
+    /// Defaults to 0 (meaning equal on left and right) and doesn't affect stereo
+    /// sounds.
     #[inline(always)]
     pub fn panning(&mut self, panning: Num<i16, 4>) -> &mut Self {
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
@@ -191,6 +291,10 @@ impl SoundChannel {
         self
     }
 
+    /// Sets the volume for how loud the sound should be played. Note that if
+    /// you play it too loud, the sound will clip sounding pretty terrible.
+    ///
+    /// Must be a value >= 0 and defaults to 1.
     #[inline(always)]
     pub fn volume(&mut self, volume: Num<i16, 4>) -> &mut Self {
         assert!(volume >= Num::new(0), "volume must be >= 0");
@@ -199,6 +303,9 @@ impl SoundChannel {
         self
     }
 
+    /// Sets that the sound effect should be played in stereo. Not setting this
+    /// will result in the sound playing at half speed and mono. Setting this on
+    /// a mono sound will cause some interesting results (and play it at double speed).
     #[inline(always)]
     pub fn stereo(&mut self) -> &mut Self {
         self.is_stereo = true;
@@ -206,6 +313,7 @@ impl SoundChannel {
         self
     }
 
+    /// Stops the sound from playing.
     #[inline(always)]
     pub fn stop(&mut self) {
         self.is_done = true;
