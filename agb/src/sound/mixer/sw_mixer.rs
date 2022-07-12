@@ -30,6 +30,34 @@ extern "C" {
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
 }
 
+/// The main software mixer struct.
+///
+/// Tracks which sound channels are currently playing and handles actually playing them.
+/// You should not create this struct directly, instead creating it through the [`Gba`](crate::Gba)
+/// struct as follows:
+///
+/// ```
+/// let mut mixer = gba.mixer.mixer();
+/// ```
+///
+/// # Example
+///
+/// ```
+/// // Outside your main function in global scope:
+/// const MY_CRAZY_SOUND: &[u8] = include_wav!("sfx/my_crazy_sound.wav");
+///
+/// // in your main function:
+/// let mut mixer = gba.mixer.mixer();
+/// let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
+/// channel.stereo();
+/// let _ = mixer.play_sound(channel);
+///
+/// loop {
+///    mixer.frame();
+///    vblank.wait_for_vblank();
+///    mixer.after_vblank();   
+/// }
+/// ```
 pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 8],
@@ -38,6 +66,19 @@ pub struct Mixer {
     timer: Timer,
 }
 
+/// A pointer to a currently playing channel.
+///
+/// This is used to modify a channel that is already playing.
+///
+/// # Example
+///
+/// ```
+/// let mut channel = SoundChannel::new_high_priority(MY_BGM);
+/// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
+///
+/// // Later, stop that particular channel
+/// mixer.channel(bgm_channel_id).stop();
+/// ```
 pub struct ChannelId(usize, i32);
 
 impl Mixer {
@@ -51,18 +92,50 @@ impl Mixer {
         }
     }
 
+    /// Enable sound output
+    ///
+    /// You must call this method in order to start playing sound. You can do as much set up before
+    /// this as you like, but you will not get any sound out of the console until this method is called.
     pub fn enable(&mut self) {
         hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, constants::SOUND_FREQUENCY);
         hw::set_sound_control_register_for_mixer();
     }
 
+    /// Do post-vblank work. You can use either this or [`setup_interrupt_handler()`](Mixer::setup_interrupt_handler),
+    /// but not both. Note that this is not available if using 32768Hz sounds since those require more irregular timings.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// loop {
+    ///     mixer.frame();
+    ///     vblank.wait_for_vblank();
+    ///     mixer.after_vblank();   
+    /// }
+    /// ```
     #[cfg(not(feature = "freq32768"))]
     pub fn after_vblank(&mut self) {
         free(|cs| self.buffer.swap(cs));
     }
 
-    /// Note that if you set up an interrupt handler, you should not call `after_vblank` any more
-    /// You are still required to call `frame`
+    /// Use timer interrupts to do the timing required for ensuring the music runs smoothly.
+    ///
+    /// Note that if you set up an interrupt handler, you should not call [`after_vblank`](Mixer::after_vblank) any more
+    /// You are still required to call [`frame`](Mixer::frame).
+    ///
+    /// This is required if using 32768Hz music, but optional for other frequencies.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // you must set this to a named variable to ensure that the scope is long enough
+    /// let _mixer_interrupt = mixer.setup_interrupt_handler();
+    ///
+    /// loop {
+    ///    mixer.frame();
+    ///    vblank.wait_for_vblank();
+    /// }
+    /// ```
     pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
         let mut timer1 = unsafe { Timer::new(1) };
         timer1
@@ -75,6 +148,22 @@ impl Mixer {
         add_interrupt_handler(timer1.interrupt(), move |cs| self.buffer.swap(cs))
     }
 
+    /// Do the CPU intensive mixing for the next frame's worth of data.
+    ///
+    /// This is where almost all of the CPU time for the mixer is done, and must be done every frame
+    /// or you will get crackling sounds.
+    ///
+    /// Normally you would run this during vdraw, just before the vblank interrupt.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// loop {
+    ///     mixer.frame();
+    ///     vblank.wait_for_vblank();
+    ///     mixer.after_vblank(); // optional, only if not using interrupts
+    /// }
+    /// ```
     pub fn frame(&mut self) {
         if !self.buffer.should_calculate() {
             return;
@@ -84,6 +173,25 @@ impl Mixer {
             .write_channels(self.channels.iter_mut().flatten());
     }
 
+    /// Start playing a given [`SoundChannel`].
+    ///
+    /// Returns a [`ChannelId`] which you can later use to modify the playing sound.
+    ///
+    /// Will first try to play the sound in an unused channel (of the 8 possible channels)
+    /// followed by overriding a low priority sound (if the sound channel being passed in
+    /// is high priority).
+    ///
+    /// Returns Some if the channel is now playing (which is guaranteed if the channel is
+    /// high priority) or None if it failed to find a slot.
+    ///
+    /// Panics if you try to play a high priority sound and there are no free channels.
+    ///
+    /// # Example
+    ///
+    /// ``` 
+    /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
+    /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
+    /// ```
     pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
         for (i, channel) in self.channels.iter_mut().enumerate() {
             if let Some(some_channel) = channel {
@@ -114,6 +222,20 @@ impl Mixer {
         panic!("Cannot play more than 8 sounds at once");
     }
 
+    /// Lets you modify an already playing channel.
+    ///
+    /// Allows you to change the volume, panning or stop an already playing channel.
+    /// Will return Some if the channel is still playing, or None if it has already finished.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
+    /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
+    ///
+    /// // Later, stop that particular channel
+    /// mixer.channel(bgm_channel_id).stop();
+    /// ```
     pub fn channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
         if let Some(channel) = &mut self.channels[id.0] {
             if self.indices[id.0] == id.1 && !channel.is_done {
