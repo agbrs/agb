@@ -235,10 +235,17 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 ///
 /// # Examples
 ///
-/// ```
-/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: &CriticalSection| {
-///     println!("Woah there! There's been a vblank!");
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// use bare_metal::CriticalSection;
+///
+/// # fn foo() {
+/// # use agb::interrupt::{add_interrupt_handler, Interrupt};
+/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
+///     agb::println!("Woah there! There's been a vblank!");
 /// });
+/// # }
 /// ```
 pub fn add_interrupt_handler<'a>(
     interrupt: Interrupt,
