@@ -17,6 +17,9 @@ test:
 test-release:
     just _test-release agb
 
+doctest-agb:
+    (cd agb && cargo test --doc -Z doctest-xcompile)
+
 clean:
     just _all-crates _clean
 
