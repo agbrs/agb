@@ -35,9 +35,13 @@
 //! To create a sound mixer, you will need to get it out of the [`Gba`](crate::Gba) struct
 //! as follows:
 //!
-//! ```
+//! ```rust,no_run
+//! # #![no_std]
+//! # #![no_main]
+//! # fn foo(gba: &mut agb::Gba) {
 //! let mut mixer = gba.mixer.mixer();
 //! mixer.enable();
+//! # }
 //! ```
 //!
 //! ## Doing the per-frame work
@@ -48,22 +52,34 @@
 //!
 //! Without interrupts:
 //!
-//! ```
+//! ```rust,no_run
+//! # #![no_std]
+//! # #![no_main]
+//! # fn foo(gba: &mut agb::Gba) {
+//! # let mut mixer = gba.mixer.mixer();
+//! # let vblank = agb::interrupt::VBlank::get();
 //! // Somewhere in your main loop:
 //! mixer.frame();
 //! vblank.wait_for_vblank();
 //! mixer.after_vblank();
+//! # }
 //! ```
 //!
 //! Or with interrupts:
 //!
-//! ```
+//! ```rust,no_run
+//! # #![no_std]
+//! # #![no_main]
+//! # fn foo(gba: &mut agb::Gba) {
+//! # let mut mixer = gba.mixer.mixer();
+//! # let vblank = agb::interrupt::VBlank::get();
 //! // outside your main loop, close to initialisation
 //! let _mixer_interrupt = mixer.setup_interrupt_handler();
 //!
 //! // inside your main loop
 //! mixer.frame();
 //! vblank.wait_for_vblank();
+//! # }
 //! ```
 //!
 //! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10%
@@ -79,14 +95,21 @@
 //! Use the [`include_wav!`](crate::include_wav) macro in order to load the sound. This will produce
 //! an error if your wav file is of the wrong frequency.
 //!
-//! ```
+//! ```rust,no_run
+//! # #![no_std]
+//! # #![no_main]
+//! # fn foo(gba: &mut agb::Gba) {
+//! # let mut mixer = gba.mixer.mixer();
+//! # let vblank = agb::interrupt::VBlank::get();
+//! # use agb::{*, sound::mixer::*};
 //! // Outside your main function in global scope:
-//! const MY_CRAZY_SOUND: &[u8] = include_wav!("sfx/my_crazy_sound.wav");
+//! const MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 //!
 //! // Then to play the sound:
 //! let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
 //! channel.stereo();
 //! let _ = mixer.play_sound(channel); // we don't mind if this sound doesn't actually play
+//! # }
 //! ```
 //!
 //! See the [`SoundChannel`] struct for more details on how you can configure the sounds to play.
@@ -152,25 +175,39 @@ enum SoundPriority {
 /// play regardless of whether you have lots of sound effects playing. You create a high
 /// priority sound channel using [`new_high_priority`](SoundChannel::new_high_priority).
 ///
-/// ```
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::sound::mixer::*;
+/// # use agb::*;
 /// // in global scope:
-/// const MY_BGM: [u8] = include_wav!("sfx/my_bgm.wav");
+/// const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
 ///
 /// // somewhere in code
+/// # fn foo(gba: &mut Gba) {
+/// # let mut mixer = gba.mixer.mixer();
 /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
 /// bgm.stereo().should_loop();
 /// let _ = mixer.play_sound(bgm);
+/// # }
 /// ```
 ///
 /// ## Playing a sound effect
 ///
-/// ```
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::sound::mixer::*;
+/// # use agb::*;
 /// // in global scope:
-/// const JUMP_SOUND: [u8] = include_wav!("sfx/jump_sound.wav");
+/// const JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 ///
 /// // somewhere in code
-/// let jump_sound = SoundChannel::new(MY_JUMP_SOUND);
+/// # fn foo(gba: &mut Gba) {
+/// # let mut mixer = gba.mixer.mixer();
+/// let jump_sound = SoundChannel::new(JUMP_SOUND);
 /// let _ = mixer.play_sound(jump_sound);
+/// # }
 /// ```
 pub struct SoundChannel {
     data: &'static [u8],
@@ -198,13 +235,20 @@ impl SoundChannel {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
     /// // in global scope:
-    /// const JUMP_SOUND: [u8] = include_wav!("sfx/jump_sound.wav");
+    /// const JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
     ///
     /// // somewhere in code
-    /// let jump_sound = SoundChannel::new(MY_JUMP_SOUND);
+    /// let jump_sound = SoundChannel::new(JUMP_SOUND);
     /// let _ = mixer.play_sound(jump_sound);
+    /// # }
     /// ```
     #[inline(always)]
     #[must_use]
@@ -233,14 +277,21 @@ impl SoundChannel {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::sound::mixer::*;
+    /// # use agb::*;
+    /// # fn foo(gba: &mut Gba) {
+    /// # let mut mixer = gba.mixer.mixer();
     /// // in global scope:
-    /// const MY_BGM: [u8] = include_wav!("sfx/my_bgm.wav");
+    /// const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     ///
     /// // somewhere in code
     /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
     /// bgm.stereo().should_loop();
     /// let _ = mixer.play_sound(bgm);
+    /// # }
     /// ```
     #[inline(always)]
     #[must_use]
