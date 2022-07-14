@@ -3,13 +3,12 @@
 # Fail if any command fails
 set -e
 
-PROJECT=$1
-VERSION=$2
-NO_COMMIT=$3
+VERSION=$1
+NO_COMMIT=$2
 
 # Sanity check that we actually have a version
 if [ "$VERSION" = "" ]; then
-    echo "Usage $0 <project> <version> [--no-commit]"
+    echo "Usage $0 <version> [--no-commit]"
     exit 1
 fi
 
@@ -25,33 +24,16 @@ if [ ! "$NO_COMMIT" = "" ] && [ ! "$NO_COMMIT" = "--no-commit" ]; then
     exit 1
 fi
 
-# Set up $DIRECTORY and $TAGNAME
-case "$PROJECT" in
-    agb)
-        DIRECTORY="agb"
-        TAGNAME="v$VERSION"
-        ;;
-    agb-*)
-        if [ -f "$PROJECT/Cargo.toml" ]; then
-            DIRECTORY=$PROJECT
-            TAGNAME="$PROJECT/v$VERSION"
-        else
-            echo "Unknown project name $PROJECT"
-            exit 1
-        fi
-        ;;
-    mgba-test-runner)
-        DIRECTORY="mgba-test-runner"
-        TAGNAME="mgba-test-runner/v$VERSION"
-        ;;
-    *)
-        echo "Unknown project name $PROJECT"
-        exit 1
-        ;;
-esac
+function maybe_git() {
+    if [ "$NO_COMMIT" = "--no-commit" ]; then
+        echo "Would run: git $*"
+    else
+        git "$@"
+    fi
+}
 
 # Check that no out-standing changes in git
-if [ -n "$(git status --porcelain)" ]; then
+if [ "$NO_COMMIT" = "" ] && [ -n "$(git status --porcelain)" ]; then
     echo "Uncommitted changes, please commit first"
     exit 1
 fi
@@ -62,52 +44,49 @@ if [ ! "$NO_COMMIT" = "--no-commit" ] && [ "$(git symbolic-ref --short HEAD)" !=
     exit 1
 fi
 
-# Update the version in Cargo.toml
-sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
+TAGNAME="v$VERSION"
 
-# Also update the lock file
-(cd "$DIRECTORY" && cargo update)
-git add "$DIRECTORY/Cargo.toml" "$DIRECTORY/Cargo.lock"  || echo "Failed to git add a file, continuing anyway"
+for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml; do
+    DIRECTORY=$(dirname "$PROJECT_TOML_FILE")
 
-if [ "$PROJECT" = "agb" ]; then
-    # also update the agb version in the template and the examples
-    sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
-    git add template/Cargo.toml
+    # Update the version in Cargo.toml
+    sed -i -e "s/^version = \".*\"/version = \"$VERSION\"/" "$DIRECTORY/Cargo.toml"
 
-    for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
-        EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
-        sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
-        (cd "$EXAMPLE_DIR" && cargo update)
-        git add "$EXAMPLE_DIR"/{Cargo.toml,Cargo.lock} || echo "Failed to git add a file, continuing anyway"
-    done
-else
-    PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$PROJECT" | tr - _)
+    # Also update the lock file
+    (cd "$DIRECTORY" && cargo update)
 
-    for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do
-        sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
-        (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
+    if [ "$DIRECTORY" = "agb" ]; then
+        # also update the agb version in the template and the examples
+        sed -i -e "s/^agb = \".*\"/agb = \"$VERSION\"/" template/Cargo.toml
 
-        git add "$CARGO_TOML_FILE" "${CARGO_TOML_FILE/.toml/.lock}" || echo "Failed to git add a file, continuing anyway"
-    done
-fi
+        for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+            EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
+            sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
+            (cd "$EXAMPLE_DIR" && cargo update)
+        done
+    else
+        PROJECT_NAME_WITH_UNDERSCORES=$(echo -n "$DIRECTORY" | tr - _)
+
+        for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml examples/*/Cargo.toml book/games/*/Cargo.toml; do
+            sed -i -E -e "s/($PROJECT_NAME_WITH_UNDERSCORES = .*version = \")[^\"]+(\".*)/\1$VERSION\2/" "$CARGO_TOML_FILE"
+            (cd "$(dirname "$CARGO_TOML_FILE")" && cargo generate-lockfile)
+        done
+    fi
+done
 
 # Sanity check to make sure the build works
-for CARGO_TOML_FILE in agb-*/Cargo.toml agb/Cargo.toml; do
-    (cd "$(dirname "$CARGO_TOML_FILE")" && cargo test)
-done
+just ci
 
 for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
     EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
     (cd "$EXAMPLE_DIR" && cargo check --release)
 done
 
-if [ ! "$NO_COMMIT" = "--no-commit" ]; then
-    # Commit the Cargo.toml changes
-    git commit -m "Release $PROJECT v$VERSION"
+# Commit the Cargo.toml changes
+maybe_git commit -am "Release v$VERSION"
 
-    # Tag the version
-    git tag -a "$TAGNAME" -m "$PROJECT - v$VERSION"
+# Tag the version
+maybe_git tag -a "$TAGNAME" -m "v$VERSION"
 
-    echo "Done! Push with"
-    echo "git push --atomic origin master $TAGNAME"
-fi
+echo "Done! Push with"
+echo "git push --atomic origin master $TAGNAME"
