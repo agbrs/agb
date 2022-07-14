@@ -20,10 +20,10 @@ function wait_for_release() {
    local expected_version
    expected_version=$(grep -E '^version' Cargo.toml | grep -oE '[0-9.]+')
 
-   local attempts=0
+   local attempts=1
 
    while [ $attempts -le 15 ]; do
-      echo "Polling crates.io to see if the version has updated"
+      echo "Polling crates.io to see if the version has updated (attempt $attempts)"
       if curl "$url_to_poll" | grep "$expected_version"; then
          return
       fi
