@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=gba.ld");
     println!("cargo:rerun-if-changed=gba_mb.ld");
     println!("cargo:rerun-if-changed=src/asm_include.s");
+    println!("cargo:rerun-if-changed=src/agbabi/macros.inc");
     println!("cargo:rerun-if-changed=gfx/test_logo.png");
 
     println!("cargo:rerun-if-changed=build.rs");
