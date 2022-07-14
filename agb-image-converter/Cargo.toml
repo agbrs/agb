@@ -5,6 +5,7 @@ authors = ["Gwilym Kuiper <gw@ilym.me>"]
 edition = "2018"
 license = "MPL-2.0"
 description = "Library for converting graphics for use on the Game Boy Advance"
+repository = "https://github.com/agbrs/agb"
 
 [lib]
 proc-macro = true
