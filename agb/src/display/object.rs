@@ -249,8 +249,11 @@ impl Tag {
     }
 
     #[must_use]
-    pub fn sprite(&self, idx: usize) -> &'static Sprite {
-        &self.sprites()[idx]
+    pub const fn sprite(&self, idx: usize) -> &'static Sprite {
+        if idx >= self.len {
+            panic!("out of bounds access to sprite");
+        }
+        unsafe { &*self.sprites.add(idx) }
     }
 
     #[inline]
