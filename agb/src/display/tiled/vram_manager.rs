@@ -17,7 +17,7 @@ const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
 
 static TILE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
-        start: || TILE_RAM_START,
+        start: || TILE_RAM_START + 8 * 8,
         end: || TILE_RAM_START + 0x8000,
     })
 };
