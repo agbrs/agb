@@ -115,7 +115,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
         for frame in frames {
             let width = frame.width();
-            assert!(width == frame.height() && width.is_power_of_two() && width <= 32);
+            assert!(width == frame.height() && width.is_power_of_two() && width <= 64);
 
             let image = Image::load_from_dyn_image(frame);
             add_to_optimiser(
