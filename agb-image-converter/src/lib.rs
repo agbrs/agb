@@ -154,7 +154,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             quote! {
                 Sprite::new(
                     &PALETTES[#assignment],
-                    #data,
+                    align_bytes!(u16, #data),
                     Size::from_width_height(#width, #height)
                 )
             }
