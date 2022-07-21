@@ -135,11 +135,32 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
+#[repr(C)] // guarantee 'bytes' comes after '_align'
+pub struct AlignedAs<Align, Bytes: ?Sized> {
+    pub _align: [Align; 0],
+    pub bytes: Bytes,
+}
+
+#[macro_export]
+macro_rules! align_bytes {
+    ($align_ty:ty, $data:literal) => {{
+        use $crate::display::object::AlignedAs;
+
+        const ALIGNED: &AlignedAs<$align_ty, [u8]> = &AlignedAs {
+            _align: [],
+            bytes: *$data,
+        };
+
+        &ALIGNED.bytes
+    }};
+}
+
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
         use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
+        use $crate::align_bytes;
 
         $crate::include_aseprite_inner!($($aseprite_path),*);
 
@@ -249,8 +270,11 @@ impl Tag {
     }
 
     #[must_use]
-    pub fn sprite(&self, idx: usize) -> &'static Sprite {
-        &self.sprites()[idx]
+    pub const fn sprite(&self, idx: usize) -> &'static Sprite {
+        if idx >= self.len {
+            panic!("out of bounds access to sprite");
+        }
+        unsafe { &*self.sprites.add(idx) }
     }
 
     #[inline]

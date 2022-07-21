@@ -95,10 +95,12 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ Arguments
     @ r0 - pointer to the data to be copied (u8 array)
     @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
+    @ r2 - volume to play the sound at
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {r4-r8}
+    push {r4-r9}
 
+    mov r9, r2
     ldr r5, =0x00000FFF
 
     ldr r8, =agb_rs__buffer_size
@@ -128,7 +130,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
-    add r4, r4, r6, lsl #4  @ r4 += r6 << 4 (calculating both the left and right samples together)
+    mla r4, r6, r9, r4     @ r4 += r6 * r9 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endr
@@ -136,7 +138,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {r4-r8}
+    pop {r4-r9}
     bx lr
 
 agb_arm_end agb_rs__mixer_add_stereo

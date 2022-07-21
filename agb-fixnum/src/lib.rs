@@ -9,10 +9,13 @@ use core::{
     },
 };
 
+#[doc(hidden)]
+pub use agb_macros::num as num_inner;
+
 #[macro_export]
 macro_rules! num {
     ($value:literal) => {{
-        $crate::Num::new_from_parts(agb_macros::num!($value))
+        $crate::Num::new_from_parts($crate::num_inner!($value))
     }};
 }
 

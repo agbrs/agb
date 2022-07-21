@@ -375,4 +375,18 @@ impl SoundChannel {
     pub fn stop(&mut self) {
         self.is_done = true;
     }
+
+    /// Gets how far along the sound has played.
+    #[inline]
+    #[must_use]
+    pub fn pos(&self) -> Num<usize, 8> {
+        self.pos
+    }
+
+    /// Sets the playback position
+    #[inline]
+    pub fn set_pos(&mut self, pos: impl Into<Num<usize, 8>>) -> &mut Self {
+        self.pos = pos.into();
+        self
+    }
 }

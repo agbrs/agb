@@ -25,7 +25,11 @@ extern "C" {
         right_amount: Num<i16, 4>,
     );
 
-    fn agb_rs__mixer_add_stereo(sound_data: *const u8, sound_buffer: *mut Num<i16, 4>);
+    fn agb_rs__mixer_add_stereo(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        volume: Num<i16, 4>,
+    );
 
     fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
 }
@@ -447,6 +451,7 @@ impl MixerBuffer {
                     agb_rs__mixer_add_stereo(
                         channel.data.as_ptr().add(channel.pos.floor()),
                         buffer.as_mut_ptr(),
+                        channel.volume,
                     );
                 }
             } else {
