@@ -378,6 +378,7 @@ impl SoundChannel {
 
     /// Gets how far along the sound has played.
     #[inline]
+    #[must_use]
     pub fn pos(&self) -> Num<usize, 8> {
         self.pos
     }
