@@ -799,13 +799,11 @@ impl SpriteControllerInner {
             };
 
             unsafe {
-                dest.as_ptr()
-                    .copy_from_nonoverlapping(sprite.data.as_ptr(), sprite.data.len());
-                // dma::dma_copy16(
-                //     sprite.data.as_ptr().cast(),
-                //     dest.as_ptr().cast(),
-                //     sprite.data.len() / 2,
-                // );
+                dma::dma_copy16(
+                    sprite.data.as_ptr().cast(),
+                    dest.as_ptr().cast(),
+                    sprite.data.len() / 2,
+                );
             }
 
             let storage = Storage::from_sprite_ptr(dest);
