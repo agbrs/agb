@@ -48,8 +48,8 @@ fn all_sprites(gfx: &ObjectController) {
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i * SPRITES.len() / objs_len) % SPRITES.len();
                 obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
-                gfx.commit();
             }
+            gfx.commit();
         }
     }
 }
