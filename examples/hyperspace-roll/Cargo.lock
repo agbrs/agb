@@ -188,14 +188,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gmtk22"
-version = "0.1.0"
-dependencies = [
- "agb",
- "bare-metal",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -209,6 +201,14 @@ name = "hound"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a164bb2ceaeff4f42542bdb847c41517c78a60f5649671b2a07312b6e117549"
+
+[[package]]
+name = "hyperspace-roll"
+version = "0.1.0"
+dependencies = [
+ "agb",
+ "bare-metal",
+]
 
 [[package]]
 name = "image"
