@@ -1,5 +1,8 @@
 #![no_std]
 #![no_main]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, reexport_test_harness_main = "test_main")]
+#![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 extern crate alloc;
 
@@ -776,7 +779,11 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 }
 
 #[agb::entry]
-fn main(mut agb: agb::Gba) -> ! {
+fn agb_main(mut gba: agb::Gba) -> ! {
+    main(gba);
+}
+
+pub fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::background.palettes);
     let mut splash_screen = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
@@ -956,5 +963,34 @@ fn main(mut agb: agb::Gba) -> ! {
             &mut splash_screen,
             &mut vram,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use agb::Gba;
+
+    #[test_case]
+    fn test_ping_pong(_gba: &mut Gba) {
+        let test_cases = [
+            [0, 2, 0],
+            [0, 7, 0],
+            [1, 2, 1],
+            [2, 2, 0],
+            [3, 2, 1],
+            [4, 2, 0],
+        ];
+
+        for test_case in test_cases {
+            assert_eq!(
+                ping_pong(test_case[0], test_case[1]),
+                test_case[2],
+                "Expected ping_pong({}, {}) to equal {}",
+                test_case[0],
+                test_case[1],
+                test_case[2],
+            );
+        }
     }
 }

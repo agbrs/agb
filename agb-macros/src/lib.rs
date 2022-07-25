@@ -76,12 +76,26 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     );
 
     quote!(
+        #[cfg(not(test))]
         #[export_name = "main"]
         #(#attrs)*
         pub fn #fn_name() -> ! {
             let #mutable #argument_name = unsafe { #argument_type ::new_in_entry() };
 
             #(#stmts)*
+        }
+
+        #[cfg(test)]
+        #[export_name = "main"]
+        #(#attrs)*
+        pub fn #fn_name() -> ! {
+            let mut #argument_name = unsafe { #argument_type ::new_in_entry() };
+
+            if cfg!(test) {
+                agb::test_runner::agb_start_tests(#argument_name, test_main);
+            } else {
+                #(#stmts)*
+            }
         }
     )
     .into()

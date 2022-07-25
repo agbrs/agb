@@ -1,9 +1,15 @@
 #![no_std]
 // This appears to be needed for testing to work
-#![cfg_attr(test, no_main)]
-#![cfg_attr(test, feature(custom_test_frameworks))]
-#![cfg_attr(test, test_runner(crate::test_runner::test_runner))]
-#![cfg_attr(test, reexport_test_harness_main = "test_main")]
+#![cfg_attr(any(test, feature = "testing"), no_main)]
+#![cfg_attr(any(test, feature = "testing"), feature(custom_test_frameworks))]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    test_runner(crate::test_runner::test_runner)
+)]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    reexport_test_harness_main = "test_main"
+)]
 #![feature(alloc_error_handler)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
@@ -183,7 +189,7 @@ pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 
-#[cfg(not(test))]
+#[cfg(not(any(test, feature = "testing")))]
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
@@ -249,8 +255,37 @@ impl Gba {
     }
 }
 
-#[cfg(test)]
-mod test_runner {
+#[cfg(any(test, feature = "testing"))]
+/// *Unstable* support for running tests using `agb`
+///
+/// In order to use this, you need to enable the unstable `custom_test_framework` feature and copy-paste
+/// the following into the top of your application:
+///
+/// ```
+/// #![cfg_attr(test, feature(custom_test_frameworks))]
+/// #![cfg_attr(test, reexport_test_harness_main = "test_main")]
+/// #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
+/// ```
+///
+/// And ensure you add agb with the `testing` feature to your `dev-dependencies`
+/// ```toml
+/// [dev-dependencies]
+/// agb = { version = "<same as in dependencies>", features = ["testing"] }
+/// ```
+///
+/// With this support, you will be able to write tests which you can run using `mgba-test-runner`.
+/// Tests are written using `#[test_case]` rather than `#[test]`.
+///
+/// ```
+/// #[test_case]
+/// fn test_ping_pong(_gba: &mut Gba) {
+///     assert_eq!(1, 1);
+/// }
+/// ```
+///
+/// You can run the tests using `cargo test`, but it will work better through `mgba-test-runner` by
+/// running something along the lines of `CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test`.
+pub mod test_runner {
     use super::*;
 
     #[doc(hidden)]
@@ -320,8 +355,22 @@ mod test_runner {
         .unwrap();
     }
 
+    // needed to fudge the #[entry] below
+    mod agb {
+        pub mod test_runner {
+            pub use super::super::agb_start_tests;
+        }
+    }
+
+    #[cfg(test)]
     #[entry]
     fn agb_test_main(gba: Gba) -> ! {
+        #[allow(clippy::empty_loop)]
+        loop {} // full implementation provided by the #[entry]
+    }
+
+    #[doc(hidden)]
+    pub fn agb_start_tests(gba: Gba, test_main: impl Fn()) -> ! {
         unsafe { TEST_GBA = Some(gba) };
         test_main();
         #[allow(clippy::empty_loop)]
