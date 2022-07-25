@@ -1,22 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 MGBA_VERSION=$1
 OUT_DIRECTORY=$2
 CURRENT_DIRECTORY=$(pwd)
 
-cd ${OUT_DIRECTORY}
+cd "${OUT_DIRECTORY}" || exit
 
 if [[ -f libmgba-cycle.a ]]; then
 	exit 0
 fi
 
-curl -L https://github.com/mgba-emu/mgba/archive/refs/tags/${MGBA_VERSION}.tar.gz -o mgba-${MGBA_VERSION}.tar.gz
-tar -xvf mgba-${MGBA_VERSION}.tar.gz
-cd mgba-${MGBA_VERSION}
+curl -L "https://github.com/mgba-emu/mgba/archive/refs/tags/${MGBA_VERSION}.tar.gz" -o "mgba-${MGBA_VERSION}.tar.gz"
+tar -xvf "mgba-${MGBA_VERSION}.tar.gz"
+cd "mgba-${MGBA_VERSION}" || exit
 rm -rf build
-patch --strip=1 < ${CURRENT_DIRECTORY}/add_cycles_register.patch
+patch --strip=1 < "${CURRENT_DIRECTORY}/add_cycles_register.patch"
 mkdir -p build
-cd build
+cd build || exit
 cmake .. \
     -DBUILD_STATIC=ON \
     -DBUILD_SHARED=OFF \
