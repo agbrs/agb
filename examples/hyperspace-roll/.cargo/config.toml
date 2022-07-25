@@ -1,0 +1,11 @@
+[unstable]
+build-std = ["core", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+sparse-registry = true
+
+[build]
+target = "thumbv4t-none-eabi"
+
+[target.thumbv4t-none-eabi]
+rustflags = ["-Clink-arg=-Tgba.ld"]
+runner = "mgba-qt"
