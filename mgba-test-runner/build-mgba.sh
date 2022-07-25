@@ -6,6 +6,10 @@ CURRENT_DIRECTORY=$(pwd)
 
 cd "${OUT_DIRECTORY}" || exit
 
+if [[ ! -f "mgba-${MGBA_VERSION}.tar.gz" ]]; then
+	curl -L "https://github.com/mgba-emu/mgba/archive/refs/tags/${MGBA_VERSION}.tar.gz" -o "mgba-${MGBA_VERSION}.tar.gz"
+fi
+
 if [[ -f libmgba-cycle.a ]]; then
 	exit 0
 fi
