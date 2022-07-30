@@ -3,7 +3,7 @@
 //! the linked list in order of pointer. Blocks are then merged after every
 //! free.
 
-use core::alloc::{GlobalAlloc, Layout};
+use core::alloc::{Allocator, GlobalAlloc, Layout};
 
 use core::cell::RefCell;
 use core::convert::TryInto;
@@ -43,13 +43,13 @@ struct BlockAllocatorState {
     first_free_block: Option<SendNonNull<Block>>,
 }
 
-pub(crate) struct BlockAllocator {
+pub struct BlockAllocator {
     inner_allocator: BumpAllocator,
     state: Mutex<RefCell<BlockAllocatorState>>,
 }
 
 impl BlockAllocator {
-    pub const unsafe fn new(start: StartEnd) -> Self {
+    pub(crate) const unsafe fn new(start: StartEnd) -> Self {
         Self {
             inner_allocator: BumpAllocator::new(start),
             state: Mutex::new(RefCell::new(BlockAllocatorState {
@@ -214,5 +214,23 @@ unsafe impl GlobalAlloc for BlockAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         self.dealloc(ptr, layout);
+    }
+}
+
+unsafe impl Allocator for BlockAllocator {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+        match unsafe { self.alloc(layout) } {
+            None => Err(core::alloc::AllocError),
+            Some(p) => Ok(unsafe {
+                NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(
+                    p.as_ptr(),
+                    layout.size(),
+                ))
+            }),
+        }
+    }
+
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+        self.dealloc(ptr.as_ptr(), layout);
     }
 }

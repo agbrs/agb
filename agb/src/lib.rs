@@ -11,6 +11,7 @@
     reexport_test_harness_main = "test_main"
 )]
 #![feature(alloc_error_handler)]
+#![feature(allocator_api)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
@@ -161,7 +162,7 @@ pub use agb_macros::entry;
 pub use agb_sound_converter::include_wav;
 
 extern crate alloc;
-mod agb_alloc;
+pub mod agb_alloc;
 
 mod agbabi;
 mod bitarray;

@@ -33,6 +33,7 @@ impl<T> DerefMut for SendNonNull<T> {
 }
 
 const EWRAM_END: usize = 0x0204_0000;
+const IWRAM_END: usize = 0x0300_8000;
 
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe {
@@ -42,7 +43,17 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
     })
 };
 
+pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
+pub static IWRAM_ALLOC: &BlockAllocator = &__IWRAM_ALLOC;
+static __IWRAM_ALLOC: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: iwram_data_end,
+        end: || IWRAM_END,
+    })
+};
+
 #[cfg(any(test, feature = "testing"))]
+#[cfg(test)]
 pub unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }
@@ -54,6 +65,16 @@ fn alloc_error(layout: Layout) -> ! {
         layout.size(),
         layout.align()
     );
+}
+
+fn iwram_data_end() -> usize {
+    extern "C" {
+        static __iwram_data_end: usize;
+    }
+
+    // TODO: This seems completely wrong, but without the &, rust generates
+    // a double dereference :/. Maybe a bug in nightly?
+    (unsafe { &__iwram_data_end }) as *const _ as usize
 }
 
 fn data_end() -> usize {
