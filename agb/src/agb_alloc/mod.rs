@@ -33,6 +33,7 @@ impl<T> DerefMut for SendNonNull<T> {
 }
 
 const EWRAM_END: usize = 0x0204_0000;
+const IWRAM_END: usize = 0x0300_8000;
 
 #[global_allocator]
 static GLOBAL_ALLOC: BlockAllocator = unsafe {
@@ -42,8 +43,59 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
     })
 };
 
+/// This is the allocator for the External Working Ram. This is currently
+/// equivalent to the Global Allocator (where things are allocated if no allocator is provided). This implements the allocator trait, so
+/// is meant to be used in specifying where certain structures should be
+/// allocated.
+///
+/// ```rust,no_run
+/// #![feature(allocator_api)]
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::EWRAM_ALLOC;
+/// # extern crate alloc;
+/// # use alloc::vec::Vec;
+/// # fn foo(gba: &mut agb::Gba) {
+/// let mut v = Vec::new_in(EWRAM_ALLOC);
+/// v.push("hello, world");
+/// assert!(
+///     (0x0200_0000..0x0204_0000).contains(&(v.as_ptr() as usize)),
+///     "the address of the vector is inside ewram"
+/// );
+/// # }
+/// ```
+pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
+
+/// This is the allocator for the Internal Working Ram. This implements the
+/// allocator trait, so is meant to be used in specifying where certain
+/// structures should be allocated.
+///
+/// ```rust,no_run
+/// #![feature(allocator_api)]
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::IWRAM_ALLOC;
+/// # extern crate alloc;
+/// # use alloc::vec::Vec;
+/// # fn foo(gba: &mut agb::Gba) {
+/// let mut v = Vec::new_in(IWRAM_ALLOC);
+/// v.push("hello, world");
+/// assert!(
+///     (0x0300_0000..0x0300_8000).contains(&(v.as_ptr() as usize)),
+///     "the address of the vector is inside iwram"
+/// );
+/// # }
+/// ```
+pub static IWRAM_ALLOC: &BlockAllocator = &__IWRAM_ALLOC;
+static __IWRAM_ALLOC: BlockAllocator = unsafe {
+    BlockAllocator::new(StartEnd {
+        start: iwram_data_end,
+        end: || IWRAM_END,
+    })
+};
+
 #[cfg(any(test, feature = "testing"))]
-pub unsafe fn number_of_blocks() -> u32 {
+pub(crate) unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }
 
@@ -54,6 +106,16 @@ fn alloc_error(layout: Layout) -> ! {
         layout.size(),
         layout.align()
     );
+}
+
+fn iwram_data_end() -> usize {
+    extern "C" {
+        static __iwram_end: usize;
+    }
+
+    // TODO: This seems completely wrong, but without the &, rust generates
+    // a double dereference :/. Maybe a bug in nightly?
+    (unsafe { &__iwram_end }) as *const _ as usize
 }
 
 fn data_end() -> usize {
@@ -148,6 +210,30 @@ mod test {
         assert!(
             0x0204_0000 > data_end,
             "data end should be smaller than 0x0203_0000"
+        );
+    }
+
+    #[test_case]
+    fn should_return_data_end_somewhere_in_iwram(_gba: &mut crate::Gba) {
+        let data_end = iwram_data_end();
+
+        assert!(
+            (0x0300_0000..0x0300_8000).contains(&data_end),
+            "iwram data end should be in iwram, instead was {}",
+            data_end
+        );
+        crate::println!("data end was {:#010X}", data_end);
+    }
+
+    #[test_case]
+    fn allocate_to_iwram_works(_gba: &mut crate::Gba) {
+        let a = Box::new_in(1, IWRAM_ALLOC);
+        let p = &*a as *const i32;
+        let addr = p as usize;
+        assert!(
+            (0x0300_0000..0x0300_8000).contains(&addr),
+            "address of allocation should be within iwram, instead at {:?}",
+            p
         );
     }
 }
