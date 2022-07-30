@@ -9,9 +9,9 @@ use alloc::boxed::Box;
 #[agb::entry]
 fn main(_gba: agb::Gba) -> ! {
     loop {
-        let a = Box::new_in(1, agb::agb_alloc::EWRAM_ALLOC);
+        let a = Box::new_in(1, agb::EWRAM_ALLOC);
         let b = Box::new(1);
-        let c = Box::new_in(3, agb::agb_alloc::IWRAM_ALLOC);
+        let c = Box::new_in(3, agb::IWRAM_ALLOC);
         agb::println!("ewram allocation made to {:?}", &*a as *const _);
         agb::println!("global allocation made to {:?}", &*b as *const _);
         agb::println!("iwram allocation made to {:?}", &*c as *const _);

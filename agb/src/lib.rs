@@ -162,7 +162,7 @@ pub use agb_macros::entry;
 pub use agb_sound_converter::include_wav;
 
 extern crate alloc;
-pub mod agb_alloc;
+mod agb_alloc;
 
 mod agbabi;
 mod bitarray;
@@ -189,6 +189,8 @@ pub mod sound;
 pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
+
+pub use {agb_alloc::EWRAM_ALLOC, agb_alloc::IWRAM_ALLOC};
 
 #[cfg(not(any(test, feature = "testing")))]
 #[panic_handler]
