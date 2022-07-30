@@ -190,7 +190,7 @@ pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 
-pub use {agb_alloc::EWRAM_ALLOC, agb_alloc::IWRAM_ALLOC};
+pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
 #[cfg(not(any(test, feature = "testing")))]
 #[panic_handler]
@@ -205,8 +205,6 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     #[allow(clippy::empty_loop)]
     loop {}
 }
-
-static mut GBASINGLE: single::Singleton<Gba> = single::Singleton::new(unsafe { Gba::single_new() });
 
 /// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
 /// borrow checker's responsibility to ensure no clashes of global resources.
@@ -245,7 +243,7 @@ impl Gba {
     #[doc(hidden)]
     #[must_use]
     pub unsafe fn new_in_entry() -> Self {
-        GBASINGLE.take()
+        Self::single_new()
     }
 
     const unsafe fn single_new() -> Self {
