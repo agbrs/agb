@@ -43,7 +43,47 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
     })
 };
 
+/// This is the allocator for the External Working Ram. This is currently
+/// equivalent to the Global Allocator (where things are allocated if no allocator is provided). This implements the allocator trait, so
+/// is meant to be used in specifying where certain structures should be
+/// allocated.
+///
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use crate::EWRAM_ALLOC;
+/// # extern crate alloc;
+/// # use alloc::vec::Vec;
+/// # fn foo(gba: &mut agb::Gba) {
+/// let mut v = Vec::new_in(EWRAM_ALLOC);
+/// v.push("hello, world");
+/// assert!(
+///     (0x0200_0000..0x0204_0000).contains(&(v.as_ptr() as usize)),
+///     "the address of the vector is inside ewram"
+/// );
+/// # }
+/// ```
 pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
+
+/// This is the allocator for the Internal Working Ram. This implements the
+/// allocator trait, so is meant to be used in specifying where certain
+/// structures should be allocated.
+///
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use crate::IWRAM_ALLOC;
+/// # extern crate alloc;
+/// # use alloc::vec::Vec;
+/// # fn foo(gba: &mut agb::Gba) {
+/// let mut v = Vec::new_in(IWRAM_ALLOC);
+/// v.push("hello, world");
+/// assert!(
+///     (0x0300_0000..0x0200_8000).contains(&(v.as_ptr() as usize)),
+///     "the address of the vector is inside iwram"
+/// );
+/// # }
+/// ```
 pub static IWRAM_ALLOC: &BlockAllocator = &__IWRAM_ALLOC;
 static __IWRAM_ALLOC: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
