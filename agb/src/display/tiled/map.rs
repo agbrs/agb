@@ -112,21 +112,19 @@ impl RegularMap {
         self.bg_h_offset().set(self.x_scroll);
         self.bg_v_offset().set(self.y_scroll);
 
-        vram.gc();
-
-        if !self.tiles_dirty {
-            return;
-        }
-
         let screenblock_memory = self.screenblock_memory();
 
-        unsafe {
-            dma_copy16(
-                self.tiles.as_ptr() as *const u16,
-                screenblock_memory,
-                self.size.num_tiles(),
-            );
+        if self.tiles_dirty {
+            unsafe {
+                dma_copy16(
+                    self.tiles.as_ptr() as *const u16,
+                    screenblock_memory,
+                    self.size.num_tiles(),
+                );
+            }
         }
+
+        vram.gc();
 
         self.tiles_dirty = false;
     }
