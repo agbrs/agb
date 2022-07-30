@@ -38,90 +38,74 @@
 /// The following is an example of the toml file you would need to create. Generally you will
 /// find this in the `gfx` folder in the same level as the `src` folder (see the examples).
 ///
-/// Suppose that the following is in `gfx/sprites.toml`.
+/// Suppose that the following is in `examples/water_tiles.toml`.
 ///
 /// ```toml
-/// version = "1.0" # version included for compatibility reasons
+/// version = "1.0"
 ///
-/// [images.objects]
-/// filename = "sprites.png"
-/// tile_size = "16x16"
-/// transparent_colour = "ff0044"
+/// [image.tiles]
+/// filename = "water_tiles.png"
+/// tile_size = "8x8"
 /// ```
 ///
 /// You then import this using:
-/// ```rust,ignore
-/// agb::include_gfx!("gfx/sprites.toml");
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_gfx!("examples/water_tiles.toml");
 /// ```
 ///
 /// This will generate something along the lines of the following:
 ///
 /// ```rust,ignore
-/// // module name comes from the name of the toml file, so `sprites` in this case because it is
-/// // called `sprites.toml`
-/// mod sprites {
-///     const objects = /* ... */;
+/// // module name comes from the name of the toml file, so `water_tiles` in this case because it is
+/// // called `water_tiles.toml`
+/// mod water_tiles {
+///     const tiles = /* ... */;
 /// }
 /// ```
 ///
-/// And objects will be an instance of [`TileData`][crate::display::tile_data::TileData]
+/// And tiles will be an instance of [`TileData`][crate::display::tile_data::TileData]
 ///
 /// # Examples
 ///
-/// ## Loading sprites:
-///
-/// In `gfx/sprites.toml`:
-/// ```toml
-/// version = "1.0"
-///
-/// [image.sprites]
-/// filename = "sprites.png"
-/// tile_size = "16x16"
-/// transparent_colour = "ff0044"
-/// ```
-///
-/// In `src/main.rs`
-/// ```rust,ignore
-/// mod gfx {
-///     use agb::display::object::ObjectControl;
-///
-///     // Import the sprites into this module. This will create a `sprites` module
-///     // and within that will be a constant called `sprites` which houses all the
-///     // palette and tile data.
-///     agb::include_gfx!("gfx/sprites.toml");
-///
-///     // Loads the sprites tile data and palette data into VRAM
-///     pub fn load_sprite_data(object: &mut ObjectControl) {
-///         object.set_sprite_palettes(sprites::sprites.palettes);
-///         object.set_sprite_tilemap(sprites::sprites.tiles);
-///     }
-/// }
-/// ```
-///
-/// ## Loading tiles:
-///
-/// In `gfx/tiles.toml`:
-/// ```toml
-/// version = "1.0"
-///
-/// [image.background]
-/// filename = "tile_sheet.png"
-/// tile_size = "8x8"
-/// transparent_colour = "2ce8f4"
-/// ```
+/// Assume the tiles are loaded as above
 ///
 /// In `src/main.rs`:
-/// ```rust,ignore
-/// mod gfx {
-///     use agb::display::background::BackgroundDistributor;
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// #
+/// use agb::{
+///     display::{
+///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, Tiled0, VRamManager},
+///         Priority,
+///     },
+///     include_gfx,
+/// };
 ///
-///     agb::include_gfx!("gfx/tile_sheet.toml");
+/// agb::include_gfx!("examples/water_tiles.toml");
 ///
-///     pub fn load_tile_sheet(tiled: &mut BackgroundDistributor) {
-///         tiled.set_background_palettes(tile_sheet::background.palettes);
-///         tiled.set_background_tilemap(tile_sheet::background.tiles);
+/// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
+/// let tileset = TileSet::new(water_tiles::water_tiles.tiles, TileFormat::FourBpp);
+///
+/// vram.set_background_palettes(water_tiles::water_tiles.palettes);
+///
+/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+///
+/// for y in 0..20u16 {
+///     for x in 0..30u16 {
+///         bg.set_tile(
+///             &mut vram,
+///             (x, y).into(),
+///             &tileset,
+///             TileSetting::new(0, false, false, 0),
+///         );
 ///     }
 /// }
+/// bg.commit(&mut vram);
+/// bg.show();
+/// # }
 /// ```
 pub use agb_image_converter::include_gfx;
 
