@@ -53,7 +53,6 @@ static __IWRAM_ALLOC: BlockAllocator = unsafe {
 };
 
 #[cfg(any(test, feature = "testing"))]
-#[cfg(test)]
 pub(crate) unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }
@@ -74,7 +73,7 @@ fn iwram_data_end() -> usize {
 
     // TODO: This seems completely wrong, but without the &, rust generates
     // a double dereference :/. Maybe a bug in nightly?
-    (unsafe { &__iwram_data_end }) as *const _ as usize
+    (unsafe { &__iwram_data_end }) as *const _ as usize + 0x200
 }
 
 fn data_end() -> usize {
@@ -169,6 +168,30 @@ mod test {
         assert!(
             0x0204_0000 > data_end,
             "data end should be smaller than 0x0203_0000"
+        );
+    }
+
+    #[test_case]
+    fn should_return_data_end_somewhere_in_iwram(_gba: &mut crate::Gba) {
+        let data_end = iwram_data_end();
+
+        assert!(
+            (0x0300_0000..0x0300_8000).contains(&data_end),
+            "iwram data end should be in iwram, instead was {}",
+            data_end
+        );
+        crate::println!("data end was {:#010X}", data_end);
+    }
+
+    #[test_case]
+    fn allocate_to_iwram_works(_gba: &mut crate::Gba) {
+        let a = Box::new_in(1, IWRAM_ALLOC);
+        let p = &*a as *const i32;
+        let addr = p as usize;
+        assert!(
+            (0x0300_0000..0x0300_8000).contains(&addr),
+            "address of allocation should be within iwram, instead at {:?}",
+            p
         );
     }
 }
