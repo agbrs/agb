@@ -49,9 +49,10 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
 /// allocated.
 ///
 /// ```rust,no_run
+/// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use crate::EWRAM_ALLOC;
+/// # use agb::EWRAM_ALLOC;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
@@ -70,9 +71,10 @@ pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
 /// structures should be allocated.
 ///
 /// ```rust,no_run
+/// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use crate::IWRAM_ALLOC;
+/// # use agb::IWRAM_ALLOC;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
