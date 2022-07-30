@@ -81,7 +81,7 @@ pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
 /// let mut v = Vec::new_in(IWRAM_ALLOC);
 /// v.push("hello, world");
 /// assert!(
-///     (0x0300_0000..0x0200_8000).contains(&(v.as_ptr() as usize)),
+///     (0x0300_0000..0x0300_8000).contains(&(v.as_ptr() as usize)),
 ///     "the address of the vector is inside iwram"
 /// );
 /// # }
