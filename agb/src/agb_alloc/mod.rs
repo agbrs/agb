@@ -66,11 +66,11 @@ macro_rules! impl_zst_allocator {
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::EWRAM_ALLOC;
+/// # use agb::ExternalAllocator;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
-/// let mut v = Vec::new_in(EWRAM_ALLOC);
+/// let mut v = Vec::new_in(ExternalAllocator);
 /// v.push("hello, world");
 /// assert!(
 ///     (0x0200_0000..0x0204_0000).contains(&(v.as_ptr() as usize)),
@@ -90,11 +90,11 @@ impl_zst_allocator!(ExternalAllocator, GLOBAL_ALLOC);
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::IWRAM_ALLOC;
+/// # use agb::InternalAllocator;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
-/// let mut v = Vec::new_in(IWRAM_ALLOC);
+/// let mut v = Vec::new_in(InternalAllocator);
 /// v.push("hello, world");
 /// assert!(
 ///     (0x0300_0000..0x0300_8000).contains(&(v.as_ptr() as usize)),
