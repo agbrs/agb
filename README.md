@@ -29,6 +29,14 @@ Once you have done this, you will find further instructions within the README in
 
 There is an (in progress) tutorial which you can find on the [project website](https://agbrs.github.io/agb/).
 
+## Help / Support
+
+If you need any help, the [discussions page](https://github.com/agbrs/agb/discussions)
+is a great place to get help from the creators and contributors.
+
+Feel free to [create a new discussion in the Q&A category](https://github.com/agbrs/agb/discussions/new?category=Q-A) and we'll do our best to help!
+
+
 ## Contributing to agb itself
 
 In order to contribute to agb itself, you will need a few extra tools on top of what you would need
