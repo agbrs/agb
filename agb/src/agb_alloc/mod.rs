@@ -68,12 +68,12 @@ fn alloc_error(layout: Layout) -> ! {
 
 fn iwram_data_end() -> usize {
     extern "C" {
-        static __iwram_data_end: usize;
+        static __iwram_end: usize;
     }
 
     // TODO: This seems completely wrong, but without the &, rust generates
     // a double dereference :/. Maybe a bug in nightly?
-    (unsafe { &__iwram_data_end }) as *const _ as usize + 0x200
+    (unsafe { &__iwram_end }) as *const _ as usize
 }
 
 fn data_end() -> usize {

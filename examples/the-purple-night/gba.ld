@@ -65,6 +65,7 @@ SECTIONS {
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
+        __iwram_end = ABSOLUTE(.);
     } > iwram
 
     __iwram_rom_length_bytes = __iwram_data_end - __iwram_data_start;
