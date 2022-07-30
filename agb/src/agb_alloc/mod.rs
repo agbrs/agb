@@ -54,7 +54,7 @@ static __IWRAM_ALLOC: BlockAllocator = unsafe {
 
 #[cfg(any(test, feature = "testing"))]
 #[cfg(test)]
-pub unsafe fn number_of_blocks() -> u32 {
+pub(crate) unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }
 
