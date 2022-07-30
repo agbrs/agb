@@ -2,6 +2,7 @@
 
 # Fail if any command fails
 set -e
+set -x
 
 VERSION=$1
 NO_COMMIT=$2
@@ -62,6 +63,9 @@ for PROJECT_TOML_FILE in agb/Cargo.toml agb-*/Cargo.toml; do
         for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml template/Cargo.toml; do
             EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
             sed -E -i -e "/agb =/ s/version = \"[^\"]+\"/version = \"$VERSION\"/" "$EXAMPLE_DIR/Cargo.toml"
+        done
+        for EXAMPLE_TOML_FILE in examples/*/Cargo.toml book/games/*/Cargo.toml; do
+            EXAMPLE_DIR=$(dirname "$EXAMPLE_TOML_FILE")
             (cd "$EXAMPLE_DIR" && cargo update)
         done
     else
