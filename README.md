@@ -34,7 +34,7 @@ There is an (in progress) tutorial which you can find on the [project website](h
 If you need any help, the [discussions page](https://github.com/agbrs/agb/discussions)
 is a great place to get help from the creators and contributors.
 
-Here you can create a new discussion with the Q&A category and help should be on the way.
+Feel free to create a new discussion in the Q&A category and we'll do our best to help!
 
 
 ## Contributing to agb itself
