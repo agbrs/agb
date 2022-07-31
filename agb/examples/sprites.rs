@@ -7,8 +7,8 @@ use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
 use alloc::vec::Vec;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
-    "../examples/the-purple-night/gfx/objects.aseprite",
-    "../examples/the-purple-night/gfx/boss.aseprite"
+    "examples/gfx/objects.aseprite",
+    "examples/gfx/boss.aseprite"
 );
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
