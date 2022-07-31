@@ -241,7 +241,6 @@ mod test {
             "iwram data end should be in iwram, instead was {}",
             data_end
         );
-        crate::println!("data end was {:#010X}", data_end);
     }
 
     #[test_case]
