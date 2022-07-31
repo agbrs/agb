@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 use alloc::vec::Vec;
 use core::alloc::Layout;
 
@@ -110,13 +111,16 @@ const PALETTE_SPRITE: usize = 0x0500_0200;
 const TILE_SPRITE: usize = 0x06010000;
 const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
 
+/// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
     palette: &'static Palette16,
     data: &'static [u8],
     size: Size,
 }
 
+/// The sizes of sprite supported by the GBA.
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Size {
     // stored as attr0 attr1
     S8x8 = 0b00_00,
@@ -135,12 +139,14 @@ pub enum Size {
     S32x64 = 0b10_11,
 }
 
+#[doc(hidden)]
 #[repr(C)] // guarantee 'bytes' comes after '_align'
 pub struct AlignedAs<Align, Bytes: ?Sized> {
     pub _align: [Align; 0],
     pub bytes: Bytes,
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! align_bytes {
     ($align_ty:ty, $data:literal) => {{
@@ -155,6 +161,25 @@ macro_rules! align_bytes {
     }};
 }
 
+/// Includes sprites found in the referenced aseprite files. Can include
+/// multiple at once and optimises palettes of all included in the single call
+/// together. Currently limited to square sprites that match a supported
+/// dimension of the GBA, see [Size] for supported sizes. Returns a reference to
+/// [Graphics].
+///
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::{display::object::Graphics, include_aseprite};
+/// const GRAPHICS: &Graphics = include_aseprite!(
+///     "examples/gfx/boss.aseprite",
+///     "examples/gfx/objects.aseprite"
+/// );
+/// ```
+/// The tags from the aseprite file are included so you can refer to sprites by
+/// name in code. You should ensure tags are unique as this is not enforced by
+/// aseprite.
+///
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
@@ -168,26 +193,48 @@ macro_rules! include_aseprite {
     }};
 }
 
+/// Stores sprite and tag data returned by [include_aseprite].
 pub struct Graphics {
     sprites: &'static [Sprite],
     tag_map: &'static TagMap,
 }
 
 impl Graphics {
+    #[doc(hidden)]
+    /// Creates graphics data from sprite data and a tag_map. This is used
+    /// internally by [include_aseprite] and would be otherwise difficult to
+    /// use.
     #[must_use]
     pub const fn new(sprites: &'static [Sprite], tag_map: &'static TagMap) -> Self {
         Self { sprites, tag_map }
     }
     #[must_use]
+    /// Gets the tag map from the aseprite files. This allows reference to
+    /// sprite sequences by name.
     pub const fn tags(&self) -> &TagMap {
         self.tag_map
     }
+    /// Gets a big list of the sprites themselves. Using tags is often easier.
     #[must_use]
     pub const fn sprites(&self) -> &[Sprite] {
         self.sprites
     }
 }
 
+/// Stores aseprite tags. Can be used to refer to animation sequences by name.
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+/// const GRAPHICS: &Graphics = include_aseprite!(
+///     "examples/gfx/boss.aseprite",
+///     "examples/gfx/objects.aseprite"
+/// );
+///
+/// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+/// ```
+/// This being the whole animation associated with the walk sequence of the emu.
+/// See [Tag] for details on how to use this.
 pub struct TagMap {
     tags: &'static [(&'static str, Tag)],
 }
@@ -208,10 +255,16 @@ const fn const_byte_compare(a: &[u8], b: &[u8]) -> bool {
 }
 
 impl TagMap {
+    #[doc(hidden)]
+    /// Creates a new tag map from (name, Tag) pairs. Used internally by
+    /// [include_aseprite] and should not really be used outside of it.
     #[must_use]
     pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
         Self { tags }
     }
+
+    #[doc(hidden)]
+    /// Attempts to get a tag. Generally should not be used.
     #[must_use]
     pub const fn try_get(&'static self, tag: &str) -> Option<&'static Tag> {
         let mut i = 0;
@@ -226,6 +279,24 @@ impl TagMap {
 
         None
     }
+
+    /// Gets a tag associated with the name. A tag in aseprite refers to a
+    /// sequence of sprites with some metadata for how to animate it. You should
+    /// call this in a constant context so it is evalulated at compile time. It
+    /// is inefficient to call this elsewhere.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    /// ```
+    ///
+    /// See [Tag] for more details.
     #[must_use]
     pub const fn get(&'static self, tag: &str) -> &'static Tag {
         let t = self.try_get(tag);
@@ -234,6 +305,8 @@ impl TagMap {
             None => panic!("The requested tag does not exist"),
         }
     }
+
+    /// Takes an iterator over all the tags in the map. Not generally useful.
     pub fn values(&self) -> impl Iterator<Item = &'static Tag> {
         self.tags.iter().map(|x| &x.1)
     }
@@ -257,6 +330,7 @@ impl Direction {
     }
 }
 
+/// A sequence of sprites from aseprite.
 pub struct Tag {
     sprites: *const Sprite,
     len: usize,
@@ -264,11 +338,13 @@ pub struct Tag {
 }
 
 impl Tag {
+    /// The individual sprites that make up the animation themselves.
     #[must_use]
     pub fn sprites(&self) -> &'static [Sprite] {
         unsafe { slice::from_raw_parts(self.sprites, self.len) }
     }
 
+    /// A single sprite refered to by index in the animation sequence.
     #[must_use]
     pub const fn sprite(&self, idx: usize) -> &'static Sprite {
         if idx >= self.len {
@@ -277,6 +353,14 @@ impl Tag {
         unsafe { &*self.sprites.add(idx) }
     }
 
+    /// A sprite that follows the animation sequence. For instance, in aseprite
+    /// tags can be specified to animate:
+    /// * Forward
+    /// * Backward
+    /// * Ping pong
+    ///
+    /// This takes the animation type in account and returns the correct sprite
+    /// following these requirements.
     #[inline]
     #[must_use]
     pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
@@ -292,6 +376,8 @@ impl Tag {
     }
 
     #[doc(hidden)]
+    /// Creates a new sprite from it's constituent parts. Used internally by
+    /// [include_aseprite] and should generally not be used elsewhere.
     #[must_use]
     pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
         assert!(from <= to);
@@ -326,6 +412,8 @@ impl Size {
     }
 
     #[must_use]
+    /// Creates a size from width and height in pixels, panics if the width and
+    /// height is not representable by GBA sprites.
     pub const fn from_width_height(width: usize, height: usize) -> Self {
         match (width, height) {
             (8, 8) => Size::S8x8,
@@ -345,6 +433,7 @@ impl Size {
     }
 
     #[must_use]
+    /// Returns the width and height of the size in pixels.
     pub const fn to_width_height(self) -> (usize, usize) {
         match self {
             Size::S8x8 => (8, 8),
@@ -363,6 +452,10 @@ impl Size {
     }
 }
 
+/// A reference to a sprite that is currently copied in vram. This is reference
+/// counted and can be cloned to keep it in vram or otherwise manipulated. If
+/// objects no longer refer to this sprite, then it's vram slot is freed for the
+/// next sprite. This is obtained from the [ObjectController].
 pub struct SpriteBorrow<'a> {
     id: SpriteId,
     sprite_location: u16,
@@ -441,6 +534,8 @@ impl Attributes {
     }
 }
 
+/// An object that may be displayed on screen. The object can be modified using
+/// the available methods. This is obtained from the [ObjectController].
 pub struct Object<'a> {
     loan: Loan<'a>,
 }
@@ -502,6 +597,8 @@ impl ObjectControllerStatic {
     }
 }
 
+/// A controller that distributes objects and sprites. This controls sprites and
+/// objects being copied to vram when it needs to be.
 pub struct ObjectController {
     phantom: ObjectControllerReference<'static>,
 }
@@ -517,6 +614,9 @@ impl Drop for ObjectController {
 const HIDDEN_VALUE: u16 = 0b10 << 8;
 
 impl ObjectController {
+    /// Commits the objects to vram and delete sprites where possible. This
+    /// should be called shortly after having waited for the next vblank to
+    /// ensure what is displayed on screen doesn't change part way through.
     pub fn commit(&self) {
         let mut s = unsafe { get_object_controller(self.phantom) };
 
@@ -573,10 +673,103 @@ impl ObjectController {
     }
 
     #[must_use]
+    /// Creates an object with it's initial sprite being the sprite reference.
+    /// Panics if there is no space for the sprite or if there are no free
+    /// objects. This will reuse an existing copy of the sprite in vram if
+    /// possible.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let emu = object_controller.object_sprite(EMU_WALK.animation_sprite(0));
+    /// # }
+    /// ```
+    pub fn object_sprite<'a>(&'a self, sprite: &'static Sprite) -> Object<'a> {
+        let sprite = self.sprite(sprite);
+        self.object(sprite)
+    }
+
+    #[must_use]
+    /// Creates an object with it's initial sprite being the sprite reference.
+    /// Returns [None] if the sprite or object could not be allocated. This will
+    /// reuse an existing copy of the sprite in vram if possible.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let emu = object_controller.try_get_object_sprite(
+    ///     EMU_WALK.animation_sprite(0)
+    /// ).expect("the sprite or object could be allocated");
+    /// # }
+    /// ```
+    pub fn try_get_object_sprite<'a>(&'a self, sprite: &'static Sprite) -> Option<Object<'a>> {
+        let sprite = self.try_get_sprite(sprite)?;
+        self.try_get_object(sprite)
+    }
+
+    /// Creates an object with it's initial sprite being what is in the
+    /// [SpriteBorrow]. Panics if there are no objects left. A [SpriteBorrow] is
+    /// created using the [ObjectController::sprite] function.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let emu = object_controller.object(object_controller.sprite(EMU_WALK.animation_sprite(0)));
+    /// # }
+    /// ```
+    #[must_use]
     pub fn object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Object<'a> {
         self.try_get_object(sprite).expect("No object available")
     }
 
+    /// Creates an object with it's initial sprite being what is in the
+    /// [SpriteBorrow]. A [SpriteBorrow] is created using the
+    /// [ObjectController::try_get_sprite] function.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let emu = object_controller.try_get_object(
+    ///     object_controller.sprite(EMU_WALK.animation_sprite(0))
+    /// ).expect("the object should be allocatable");
+    /// # }
+    /// ```
     #[must_use]
     pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
         let mut s = unsafe { get_object_controller(self.phantom) };
@@ -612,12 +805,51 @@ impl ObjectController {
         Some(Object { loan })
     }
 
+    /// Creates a [SpriteBorrow] from the given sprite, panics if the sprite
+    /// could not be allocated. This will reuse an existing copy of the sprite
+    /// in vram if possible.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let sprite = object_controller.sprite(EMU_WALK.animation_sprite(0));
+    /// # }
+    /// ```
     #[must_use]
     pub fn sprite(&self, sprite: &'static Sprite) -> SpriteBorrow {
         self.try_get_sprite(sprite)
             .expect("No slot for sprite available")
     }
 
+    /// Creates a [SpriteBorrow] from the given sprite. This will reuse an
+    /// existing copy of the sprite in vram if possible.
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
+    /// const GRAPHICS: &Graphics = include_aseprite!(
+    ///     "examples/gfx/boss.aseprite",
+    ///     "examples/gfx/objects.aseprite"
+    /// );
+    ///
+    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    ///
+    /// # fn foo(gba: &mut agb::Gba) {
+    /// # let object_controller = gba.display.object.get();
+    /// let sprite = object_controller.try_get_sprite(
+    ///     EMU_WALK.animation_sprite(0)
+    /// ).expect("the sprite should be allocatable");
+    /// # }
+    /// ```
     #[must_use]
     pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let s = unsafe { get_object_controller(self.phantom) };
@@ -638,6 +870,8 @@ impl<'a> Object<'a> {
             .unwrap_unchecked()
     }
 
+    /// Swaps out the current sprite. This handles changing of size, palette,
+    /// etc. No change will be seen until [ObjectController::commit] is called.
     pub fn set_sprite(&'_ mut self, sprite: SpriteBorrow<'a>) {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a2.set_tile_index(sprite.sprite_location);
@@ -652,6 +886,8 @@ impl<'a> Object<'a> {
         object_inner.sprite = unsafe { core::mem::transmute(sprite) };
     }
 
+    /// Shows the sprite. No change will be seen until
+    /// [ObjectController::commit] is called.
     pub fn show(&mut self) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a0.set_object_mode(ObjectMode::Normal);
@@ -659,18 +895,27 @@ impl<'a> Object<'a> {
         self
     }
 
+    /// Controls whether the sprite is flipped horizontally, for example useful
+    /// for reusing the same sprite for the left and right walking directions.
+    /// No change will be seen until [ObjectController::commit] is called.
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a1s.set_horizontal_flip(flip);
         self
     }
 
+    /// Controls whether the sprite is flipped vertically, for example useful
+    /// for reusing the same sprite for the up and down walking directions. No
+    /// change will be seen until [ObjectController::commit] is called.
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a1s.set_vertical_flip(flip);
         self
     }
 
+    /// Sets the x position of the object. The coordinate refers to the top-left
+    /// corner of the sprite. No change will be seen until
+    /// [ObjectController::commit] is called.
     pub fn set_x(&mut self, x: u16) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
@@ -678,18 +923,26 @@ impl<'a> Object<'a> {
         self
     }
 
+    /// Sets the z priority of the sprite. Higher priority will be dislayed
+    /// above background layers with lower priorities. No change will be seen
+    /// until [ObjectController::commit] is called.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a2.set_priority(priority);
         self
     }
 
+    /// Hides the object. No change will be seen until
+    /// [ObjectController::commit] is called.
     pub fn hide(&mut self) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a0.set_object_mode(ObjectMode::Disabled);
         self
     }
 
+    /// Sets the y position of the sprite. The coordinate refers to the top-left
+    /// corner of the sprite. No change will be seen until
+    /// [ObjectController::commit] is called.
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a0.set_y(y as u8);
@@ -697,6 +950,9 @@ impl<'a> Object<'a> {
         self
     }
 
+    /// Sets the z position of the sprite, this controls which sprites are above
+    /// eachother. No change will be seen until [ObjectController::commit] is
+    /// called.
     pub fn set_z(&mut self, z: i32) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.z = z;
@@ -707,6 +963,9 @@ impl<'a> Object<'a> {
         self
     }
 
+    /// Sets the position of the sprite using a [Vector2D]. The coordinate
+    /// refers to the top-left corner of the sprite. No change will be seen
+    /// until [ObjectController::commit] is called.
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
         object_inner.attrs.a0.set_y(position.y as u8);
@@ -757,6 +1016,9 @@ impl Sprite {
     fn layout(&self) -> Layout {
         Layout::from_size_align(self.size.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
     }
+    #[doc(hidden)]
+    /// Creates a sprite from it's constituent data, used internally by
+    /// [include_aseprite] and should generally not be used outside it.
     #[must_use]
     pub const fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
         Self {
@@ -766,6 +1028,7 @@ impl Sprite {
         }
     }
     #[must_use]
+    /// The size of the sprite in it's form that is displayable on the GBA.
     pub const fn size(&self) -> Size {
         self.size
     }
@@ -932,6 +1195,7 @@ enum ColourMode {
     Eight,
 }
 
+// this mod is not public, so the internal parts don't need documenting.
 #[allow(dead_code)]
 mod attributes {
     use super::*;
