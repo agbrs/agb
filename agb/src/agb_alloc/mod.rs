@@ -1,4 +1,4 @@
-use core::alloc::Layout;
+use core::alloc::{Allocator, Layout};
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
@@ -43,6 +43,20 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
     })
 };
 
+macro_rules! impl_zst_allocator {
+    ($name_of_struct: ty, $name_of_static: ident) => {
+        unsafe impl Allocator for $name_of_struct {
+            fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+                $name_of_static.allocate(layout)
+            }
+
+            unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+                $name_of_static.deallocate(ptr, layout)
+            }
+        }
+    };
+}
+
 /// This is the allocator for the External Working Ram. This is currently
 /// equivalent to the Global Allocator (where things are allocated if no allocator is provided). This implements the allocator trait, so
 /// is meant to be used in specifying where certain structures should be
@@ -52,11 +66,11 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::EWRAM_ALLOC;
+/// # use agb::ExternalAllocator;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
-/// let mut v = Vec::new_in(EWRAM_ALLOC);
+/// let mut v = Vec::new_in(ExternalAllocator);
 /// v.push("hello, world");
 /// assert!(
 ///     (0x0200_0000..0x0204_0000).contains(&(v.as_ptr() as usize)),
@@ -64,7 +78,9 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
 /// );
 /// # }
 /// ```
-pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
+pub struct ExternalAllocator;
+
+impl_zst_allocator!(ExternalAllocator, GLOBAL_ALLOC);
 
 /// This is the allocator for the Internal Working Ram. This implements the
 /// allocator trait, so is meant to be used in specifying where certain
@@ -74,11 +90,11 @@ pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::IWRAM_ALLOC;
+/// # use agb::InternalAllocator;
 /// # extern crate alloc;
 /// # use alloc::vec::Vec;
 /// # fn foo(gba: &mut agb::Gba) {
-/// let mut v = Vec::new_in(IWRAM_ALLOC);
+/// let mut v = Vec::new_in(InternalAllocator);
 /// v.push("hello, world");
 /// assert!(
 ///     (0x0300_0000..0x0300_8000).contains(&(v.as_ptr() as usize)),
@@ -86,7 +102,10 @@ pub static EWRAM_ALLOC: &BlockAllocator = &GLOBAL_ALLOC;
 /// );
 /// # }
 /// ```
-pub static IWRAM_ALLOC: &BlockAllocator = &__IWRAM_ALLOC;
+pub struct InternalAllocator;
+
+impl_zst_allocator!(InternalAllocator, __IWRAM_ALLOC);
+
 static __IWRAM_ALLOC: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
         start: iwram_data_end,
@@ -227,7 +246,7 @@ mod test {
 
     #[test_case]
     fn allocate_to_iwram_works(_gba: &mut crate::Gba) {
-        let a = Box::new_in(1, IWRAM_ALLOC);
+        let a = Box::new_in(1, InternalAllocator);
         let p = &*a as *const i32;
         let addr = p as usize;
         assert!(
