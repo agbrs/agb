@@ -22,6 +22,7 @@ It is super rewarding being able to play a game you made yourself on a piece of 
 # Helpful links
 
 * [agb's GitHub](https://github.com/agbrs/agb) all development happens here
+* [agb's Discussion Page](https://github.com/agbrs/agb/discussions) a forum where you can ask for help on the usage of agb
 * [agb's crates.io page](https://crates.io/crates/agb)
 * [agb's documentation](https://docs.rs/agb) which is useful if you need a quick reference
 * [Awesome Game Boy Advance development](https://github.com/gbdev/awesome-gbadev) contains links to popular libraries, emulators and the super friendly gbadev discord
