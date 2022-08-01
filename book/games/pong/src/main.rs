@@ -11,7 +11,7 @@
 #![no_main]
 
 use agb::{
-    display::object::{Graphics, ObjectController, Tag},
+    display::object::{Graphics, Tag},
     include_aseprite,
 };
 
@@ -20,7 +20,9 @@ use agb::{
 const GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 
 // We define some easy ways of referencing the sprites
+#[allow(dead_code)]
 const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
+#[allow(dead_code)]
 const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
 const BALL: &Tag = GRAPHICS.tags().get("Ball");
 
