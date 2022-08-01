@@ -115,15 +115,12 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
         for frame in frames {
             let width = frame.width();
-            assert!(width == frame.height() && width.is_power_of_two() && width <= 64);
+            let height = frame.height();
+            assert!(width.is_power_of_two() && width <= 64);
+            assert!(height.is_power_of_two() && height <= 64);
 
             let image = Image::load_from_dyn_image(frame);
-            add_to_optimiser(
-                &mut optimiser,
-                &image,
-                width as usize,
-                Some(transparent_colour),
-            );
+            add_to_optimiser(&mut optimiser, &image, 8, Some(transparent_colour));
             images.push(image);
         }
     }
@@ -293,7 +290,7 @@ fn palete_tile_data(
     let mut tile_data = Vec::new();
 
     for image in images {
-        let tile_size = image.height;
+        let tile_size = 8;
         let tiles_x = image.width / tile_size;
         let tiles_y = image.height / tile_size;
 
