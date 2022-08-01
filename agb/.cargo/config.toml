@@ -8,3 +8,7 @@ target = "thumbv4t-none-eabi"
 [target.thumbv4t-none-eabi]
 rustflags = ["-Clink-arg=-Tgba.ld", "-Ctarget-cpu=arm7tdmi"]
 runner = "mgba-test-runner"
+
+[target.armv4t-none-eabi]
+rustflags = ["-Clink-arg=-Tgba.ld", "-Ctarget-cpu=arm7tdmi"]
+runner = "mgba-test-runner"
