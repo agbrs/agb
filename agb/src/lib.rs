@@ -12,6 +12,7 @@
 )]
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
+#![feature(asm_const)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
