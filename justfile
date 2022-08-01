@@ -13,9 +13,11 @@ clippy:
 test:
     just _test-debug agb
     just _test-debug agb-fixnum
+    just _test-debug-arm agb
 
 test-release:
     just _test-release agb
+    just _test-release-arm agb
 
 doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
@@ -92,9 +94,13 @@ _build-release crate:
 _test-release crate:
     just _build-release {{crate}}
     (cd "{{crate}}" && cargo test --release)
+_test-release-arm crate:
+    (cd "{{crate}}" && cargo test --release --target={{justfile_directory()+"/armv4t-none-eabi.json"}})
 _test-debug crate:
     just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
+_test-debug-arm crate:
+    (cd "{{crate}}" && cargo test --release --target={{justfile_directory()+"/armv4t-none-eabi.json"}})
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
