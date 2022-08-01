@@ -115,15 +115,17 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
         for frame in frames {
             let width = frame.width();
-            assert!(width == frame.height() && width.is_power_of_two() && width <= 64);
+            let height = frame.height();
+            assert!(
+                valid_sprite_size(width, height),
+                "File {} contains sprites with unrepresentable size {}x{}",
+                filename.display(),
+                width,
+                height
+            );
 
             let image = Image::load_from_dyn_image(frame);
-            add_to_optimiser(
-                &mut optimiser,
-                &image,
-                width as usize,
-                Some(transparent_colour),
-            );
+            add_to_optimiser(&mut optimiser, &image, 8, Some(transparent_colour));
             images.push(image);
         }
     }
@@ -293,7 +295,7 @@ fn palete_tile_data(
     let mut tile_data = Vec::new();
 
     for image in images {
-        let tile_size = image.height;
+        let tile_size = 8;
         let tiles_x = image.width / tile_size;
         let tiles_y = image.height / tile_size;
 
@@ -399,5 +401,23 @@ mod tests {
         assert_eq!(AnimationDirection::Forward as usize, 0);
         assert_eq!(AnimationDirection::Reverse as usize, 1);
         assert_eq!(AnimationDirection::PingPong as usize, 2);
+    }
+}
+
+fn valid_sprite_size(width: u32, height: u32) -> bool {
+    match (width, height) {
+        (8, 8) => true,
+        (16, 16) => true,
+        (32, 32) => true,
+        (64, 64) => true,
+        (16, 8) => true,
+        (32, 8) => true,
+        (32, 16) => true,
+        (64, 32) => true,
+        (8, 16) => true,
+        (8, 32) => true,
+        (16, 32) => true,
+        (32, 64) => true,
+        (_, _) => false,
     }
 }

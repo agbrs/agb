@@ -8,7 +8,9 @@ use alloc::vec::Vec;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
     "examples/gfx/objects.aseprite",
-    "examples/gfx/boss.aseprite"
+    "examples/gfx/boss.aseprite",
+    "examples/gfx/wide.aseprite",
+    "examples/gfx/tall.aseprite"
 );
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
@@ -102,6 +104,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     loop {
         all_tags(&gfx);
+        gfx.commit();
         all_sprites(&gfx);
+        gfx.commit();
     }
 }
