@@ -69,7 +69,7 @@ const BALL: &Tag = GRAPHICS.tags().get("Ball");
 This uses the `include_aseprite` macro to include the sprites in the given aseprite file.
 Now, let's put this on screen by firstly creating the object manager and then creating an object, this will also involve the creation of the main entry function using the `entry` macro.
 The signature of this function takes the `Gba` struct and has the never return type, this means Rust will enforce that this function never returns, for now we will achieve this using a busy loop.
-Using the `Gba` struct we get the [`ObjectController` struct](https://docs.rs/agb/0.10.0/agb/display/object/struct.ObjectController.html) which manages loading and unloading sprites and objects.
+Using the `Gba` struct we get the [`ObjectController` struct](https://docs.rs/agb/latest/agb/display/object/struct.ObjectController.html) which manages loading and unloading sprites and objects.
 
 ```rust
 #[agb::entry]
