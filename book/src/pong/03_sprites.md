@@ -53,7 +53,7 @@ The aseprite file defines tags for these sprites, being "Paddle End", "Paddle Mi
 
 ```rust
 use agb::{include_aseprite,
-    display::object::{Graphics, ObjectController, Tag}
+    display::object::{Graphics, Tag}
 };
 
 // Import the sprites in to this constant. This holds the sprite 
