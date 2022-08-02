@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for sprites that are not square.
+- Docs for fixed point numbers.
+
+### Changed
+- Rect::contains_point now considers points on the boundary to be part of the rectangle.
+- Signature of Rect::overlapping_rect changed to return an Option. Returns None if rectangles don't overlap.
+
+### Fixed
+- Fixed point sine calculates the sine correctly.
 
 ## [0.10.0] - 2022/07/31
 

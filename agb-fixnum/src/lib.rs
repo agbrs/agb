@@ -1,4 +1,6 @@
 #![no_std]
+#![deny(missing_docs)]
+//! Fixed point number implementation for representing non integers efficiently.
 
 use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
@@ -10,8 +12,16 @@ use core::{
 };
 
 #[doc(hidden)]
+/// Used internally by the [num!] macro which should be used instead.
 pub use agb_macros::num as num_inner;
 
+/// Can be thought of having the signature `num!(float) -> Num<I, N>`.
+/// ```
+/// # use agb_fixnum::Num;
+/// # use agb_fixnum::num;
+/// let n: Num<i32, 8> = num!(0.75);
+/// assert_eq!(n, Num::new(3) / 4, "0.75 == 3/4");
+/// ```
 #[macro_export]
 macro_rules! num {
     ($value:literal) => {{
@@ -19,6 +29,8 @@ macro_rules! num {
     }};
 }
 
+/// A trait for everything required to use as the internal representation of the
+/// fixed point number.
 pub trait Number:
     Sized
     + Copy
@@ -37,6 +49,7 @@ pub trait Number:
 impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
 impl<I: FixedWidthUnsignedInteger> Number for I {}
 
+/// A trait for integers that don't implement unary negation
 pub trait FixedWidthUnsignedInteger:
     Sized
     + Copy
@@ -57,14 +70,20 @@ pub trait FixedWidthUnsignedInteger:
     + Debug
     + Display
 {
+    /// Returns the representation of zero
     fn zero() -> Self;
+    /// Returns the representation of one
     fn one() -> Self;
+    /// Returns the representation of ten
     fn ten() -> Self;
+    /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
 }
 
+/// Trait for an integer that includes negation
 pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self> {
     #[must_use]
+    /// Returns the absolute value of the number
     fn fixed_abs(self) -> Self;
 }
 
@@ -111,12 +130,14 @@ fixed_width_unsigned_integer_impl!(usize);
 fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
 
+/// A fixed point number represented using `I` with `N` bits of fractional precision
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
+/// An often convenient representation for the Game Boy Advance using word sized
+/// internal representation for maximum efficiency
 pub type FixedNum<const N: usize> = Num<i32, N>;
-pub type Integer = Num<i32, 0>;
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
@@ -266,6 +287,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+    /// Performs the conversion between two integer types and between two different fractional precisions
     pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
         let n: J = self.0.into();
         if N < M {
@@ -275,19 +297,40 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         }
     }
 
+    /// A bit for bit conversion from a number to a fixed num
     pub fn from_raw(n: I) -> Self {
         Num(n)
     }
 
+    /// The internal representation of the fixed point number
     pub fn to_raw(self) -> I {
         self.0
     }
 
+    /// Truncates the fixed point number returning the integral part
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// assert_eq!(n.trunc(), 5);
+    /// let n: Num<i32, 8> = num!(-5.67);
+    /// assert_eq!(n.trunc(), -5);
+    /// ```
     pub fn trunc(self) -> I {
         self.0 / (I::one() << N)
     }
 
     #[must_use]
+    /// Performs the equivalent to the integer rem_euclid, which is modulo numbering.
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// let r: Num<i32, 8> = num!(4.);
+    /// assert_eq!(n.rem_euclid(r), num!(1.67));
+    ///
+    /// let n: Num<i32, 8> = num!(-1.5);
+    /// let r: Num<i32, 8> = num!(4.);
+    /// assert_eq!(n.rem_euclid(r), num!(2.5));
+    /// ```
     pub fn rem_euclid(self, rhs: Self) -> Self {
         let r = self % rhs;
         if r < I::zero().into() {
@@ -301,18 +344,41 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         }
     }
 
+    /// Performs rounding towards negative infinity
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// assert_eq!(n.floor(), 5);
+    /// let n: Num<i32, 8> = num!(-5.67);
+    /// assert_eq!(n.floor(), -6);
+    /// ```
     pub fn floor(self) -> I {
         self.0 >> N
     }
 
+    /// Returns the fractional component of a number as it's integer representation
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.5);
+    /// assert_eq!(n.frac(), 1 << 7);
+    /// ```
     pub fn frac(self) -> I {
         self.0 & ((I::one() << N) - I::one())
     }
 
+    /// Creates an integer represented by a fixed point number
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = Num::new(5);
+    /// assert_eq!(n.frac(), 0); // no fractional component
+    /// assert_eq!(n, num!(5.)); // just equals the number 5
+    /// ```
     pub fn new(integral: I) -> Self {
         Self(integral << N)
     }
 
+    #[doc(hidden)]
+    /// Called by the [num!] macro in order to create a fixed point number
     pub fn new_from_parts(num: (i32, i32)) -> Self {
         Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
     }
@@ -320,6 +386,14 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 
 impl<const N: usize> Num<i32, N> {
     #[must_use]
+    /// Returns the square root of a number, it is calcuated a digit at a time.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(16.);
+    /// assert_eq!(n.sqrt(), num!(4.));
+    /// let n: Num<i32, 8> = num!(2.25);
+    /// assert_eq!(n.sqrt(), num!(1.5));
+    /// ```
     pub fn sqrt(self) -> Self {
         assert_eq!(N % 2, 0, "N must be even to be able to square root");
         assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
@@ -346,12 +420,33 @@ impl<const N: usize> Num<i32, N> {
 
 impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     #[must_use]
+    /// Returns the absolute value of a fixed point number
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.5);
+    /// assert_eq!(n.abs(), num!(5.5));
+    /// let n: Num<i32, 8> = num!(-5.5);
+    /// assert_eq!(n.abs(), num!(5.5));
+    /// ```
     pub fn abs(self) -> Self {
         Num(self.0.fixed_abs())
     }
 
-    /// domain of [0, 1].
-    /// see https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226
+    /// Calculates the cosine of a fixed point number with the domain of [0, 1].
+    /// Uses a [fifth order polynomial](https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226).
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(0.);   // 0 radians
+    /// assert_eq!(n.cos(), num!(1.));
+    /// let n: Num<i32, 8> = num!(0.25); // pi / 2 radians
+    /// assert_eq!(n.cos(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.5);  // pi radians
+    /// assert_eq!(n.cos(), num!(-1.));
+    /// let n: Num<i32, 8> = num!(0.75); // 3pi/2 radians
+    /// assert_eq!(n.cos(), num!(0.));
+    /// let n: Num<i32, 8> = num!(1.);   // 2 pi radians (whole rotation)
+    /// assert_eq!(n.cos(), num!(1.));
+    /// ```
     #[must_use]
     pub fn cos(self) -> Self {
         let one: Self = I::one().into();
@@ -368,11 +463,25 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         x
     }
 
+    /// Calculates the sine of a number with domain of [0, 1].
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(0.);   // 0 radians
+    /// assert_eq!(n.sin(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.25); // pi / 2 radians
+    /// assert_eq!(n.sin(), num!(1.));
+    /// let n: Num<i32, 8> = num!(0.5);  // pi radians
+    /// assert_eq!(n.sin(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.75); // 3pi/2 radians
+    /// assert_eq!(n.sin(), num!(-1.));
+    /// let n: Num<i32, 8> = num!(1.);   // 2 pi radians (whole rotation)
+    /// assert_eq!(n.sin(), num!(0.));
+    /// ```
     #[must_use]
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
         let four: I = 4.into();
-        (self + one / four).cos()
+        (self - one / four).cos()
     }
 }
 
@@ -417,9 +526,12 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
     }
 }
 
+/// A vector of two points: (x, y) represened by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Vector2D<T: Number> {
+    /// The x coordinate
     pub x: T,
+    /// The y coordinate
     pub y: T,
 }
 
@@ -505,6 +617,13 @@ impl<T: Number> SubAssign<Self> for Vector2D<T> {
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     #[must_use]
+    /// Truncates the x and y coordinate, see [Num::trunc]
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(1.56), num!(-2.2)).into();
+    /// let v2: Vector2D<i32> = (1, -2).into();
+    /// assert_eq!(v1.trunc(), v2);
+    /// ```
     pub fn trunc(self) -> Vector2D<I> {
         Vector2D {
             x: self.x.trunc(),
@@ -513,6 +632,13 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 
     #[must_use]
+    /// Floors the x and y coordnate, see [Num::floor]
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = Vector2D::new(num!(1.56), num!(-2.2));
+    /// let v2: Vector2D<i32> = (1, -3).into();
+    /// assert_eq!(v1.floor(), v2);
+    /// ```
     pub fn floor(self) -> Vector2D<I> {
         Vector2D {
             x: self.x.floor(),
@@ -523,24 +649,47 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
 
 impl<const N: usize> Vector2D<Num<i32, N>> {
     #[must_use]
+    /// Calculates the magnitude squared, ie (x*x + y*y)
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert_eq!(v1.magnitude_squared(), 25.into());
+    /// ```
     pub fn magnitude_squared(self) -> Num<i32, N> {
         self.x * self.x + self.y * self.y
     }
 
     #[must_use]
+    /// Calculates the manhattan distance, x.abs() + y.abs().
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert_eq!(v1.manhattan_distance(), 7.into());
+    /// ```
     pub fn manhattan_distance(self) -> Num<i32, N> {
         self.x.abs() + self.y.abs()
     }
 
     #[must_use]
+    /// Calculates the magnitude by square root
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert_eq!(v1.magnitude(), 5.into());
+    /// ```
     pub fn magnitude(self) -> Num<i32, N> {
         self.magnitude_squared().sqrt()
     }
 
-    // calculates the magnitude of a vector using the alpha max plus beta min
-    // algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
-    // this has a maximum error of less than 4% of the true magnitude, probably
-    // depending on the size of your fixed point approximation
+    /// Calculates the magnitude of a vector using the [alpha max plus beta min
+    /// algorithm](https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm)
+    /// this has a maximum error of less than 4% of the true magnitude, probably
+    /// depending on the size of your fixed point approximation
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert!(v1.fast_magnitude() > num!(4.9) && v1.fast_magnitude() < num!(5.1));
+    /// ```
     #[must_use]
     pub fn fast_magnitude(self) -> Num<i32, N> {
         let max = core::cmp::max(self.x, self.y);
@@ -550,11 +699,24 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     }
 
     #[must_use]
+    /// Normalises the vector to magnitude of one by performing a square root,
+    /// due to fixed point imprecision this magnitude may not be exactly one
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(4.), num!(4.)).into();
+    /// assert_eq!(v1.normalise().magnitude(), 1.into());
+    /// ```
     pub fn normalise(self) -> Self {
         self / self.magnitude()
     }
 
     #[must_use]
+    /// Normalises the vector to magnitude of one using [Vector2D::fast_magnitude].
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(4.), num!(4.)).into();
+    /// assert_eq!(v1.fast_normalise().magnitude(), 1.into());
+    /// ```
     pub fn fast_normalise(self) -> Self {
         self / self.fast_magnitude()
     }
@@ -567,12 +729,25 @@ impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
 }
 
 impl<T: Number> Vector2D<T> {
+    /// Converts the representation of the vector to another type
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<i16> = Vector2D::new(1, 2);
+    /// let v2: Vector2D<i32> = v1.change_base();
+    /// ```
     pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
         (self.x, self.y).into()
     }
 }
 
 impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
+    /// Creates a unit vector from an angle, noting that the domain of the angle
+    /// is [0, 1], see [Num::cos] and [Num::sin].
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v: Vector2D<Num<i32, 8>> = Vector2D::new_from_angle(num!(0.0));
+    /// assert_eq!(v, (num!(1.0), num!(0.0)).into());
+    /// ```
     pub fn new_from_angle(angle: Num<I, N>) -> Self {
         Vector2D {
             x: angle.cos(),
@@ -591,24 +766,61 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+/// A rectangle with a position in 2d space and a 2d size
 pub struct Rect<T: Number> {
+    /// The position of the rectangle
     pub position: Vector2D<T>,
+    /// The size of the rectangle
     pub size: Vector2D<T>,
 }
 
 impl<T: Number> Rect<T> {
     #[must_use]
+    /// Creates a rectangle from it's position and size
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(2,3));
+    /// assert_eq!(r.position, Vector2D::new(1,1));
+    /// assert_eq!(r.size, Vector2D::new(2,3));
+    /// ```
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
 
+    /// Returns true if the rectangle contains the point given, note that the boundary counts as containing the rectangle.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(3,3));
+    /// assert!(r.contains_point(Vector2D::new(1,1)));
+    /// assert!(r.contains_point(Vector2D::new(2,2)));
+    /// assert!(r.contains_point(Vector2D::new(3,3)));
+    /// assert!(r.contains_point(Vector2D::new(4,4)));
+    ///
+    /// assert!(!r.contains_point(Vector2D::new(0,2)));
+    /// assert!(!r.contains_point(Vector2D::new(5,2)));
+    /// assert!(!r.contains_point(Vector2D::new(2,0)));
+    /// assert!(!r.contains_point(Vector2D::new(2,5)));
+    /// ```
     pub fn contains_point(&self, point: Vector2D<T>) -> bool {
-        point.x > self.position.x
-            && point.x < self.position.x + self.size.x
-            && point.y > self.position.y
-            && point.y < self.position.y + self.size.y
+        point.x >= self.position.x
+            && point.x <= self.position.x + self.size.x
+            && point.y >= self.position.y
+            && point.y <= self.position.y + self.size.y
     }
 
+    /// Returns true if the other rectangle touches or overlaps the first.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(3,3));
+    ///
+    /// assert!(r.touches(r.clone()));
+    ///
+    /// let r1 = Rect::new(Vector2D::new(2,2), Vector2D::new(3,3));
+    /// assert!(r.touches(r1));
+    ///
+    /// let r2 = Rect::new(Vector2D::new(-10,-10), Vector2D::new(3,3));
+    /// assert!(!r.touches(r2));
+    /// ```
     pub fn touches(&self, other: Rect<T>) -> bool {
         self.position.x < other.position.x + other.size.x
             && self.position.x + self.size.x > other.position.x
@@ -617,7 +829,28 @@ impl<T: Number> Rect<T> {
     }
 
     #[must_use]
-    pub fn overlapping_rect(&self, other: Rect<T>) -> Self {
+    /// Returns the rectangle that is the region that the two rectangles have in
+    /// common, or [None] if they don't overlap
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(3,3));
+    /// let r2 = Rect::new(Vector2D::new(2,2), Vector2D::new(3,3));
+    ///
+    /// assert_eq!(r.overlapping_rect(r2), Some(Rect::new(Vector2D::new(2,2), Vector2D::new(2,2))));
+    /// ```
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(3,3));
+    /// let r2 = Rect::new(Vector2D::new(-10,-10), Vector2D::new(3,3));
+    ///
+    /// assert_eq!(r.overlapping_rect(r2), None);
+    /// ```
+    pub fn overlapping_rect(&self, other: Rect<T>) -> Option<Self> {
+        if !self.touches(other.clone()) {
+            return None;
+        }
+
         fn max<E: Number>(x: E, y: E) -> E {
             if x > y {
                 x
@@ -650,11 +883,21 @@ impl<T: Number> Rect<T> {
         )
             .into();
 
-        Rect::new(top_left, bottom_right - top_left)
+        Some(Rect::new(top_left, bottom_right - top_left))
     }
 }
 
 impl<T: FixedWidthUnsignedInteger> Rect<T> {
+    /// Iterate over the points in a rectangle in row major order.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(2,3));
+    ///
+    /// let expected_points = vec![(1,1), (2,1), (1,2), (2,2), (1,3), (2,3)];
+    /// let rect_points: Vec<(i32, i32)> = r.iter().collect();
+    ///
+    /// assert_eq!(rect_points, expected_points);
+    /// ```
     pub fn iter(self) -> impl Iterator<Item = (T, T)> {
         let mut x = self.position.x;
         let mut y = self.position.y;
@@ -676,15 +919,37 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
 }
 
 impl<T: Number> Vector2D<T> {
+    /// Created a vector from the given coordinates
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v = Vector2D::new(1, 2);
+    /// assert_eq!(v.x, 1);
+    /// assert_eq!(v.y, 2);
+    /// ```
     pub fn new(x: T, y: T) -> Self {
         Vector2D { x, y }
     }
 
+    /// Returns the tuple of the coorinates
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v = Vector2D::new(1, 2);
+    /// assert_eq!(v.get(), (1, 2));
+    /// ```
     pub fn get(self) -> (T, T) {
         (self.x, self.y)
     }
 
     #[must_use]
+    /// Calculates the hadamard product of two vectors
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1 = Vector2D::new(2, 3);
+    /// let v2 = Vector2D::new(4, 5);
+    ///
+    /// let r = v1.hadamard(v2);
+    /// assert_eq!(r, Vector2D::new(v1.x * v2.x, v1.y * v2.y));
+    /// ```
     pub fn hadamard(self, other: Self) -> Self {
         Self {
             x: self.x * other.x,
@@ -693,6 +958,12 @@ impl<T: Number> Vector2D<T> {
     }
 
     #[must_use]
+    /// Swaps the x and y coordinate
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1 = Vector2D::new(2, 3);
+    /// assert_eq!(v1.swap(), Vector2D::new(3, 2));
+    /// ```
     pub fn swap(self) -> Self {
         Self {
             x: self.y,
