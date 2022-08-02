@@ -16,7 +16,7 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "agb"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "agb_fixnum",
  "agb_image_converter",
@@ -30,14 +30,14 @@ dependencies = [
 
 [[package]]
 name = "agb_fixnum"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "agb_macros",
 ]
 
 [[package]]
 name = "agb_image_converter"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "asefile",
  "fontdue",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "agb_macros"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "agb_sound_converter"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "hound",
  "proc-macro2",
@@ -368,18 +368,18 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "serde"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc855a42c7967b7c369eb5860f7164ef1f6f81c20c7cc1141f2a604e18723b03"
+checksum = "7af873f2c95b99fcb0bd0fe622a43e29514658873c8ceba88c4cb88833a22500"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f2122636b9fe3b81f1cb25099fcf2d3f542cdb1d45940d56c713158884a05da"
+checksum = "75743a150d003dd863b51dc809bcad0d73f2102c53632f1e954e738192a3413f"
 dependencies = [
  "proc-macro2",
  "quote",
