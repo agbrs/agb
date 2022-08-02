@@ -431,7 +431,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         Num(self.0.fixed_abs())
     }
 
-    /// Calculates the cosign of a fixed point number with the domain of [0, 1].
+    /// Calculates the cosine of a fixed point number with the domain of [0, 1].
     /// see <https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226>
     /// ```
     /// # use agb_fixnum::*;
@@ -462,7 +462,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         x
     }
 
-    /// Calculates the sign of a number with domain of [0, 1].
+    /// Calculates the sine of a number with domain of [0, 1].
     /// ```
     /// # use agb_fixnum::*;
     /// let n: Num<i32, 8> = num!(0.);   // 0 radians
@@ -681,7 +681,7 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     }
 
     /// Calculates the magnitude of a vector using the alpha max plus beta min
-    /// algorithm https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm
+    /// algorithm <https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm>
     /// this has a maximum error of less than 4% of the true magnitude, probably
     /// depending on the size of your fixed point approximation
     /// ```
