@@ -6,13 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2022/08/02
+
+Version 0.11.0 brings documentation for fixed point numbers. We recommend all users upgrade to this version since it also includes fixes to a few functions in fixnum. See changed section for breaking changes.
+
 ### Added
 - Support for sprites that are not square.
 - Docs for fixed point numbers.
 
 ### Changed
-- Rect::contains_point now considers points on the boundary to be part of the rectangle.
-- Signature of Rect::overlapping_rect changed to return an Option. Returns None if rectangles don't overlap.
+- `Rect::contains_point` now considers points on the boundary to be part of the rectangle.
+- Signature of `Rect::overlapping_rect` changed to return an Option. Returns None if rectangles don't overlap.
 
 ### Fixed
 - Fixed point sine calculates the sine correctly.
