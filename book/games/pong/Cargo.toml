@@ -9,6 +9,11 @@ edition = "2018"
 [dependencies]
 agb = { version = "0.10.0", path = "../../../agb" }
 
+[profile.dev]
+opt-level = 2
+debug = true
+
 [profile.release]
 panic = "abort"
 lto = true
+debug = true
