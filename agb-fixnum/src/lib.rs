@@ -12,6 +12,7 @@ use core::{
 };
 
 #[doc(hidden)]
+/// Used internally by the [num!] macro which should be used instead.
 pub use agb_macros::num as num_inner;
 
 /// Can be thought of having the signature `num!(float) -> Num<I, N>`.
@@ -432,7 +433,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     }
 
     /// Calculates the cosine of a fixed point number with the domain of [0, 1].
-    /// see <https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226>
+    /// Uses a [fifth order polynomial](https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226).
     /// ```
     /// # use agb_fixnum::*;
     /// let n: Num<i32, 8> = num!(0.);   // 0 radians
@@ -680,8 +681,8 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
         self.magnitude_squared().sqrt()
     }
 
-    /// Calculates the magnitude of a vector using the alpha max plus beta min
-    /// algorithm <https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm>
+    /// Calculates the magnitude of a vector using the [alpha max plus beta min
+    /// algorithm](https://en.wikipedia.org/wiki/Alpha_max_plus_beta_min_algorithm)
     /// this has a maximum error of less than 4% of the true magnitude, probably
     /// depending on the size of your fixed point approximation
     /// ```
