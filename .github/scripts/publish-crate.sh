@@ -3,7 +3,7 @@
 set -e # Fail if any command fails
 
 function wait_for_release() {
-   local package="$0"
+   local package="$1"
    local package_with_underscores="${package/-/_}"
    
    local first_two_characters="${package_with_underscores:0:2}"
@@ -23,7 +23,7 @@ function wait_for_release() {
    local attempts=1
 
    while [ $attempts -le 15 ]; do
-      echo "Polling crates.io to see if the version has updated (attempt $attempts)"
+      echo "Polling crates.io with URL $url_to_poll to see if the version has updated (attempt $attempts)"
       if curl "$url_to_poll" | grep "$expected_version"; then
          return
       fi
