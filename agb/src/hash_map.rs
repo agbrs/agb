@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
 use alloc::vec::Vec;
@@ -291,6 +292,10 @@ where
     }
 }
 
+/// An iterator over entries of a [`HashMap`]
+///
+/// This struct is created using the `into_iter()` method on [`HashMap`]. See its
+/// documentation for more.
 pub struct Iter<'a, K: 'a, V: 'a> {
     map: &'a HashMap<K, V>,
     at: usize,
@@ -324,6 +329,10 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
     }
 }
 
+/// An iterator over entries of a [`HashMap`]
+///
+/// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
+/// of the IntoIterator trait.
 pub struct IterOwned<K, V> {
     map: HashMap<K, V>,
     at: usize,
@@ -348,6 +357,10 @@ impl<K, V> Iterator for IterOwned<K, V> {
     }
 }
 
+/// An iterator over entries of a [`HashMap`]
+///
+/// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
+/// of the IntoIterator trait.
 impl<K, V> IntoIterator for HashMap<K, V> {
     type Item = (K, V);
     type IntoIter = IterOwned<K, V>;
