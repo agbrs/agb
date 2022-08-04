@@ -1,3 +1,4 @@
+#![deny(clippy::all)]
 use clap::Command;
 
 mod publish;
