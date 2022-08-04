@@ -136,7 +136,7 @@ impl MovableWindow {
         }
     }
 
-    pub fn set_position_byte(&mut self, rect: Rect<u8>) -> &mut Self {
+    pub fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
 
         self
@@ -147,6 +147,6 @@ impl MovableWindow {
             (rect.position.x as u8, rect.position.y as u8).into(),
             (rect.size.x as u8, rect.size.y as u8).into(),
         );
-        self.set_position_byte(new_rect)
+        self.set_position_u8(new_rect)
     }
 }
