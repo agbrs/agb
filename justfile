@@ -9,11 +9,13 @@ build-release:
     just _build-release agb
 clippy:
     just _all-crates _clippy
+    just _clippy tools
 
 test:
     just _test-debug agb
     just _test-debug agb-fixnum
     just _test-debug-arm agb
+    just _test-debug tools
 
 test-release:
     just _test-release agb
