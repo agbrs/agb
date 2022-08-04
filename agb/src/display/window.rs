@@ -2,7 +2,7 @@ use agb_fixnum::Rect;
 
 use crate::memory_mapped::MemoryMapped;
 
-use super::tiled::BackgroundID;
+use super::{tiled::BackgroundID, DISPLAY_CONTROL};
 
 pub struct Windows {
     wins: [MovableWindow; 2],
@@ -31,10 +31,6 @@ impl Windows {
         s
     }
 
-    pub fn enable(&self) {}
-
-    pub fn disable(&self) {}
-
     pub fn win_out(&mut self) -> &mut Window {
         &mut self.out
     }
@@ -53,6 +49,11 @@ impl Windows {
         }
         self.out.commit(2);
         self.obj.commit(3);
+
+        let enabled_bits = ((self.obj.is_enabled() as u16) << 2)
+            | ((self.wins[1].is_enabled() as u16) << 1)
+            | (self.wins[0].is_enabled() as u16);
+        DISPLAY_CONTROL.set_bits(enabled_bits, 3, 0xD);
     }
 }
 
@@ -68,6 +69,22 @@ pub struct MovableWindow {
 impl Window {
     fn new() -> Window {
         Self { window_bits: 0 }
+    }
+
+    pub fn enable(&mut self) -> &mut Self {
+        self.set_bit(7, true);
+
+        self
+    }
+
+    pub fn disable(&mut self) -> &mut Self {
+        self.set_bit(7, false);
+
+        self
+    }
+
+    fn is_enabled(&self) -> bool {
+        (self.window_bits >> 7) != 0
     }
 
     fn set_bit(&mut self, bit: usize, value: bool) {
@@ -113,6 +130,22 @@ impl MovableWindow {
             inner: Window::new(),
             rect: Rect::new((0, 0).into(), (0, 0).into()),
         }
+    }
+
+    pub fn enable(&mut self) -> &mut Self {
+        self.inner.enable();
+
+        self
+    }
+
+    pub fn disable(&mut self) -> &mut Self {
+        self.inner.disable();
+
+        self
+    }
+
+    fn is_enabled(&self) -> bool {
+        self.inner.is_enabled()
     }
 
     pub fn reset(&mut self) -> &mut Self {
