@@ -1,13 +1,9 @@
-use clap::{command, Parser};
+use clap::Command;
 
 mod publish;
 
-#[derive(Parser, Debug)]
-struct PublishAllCratesArgs {}
-
 fn main() {
-    let matches = command!()
-        .propagate_version(true)
+    let matches = Command::new("Agb tools")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(clap::Command::new("publish").about("Publishes agb and all subcrates"))
