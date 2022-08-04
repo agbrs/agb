@@ -1,10 +1,11 @@
 #![deny(missing_docs)]
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
-use alloc::vec::Vec;
+use alloc::{alloc::Global, vec::Vec};
 use core::{
+    alloc::Allocator,
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
-    iter::{self, FromIterator},
+    iter::FromIterator,
     mem::{self, MaybeUninit},
     ops::Index,
     ptr,
@@ -82,36 +83,67 @@ type HashType = u32;
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
 /// [`Hash`]: https://doc.rust-lang.org/core/hash/trait.Hash.html
-pub struct HashMap<K, V> {
-    nodes: NodeStorage<K, V>,
+pub struct HashMap<K, V, ALLOCATOR: Allocator = Global> {
+    nodes: NodeStorage<K, V, ALLOCATOR>,
 
     hasher: BuildHasherDefault<FxHasher>,
 }
+
+/// Trait for allocators that are clonable, blanket implementation for all types that implement Allocator and Clone
+pub trait ClonableAllocator: Allocator + Clone {}
+impl<T: Allocator + Clone> ClonableAllocator for T {}
 
 impl<K, V> HashMap<K, V> {
     /// Creates a `HashMap`
     #[must_use]
     pub fn new() -> Self {
-        Self::with_size(16)
+        Self::new_in(Global)
     }
 
     /// Creates an empty `HashMap` with specified internal size. The size must be a power of 2
     #[must_use]
     pub fn with_size(size: usize) -> Self {
-        Self {
-            nodes: NodeStorage::with_size(size),
-            hasher: Default::default(),
-        }
+        Self::with_size_in(size, Global)
     }
 
     /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
     /// internal size may be larger as it must be a power of 2
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
+        Self::with_capacity_in(capacity, Global)
+    }
+}
+
+impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
+    #[must_use]
+    /// Creates an empty `HashMap` with specified internal size using the
+    /// specified allocator. The size must be a power of 2
+    pub fn with_size_in(size: usize, alloc: ALLOCATOR) -> Self {
+        Self {
+            nodes: NodeStorage::with_size_in(size, alloc),
+            hasher: Default::default(),
+        }
+    }
+
+    #[must_use]
+    /// Creates a `HashMap` with a specified allocator
+    pub fn new_in(alloc: ALLOCATOR) -> Self {
+        Self::with_size_in(16, alloc)
+    }
+
+    /// Returns a reference to the underlying allocator
+    pub fn allocator(&self) -> &ALLOCATOR {
+        self.nodes.allocator()
+    }
+
+    /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
+    /// internal size may be larger as it must be a power of 2
+    #[must_use]
+    pub fn with_capacity_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         for i in 0..32 {
             let attempted_size = 1usize << i;
             if number_before_resize(attempted_size) > capacity {
-                return Self::with_size(attempted_size);
+                return Self::with_size_in(attempted_size, alloc);
             }
         }
 
@@ -150,7 +182,8 @@ impl<K, V> HashMap<K, V> {
 
     /// Removes all elements from the map
     pub fn clear(&mut self) {
-        self.nodes = NodeStorage::with_size(self.nodes.backing_vec_size());
+        self.nodes =
+            NodeStorage::with_size_in(self.nodes.backing_vec_size(), self.allocator().clone());
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order
@@ -193,7 +226,7 @@ const fn fast_mod(len: usize, hash: HashType) -> usize {
     (hash as usize) & (len - 1)
 }
 
-impl<K, V> HashMap<K, V>
+impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR>
 where
     K: Eq + Hash,
 {
@@ -281,7 +314,7 @@ where
     }
 }
 
-impl<K, V> HashMap<K, V>
+impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR>
 where
     K: Hash,
 {
@@ -296,12 +329,12 @@ where
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`]. See its
 /// documentation for more.
-pub struct Iter<'a, K: 'a, V: 'a> {
-    map: &'a HashMap<K, V>,
+pub struct Iter<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> {
+    map: &'a HashMap<K, V, ALLOCATOR>,
     at: usize,
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCATOR> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -320,9 +353,9 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
+impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, ALLOCATOR> {
     type Item = (&'a K, &'a V);
-    type IntoIter = Iter<'a, K, V>;
+    type IntoIter = Iter<'a, K, V, ALLOCATOR>;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter { map: self, at: 0 }
@@ -333,12 +366,12 @@ impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
 /// of the IntoIterator trait.
-pub struct IterOwned<K, V> {
-    map: HashMap<K, V>,
+pub struct IterOwned<K, V, ALLOCATOR: Allocator = Global> {
+    map: HashMap<K, V, ALLOCATOR>,
     at: usize,
 }
 
-impl<K, V> Iterator for IterOwned<K, V> {
+impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -361,9 +394,9 @@ impl<K, V> Iterator for IterOwned<K, V> {
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
 /// of the IntoIterator trait.
-impl<K, V> IntoIterator for HashMap<K, V> {
+impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATOR> {
     type Item = (K, V);
-    type IntoIter = IterOwned<K, V>;
+    type IntoIter = IterOwned<K, V, ALLOCATOR>;
 
     fn into_iter(self) -> Self::IntoIter {
         IterOwned { map: self, at: 0 }
@@ -371,13 +404,13 @@ impl<K, V> IntoIterator for HashMap<K, V> {
 }
 
 /// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
-pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
     key: K,
-    map: &'a mut HashMap<K, V>,
+    map: &'a mut HashMap<K, V, ALLOCATOR>,
     location: usize,
 }
 
-impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
+impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
     /// Gets a reference to the key in the entry.
     pub fn key(&self) -> &K {
         &self.key
@@ -426,12 +459,12 @@ impl<'a, K: 'a, V: 'a> OccupiedEntry<'a, K, V> {
 }
 
 /// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
-pub struct VacantEntry<'a, K: 'a, V: 'a> {
+pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
     key: K,
-    map: &'a mut HashMap<K, V>,
+    map: &'a mut HashMap<K, V, ALLOCATOR>,
 }
 
-impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
+impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
     /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
     pub fn key(&self) -> &K {
         &self.key
@@ -456,14 +489,14 @@ impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
 /// This is constructed using the [`entry`] method on [`HashMap`]
 ///
 /// [`entry`]: HashMap::entry()
-pub enum Entry<'a, K: 'a, V: 'a> {
+pub enum Entry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator = Global> {
     /// An occupied entry
-    Occupied(OccupiedEntry<'a, K, V>),
+    Occupied(OccupiedEntry<'a, K, V, ALLOCATOR>),
     /// A vacant entry
-    Vacant(VacantEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V, ALLOCATOR>),
 }
 
-impl<'a, K, V> Entry<'a, K, V>
+impl<'a, K, V, ALLOCATOR: ClonableAllocator> Entry<'a, K, V, ALLOCATOR>
 where
     K: Hash + Eq,
 {
@@ -543,12 +576,12 @@ where
     }
 }
 
-impl<K, V> HashMap<K, V>
+impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR>
 where
     K: Hash + Eq,
 {
     /// Gets the given key's corresponding entry in the map for in-place manipulation.
-    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V, ALLOCATOR> {
         let hash = self.hash(&key);
         let location = self.nodes.location(&key, hash);
 
@@ -586,7 +619,7 @@ where
     }
 }
 
-impl<K, V> Index<&K> for HashMap<K, V>
+impl<K, V, ALLOCATOR: ClonableAllocator> Index<&K> for HashMap<K, V, ALLOCATOR>
 where
     K: Eq + Hash,
 {
@@ -597,7 +630,7 @@ where
     }
 }
 
-impl<K, V> Index<K> for HashMap<K, V>
+impl<K, V, ALLOCATOR: ClonableAllocator> Index<K> for HashMap<K, V, ALLOCATOR>
 where
     K: Eq + Hash,
 {
@@ -612,24 +645,33 @@ const fn number_before_resize(capacity: usize) -> usize {
     capacity * 85 / 100
 }
 
-struct NodeStorage<K, V> {
-    nodes: Vec<Node<K, V>>,
+struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
+    nodes: Vec<Node<K, V>, ALLOCATOR>,
     max_distance_to_initial_bucket: i32,
 
     number_of_items: usize,
     max_number_before_resize: usize,
 }
 
-impl<K, V> NodeStorage<K, V> {
-    fn with_size(capacity: usize) -> Self {
+impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
+    fn with_size_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
+        let mut nodes = Vec::with_capacity_in(capacity, alloc);
+        for _ in 0..capacity {
+            nodes.push(Default::default());
+        }
+
         Self {
-            nodes: iter::repeat_with(Default::default).take(capacity).collect(),
+            nodes,
             max_distance_to_initial_bucket: 0,
             number_of_items: 0,
             max_number_before_resize: number_before_resize(capacity),
         }
+    }
+
+    fn allocator(&self) -> &ALLOCATOR {
+        self.nodes.allocator()
     }
 
     fn capacity(&self) -> usize {
@@ -731,7 +773,7 @@ impl<K, V> NodeStorage<K, V> {
     }
 
     fn resized_to(&mut self, new_size: usize) -> Self {
-        let mut new_node_storage = Self::with_size(new_size);
+        let mut new_node_storage = Self::with_size_in(new_size, self.allocator().clone());
 
         for mut node in self.nodes.drain(..) {
             if let Some((key, value, hash)) = node.take_key_value() {
@@ -1277,6 +1319,113 @@ mod test {
         #[test_case]
         fn test_index(_gba: &mut Gba) {
             let mut map = HashMap::new();
+
+            map.insert(1, 2);
+            map.insert(2, 1);
+            map.insert(3, 4);
+
+            assert_eq!(map[&2], 1);
+        }
+    }
+
+    mod rust_std_tests_custom_allocator {
+        use crate::{
+            hash_map::{Entry::*, HashMap},
+            Gba, InternalAllocator,
+        };
+
+        #[test_case]
+        fn test_entry(_gba: &mut Gba) {
+            let xs = [(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
+
+            let mut map = HashMap::new_in(InternalAllocator);
+            for (k, v) in xs {
+                map.insert(k, v);
+            }
+
+            // Existing key (insert)
+            match map.entry(1) {
+                Vacant(_) => unreachable!(),
+                Occupied(mut view) => {
+                    assert_eq!(view.get(), &10);
+                    assert_eq!(view.insert(100), 10);
+                }
+            }
+            assert_eq!(map.get(&1).unwrap(), &100);
+            assert_eq!(map.len(), 6);
+
+            // Existing key (update)
+            match map.entry(2) {
+                Vacant(_) => unreachable!(),
+                Occupied(mut view) => {
+                    let v = view.get_mut();
+                    let new_v = (*v) * 10;
+                    *v = new_v;
+                }
+            }
+            assert_eq!(map.get(&2).unwrap(), &200);
+            assert_eq!(map.len(), 6);
+
+            // Existing key (take)
+            match map.entry(3) {
+                Vacant(_) => unreachable!(),
+                Occupied(view) => {
+                    assert_eq!(view.remove(), 30);
+                }
+            }
+            assert_eq!(map.get(&3), None);
+            assert_eq!(map.len(), 5);
+
+            // Inexistent key (insert)
+            match map.entry(10) {
+                Occupied(_) => unreachable!(),
+                Vacant(view) => {
+                    assert_eq!(*view.insert(1000), 1000);
+                }
+            }
+            assert_eq!(map.get(&10).unwrap(), &1000);
+            assert_eq!(map.len(), 6);
+        }
+
+        #[test_case]
+        fn test_occupied_entry_key(_gba: &mut Gba) {
+            let mut a = HashMap::new_in(InternalAllocator);
+            let key = "hello there";
+            let value = "value goes here";
+            assert!(a.is_empty());
+            a.insert(key, value);
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+
+            match a.entry(key) {
+                Vacant(_) => panic!(),
+                Occupied(e) => assert_eq!(key, *e.key()),
+            }
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+        }
+
+        #[test_case]
+        fn test_vacant_entry_key(_gba: &mut Gba) {
+            let mut a = HashMap::new_in(InternalAllocator);
+            let key = "hello there";
+            let value = "value goes here";
+
+            assert!(a.is_empty());
+            match a.entry(key) {
+                Occupied(_) => panic!(),
+                Vacant(e) => {
+                    assert_eq!(key, *e.key());
+                    e.insert(value);
+                }
+            }
+            assert_eq!(a.len(), 1);
+            assert_eq!(a[key], value);
+        }
+
+        #[test_case]
+        fn test_index(_gba: &mut Gba) {
+            let mut map = HashMap::new_in(InternalAllocator);
 
             map.insert(1, 2);
             map.insert(2, 1);
