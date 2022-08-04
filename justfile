@@ -9,11 +9,13 @@ build-release:
     just _build-release agb
 clippy:
     just _all-crates _clippy
+    just _clippy tools
 
 test:
     just _test-debug agb
     just _test-debug agb-fixnum
     just _test-debug-arm agb
+    just _test-debug tools
 
 test-release:
     just _test-release agb
@@ -63,6 +65,11 @@ update-lockfiles:
 update-linker-scripts:
     find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
     find -type f -name gba_mb.ld | grep -v ./agb/gba_mb.ld | xargs -n1 cp -v -- agb/gba_mb.ld
+
+publish: (_run-tool "publish")
+
+_run-tool +tool:
+    cargo run --manifest-path "{{justfile_directory() + "/tools/Cargo.toml"}}" -- {{tool}}
 
 _build-rom folder name:
     #!/usr/bin/env bash
