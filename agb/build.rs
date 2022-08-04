@@ -2,8 +2,8 @@ use std::path;
 
 fn main() {
     let asm = &[
-        "crt0.s",
-        "interrupt_handler.s",
+        "src/crt0.s",
+        "src/interrupt_handler.s",
         "src/sound/mixer/mixer.s",
         "src/agbabi/memset.s",
         "src/agbabi/memcpy.s",
