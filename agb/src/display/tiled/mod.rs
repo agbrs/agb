@@ -17,6 +17,9 @@ pub enum RegularBackgroundSize {
     Background64x64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BackgroundID(pub(crate) u8);
+
 impl RegularBackgroundSize {
     #[must_use]
     pub fn width(&self) -> u32 {

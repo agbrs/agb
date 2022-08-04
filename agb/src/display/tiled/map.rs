@@ -7,7 +7,7 @@ use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
-use super::{RegularBackgroundSize, Tile, TileSet, TileSetting, VRamManager};
+use super::{BackgroundID, RegularBackgroundSize, Tile, TileSet, TileSetting, VRamManager};
 
 use alloc::{vec, vec::Vec};
 
@@ -200,6 +200,11 @@ impl<'a, T> MapLoan<'a, T> {
             regular_map_list,
             screenblock_list,
         }
+    }
+
+    #[must_use]
+    pub const fn background(&self) -> BackgroundID {
+        BackgroundID(self.background_id)
     }
 }
 
