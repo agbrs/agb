@@ -1,4 +1,5 @@
 use clap::{Arg, ArgAction, ArgMatches};
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -40,28 +41,53 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
 
     let root_directory = find_agb_root_directory()?;
 
-    for crate_to_publish in CRATES_TO_PUBLISH.iter() {
-        let crate_dir = root_directory.join(crate_to_publish);
+    let mut fully_published_crates: HashSet<String> = HashSet::new();
+    let mut published_crates: HashSet<String> = HashSet::new();
 
-        if *dry_run {
-            println!(
-                "Would run `cargo publish` in {}",
-                crate_dir.to_string_lossy()
-            );
-        } else {
-            let publish_result = Command::new("cargo")
-                .arg("publish")
-                .current_dir(&crate_dir)
-                .spawn();
+    let dependencies = build_dependency_graph(&root_directory, CRATES_TO_PUBLISH)?;
 
-            if let Err(err) = publish_result {
-                println!("Error while publishing crate {crate_to_publish}: {err}");
-                return Err(Error::PublishCrate);
+    while published_crates.len() != CRATES_TO_PUBLISH.len() {
+        // find all crates which can be published now but haven't
+        let publishable_crates: Vec<_> = CRATES_TO_PUBLISH
+            .iter()
+            .filter(|&&crate_to_publish| !published_crates.contains(crate_to_publish))
+            .filter(|&&crate_to_publish| {
+                let dependencies_of_crate = &dependencies[crate_to_publish];
+                for dependency_of_crate in dependencies_of_crate {
+                    if !fully_published_crates.contains(dependency_of_crate) {
+                        return false;
+                    }
+                }
+
+                true
+            })
+            .collect();
+
+        for publishable_crate in publishable_crates {
+            if *dry_run {
+                println!("Would execute cargo publish for {publishable_crate}");
+            } else {
+                Command::new("cargo")
+                    .arg("publish")
+                    .current_dir(&root_directory.join(publishable_crate))
+                    .spawn()
+                    .map_err(|_| Error::PublishCrate)?;
+            }
+
+            published_crates.insert(publishable_crate.to_string());
+        }
+
+        for published_crate in published_crates.iter() {
+            if !fully_published_crates.contains(published_crate) {
+                let expected_version =
+                    read_cargo_toml_version(&root_directory.join(published_crate))?;
+                if check_if_released(published_crate, &expected_version)? {
+                    fully_published_crates.insert(published_crate.clone());
+                }
             }
         }
 
-        let expected_version = read_cargo_toml_version(&crate_dir)?;
-        wait_for_release(crate_to_publish, &expected_version)?;
+        thread::sleep(Duration::from_secs(10));
     }
 
     Ok(())
@@ -80,27 +106,17 @@ fn find_agb_root_directory() -> Result<PathBuf, Error> {
     Ok(current_path)
 }
 
-fn wait_for_release(crate_to_publish: &str, expected_version: &str) -> Result<(), Error> {
+fn check_if_released(crate_to_publish: &str, expected_version: &str) -> Result<bool, Error> {
     let url_to_poll = &get_url_to_poll(crate_to_publish);
 
-    for attempt in 0..15 {
-        println!(
-            "Polling crates.io with URL {url_to_poll} for {crate_to_publish} hoping for version {expected_version}. Attempt {attempt}"
-        );
+    println!("Polling crates.io with URL {url_to_poll} for {crate_to_publish} hoping for version {expected_version}.");
 
-        let curl_result = Command::new("curl")
-            .arg(url_to_poll)
-            .output()
-            .map_err(|_| Error::Poll)?;
+    let curl_result = Command::new("curl")
+        .arg(url_to_poll)
+        .output()
+        .map_err(|_| Error::Poll)?;
 
-        if String::from_utf8_lossy(&curl_result.stdout).contains(expected_version) {
-            return Ok(());
-        }
-
-        thread::sleep(Duration::from_secs(30));
-    }
-
-    Ok(())
+    Ok(String::from_utf8_lossy(&curl_result.stdout).contains(expected_version))
 }
 
 fn get_url_to_poll(crate_name: &str) -> String {
@@ -128,6 +144,22 @@ fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
         .ok_or(Error::CrateVersion)?;
 
     Ok(version_value.to_owned())
+}
+
+fn build_dependency_graph(
+    root: &Path,
+    agb_crates: &[&str],
+) -> Result<HashMap<String, Vec<String>>, Error> {
+    let mut result = HashMap::new();
+
+    for agb_crate in agb_crates {
+        result.insert(
+            agb_crate.to_string(),
+            get_agb_dependencies(&root.join(agb_crate))?,
+        );
+    }
+
+    Ok(result)
 }
 
 fn get_agb_dependencies(folder: &Path) -> Result<Vec<String>, Error> {
