@@ -132,4 +132,20 @@ mod test {
             )
         }
     }
+
+    #[test]
+    fn should_find_root_directory() -> Result<(), Error> {
+        assert_ne!(find_agb_root_directory()?.to_string_lossy(), "");
+
+        Ok(())
+    }
+
+    #[test]
+    fn should_read_version() -> Result<(), Error> {
+        let root_directory = find_agb_root_directory()?;
+        let my_version = read_cargo_toml_version(&root_directory.join("tools"))?;
+
+        assert_eq!(my_version, "0.1.0");
+        Ok(())
+    }
 }
