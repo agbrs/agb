@@ -20,6 +20,8 @@ pub enum Error {
     PublishCrate,
     Poll,
     CrateVersion,
+    ReadingDependencies,
+    CargoToml,
 }
 
 pub fn command() -> clap::Command<'static> {
@@ -117,11 +119,7 @@ fn get_url_to_poll(crate_name: &str) -> String {
 }
 
 fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
-    let cargo_toml_contents =
-        fs::read_to_string(folder.join("Cargo.toml")).map_err(|_| Error::CrateVersion)?;
-    let cargo_toml: Document = cargo_toml_contents
-        .parse()
-        .map_err(|_| Error::CrateVersion)?;
+    let cargo_toml = read_cargo_toml(folder)?;
 
     let version_value = cargo_toml["package"]["version"]
         .as_value()
@@ -130,6 +128,33 @@ fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
         .ok_or(Error::CrateVersion)?;
 
     Ok(version_value.to_owned())
+}
+
+fn get_agb_dependencies(folder: &Path) -> Result<Vec<String>, Error> {
+    let cargo_toml = read_cargo_toml(folder)?;
+
+    let dependencies = cargo_toml["dependencies"]
+        .as_table()
+        .ok_or(Error::ReadingDependencies)?
+        .get_values();
+
+    let mut result = vec![];
+
+    for (key, _) in dependencies {
+        let dep = key[0].get();
+        if dep.starts_with("agb") {
+            result.push(dep.replace('_', "-"))
+        }
+    }
+
+    Ok(result)
+}
+
+fn read_cargo_toml(folder: &Path) -> Result<Document, Error> {
+    let cargo_toml_contents =
+        fs::read_to_string(folder.join("Cargo.toml")).map_err(|_| Error::CargoToml)?;
+    let cargo_toml: Document = cargo_toml_contents.parse().map_err(|_| Error::CargoToml)?;
+    Ok(cargo_toml)
 }
 
 #[cfg(test)]
@@ -168,6 +193,23 @@ mod test {
         let my_version = read_cargo_toml_version(&root_directory.join("tools"))?;
 
         assert_eq!(my_version, "0.1.0");
+        Ok(())
+    }
+
+    #[test]
+    fn should_detect_dependencies() -> Result<(), Error> {
+        let root_directory = find_agb_root_directory()?;
+        let deps = get_agb_dependencies(&root_directory.join("agb"))?;
+
+        assert_eq!(
+            deps,
+            &[
+                "agb-image-converter",
+                "agb-sound-converter",
+                "agb-macros",
+                "agb-fixnum"
+            ]
+        );
         Ok(())
     }
 }
