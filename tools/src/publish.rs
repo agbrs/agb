@@ -1,3 +1,4 @@
+use clap::{Arg, ArgAction, ArgMatches};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -21,19 +22,40 @@ pub enum Error {
     CrateVersion,
 }
 
-pub fn publish() -> Result<(), Error> {
+pub fn command() -> clap::Command<'static> {
+    clap::Command::new("publish")
+        .about("Publishes agb and all subcrates")
+        .arg(
+            Arg::new("Dry run")
+                .long("dry-run")
+                .help("Don't actually publish")
+                .action(ArgAction::SetTrue),
+        )
+}
+
+pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
+    let dry_run = matches.get_one::<bool>("Dry run").expect("defined by clap");
+
     let root_directory = find_agb_root_directory()?;
 
     for crate_to_publish in CRATES_TO_PUBLISH.iter() {
         let crate_dir = root_directory.join(crate_to_publish);
-        let publish_result = Command::new("cargo")
-            .arg("publish")
-            .current_dir(&crate_dir)
-            .spawn();
 
-        if let Err(err) = publish_result {
-            println!("Error while publishing crate {crate_to_publish}: {err}");
-            return Err(Error::PublishCrate);
+        if *dry_run {
+            println!(
+                "Would run `cargo publish` in {}",
+                crate_dir.to_string_lossy()
+            );
+        } else {
+            let publish_result = Command::new("cargo")
+                .arg("publish")
+                .current_dir(&crate_dir)
+                .spawn();
+
+            if let Err(err) = publish_result {
+                println!("Error while publishing crate {crate_to_publish}: {err}");
+                return Err(Error::PublishCrate);
+            }
         }
 
         let expected_version = read_cargo_toml_version(&crate_dir)?;
