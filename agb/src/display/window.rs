@@ -51,8 +51,8 @@ impl Windows {
         for (id, win) in self.wins.iter().enumerate() {
             win.commit(id);
         }
-        self.obj.commit(3);
         self.out.commit(2);
+        self.obj.commit(3);
     }
 }
 
