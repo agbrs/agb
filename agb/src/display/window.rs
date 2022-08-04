@@ -74,6 +74,12 @@ impl Window {
         self.window_bits &= u8::MAX ^ (1 << bit);
         self.window_bits |= (value as u8) << bit;
     }
+
+    pub fn reset(&mut self) -> &mut Self {
+        *self = Self::new();
+
+        self
+    }
     pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
         self.set_bit(5, blnd);
 
@@ -109,6 +115,11 @@ impl MovableWindow {
         }
     }
 
+    pub fn reset(&mut self) -> &mut Self {
+        *self = Self::new();
+
+        self
+    }
     pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
         self.inner.set_blend_enable(blnd);
         self
