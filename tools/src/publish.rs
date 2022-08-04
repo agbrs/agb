@@ -7,14 +7,6 @@ use std::time::Duration;
 use std::{env, thread};
 use toml_edit::Document;
 
-const CRATES_TO_PUBLISH: &[&str] = &[
-    "agb-macros",
-    "agb-fixnum",
-    "agb-image-converter",
-    "agb-sound-converter",
-    "agb",
-];
-
 #[derive(Debug)]
 pub enum Error {
     FindRootDirectory,
@@ -44,11 +36,12 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     let mut fully_published_crates: HashSet<String> = HashSet::new();
     let mut published_crates: HashSet<String> = HashSet::new();
 
-    let dependencies = build_dependency_graph(&root_directory, CRATES_TO_PUBLISH)?;
+    let dependencies = build_dependency_graph(&root_directory)?;
+    let crates_to_publish: Vec<_> = dependencies.keys().collect();
 
-    while published_crates.len() != CRATES_TO_PUBLISH.len() {
+    while published_crates.len() != crates_to_publish.len() {
         // find all crates which can be published now but haven't
-        let publishable_crates: Vec<_> = CRATES_TO_PUBLISH
+        let publishable_crates: Vec<_> = crates_to_publish
             .iter()
             .filter(|&&crate_to_publish| !published_crates.contains(crate_to_publish))
             .filter(|&&crate_to_publish| {
@@ -146,17 +139,27 @@ fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
     Ok(version_value.to_owned())
 }
 
-fn build_dependency_graph(
-    root: &Path,
-    agb_crates: &[&str],
-) -> Result<HashMap<String, Vec<String>>, Error> {
+fn build_dependency_graph(root: &Path) -> Result<HashMap<String, Vec<String>>, Error> {
     let mut result = HashMap::new();
+    result.insert("agb".to_owned(), get_agb_dependencies(&root.join("agb"))?);
 
-    for agb_crate in agb_crates {
-        result.insert(
-            agb_crate.to_string(),
-            get_agb_dependencies(&root.join(agb_crate))?,
-        );
+    let mut added_new_crates = true;
+    while added_new_crates {
+        added_new_crates = false;
+
+        let all_crates: HashSet<String> = HashSet::from_iter(result.values().flatten().cloned());
+
+        for dep_crate in all_crates {
+            if result.contains_key(&dep_crate) {
+                continue;
+            }
+
+            added_new_crates = true;
+            result.insert(
+                dep_crate.to_owned(),
+                get_agb_dependencies(&root.join(dep_crate))?,
+            );
+        }
     }
 
     Ok(result)
