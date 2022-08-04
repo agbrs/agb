@@ -1,5 +1,7 @@
 use clap::{command, Parser};
 
+mod publish;
+
 #[derive(Parser, Debug)]
 struct PublishAllCratesArgs {}
 
@@ -12,11 +14,7 @@ fn main() {
         .get_matches();
 
     match matches.subcommand() {
-        Some(("publish", _)) => publish(),
+        Some(("publish", _)) => publish::publish(),
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }
-}
-
-fn publish() {
-    println!("publishing!");
 }
