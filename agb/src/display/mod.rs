@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
-use self::object::ObjectController;
+use self::{object::ObjectController, window::Windows};
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
@@ -22,6 +22,8 @@ pub mod tile_data;
 pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
+
+pub mod window;
 
 mod font;
 pub use font::{Font, FontLetter};
@@ -67,6 +69,7 @@ enum DisplayMode {
 pub struct Display {
     pub video: Video,
     pub object: ObjectDistribution,
+    pub window: WindowDist,
 }
 
 #[non_exhaustive]
@@ -78,11 +81,21 @@ impl ObjectDistribution {
     }
 }
 
+#[non_exhaustive]
+pub struct WindowDist {}
+
+impl WindowDist {
+    pub fn get(&mut self) -> Windows {
+        Windows::new()
+    }
+}
+
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
             video: Video {},
             object: ObjectDistribution {},
+            window: WindowDist {},
         }
     }
 }
