@@ -19,8 +19,10 @@ jobs:
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATE_API }}
 
+      - uses: extractions/setup-just@v1
+
       - name: Publish crates
-        run: bash .github/scripts/publish-crate.sh
+        run: just publish
 
       - name: Update template repo
         env:
@@ -30,7 +32,6 @@ jobs:
 
       - name: Install gbafix
         run: cargo install gbafix
-      - uses: extractions/setup-just@v1
       - name: Build the examples
         run: just build-roms
       - name: Upload examples to the release
