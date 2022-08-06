@@ -238,8 +238,8 @@ impl MovableWindow {
     }
 
     /// Sets the area of what is inside the window using [u8] representation,
-    /// which is closest to what the GBA uses. Most of the time [set_position]
-    /// should be used.
+    /// which is closest to what the GBA uses. Most of the time
+    /// [MovableWindow::set_position] should be used.
     #[inline(always)]
     pub fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
