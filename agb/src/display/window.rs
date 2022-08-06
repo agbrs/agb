@@ -1,6 +1,4 @@
-use agb_fixnum::Rect;
-
-use crate::memory_mapped::MemoryMapped;
+use crate::{fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
