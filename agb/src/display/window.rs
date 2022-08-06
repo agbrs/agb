@@ -1,4 +1,5 @@
 #![deny(missing_docs)]
+//! The window feature of the GBA.
 use crate::{fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
