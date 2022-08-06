@@ -9,7 +9,7 @@ use super::{
 ///
 /// Most games will use tiled modes, as bitmap modes are too slow to run at the full 60 FPS.
 #[non_exhaustive]
-pub struct Video {}
+pub struct Video;
 
 impl Video {
     /// Bitmap mode that provides a 16-bit colour framebuffer

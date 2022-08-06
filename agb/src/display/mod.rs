@@ -75,7 +75,7 @@ pub struct Display {
 }
 
 #[non_exhaustive]
-pub struct ObjectDistribution {}
+pub struct ObjectDistribution;
 
 impl ObjectDistribution {
     pub fn get(&mut self) -> ObjectController {
@@ -84,7 +84,7 @@ impl ObjectDistribution {
 }
 
 #[non_exhaustive]
-pub struct WindowDist {}
+pub struct WindowDist;
 
 impl WindowDist {
     pub fn get(&mut self) -> Windows {
@@ -104,6 +104,9 @@ impl BlendDist {
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
+            video: Video,
+            object: ObjectDistribution,
+            window: WindowDist,
             blend: BlendDist,
         }
     }
