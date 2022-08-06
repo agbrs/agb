@@ -5,6 +5,7 @@
 use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
     fmt::{Debug, Display},
+    mem::size_of,
     ops::{
         Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
         Sub, SubAssign,
@@ -295,6 +296,32 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
             Num(n << (M - N))
         } else {
             Num(n >> (N - M))
+        }
+    }
+
+    /// Attempts to perform the conversion between two integer types and between
+    /// two different fractional precisions
+    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+        self,
+    ) -> Option<Num<J, M>> {
+        if size_of::<I>() > size_of::<J>() {
+            // I bigger than J, perform the shift in I to preserve precision
+            let n = if N < M {
+                self.0 << (M - N)
+            } else {
+                self.0 >> (N - M)
+            };
+
+            let n = n.try_into().ok()?;
+
+            Some(Num(n))
+        } else {
+            // J bigger than I, perform the shift in J to preserve precision
+            let n: J = self.0.try_into().ok()?;
+
+            let n = if N < M { n << (M - N) } else { n >> (N - M) };
+
+            Some(Num(n))
         }
     }
 
