@@ -23,6 +23,7 @@ pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
 
+pub mod blend;
 pub mod window;
 
 mod font;
