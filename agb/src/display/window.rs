@@ -2,7 +2,7 @@ use agb_fixnum::Rect;
 
 use crate::memory_mapped::MemoryMapped;
 
-use super::{tiled::BackgroundID, DISPLAY_CONTROL};
+use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
 pub struct Windows {
     wins: [MovableWindow; 2],
@@ -188,7 +188,11 @@ impl MovableWindow {
 
     pub fn set_position(&mut self, rect: &Rect<i32>) -> &mut Self {
         let new_rect = Rect::new(
-            (rect.position.x as u8, rect.position.y as u8).into(),
+            (
+                rect.position.x.clamp(0, WIDTH) as u8,
+                rect.position.y.clamp(0, HEIGHT) as u8,
+            )
+                .into(),
             (rect.size.x as u8, rect.size.y as u8).into(),
         );
         self.set_position_u8(new_rect)
