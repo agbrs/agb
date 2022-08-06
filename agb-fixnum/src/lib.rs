@@ -121,6 +121,7 @@ macro_rules! fixed_width_signed_integer_impl {
     };
 }
 
+fixed_width_unsigned_integer_impl!(u8);
 fixed_width_unsigned_integer_impl!(i16);
 fixed_width_unsigned_integer_impl!(u16);
 fixed_width_unsigned_integer_impl!(i32);

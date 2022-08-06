@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use super::{MapLoan, RegularMap, TileSet, TileSetting, VRamManager};
+use super::{BackgroundID, MapLoan, RegularMap, TileSet, TileSetting, VRamManager};
 
 use crate::{
     display,
@@ -413,6 +413,11 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// or you will leak VRam.
     pub fn clear(&mut self, vram: &mut VRamManager) {
         self.map.clear(vram);
+    }
+
+    #[must_use]
+    pub const fn background(&self) -> BackgroundID {
+        self.map.background()
     }
 }
 
