@@ -301,6 +301,16 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 
     /// Attempts to perform the conversion between two integer types and between
     /// two different fractional precisions
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let a: Num<i32, 8> = 1.into();
+    /// let b: Option<Num<u8, 4>> = a.try_change_base();
+    /// assert_eq!(b, Some(1.into()));
+    ///
+    /// let a: Num<i32, 8> = 18.into();
+    /// let b: Option<Num<u8, 4>> = a.try_change_base();
+    /// assert_eq!(b, None);
+    /// ```
     pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Num<J, M>> {
