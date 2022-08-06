@@ -28,6 +28,17 @@ const BLEND_ALPHAS: *mut u16 = 0x0400_0052 as *mut _;
 const BLEND_FADES: *mut u16 = 0x0400_0054 as *mut _;
 
 impl Blend {
+    pub(crate) fn new() -> Self {
+        let blend = Self {
+            targets: 0,
+            blend_weights: 0,
+            fade_weight: 0,
+        };
+        blend.commit();
+
+        blend
+    }
+
     pub fn reset_targets(&mut self) -> &mut Self {
         self.targets = 0;
 
@@ -105,5 +116,11 @@ impl Blend {
             BLEND_ALPHAS.write_volatile(self.blend_weights);
             BLEND_FADES.write_volatile(self.fade_weight);
         }
+    }
+}
+
+impl Drop for Blend {
+    fn drop(&mut self) {
+        self.reset().commit();
     }
 }
