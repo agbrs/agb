@@ -31,14 +31,17 @@ impl Windows {
         s
     }
 
+    #[inline(always)]
     pub fn win_out(&mut self) -> &mut Window {
         &mut self.out
     }
 
+    #[inline(always)]
     pub fn win_in(&mut self, id: WinIn) -> &mut MovableWindow {
         &mut self.wins[id as usize]
     }
 
+    #[inline(always)]
     pub fn win_obj(&mut self) -> &mut Window {
         &mut self.obj
     }
@@ -71,12 +74,14 @@ impl Window {
         Self { window_bits: 0 }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) -> &mut Self {
         self.set_bit(7, true);
 
         self
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) -> &mut Self {
         self.set_bit(7, false);
 
@@ -92,21 +97,25 @@ impl Window {
         self.window_bits |= (value as u8) << bit;
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) -> &mut Self {
         *self = Self::new();
 
         self
     }
+    #[inline(always)]
     pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
         self.set_bit(5, blnd);
 
         self
     }
+    #[inline(always)]
     pub fn set_background_enable(&mut self, back: BackgroundID, enable: bool) -> &mut Self {
         self.set_bit(back.0 as usize, enable);
 
         self
     }
+    #[inline(always)]
     pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
         self.set_bit(4, obj);
 
@@ -132,12 +141,14 @@ impl MovableWindow {
         }
     }
 
+    #[inline(always)]
     pub fn enable(&mut self) -> &mut Self {
         self.inner.enable();
 
         self
     }
 
+    #[inline(always)]
     pub fn disable(&mut self) -> &mut Self {
         self.inner.disable();
 
@@ -148,19 +159,23 @@ impl MovableWindow {
         self.inner.is_enabled()
     }
 
+    #[inline(always)]
     pub fn reset(&mut self) -> &mut Self {
         *self = Self::new();
 
         self
     }
+    #[inline(always)]
     pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
         self.inner.set_blend_enable(blnd);
         self
     }
+    #[inline(always)]
     pub fn set_background_enable(&mut self, back: BackgroundID, enable: bool) -> &mut Self {
         self.inner.set_background_enable(back, enable);
         self
     }
+    #[inline(always)]
     pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
         self.inner.set_object_enable(obj);
         self
@@ -180,12 +195,14 @@ impl MovableWindow {
         }
     }
 
+    #[inline(always)]
     pub fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
 
         self
     }
 
+    #[inline(always)]
     pub fn set_position(&mut self, rect: &Rect<i32>) -> &mut Self {
         let new_rect = Rect::new(
             (
