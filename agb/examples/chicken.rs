@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::{
-    display::tiled::{TileFormat, TileSet, TileSetting},
+    display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
         object::{Object, ObjectController, Size, Sprite},
         palette16::Palette16,

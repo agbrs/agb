@@ -2,7 +2,7 @@ use agb::{
     display::{
         object::{Object, ObjectController},
         palette16::Palette16,
-        tiled::{RegularMap, TileSet, TileSetting},
+        tiled::{RegularMap, TileSet, TileSetting, TiledMap},
         HEIGHT, WIDTH,
     },
     include_gfx,

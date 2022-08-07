@@ -1,5 +1,5 @@
 use crate::palette16::Palette16OptimisationResults;
-use crate::TileSize;
+use crate::{add_image_to_tile_data, collapse_to_4bpp, TileSize};
 use crate::{image_loader::Image, ByteString};
 
 use proc_macro2::TokenStream;
@@ -34,36 +34,11 @@ pub(crate) fn generate_code(
         }
     });
 
-    let tile_size = tile_size.to_size();
+    let mut tile_data = Vec::new();
 
-    let tiles_x = image.width / tile_size;
-    let tiles_y = image.height / tile_size;
+    add_image_to_tile_data(&mut tile_data, image, tile_size, &results);
 
-    let mut tile_data = vec![];
-
-    for y in 0..tiles_y {
-        for x in 0..tiles_x {
-            let palette_index = results.assignments[y * tiles_x + x];
-            let palette = &results.optimised_palettes[palette_index];
-
-            for inner_y in 0..tile_size / 8 {
-                for inner_x in 0..tile_size / 8 {
-                    for j in inner_y * 8..inner_y * 8 + 8 {
-                        for i in inner_x * 8..inner_x * 8 + 8 {
-                            let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                            tile_data
-                                .push(palette.colour_index(colour, results.transparent_colour));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    let tile_data: Vec<_> = tile_data
-        .chunks(2)
-        .map(|chunk| (chunk[1] << 4) | chunk[0])
-        .collect();
+    let tile_data = collapse_to_4bpp(&tile_data);
 
     let data = ByteString(&tile_data);
 

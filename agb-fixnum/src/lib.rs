@@ -566,6 +566,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
 /// A vector of two points: (x, y) represened by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
     pub x: T,
@@ -1209,6 +1210,15 @@ mod tests {
                 assert!(rem_euclid > 0.into());
             }
         }
+    }
+
+    #[test]
+    fn test_only_frac_bits() {
+        let quarter: Num<u8, 8> = num!(0.25);
+        let neg_quarter: Num<i16, 15> = num!(-0.25);
+
+        assert_eq!(quarter + quarter, num!(0.5));
+        assert_eq!(neg_quarter + neg_quarter, num!(-0.5));
     }
 
     #[test]

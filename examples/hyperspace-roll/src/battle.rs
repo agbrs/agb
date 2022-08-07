@@ -2,7 +2,7 @@ use crate::sfx::Sfx;
 use crate::{
     graphics::SELECT_BOX, level_generation::generate_attack, Agb, EnemyAttackType, Face, PlayerDice,
 };
-use agb::display::tiled::RegularMap;
+use agb::display::tiled::{RegularMap, TiledMap};
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;

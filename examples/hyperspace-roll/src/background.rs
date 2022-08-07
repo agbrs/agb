@@ -1,5 +1,5 @@
 use agb::{
-    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager},
+    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager},
     include_gfx, rng,
 };
 

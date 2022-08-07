@@ -12,7 +12,7 @@
 
 use agb::display;
 use agb::display::object::ObjectController;
-use agb::display::tiled::VRamManager;
+use agb::display::tiled::{TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
 

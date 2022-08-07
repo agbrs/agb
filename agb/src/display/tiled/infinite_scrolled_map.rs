@@ -1,6 +1,9 @@
 use alloc::boxed::Box;
 
-use super::{BackgroundID, MapLoan, RegularMap, TileSet, TileSetting, VRamManager};
+use super::{
+    BackgroundID, BackgroundSizePrivate, MapLoan, RegularMap, TileSet, TileSetting, TiledMap,
+    VRamManager,
+};
 
 use crate::{
     display,

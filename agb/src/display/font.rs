@@ -210,6 +210,7 @@ impl<'a> Drop for TextRenderer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::display::tiled::TiledMap;
     const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
