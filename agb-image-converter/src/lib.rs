@@ -132,7 +132,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
     let optimised_results = optimiser.optimise_palettes();
 
-    let (palette_data, tile_data, assignments) = palete_tile_data(&optimised_results, &images);
+    let (palette_data, tile_data, assignments) = palette_tile_data(&optimised_results, &images);
 
     let palette_data = palette_data.iter().map(|colours| {
         quote! {
@@ -273,7 +273,7 @@ fn add_to_optimiser(
     }
 }
 
-fn palete_tile_data(
+fn palette_tile_data(
     optimiser: &Palette16OptimisationResults,
     images: &[Image],
 ) -> (Vec<Vec<u16>>, Vec<u8>, Vec<usize>) {
@@ -293,41 +293,54 @@ fn palete_tile_data(
         .collect();
 
     let mut tile_data = Vec::new();
+    let tile_size = TileSize::Tile8;
 
     for image in images {
-        let tile_size = 8;
-        let tiles_x = image.width / tile_size;
-        let tiles_y = image.height / tile_size;
+        add_image_to_tile_data(&mut tile_data, image, tile_size, &optimiser)
+    }
 
-        for y in 0..tiles_y {
-            for x in 0..tiles_x {
-                let palette_index = optimiser.assignments[y * tiles_x + x];
-                let palette = &optimiser.optimised_palettes[palette_index];
+    let tile_data = collapse_to_4bpp(&tile_data);
 
-                for inner_y in 0..tile_size / 8 {
-                    for inner_x in 0..tile_size / 8 {
-                        for j in inner_y * 8..inner_y * 8 + 8 {
-                            for i in inner_x * 8..inner_x * 8 + 8 {
-                                let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                                tile_data.push(
-                                    palette.colour_index(colour, optimiser.transparent_colour),
-                                );
-                            }
+    let assignments = optimiser.assignments.clone();
+
+    (palette_data, tile_data, assignments)
+}
+
+fn collapse_to_4bpp(tile_data: &[u8]) -> Vec<u8> {
+    tile_data
+        .chunks(2)
+        .map(|chunk| chunk[0] | (chunk[1] << 4))
+        .collect()
+}
+
+fn add_image_to_tile_data(
+    tile_data: &mut Vec<u8>,
+    image: &Image,
+    tile_size: TileSize,
+    optimiser: &&Palette16OptimisationResults,
+) {
+    let tile_size = tile_size.to_size();
+    let tiles_x = image.width / tile_size;
+    let tiles_y = image.height / tile_size;
+
+    for y in 0..tiles_y {
+        for x in 0..tiles_x {
+            let palette_index = optimiser.assignments[y * tiles_x + x];
+            let palette = &optimiser.optimised_palettes[palette_index];
+
+            for inner_y in 0..tile_size / 8 {
+                for inner_x in 0..tile_size / 8 {
+                    for j in inner_y * 8..inner_y * 8 + 8 {
+                        for i in inner_x * 8..inner_x * 8 + 8 {
+                            let colour = image.colour(x * tile_size + i, y * tile_size + j);
+                            tile_data
+                                .push(palette.colour_index(colour, optimiser.transparent_colour));
                         }
                     }
                 }
             }
         }
     }
-
-    let tile_data = tile_data
-        .chunks(2)
-        .map(|chunk| chunk[0] | (chunk[1] << 4))
-        .collect();
-
-    let assignments = optimiser.assignments.clone();
-
-    (palette_data, tile_data, assignments)
 }
 
 fn flatten_group(expr: &Expr) -> &Expr {

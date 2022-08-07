@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting},
+        tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, TiledMap},
         Priority,
     },
     include_gfx,

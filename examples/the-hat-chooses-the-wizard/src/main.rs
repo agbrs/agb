@@ -11,7 +11,7 @@ use agb::{
         object::{Graphics, Object, ObjectController, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
-            TileSetting, VRamManager,
+            TileSetting, TiledMap, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
