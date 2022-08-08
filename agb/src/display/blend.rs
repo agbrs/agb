@@ -49,6 +49,47 @@ pub struct Blend {
     fade_weight: u16,
 }
 
+/// When making many modifications to a layer, it is convenient to operate on
+/// that layer directly. This is created by the [Blend::layer] function and
+/// operates on that layer.
+pub struct BlendLayer<'blend> {
+    blend: &'blend mut Blend,
+    layer: Layer,
+}
+
+impl BlendLayer<'_> {
+    /// Set whether a background is enabled for blending on this layer.
+    pub fn set_background_enable(&mut self, background: BackgroundID, enable: bool) -> &mut Self {
+        self.blend
+            .set_background_enable(self.layer, background, enable);
+
+        self
+    }
+
+    /// Set whether objects are enabled for blending on this layer.
+    pub fn set_object_enable(&mut self, enable: bool) -> &mut Self {
+        self.blend.set_object_enable(self.layer, enable);
+
+        self
+    }
+
+    /// Set whether the backdrop contributes to the blend on this layer.
+    /// The backdrop is transparent colour, the colour rendered when nothing is
+    /// in it's place.
+    pub fn set_backdrop_enable(&mut self, enable: bool) -> &mut Self {
+        self.blend.set_backdrop_enable(self.layer, enable);
+
+        self
+    }
+
+    /// Set the weight for the blend on this layer.
+    pub fn set_blend_weight(&mut self, value: Num<u8, 4>) -> &mut Self {
+        self.blend.set_blend_weight(self.layer, value);
+
+        self
+    }
+}
+
 const BLEND_CONTROL: *mut u16 = 0x0400_0050 as *mut _;
 const BLEND_ALPHAS: *mut u16 = 0x0400_0052 as *mut _;
 
@@ -91,6 +132,13 @@ impl Blend {
     /// Reset targers, blend weights, and fades
     pub fn reset(&mut self) -> &mut Self {
         self.reset_targets().reset_fades().reset_weights()
+    }
+
+    /// Creates a layer object whose functions work only on that layer,
+    /// convenient when performing multiple operations on that layer without the
+    /// need of specifying the layer every time.
+    pub fn layer(&mut self, layer: Layer) -> BlendLayer {
+        BlendLayer { blend: self, layer }
     }
 
     /// Set whether a background is enabled for blending on a particular layer.
