@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom allocator support using the `Allocator` trait for `HashMap`. This means the `HashMap` can be used with `InternalAllocator` to allocate to IWRAM or the `ExternalAllocator` to explicitly allocate to EWRAM.
 - Support for using windows on the GBA. Windows are used to selectively enable rendering of certain layers or effects.
 
+## Fixed
+- Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
+
 ## [0.11.1] - 2022/08/02
 
 Version 0.11.1 brings documentation for fixed point numbers. We recommend all users upgrade to this version since it also includes fixes to a few functions in fixnum. See changed section for breaking changes.
