@@ -693,8 +693,8 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     /// ```
     #[must_use]
     pub fn fast_magnitude(self) -> Num<i32, N> {
-        let max = core::cmp::max(self.x, self.y);
-        let min = core::cmp::min(self.x, self.y);
+        let max = core::cmp::max(self.x.abs(), self.y.abs());
+        let min = core::cmp::min(self.x.abs(), self.y.abs());
 
         max * num!(0.960433870103) + min * num!(0.397824734759)
     }
