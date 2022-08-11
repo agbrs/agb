@@ -27,7 +27,7 @@ const fn layout_of(format: TileFormat) -> Layout {
     unsafe { Layout::from_size_align_unchecked(format.tile_size(), format.tile_size()) }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileFormat {
     FourBpp,
     EightBpp,
@@ -363,6 +363,11 @@ impl VRamManager {
         target_tile_set: &TileSet<'_>,
         target_tile: u16,
     ) {
+        assert_eq!(
+            source_tile_set.format, target_tile_set.format,
+            "Must replace a tileset with the same format"
+        );
+
         if let Some(&reference) = self
             .tile_set_to_vram
             .get(&TileInTileSetReference::new(source_tile_set, source_tile))
