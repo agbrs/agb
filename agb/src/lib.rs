@@ -13,9 +13,6 @@
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
-#![feature(const_trait_impl)]
-#![allow(incomplete_features)] // generic_const_exprs, used for bg mode traits
-#![feature(generic_const_exprs)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
