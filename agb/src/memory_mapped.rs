@@ -38,6 +38,21 @@ where
     }
 }
 
+pub fn set_bits<T>(current_value: T, value: T, length: usize, shift: usize) -> T
+where
+    T: From<u8>
+        + Copy
+        + ops::Shl<usize, Output = T>
+        + ops::BitAnd<Output = T>
+        + ops::Sub<Output = T>
+        + ops::BitOr<Output = T>
+        + ops::Not<Output = T>,
+{
+    let one: T = 1u8.into();
+    let mask: T = (one << length) - one;
+    (current_value & !(mask << shift)) | ((value & mask) << shift)
+}
+
 pub struct MemoryMapped1DArray<T, const N: usize> {
     array: *mut [T; N],
 }

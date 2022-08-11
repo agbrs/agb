@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
-use self::{object::ObjectController, window::Windows};
+use self::{blend::Blend, object::ObjectController, window::Windows};
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
@@ -23,6 +23,7 @@ pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
 
+pub mod blend;
 pub mod window;
 
 mod font;
@@ -70,10 +71,11 @@ pub struct Display {
     pub video: Video,
     pub object: ObjectDistribution,
     pub window: WindowDist,
+    pub blend: BlendDist,
 }
 
 #[non_exhaustive]
-pub struct ObjectDistribution {}
+pub struct ObjectDistribution;
 
 impl ObjectDistribution {
     pub fn get(&mut self) -> ObjectController {
@@ -82,7 +84,7 @@ impl ObjectDistribution {
 }
 
 #[non_exhaustive]
-pub struct WindowDist {}
+pub struct WindowDist;
 
 impl WindowDist {
     pub fn get(&mut self) -> Windows {
@@ -90,12 +92,22 @@ impl WindowDist {
     }
 }
 
+#[non_exhaustive]
+pub struct BlendDist;
+
+impl BlendDist {
+    pub fn get(&mut self) -> Blend {
+        Blend::new()
+    }
+}
+
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            video: Video {},
-            object: ObjectDistribution {},
-            window: WindowDist {},
+            video: Video,
+            object: ObjectDistribution,
+            window: WindowDist,
+            blend: BlendDist,
         }
     }
 }
