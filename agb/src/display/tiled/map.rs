@@ -145,12 +145,19 @@ pub struct RegularMap {
 
 pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
-#[rustfmt::skip]
 impl TiledMapPrivate for RegularMap {
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] { &mut self.tiles }
-    fn tiles_dirty(&mut self) -> &mut bool { &mut self.tiles_dirty }
-    fn x_scroll_mut(&mut self) -> &mut Self::Position { &mut self.x_scroll }
-    fn y_scroll_mut(&mut self) -> &mut Self::Position { &mut self.y_scroll }
+    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+        &mut self.tiles
+    }
+    fn tiles_dirty(&mut self) -> &mut bool {
+        &mut self.tiles_dirty
+    }
+    fn x_scroll_mut(&mut self) -> &mut Self::Position {
+        &mut self.x_scroll
+    }
+    fn y_scroll_mut(&mut self) -> &mut Self::Position {
+        &mut self.y_scroll
+    }
 }
 
 impl TiledMapTypes for RegularMap {
@@ -158,17 +165,28 @@ impl TiledMapTypes for RegularMap {
     type Size = RegularBackgroundSize;
 }
 
-#[rustfmt::skip]
-impl const TiledMapPrivateConst for RegularMap {
+impl TiledMapPrivateConst for RegularMap {
     type TileType = Tile;
     type AffineMatrix = ();
-    fn x_scroll(&self) -> Self::Position { self.x_scroll }
-    fn y_scroll(&self) -> Self::Position { self.y_scroll }
+    fn x_scroll(&self) -> Self::Position {
+        self.x_scroll
+    }
+    fn y_scroll(&self) -> Self::Position {
+        self.y_scroll
+    }
     fn affine_matrix(&self) -> Self::AffineMatrix {}
-    fn background_id(&self) -> usize { self.background_id as usize }
-    fn screenblock(&self) -> usize { self.screenblock as usize }
-    fn priority(&self) -> Priority { self.priority }
-    fn map_size(&self) -> Self::Size { self.size }
+    fn background_id(&self) -> usize {
+        self.background_id as usize
+    }
+    fn screenblock(&self) -> usize {
+        self.screenblock as usize
+    }
+    fn priority(&self) -> Priority {
+        self.priority
+    }
+    fn map_size(&self) -> Self::Size {
+        self.size
+    }
     fn bg_x(&self) -> MemoryMapped<Self::Position> {
         unsafe { MemoryMapped::new(0x0400_0010 + 4 * self.background_id as usize) }
     }
@@ -247,12 +265,19 @@ pub struct AffineMap {
     tiles_dirty: bool,
 }
 
-#[rustfmt::skip]
 impl TiledMapPrivate for AffineMap {
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] { &mut self.tiles }
-    fn tiles_dirty(&mut self) -> &mut bool { &mut self.tiles_dirty }
-    fn x_scroll_mut(&mut self) -> &mut Self::Position { &mut self.transform.position.x }
-    fn y_scroll_mut(&mut self) -> &mut Self::Position { &mut self.transform.position.y }
+    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+        &mut self.tiles
+    }
+    fn tiles_dirty(&mut self) -> &mut bool {
+        &mut self.tiles_dirty
+    }
+    fn x_scroll_mut(&mut self) -> &mut Self::Position {
+        &mut self.transform.position.x
+    }
+    fn y_scroll_mut(&mut self) -> &mut Self::Position {
+        &mut self.transform.position.y
+    }
 }
 
 impl TiledMapTypes for AffineMap {
@@ -260,17 +285,30 @@ impl TiledMapTypes for AffineMap {
     type Size = AffineBackgroundSize;
 }
 
-#[rustfmt::skip]
-impl const TiledMapPrivateConst for AffineMap {
+impl TiledMapPrivateConst for AffineMap {
     type TileType = u8;
     type AffineMatrix = AffineMatrixAttributes;
-    fn x_scroll(&self) -> Self::Position { self.transform.position.x }
-    fn y_scroll(&self) -> Self::Position { self.transform.position.y }
-    fn affine_matrix(&self) -> Self::AffineMatrix { self.transform.matrix }
-    fn background_id(&self) -> usize { self.background_id as usize }
-    fn screenblock(&self) -> usize { self.screenblock as usize }
-    fn priority(&self) -> Priority { self.priority }
-    fn map_size(&self) -> Self::Size { self.size }
+    fn x_scroll(&self) -> Self::Position {
+        self.transform.position.x
+    }
+    fn y_scroll(&self) -> Self::Position {
+        self.transform.position.y
+    }
+    fn affine_matrix(&self) -> Self::AffineMatrix {
+        self.transform.matrix
+    }
+    fn background_id(&self) -> usize {
+        self.background_id as usize
+    }
+    fn screenblock(&self) -> usize {
+        self.screenblock as usize
+    }
+    fn priority(&self) -> Priority {
+        self.priority
+    }
+    fn map_size(&self) -> Self::Size {
+        self.size
+    }
     fn bg_x(&self) -> MemoryMapped<Self::Position> {
         unsafe { MemoryMapped::new(0x0400_0008 + 0x10 * self.background_id()) }
     }
