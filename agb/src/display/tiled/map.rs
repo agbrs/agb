@@ -15,9 +15,20 @@ use super::{
 use crate::syscall::BgAffineSetData;
 use alloc::{vec, vec::Vec};
 
-pub(super) trait TiledMapPrivateConst: TiledMapTypes {
+pub trait TiledMapTypes {
+    type Position: Number;
+    type Size: BackgroundSize + Copy;
+}
+
+trait TiledMapPrivate: TiledMapTypes {
     type TileType: Into<TileIndex> + Copy + Default + Eq + PartialEq;
     type AffineMatrix;
+
+    fn tiles_mut(&mut self) -> &mut [Self::TileType];
+    fn tiles_dirty(&mut self) -> &mut bool;
+    fn x_scroll_mut(&mut self) -> &mut Self::Position;
+    fn y_scroll_mut(&mut self) -> &mut Self::Position;
+
     fn x_scroll(&self) -> Self::Position;
     fn y_scroll(&self) -> Self::Position;
     fn affine_matrix(&self) -> Self::AffineMatrix;
@@ -36,18 +47,6 @@ pub(super) trait TiledMapPrivateConst: TiledMapTypes {
     }
 }
 
-trait TiledMapPrivate: TiledMapPrivateConst {
-    fn tiles_mut(&mut self) -> &mut [Self::TileType];
-    fn tiles_dirty(&mut self) -> &mut bool;
-    fn x_scroll_mut(&mut self) -> &mut Self::Position;
-    fn y_scroll_mut(&mut self) -> &mut Self::Position;
-}
-
-pub trait TiledMapTypes {
-    type Position: Number;
-    type Size: BackgroundSize + Copy;
-}
-
 pub trait TiledMap: TiledMapTypes {
     fn clear(&mut self, vram: &mut VRamManager);
     fn show(&mut self);
@@ -62,7 +61,7 @@ pub trait TiledMap: TiledMapTypes {
 
 impl<T> TiledMap for T
 where
-    T: TiledMapPrivateConst + TiledMapPrivate + TiledMapTypes,
+    T: TiledMapPrivate,
     T::Size: BackgroundSizePrivate,
 {
     fn clear(&mut self, vram: &mut VRamManager) {
@@ -115,16 +114,16 @@ where
         *self.tiles_dirty() = false;
     }
 
-    fn size(&self) -> Self::Size {
+    fn size(&self) -> T::Size {
         self.map_size()
     }
 
     #[must_use]
-    fn scroll_pos(&self) -> Vector2D<Self::Position> {
+    fn scroll_pos(&self) -> Vector2D<T::Position> {
         (self.x_scroll(), self.y_scroll()).into()
     }
 
-    fn set_scroll_pos(&mut self, pos: Vector2D<Self::Position>) {
+    fn set_scroll_pos(&mut self, pos: Vector2D<T::Position>) {
         *self.x_scroll_mut() = pos.x;
         *self.y_scroll_mut() = pos.y;
     }
@@ -145,7 +144,15 @@ pub struct RegularMap {
 
 pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
+impl TiledMapTypes for RegularMap {
+    type Position = u16;
+    type Size = RegularBackgroundSize;
+}
+
 impl TiledMapPrivate for RegularMap {
+    type TileType = Tile;
+    type AffineMatrix = ();
+
     fn tiles_mut(&mut self) -> &mut [Self::TileType] {
         &mut self.tiles
     }
@@ -158,16 +165,6 @@ impl TiledMapPrivate for RegularMap {
     fn y_scroll_mut(&mut self) -> &mut Self::Position {
         &mut self.y_scroll
     }
-}
-
-impl TiledMapTypes for RegularMap {
-    type Position = u16;
-    type Size = RegularBackgroundSize;
-}
-
-impl TiledMapPrivateConst for RegularMap {
-    type TileType = Tile;
-    type AffineMatrix = ();
     fn x_scroll(&self) -> Self::Position {
         self.x_scroll
     }
@@ -265,7 +262,15 @@ pub struct AffineMap {
     tiles_dirty: bool,
 }
 
+impl TiledMapTypes for AffineMap {
+    type Position = Num<i32, 8>;
+    type Size = AffineBackgroundSize;
+}
+
 impl TiledMapPrivate for AffineMap {
+    type TileType = u8;
+    type AffineMatrix = AffineMatrixAttributes;
+
     fn tiles_mut(&mut self) -> &mut [Self::TileType] {
         &mut self.tiles
     }
@@ -278,16 +283,6 @@ impl TiledMapPrivate for AffineMap {
     fn y_scroll_mut(&mut self) -> &mut Self::Position {
         &mut self.transform.position.y
     }
-}
-
-impl TiledMapTypes for AffineMap {
-    type Position = Num<i32, 8>;
-    type Size = AffineBackgroundSize;
-}
-
-impl TiledMapPrivateConst for AffineMap {
-    type TileType = u8;
-    type AffineMatrix = AffineMatrixAttributes;
     fn x_scroll(&self) -> Self::Position {
         self.transform.position.x
     }
