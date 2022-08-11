@@ -38,24 +38,29 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut input = agb::input::ButtonController::new();
 
+    let mut scroll_x = 0;
+    let mut scroll_y = 0;
+
     loop {
         input.update();
 
-        let x_dir = match input.x_tri() {
-            Tri::Positive => (1, 0).into(),
-            Tri::Negative => (-1, 0).into(),
-            _ => (0, 0).into(),
-        };
+        match input.x_tri() {
+            Tri::Positive => scroll_x += 1,
+            Tri::Negative => scroll_x -= 1,
+            _ => {}
+        }
 
-        let y_dir = match input.y_tri() {
-            Tri::Positive => (0, 1).into(),
-            Tri::Negative => (0, -1).into(),
-            _ => (0, 0).into(),
-        };
+        match input.y_tri() {
+            Tri::Positive => scroll_y += 1,
+            Tri::Negative => scroll_y -= 1,
+            _ => {}
+        }
 
-        let new_scroll_pos = bg.scroll_pos() + x_dir + y_dir;
-        bg.set_scroll_pos(new_scroll_pos);
-        bg.set_transform((0i16, 0i16).into(), (1, 1).into(), rotation);
+        bg.set_transform(
+            (-scroll_x as i16, -scroll_y as i16).into(),
+            (1, 1).into(),
+            rotation,
+        );
 
         rotation += rotation_increase;
         if rotation >= num!(255.) {
