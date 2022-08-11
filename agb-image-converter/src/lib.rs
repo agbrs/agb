@@ -112,13 +112,18 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let mut image_code = vec![];
 
     for (image_name, &image) in images.iter() {
+        let assignment_offset = match image.colours() {
+            Colours::Colours16 => Some(assignment_offsets[image_name]),
+            _ => None,
+        };
+
         image_code.push(convert_image(
             image,
             parent,
             image_name,
             &config.crate_prefix(),
             &optimisation_results,
-            assignment_offsets[image_name],
+            assignment_offset,
         ));
     }
 
@@ -268,7 +273,7 @@ fn convert_image(
     variable_name: &str,
     crate_prefix: &str,
     optimisation_results: &Palette16OptimisationResults,
-    assignment_offset: usize,
+    assignment_offset: Option<usize>,
 ) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(&settings.filename());
     let image = Image::load_from_file(image_filename);
@@ -376,6 +381,38 @@ fn add_image_to_tile_data(
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
                             tile_data
                                 .push(palette.colour_index(colour, optimiser.transparent_colour));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn add_image_256_to_tile_data(
+    tile_data: &mut Vec<u8>,
+    image: &Image,
+    tile_size: TileSize,
+    optimiser: &Palette16OptimisationResults,
+) {
+    let tile_size = tile_size.to_size();
+    let tiles_x = image.width / tile_size;
+    let tiles_y = image.height / tile_size;
+
+    let all_colours: Vec<_> = optimiser
+        .optimised_palettes
+        .iter()
+        .flat_map(|p| p.colours())
+        .collect();
+
+    for y in 0..tiles_y {
+        for x in 0..tiles_x {
+            for inner_y in 0..tile_size / 8 {
+                for inner_x in 0..tile_size / 8 {
+                    for j in inner_y * 8..inner_y * 8 + 8 {
+                        for i in inner_x * 8..inner_x * 8 + 8 {
+                            let colour = image.colour(x * tile_size + i, y * tile_size + j);
+                            tile_data.push(all_colours.iter().position(|c| **c == colour).unwrap() as u8);
                         }
                     }
                 }

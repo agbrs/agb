@@ -278,16 +278,16 @@ impl TiledMapPrivate for AffineMap {
         &mut self.tiles_dirty
     }
     fn x_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.transform.position.x
+        &mut self.bg_center.x
     }
     fn y_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.transform.position.y
+        &mut self.bg_center.y
     }
     fn x_scroll(&self) -> Self::Position {
-        self.transform.position.x
+        self.bg_center.x
     }
     fn y_scroll(&self) -> Self::Position {
-        self.transform.position.y
+        self.bg_center.y
     }
     fn affine_matrix(&self) -> Self::AffineMatrix {
         self.transform.matrix
@@ -377,7 +377,7 @@ impl AffineMap {
         &mut self,
         display_center: Vector2D<i16>,
         scale: Vector2D<Num<i16, 8>>,
-        rotation: Num<u8, 8>,
+        rotation: Num<u16, 8>,
     ) {
         self.set_transform_raw(crate::syscall::bg_affine_matrix(
             self.bg_center,

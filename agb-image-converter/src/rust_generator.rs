@@ -1,5 +1,5 @@
 use crate::palette16::Palette16OptimisationResults;
-use crate::{add_image_to_tile_data, collapse_to_4bpp, TileSize};
+use crate::{add_image_256_to_tile_data, add_image_to_tile_data, collapse_to_4bpp, TileSize};
 use crate::{image_loader::Image, ByteString};
 
 use proc_macro2::TokenStream;
@@ -14,7 +14,7 @@ pub(crate) fn generate_code(
     image_filename: &str,
     tile_size: TileSize,
     crate_prefix: String,
-    assignment_offset: usize,
+    assignment_offset: Option<usize>,
 ) -> TokenStream {
     let crate_prefix = format_ident!("{}", crate_prefix);
     let output_variable_name = format_ident!("{}", output_variable_name);
@@ -35,22 +35,33 @@ pub(crate) fn generate_code(
         }
     });
 
-    let mut tile_data = Vec::new();
+    let (tile_data, assignments) = if let Some(assignment_offset) = assignment_offset {
+        let mut tile_data = Vec::new();
 
-    add_image_to_tile_data(&mut tile_data, image, tile_size, results, assignment_offset);
+        add_image_to_tile_data(&mut tile_data, image, tile_size, results, assignment_offset);
 
-    let tile_data = collapse_to_4bpp(&tile_data);
+        let tile_data = collapse_to_4bpp(&tile_data);
+
+        let num_tiles = image.width * image.height / tile_size.to_size().pow(2);
+
+        let assignments = results
+            .assignments
+            .iter()
+            .skip(assignment_offset)
+            .take(num_tiles)
+            .map(|&x| x as u8)
+            .collect();
+
+        (tile_data, assignments)
+    } else {
+        let mut tile_data = Vec::new();
+
+        add_image_256_to_tile_data(&mut tile_data, image, tile_size, results);
+
+        (tile_data, vec![])
+    };
 
     let data = ByteString(&tile_data);
-
-    let num_tiles = image.width * image.height / tile_size.to_size().pow(2);
-
-    let assignments = results
-        .assignments
-        .iter()
-        .skip(assignment_offset)
-        .take(num_tiles)
-        .map(|&x| x as u8);
 
     quote! {
         #[allow(non_upper_case_globals)]

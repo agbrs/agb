@@ -159,21 +159,21 @@ pub fn bg_affine_matrix(
     bg_center: Vector2D<Num<i32, 8>>,
     display_center: Vector2D<i16>,
     scale: Vector2D<Num<i16, 8>>,
-    rotation: Num<u8, 8>,
+    rotation: Num<u16, 8>,
 ) -> BgAffineSetData {
     #[repr(C, packed)]
     struct Input {
         bg_center: Vector2D<Num<i32, 8>>,
         display_center: Vector2D<i16>,
         scale: Vector2D<Num<i16, 8>>,
-        rotation: u16,
+        rotation: Num<u16, 8>,
     }
 
     let input = Input {
         bg_center,
         display_center,
         scale,
-        rotation: u16::from(rotation.to_raw()) << 8,
+        rotation,
     };
 
     let mut output = MaybeUninit::uninit();
