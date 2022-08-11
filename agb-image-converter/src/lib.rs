@@ -324,7 +324,7 @@ fn palette_tile_data(
     let tile_size = TileSize::Tile8;
 
     for image in images {
-        add_image_to_tile_data(&mut tile_data, image, tile_size, &optimiser, 0)
+        add_image_to_tile_data(&mut tile_data, image, tile_size, optimiser, 0)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
