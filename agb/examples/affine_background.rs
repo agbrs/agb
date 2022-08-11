@@ -6,7 +6,7 @@ use agb::{
         tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
         Priority,
     },
-    fixnum::{num, Num},
+    fixnum::num,
     include_gfx,
     input::Tri,
 };
@@ -54,7 +54,6 @@ fn main(mut gba: agb::Gba) -> ! {
         };
 
         let new_scroll_pos = bg.scroll_pos() + x_dir + y_dir;
-        agb::println!("{:?}", new_scroll_pos);
         bg.set_scroll_pos(new_scroll_pos);
         bg.set_transform((0i16, 0i16).into(), (1, 1).into(), rotation);
 
