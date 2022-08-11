@@ -14,6 +14,7 @@ pub(crate) fn generate_code(
     image_filename: &str,
     tile_size: TileSize,
     crate_prefix: String,
+    assignment_offset: usize,
 ) -> TokenStream {
     let crate_prefix = format_ident!("{}", crate_prefix);
     let output_variable_name = format_ident!("{}", output_variable_name);
@@ -36,13 +37,20 @@ pub(crate) fn generate_code(
 
     let mut tile_data = Vec::new();
 
-    add_image_to_tile_data(&mut tile_data, image, tile_size, &results);
+    add_image_to_tile_data(&mut tile_data, image, tile_size, results, assignment_offset);
 
     let tile_data = collapse_to_4bpp(&tile_data);
 
     let data = ByteString(&tile_data);
 
-    let assignments = results.assignments.iter().map(|&x| x as u8);
+    let num_tiles = image.width * image.height / tile_size.to_size().pow(2);
+
+    let assignments = results
+        .assignments
+        .iter()
+        .skip(assignment_offset)
+        .take(num_tiles)
+        .map(|&x| x as u8);
 
     quote! {
         #[allow(non_upper_case_globals)]

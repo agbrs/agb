@@ -1,10 +1,11 @@
-use palette16::Palette16OptimisationResults;
+use palette16::{Palette16OptimisationResults, Palette16Optimiser};
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::Parser;
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
 use syn::{Expr, ExprLit, Lit};
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{iter, path::Path, str};
 
@@ -68,9 +69,46 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let include_path = path.to_string_lossy();
 
     let images = config.images();
-    let image_code = images.iter().map(|(image_name, &image)| {
-        convert_image(image, parent, image_name, &config.crate_prefix())
-    });
+
+    let mut optimiser = Palette16Optimiser::new(None);
+    let mut assignment_offsets = HashMap::new();
+    let mut assignment_offset = 0;
+
+    for (name, settings) in images.iter() {
+        let image_filename = &parent.join(&settings.filename());
+        let image = Image::load_from_file(image_filename);
+
+        let tile_size = settings.tilesize().to_size();
+        if image.width % tile_size != 0 || image.height % tile_size != 0 {
+            panic!("Image size not a multiple of tile size");
+        }
+
+        add_to_optimiser(
+            &mut optimiser,
+            &image,
+            tile_size,
+            settings.transparent_colour(),
+        );
+
+        let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
+        assignment_offsets.insert(name, assignment_offset);
+        assignment_offset += num_tiles;
+    }
+
+    let optimisation_results = optimiser.optimise_palettes();
+
+    let mut image_code = vec![];
+
+    for (image_name, &image) in images.iter() {
+        image_code.push(convert_image(
+            image,
+            parent,
+            image_name,
+            &config.crate_prefix(),
+            &optimisation_results,
+            assignment_offsets[image_name],
+        ));
+    }
 
     let module = quote! {
         mod #module_name {
@@ -217,36 +255,21 @@ fn convert_image(
     parent: &Path,
     variable_name: &str,
     crate_prefix: &str,
+    optimisation_results: &Palette16OptimisationResults,
+    assignment_offset: usize,
 ) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(&settings.filename());
     let image = Image::load_from_file(image_filename);
 
-    let tile_size = settings.tilesize().to_size();
-    if image.width % tile_size != 0 || image.height % tile_size != 0 {
-        panic!("Image size not a multiple of tile size");
-    }
-
-    let optimiser = optimiser_for_image(&image, tile_size, settings.transparent_colour());
-    let optimisation_results = optimiser.optimise_palettes();
-
     rust_generator::generate_code(
         variable_name,
-        &optimisation_results,
+        optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
         settings.tilesize(),
         crate_prefix.to_owned(),
+        assignment_offset,
     )
-}
-
-fn optimiser_for_image(
-    image: &Image,
-    tile_size: usize,
-    transparent_colour: Option<Colour>,
-) -> palette16::Palette16Optimiser {
-    let mut palette_optimiser = palette16::Palette16Optimiser::new(transparent_colour);
-    add_to_optimiser(&mut palette_optimiser, image, tile_size, transparent_colour);
-    palette_optimiser
 }
 
 fn add_to_optimiser(
@@ -301,7 +324,7 @@ fn palette_tile_data(
     let tile_size = TileSize::Tile8;
 
     for image in images {
-        add_image_to_tile_data(&mut tile_data, image, tile_size, &optimiser)
+        add_image_to_tile_data(&mut tile_data, image, tile_size, &optimiser, 0)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -322,7 +345,8 @@ fn add_image_to_tile_data(
     tile_data: &mut Vec<u8>,
     image: &Image,
     tile_size: TileSize,
-    optimiser: &&Palette16OptimisationResults,
+    optimiser: &Palette16OptimisationResults,
+    assignment_offset: usize,
 ) {
     let tile_size = tile_size.to_size();
     let tiles_x = image.width / tile_size;
@@ -330,7 +354,7 @@ fn add_image_to_tile_data(
 
     for y in 0..tiles_y {
         for x in 0..tiles_x {
-            let palette_index = optimiser.assignments[y * tiles_x + x];
+            let palette_index = optimiser.assignments[y * tiles_x + x + assignment_offset];
             let palette = &optimiser.optimised_palettes[palette_index];
 
             for inner_y in 0..tile_size / 8 {

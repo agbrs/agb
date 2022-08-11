@@ -5,17 +5,23 @@ use agb::{
 
 use crate::sfx::Sfx;
 
-include_gfx!("gfx/stars.toml");
-
-include_gfx!("gfx/help.toml");
+include_gfx!("gfx/backgrounds.toml");
 
 pub fn load_palettes(vram: &mut VRamManager) {
-    vram.set_background_palettes(&[
-        stars::stars.palettes[0].clone(),
-        crate::customise::DESCRIPTIONS_1_PALETTE.clone(),
-        crate::customise::DESCRIPTIONS_2_PALETTE.clone(),
-        help::help.palettes[0].clone(),
-    ]);
+    vram.set_background_palettes(backgrounds::stars.palettes);
+}
+
+fn description_tileset() -> (TileSet<'static>, TileSet<'static>) {
+    let descriptions_1_tileset = TileSet::new(
+        backgrounds::descriptions1.tiles,
+        agb::display::tiled::TileFormat::FourBpp,
+    );
+    let descriptions_2_tileset = TileSet::new(
+        backgrounds::descriptions2.tiles,
+        agb::display::tiled::TileFormat::FourBpp,
+    );
+
+    (descriptions_1_tileset, descriptions_2_tileset)
 }
 
 pub(crate) fn load_help_text(
@@ -24,15 +30,66 @@ pub(crate) fn load_help_text(
     help_text_line: u16,
     at_tile: (u16, u16),
 ) {
-    let help_tileset = TileSet::new(help::help.tiles, agb::display::tiled::TileFormat::FourBpp);
+    let help_tileset = TileSet::new(
+        backgrounds::help.tiles,
+        agb::display::tiled::TileFormat::FourBpp,
+    );
 
     for x in 0..16 {
+        let tile_id = help_text_line * 16 + x;
         background.set_tile(
             vram,
             (x + at_tile.0, at_tile.1).into(),
             &help_tileset,
-            TileSetting::new(help_text_line * 16 + x, false, false, 3),
+            TileSetting::new(
+                tile_id,
+                false,
+                false,
+                backgrounds::help.palette_assignments[tile_id as usize],
+            ),
         )
+    }
+}
+
+pub(crate) fn load_description(
+    upgrade: usize,
+    descriptions_map: &mut RegularMap,
+    vram: &mut VRamManager,
+) {
+    let (descriptions_1_tileset, descriptions_2_tileset) = description_tileset();
+
+    for y in 0..11 {
+        for x in 0..8 {
+            if upgrade < 10 {
+                let tile_id = y * 8 + x + 8 * 11 * upgrade as u16;
+
+                descriptions_map.set_tile(
+                    vram,
+                    (x, y).into(),
+                    &descriptions_1_tileset,
+                    TileSetting::new(
+                        tile_id,
+                        false,
+                        false,
+                        backgrounds::descriptions1.palette_assignments[tile_id as usize],
+                    ),
+                )
+            } else {
+                let tile_id = y * 8 + x + 8 * 11 * (upgrade as u16 - 10);
+
+                descriptions_map.set_tile(
+                    vram,
+                    (x, y).into(),
+                    &descriptions_2_tileset,
+                    TileSetting::new(
+                        tile_id,
+                        false,
+                        false,
+                        backgrounds::descriptions2.palette_assignments[tile_id as usize],
+                    ),
+                )
+            }
+        }
     }
 }
 
@@ -47,7 +104,16 @@ fn create_background_map(map: &mut RegularMap, vram: &mut VRamManager, stars_til
             } else {
                 rng::gen().rem_euclid(64) as u16
             };
-            let tile_setting = TileSetting::new(tile_id, false, false, 0);
+            let tile_setting = TileSetting::new(
+                tile_id,
+                false,
+                false,
+                if blank {
+                    0
+                } else {
+                    backgrounds::stars.palette_assignments[tile_id as usize]
+                },
+            );
 
             map.set_tile(vram, (x, y).into(), stars_tileset, tile_setting);
         }
@@ -58,8 +124,11 @@ fn create_background_map(map: &mut RegularMap, vram: &mut VRamManager, stars_til
 
 pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sfx: &mut Sfx) {
     background.set_scroll_pos((0_u16, 0_u16).into());
-    vram.set_background_palettes(stars::title.palettes);
-    let tile_set = TileSet::new(stars::title.tiles, agb::display::tiled::TileFormat::FourBpp);
+    vram.set_background_palettes(backgrounds::title.palettes);
+    let tile_set = TileSet::new(
+        backgrounds::title.tiles,
+        agb::display::tiled::TileFormat::FourBpp,
+    );
     background.hide();
 
     for x in 0..30u16 {
@@ -73,7 +142,7 @@ pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sf
                     tile_id,
                     false,
                     false,
-                    stars::title.palette_assignments[tile_id as usize],
+                    backgrounds::title.palette_assignments[tile_id as usize],
                 ),
             );
         }
@@ -100,7 +169,7 @@ impl<'a> StarBackground<'a> {
         background2: &'a mut RegularMap,
         vram: &'_ mut VRamManager,
     ) -> Self {
-        let stars_tileset = TileSet::new(stars::stars.tiles, TileFormat::FourBpp);
+        let stars_tileset = TileSet::new(backgrounds::stars.tiles, TileFormat::FourBpp);
         create_background_map(background1, vram, &stars_tileset);
         create_background_map(background2, vram, &stars_tileset);
 
