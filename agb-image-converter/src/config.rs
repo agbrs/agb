@@ -23,20 +23,19 @@ pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
 pub(crate) trait Config {
     fn crate_prefix(&self) -> String;
     fn images(&self) -> HashMap<String, &dyn Image>;
-    fn colours(&self) -> Colours;
 }
 
 pub(crate) trait Image {
     fn filename(&self) -> String;
     fn transparent_colour(&self) -> Option<Colour>;
     fn tilesize(&self) -> TileSize;
+    fn colours(&self) -> Colours;
 }
 
 #[derive(Deserialize)]
 pub struct ConfigV1 {
     version: String,
     crate_prefix: Option<String>,
-    colours: Option<u32>,
 
     image: HashMap<String, ImageV1>,
 }
@@ -54,14 +53,6 @@ impl Config for ConfigV1 {
             .map(|(filename, image)| (filename.clone(), image as &dyn Image))
             .collect()
     }
-
-    fn colours(&self) -> Colours {
-        match self.colours {
-            None | Some(16) => Colours::Colours16,
-            Some(256) => Colours::Colours256,
-            _ => panic!("colours must either not be set or 16 or 256"),
-        }
-    }
 }
 
 #[derive(Deserialize)]
@@ -69,6 +60,7 @@ pub struct ImageV1 {
     filename: String,
     transparent_colour: Option<String>,
     tile_size: TileSizeV1,
+    colours: Option<u32>,
 }
 
 impl Image for ImageV1 {
@@ -94,6 +86,14 @@ impl Image for ImageV1 {
 
     fn tilesize(&self) -> TileSize {
         self.tile_size.into()
+    }
+
+    fn colours(&self) -> Colours {
+        match self.colours {
+            None | Some(16) => Colours::Colours16,
+            Some(256) => Colours::Colours256,
+            _ => panic!("colours must either not be set or 16 or 256"),
+        }
     }
 }
 

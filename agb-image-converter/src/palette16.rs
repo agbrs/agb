@@ -28,6 +28,19 @@ impl Palette16 {
         true
     }
 
+    pub fn try_add_colour(&mut self, colour: Colour) -> bool {
+        if self.colours.contains(&colour) {
+            return true;
+        }
+
+        if self.colours.len() == MAX_COLOURS_PER_PALETTE {
+            return false;
+        }
+
+        self.colours.push(colour);
+        true
+    }
+
     pub fn colour_index(&self, colour: Colour, transparent_colour: Option<Colour>) -> u8 {
         let colour_to_search = match (transparent_colour, colour.is_transparent()) {
             (Some(transparent_colour), true) => transparent_colour,
@@ -43,6 +56,10 @@ impl Palette16 {
                     colour, self.colours
                 )
             }) as u8
+    }
+
+    pub fn colours<'a>(&'a self) -> impl Iterator<Item = &Colour> + 'a {
+        self.colours.iter()
     }
 
     fn union_length(&self, other: &Palette16) -> usize {

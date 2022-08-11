@@ -1,4 +1,5 @@
 use palette16::{Palette16OptimisationResults, Palette16Optimiser};
+use palette256::Palette256;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::Parser;
@@ -17,6 +18,7 @@ mod config;
 mod font_loader;
 mod image_loader;
 mod palette16;
+mod palette256;
 mod rust_generator;
 
 use image::GenericImageView;
@@ -74,28 +76,38 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let mut assignment_offsets = HashMap::new();
     let mut assignment_offset = 0;
 
+    let mut palette256 = Palette256::new();
+
     for (name, settings) in images.iter() {
         let image_filename = &parent.join(&settings.filename());
         let image = Image::load_from_file(image_filename);
 
-        let tile_size = settings.tilesize().to_size();
-        if image.width % tile_size != 0 || image.height % tile_size != 0 {
-            panic!("Image size not a multiple of tile size");
+        match settings.colours() {
+            Colours::Colours16 => {
+                let tile_size = settings.tilesize().to_size();
+                if image.width % tile_size != 0 || image.height % tile_size != 0 {
+                    panic!("Image size not a multiple of tile size");
+                }
+
+                add_to_optimiser(
+                    &mut optimiser,
+                    &image,
+                    tile_size,
+                    settings.transparent_colour(),
+                );
+
+                let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
+                assignment_offsets.insert(name, assignment_offset);
+                assignment_offset += num_tiles;
+            }
+            Colours::Colours256 => {
+                palette256.add_image(&image);
+            }
         }
-
-        add_to_optimiser(
-            &mut optimiser,
-            &image,
-            tile_size,
-            settings.transparent_colour(),
-        );
-
-        let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
-        assignment_offsets.insert(name, assignment_offset);
-        assignment_offset += num_tiles;
     }
 
     let optimisation_results = optimiser.optimise_palettes();
+    let optimisation_results = palette256.extend_results(&optimisation_results);
 
     let mut image_code = vec![];
 
