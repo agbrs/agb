@@ -1,6 +1,6 @@
 use core::cell::RefCell;
 
-use super::TiledMode;
+use super::{CreatableAffineTiledMode, CreatableRegularTiledMode, TiledMode};
 use crate::{
     bitarray::Bitarray,
     display::{set_graphics_mode, tiled::AFFINE_BG_ID_OFFSET, DisplayMode},
@@ -30,16 +30,21 @@ impl Tiled1 {
 }
 
 impl TiledMode for Tiled1 {
-    const REGULAR_BACKGROUNDS: usize = 2;
-    const AFFINE_BACKGROUNDS: usize = 1;
-
     fn screenblocks(&self) -> &RefCell<Bitarray<1>> {
         &self.screenblocks
     }
+}
+
+impl CreatableRegularTiledMode for Tiled1 {
+    const REGULAR_BACKGROUNDS: usize = 2;
 
     fn regular(&self) -> &RefCell<Bitarray<1>> {
         &self.regular
     }
+}
+
+impl CreatableAffineTiledMode for Tiled1 {
+    const AFFINE_BACKGROUNDS: usize = 1;
 
     fn affine(&self) -> &RefCell<Bitarray<1>> {
         &self.affine

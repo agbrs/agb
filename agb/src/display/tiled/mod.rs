@@ -210,15 +210,21 @@ pub(self) fn find_screenblock_gap(screenblocks: &Bitarray<1>, gap: usize) -> usi
     );
 }
 
-pub(self) trait TiledMode {
-    const REGULAR_BACKGROUNDS: usize;
-    const AFFINE_BACKGROUNDS: usize;
+trait TiledMode {
     fn screenblocks(&self) -> &RefCell<Bitarray<1>>;
+}
+
+trait CreatableRegularTiledMode: TiledMode {
+    const REGULAR_BACKGROUNDS: usize;
     fn regular(&self) -> &RefCell<Bitarray<1>>;
+}
+
+trait CreatableAffineTiledMode: TiledMode {
+    const AFFINE_BACKGROUNDS: usize;
     fn affine(&self) -> &RefCell<Bitarray<1>>;
 }
 
-pub trait RegularTiledMode {
+trait RegularTiledMode {
     fn regular_background(
         &self,
         priority: Priority,
@@ -226,7 +232,7 @@ pub trait RegularTiledMode {
     ) -> MapLoan<'_, RegularMap>;
 }
 
-pub trait AffineTiledMode {
+trait AffineTiledMode {
     fn affine_background(
         &self,
         priority: Priority,
@@ -234,15 +240,9 @@ pub trait AffineTiledMode {
     ) -> MapLoan<'_, AffineMap>;
 }
 
-// withoutboats: https://internals.rust-lang.org/t/const-generics-where-restrictions/12742/6
-pub struct If<const B: bool>;
-pub trait True {}
-impl True for If<true> {}
-
 impl<T> RegularTiledMode for T
 where
-    T: TiledMode,
-    If<{ T::REGULAR_BACKGROUNDS > 0 }>: True,
+    T: CreatableRegularTiledMode,
 {
     fn regular_background(
         &self,
@@ -283,8 +283,7 @@ where
 
 impl<T> AffineTiledMode for T
 where
-    T: TiledMode,
-    If<{ T::AFFINE_BACKGROUNDS > 0 }>: True,
+    T: CreatableAffineTiledMode,
 {
     fn affine_background(
         &self,
