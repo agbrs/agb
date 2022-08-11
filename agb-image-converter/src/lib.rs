@@ -30,6 +30,11 @@ pub(crate) enum TileSize {
     Tile32,
 }
 
+pub(crate) enum Colours {
+    Colours16,
+    Colours256,
+}
+
 impl TileSize {
     fn to_size(self) -> usize {
         match self {

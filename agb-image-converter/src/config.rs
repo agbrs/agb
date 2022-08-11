@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 
-use crate::{Colour, TileSize};
+use crate::{Colour, Colours, TileSize};
 
 pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
     let config_toml =
@@ -23,6 +23,7 @@ pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
 pub(crate) trait Config {
     fn crate_prefix(&self) -> String;
     fn images(&self) -> HashMap<String, &dyn Image>;
+    fn colours(&self) -> Colours;
 }
 
 pub(crate) trait Image {
@@ -35,6 +36,7 @@ pub(crate) trait Image {
 pub struct ConfigV1 {
     version: String,
     crate_prefix: Option<String>,
+    colours: Option<u32>,
 
     image: HashMap<String, ImageV1>,
 }
@@ -51,6 +53,14 @@ impl Config for ConfigV1 {
             .iter()
             .map(|(filename, image)| (filename.clone(), image as &dyn Image))
             .collect()
+    }
+
+    fn colours(&self) -> Colours {
+        match self.colours {
+            None | Some(16) => Colours::Colours16,
+            Some(256) => Colours::Colours256,
+            _ => panic!("colours must either not be set or 16 or 256"),
+        }
     }
 }
 
