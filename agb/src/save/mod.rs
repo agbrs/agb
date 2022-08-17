@@ -370,7 +370,7 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_sram() {
+    pub fn init_sram(&mut self) {
         marker::emit_sram_marker();
         set_save_implementation(&sram::BatteryBackedAccess);
     }
@@ -379,14 +379,15 @@ impl SaveManager {
     ///
     /// You must have initialized the save manager beforehand to use a specific
     /// type of media before calling this method.
-    pub fn access() -> Result<SaveData, Error> {
+    pub fn access(&mut self) -> Result<SaveData, Error> {
         SaveData::new(None)
     }
+
     /// Creates a new accessor to the save data that uses the given timer for timeouts.
     ///
     /// You must have initialized the save manager beforehand to use a specific
     /// type of media before calling this method.
-    pub fn access_with_timer(timer: Timer) -> Result<SaveData, Error> {
+    pub fn access_with_timer(&mut self, timer: Timer) -> Result<SaveData, Error> {
         SaveData::new(Some(timer))
     }
 }
