@@ -103,12 +103,13 @@
 //!   small sector size.
 
 use core::ops::Range;
+use crate::save::utils::Timeout;
 use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
 
 mod asm_utils;
 //pub mod eeprom;
-//pub mod flash;
+mod flash;
 mod sram;
 mod utils;
 
@@ -181,10 +182,10 @@ impl MediaInfo {
 /// A trait allowing low-level saving and writing to save media.
 trait RawSaveAccess: Sync {
     fn info(&self) -> Result<&'static MediaInfo, Error>;
-    fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error>;
-    fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error>;
-    fn prepare_write(&self, sector: usize, count: usize) -> Result<(), Error>;
-    fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error>;
+    fn read(&self, offset: usize, buffer: &mut [u8], timeout: &mut Timeout) -> Result<(), Error>;
+    fn verify(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<bool, Error>;
+    fn prepare_write(&self, sector: usize, count: usize, timeout: &mut Timeout) -> Result<(), Error>;
+    fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
 }
 
 static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::new(None);
@@ -201,7 +202,7 @@ fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
 
 /// Allows reading and writing of save media.
 pub struct SaveData {
-    lock: RawMutexGuard<'static>,
+    _lock: RawMutexGuard<'static>,
     access: &'static dyn RawSaveAccess,
     info: &'static MediaInfo,
     timeout: utils::Timeout,
@@ -211,7 +212,7 @@ impl SaveData {
     fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
         match get_save_implementation() {
             Some(access) => Ok(SaveData {
-                lock: utils::lock_media()?,
+                _lock: utils::lock_media_access()?,
                 access,
                 info: access.info()?,
                 timeout: utils::Timeout::new(timer),
@@ -255,15 +256,15 @@ impl SaveData {
     /// Copies data from the save media to a buffer.
     ///
     /// If an error is returned, the contents of the buffer are unpredictable.
-    pub fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
+    pub fn read(&mut self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
         self.check_bounds_len(offset, buffer.len())?;
-        self.access.read(offset, buffer)
+        self.access.read(offset, buffer, &mut self.timeout)
     }
 
     /// Verifies that a given block of memory matches the save media.
-    pub fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
+    pub fn verify(&mut self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
         self.check_bounds_len(offset, buffer.len())?;
-        self.access.verify(offset, buffer)
+        self.access.verify(offset, buffer, &mut self.timeout)
     }
 
     /// Returns a range that contains all sectors the input range overlaps.
@@ -286,7 +287,9 @@ impl SaveData {
         if self.info.uses_prepare_write {
             let range = self.align_range(range.clone());
             let shift = self.info.sector_shift;
-            self.access.prepare_write(range.start >> shift, range.len() >> shift)?;
+            self.access.prepare_write(
+                range.start >> shift, range.len() >> shift, &mut self.timeout,
+            )?;
         }
         Ok(SavePreparedBlock {
             parent: self,
@@ -307,14 +310,14 @@ impl<'a> SavePreparedBlock<'a> {
     /// call to `prepare_write` will leave the save data in an unpredictable
     /// state. If an error is returned, the contents of the save media is
     /// unpredictable.
-    pub fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
+    pub fn write(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
         if buffer.len() == 0 {
             Ok(())
         } else if !self.range.contains(&offset) ||
             !self.range.contains(&(offset + buffer.len() - 1)) {
             Err(Error::OutOfBounds)
         } else {
-            self.parent.access.write(offset, buffer)
+            self.parent.access.write(offset, buffer, &mut self.parent.timeout)
         }
     }
 
@@ -327,7 +330,7 @@ impl<'a> SavePreparedBlock<'a> {
     /// call to `prepare_write` will leave the save data in an unpredictable
     /// state. If an error is returned, the contents of the save media is
     /// unpredictable.
-    pub fn write_and_verify(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
+    pub fn write_and_verify(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
         self.write(offset, buffer)?;
         if !self.parent.verify(offset, buffer)? {
             Err(Error::WriteError)
@@ -385,6 +388,36 @@ impl SaveManager {
     pub fn init_sram(&mut self) {
         marker::emit_sram_marker();
         set_save_implementation(&sram::BatteryBackedAccess);
+    }
+
+    /// Declares that the ROM uses 64KiB flash memory.
+    ///
+    /// Flash save media is generally very slow to write to and relatively fast
+    /// to read from. It is the only real option if you need larger save data.
+    ///
+    /// This creates a marker in the ROM that allows emulators to understand what
+    /// save type the Game Pak uses, and configures the save manager to use the
+    /// given save type.
+    ///
+    /// Only one `init_*` function may be called in the lifetime of the program.
+    pub fn init_flash_64k(&mut self) {
+        marker::emit_flash_512k_marker();
+        set_save_implementation(&flash::FlashAccess);
+    }
+
+    /// Declares that the ROM uses 128KiB flash memory.
+    ///
+    /// Flash save media is generally very slow to write to and relatively fast
+    /// to read from. It is the only real option if you need larger save data.
+    ///
+    /// This creates a marker in the ROM that allows emulators to understand what
+    /// save type the Game Pak uses, and configures the save manager to use the
+    /// given save type.
+    ///
+    /// Only one `init_*` function may be called in the lifetime of the program.
+    pub fn init_flash_128k(&mut self) {
+        marker::emit_flash_1m_marker();
+        set_save_implementation(&flash::FlashAccess);
     }
 
     /// Creates a new accessor to the save data.

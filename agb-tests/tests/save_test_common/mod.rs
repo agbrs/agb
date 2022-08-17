@@ -39,7 +39,7 @@ fn do_test(
     let mut access = gba.save.access_with_timer(timers.timer2)?;
 
     // writes data to the save media
-    let prepared = access.prepare_write(offset..offset + len)?;
+    let mut prepared = access.prepare_write(offset..offset + len)?;
     let mut rng = seed.clone();
     let mut current = offset;
     let end = offset + len;

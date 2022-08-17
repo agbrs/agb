@@ -5,6 +5,7 @@
 
 use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use crate::save::asm_utils::*;
+use crate::save::utils::Timeout;
 
 const SRAM_SIZE: usize = 32 * 1024; // 32 KiB
 
@@ -28,7 +29,7 @@ impl RawSaveAccess for BatteryBackedAccess {
         })
     }
 
-    fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
+    fn read(&self, offset: usize, buffer: &mut [u8], _: &mut Timeout) -> Result<(), Error> {
         check_bounds(offset, buffer.len())?;
         unsafe {
             read_raw_buf(buffer, 0x0E000000 + offset);
@@ -36,17 +37,17 @@ impl RawSaveAccess for BatteryBackedAccess {
         Ok(())
     }
 
-    fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
+    fn verify(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<bool, Error> {
         check_bounds(offset, buffer.len())?;
         let val = unsafe { verify_raw_buf(buffer, 0x0E000000 + offset) };
         Ok(val)
     }
 
-    fn prepare_write(&self, _: usize, _: usize) -> Result<(), Error> {
+    fn prepare_write(&self, _: usize, _: usize, _: &mut Timeout) -> Result<(), Error> {
         Ok(())
     }
 
-    fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
+    fn write(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<(), Error> {
         check_bounds(offset, buffer.len())?;
         unsafe {
             write_raw_buf(0x0E000000 + offset, buffer);
