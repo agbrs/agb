@@ -42,6 +42,13 @@ impl Timeout {
         }
     }
 }
+impl Drop for Timeout {
+    fn drop(&mut self) {
+        if let Some(timer) = &mut self.timer {
+            timer.set_enabled(false);
+        }
+    }
+}
 
 pub fn lock_media_access() -> Result<RawMutexGuard<'static>, Error> {
     static LOCK: RawMutex = RawMutex::new();

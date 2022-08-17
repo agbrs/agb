@@ -108,7 +108,7 @@ use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
 
 mod asm_utils;
-//pub mod eeprom;
+mod eeprom;
 mod flash;
 mod sram;
 mod utils;
@@ -418,6 +418,36 @@ impl SaveManager {
     pub fn init_flash_128k(&mut self) {
         marker::emit_flash_1m_marker();
         set_save_implementation(&flash::FlashAccess);
+    }
+
+    /// Declares that the ROM uses 512 bytes EEPROM memory.
+    ///
+    /// EEPROM is generally pretty slow and also very small. It's mainly used in
+    /// Game Paks because it's cheap.
+    ///
+    /// This creates a marker in the ROM that allows emulators to understand what
+    /// save type the Game Pak uses, and configures the save manager to use the
+    /// given save type.
+    ///
+    /// Only one `init_*` function may be called in the lifetime of the program.
+    pub fn init_eeprom_512b(&mut self) {
+        marker::emit_eeprom_marker();
+        set_save_implementation(&eeprom::Eeprom512B);
+    }
+
+    /// Declares that the ROM uses 8 KiB EEPROM memory.
+    ///
+    /// EEPROM is generally pretty slow and also very small. It's mainly used in
+    /// Game Paks because it's cheap.
+    ///
+    /// This creates a marker in the ROM that allows emulators to understand what
+    /// save type the Game Pak uses, and configures the save manager to use the
+    /// given save type.
+    ///
+    /// Only one `init_*` function may be called in the lifetime of the program.
+    pub fn init_eeprom_8k(&mut self) {
+        marker::emit_eeprom_marker();
+        set_save_implementation(&eeprom::Eeprom8K);
     }
 
     /// Creates a new accessor to the save data.
