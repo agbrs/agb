@@ -107,238 +107,286 @@ use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
 
 mod asm_utils;
-//mod setup;
-mod utils;
-
-//pub use asm_utils::*;
-//pub use setup::*;
-
 //pub mod eeprom;
 //pub mod flash;
-//pub mod sram;
+mod sram;
+mod utils;
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[non_exhaustive]
 pub enum MediaType {
-  /// 32KiB Battery-Backed SRAM or FRAM
-  Sram32K,
-  /// 8KiB EEPROM
-  Eeprom8K,
-  /// 512B EEPROM
-  Eeprom512B,
-  /// 64KiB flash chip
-  Flash64K,
-  /// 128KiB flash chip
-  Flash128K,
-  /// A user-defined save media type
-  Custom,
+    /// 32KiB Battery-Backed SRAM or FRAM
+    Sram32K,
+    /// 8KiB EEPROM
+    Eeprom8K,
+    /// 512B EEPROM
+    Eeprom512B,
+    /// 64KiB flash chip
+    Flash64K,
+    /// 128KiB flash chip
+    Flash128K,
 }
 
 /// The type used for errors encountered while reading or writing save media.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Error {
-  /// There is no save media attached to this game cart.
-  NoMedia,
-  /// Failed to write the data to save media.
-  WriteError,
-  /// An operation on save media timed out.
-  OperationTimedOut,
-  /// An attempt was made to access save media at an invalid offset.
-  OutOfBounds,
-  /// The media is already in use.
-  ///
-  /// This can generally only happen in an IRQ that happens during an ongoing
-  /// save media operation.
-  MediaInUse,
-  /// This command cannot be used with the save media in use.
-  IncompatibleCommand,
+    /// There is no save media attached to this game cart.
+    NoMedia,
+    /// Failed to write the data to save media.
+    WriteError,
+    /// An operation on save media timed out.
+    OperationTimedOut,
+    /// An attempt was made to access save media at an invalid offset.
+    OutOfBounds,
+    /// The media is already in use.
+    ///
+    /// This can generally only happen in an IRQ that happens during an ongoing
+    /// save media operation.
+    MediaInUse,
+    /// This command cannot be used with the save media in use.
+    IncompatibleCommand,
 }
 
 /// Information about the save media used.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct MediaInfo {
-  /// The type of save media installed.
-  pub media_type: MediaType,
-  /// The power-of-two size of each sector. Zero represents a sector size of
-  /// 0, implying sectors are not in use.
-  ///
-  /// (For example, 512 byte sectors would return 9 here.)
-  pub sector_shift: usize,
-  /// The size of the save media, in sectors.
-  pub sector_count: usize,
-  /// Whether the save media type requires media be prepared before writing.
-  pub uses_prepare_write: bool,
+    /// The type of save media installed.
+    pub media_type: MediaType,
+    /// The power-of-two size of each sector. Zero represents a sector size of
+    /// 0, implying sectors are not in use.
+    ///
+    /// (For example, 512 byte sectors would return 9 here.)
+    pub sector_shift: usize,
+    /// The size of the save media, in sectors.
+    pub sector_count: usize,
+    /// Whether the save media type requires media be prepared before writing.
+    pub uses_prepare_write: bool,
 }
 
 /// A trait allowing low-level saving and writing to save media.
 trait RawSaveAccess: Sync {
-  fn info(&self) -> Result<&'static MediaInfo, Error>;
-  fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error>;
-  fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error>;
-  fn prepare_write(&self, sector: usize, count: usize) -> Result<(), Error>;
-  fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error>;
+    fn info(&self) -> Result<&'static MediaInfo, Error>;
+    fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error>;
+    fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error>;
+    fn prepare_write(&self, sector: usize, count: usize) -> Result<(), Error>;
+    fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error>;
 }
 
 static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::new(None);
 
 fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
-  let mut access = CURRENT_SAVE_ACCESS.lock();
-  assert!(access.is_none(), "Cannot initialize the savegame engine more than once.");
-  *access = Some(access_impl);
+    let mut access = CURRENT_SAVE_ACCESS.lock();
+    assert!(access.is_none(), "Cannot initialize the savegame engine more than once.");
+    *access = Some(access_impl);
 }
 
 fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
-  *CURRENT_SAVE_ACCESS.lock()
+    *CURRENT_SAVE_ACCESS.lock()
 }
 
 /// Allows reading and writing of save media.
-#[derive(Copy, Clone)]
 pub struct SaveData {
-  lock: RawMutexGuard<'static>,
-  access: &'static dyn RawSaveAccess,
-  info: &'static MediaInfo,
-  timeout: utils::Timeout,
+    lock: RawMutexGuard<'static>,
+    access: &'static dyn RawSaveAccess,
+    info: &'static MediaInfo,
+    timeout: utils::Timeout,
 }
 impl SaveData {
-  /// Creates a new save accessor around the current save implementaiton.
-  fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
-    match get_save_implementation() {
-      Some(access) => Ok(SaveData {
-        lock: utils::lock_media()?,
-        access,
-        info: access.info()?,
-        timeout: utils::Timeout::new(timer),
-      }),
-      None => Err(Error::NoMedia),
+    /// Creates a new save accessor around the current save implementaiton.
+    fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
+        match get_save_implementation() {
+            Some(access) => Ok(SaveData {
+                lock: utils::lock_media()?,
+                access,
+                info: access.info()?,
+                timeout: utils::Timeout::new(timer),
+            }),
+            None => Err(Error::NoMedia),
+        }
     }
-  }
 
-  /// Returns the media info underlying this accessor.
-  pub fn media_info(&self) -> &'static MediaInfo {
-    self.info
-  }
-
-  /// Returns the save media type being used.
-  pub fn media_type(&self) -> MediaType {
-    self.info.media_type
-  }
-
-  /// Returns the sector size of the save media. It is generally optimal to
-  /// write data in blocks that are aligned to the sector size.
-  pub fn sector_size(&self) -> usize {
-    1 << self.info.sector_shift
-  }
-
-  /// Returns the total length of this save media.
-  pub fn len(&self) -> usize {
-    self.info.sector_count << self.info.sector_shift
-  }
-
-  fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
-    if range.start >= self.len() || range.end >= self.len() {
-      Err(Error::OutOfBounds)
-    } else {
-      Ok(())
+    /// Returns the media info underlying this accessor.
+    pub fn media_info(&self) -> &'static MediaInfo {
+        self.info
     }
-  }
-  fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), Error> {
-    self.check_bounds(offset..(offset + len))
-  }
 
-  /// Copies data from the save media to a buffer.
-  ///
-  /// If an error is returned, the contents of the buffer are unpredictable.
-  pub fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
-    self.check_bounds_len(offset, buffer.len())?;
-    self.access.read(offset, buffer)
-  }
-
-  /// Verifies that a given block of memory matches the save media.
-  pub fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
-    self.check_bounds_len(offset, buffer.len())?;
-    self.access.verify(offset, buffer)
-  }
-
-  /// Returns a range that contains all sectors the input range overlaps.
-  ///
-  /// This can be used to calculate which blocks would be erased by a call
-  /// to [`prepare_write`](`SaveAccess::prepare_write`)
-  pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
-    let shift = self.info.sector_shift;
-    let mask = (1 << shift) - 1;
-    (range.start & !mask)..((range.end + mask) & !mask)
-  }
-
-  /// Prepares a given span of offsets for writing.
-  ///
-  /// This will erase any data in any sector overlapping the input range. To
-  /// calculate which offset ranges would be affected, use the
-  /// [`align_range`](`SaveAccess::align_range`) function.
-  pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
-    self.check_bounds(range.clone())?;
-    if self.info.uses_prepare_write {
-      let range = self.align_range(range.clone());
-      let shift = self.info.sector_shift;
-      self.access.prepare_write(range.start >> shift, range.len() >> shift)?;
+    /// Returns the save media type being used.
+    pub fn media_type(&self) -> MediaType {
+        self.info.media_type
     }
-    Ok(SavePreparedBlock {
-      parent: self,
-      range
-    })
-  }
+
+    /// Returns the sector size of the save media. It is generally optimal to
+    /// write data in blocks that are aligned to the sector size.
+    pub fn sector_size(&self) -> usize {
+        1 << self.info.sector_shift
+    }
+
+    /// Returns the total length of this save media.
+    pub fn len(&self) -> usize {
+        self.info.sector_count << self.info.sector_shift
+    }
+
+    fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
+        if range.start >= self.len() || range.end >= self.len() {
+            Err(Error::OutOfBounds)
+        } else {
+            Ok(())
+        }
+    }
+    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+        self.check_bounds(offset..(offset + len))
+    }
+
+    /// Copies data from the save media to a buffer.
+    ///
+    /// If an error is returned, the contents of the buffer are unpredictable.
+    pub fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
+        self.check_bounds_len(offset, buffer.len())?;
+        self.access.read(offset, buffer)
+    }
+
+    /// Verifies that a given block of memory matches the save media.
+    pub fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
+        self.check_bounds_len(offset, buffer.len())?;
+        self.access.verify(offset, buffer)
+    }
+
+    /// Returns a range that contains all sectors the input range overlaps.
+    ///
+    /// This can be used to calculate which blocks would be erased by a call
+    /// to [`prepare_write`](`SaveAccess::prepare_write`)
+    pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
+        let shift = self.info.sector_shift;
+        let mask = (1 << shift) - 1;
+        (range.start & !mask)..((range.end + mask) & !mask)
+    }
+
+    /// Prepares a given span of offsets for writing.
+    ///
+    /// This will erase any data in any sector overlapping the input range. To
+    /// calculate which offset ranges would be affected, use the
+    /// [`align_range`](`SaveAccess::align_range`) function.
+    pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
+        self.check_bounds(range.clone())?;
+        if self.info.uses_prepare_write {
+            let range = self.align_range(range.clone());
+            let shift = self.info.sector_shift;
+            self.access.prepare_write(range.start >> shift, range.len() >> shift)?;
+        }
+        Ok(SavePreparedBlock {
+            parent: self,
+            range
+        })
+    }
 }
 
 /// A block of save memory that has been prepared for writing.
 pub struct SavePreparedBlock<'a> {
-  parent: &'a mut SaveData,
-  range: Range<usize>,
+    parent: &'a mut SaveData,
+    range: Range<usize>,
 }
 impl<'a> SavePreparedBlock<'a> {
-  /// Writes a given buffer into the save media.
-  ///
-  /// Multiple overlapping writes to the same memory range without a separate
-  /// call to `prepare_write` will leave the save data in an unpredictable
-  /// state. If an error is returned, the contents of the save media is
-  /// unpredictable.
-  pub fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-    if buffer.len() == 0 {
-      Ok(())
-    } else if !self.range.contains(&offset) ||
-        !self.range.contains(&(offset + buffer.len() - 1)) {
-      Err(Error::OutOfBounds)
-    } else {
-      self.parent.access.write(offset, buffer)
+    /// Writes a given buffer into the save media.
+    ///
+    /// Multiple overlapping writes to the same memory range without a separate
+    /// call to `prepare_write` will leave the save data in an unpredictable
+    /// state. If an error is returned, the contents of the save media is
+    /// unpredictable.
+    pub fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
+        if buffer.len() == 0 {
+            Ok(())
+        } else if !self.range.contains(&offset) ||
+            !self.range.contains(&(offset + buffer.len() - 1)) {
+            Err(Error::OutOfBounds)
+        } else {
+            self.parent.access.write(offset, buffer)
+        }
     }
-  }
 
-  /// Writes and validates a given buffer into the save media.
-  ///
-  /// This function will verify that the write has completed successfully, and
-  /// return an error if it has not done so.
-  ///
-  /// Multiple overlapping writes to the same memory range without a separate
-  /// call to `prepare_write` will leave the save data in an unpredictable
-  /// state. If an error is returned, the contents of the save media is
-  /// unpredictable.
-  pub fn write_and_verify(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-    self.write(offset, buffer)?;
-    if !self.parent.verify(offset, buffer)? {
-      Err(Error::WriteError)
-    } else {
-      Ok(())
+    /// Writes and validates a given buffer into the save media.
+    ///
+    /// This function will verify that the write has completed successfully, and
+    /// return an error if it has not done so.
+    ///
+    /// Multiple overlapping writes to the same memory range without a separate
+    /// call to `prepare_write` will leave the save data in an unpredictable
+    /// state. If an error is returned, the contents of the save media is
+    /// unpredictable.
+    pub fn write_and_verify(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
+        self.write(offset, buffer)?;
+        if !self.parent.verify(offset, buffer)? {
+            Err(Error::WriteError)
+        } else {
+            Ok(())
+        }
     }
-  }
+}
+
+mod marker {
+    #[repr(align(4))]
+    struct Align<T>(T);
+
+    static EEPROM: Align<[u8; 12]> = Align(*b"EEPROM_Vnnn\0");
+    static SRAM: Align<[u8; 12]> = Align(*b"SRAM_Vnnn\0\0\0");
+    static FLASH512K: Align<[u8; 16]> = Align(*b"FLASH512_Vnnn\0\0\0");
+    static FLASH1M: Align<[u8; 16]> = Align(*b"FLASH1M_Vnnn\0\0\0\0");
+
+    #[inline(always)]
+    pub fn emit_eeprom_marker() {
+        crate::sync::memory_read_hint(&EEPROM);
+    }
+    #[inline(always)]
+    pub fn emit_sram_marker() {
+        crate::sync::memory_read_hint(&SRAM);
+    }
+    #[inline(always)]
+    pub fn emit_flash_512k_marker() {
+        crate::sync::memory_read_hint(&FLASH512K);
+    }
+    #[inline(always)]
+    pub fn emit_flash_1m_marker() {
+        crate::sync::memory_read_hint(&FLASH1M);
+    }
 }
 
 /// Allows access to the cartridge's save data.
-pub struct SaveManager;
+#[non_exhaustive]
+pub struct SaveManager {}
 impl SaveManager {
-  pub fn access() -> Result<SaveData, Error> {
-    SaveData::new(None)
-  }
-  pub fn access_with_timer(timer: Timer) -> Result<SaveData, Error> {
-    SaveData::new(Some(timer))
-  }
+    pub(crate) const fn new() -> Self {
+        SaveManager {}
+    }
+
+    /// Declares that the ROM uses battery backed SRAM/FRAM.
+    ///
+    /// Battery Backed SRAM is generally very fast, but limited in size compared
+    /// to flash chips.
+    ///
+    /// This creates a marker in the ROM that allows emulators to understand what
+    /// save type the Game Pak uses, and configures the save manager to use the
+    /// given save type.
+    ///
+    /// Only one `init_*` function may be called in the lifetime of the program.
+    pub fn init_sram() {
+        marker::emit_sram_marker();
+        set_save_implementation(&sram::BatteryBackedAccess);
+    }
+
+    /// Creates a new accessor to the save data.
+    ///
+    /// You must have initialized the save manager beforehand to use a specific
+    /// type of media before calling this method.
+    pub fn access() -> Result<SaveData, Error> {
+        SaveData::new(None)
+    }
+    /// Creates a new accessor to the save data that uses the given timer for timeouts.
+    ///
+    /// You must have initialized the save manager beforehand to use a specific
+    /// type of media before calling this method.
+    pub fn access_with_timer(timer: Timer) -> Result<SaveData, Error> {
+        SaveData::new(Some(timer))
+    }
 }
