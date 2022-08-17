@@ -288,7 +288,7 @@ pub fn add_interrupt_handler<'a>(
 /// [`CriticalSection`]
 ///
 /// [`CriticalSection`]: bare_metal::CriticalSection
-pub fn free<F, R>(f: F) -> R
+pub fn free<F, R>(mut f: F) -> R
 where
     F: FnOnce(CriticalSection) -> R,
 {
@@ -296,7 +296,13 @@ where
 
     disable_interrupts();
 
-    let r = f(unsafe { CriticalSection::new() });
+    // prevents the contents of the function from being reordered before IME is disabled.
+    crate::sync::memory_write_hint(&mut f);
+
+    let mut r = f(unsafe { CriticalSection::new() });
+
+    // prevents the contents of the function from being reordered after IME is re-enabled.
+    crate::sync::memory_write_hint(&mut r);
 
     INTERRUPTS_ENABLED.set(enabled);
     r
