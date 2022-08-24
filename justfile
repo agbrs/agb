@@ -111,7 +111,7 @@ _test-debug crate:
     just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
 _test-debug-arm crate:
-    (cd "{{crate}}" && cargo test --release --target=armv4t-none-eabi)
+    (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
