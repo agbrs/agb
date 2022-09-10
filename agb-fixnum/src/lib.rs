@@ -537,6 +537,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
         // So we have to add 1 to the integral bit, and take 1 - fractional bit
         if fractional != I::zero() && integral < I::zero() {
             integral = integral + I::one();
+            if integral == I::zero() {
+                // If the number is in the range (-1, 0), then we just bumped `integral` from -1 to 0,
+                // so we need to compensate for the missing negative sign.
+                write!(f, "-")?;
+            }
             fractional = (I::one() << N) - fractional;
         }
 
