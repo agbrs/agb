@@ -1033,15 +1033,17 @@ mod tests {
     #[test]
     fn formats_fractions_correctly() {
         let a = Num::<i32, 8>::new(5);
-        let two = Num::<i32, 8>::new(4);
+        let four = Num::<i32, 8>::new(4);
         let minus_one = Num::<i32, 8>::new(-1);
 
-        let b: Num<i32, 8> = a / two;
+        let b: Num<i32, 8> = a / four;
         let c: Num<i32, 8> = b * minus_one;
+        let d: Num<i32, 8> = minus_one / four;
 
         assert_eq!(b + c, 0.into());
         assert_eq!(format!("{}", b), "1.25");
         assert_eq!(format!("{}", c), "-1.25");
+        assert_eq!(format!("{}", d), "-0.25");
     }
 
     #[test]
