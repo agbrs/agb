@@ -25,6 +25,9 @@
 			"path": "../examples/hyperspace-roll"
 		},
 		{
+			"path": "../.github"
+		},
+		{
 			"path": "../template"
 		}
 	]
