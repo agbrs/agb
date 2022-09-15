@@ -36,7 +36,7 @@ fn main() {
             .arg("-mthumb-interwork")
             .arg("-mcpu=arm7tdmi")
             .arg("-g")
-            .args(&["-o", out_file_path.as_str()])
+            .args(["-o", out_file_path.as_str()])
             .arg(a)
             .output()
             .unwrap_or_else(|_| panic!("failed to compile {}", a));
