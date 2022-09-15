@@ -16,7 +16,7 @@ lto = true
 debug = true
 
 [features]
-default = []
+default = ["testing"]
 freq18157 = ["agb_sound_converter/freq18157"]
 freq32768 = ["agb_sound_converter/freq32768"]
 testing = []
