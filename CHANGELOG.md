@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
 - Fixed formatting of fixed point numbers in the range (-1, 0), which previously appeared positive.
 
+## Changed
+- `testing` is now a default feature, so you no longer need to add a separate `dev-dependencies` line for `agb` in order to enable unit tests for your project.
+
 ## [0.11.1] - 2022/08/02
 
 Version 0.11.1 brings documentation for fixed point numbers. We recommend all users upgrade to this version since it also includes fixes to a few functions in fixnum. See changed section for breaking changes.
