@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
+- Fixed formatting of fixed point numbers in the range (-1, 0), which previously appeared positive.
 
 ## [0.11.1] - 2022/08/02
 

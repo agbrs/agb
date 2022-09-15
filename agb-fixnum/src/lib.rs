@@ -537,6 +537,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
         // So we have to add 1 to the integral bit, and take 1 - fractional bit
         if fractional != I::zero() && integral < I::zero() {
             integral = integral + I::one();
+            if integral == I::zero() {
+                // If the number is in the range (-1, 0), then we just bumped `integral` from -1 to 0,
+                // so we need to compensate for the missing negative sign.
+                write!(f, "-")?;
+            }
             fractional = (I::one() << N) - fractional;
         }
 
@@ -1028,15 +1033,17 @@ mod tests {
     #[test]
     fn formats_fractions_correctly() {
         let a = Num::<i32, 8>::new(5);
-        let two = Num::<i32, 8>::new(4);
+        let four = Num::<i32, 8>::new(4);
         let minus_one = Num::<i32, 8>::new(-1);
 
-        let b: Num<i32, 8> = a / two;
+        let b: Num<i32, 8> = a / four;
         let c: Num<i32, 8> = b * minus_one;
+        let d: Num<i32, 8> = minus_one / four;
 
         assert_eq!(b + c, 0.into());
         assert_eq!(format!("{}", b), "1.25");
         assert_eq!(format!("{}", c), "-1.25");
+        assert_eq!(format!("{}", d), "-0.25");
     }
 
     #[test]
