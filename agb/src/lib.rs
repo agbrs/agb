@@ -253,12 +253,6 @@ impl Gba {
 /// #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 /// ```
 ///
-/// And ensure you add agb with the `testing` feature to your `dev-dependencies`
-/// ```toml
-/// [dev-dependencies]
-/// agb = { version = "<same as in dependencies>", features = ["testing"] }
-/// ```
-///
 /// With this support, you will be able to write tests which you can run using `mgba-test-runner`.
 /// Tests are written using `#[test_case]` rather than `#[test]`.
 ///
