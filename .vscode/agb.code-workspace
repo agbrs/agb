@@ -23,6 +23,9 @@
 		},
 		{
 			"path": "../examples/hyperspace-roll"
+		},
+		{
+			"path": "../template"
 		}
 	]
 }
