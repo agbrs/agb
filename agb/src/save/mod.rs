@@ -165,6 +165,18 @@ pub struct MediaInfo {
     /// Whether the save media type requires media be prepared before writing.
     pub uses_prepare_write: bool,
 }
+impl MediaInfo {
+    /// Returns the sector size of the save media. It is generally optimal to
+    /// write data in blocks that are aligned to the sector size.
+    pub fn sector_size(&self) -> usize {
+        1 << self.sector_shift
+    }
+
+    /// Returns the total length of this save media.
+    pub fn len(&self) -> usize {
+        self.sector_count << self.sector_shift
+    }
+}
 
 /// A trait allowing low-level saving and writing to save media.
 trait RawSaveAccess: Sync {
@@ -221,16 +233,16 @@ impl SaveData {
     /// Returns the sector size of the save media. It is generally optimal to
     /// write data in blocks that are aligned to the sector size.
     pub fn sector_size(&self) -> usize {
-        1 << self.info.sector_shift
+        self.info.sector_size()
     }
 
     /// Returns the total length of this save media.
     pub fn len(&self) -> usize {
-        self.info.sector_count << self.info.sector_shift
+        self.info.len()
     }
 
     fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
-        if range.start >= self.len() || range.end >= self.len() {
+        if range.start >= self.len() || range.end > self.len() {
             Err(Error::OutOfBounds)
         } else {
             Ok(())

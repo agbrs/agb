@@ -1,0 +1,19 @@
+[package]
+name = "agb-tests"
+version = "0.1.0"
+edition = "2018"
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+lto = true
+debug = true
+
+[dependencies]
+agb = { version = "*", path = "../agb", features = ["testing"] }
+
+[package.metadata.docs.rs]
+default-target = "thumbv6m-none-eabi"
+targets = []
