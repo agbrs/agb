@@ -227,8 +227,8 @@ static CHIP_INFO_GENERIC_128K: ChipInfo = ChipInfo {
 
 impl FlashChipType {
     /// Returns the internal info for this chip.
-    fn chip_info(&self) -> &'static ChipInfo {
-        match *self {
+    fn chip_info(self) -> &'static ChipInfo {
+        match self {
             FlashChipType::Sst64K => &CHIP_INFO_SST_64K,
             FlashChipType::Macronix64K => &CHIP_INFO_MACRONIX_64K,
             FlashChipType::Panasonic64K => &CHIP_INFO_PANASONIC_64K,
@@ -284,7 +284,7 @@ impl ChipInfo {
 
     /// Reads a buffer from save media into memory.
     fn read_buffer(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), Error> {
-        while buf.len() != 0 {
+        while !buf.is_empty() {
             self.set_bank(offset >> BANK_SHIFT)?;
             let start = offset & BANK_MASK;
             let end_len = cmp::min(BANK_LEN - start, buf.len());
@@ -299,7 +299,7 @@ impl ChipInfo {
 
     /// Verifies that a buffer was properly stored into save media.
     fn verify_buffer(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, Error> {
-        while buf.len() != 0 {
+        while !buf.is_empty() {
             self.set_bank(offset >> BANK_SHIFT)?;
             let start = offset & BANK_MASK;
             let end_len = cmp::min(BANK_LEN - start, buf.len());
@@ -355,6 +355,7 @@ impl ChipInfo {
     }
 
     /// Writes an entire buffer to the save media.
+    #[allow(clippy::needless_range_loop)]
     fn write_buffer(&self, offset: usize, buf: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
         self.set_bank(offset >> BANK_SHIFT)?;
         for i in 0..buf.len() {
@@ -368,6 +369,7 @@ impl ChipInfo {
     }
 
     /// Erases and writes an entire 128b sector on Atmel devices.
+    #[allow(clippy::needless_range_loop)]
     fn write_atmel_sector_raw(
         &self, offset: usize, buf: &[u8], timeout: &mut Timeout,
     ) -> Result<(), Error> {
@@ -453,7 +455,7 @@ impl RawSaveAccess for FlashAccess {
         chip.check_len(offset, buf.len())?;
 
         if chip.uses_atmel_api {
-            while buf.len() != 0 {
+            while !buf.is_empty() {
                 let start = offset & 127;
                 let end_len = cmp::min(128 - start, buf.len());
                 chip.write_atmel_sector(offset & !127, &buf[..end_len], start, timeout)?;

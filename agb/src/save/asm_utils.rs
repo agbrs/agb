@@ -17,7 +17,7 @@ extern "C" {
 /// This uses raw addresses into the memory space. Use with care.
 #[inline(always)]
 pub unsafe fn read_raw_buf(dst: &mut [u8], src: usize) {
-    if dst.len() != 0 {
+    if !dst.is_empty() {
         agb_rs__WramXferBuf(src as _, dst.as_mut_ptr(), dst.len());
     }
 }
@@ -30,7 +30,7 @@ pub unsafe fn read_raw_buf(dst: &mut [u8], src: usize) {
 /// This uses raw addresses into the memory space. Use with care.
 #[inline(always)]
 pub unsafe fn write_raw_buf(dst: usize, src: &[u8]) {
-    if src.len() != 0 {
+    if !src.is_empty() {
         agb_rs__WramXferBuf(src.as_ptr(), dst as _, src.len());
     }
 }
@@ -44,7 +44,7 @@ pub unsafe fn write_raw_buf(dst: usize, src: &[u8]) {
 /// This uses raw addresses into the memory space. Use with care.
 #[inline(always)]
 pub unsafe fn verify_raw_buf(buf1: &[u8], buf2: usize) -> bool {
-    if buf1.len() != 0 {
+    if !buf1.is_empty() {
         agb_rs__WramVerifyBuf(buf1.as_ptr(), buf2 as _, buf1.len() - 1)
     } else {
         true

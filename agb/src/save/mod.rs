@@ -25,18 +25,17 @@
 //! To use save media in your game, you must set which type to use. This is done
 //! by calling one of the following functions at startup:
 //!
-//! * For 32 KiB battery-backed SRAM, call [`use_sram`].
-//! * For 64 KiB flash memory, call [`use_flash_64k`].
-//! * For 128 KiB flash memory, call [`use_flash_128k`].
-//! * For 512 byte EEPROM, call [`use_eeprom_512b`].
-//! * For 8 KiB EEPROM, call [`use_eeprom_8k`].
+//! * For 32 KiB battery-backed SRAM, call [`init_sram`].
+//! * For 64 KiB flash memory, call [`init_flash_64k`].
+//! * For 128 KiB flash memory, call [`init_flash_128k`].
+//! * For 512 byte EEPROM, call [`init_eeprom_512b`].
+//! * For 8 KiB EEPROM, call [`init_eeprom_8k`].
 //!
-//! TODO Update example
-//! ```rust,norun
-//! # use gba::save;
-//! save::use_flash_128k();
-//! save::set_timer_for_timeout(3); // Uses timer 3 for save media timeouts.
-//! ```
+//! [`init_sram`]: SaveManager::init_sram
+//! [`init_flash_64k`]: SaveManager::init_flash_64k
+//! [`init_flash_128k`]: SaveManager::init_flash_128k
+//! [`init_eeprom_512b`]: SaveManager::init_eeprom_512b
+//! [`init_eeprom_8k`]: SaveManager::init_eeprom_8k
 //!
 //! ## Using save media
 //!
@@ -46,28 +45,9 @@
 //! Reading data from the savegame is simple. Use [`read`] to copy data from an
 //! offset in the savegame into a buffer in memory.
 //!
-//! TODO Update example
-//! ```rust,norun
-//! # use gba::{info, save::SaveAccess};
-//! let mut buf = [0; 1000];
-//! SaveAccess::new()?.read(1000, &mut buf)?;
-//! info!("Memory result: {:?}", buf);
-//! ```
-//!
 //! Writing to save media requires you to prepare the area for writing by calling
 //! the [`prepare_write`] method to return a [`SavePreparedBlock`], which contains
 //! the actual [`write`] method.
-//!
-//! TODO Update example
-//! ```rust,norun
-//! # use gba::{info, save::SaveAccess};
-//! let access = SaveAccess::new()?;
-//! access.prepare_write(500..600)?;
-//! access.write(500, &[10; 25])?;
-//! access.write(525, &[20; 25])?;
-//! access.write(550, &[30; 25])?;
-//! access.write(575, &[40; 25])?;
-//! ```
 //!
 //! The `prepare_write` method leaves everything in a sector that overlaps the
 //! range passed to it in an implementation defined state. On some devices it may
@@ -169,11 +149,14 @@ pub struct MediaInfo {
 impl MediaInfo {
     /// Returns the sector size of the save media. It is generally optimal to
     /// write data in blocks that are aligned to the sector size.
+    #[must_use]
     pub fn sector_size(&self) -> usize {
         1 << self.sector_shift
     }
 
     /// Returns the total length of this save media.
+    #[must_use]
+    #[allow(clippy::len_without_is_empty)] // is_empty() would always be false
     pub fn len(&self) -> usize {
         self.sector_count << self.sector_shift
     }
@@ -222,22 +205,27 @@ impl SaveData {
     }
 
     /// Returns the media info underlying this accessor.
+    #[must_use]
     pub fn media_info(&self) -> &'static MediaInfo {
         self.info
     }
 
     /// Returns the save media type being used.
+    #[must_use]
     pub fn media_type(&self) -> MediaType {
         self.info.media_type
     }
 
     /// Returns the sector size of the save media. It is generally optimal to
     /// write data in blocks that are aligned to the sector size.
+    #[must_use]
     pub fn sector_size(&self) -> usize {
         self.info.sector_size()
     }
 
     /// Returns the total length of this save media.
+    #[must_use]
+    #[allow(clippy::len_without_is_empty)] // is_empty() would always be false
     pub fn len(&self) -> usize {
         self.info.len()
     }
@@ -271,6 +259,7 @@ impl SaveData {
     ///
     /// This can be used to calculate which blocks would be erased by a call
     /// to [`prepare_write`](`SaveAccess::prepare_write`)
+    #[must_use]
     pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
         let shift = self.info.sector_shift;
         let mask = (1 << shift) - 1;
@@ -311,7 +300,7 @@ impl<'a> SavePreparedBlock<'a> {
     /// state. If an error is returned, the contents of the save media is
     /// unpredictable.
     pub fn write(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-        if buffer.len() == 0 {
+        if buffer.is_empty() {
             Ok(())
         } else if !self.range.contains(&offset) ||
             !self.range.contains(&(offset + buffer.len() - 1)) {

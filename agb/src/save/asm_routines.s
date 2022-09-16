@@ -7,7 +7,7 @@
 @
 agb_thumb_func agb_rs__WramReadByte
     ldrb r0, [r0]
-    mov pc, lr
+    bx lr
 agb_thumb_end agb_rs__WramReadByte
 
 @
@@ -45,5 +45,5 @@ agb_thumb_func agb_rs__WramXferBuf
     ldrb r3, [r0,r2]
     strb r3, [r1,r2]
     bne 0b
-    mov pc, lr
+    bx lr
 agb_thumb_end agb_rs__WramXferBuf

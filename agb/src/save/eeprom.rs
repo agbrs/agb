@@ -93,6 +93,7 @@ struct EepromProperties {
 }
 impl EepromProperties {
     /// Reads a block from the save media.
+    #[allow(clippy::needless_range_loop)]
     fn read_sector(&self, word: usize) -> [u8; 8] {
         // Set address command. The command is two one bits, followed by the
         // address, followed by a zero bit.
@@ -117,6 +118,7 @@ impl EepromProperties {
     }
 
     /// Writes a sector directly.
+    #[allow(clippy::needless_range_loop)]
     fn write_sector_raw(
         &self, word: usize, block: &[u8], timeout: &mut Timeout,
     ) -> Result<(), Error> {
@@ -178,7 +180,7 @@ impl EepromProperties {
     /// Implements EEPROM reads.
     fn read(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), Error> {
         self.check_offset(offset, buf.len())?;
-        while buf.len() != 0 {
+        while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
             let end_len = cmp::min(SECTOR_LEN - start, buf.len());
             let sector = self.read_sector(offset >> SECTOR_SHIFT);
@@ -192,10 +194,10 @@ impl EepromProperties {
     /// Implements EEPROM verifies.
     fn verify(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, Error> {
         self.check_offset(offset, buf.len())?;
-        while buf.len() != 0 {
+        while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
             let end_len = cmp::min(SECTOR_LEN - start, buf.len());
-            if &buf[..end_len] != &self.read_sector(offset >> SECTOR_SHIFT) {
+            if buf[..end_len] != self.read_sector(offset >> SECTOR_SHIFT) {
                 return Ok(false);
             }
             buf = &buf[end_len..];
@@ -207,7 +209,7 @@ impl EepromProperties {
     /// Implements EEPROM writes.
     fn write(&self, mut offset: usize, mut buf: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
         self.check_offset(offset, buf.len())?;
-        while buf.len() != 0 {
+        while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
             let end_len = cmp::min(SECTOR_LEN - start, buf.len());
             self.write_sector(offset >> SECTOR_SHIFT, &buf[..end_len], start, timeout)?;
