@@ -1,9 +1,5 @@
 //! Module for reading and writing to save media.
 //!
-//! This module provides both specific interfaces that directly access particular
-//! types of save media, and an abstraction layer that allows access to all kinds
-//! of save media using a shared interface.
-//!
 //! ## Save media types
 //!
 //! There are, broadly speaking, three different kinds of save media that can be
@@ -35,11 +31,6 @@
 //! * For 512 byte EEPROM, call [`use_eeprom_512b`].
 //! * For 8 KiB EEPROM, call [`use_eeprom_8k`].
 //!
-//! Then, call [`set_timer_for_timeout`] to set the timer you intend to use to
-//! track the timeout that prevents errors with the save media from hanging your
-//! game. For more information on GBA timers, see the [`timer`](`crate::timer`)
-//! module's documentation.
-//!
 //! TODO Update example
 //! ```rust,norun
 //! # use gba::save;
@@ -49,11 +40,11 @@
 //!
 //! ## Using save media
 //!
-//! To access save media, use the [`SaveAccess::new`] method to create a new
-//! [`SaveAccess`] object. Its methods are used to read or write save media.
+//! To access save media, use the [`SaveData::new`] method to create a new
+//! [`SaveData`] object. Its methods are used to read or write save media.
 //!
-//! Reading data from the savegame is simple. Use [`read`](`SaveAccess::read`)
-//! to copy data from an offset in the savegame into a buffer in memory.
+//! Reading data from the savegame is simple. Use [`read`] to copy data from an
+//! offset in the savegame into a buffer in memory.
 //!
 //! TODO Update example
 //! ```rust,norun
@@ -64,8 +55,8 @@
 //! ```
 //!
 //! Writing to save media requires you to prepare the area for writing by calling
-//! the [`prepare_write`](`SaveAccess::prepare_write`) method before doing the
-//! actual write commands with the [`write`](`SaveAccess::write`) method.
+//! the [`prepare_write`] method to return a [`SavePreparedBlock`], which contains
+//! the actual [`write`] method.
 //!
 //! TODO Update example
 //! ```rust,norun
@@ -84,48 +75,43 @@
 //!
 //! Because writes can only be prepared on a per-sector basis, a clear on a range
 //! of `4000..5000` on a device with 4096 byte sectors will actually clear a range
-//! of `0..8192`. Use [`sector_size`](`SaveAccess::sector_size`) to find the
-//! sector size, or [`align_range`](`SaveAccess::align_range`) to directly
-//! calculate the range of memory that will be affected by the clear.
+//! of `0..8192`. Use [`sector_size`] to find the sector size, or [`align_range`]
+//! to directly calculate the range of memory that will be affected by the clear.
+//!
+//! [`read`]: SaveData::read
+//! [`prepare_write`]: SaveData::prepare_write
+//! [`write`]: SavePreparedBlock::write
+//! [`sector_size`]: SaveAccess::sector_size
+//! [`align_range`]: SaveAccess::align_range
 //!
 //! ## Performance and Other Details
 //!
-//! Because `prepare_write` does nothing on non-flash chips, it would not cause
-//! correctness issues to ignore it. Even so, it is recommend to write code to
-//! use the `prepare_write` function regardless of the save media, as it has
-//! minimal runtime cost on other save media types. If needed, you can check if
-//! `prepare_write` is required by calling the
-//! (`requires_prepare_write`)(`SaveAccess::requires_prepare_write`) method.
+//! The performance characteristics of the media types are as follows:
 //!
-//! Some memory types have a `sector_size` above `1`, but do not use
-//! `prepare_write`. This indicates that the media type has sectors that must
-//! be rewritten all at once, instead of supporting the separate erase/write
-//! cycles that flash media does. Writing non-sector aligned memory will be
-//! slower on such save media, as the implementation needs to read the old
-//! contents into a buffer before writing to avoid data loss.
-//!
-//! To summarize, for all supported media types:
-//!
-//! * SRAM does not require `prepare_write` and has no sectors to align to. Reads
-//!   and writes at any alignment are efficient. Furthermore, it does not require
-//!   a timer to be set with [`set_timer_for_timeout`].
-//! * Non-Atmel flash chips requires `prepare_write`, and have sectors of 4096
-//!   bytes. Atmel flash chips instead do not require `prepare_write`, and instead
-//!   have sectors of 128 bytes. You should generally try to use `prepare_write`
-//!   regardless, and write in blocks of 128 bytes if at all possible.
-//! * EEPROM does not require `prepare_write` and has sectors of 8 bytes.
+//! * SRAM is simply a form of battery backed memory, and has no particular
+//!   performance characteristics.  Reads and writes at any alignment are
+//!   efficient. Furthermore, no timer is needed for accesses to this type of
+//!   media. `prepare_write` does not immediately erase any data.
+//! * Non-Atmel flash chips have a sector size of 4096 bytes. Reads and writes
+//!   to any alignment are efficient, however, `prepare_write` will erase all
+//!   data in an entire sector before writing.
+//! * Atmel flash chips have a sector size of 128 bytes. Reads to any alignment
+//!   are efficient, however, unaligned writes are extremely slow.
+//!   `prepare_write` does not immediately erase any data.
+//! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are
+//!   slower than aligned writes, however, this is easily mitigated by the
+//!   small sector size.
 
-use core::cell::Cell;
 use core::ops::Range;
-use bare_metal::Mutex;
+use crate::sync::{Mutex, RawMutexGuard};
+use crate::timer::Timer;
 
 mod asm_utils;
 //mod setup;
-//mod utils;
+mod utils;
 
 //pub use asm_utils::*;
 //pub use setup::*;
-//pub use utils::*;
 
 //pub mod eeprom;
 //pub mod flash;
@@ -171,6 +157,7 @@ pub enum Error {
 
 /// Information about the save media used.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct MediaInfo {
   /// The type of save media installed.
   pub media_type: MediaType,
@@ -181,75 +168,49 @@ pub struct MediaInfo {
   pub sector_shift: usize,
   /// The size of the save media, in sectors.
   pub sector_count: usize,
-  /// Whether the save media type requires the use of the
-  /// [`prepare_write`](`SaveAccess::prepare_write`) function before a block of
-  /// memory can be overwritten.
-  pub requires_prepare_write: bool,
+  /// Whether the save media type requires media be prepared before writing.
+  pub uses_prepare_write: bool,
 }
 
 /// A trait allowing low-level saving and writing to save media.
-///
-/// It exposes an interface mostly based around the requirements of reading and
-/// writing flash memory, as those are the most restrictive.
-///
-/// This interface treats memory as a continuous block of bytes for purposes of
-/// reading, and as an array of sectors .
-pub trait RawSaveAccess: Sync {
-  /// Returns information about the save media used.
+trait RawSaveAccess: Sync {
   fn info(&self) -> Result<&'static MediaInfo, Error>;
-
-  /// Reads a slice of memory from save media.
-  ///
-  /// This will attempt to fill `buffer` entirely, and will error if this is
-  /// not possible. The contents of `buffer` are unpredictable if an error is
-  /// returned.
   fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error>;
-
-  /// Verifies that the save media has been successfully written, comparing
-  /// it against the given buffer.
   fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error>;
-
-  /// Prepares a given span of sectors for writing. This may permanently erase
-  /// the current contents of the sector on some save media.
   fn prepare_write(&self, sector: usize, count: usize) -> Result<(), Error>;
-
-  /// Writes a buffer to the save media.
-  ///
-  /// The sectors you are writing to must be prepared with a call to the
-  /// `prepare_write` function beforehand, or else the contents of the save
-  /// media may be unpredictable after writing.
   fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error>;
 }
 
-/// Contains the current save media implementation.
-static CURRENT_SAVE_ACCESS: Mutex<Cell<Option<&'static dyn RawSaveAccess>>> =
-  Mutex::new(Cell::new(None));
+static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::new(None);
 
-/// Sets the save media implementation in use.
-pub fn set_save_implementation(access: Option<&'static dyn RawSaveAccess>) {
-  crate::interrupt::free(|c| {
-    CURRENT_SAVE_ACCESS.borrow(c).set(access)
-  })
+fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
+  let mut access = CURRENT_SAVE_ACCESS.lock();
+  assert!(access.is_none(), "Cannot initialize the savegame engine more than once.");
+  *access = Some(access_impl);
 }
 
-/// Gets the save media implementation in use.
-pub fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
-  crate::interrupt::free(|c| {
-    CURRENT_SAVE_ACCESS.borrow(c).get()
-  })
+fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
+  *CURRENT_SAVE_ACCESS.lock()
 }
 
 /// Allows reading and writing of save media.
 #[derive(Copy, Clone)]
-pub struct SaveAccess {
+pub struct SaveData {
+  lock: RawMutexGuard<'static>,
   access: &'static dyn RawSaveAccess,
   info: &'static MediaInfo,
+  timeout: utils::Timeout,
 }
-impl SaveAccess {
+impl SaveData {
   /// Creates a new save accessor around the current save implementaiton.
-  pub fn new() -> Result<SaveAccess, Error> {
+  fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
     match get_save_implementation() {
-      Some(access) => Ok(SaveAccess { access, info: access.info()? }),
+      Some(access) => Ok(SaveData {
+        lock: utils::lock_media()?,
+        access,
+        info: access.info()?,
+        timeout: utils::Timeout::new(timer),
+      }),
       None => Err(Error::NoMedia),
     }
   }
@@ -275,19 +236,29 @@ impl SaveAccess {
     self.info.sector_count << self.info.sector_shift
   }
 
+  fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
+    if range.start >= self.len() || range.end >= self.len() {
+      Err(Error::OutOfBounds)
+    } else {
+      Ok(())
+    }
+  }
+  fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+    self.check_bounds(offset..(offset + len))
+  }
+
   /// Copies data from the save media to a buffer.
+  ///
+  /// If an error is returned, the contents of the buffer are unpredictable.
   pub fn read(&self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
+    self.check_bounds_len(offset, buffer.len())?;
     self.access.read(offset, buffer)
   }
 
   /// Verifies that a given block of memory matches the save media.
   pub fn verify(&self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
+    self.check_bounds_len(offset, buffer.len())?;
     self.access.verify(offset, buffer)
-  }
-
-  /// Returns whether this save media requires the use of [`SaveAccess::prepare_write`].
-  pub fn requires_prepare_write(&self) -> bool {
-    self.info.requires_prepare_write
   }
 
   /// Returns a range that contains all sectors the input range overlaps.
@@ -305,41 +276,69 @@ impl SaveAccess {
   /// This will erase any data in any sector overlapping the input range. To
   /// calculate which offset ranges would be affected, use the
   /// [`align_range`](`SaveAccess::align_range`) function.
-  pub fn prepare_write(&self, range: Range<usize>) -> Result<(), Error> {
-    if self.info.requires_prepare_write {
-      let range = self.align_range(range);
+  pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
+    self.check_bounds(range.clone())?;
+    if self.info.uses_prepare_write {
+      let range = self.align_range(range.clone());
       let shift = self.info.sector_shift;
-      self.access.prepare_write(range.start >> shift, range.len() >> shift)
-    } else {
-      Ok(())
+      self.access.prepare_write(range.start >> shift, range.len() >> shift)?;
     }
+    Ok(SavePreparedBlock {
+      parent: self,
+      range
+    })
   }
+}
 
+/// A block of save memory that has been prepared for writing.
+pub struct SavePreparedBlock<'a> {
+  parent: &'a mut SaveData,
+  range: Range<usize>,
+}
+impl<'a> SavePreparedBlock<'a> {
   /// Writes a given buffer into the save media.
   ///
-  /// If [`requires_prepare_write`](`SaveAccess::requires_prepare_write`) returns
-  /// `true`, you must call [`prepare_write`](`SaveAccess::prepare_write`) on the
-  /// range you intend to write for this to function correctly. The contents of
-  /// the save media are unpredictable if you do not.
+  /// Multiple overlapping writes to the same memory range without a separate
+  /// call to `prepare_write` will leave the save data in an unpredictable
+  /// state. If an error is returned, the contents of the save media is
+  /// unpredictable.
   pub fn write(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-    self.access.write(offset, buffer)
+    if buffer.len() == 0 {
+      Ok(())
+    } else if !self.range.contains(&offset) ||
+        !self.range.contains(&(offset + buffer.len() - 1)) {
+      Err(Error::OutOfBounds)
+    } else {
+      self.parent.access.write(offset, buffer)
+    }
   }
 
   /// Writes and validates a given buffer into the save media.
   ///
-  /// If [`requires_prepare_write`](`SaveAccess::requires_prepare_write`) returns
-  /// `true`, you must call [`prepare_write`](`SaveAccess::prepare_write`) on the
-  /// range you intend to write for this to function correctly. The contents of
-  /// the save media will be unpredictable if you do not.
-  ///
   /// This function will verify that the write has completed successfully, and
   /// return an error if it has not done so.
+  ///
+  /// Multiple overlapping writes to the same memory range without a separate
+  /// call to `prepare_write` will leave the save data in an unpredictable
+  /// state. If an error is returned, the contents of the save media is
+  /// unpredictable.
   pub fn write_and_verify(&self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
     self.write(offset, buffer)?;
-    if !self.verify(offset, buffer)? {
+    if !self.parent.verify(offset, buffer)? {
       Err(Error::WriteError)
     } else {
       Ok(())
     }
+  }
+}
+
+/// Allows access to the cartridge's save data.
+pub struct SaveManager;
+impl SaveManager {
+  pub fn access() -> Result<SaveData, Error> {
+    SaveData::new(None)
+  }
+  pub fn access_with_timer(timer: Timer) -> Result<SaveData, Error> {
+    SaveData::new(Some(timer))
   }
 }

@@ -168,7 +168,6 @@ pub use agb_fixnum as fixnum;
 pub mod hash_map;
 /// Simple random number generator
 pub mod rng;
-/// Implements save games.
 pub mod save;
 mod single;
 /// Implements sound output.
