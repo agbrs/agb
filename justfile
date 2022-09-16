@@ -13,7 +13,6 @@ clippy:
 
 test:
     just _test-debug agb
-    just _test-debug agb-tests
     just _test-debug agb-fixnum
     just _test-debug-arm agb
     just _test-debug tools
@@ -21,8 +20,6 @@ test:
 test-release:
     just _test-release agb
     just _test-release-arm agb
-    just _test-release agb-tests
-    just _test-release-arm agb-tests
 
 doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
