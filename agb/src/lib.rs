@@ -13,6 +13,7 @@
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
+#![feature(isa_attribute)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
@@ -170,6 +171,8 @@ pub mod rng;
 mod single;
 /// Implements sound output.
 pub mod sound;
+/// A module containing functions and utilities useful for synchronizing state.
+pub mod sync;
 /// System BIOS calls / syscalls.
 pub mod syscall;
 /// Interactions with the internal timers

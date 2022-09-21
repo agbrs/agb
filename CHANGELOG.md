@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom allocator support using the `Allocator` trait for `HashMap`. This means the `HashMap` can be used with `InternalAllocator` to allocate to IWRAM or the `ExternalAllocator` to explicitly allocate to EWRAM.
 - Support for using windows on the GBA. Windows are used to selectively enable rendering of certain layers or effects.
 - Support for the blend mode of the GBA. Blending allows for alpha blending between layers and fading to black and white.
+- Added a new agb::sync module that contains GBA-specific synchronization primitives.
 
-## Fixed
+### Changes
+- Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
+
+### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
 - Fixed formatting of fixed point numbers in the range (-1, 0), which previously appeared positive.
 
