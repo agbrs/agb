@@ -1016,6 +1016,14 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
+impl <T: Number + Neg<Output = T>> Neg for Vector2D<T> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        (-self.x, -self.y).into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
