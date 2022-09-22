@@ -13,6 +13,7 @@
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
+#![feature(isa_attribute)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
@@ -170,6 +171,8 @@ pub mod rng;
 mod single;
 /// Implements sound output.
 pub mod sound;
+/// A module containing functions and utilities useful for synchronizing state.
+pub mod sync;
 /// System BIOS calls / syscalls.
 pub mod syscall;
 /// Interactions with the internal timers
@@ -247,22 +250,16 @@ impl Gba {
 /// In order to use this, you need to enable the unstable `custom_test_framework` feature and copy-paste
 /// the following into the top of your application:
 ///
-/// ```
+/// ```rust,ignore
 /// #![cfg_attr(test, feature(custom_test_frameworks))]
 /// #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 /// #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 /// ```
 ///
-/// And ensure you add agb with the `testing` feature to your `dev-dependencies`
-/// ```toml
-/// [dev-dependencies]
-/// agb = { version = "<same as in dependencies>", features = ["testing"] }
-/// ```
-///
 /// With this support, you will be able to write tests which you can run using `mgba-test-runner`.
 /// Tests are written using `#[test_case]` rather than `#[test]`.
 ///
-/// ```
+/// ```rust,ignore
 /// #[test_case]
 /// fn test_ping_pong(_gba: &mut Gba) {
 ///     assert_eq!(1, 1);

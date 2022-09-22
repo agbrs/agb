@@ -106,12 +106,12 @@ _test-release crate:
     just _build-release {{crate}}
     (cd "{{crate}}" && cargo test --release)
 _test-release-arm crate:
-    (cd "{{crate}}" && cargo test --release --target="{{justfile_directory()+"/armv4t-none-eabi.json"}}")
+    (cd "{{crate}}" && cargo test --release --target=armv4t-none-eabi)
 _test-debug crate:
     just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
 _test-debug-arm crate:
-    (cd "{{crate}}" && cargo test --release --target="{{justfile_directory()+"/armv4t-none-eabi.json"}}")
+    (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:

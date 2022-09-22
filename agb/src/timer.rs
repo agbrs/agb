@@ -79,13 +79,13 @@ impl Timer {
     }
 
     pub fn set_enabled(&mut self, enabled: bool) -> &mut Self {
-        let bit = if enabled { 1 } else { 0 };
+        let bit = u16::from(enabled);
         self.control_register().set_bits(bit, 1, 7);
         self
     }
 
     pub fn set_cascade(&mut self, cascade: bool) -> &mut Self {
-        let bit = if cascade { 1 } else { 0 };
+        let bit = u16::from(cascade);
         self.control_register().set_bits(bit, 1, 2);
         self
     }

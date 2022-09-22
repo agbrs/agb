@@ -23,7 +23,7 @@ freq18157 = []
 freq32768 = []
 
 [dependencies]
-hound = "3.4"
+hound = "3.5"
 syn = "1"
 proc-macro2 = "1"
 quote = "1"
