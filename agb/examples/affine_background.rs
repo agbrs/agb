@@ -6,7 +6,7 @@ use agb::{
         tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
         Priority,
     },
-    fixnum::num,
+    fixnum::{num, Num},
     include_gfx,
     input::Tri,
 };
@@ -33,7 +33,7 @@ fn main(mut gba: agb::Gba) -> ! {
     bg.commit(&mut vram);
     bg.show();
 
-    let mut rotation = num!(0.);
+    let mut rotation: Num<u16, 8> = num!(0.);
     let rotation_increase = num!(1.);
 
     let mut input = agb::input::ButtonController::new();
@@ -56,10 +56,12 @@ fn main(mut gba: agb::Gba) -> ! {
             _ => {}
         }
 
+        bg.set_scroll_pos((16 * 4, 16 * 4).into());
+        let scroll_pos = (scroll_x as i16, scroll_y as i16);
         bg.set_transform(
-            (-scroll_x as i16, -scroll_y as i16).into(),
-            (1, 1).into(),
-            rotation,
+            scroll_pos,
+            (1, 1),
+             rotation,
         );
 
         rotation += rotation_increase;
