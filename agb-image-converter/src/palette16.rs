@@ -167,9 +167,7 @@ impl Palette16Optimiser {
     fn find_maximal_palette_for(&self, unsatisfied_palettes: &HashSet<Palette16>) -> Palette16 {
         let mut palette = Palette16::new();
 
-        if let Some(transparent_colour) = self.transparent_colour {
-            palette.add_colour(transparent_colour);
-        }
+        palette.add_colour(self.transparent_colour.unwrap_or_else(|| Colour::from_rgb(255, 0, 255, 0)));
 
         loop {
             let mut colour_usage = vec![0; MAX_COLOURS];
