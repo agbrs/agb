@@ -139,7 +139,7 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 pub struct BgAffineSetData {
     pub matrix: AffineMatrixAttributes,
     pub position: Vector2D<Num<i32, 8>>,
@@ -180,11 +180,12 @@ pub fn bg_affine_matrix(
 
     unsafe {
         asm!(
-        "swi {SWI}",
-        SWI = const { swi_map(0x0E) },
-        in("r0") &input as *const Input,
-        in("r1") output.as_mut_ptr(),
-        in("r2") 1,
+            "swi {SWI}",
+            SWI = const { swi_map(0x0E) },
+            in("r0") &input as *const Input,
+            in("r1") output.as_mut_ptr(),
+            in("r2") 1,
+            lateout("r3") _,
         );
     }
 
@@ -235,7 +236,9 @@ mod tests {
         let one: Num<i16, 8> = 1.into();
 
         let aff = obj_affine_matrix((one, one).into(), Num::default());
-        assert_eq!(aff.p_a, one);
-        assert_eq!(aff.p_d, one);
+        let (p_a, p_d) = (aff.p_a, aff.p_d);
+
+        assert_eq!(p_a, one);
+        assert_eq!(p_d, one);
     }
 }
