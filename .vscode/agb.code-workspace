@@ -29,6 +29,18 @@
 		},
 		{
 			"path": "../template"
+		},
+		{
+			"path": "../agb-tests"
+		},
+		{
+			"path": "../book"
+		},
+		{
+			"path": "../mgba-test-runner"
+		},
+		{
+			"path": "../tools"
 		}
 	]
 }
