@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut};
 use crate::bitarray::Bitarray;
 use crate::display::{object::AffineMatrixAttributes, Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
-use crate::fixnum::{Num, Number, Vector2D};
+use crate::fixnum::{Num, Vector2D};
 use crate::memory_mapped::MemoryMapped;
 
 use super::{
@@ -16,7 +16,6 @@ use crate::syscall::BgAffineSetData;
 use alloc::{vec, vec::Vec};
 
 pub trait TiledMapTypes {
-    type Position: Number;
     type Size: BackgroundSize + Copy;
 }
 
@@ -26,19 +25,17 @@ trait TiledMapPrivate: TiledMapTypes {
 
     fn tiles_mut(&mut self) -> &mut [Self::TileType];
     fn tiles_dirty(&mut self) -> &mut bool;
-    fn x_scroll_mut(&mut self) -> &mut Self::Position;
-    fn y_scroll_mut(&mut self) -> &mut Self::Position;
 
-    fn x_scroll(&self) -> Self::Position;
-    fn y_scroll(&self) -> Self::Position;
-    fn affine_matrix(&self) -> Self::AffineMatrix;
     fn background_id(&self) -> usize;
     fn screenblock(&self) -> usize;
     fn priority(&self) -> Priority;
     fn map_size(&self) -> Self::Size;
-    fn bg_x(&self) -> MemoryMapped<Self::Position>;
-    fn bg_y(&self) -> MemoryMapped<Self::Position>;
-    fn bg_affine_matrix(&self) -> MemoryMapped<Self::AffineMatrix>;
+
+    fn update_bg_registers(&self);
+
+    fn scroll_pos(&self) -> Vector2D<i16>;
+    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>);
+
     fn bg_control_register(&self) -> MemoryMapped<u16> {
         unsafe { MemoryMapped::new(0x0400_0008 + 2 * self.background_id()) }
     }
@@ -55,8 +52,8 @@ pub trait TiledMap: TiledMapTypes {
     fn size(&self) -> Self::Size;
 
     #[must_use]
-    fn scroll_pos(&self) -> Vector2D<Self::Position>;
-    fn set_scroll_pos(&mut self, pos: Vector2D<Self::Position>);
+    fn scroll_pos(&self) -> Vector2D<i16>;
+    fn set_scroll_pos(&mut self, pos: Vector2D<i16>);
 }
 
 impl<T> TiledMap for T
@@ -92,9 +89,7 @@ where
             | (self.map_size().size_flag() << 14);
 
         self.bg_control_register().set(new_bg_control_value);
-        self.bg_x().set(self.x_scroll());
-        self.bg_y().set(self.y_scroll());
-        self.bg_affine_matrix().set(self.affine_matrix());
+        self.update_bg_registers();
 
         let screenblock_memory = self.screenblock_memory();
         let x: TileIndex = unsafe { *self.tiles_mut().get_unchecked(0) }.into();
@@ -119,13 +114,12 @@ where
     }
 
     #[must_use]
-    fn scroll_pos(&self) -> Vector2D<T::Position> {
-        (self.x_scroll(), self.y_scroll()).into()
+    fn scroll_pos(&self) -> Vector2D<i16> {
+        TiledMapPrivate::scroll_pos(self)
     }
 
-    fn set_scroll_pos(&mut self, pos: Vector2D<T::Position>) {
-        *self.x_scroll_mut() = pos.x;
-        *self.y_scroll_mut() = pos.y;
+    fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
+        TiledMapPrivate::set_scroll_pos(self, pos);
     }
 }
 
@@ -135,8 +129,7 @@ pub struct RegularMap {
     priority: Priority,
     size: RegularBackgroundSize,
 
-    x_scroll: u16,
-    y_scroll: u16,
+    scroll: Vector2D<i16>,
 
     tiles: Vec<Tile>,
     tiles_dirty: bool,
@@ -145,7 +138,6 @@ pub struct RegularMap {
 pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl TiledMapTypes for RegularMap {
-    type Position = u16;
     type Size = RegularBackgroundSize;
 }
 
@@ -159,19 +151,7 @@ impl TiledMapPrivate for RegularMap {
     fn tiles_dirty(&mut self) -> &mut bool {
         &mut self.tiles_dirty
     }
-    fn x_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.x_scroll
-    }
-    fn y_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.y_scroll
-    }
-    fn x_scroll(&self) -> Self::Position {
-        self.x_scroll
-    }
-    fn y_scroll(&self) -> Self::Position {
-        self.y_scroll
-    }
-    fn affine_matrix(&self) -> Self::AffineMatrix {}
+
     fn background_id(&self) -> usize {
         self.background_id as usize
     }
@@ -184,14 +164,15 @@ impl TiledMapPrivate for RegularMap {
     fn map_size(&self) -> Self::Size {
         self.size
     }
-    fn bg_x(&self) -> MemoryMapped<Self::Position> {
-        unsafe { MemoryMapped::new(0x0400_0010 + 4 * self.background_id as usize) }
+    fn update_bg_registers(&self) {
+        self.x_register().set(self.scroll.x);
+        self.y_register().set(self.scroll.y);
     }
-    fn bg_y(&self) -> MemoryMapped<Self::Position> {
-        unsafe { MemoryMapped::new(0x0400_0012 + 4 * self.background_id as usize) }
+    fn scroll_pos(&self) -> Vector2D<i16> {
+        self.scroll
     }
-    fn bg_affine_matrix(&self) -> MemoryMapped<Self::AffineMatrix> {
-        unsafe { MemoryMapped::new(0) }
+    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>) {
+        self.scroll = new_pos;
     }
 }
 
@@ -208,8 +189,7 @@ impl RegularMap {
             priority,
             size,
 
-            x_scroll: 0,
-            y_scroll: 0,
+            scroll: Default::default(),
 
             tiles: vec![Default::default(); size.num_tiles()],
             tiles_dirty: true,
@@ -247,6 +227,14 @@ impl RegularMap {
         self.tiles_mut()[pos] = new_tile;
         *self.tiles_dirty() = true;
     }
+
+    fn x_register(&self) -> MemoryMapped<i16> {
+        unsafe { MemoryMapped::new(0x0400_0010 + 4 * self.background_id as usize) }
+    }
+
+    fn y_register(&self) -> MemoryMapped<i16> {
+        unsafe { MemoryMapped::new(0x0400_0012 + 4 * self.background_id as usize) }
+    }
 }
 
 pub struct AffineMap {
@@ -255,7 +243,9 @@ pub struct AffineMap {
     priority: Priority,
     size: AffineBackgroundSize,
 
-    bg_center: Vector2D<Num<i32, 8>>,
+    scroll: Vector2D<i16>,
+
+    transform_origin: Vector2D<Num<i32, 8>>,
     transform: BgAffineSetData,
 
     tiles: Vec<u8>,
@@ -263,7 +253,6 @@ pub struct AffineMap {
 }
 
 impl TiledMapTypes for AffineMap {
-    type Position = Num<i32, 8>;
     type Size = AffineBackgroundSize;
 }
 
@@ -277,21 +266,6 @@ impl TiledMapPrivate for AffineMap {
     fn tiles_dirty(&mut self) -> &mut bool {
         &mut self.tiles_dirty
     }
-    fn x_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.bg_center.x
-    }
-    fn y_scroll_mut(&mut self) -> &mut Self::Position {
-        &mut self.bg_center.y
-    }
-    fn x_scroll(&self) -> Self::Position {
-        self.bg_center.x + self.transform.position.x
-    }
-    fn y_scroll(&self) -> Self::Position {
-        self.bg_center.y + self.transform.position.y
-    }
-    fn affine_matrix(&self) -> Self::AffineMatrix {
-        self.transform.matrix
-    }
     fn background_id(&self) -> usize {
         self.background_id as usize
     }
@@ -304,14 +278,23 @@ impl TiledMapPrivate for AffineMap {
     fn map_size(&self) -> Self::Size {
         self.size
     }
-    fn bg_x(&self) -> MemoryMapped<Self::Position> {
-        unsafe { MemoryMapped::new(0x0400_0008 + 0x10 * self.background_id()) }
+    fn update_bg_registers(&self) {
+        let register_pos = self.transform.position + self.transform_origin;
+        self.bg_x().set(register_pos.x);
+        self.bg_y().set(register_pos.y);
+        self.bg_affine_matrix().set(self.transform.matrix);
+
+        crate::println!(
+            "update: {:?} {:?}",
+            self.transform.matrix,
+            self.bg_affine_matrix().get()
+        );
     }
-    fn bg_y(&self) -> MemoryMapped<Self::Position> {
-        unsafe { MemoryMapped::new(0x0400_000c + 0x10 * self.background_id()) }
+    fn scroll_pos(&self) -> Vector2D<i16> {
+        self.scroll
     }
-    fn bg_affine_matrix(&self) -> MemoryMapped<Self::AffineMatrix> {
-        unsafe { MemoryMapped::new(0x0400_0000 + 0x10 * self.background_id()) }
+    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>) {
+        self.scroll = new_pos;
     }
 }
 
@@ -321,7 +304,6 @@ impl AffineMap {
         screenblock: u8,
         priority: Priority,
         size: AffineBackgroundSize,
-        bg_center: Vector2D<Num<i32, 8>>,
     ) -> Self {
         Self {
             background_id,
@@ -329,7 +311,9 @@ impl AffineMap {
             priority,
             size,
 
-            bg_center,
+            scroll: Default::default(),
+
+            transform_origin: Default::default(),
             transform: Default::default(),
 
             tiles: vec![Default::default(); size.num_tiles()],
@@ -369,22 +353,36 @@ impl AffineMap {
         *self.tiles_dirty() = true;
     }
 
-    pub fn set_transform_raw(&mut self, transform: BgAffineSetData) {
-        self.transform = transform;
-    }
-
     pub fn set_transform(
         &mut self,
-        display_center: impl Into<Vector2D<i16>>,
+        transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
         scale: impl Into<Vector2D<Num<i16, 8>>>,
         rotation: impl Into<Num<u16, 8>>,
     ) {
-        self.set_transform_raw(crate::syscall::bg_affine_matrix(
-            self.bg_center,
-            display_center.into(),
-            scale.into(),
-            rotation.into(),
-        ));
+        self.transform_origin = transform_origin.into();
+        let scale = scale.into();
+        let rotation = rotation.into();
+        self.transform =
+            crate::syscall::bg_affine_matrix(self.transform_origin, self.scroll, scale, rotation);
+
+        crate::println!(
+            "{:?}, {:?}, {:?}, {:?}",
+            self.transform_origin,
+            self.scroll,
+            scale,
+            rotation
+        );
+        crate::println!("{:?}", self.transform.matrix);
+    }
+
+    fn bg_x(&self) -> MemoryMapped<Num<i32, 8>> {
+        unsafe { MemoryMapped::new(0x0400_0008 + 0x10 * self.background_id()) }
+    }
+    fn bg_y(&self) -> MemoryMapped<Num<i32, 8>> {
+        unsafe { MemoryMapped::new(0x0400_000c + 0x10 * self.background_id()) }
+    }
+    fn bg_affine_matrix(&self) -> MemoryMapped<AffineMatrixAttributes> {
+        unsafe { MemoryMapped::new(0x0400_0000 + 0x10 * self.background_id()) }
     }
 }
 

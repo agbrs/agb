@@ -570,7 +570,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 }
 
 /// A vector of two points: (x, y) represened by integers or fixed point numbers
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
@@ -1016,7 +1016,7 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
-impl <T: Number + Neg<Output = T>> Neg for Vector2D<T> {
+impl<T: Number + Neg<Output = T>> Neg for Vector2D<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {

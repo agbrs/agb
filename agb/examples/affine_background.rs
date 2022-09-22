@@ -56,13 +56,9 @@ fn main(mut gba: agb::Gba) -> ! {
             _ => {}
         }
 
-        bg.set_scroll_pos((16 * 4, 16 * 4).into());
         let scroll_pos = (scroll_x as i16, scroll_y as i16);
-        bg.set_transform(
-            scroll_pos,
-            (1, 1),
-             rotation,
-        );
+        bg.set_scroll_pos(scroll_pos.into());
+        bg.set_transform((0, 0), (1, 1), 0);
 
         rotation += rotation_increase;
         if rotation >= num!(255.) {

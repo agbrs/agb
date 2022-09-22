@@ -185,7 +185,8 @@ pub fn bg_affine_matrix(
             in("r0") &input as *const Input,
             in("r1") output.as_mut_ptr(),
             in("r2") 1,
-            lateout("r3") _,
+
+            clobber_abi("C")
         );
     }
 
@@ -231,7 +232,7 @@ mod tests {
     use super::*;
 
     #[test_case]
-    fn affine(_gba: &mut crate::Gba) {
+    fn affine_obj(_gba: &mut crate::Gba) {
         // expect identity matrix
         let one: Num<i16, 8> = 1.into();
 
@@ -240,5 +241,23 @@ mod tests {
 
         assert_eq!(p_a, one);
         assert_eq!(p_d, one);
+    }
+
+    #[test_case]
+    fn affine_bg(_gba: &mut crate::Gba) {
+        // expect the identity matrix
+        let aff = bg_affine_matrix(
+            (0, 0).into(),
+            (0i16, 0i16).into(),
+            (1i16, 1i16).into(),
+            0.into(),
+        );
+
+        let matrix = aff.matrix;
+        let (p_a, p_b, p_c, p_d) = (matrix.p_a, matrix.p_b, matrix.p_c, matrix.p_d);
+        assert_eq!(p_a, 1.into());
+        assert_eq!(p_b, 0.into());
+        assert_eq!(p_c, 0.into());
+        assert_eq!(p_d, 1.into());
     }
 }

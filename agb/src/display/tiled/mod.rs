@@ -7,7 +7,7 @@ mod vram_manager;
 
 use crate::bitarray::Bitarray;
 use crate::display::Priority;
-use agb_fixnum::{Num, Vector2D};
+use agb_fixnum::Vector2D;
 use core::cell::RefCell;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use map::{AffineMap, MapLoan, RegularMap, TiledMap};
@@ -307,16 +307,7 @@ where
             screenblocks.set(id, true);
         }
 
-        let center_dim = Num::new(size.width() as i32 * 8 / 2);
-        let default_bg_center = (center_dim, center_dim).into();
-
-        let bg = AffineMap::new(
-            new_background as u8,
-            screenblock as u8 + 16,
-            priority,
-            size,
-            default_bg_center,
-        );
+        let bg = AffineMap::new(new_background as u8, screenblock as u8 + 16, priority, size);
 
         affine.set(new_background, true);
 
