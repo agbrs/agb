@@ -80,7 +80,7 @@ pub fn generate_upgrades(level: u32) -> Vec<Face> {
             .chain(core::iter::once(&next))
             .filter(|&x| *x == Face::Malfunction)
             .count();
-        let maximum_number_of_malfunctions = if level < 5 { 0 } else { 1 };
+        let maximum_number_of_malfunctions = (level >= 5).into();
         if upgrade_value(&upgrades, next) <= max_upgrade_value
             && number_of_malfunctions <= maximum_number_of_malfunctions
         {
