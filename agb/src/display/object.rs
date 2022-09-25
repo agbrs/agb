@@ -2,10 +2,9 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
 
-use core::cell::{Ref, RefCell, RefMut, UnsafeCell};
+use core::cell::{RefCell, RefMut, UnsafeCell};
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
-use core::ops::DerefMut;
 use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
