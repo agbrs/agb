@@ -2,9 +2,10 @@
 use alloc::vec::Vec;
 use core::alloc::Layout;
 
-use core::cell::{RefCell, RefMut, UnsafeCell};
+use core::cell::UnsafeCell;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
+use core::ops::DerefMut;
 use core::ptr::NonNull;
 use core::slice;
 use modular_bitfield::prelude::{B10, B2, B3, B4, B5, B8, B9};
@@ -29,16 +30,23 @@ use attributes::*;
 #[derive(Clone, Copy)]
 struct ObjectControllerReference<'a> {
     #[cfg(debug_assertions)]
-    reference: &'a RefCell<ObjectControllerStatic>,
+    reference: &'a core::cell::RefCell<ObjectControllerStatic>,
 
     _ref: PhantomData<&'a UnsafeCell<()>>,
 }
 
-static mut OBJECT_CONTROLLER: MaybeUninit<RefCell<ObjectControllerStatic>> = MaybeUninit::uninit();
+#[cfg(debug_assertions)]
+static mut OBJECT_CONTROLLER: MaybeUninit<core::cell::RefCell<ObjectControllerStatic>> =
+    MaybeUninit::uninit();
+#[cfg(not(debug_assertions))]
+static mut OBJECT_CONTROLLER: MaybeUninit<ObjectControllerStatic> = MaybeUninit::uninit();
 
 impl<'a> ObjectControllerReference<'a> {
     unsafe fn init() -> Self {
-        OBJECT_CONTROLLER.write(RefCell::new(ObjectControllerStatic::new()));
+        #[cfg(debug_assertions)]
+        OBJECT_CONTROLLER.write(core::cell::RefCell::new(ObjectControllerStatic::new()));
+        #[cfg(not(debug_assertions))]
+        OBJECT_CONTROLLER.write(ObjectControllerStatic::new());
         Self {
             #[cfg(debug_assertions)]
             reference: unsafe { OBJECT_CONTROLLER.assume_init_ref() },
@@ -51,14 +59,25 @@ impl<'a> ObjectControllerReference<'a> {
     }
 
     #[track_caller]
-    fn borrow_mut(self) -> RefMut<'a, ObjectControllerStatic> {
+    #[cfg(debug_assertions)]
+    fn borrow_cell_ref(self) -> core::cell::RefMut<'a, ObjectControllerStatic> {
+        self.reference.borrow_mut()
+    }
+    #[track_caller]
+    #[cfg(not(debug_assertions))]
+    unsafe fn borrow_direct(self) -> &'a mut ObjectControllerStatic {
+        unsafe { OBJECT_CONTROLLER.assume_init_mut() }
+    }
+
+    #[track_caller]
+    unsafe fn borrow_mut(self) -> impl DerefMut<Target = ObjectControllerStatic> + 'a {
         #[cfg(debug_assertions)]
         {
             self.reference.borrow_mut()
         }
         #[cfg(not(debug_assertions))]
         unsafe {
-            OBJECT_CONTROLLER.assume_init_ref().borrow_mut()
+            OBJECT_CONTROLLER.assume_init_mut()
         }
     }
 }
@@ -520,7 +539,7 @@ struct Loan<'a> {
 
 impl Drop for Loan<'_> {
     fn drop(&mut self) {
-        let mut s = self.controller.borrow_mut();
+        let mut s = unsafe { self.controller.borrow_mut() };
 
         unsafe {
             s.shadow_oam[self.index as usize]
@@ -586,7 +605,7 @@ impl ObjectController {
     /// should be called shortly after having waited for the next vblank to
     /// ensure what is displayed on screen doesn't change part way through.
     pub fn commit(&self) {
-        let mut s = self.inner.borrow_mut();
+        let mut s = unsafe { self.inner.borrow_mut() };
 
         let s = &mut *s;
 
@@ -739,7 +758,7 @@ impl ObjectController {
     /// ```
     #[must_use]
     pub fn try_get_object<'a>(&'a self, sprite: SpriteBorrow<'a>) -> Option<Object<'a>> {
-        let mut s = self.inner.borrow_mut();
+        let mut s = unsafe { self.inner.borrow_mut() };
 
         let mut attrs = Attributes::new();
 
@@ -819,31 +838,58 @@ impl ObjectController {
     /// ```
     #[must_use]
     pub fn try_get_sprite(&self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
-        let mut sprite_controller =
-            RefMut::map(self.inner.borrow_mut(), |c| &mut c.sprite_controller);
-        sprite_controller.try_get_sprite(sprite, self.inner)
+        unsafe { self.inner.borrow_mut() }
+            .sprite_controller
+            .try_get_sprite(sprite, self.inner)
     }
 }
 
 impl<'a> Object<'a> {
     #[inline(always)]
-    unsafe fn object_inner(&self) -> RefMut<ObjectInner> {
-        RefMut::map(self.loan.controller.borrow_mut(), |s| {
-            s.shadow_oam[self.loan.index as usize]
+    unsafe fn object_inner(&self) -> impl DerefMut<Target = ObjectInner> + 'a {
+        #[cfg(debug_assertions)]
+        {
+            core::cell::RefMut::map(self.loan.controller.borrow_cell_ref(), |s| {
+                s.shadow_oam[self.loan.index as usize]
+                    .as_mut()
+                    .unwrap_unchecked()
+            })
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            self.loan.controller.borrow_direct().shadow_oam[self.loan.index as usize]
                 .as_mut()
                 .unwrap_unchecked()
-        })
+        }
     }
 
-    unsafe fn inner_controller(&self) -> (RefMut<SpriteControllerInner>, RefMut<ObjectInner>) {
-        RefMut::map_split(self.loan.controller.borrow_mut(), |s| {
+    unsafe fn inner_controller(
+        &self,
+    ) -> (
+        impl DerefMut<Target = SpriteControllerInner> + 'a,
+        impl DerefMut<Target = ObjectInner> + 'a,
+    ) {
+        #[cfg(debug_assertions)]
+        {
+            core::cell::RefMut::map_split(self.loan.controller.borrow_cell_ref(), |s| {
+                (
+                    &mut s.sprite_controller,
+                    s.shadow_oam[self.loan.index as usize]
+                        .as_mut()
+                        .unwrap_unchecked(),
+                )
+            })
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            let s = self.loan.controller.borrow_direct();
             (
                 &mut s.sprite_controller,
                 s.shadow_oam[self.loan.index as usize]
                     .as_mut()
                     .unwrap_unchecked(),
             )
-        })
+        }
     }
 
     /// Swaps out the current sprite. This handles changing of size, palette,
@@ -951,7 +997,7 @@ impl<'a> Object<'a> {
             let mut object_inner = unsafe { self.object_inner() };
             object_inner.z = z;
         }
-        self.loan.controller.borrow_mut().update_z_ordering();
+        unsafe { self.loan.controller.borrow_mut().update_z_ordering() };
 
         self
     }
@@ -1142,7 +1188,7 @@ impl SpriteControllerInner {
 
 impl<'a> Drop for SpriteBorrow<'a> {
     fn drop(&mut self) {
-        let mut s = self.controller.borrow_mut();
+        let mut s = unsafe { self.controller.borrow_mut() };
         s.sprite_controller.return_sprite(self.id.sprite());
     }
 }
@@ -1167,7 +1213,7 @@ impl<'a> SpriteBorrow<'a> {
 
 impl<'a> Clone for SpriteBorrow<'a> {
     fn clone(&self) -> Self {
-        let mut s = self.controller.borrow_mut();
+        let mut s = unsafe { self.controller.borrow_mut() };
         self.clone(&mut s.sprite_controller)
     }
 }
