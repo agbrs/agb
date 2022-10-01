@@ -1,3 +1,7 @@
+use std::{io::Read, path::Path, process::Command};
+
+use crate::utils::find_agb_root_directory;
+
 pub fn command() -> clap::Command {
     clap::Command::new("release")
         .about("Prepares and commits the changes required to release agb")
@@ -21,12 +25,46 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         .get_one::<Version>("version")
         .expect("defined by clap");
 
-    println!("dry run: {}, version: {:?}", dry_run, version);
+    let root_directory = find_agb_root_directory().map_err(|_| Error::FindRootDirectory)?;
+
+    // if not dry run, check that there are no out-standing changes in git
+    if !dry_run && !execute_git_command(&root_directory, &["status", "--porcelain"])?.is_empty() {
+        println!("Uncommitted changes, please commit first");
+        return Ok(());
+    }
+
+    // Check that we are in the master branch
+    if !dry_run
+        && execute_git_command(&root_directory, &["symbolic-ref", "--short", "HEAD"])? != "master"
+    {
+        println!("You must be on the master branch before releasing");
+        return Ok(());
+    }
+
     todo!()
 }
 
+fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, Error> {
+    let git_cmd = Command::new("git")
+        .args(args)
+        .current_dir(root_directory)
+        .spawn()
+        .map_err(|_| Error::GitError)?;
+    let mut buf = Vec::new();
+    git_cmd
+        .stdout
+        .ok_or(Error::GitError)?
+        .read_to_end(&mut buf)
+        .map_err(|_| Error::GitError)?;
+
+    String::from_utf8(buf).map_err(|_| Error::GitError)
+}
+
 #[derive(Debug)]
-pub enum Error {}
+pub enum Error {
+    FindRootDirectory,
+    GitError,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Version {
@@ -43,6 +81,12 @@ impl Version {
             minor,
             patch,
         }
+    }
+}
+
+impl std::fmt::Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
