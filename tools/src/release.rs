@@ -58,6 +58,26 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         .spawn()
         .map_err(|_| Error::JustCiFailed)?;
 
+    if !dry_run {
+        execute_git_command(
+            &root_directory,
+            &["commit", "-am", &format!("Release v{version}")],
+        )?;
+        execute_git_command(
+            &root_directory,
+            &[
+                "tag",
+                "-a",
+                &version.to_string(),
+                "-m",
+                &format!("v{version}"),
+            ],
+        )?;
+    }
+
+    println!("Done! Push with");
+    println!("git push --atomic origin master v{version}");
+
     Ok(())
 }
 
@@ -95,12 +115,6 @@ fn update_to_version(
             .parse::<toml_edit::Document>()
             .map_err(|_| Error::InvalidToml(cargo_toml_file.to_string_lossy().into_owned()))?;
 
-        println!(
-            "{}: {} {:?}",
-            cargo_toml_file.to_string_lossy(),
-            project_name,
-            cargo_toml["dependencies"].get(&project_name)
-        );
         if let Some(this_dep) = cargo_toml["dependencies"].get_mut(&project_name) {
             match this_dep {
                 toml_edit::Item::Value(s @ toml_edit::Value::String(_)) => {
