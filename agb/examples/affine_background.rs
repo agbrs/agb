@@ -8,7 +8,6 @@ use agb::{
     },
     fixnum::{num, Num},
     include_gfx,
-    input::Tri,
 };
 
 include_gfx!("examples/affine_tiles.toml");
