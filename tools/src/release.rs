@@ -1,4 +1,4 @@
-use std::{io::Read, path::Path, process::Command};
+use std::{path::Path, process::Command};
 
 use crate::utils::find_agb_root_directory;
 
@@ -48,22 +48,16 @@ fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, E
     let git_cmd = Command::new("git")
         .args(args)
         .current_dir(root_directory)
-        .spawn()
-        .map_err(|_| Error::GitError)?;
-    let mut buf = Vec::new();
-    git_cmd
-        .stdout
-        .ok_or(Error::GitError)?
-        .read_to_end(&mut buf)
-        .map_err(|_| Error::GitError)?;
+        .output()
+        .map_err(|_| Error::GitError("Failed to run command"))?;
 
-    String::from_utf8(buf).map_err(|_| Error::GitError)
+    String::from_utf8(git_cmd.stdout).map_err(|_| Error::GitError("Output not utf-8"))
 }
 
 #[derive(Debug)]
 pub enum Error {
     FindRootDirectory,
-    GitError,
+    GitError(&'static str),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
