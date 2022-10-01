@@ -43,18 +43,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     loop {
         input.update();
-
-        match input.x_tri() {
-            Tri::Positive => scroll_x += 1,
-            Tri::Negative => scroll_x -= 1,
-            _ => {}
-        }
-
-        match input.y_tri() {
-            Tri::Positive => scroll_y += 1,
-            Tri::Negative => scroll_y -= 1,
-            _ => {}
-        }
+        scroll_x += input.x_tri() as i32;
+        scroll_y += input.y_tri() as i32;
 
         let scroll_pos = (scroll_x as i16, scroll_y as i16);
         bg.set_scroll_pos(scroll_pos.into());
