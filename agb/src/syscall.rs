@@ -139,7 +139,7 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-#[repr(C, packed)]
+#[repr(C, packed(4))]
 pub struct BgAffineSetData {
     pub matrix: AffineMatrixAttributes,
     pub position: Vector2D<Num<i32, 8>>,
@@ -161,7 +161,7 @@ pub fn bg_affine_matrix(
     scale: Vector2D<Num<i16, 8>>,
     rotation: Num<u16, 8>,
 ) -> BgAffineSetData {
-    #[repr(C, packed)]
+    #[repr(C, packed(4))]
     struct Input {
         bg_center: Vector2D<Num<i32, 8>>,
         display_center: Vector2D<i16>,
@@ -200,7 +200,7 @@ pub fn obj_affine_matrix(
     rotation: Num<u8, 8>,
 ) -> AffineMatrixAttributes {
     #[allow(dead_code)]
-    #[repr(C, packed)]
+    #[repr(C, packed(4))]
     struct Input {
         scale: Vector2D<Num<i16, 8>>,
         rotation: u16,
