@@ -66,6 +66,8 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
                     .arg("publish")
                     .current_dir(&root_directory.join(publishable_crate))
                     .spawn()
+                    .map_err(|_| Error::PublishCrate)?
+                    .wait()
                     .map_err(|_| Error::PublishCrate)?;
             }
 

@@ -56,6 +56,8 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
     Command::new("just")
         .arg("ci")
         .spawn()
+        .map_err(|_| Error::JustCiFailed)?
+        .wait()
         .map_err(|_| Error::JustCiFailed)?;
 
     if !dry_run {
