@@ -58,7 +58,7 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         .spawn()
         .map_err(|_| Error::JustCiFailed)?;
 
-    todo!()
+    Ok(())
 }
 
 fn update_to_version(
@@ -66,13 +66,13 @@ fn update_to_version(
     toml_file: &Path,
     new_version: &Version,
 ) -> Result<(), Error> {
-    let directory_name = toml_file.parent().unwrap();
+    let directory_name = toml_file.parent().unwrap().file_name().unwrap();
     let project_name = directory_name.to_string_lossy().replace('-', "_");
 
     let toml_file_content = std::fs::read_to_string(toml_file).map_err(|_| Error::ReadTomlFile)?;
     let mut cargo_toml = toml_file_content
         .parse::<toml_edit::Document>()
-        .map_err(|_| Error::InvalidToml)?;
+        .map_err(|_| Error::InvalidToml(toml_file.to_string_lossy().into_owned()))?;
 
     let new_version = format!("{new_version}");
     cargo_toml["package"]["version"] = toml_edit::value(&new_version);
@@ -93,13 +93,30 @@ fn update_to_version(
             std::fs::read_to_string(&cargo_toml_file).map_err(|_| Error::ReadTomlFile)?;
         let mut cargo_toml = toml_file_content
             .parse::<toml_edit::Document>()
-            .map_err(|_| Error::InvalidToml)?;
+            .map_err(|_| Error::InvalidToml(cargo_toml_file.to_string_lossy().into_owned()))?;
 
+        println!(
+            "{}: {} {:?}",
+            cargo_toml_file.to_string_lossy(),
+            project_name,
+            cargo_toml["dependencies"].get(&project_name)
+        );
         if let Some(this_dep) = cargo_toml["dependencies"].get_mut(&project_name) {
             match this_dep {
-                toml_edit::Item::Value(value) => *value = new_version.clone().into(),
-                toml_edit::Item::Table(t) => t["version"] = toml_edit::value(&new_version),
-                _ => return Err(Error::InvalidToml),
+                toml_edit::Item::Value(s @ toml_edit::Value::String(_)) => {
+                    *s = new_version.clone().into()
+                }
+                toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) => {
+                    t["version"] = new_version.clone().into()
+                }
+                toml_edit::Item::None => continue,
+                _ => {
+                    return Err(Error::InvalidToml(format!(
+                        "{:?} while seaching dependencies in {}",
+                        this_dep,
+                        cargo_toml_file.to_string_lossy()
+                    )))
+                }
             }
         }
 
@@ -138,7 +155,7 @@ pub enum Error {
     Git(&'static str),
     Glob,
     ReadTomlFile,
-    InvalidToml,
+    InvalidToml(String),
     WriteTomlFile,
     JustCiFailed,
 }
