@@ -3,10 +3,30 @@ pub fn command() -> clap::Command {
         .about("Prepares and commits the changes required to release agb")
         .arg(
             clap::Arg::new("version")
+                .required(true)
                 .help("New version to release")
                 .value_parser(version_parser),
         )
+        .arg(
+            clap::Arg::new("Dry run")
+                .long("dry-run")
+                .help("Don't do anything with git (but does everything else)")
+                .action(clap::ArgAction::SetTrue),
+        )
 }
+
+pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
+    let dry_run = matches.get_one::<bool>("Dry run").expect("defined by clap");
+    let version = matches
+        .get_one::<Version>("version")
+        .expect("defined by clap");
+
+    println!("dry run: {}, version: {:?}", dry_run, version);
+    todo!()
+}
+
+#[derive(Debug)]
+pub enum Error {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Version {
@@ -52,7 +72,9 @@ impl std::str::FromStr for Version {
 }
 
 fn version_parser(maybe_version: &str) -> Result<Version, &'static str> {
-    maybe_version.parse().map_err(|_| "Failed to parse version")
+    maybe_version
+        .parse()
+        .map_err(|_| "Failed to parse version, must be of the format x.y.z")
 }
 
 #[cfg(test)]
