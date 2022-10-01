@@ -1,44 +1,42 @@
-use agb::interrupt::free;
-use bare_metal::Mutex;
-use core::cell::RefCell;
+use agb::Gba;
+use agb::save::Error;
+use agb::sync::Static;
 
-const RAM_ADDRESS: *mut u8 = 0x0E00_0000 as *mut u8;
-const HIGH_SCORE_ADDRESS_START: *mut u8 = RAM_ADDRESS.wrapping_offset(1);
+static HIGHSCORE: Static<u32> = Static::new(0);
 
-static HIGHSCORE: Mutex<RefCell<u32>> = Mutex::new(RefCell::new(0));
+pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
+    gba.save.init_sram();
 
-pub fn init_save() {
-    if (unsafe { RAM_ADDRESS.read_volatile() } == !0) {
-        save_high_score(0);
-        unsafe { RAM_ADDRESS.write_volatile(0) };
-    }
+    let mut access = gba.save.access()?;
 
-    let mut a = [0; 4];
-    for (idx, a) in a.iter_mut().enumerate() {
-        *a = unsafe { HIGH_SCORE_ADDRESS_START.add(idx).read_volatile() };
-    }
+    let mut buffer = [0; 1];
+    access.read(0, &mut buffer)?;
 
-    let high_score = u32::from_le_bytes(a);
+    if buffer[0] != 0 {
+        access.prepare_write(0..1)?.write(0, &[0])?;
+        core::mem::drop(access);
+        save_high_score(gba, 0)?;
+    } else {
+        let mut buffer = [0; 4];
+        access.read(1, &mut buffer)?;
+        let high_score = u32::from_le_bytes(buffer);
 
-    free(|cs| {
         if high_score > 100 {
-            HIGHSCORE.borrow(cs).replace(0);
+            HIGHSCORE.write(0)
         } else {
-            HIGHSCORE.borrow(cs).replace(high_score);
+            HIGHSCORE.write(high_score)
         }
-    });
+    }
+
+    Ok(())
 }
 
 pub fn load_high_score() -> u32 {
-    free(|cs| *HIGHSCORE.borrow(cs).borrow())
+    HIGHSCORE.read()
 }
 
-pub fn save_high_score(score: u32) {
-    let a = score.to_le_bytes();
-
-    for (idx, &a) in a.iter().enumerate() {
-        unsafe { HIGH_SCORE_ADDRESS_START.add(idx).write_volatile(a) };
-    }
-
-    free(|cs| HIGHSCORE.borrow(cs).replace(score));
+pub fn save_high_score(gba: &mut Gba, score: u32) -> Result<(), Error> {
+    gba.save.access()?.prepare_write(1..5)?.write(1, &score.to_le_bytes())?;
+    HIGHSCORE.write(score);
+    Ok(())
 }

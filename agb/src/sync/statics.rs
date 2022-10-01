@@ -284,7 +284,7 @@ mod test {
         // the actual main test loop
         let mut interrupt_seen = false;
         let mut no_interrupt_seen = false;
-        for i in 0..100000 {
+        for i in 0..250000 {
             // write to the static
             let new_value = [i; COUNT];
             value.write(new_value);

@@ -96,10 +96,10 @@ struct Agb<'a> {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    save::init_save();
+    save::init_save(&mut gba).expect("Could not initialize save game");
 
     if save::load_high_score() > 1000 {
-        save::save_high_score(0);
+        save::save_high_score(&mut gba, 0).expect("Could not reset high score");
     }
 
     let gfx = gba.display.object.get();
@@ -207,7 +207,8 @@ fn main(mut gba: agb::Gba) -> ! {
                     agb.obj.commit();
                     agb.sfx.customise();
                     if save::load_high_score() < current_level {
-                        save::save_high_score(current_level);
+                        save::save_high_score(&mut gba, current_level)
+                            .expect("Could not save high score");
                     }
                     break;
                 }
