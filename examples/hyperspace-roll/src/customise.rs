@@ -163,9 +163,9 @@ pub(crate) fn customise_screen(
 ) -> PlayerDice {
     agb.sfx.customise();
     agb.sfx.frame();
-    descriptions_map.set_scroll_pos((u16::MAX - 174, u16::MAX - 52).into());
+    descriptions_map.set_scroll_pos((-174i16, -52).into());
 
-    help_background.set_scroll_pos((u16::MAX - 148, u16::MAX - 34).into());
+    help_background.set_scroll_pos((-148i16, -34).into());
     crate::background::load_help_text(&mut agb.vram, help_background, 0, (0, 0));
 
     // create the dice

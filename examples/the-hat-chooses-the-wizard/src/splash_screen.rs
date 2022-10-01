@@ -1,6 +1,6 @@
 use super::sfx::MusicBox;
 use agb::{
-    display::tiled::{RegularMap, TiledMap, TileFormat, TileSet, TileSetting, VRamManager},
+    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager},
     sound::mixer::Mixer,
 };
 
@@ -18,7 +18,7 @@ pub fn show_splash_screen(
     map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
-    map.set_scroll_pos((0u16, 0u16).into());
+    map.set_scroll_pos((0i16, 0i16).into());
     let (tileset, palette) = match which {
         SplashScreen::Start => {
             let tileset = TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp);
