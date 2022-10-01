@@ -3,6 +3,7 @@ use clap::Command;
 
 mod publish;
 mod release;
+mod utils;
 
 #[derive(Debug)]
 pub enum Error {
