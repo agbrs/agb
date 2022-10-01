@@ -17,7 +17,7 @@ pub enum Error {
     CargoToml,
 }
 
-pub fn command() -> clap::Command<'static> {
+pub fn command() -> clap::Command {
     clap::Command::new("publish")
         .about("Publishes agb and all subcrates")
         .arg(
@@ -195,6 +195,11 @@ fn read_cargo_toml(folder: &Path) -> Result<Document, Error> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn verify_cli() {
+        command().debug_assert();
+    }
 
     #[test]
     fn url_to_poll_should_return_correct_url() {
