@@ -41,7 +41,73 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         return Ok(());
     }
 
+    let project_toml_files = glob_many(&root_directory, &["agb-*/Cargo.toml"])?;
+
+    update_to_version(
+        &root_directory,
+        &root_directory.join("agb/Cargo.toml"),
+        version,
+    )?;
+
+    for toml_file in project_toml_files {
+        update_to_version(&root_directory, &toml_file, version)?;
+    }
+
+    Command::new("just")
+        .arg("ci")
+        .spawn()
+        .map_err(|_| Error::JustCiFailed)?;
+
     todo!()
+}
+
+fn update_to_version(
+    root_directory: &Path,
+    toml_file: &Path,
+    new_version: &Version,
+) -> Result<(), Error> {
+    let directory_name = toml_file.parent().unwrap();
+    let project_name = directory_name.to_string_lossy().replace('-', "_");
+
+    let toml_file_content = std::fs::read_to_string(toml_file).map_err(|_| Error::ReadTomlFile)?;
+    let mut cargo_toml = toml_file_content
+        .parse::<toml_edit::Document>()
+        .map_err(|_| Error::InvalidToml)?;
+
+    let new_version = format!("{new_version}");
+    cargo_toml["package"]["version"] = toml_edit::value(&new_version);
+
+    std::fs::write(toml_file, cargo_toml.to_string()).map_err(|_| Error::WriteTomlFile)?;
+
+    for cargo_toml_file in glob_many(
+        root_directory,
+        &[
+            "agb-*/Cargo.toml",
+            "agb/Cargo.toml",
+            "examples/*/Cargo.toml",
+            "book/games/*/Cargo.toml",
+            "template/Cargo.toml",
+        ],
+    )? {
+        let toml_file_content =
+            std::fs::read_to_string(&cargo_toml_file).map_err(|_| Error::ReadTomlFile)?;
+        let mut cargo_toml = toml_file_content
+            .parse::<toml_edit::Document>()
+            .map_err(|_| Error::InvalidToml)?;
+
+        if let Some(this_dep) = cargo_toml["dependencies"].get_mut(&project_name) {
+            match this_dep {
+                toml_edit::Item::Value(value) => *value = new_version.clone().into(),
+                toml_edit::Item::Table(t) => t["version"] = toml_edit::value(&new_version),
+                _ => return Err(Error::InvalidToml),
+            }
+        }
+
+        std::fs::write(cargo_toml_file, cargo_toml.to_string())
+            .map_err(|_| Error::WriteTomlFile)?;
+    }
+
+    Ok(())
 }
 
 fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, Error> {
@@ -49,15 +115,32 @@ fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, E
         .args(args)
         .current_dir(root_directory)
         .output()
-        .map_err(|_| Error::GitError("Failed to run command"))?;
+        .map_err(|_| Error::Git("Failed to run command"))?;
 
-    String::from_utf8(git_cmd.stdout).map_err(|_| Error::GitError("Output not utf-8"))
+    String::from_utf8(git_cmd.stdout).map_err(|_| Error::Git("Output not utf-8"))
+}
+
+fn glob_many(root_directory: &Path, globs: &[&str]) -> Result<Vec<std::path::PathBuf>, Error> {
+    let mut result = vec![];
+
+    for g in globs.iter() {
+        for path in glob::glob(&root_directory.join(g).to_string_lossy()).expect("Invalid glob") {
+            result.push(path.map_err(|_| Error::Glob)?);
+        }
+    }
+
+    Ok(result)
 }
 
 #[derive(Debug)]
 pub enum Error {
     FindRootDirectory,
-    GitError(&'static str),
+    Git(&'static str),
+    Glob,
+    ReadTomlFile,
+    InvalidToml,
+    WriteTomlFile,
+    JustCiFailed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
