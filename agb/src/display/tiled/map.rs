@@ -283,12 +283,6 @@ impl TiledMapPrivate for AffineMap {
         self.bg_x().set(register_pos.x);
         self.bg_y().set(register_pos.y);
         self.bg_affine_matrix().set(self.transform.matrix);
-
-        crate::println!(
-            "update: {:?} {:?}",
-            self.transform.matrix,
-            self.bg_affine_matrix().get()
-        );
     }
     fn scroll_pos(&self) -> Vector2D<i16> {
         self.scroll
@@ -364,15 +358,6 @@ impl AffineMap {
         let rotation = rotation.into();
         self.transform =
             crate::syscall::bg_affine_matrix(self.transform_origin, self.scroll, scale, rotation);
-
-        crate::println!(
-            "{:?}, {:?}, {:?}, {:?}",
-            self.transform_origin,
-            self.scroll,
-            scale,
-            rotation
-        );
-        crate::println!("{:?}", self.transform.matrix);
     }
 
     fn bg_x(&self) -> MemoryMapped<Num<i32, 8>> {
