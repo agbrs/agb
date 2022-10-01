@@ -2,12 +2,14 @@
 use clap::Command;
 
 mod publish;
+mod release;
 
 fn cli() -> Command {
     Command::new("Agb tools")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(publish::command())
+        .subcommand(release::command())
 }
 
 fn main() {
@@ -15,6 +17,7 @@ fn main() {
 
     let result = match matches.subcommand() {
         Some(("publish", arg_matches)) => publish::publish(arg_matches),
+        Some(("release", arg_matches)) => todo!(),
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     };
 
