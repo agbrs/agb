@@ -108,6 +108,50 @@ pub struct Sprite {
     size: Size,
 }
 
+/// Sprite data that can be used to create sprites in vram.
+pub struct DynamicSprite<'a> {
+    data: &'a [u8],
+    size: Size,
+}
+
+impl DynamicSprite<'_> {
+    #[must_use]
+    /// Creates a new dynamic sprite from underlying bytes. Note that despite
+    /// being an array of u8, this must be aligned to at least a 2 byte
+    /// boundary.
+    pub fn new(data: &[u8], size: Size) -> DynamicSprite {
+        let ptr = &data[0] as *const _ as usize;
+        if ptr % 2 != 0 {
+            panic!("data is not aligned to a 2 byte boundary");
+        }
+        if data.len() != size.number_of_tiles() * BYTES_PER_TILE_4BPP {
+            panic!(
+                "data is not of expected length, got {} expected {}",
+                data.len(),
+                size.number_of_tiles() * BYTES_PER_TILE_4BPP
+            );
+        }
+        DynamicSprite { data, size }
+    }
+
+    #[must_use]
+    /// Tries to copy the sprite to vram to be used to set object sprites.
+    /// Returns None if there is no room in sprite vram.
+    pub fn try_vram(&self, palette: PaletteVram) -> Option<SpriteBorrow> {
+        Some(SpriteBorrow {
+            sprite: unsafe { SpriteVram::new(self.data, self.size, palette)? },
+        })
+    }
+
+    #[must_use]
+    /// Tries to copy the sprite to vram to be used to set object sprites.
+    /// Panics if there is no room in sprite vram.
+    pub fn to_vram(&self, palette: PaletteVram) -> SpriteBorrow {
+        self.try_vram(palette)
+            .expect("No slot for sprite available")
+    }
+}
+
 /// The sizes of sprite supported by the GBA.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
@@ -522,13 +566,54 @@ impl Location {
 }
 
 #[derive(Clone)]
-struct PaletteVram(Rc<PaletteData>);
+/// The palette data in Vram, this is reference counted and the palette data is
+/// removed and can be reused from vram when no strong references remain.
+pub struct PaletteVram(Rc<PaletteData>);
 
 #[derive(Clone)]
 struct SpriteVram(Rc<SpriteArena>);
 
 struct PaletteData {
     location: Location,
+}
+
+impl PaletteVram {
+    /// Creates a palette in vram from the given palette. Can be used to create
+    /// sprites in vram in the [DynamicSprite] functions.
+    #[must_use]
+    pub fn new(palette: &Palette16) -> Option<Self> {
+        let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
+
+        unsafe {
+            dma::dma_copy16(
+                palette.colours.as_ptr().cast(),
+                dest.as_ptr().cast(),
+                palette.colours.len(),
+            );
+        }
+
+        Some(PaletteVram(Rc::new(PaletteData {
+            location: Location::from_palette_ptr(dest),
+        })))
+    }
+}
+
+impl SpriteVram {
+    /// # Safety
+    /// data should be aligned to a 2 byte boundary
+    unsafe fn new(data: &[u8], size: Size, palette: PaletteVram) -> Option<Self> {
+        let dest = unsafe { SPRITE_ALLOCATOR.alloc(size.layout())? };
+
+        unsafe {
+            dma::dma_copy16(data.as_ptr().cast(), dest.as_ptr().cast(), data.len() / 2);
+        }
+
+        Some(SpriteVram(Rc::new(SpriteArena {
+            location: Location::from_sprite_ptr(dest),
+            size,
+            palette,
+        })))
+    }
 }
 
 impl Drop for PaletteData {
@@ -1041,8 +1126,11 @@ impl Sprite {
     #[doc(hidden)]
     /// Creates a sprite from it's constituent data, used internally by
     /// [include_aseprite] and should generally not be used outside it.
+    ///
+    /// # Safety
+    /// The data should be aligned to a 2 byte boundary
     #[must_use]
-    pub const fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
+    pub const unsafe fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
         Self {
             palette,
             data,
@@ -1057,7 +1145,7 @@ impl Sprite {
 }
 
 impl SpriteControllerInner {
-    fn try_get_sprite<'a>(&mut self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
+    fn try_get_sprite(&mut self, sprite: &'static Sprite) -> Option<SpriteBorrow> {
         let id = sprite.id();
         if let Some(storage) = self.static_sprite_map.get_mut(&id) {
             if let Some(strong) = storage.upgrade() {
@@ -1069,16 +1157,15 @@ impl SpriteControllerInner {
 
         // layout is non zero sized, so this is safe to call
 
-        let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
-
         let palette_location = self.palette(sprite.palette);
         let palette_location = match palette_location {
             Some(a) => a,
             None => {
-                unsafe { SPRITE_ALLOCATOR.dealloc(dest.as_ptr(), sprite.layout()) }
                 return None;
             }
         };
+
+        let dest = unsafe { SPRITE_ALLOCATOR.alloc(sprite.layout())? };
 
         unsafe {
             dma::dma_copy16(
@@ -1110,23 +1197,12 @@ impl SpriteControllerInner {
             }
         }
 
-        let dest = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout())? };
+        let palette_vram = PaletteVram::new(palette)?;
 
-        unsafe {
-            dma::dma_copy16(
-                palette.colours.as_ptr().cast(),
-                dest.as_ptr().cast(),
-                palette.colours.len(),
-            );
-        }
-
-        let storage = PaletteVram(Rc::new(PaletteData {
-            location: Location::from_palette_ptr(dest),
-        }));
         self.static_palette_map
-            .insert(id, Rc::downgrade(&storage.0));
+            .insert(id, Rc::downgrade(&palette_vram.0));
 
-        Some(storage)
+        Some(palette_vram)
     }
 }
 
