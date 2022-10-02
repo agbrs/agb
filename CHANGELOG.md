@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changes
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
+- HashMap iterators now implement `size_hint` which should result in slightly better generation of code using those iterators.
 
 ### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
