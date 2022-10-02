@@ -1,11 +1,13 @@
 use clap::{Arg, ArgAction, ArgMatches};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
+use std::thread;
 use std::time::Duration;
-use std::{env, thread};
 use toml_edit::Document;
+
+use crate::utils::*;
 
 #[derive(Debug)]
 pub enum Error {
@@ -31,7 +33,7 @@ pub fn command() -> clap::Command {
 pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     let dry_run = matches.get_one::<bool>("Dry run").expect("defined by clap");
 
-    let root_directory = find_agb_root_directory()?;
+    let root_directory = find_agb_root_directory().map_err(|_| Error::FindRootDirectory)?;
 
     let mut fully_published_crates: HashSet<String> = HashSet::new();
     let mut published_crates: HashSet<String> = HashSet::new();
@@ -60,11 +62,12 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
             if *dry_run {
                 println!("Would execute cargo publish for {publishable_crate}");
             } else {
-                Command::new("cargo")
+                assert!(Command::new("cargo")
                     .arg("publish")
                     .current_dir(&root_directory.join(publishable_crate))
-                    .spawn()
-                    .map_err(|_| Error::PublishCrate)?;
+                    .status()
+                    .map_err(|_| Error::PublishCrate)?
+                    .success());
             }
 
             published_crates.insert(publishable_crate.to_string());
@@ -84,19 +87,6 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     }
 
     Ok(())
-}
-
-fn find_agb_root_directory() -> Result<PathBuf, Error> {
-    let mut current_path = env::current_dir().map_err(|_| Error::FindRootDirectory)?;
-
-    while !current_path.clone().join("justfile").exists() {
-        current_path = current_path
-            .parent()
-            .ok_or(Error::FindRootDirectory)?
-            .to_owned();
-    }
-
-    Ok(current_path)
 }
 
 fn check_if_released(crate_to_publish: &str, expected_version: &str) -> Result<bool, Error> {
@@ -221,15 +211,8 @@ mod test {
     }
 
     #[test]
-    fn should_find_root_directory() -> Result<(), Error> {
-        assert_ne!(find_agb_root_directory()?.to_string_lossy(), "");
-
-        Ok(())
-    }
-
-    #[test]
     fn should_read_version() -> Result<(), Error> {
-        let root_directory = find_agb_root_directory()?;
+        let root_directory = crate::utils::find_agb_root_directory().unwrap();
         let my_version = read_cargo_toml_version(&root_directory.join("tools"))?;
 
         assert_eq!(my_version, "0.1.0");
@@ -238,7 +221,7 @@ mod test {
 
     #[test]
     fn should_detect_dependencies() -> Result<(), Error> {
-        let root_directory = find_agb_root_directory()?;
+        let root_directory = crate::utils::find_agb_root_directory().unwrap();
         let deps = get_agb_dependencies(&root_directory.join("agb"))?;
 
         assert_eq!(
