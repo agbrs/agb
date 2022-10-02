@@ -68,6 +68,8 @@ update-linker-scripts:
 
 publish: (_run-tool "publish")
 
+release +args: (_run-tool "release" args)
+
 _run-tool +tool:
     (cd tools && cargo build)
     tools/target/debug/tools {{tool}}
