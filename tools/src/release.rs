@@ -69,16 +69,16 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
             .success());
     }
 
-    // assert!(Command::new("just")
-    //     .arg("ci")
-    //     .current_dir(&root_directory)
-    //     .status()
-    //     .map_err(|_| Error::JustCiFailed)?
-    //     .success());
+    assert!(Command::new("just")
+        .arg("ci")
+        .current_dir(&root_directory)
+        .status()
+        .map_err(|_| Error::JustCiFailed)?
+        .success());
 
     let changelog_text = update_changelog(&root_directory, version)?;
 
-    println!("Content of changelog:\n\n{changelog_text}");
+    println!("Content of changelog:\n{changelog_text}");
 
     if !dry_run {
         execute_git_command(
@@ -92,7 +92,7 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
                 "-a",
                 &version.to_string(),
                 "-m",
-                &format!("v{version}"),
+                &format!("#v{version}\n{changelog_text}"),
             ],
         )?;
     }
@@ -184,9 +184,10 @@ fn update_changelog(root_directory: &Path, new_version: &Version) -> Result<Stri
         .find(UNRELEASED_HEADER)
         .ok_or(Error::FailedToParseChangelog)?
         + UNRELEASED_HEADER.len();
-    let unreleased_bit_end = changelog_content
+    let unreleased_bit_end = changelog_content[unreleased_bit_start..]
         .find("\n## [") // the start of the next entry
-        .ok_or(Error::FailedToParseChangelog)?;
+        .ok_or(Error::FailedToParseChangelog)?
+        + unreleased_bit_start;
 
     let change_content = changelog_content[unreleased_bit_start..unreleased_bit_end].to_owned();
 

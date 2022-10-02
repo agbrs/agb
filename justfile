@@ -72,7 +72,7 @@ release +args: (_run-tool "release" args)
 
 _run-tool +tool:
     (cd tools && cargo build)
-    tools/target/debug/tools {{tool}}
+    "$CARGO_TARGET_DIR/debug/tools" {{tool}}
 
 _build-rom folder name:
     #!/usr/bin/env bash
