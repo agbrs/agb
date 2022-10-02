@@ -341,6 +341,7 @@ impl SoundBuffer {
 
 struct MixerBuffer {
     buffers: [SoundBuffer; 3],
+    working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
     frequency: Frequency,
 
     state: Mutex<RefCell<MixerBufferState>>,
@@ -380,12 +381,18 @@ impl MixerBufferState {
 
 impl MixerBuffer {
     fn new(frequency: Frequency) -> Self {
+        let mut working_buffer =
+            Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
+        working_buffer.resize(frequency.buffer_size() * 2, 0.into());
+
         MixerBuffer {
             buffers: [
                 SoundBuffer::new(frequency),
                 SoundBuffer::new(frequency),
                 SoundBuffer::new(frequency),
             ],
+
+            working_buffer: working_buffer.into_boxed_slice(),
 
             state: Mutex::new(RefCell::new(MixerBufferState {
                 active_buffer: 0,
@@ -414,8 +421,7 @@ impl MixerBuffer {
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
         set_asm_buffer_size(self.frequency);
 
-        let mut buffer = Vec::with_capacity_in(self.frequency.buffer_size() * 2, InternalAllocator);
-        buffer.resize(self.frequency.buffer_size() * 2, 0.into());
+        self.working_buffer.fill(0.into());
 
         for channel in channels {
             if channel.is_done {
@@ -444,7 +450,7 @@ impl MixerBuffer {
                 unsafe {
                     agb_rs__mixer_add_stereo(
                         channel.data.as_ptr().add(channel.pos.floor()),
-                        buffer.as_mut_ptr(),
+                        self.working_buffer.as_mut_ptr(),
                         channel.volume,
                     );
                 }
@@ -455,7 +461,7 @@ impl MixerBuffer {
                 unsafe {
                     agb_rs__mixer_add(
                         channel.data.as_ptr().add(channel.pos.floor()),
-                        buffer.as_mut_ptr(),
+                        self.working_buffer.as_mut_ptr(),
                         playback_speed,
                         left_amount,
                         right_amount,
@@ -471,7 +477,7 @@ impl MixerBuffer {
         let write_buffer = &mut self.buffers[write_buffer_index].0;
 
         unsafe {
-            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
+            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), self.working_buffer.as_ptr());
         }
     }
 }
