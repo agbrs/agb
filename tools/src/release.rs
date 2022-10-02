@@ -50,25 +50,6 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         update_to_version(&root_directory, toml_file, version)?;
     }
 
-    for toml_file in project_toml_files
-        .iter()
-        .chain(std::iter::once(&agb_cargo_toml))
-    {
-        let directory_name = toml_file.parent().unwrap();
-
-        println!(
-            "Running cargo update in {}",
-            directory_name.to_string_lossy()
-        );
-
-        assert!(Command::new("cargo")
-            .arg("update")
-            .current_dir(directory_name)
-            .status()
-            .map_err(|_| Error::CargoUpdateFailed)?
-            .success());
-    }
-
     assert!(Command::new("just")
         .arg("ci")
         .current_dir(&root_directory)
