@@ -2,6 +2,11 @@
 
 ## Rust for the Game Boy Advance
 
+[![Docs](https://docs.rs/agb/badge.svg)](https://docs.rs/agb/latest/agb)
+[![Build](https://github.com/agbrs/agb/actions/workflows/build-and-test.yml/badge.svg?query=branch%3Amaster)](https://github.com/agbrs/agb/actions/workflows/build-and-test.yml)
+[![Licence](https://img.shields.io/crates/l/agb)](https://www.mozilla.org/en-US/MPL/2.0/)
+[![Crates.io](https://img.shields.io/crates/v/agb)](https://crates.io/crates/agb)
+
 ![AGB logo](.github/logo.png)
 
 This is a library for making games on the Game Boy Advance using the Rust
