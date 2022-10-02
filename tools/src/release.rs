@@ -42,19 +42,35 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
     }
 
     let project_toml_files = glob_many(&root_directory, &["agb-*/Cargo.toml"])?;
+    let agb_cargo_toml = root_directory.join("agb/Cargo.toml");
 
-    update_to_version(
-        &root_directory,
-        &root_directory.join("agb/Cargo.toml"),
-        version,
-    )?;
+    update_to_version(&root_directory, &agb_cargo_toml, version)?;
 
-    for toml_file in project_toml_files {
-        update_to_version(&root_directory, &toml_file, version)?;
+    for toml_file in &project_toml_files {
+        update_to_version(&root_directory, toml_file, version)?;
+    }
+
+    for toml_file in project_toml_files
+        .iter()
+        .chain(std::iter::once(&agb_cargo_toml))
+    {
+        let directory_name = toml_file.parent().unwrap();
+
+        println!(
+            "Running cargo update in {}",
+            directory_name.to_string_lossy()
+        );
+
+        Command::new("cargo")
+            .arg("update")
+            .current_dir(directory_name)
+            .output()
+            .map_err(|_| Error::CargoUpdateFailed)?;
     }
 
     Command::new("just")
         .arg("ci")
+        .current_dir(&root_directory)
         .spawn()
         .map_err(|_| Error::JustCiFailed)?
         .wait()
@@ -174,6 +190,7 @@ pub enum Error {
     InvalidToml(String),
     WriteTomlFile,
     JustCiFailed,
+    CargoUpdateFailed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
