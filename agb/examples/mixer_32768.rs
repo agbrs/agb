@@ -7,7 +7,7 @@ use agb::{
         Font, Priority,
     },
     include_font, include_wav,
-    sound::mixer::SoundChannel,
+    sound::mixer::{Frequency, SoundChannel},
     Gba,
 };
 
@@ -40,7 +40,7 @@ fn main(mut gba: Gba) -> ! {
     let mut timer = timer_controller.timer2;
     timer.set_enabled(true);
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
     let _interrupt = mixer.setup_interrupt_handler();
 

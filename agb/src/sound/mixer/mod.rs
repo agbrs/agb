@@ -138,8 +138,8 @@ impl MixerController {
     }
 
     /// Get a [`Mixer`] in order to start producing sounds.
-    pub fn mixer(&mut self) -> Mixer {
-        Mixer::new()
+    pub fn mixer(&mut self, frequency: Frequency) -> Mixer {
+        Mixer::new(frequency)
     }
 }
 
@@ -147,6 +147,44 @@ impl MixerController {
 enum SoundPriority {
     High,
     Low,
+}
+
+/// The supported frequencies within AGB. These are chosen to work well with
+/// the hardware. Note that the higher the frequency, the better the quality of
+/// the sound but the more CPU time sound mixing will take.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Frequency {
+    /// 10512Hz
+    Hz10512,
+    /// 18157Hz
+    Hz18157,
+    /// 32768Hz - note that this option requires the timer to do the buffer swapping
+    Hz32768,
+}
+
+// These work perfectly with swapping the buffers every vblank
+// list here: http://deku.gbadev.org/program/sound1.html
+impl Frequency {
+    pub(crate) fn frequency(self) -> i32 {
+        use Frequency::*;
+
+        match self {
+            Hz10512 => 10512,
+            Hz18157 => 18157,
+            Hz32768 => 32768,
+        }
+    }
+
+    pub(crate) fn buffer_size(self) -> usize {
+        use Frequency::*;
+
+        match self {
+            Hz10512 => 176,
+            Hz18157 => 18157,
+            Hz32768 => 32768,
+        }
+    }
 }
 
 /// Describes one sound which should be playing. This could be a sound effect or

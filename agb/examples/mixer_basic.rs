@@ -3,7 +3,7 @@
 
 use agb::fixnum::Num;
 use agb::input::{Button, ButtonController, Tri};
-use agb::sound::mixer::SoundChannel;
+use agb::sound::mixer::{Frequency, SoundChannel};
 use agb::{fixnum::num, include_wav, Gba};
 
 // Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
@@ -14,7 +14,7 @@ fn main(mut gba: Gba) -> ! {
     let mut input = ButtonController::new();
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
     mixer.enable();
 
     let channel = SoundChannel::new(DEAD_CODE);
