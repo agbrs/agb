@@ -61,20 +61,20 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
             directory_name.to_string_lossy()
         );
 
-        Command::new("cargo")
+        assert!(Command::new("cargo")
             .arg("update")
             .current_dir(directory_name)
-            .output()
-            .map_err(|_| Error::CargoUpdateFailed)?;
+            .status()
+            .map_err(|_| Error::CargoUpdateFailed)?
+            .success());
     }
 
-    Command::new("just")
+    assert!(Command::new("just")
         .arg("ci")
         .current_dir(&root_directory)
-        .spawn()
+        .status()
         .map_err(|_| Error::JustCiFailed)?
-        .wait()
-        .map_err(|_| Error::JustCiFailed)?;
+        .success());
 
     if !dry_run {
         execute_git_command(
@@ -165,6 +165,8 @@ fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, E
         .current_dir(root_directory)
         .output()
         .map_err(|_| Error::Git("Failed to run command"))?;
+
+    assert!(git_cmd.status.success());
 
     String::from_utf8(git_cmd.stdout).map_err(|_| Error::Git("Output not utf-8"))
 }
