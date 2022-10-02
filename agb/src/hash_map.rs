@@ -1263,6 +1263,22 @@ mod test {
         drop_registry.assert_dropped_n_times(id1, 2);
     }
 
+    #[test_case]
+    fn test_retain(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..100 {
+            map.insert(i, i);
+        }
+
+        map.retain(|k, _| k % 2 == 0);
+
+        assert_eq!(map[&2], 2);
+        assert_eq!(map.get(&3), None);
+
+        assert_eq!(map.iter().count(), 50); // force full iteration
+    }
+
     // Following test cases copied from the rust source
     // https://github.com/rust-lang/rust/blob/master/library/std/src/collections/hash/map/tests.rs
     mod rust_std_tests {
