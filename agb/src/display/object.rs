@@ -741,6 +741,8 @@ impl ObjectController {
                 }
             }
         }
+
+        s.sprite_controller.gc();
     }
 
     pub(crate) fn new() -> Self {
@@ -1184,6 +1186,12 @@ impl SpriteControllerInner {
         self.static_sprite_map.insert(id, Rc::downgrade(&sprite.0));
 
         Some(SpriteBorrow { sprite })
+    }
+
+    /// Cleans up weak references to sprites and palettes no longer in vram
+    fn gc(&mut self) {
+        self.static_palette_map.retain(|_, v| v.strong_count() != 0);
+        self.static_sprite_map.retain(|_, v| v.strong_count() != 0);
     }
 
     fn new() -> Self {

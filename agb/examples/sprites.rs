@@ -46,9 +46,8 @@ fn all_sprites(gfx: &ObjectController) {
         if count % 5 == 0 {
             image += 1;
             image %= SPRITES.len();
-            let objs_len = objs.len();
             for (i, obj) in objs.iter_mut().enumerate() {
-                let this_image = (image + i * SPRITES.len() / objs_len) % SPRITES.len();
+                let this_image = (image + i) % SPRITES.len();
                 obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
             }
             gfx.commit();
