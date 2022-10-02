@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for the blend mode of the GBA. Blending allows for alpha blending between layers and fading to black and white.
 - Added a new agb::sync module that contains GBA-specific synchronization primitives.
 - Added support for save files.
+- Added implementation of `HashMap.retain()`.
 
 ### Changes
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
