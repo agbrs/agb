@@ -351,6 +351,10 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
             }
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.map.len(), Some(self.map.len()))
+    }
 }
 
 impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, ALLOCATOR> {
@@ -387,6 +391,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
                 return Some((k, v));
             }
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.map.len(), Some(self.map.len()))
     }
 }
 
