@@ -196,6 +196,14 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
         self.nodes.nodes.iter_mut().filter_map(Node::key_value_mut)
     }
 
+    /// Retains only the elements specified by the predicate `f`.
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        self.nodes.retain(f);
+    }
+
     /// Returns `true` if the map contains no elements
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -735,6 +743,27 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
         self.number_of_items += 1;
         inserted_location
+    }
+
+    fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        let num_nodes = self.nodes.len();
+        let mut i = 0;
+
+        while i < num_nodes {
+            let node = &mut self.nodes[i];
+
+            if let Some((k, v)) = node.key_value_mut() {
+                if !f(k, v) {
+                    self.remove_from_location(i);
+                    continue;
+                }
+            }
+
+            i += 1;
+        }
     }
 
     fn remove_from_location(&mut self, location: usize) -> V {
@@ -1440,6 +1469,22 @@ mod test {
             map.insert(3, 4);
 
             assert_eq!(map[&2], 1);
+        }
+
+        #[test_case]
+        fn test_retain(_gba: &mut Gba) {
+            let mut map = HashMap::new();
+
+            for i in 0..100 {
+                map.insert(i, i);
+            }
+
+            map.retain(|k, _| k % 2 == 0);
+
+            assert_eq!(map[&2], 2);
+            assert_eq!(map.get(&3), None);
+
+            assert_eq!(map.iter().count(), 50); // force full iteration
         }
     }
 }
