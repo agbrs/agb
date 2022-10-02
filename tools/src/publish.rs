@@ -62,13 +62,12 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
             if *dry_run {
                 println!("Would execute cargo publish for {publishable_crate}");
             } else {
-                Command::new("cargo")
+                assert!(Command::new("cargo")
                     .arg("publish")
                     .current_dir(&root_directory.join(publishable_crate))
-                    .spawn()
+                    .status()
                     .map_err(|_| Error::PublishCrate)?
-                    .wait()
-                    .map_err(|_| Error::PublishCrate)?;
+                    .success());
             }
 
             published_crates.insert(publishable_crate.to_string());
