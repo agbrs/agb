@@ -164,7 +164,6 @@ mod memory_mapped;
 pub mod mgba;
 #[doc(inline)]
 pub use agb_fixnum as fixnum;
-pub mod arena;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
 pub mod hash_map;
 /// Simple random number generator
