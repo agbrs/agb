@@ -69,12 +69,16 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
             .success());
     }
 
-    assert!(Command::new("just")
-        .arg("ci")
-        .current_dir(&root_directory)
-        .status()
-        .map_err(|_| Error::JustCiFailed)?
-        .success());
+    // assert!(Command::new("just")
+    //     .arg("ci")
+    //     .current_dir(&root_directory)
+    //     .status()
+    //     .map_err(|_| Error::JustCiFailed)?
+    //     .success());
+
+    let changelog_text = update_changelog(&root_directory, version)?;
+
+    println!("Content of changelog:\n\n{changelog_text}");
 
     if !dry_run {
         execute_git_command(
@@ -159,6 +163,45 @@ fn update_to_version(
     Ok(())
 }
 
+fn update_changelog(root_directory: &Path, new_version: &Version) -> Result<String, Error> {
+    use chrono::Datelike;
+
+    let changelog_file = root_directory.join("CHANGELOG.md");
+    let changelog_content =
+        std::fs::read_to_string(&changelog_file).map_err(|_| Error::FailedToReadChangelog)?;
+
+    let today = chrono::Local::today();
+    let formatted_date = format!(
+        "{:04}/{:02}/{:02}",
+        today.year(),
+        today.month(),
+        today.day()
+    );
+
+    const UNRELEASED_HEADER: &str = "## [Unreleased]";
+
+    let unreleased_bit_start = changelog_content
+        .find(UNRELEASED_HEADER)
+        .ok_or(Error::FailedToParseChangelog)?
+        + UNRELEASED_HEADER.len();
+    let unreleased_bit_end = changelog_content
+        .find("\n## [") // the start of the next entry
+        .ok_or(Error::FailedToParseChangelog)?;
+
+    let change_content = changelog_content[unreleased_bit_start..unreleased_bit_end].to_owned();
+
+    let changelog_content = changelog_content.replacen(
+        UNRELEASED_HEADER,
+        &format!("{UNRELEASED_HEADER}\n\n## [{new_version}] - {formatted_date}"),
+        1,
+    );
+
+    std::fs::write(&changelog_file, &changelog_content)
+        .map_err(|_| Error::FailedToWriteChangelog)?;
+
+    Ok(change_content)
+}
+
 fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, Error> {
     let git_cmd = Command::new("git")
         .args(args)
@@ -193,6 +236,9 @@ pub enum Error {
     WriteTomlFile,
     JustCiFailed,
     CargoUpdateFailed,
+    FailedToReadChangelog,
+    FailedToWriteChangelog,
+    FailedToParseChangelog,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
