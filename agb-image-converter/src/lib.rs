@@ -72,7 +72,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let images = config.images();
 
-    let mut optimiser = Palette16Optimiser::new(None);
+    let mut optimiser = Palette16Optimiser::new(config.transparent_colour());
     let mut assignment_offsets = HashMap::new();
     let mut assignment_offset = 0;
 
@@ -93,7 +93,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
                     &mut optimiser,
                     &image,
                     tile_size,
-                    settings.transparent_colour(),
+                    config.transparent_colour(),
                 );
 
                 let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
