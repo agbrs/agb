@@ -2,6 +2,7 @@ use core::{alloc::Layout, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
+use crate::display::tiled::Tile;
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
@@ -22,18 +23,22 @@ static TILE_ALLOCATOR: BlockAllocator = unsafe {
     })
 };
 
-const TILE_LAYOUT: Layout = unsafe { Layout::from_size_align_unchecked(8 * 8 / 2, 8 * 8 / 2) };
+const fn layout_of(format: TileFormat) -> Layout {
+    unsafe { Layout::from_size_align_unchecked(format.tile_size(), format.tile_size()) }
+}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileFormat {
     FourBpp,
+    EightBpp,
 }
 
 impl TileFormat {
     /// Returns the size of the tile in bytes
-    fn tile_size(self) -> usize {
+    pub(crate) const fn tile_size(self) -> usize {
         match self {
             TileFormat::FourBpp => 8 * 8 / 2,
+            TileFormat::EightBpp => 8 * 8,
         }
     }
 }
@@ -55,15 +60,50 @@ impl<'a> TileSet<'a> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct TileIndex(u16);
+pub enum TileIndex {
+    FourBpp(u16),
+    EightBpp(u8),
+}
 
 impl TileIndex {
-    pub(crate) const fn new(index: usize) -> Self {
-        Self(index as u16)
+    pub(crate) const fn new(index: usize, format: TileFormat) -> Self {
+        match format {
+            TileFormat::FourBpp => Self::FourBpp(index as u16),
+            TileFormat::EightBpp => Self::EightBpp(index as u8),
+        }
     }
 
-    pub(crate) const fn index(self) -> u16 {
-        self.0
+    pub(crate) const fn raw_index(self) -> u16 {
+        match self {
+            TileIndex::FourBpp(x) => x,
+            TileIndex::EightBpp(x) => x as u16,
+        }
+    }
+
+    pub(crate) const fn format(self) -> TileFormat {
+        match self {
+            TileIndex::FourBpp(_) => TileFormat::FourBpp,
+            TileIndex::EightBpp(_) => TileFormat::EightBpp,
+        }
+    }
+
+    fn refcount_key(self) -> usize {
+        match self {
+            TileIndex::FourBpp(x) => x as usize,
+            TileIndex::EightBpp(x) => x as usize * 2,
+        }
+    }
+}
+
+impl From<Tile> for TileIndex {
+    fn from(tile: Tile) -> Self {
+        tile.tile_index()
+    }
+}
+
+impl From<u8> for TileIndex {
+    fn from(index: u8) -> TileIndex {
+        TileIndex::new(usize::from(index), TileFormat::EightBpp)
     }
 }
 
@@ -159,7 +199,7 @@ impl DynamicTile<'_> {
     #[must_use]
     pub fn tile_index(&self) -> u16 {
         let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
-        (difference / (8 * 8 / 2)) as u16
+        (difference / TileFormat::FourBpp.tile_size()) as u16
     }
 }
 
@@ -182,24 +222,27 @@ impl VRamManager {
         }
     }
 
-    fn index_from_reference(reference: TileReference) -> usize {
+    fn index_from_reference(reference: TileReference, format: TileFormat) -> TileIndex {
         let difference = reference.0.as_ptr() as usize - TILE_RAM_START;
-        difference / (8 * 8 / 2)
+        TileIndex::new(difference / format.tile_size(), format)
     }
 
     fn reference_from_index(index: TileIndex) -> TileReference {
-        let ptr = (index.index() * (8 * 8 / 2)) as usize + TILE_RAM_START;
+        let ptr = (index.raw_index() as usize * index.format().tile_size()) + TILE_RAM_START;
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
     #[must_use]
     pub fn new_dynamic_tile<'a>(&mut self) -> DynamicTile<'a> {
+        // TODO: format param?
         let tile_format = TileFormat::FourBpp;
-        let new_reference: NonNull<u32> =
-            unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
+        let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
+            .unwrap()
+            .cast();
         let tile_reference = TileReference(new_reference);
 
-        let index = Self::index_from_reference(tile_reference);
+        let index = Self::index_from_reference(tile_reference, tile_format);
+        let key = index.refcount_key();
 
         let tiles = unsafe {
             slice::from_raw_parts_mut(TILE_RAM_START as *mut u8, 1024 * tile_format.tile_size())
@@ -208,23 +251,21 @@ impl VRamManager {
         let tile_set = TileSet::new(tiles, tile_format);
 
         self.tile_set_to_vram.insert(
-            TileInTileSetReference::new(&tile_set, index as u16),
+            TileInTileSetReference::new(&tile_set, index.raw_index()),
             tile_reference,
         );
 
-        self.reference_counts.resize(
-            self.reference_counts.len().max(index + 1),
-            Default::default(),
-        );
-        self.reference_counts[index] =
-            TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index as u16));
+        self.reference_counts
+            .resize(self.reference_counts.len().max(key + 1), Default::default());
+        self.reference_counts[key] =
+            TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index.raw_index()));
 
         DynamicTile {
             tile_data: unsafe {
                 slice::from_raw_parts_mut(
                     tiles
                         .as_mut_ptr()
-                        .add(index * tile_format.tile_size())
+                        .add(index.raw_index() as usize * tile_format.tile_size())
                         .cast(),
                     tile_format.tile_size() / core::mem::size_of::<u32>(),
                 )
@@ -238,8 +279,9 @@ impl VRamManager {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_mut_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
-        let tile_index = Self::index_from_reference(tile_reference);
-        self.remove_tile(TileIndex::new(tile_index));
+        // TODO: dynamic_tile.format?
+        let tile_index = Self::index_from_reference(tile_reference, TileFormat::FourBpp);
+        self.remove_tile(tile_index);
     }
 
     pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
@@ -248,37 +290,39 @@ impl VRamManager {
             .get(&TileInTileSetReference::new(tile_set, tile));
 
         if let Some(reference) = reference {
-            let index = Self::index_from_reference(*reference);
-            self.reference_counts[index].increment_reference_count();
-            return TileIndex::new(index);
+            let tile_index = Self::index_from_reference(*reference, tile_set.format);
+            let key = tile_index.refcount_key();
+            self.reference_counts[key].increment_reference_count();
+            return tile_index;
         }
 
         let new_reference: NonNull<u32> =
-            unsafe { TILE_ALLOCATOR.alloc(TILE_LAYOUT) }.unwrap().cast();
+            unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
+                .unwrap()
+                .cast();
         let tile_reference = TileReference(new_reference);
 
         self.copy_tile_to_location(tile_set, tile, tile_reference);
 
-        let index = Self::index_from_reference(tile_reference);
+        let index = Self::index_from_reference(tile_reference, tile_set.format);
+        let key = index.refcount_key();
 
         self.tile_set_to_vram
             .insert(TileInTileSetReference::new(tile_set, tile), tile_reference);
 
-        self.reference_counts.resize(
-            self.reference_counts.len().max(index + 1),
-            Default::default(),
-        );
+        self.reference_counts
+            .resize(self.reference_counts.len().max(key + 1), Default::default());
 
-        self.reference_counts[index] =
+        self.reference_counts[key] =
             TileReferenceCount::new(TileInTileSetReference::new(tile_set, tile));
 
-        TileIndex::new(index)
+        index
     }
 
     pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
-        let index = tile_index.index() as usize;
+        let key = tile_index.refcount_key();
 
-        let new_reference_count = self.reference_counts[index].decrement_reference_count();
+        let new_reference_count = self.reference_counts[key].decrement_reference_count();
 
         if new_reference_count != 0 {
             return;
@@ -289,23 +333,26 @@ impl VRamManager {
 
     pub(crate) fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
-            let index = tile_index.index() as usize;
-            if self.reference_counts[index].current_count() > 0 {
+            let key = tile_index.refcount_key();
+            if self.reference_counts[key].current_count() > 0 {
                 continue; // it has since been added back
             }
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
-                TILE_ALLOCATOR.dealloc_no_normalise(tile_reference.0.cast().as_ptr(), TILE_LAYOUT);
+                TILE_ALLOCATOR.dealloc_no_normalise(
+                    tile_reference.0.cast().as_ptr(),
+                    layout_of(tile_index.format()),
+                );
             }
 
-            let tile_ref = self.reference_counts[index]
+            let tile_ref = self.reference_counts[key]
                 .tile_in_tile_set
                 .as_ref()
                 .unwrap();
 
             self.tile_set_to_vram.remove(tile_ref);
-            self.reference_counts[index].clear();
+            self.reference_counts[key].clear();
         }
     }
 
@@ -316,6 +363,11 @@ impl VRamManager {
         target_tile_set: &TileSet<'_>,
         target_tile: u16,
     ) {
+        assert_eq!(
+            source_tile_set.format, target_tile_set.format,
+            "Must replace a tileset with the same format"
+        );
+
         if let Some(&reference) = self
             .tile_set_to_vram
             .get(&TileInTileSetReference::new(source_tile_set, source_tile))

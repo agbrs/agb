@@ -2,7 +2,7 @@ use crate::sfx::Sfx;
 use crate::{
     graphics::SELECT_BOX, level_generation::generate_attack, Agb, EnemyAttackType, Face, PlayerDice,
 };
-use agb::display::tiled::RegularMap;
+use agb::display::tiled::{RegularMap, TiledMap};
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -488,7 +488,7 @@ pub(crate) fn battle_screen(
     agb.sfx.battle();
     agb.sfx.frame();
 
-    help_background.set_scroll_pos((u16::MAX - 16, u16::MAX - 97).into());
+    help_background.set_scroll_pos((-16i16, -97i16).into());
     crate::background::load_help_text(&mut agb.vram, help_background, 1, (0, 0));
     crate::background::load_help_text(&mut agb.vram, help_background, 2, (0, 1));
 

@@ -18,7 +18,7 @@ use super::{Priority, DISPLAY_CONTROL};
 use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::dma;
-use crate::fixnum::Vector2D;
+use crate::fixnum::{Num, Vector2D};
 use crate::hash_map::HashMap;
 
 use attributes::*;
@@ -776,7 +776,7 @@ impl ObjectController {
 
         attrs.a2.set_tile_index(sprite.sprite_location);
         let shape_size = sprite.id.sprite().size.shape_size();
-        attrs.a2.set_palete_bank(sprite.palette_location as u8);
+        attrs.a2.set_palette_bank(sprite.palette_location as u8);
         attrs.a0.set_shape(shape_size.0);
         attrs.a1a.set_size(shape_size.1);
         attrs.a1s.set_size(shape_size.1);
@@ -877,7 +877,7 @@ impl<'a> Object<'a> {
         object_inner
             .attrs
             .a2
-            .set_palete_bank(sprite.palette_location as u8);
+            .set_palette_bank(sprite.palette_location as u8);
         object_inner.attrs.a0.set_shape(shape_size.0);
         object_inner.attrs.a1a.set_size(shape_size.1);
         object_inner.attrs.a1s.set_size(shape_size.1);
@@ -1193,6 +1193,42 @@ enum ColourMode {
     Eight,
 }
 
+/// The parameters used for the PPU's affine transformation function
+/// that can apply to objects and background layers in modes 1 and 2.
+/// This can be obtained from X/Y scale and rotation angle with
+/// [`agb::syscall::affine_matrix`].
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(C, packed(4))]
+pub struct AffineMatrixAttributes {
+    /// Adjustment made to *X* coordinate when drawing *horizontal* lines.
+    /// Also known as "dx".
+    /// Typically computed as `x_scale * cos(angle)`.
+    pub p_a: Num<i16, 8>,
+    /// Adjustment made to *X* coordinate along *vertical* lines.
+    /// Also known as "dmx".
+    /// Typically computed as `y_scale * sin(angle)`.
+    pub p_b: Num<i16, 8>,
+    /// Adjustment made to *Y* coordinate along *horizontal* lines.
+    /// Also known as "dy".
+    /// Typically computed as `-x_scale * sin(angle)`.
+    pub p_c: Num<i16, 8>,
+    /// Adjustment made to *Y* coordinate along *vertical* lines.
+    /// Also known as "dmy".
+    /// Typically computed as `y_scale * cos(angle)`.
+    pub p_d: Num<i16, 8>,
+}
+
+impl Default for AffineMatrixAttributes {
+    fn default() -> Self {
+        Self {
+            p_a: 1.into(),
+            p_b: Default::default(),
+            p_c: Default::default(),
+            p_d: 1.into(),
+        }
+    }
+}
+
 // this mod is not public, so the internal parts don't need documenting.
 #[allow(dead_code)]
 mod attributes {
@@ -1232,7 +1268,7 @@ mod attributes {
     pub(super) struct ObjectAttribute2 {
         pub tile_index: B10,
         pub priority: Priority,
-        pub palete_bank: B4,
+        pub palette_bank: B4,
     }
 }
 

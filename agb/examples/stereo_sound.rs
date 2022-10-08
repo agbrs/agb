@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularMap, TileSetting, VRamManager},
+        tiled::{RegularBackgroundSize, RegularMap, TileSetting, TiledMap, VRamManager},
         Font, Priority,
     },
     include_font, include_wav,

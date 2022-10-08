@@ -1,6 +1,6 @@
 use super::sfx::MusicBox;
 use agb::{
-    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager},
+    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager},
     sound::mixer::Mixer,
 };
 
@@ -18,21 +18,14 @@ pub fn show_splash_screen(
     map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
-    map.set_scroll_pos((0u16, 0u16).into());
-    let (tileset, palette) = match which {
-        SplashScreen::Start => {
-            let tileset = TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp);
+    map.set_scroll_pos((0i16, 0i16).into());
+    let tileset = match which {
+        SplashScreen::Start => TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp),
 
-            (tileset, splash_screens::splash.palettes)
-        }
-        SplashScreen::End => {
-            let tileset = TileSet::new(
-                splash_screens::thanks_for_playing.tiles,
-                TileFormat::FourBpp,
-            );
-
-            (tileset, splash_screens::thanks_for_playing.palettes)
-        }
+        SplashScreen::End => TileSet::new(
+            splash_screens::thanks_for_playing.tiles,
+            TileFormat::FourBpp,
+        ),
     };
 
     let vblank = agb::interrupt::VBlank::get();
@@ -77,7 +70,7 @@ pub fn show_splash_screen(
     }
 
     map.commit(vram);
-    vram.set_background_palettes(palette);
+    vram.set_background_palettes(splash_screens::PALETTES);
     map.show();
 
     loop {

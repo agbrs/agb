@@ -1,10 +1,12 @@
-use palette16::Palette16OptimisationResults;
+use palette16::{Palette16OptimisationResults, Palette16Optimiser};
+use palette256::Palette256;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::Parser;
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
 use syn::{Expr, ExprLit, Lit};
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{iter, path::Path, str};
 
@@ -16,6 +18,7 @@ mod config;
 mod font_loader;
 mod image_loader;
 mod palette16;
+mod palette256;
 mod rust_generator;
 
 use image::GenericImageView;
@@ -28,6 +31,11 @@ pub(crate) enum TileSize {
     Tile8,
     Tile16,
     Tile32,
+}
+
+pub(crate) enum Colours {
+    Colours16,
+    Colours256,
 }
 
 impl TileSize {
@@ -63,13 +71,70 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let include_path = path.to_string_lossy();
 
     let images = config.images();
-    let image_code = images.iter().map(|(image_name, &image)| {
-        convert_image(image, parent, image_name, &config.crate_prefix())
-    });
+
+    let mut optimiser = Palette16Optimiser::new(config.transparent_colour());
+    let mut assignment_offsets = HashMap::new();
+    let mut assignment_offset = 0;
+
+    let mut palette256 = Palette256::new();
+
+    for (name, settings) in images.iter() {
+        let image_filename = &parent.join(&settings.filename());
+        let image = Image::load_from_file(image_filename);
+
+        match settings.colours() {
+            Colours::Colours16 => {
+                let tile_size = settings.tilesize().to_size();
+                if image.width % tile_size != 0 || image.height % tile_size != 0 {
+                    panic!("Image size not a multiple of tile size");
+                }
+
+                add_to_optimiser(
+                    &mut optimiser,
+                    &image,
+                    tile_size,
+                    config.transparent_colour(),
+                );
+
+                let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
+                assignment_offsets.insert(name, assignment_offset);
+                assignment_offset += num_tiles;
+            }
+            Colours::Colours256 => {
+                palette256.add_image(&image);
+            }
+        }
+    }
+
+    let optimisation_results = optimiser.optimise_palettes();
+    let optimisation_results = palette256.extend_results(&optimisation_results);
+
+    let mut image_code = vec![];
+
+    for (image_name, &image) in images.iter() {
+        let assignment_offset = match image.colours() {
+            Colours::Colours16 => Some(assignment_offsets[image_name]),
+            _ => None,
+        };
+
+        image_code.push(convert_image(
+            image,
+            parent,
+            image_name,
+            &config.crate_prefix(),
+            &optimisation_results,
+            assignment_offset,
+        ));
+    }
+
+    let palette_code =
+        rust_generator::generate_palette_code(&optimisation_results, &config.crate_prefix());
 
     let module = quote! {
         mod #module_name {
             const _: &[u8] = include_bytes!(#include_path);
+
+            #palette_code
 
             #(#image_code)*
         }
@@ -132,7 +197,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
 
     let optimised_results = optimiser.optimise_palettes();
 
-    let (palette_data, tile_data, assignments) = palete_tile_data(&optimised_results, &images);
+    let (palette_data, tile_data, assignments) = palette_tile_data(&optimised_results, &images);
 
     let palette_data = palette_data.iter().map(|colours| {
         quote! {
@@ -212,36 +277,21 @@ fn convert_image(
     parent: &Path,
     variable_name: &str,
     crate_prefix: &str,
+    optimisation_results: &Palette16OptimisationResults,
+    assignment_offset: Option<usize>,
 ) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(&settings.filename());
     let image = Image::load_from_file(image_filename);
 
-    let tile_size = settings.tilesize().to_size();
-    if image.width % tile_size != 0 || image.height % tile_size != 0 {
-        panic!("Image size not a multiple of tile size");
-    }
-
-    let optimiser = optimiser_for_image(&image, tile_size, settings.transparent_colour());
-    let optimisation_results = optimiser.optimise_palettes();
-
     rust_generator::generate_code(
         variable_name,
-        &optimisation_results,
+        optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
         settings.tilesize(),
         crate_prefix.to_owned(),
+        assignment_offset,
     )
-}
-
-fn optimiser_for_image(
-    image: &Image,
-    tile_size: usize,
-    transparent_colour: Option<Colour>,
-) -> palette16::Palette16Optimiser {
-    let mut palette_optimiser = palette16::Palette16Optimiser::new(transparent_colour);
-    add_to_optimiser(&mut palette_optimiser, image, tile_size, transparent_colour);
-    palette_optimiser
 }
 
 fn add_to_optimiser(
@@ -273,7 +323,7 @@ fn add_to_optimiser(
     }
 }
 
-fn palete_tile_data(
+fn palette_tile_data(
     optimiser: &Palette16OptimisationResults,
     images: &[Image],
 ) -> (Vec<Vec<u16>>, Vec<u8>, Vec<usize>) {
@@ -293,41 +343,87 @@ fn palete_tile_data(
         .collect();
 
     let mut tile_data = Vec::new();
+    let tile_size = TileSize::Tile8;
 
     for image in images {
-        let tile_size = 8;
-        let tiles_x = image.width / tile_size;
-        let tiles_y = image.height / tile_size;
+        add_image_to_tile_data(&mut tile_data, image, tile_size, optimiser, 0)
+    }
 
-        for y in 0..tiles_y {
-            for x in 0..tiles_x {
-                let palette_index = optimiser.assignments[y * tiles_x + x];
-                let palette = &optimiser.optimised_palettes[palette_index];
+    let tile_data = collapse_to_4bpp(&tile_data);
 
-                for inner_y in 0..tile_size / 8 {
-                    for inner_x in 0..tile_size / 8 {
-                        for j in inner_y * 8..inner_y * 8 + 8 {
-                            for i in inner_x * 8..inner_x * 8 + 8 {
-                                let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                                tile_data.push(
-                                    palette.colour_index(colour, optimiser.transparent_colour),
-                                );
-                            }
+    let assignments = optimiser.assignments.clone();
+
+    (palette_data, tile_data, assignments)
+}
+
+fn collapse_to_4bpp(tile_data: &[u8]) -> Vec<u8> {
+    tile_data
+        .chunks(2)
+        .map(|chunk| chunk[0] | (chunk[1] << 4))
+        .collect()
+}
+
+fn add_image_to_tile_data(
+    tile_data: &mut Vec<u8>,
+    image: &Image,
+    tile_size: TileSize,
+    optimiser: &Palette16OptimisationResults,
+    assignment_offset: usize,
+) {
+    let tile_size = tile_size.to_size();
+    let tiles_x = image.width / tile_size;
+    let tiles_y = image.height / tile_size;
+
+    for y in 0..tiles_y {
+        for x in 0..tiles_x {
+            let palette_index = optimiser.assignments[y * tiles_x + x + assignment_offset];
+            let palette = &optimiser.optimised_palettes[palette_index];
+
+            for inner_y in 0..tile_size / 8 {
+                for inner_x in 0..tile_size / 8 {
+                    for j in inner_y * 8..inner_y * 8 + 8 {
+                        for i in inner_x * 8..inner_x * 8 + 8 {
+                            let colour = image.colour(x * tile_size + i, y * tile_size + j);
+                            tile_data
+                                .push(palette.colour_index(colour, optimiser.transparent_colour));
                         }
                     }
                 }
             }
         }
     }
+}
 
-    let tile_data = tile_data
-        .chunks(2)
-        .map(|chunk| chunk[0] | (chunk[1] << 4))
+fn add_image_256_to_tile_data(
+    tile_data: &mut Vec<u8>,
+    image: &Image,
+    tile_size: TileSize,
+    optimiser: &Palette16OptimisationResults,
+) {
+    let tile_size = tile_size.to_size();
+    let tiles_x = image.width / tile_size;
+    let tiles_y = image.height / tile_size;
+
+    let all_colours: Vec<_> = optimiser
+        .optimised_palettes
+        .iter()
+        .flat_map(|p| p.colours())
         .collect();
 
-    let assignments = optimiser.assignments.clone();
-
-    (palette_data, tile_data, assignments)
+    for y in 0..tiles_y {
+        for x in 0..tiles_x {
+            for inner_y in 0..tile_size / 8 {
+                for inner_x in 0..tile_size / 8 {
+                    for j in inner_y * 8..inner_y * 8 + 8 {
+                        for i in inner_x * 8..inner_x * 8 + 8 {
+                            let colour = image.colour(x * tile_size + i, y * tile_size + j);
+                            tile_data.push(all_colours.iter().position(|c| **c == colour).unwrap() as u8);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn flatten_group(expr: &Expr) -> &Expr {

@@ -11,7 +11,7 @@ use agb::{
         object::{Graphics, Object, ObjectController, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
-            TileSetting, VRamManager,
+            TileSetting, TiledMap, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
@@ -786,7 +786,7 @@ fn agb_main(mut gba: agb::Gba) -> ! {
 
 pub fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
-    vram.set_background_palettes(tile_sheet::background.palettes);
+    vram.set_background_palettes(tile_sheet::PALETTES);
     let mut splash_screen = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
     let mut world_display = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
 
@@ -818,7 +818,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
         world_display.commit(&mut vram);
         world_display.show();
 
-        vram.set_background_palettes(tile_sheet::background.palettes);
+        vram.set_background_palettes(tile_sheet::PALETTES);
 
         let object = agb.display.object.get();
         let mut mixer = agb.mixer.mixer(Frequency::Hz10512);

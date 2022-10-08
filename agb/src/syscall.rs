@@ -1,11 +1,14 @@
+use agb_fixnum::Vector2D;
 use core::arch::asm;
+use core::mem::MaybeUninit;
 
-// use crate::display::object::AffineMatrixAttributes;
+use crate::display::object::AffineMatrixAttributes;
+use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
 
 const fn swi_map(thumb_id: u32) -> u32 {
-    if cfg!(target_feature="thumb-mode") {
+    if cfg!(target_feature = "thumb-mode") {
         thumb_id
     } else {
         thumb_id << 16
@@ -136,55 +139,125 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-// pub fn affine_matrix(
-//     x_scale: Num<i16, 8>,
-//     y_scale: Num<i16, 8>,
-//     rotation: u8,
-// ) -> AffineMatrixAttributes {
-//     let mut result = AffineMatrixAttributes {
-//         p_a: 0,
-//         p_b: 0,
-//         p_c: 0,
-//         p_d: 0,
-//     };
+#[repr(C, packed(4))]
+pub struct BgAffineSetData {
+    pub matrix: AffineMatrixAttributes,
+    pub position: Vector2D<Num<i32, 8>>,
+}
+impl Default for BgAffineSetData {
+    fn default() -> Self {
+        Self {
+            matrix: AffineMatrixAttributes::default(),
+            position: (0, 0).into(),
+        }
+    }
+}
 
-//     #[allow(dead_code)]
-//     #[repr(C, packed)]
-//     struct Input {
-//         x_scale: i16,
-//         y_scale: i16,
-//         rotation: u16,
-//     }
+/// `rotation` is in revolutions.
+#[must_use]
+pub fn bg_affine_matrix(
+    bg_center: Vector2D<Num<i32, 8>>,
+    display_center: Vector2D<i16>,
+    scale: Vector2D<Num<i16, 8>>,
+    rotation: Num<u16, 8>,
+) -> BgAffineSetData {
+    #[repr(C, packed(4))]
+    struct Input {
+        bg_center: Vector2D<Num<i32, 8>>,
+        display_center: Vector2D<i16>,
+        scale: Vector2D<Num<i16, 8>>,
+        rotation: Num<u16, 8>,
+    }
 
-//     let input = Input {
-//         y_scale: x_scale.to_raw(),
-//         x_scale: y_scale.to_raw(),
-//         rotation: rotation as u16,
-//     };
+    let input = Input {
+        bg_center,
+        display_center,
+        scale,
+        rotation,
+    };
 
-//     unsafe {
-//         asm!("swi 0x0F",
-//             in("r0") &input as *const Input as usize,
-//             in("r1") &mut result as *mut AffineMatrixAttributes as usize,
-//             in("r2") 1,
-//             in("r3") 2,
-//         )
-//     }
+    let mut output = MaybeUninit::uninit();
 
-//     result
-// }
+    unsafe {
+        asm!(
+            "swi {SWI}",
+            SWI = const { swi_map(0x0E) },
+            in("r0") &input as *const Input,
+            in("r1") output.as_mut_ptr(),
+            in("r2") 1,
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+            clobber_abi("C")
+        );
+    }
 
-//     #[test_case]
-//     fn affine(_gba: &mut crate::Gba) {
-//         // expect identity matrix
-//         let one: Num<i16, 8> = 1.into();
+    unsafe { output.assume_init() }
+}
 
-//         let aff = affine_matrix(one, one, 0);
-//         assert_eq!(aff.p_a, one.to_raw());
-//         assert_eq!(aff.p_d, one.to_raw());
-//     }
-// }
+/// `rotation` is in revolutions.
+#[must_use]
+pub fn obj_affine_matrix(
+    scale: Vector2D<Num<i16, 8>>,
+    rotation: Num<u8, 8>,
+) -> AffineMatrixAttributes {
+    #[allow(dead_code)]
+    #[repr(C, packed(4))]
+    struct Input {
+        scale: Vector2D<Num<i16, 8>>,
+        rotation: u16,
+    }
+
+    let input = Input {
+        scale,
+        rotation: u16::from(rotation.to_raw()) << 8,
+    };
+
+    let mut output = MaybeUninit::uninit();
+
+    unsafe {
+        asm!(
+        "swi {SWI}",
+        SWI = const { swi_map(0x0F) },
+        in("r0") &input as *const Input,
+        in("r1") output.as_mut_ptr(),
+        in("r2") 1,
+        in("r3") 2,
+        );
+    }
+
+    unsafe { output.assume_init() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_case]
+    fn affine_obj(_gba: &mut crate::Gba) {
+        // expect identity matrix
+        let one: Num<i16, 8> = 1.into();
+
+        let aff = obj_affine_matrix((one, one).into(), Num::default());
+        let (p_a, p_d) = (aff.p_a, aff.p_d);
+
+        assert_eq!(p_a, one);
+        assert_eq!(p_d, one);
+    }
+
+    #[test_case]
+    fn affine_bg(_gba: &mut crate::Gba) {
+        // expect the identity matrix
+        let aff = bg_affine_matrix(
+            (0, 0).into(),
+            (0i16, 0i16).into(),
+            (1i16, 1i16).into(),
+            0.into(),
+        );
+
+        let matrix = aff.matrix;
+        let (p_a, p_b, p_c, p_d) = (matrix.p_a, matrix.p_b, matrix.p_c, matrix.p_d);
+        assert_eq!(p_a, 1.into());
+        assert_eq!(p_b, 0.into());
+        assert_eq!(p_c, 0.into());
+        assert_eq!(p_d, 1.into());
+    }
+}

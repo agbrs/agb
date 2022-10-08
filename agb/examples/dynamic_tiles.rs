@@ -3,7 +3,7 @@
 
 use agb::display::{
     palette16::Palette16,
-    tiled::{RegularBackgroundSize, TileSetting},
+    tiled::{RegularBackgroundSize, TileSetting, TiledMap},
     Priority,
 };
 
