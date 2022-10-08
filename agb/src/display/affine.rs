@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 //! # Affine matricies for the Game Boy Advance
 //!
 //! An affine matrix represents an affine transformation, an affine
