@@ -48,7 +48,7 @@ extern "C" {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// let mut mixer = gba.mixer.mixer();
+/// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// # }
 /// ```
 ///
@@ -60,13 +60,13 @@ extern "C" {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # let vblank = agb::interrupt::VBlank::get();
 /// // Outside your main function in global scope:
 /// const MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 ///
 /// // in your main function:
-/// let mut mixer = gba.mixer.mixer();
+/// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
 /// channel.stereo();
 /// let _ = mixer.play_sound(channel);
@@ -99,7 +99,7 @@ pub struct Mixer {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
 /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
 /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
@@ -142,7 +142,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
@@ -171,7 +171,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// // you must set this to a named variable to ensure that the scope is long enough
     /// let _mixer_interrupt = mixer.setup_interrupt_handler();
@@ -209,7 +209,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
@@ -248,7 +248,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
@@ -297,7 +297,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority

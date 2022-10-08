@@ -17,6 +17,7 @@ use agb::{
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
+    sound::mixer::Frequency,
 };
 use alloc::boxed::Box;
 
@@ -820,7 +821,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
         vram.set_background_palettes(tile_sheet::background.palettes);
 
         let object = agb.display.object.get();
-        let mut mixer = agb.mixer.mixer();
+        let mut mixer = agb.mixer.mixer(Frequency::Hz10512);
 
         mixer.enable();
         let mut music_box = sfx::MusicBox::new();
