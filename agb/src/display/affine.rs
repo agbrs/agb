@@ -1,3 +1,23 @@
+#![warn(missing_docs)]
+//! # Affine matricies for the Game Boy Advance
+//!
+//! An affine matrix represents an affine transformation, an affine
+//! transformation being one which preserves parallel lines (note that this
+//! therefore cannot represent perspective seen in games like Super Mario Kart).
+//! Affine matricies are used in two places on the GBA, for affine backgrounds
+//! and for affine objects.
+//!
+//! # Linear Algebra basics
+//! As a matrix, they can be manipulated using linear algebra, although you
+//! shouldn't need to know linear algebra to use this apart from a few things
+//!
+//! If `A` and `B` are matricies, then matrix `C = A * B` represents the
+//! transformation `A` performed on `B`, or alternatively `C` is transformation
+//! `B` followed by transformation `A`.
+//!
+//! Additionally matrix multiplication is not commutative, meaning swapping the
+//! order changes the result, or `A * B ≢ B * A`.
+
 use core::{
     convert::{TryFrom, TryInto},
     ops::{Mul, MulAssign},
@@ -8,6 +28,8 @@ use agb_fixnum::{Num, Vector2D};
 type AffineMatrixElement = Num<i32, 8>;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+/// An affine matrix stored in a way that is efficient for the GBA to perform
+/// operations on. This implements multiplication.
 pub struct AffineMatrix {
     a: AffineMatrixElement,
     b: AffineMatrixElement,
@@ -18,10 +40,14 @@ pub struct AffineMatrix {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The error emitted upon a conversion that could not be performed due to
+/// overflowing the destination data size
 pub struct OverflowError(pub(crate) ());
 
 impl AffineMatrix {
     #[must_use]
+    /// The Identity matrix. The identity matrix can be thought of as 1 and is
+    /// represented by `I`. For a matrix `A`, `A ≡ A * I ≡ I * A`.
     pub fn identity() -> Self {
         AffineMatrix {
             a: 1.into(),
@@ -34,6 +60,7 @@ impl AffineMatrix {
     }
 
     #[must_use]
+    /// Generates the matrix that represents a rotation
     pub fn from_rotation<const N: usize>(angle: Num<i32, N>) -> Self {
         fn from_rotation(angle: Num<i32, 28>) -> AffineMatrix {
             let cos = angle.cos().change_base();
@@ -52,6 +79,7 @@ impl AffineMatrix {
     }
 
     // Identity for rotation / scale / skew
+    /// Generates the matrix that represents a translation by the position
     #[must_use]
     pub fn from_position(position: Vector2D<Num<i32, 8>>) -> Self {
         AffineMatrix {
@@ -65,10 +93,13 @@ impl AffineMatrix {
     }
 
     #[must_use]
+    /// The position fields of the matrix
     pub fn position(&self) -> Vector2D<Num<i32, 8>> {
         (self.x, self.y).into()
     }
 
+    /// Attempts to convert the matrix to one which can be used in affine
+    /// backgrounds.
     pub fn try_to_background(&self) -> Result<AffineMatrixBackground, OverflowError> {
         Ok(AffineMatrixBackground {
             a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
@@ -81,6 +112,8 @@ impl AffineMatrix {
     }
 
     #[must_use]
+    /// Converts the matrix to one which can be used in affine backgrounds
+    /// wrapping any value which is too large to be represented there.
     pub fn to_background_wrapping(&self) -> AffineMatrixBackground {
         AffineMatrixBackground {
             a: self.a.to_raw() as i16,
@@ -95,6 +128,7 @@ impl AffineMatrix {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C, packed(4))]
+/// An affine matrix that can be used in affine backgrounds
 pub struct AffineMatrixBackground {
     // Internally these can be thought of as Num<i16, 8>
     a: i16,
@@ -116,6 +150,8 @@ impl TryFrom<AffineMatrix> for AffineMatrixBackground {
 
 impl AffineMatrixBackground {
     #[must_use]
+    /// Converts to the affine matrix that is usable in performing efficient
+    /// calculations.
     pub fn to_affine_matrix(&self) -> AffineMatrix {
         AffineMatrix {
             a: Num::from_raw(self.a.into()),
