@@ -1,5 +1,5 @@
 use core::{
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
     ops::{Mul, MulAssign},
 };
 
@@ -69,13 +69,12 @@ impl AffineMatrix {
         (self.x, self.y).into()
     }
 
-    #[must_use]
-    pub fn try_to_background(&self) -> Option<AffineMatrixBackground> {
-        Some(AffineMatrixBackground {
-            a: self.a.to_raw().try_into().ok()?,
-            b: self.a.to_raw().try_into().ok()?,
-            c: self.a.to_raw().try_into().ok()?,
-            d: self.a.to_raw().try_into().ok()?,
+    pub fn try_to_background(&self) -> Result<AffineMatrixBackground, OverflowError> {
+        Ok(AffineMatrixBackground {
+            a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            b: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            c: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            d: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
             x: self.a.to_raw(),
             y: self.a.to_raw(),
         })
@@ -105,6 +104,14 @@ pub struct AffineMatrixBackground {
     // These are Num<i32, 8>
     x: i32,
     y: i32,
+}
+
+impl TryFrom<AffineMatrix> for AffineMatrixBackground {
+    type Error = OverflowError;
+
+    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
+        value.try_to_background()
+    }
 }
 
 impl AffineMatrixBackground {
