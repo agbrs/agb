@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added implementation of `HashMap.retain()`.
 - Added support for affine backgrounds (tiled modes 1 and 2) which allows for scaling, rotating etc of tiled backgrounds.
 - Added support for 256 colour backgrounds (when working with affine ones).
+- Added affine matrix module. This allows for manipulation of affine matricies for use in backgrounds and in the future objects.
 
 ### Changes
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
