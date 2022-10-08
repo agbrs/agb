@@ -1198,7 +1198,7 @@ enum ColourMode {
 /// This can be obtained from X/Y scale and rotation angle with
 /// [`agb::syscall::affine_matrix`].
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(C, packed)]
+#[repr(C, packed(4))]
 pub struct AffineMatrixAttributes {
     /// Adjustment made to *X* coordinate when drawing *horizontal* lines.
     /// Also known as "dx".
