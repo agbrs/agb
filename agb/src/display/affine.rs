@@ -34,18 +34,21 @@ impl AffineMatrix {
     }
 
     #[must_use]
-    pub fn from_rotation(angle: Num<i32, 16>) -> Self {
-        let cos = angle.cos().change_base();
-        let sin = angle.sin().change_base();
+    pub fn from_rotation<const N: usize>(angle: Num<i32, N>) -> Self {
+        fn from_rotation(angle: Num<i32, 28>) -> AffineMatrix {
+            let cos = angle.cos().change_base();
+            let sin = angle.sin().change_base();
 
-        AffineMatrix {
-            a: cos,
-            b: sin,
-            c: -sin,
-            d: cos,
-            x: 0.into(),
-            y: 0.into(),
+            AffineMatrix {
+                a: cos,
+                b: sin,
+                c: -sin,
+                d: cos,
+                x: 0.into(),
+                y: 0.into(),
+            }
         }
+        from_rotation(angle.rem_euclid(1.into()).change_base())
     }
 
     // Identity for rotation / scale / skew
@@ -167,7 +170,7 @@ mod tests {
 
         assert_eq!(c.position(), position);
 
-        let d = AffineMatrix::from_rotation(num!(0.5));
+        let d = AffineMatrix::from_rotation::<2>(num!(0.5));
 
         let e = a * d;
 
