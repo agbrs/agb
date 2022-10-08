@@ -66,6 +66,9 @@ impl AffineMatrix {
             let cos = angle.cos().change_base();
             let sin = angle.sin().change_base();
 
+            // This might look backwards, but the gba does texture mapping, ie a
+            // point in screen base is transformed using the matrix to graphics
+            // space rather than how you might conventionally think of it.
             AffineMatrix {
                 a: cos,
                 b: sin,
