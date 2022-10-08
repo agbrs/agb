@@ -133,7 +133,6 @@ fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
-#[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
@@ -571,7 +570,6 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
 /// A vector of two points: (x, y) represened by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-#[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
     pub x: T,
