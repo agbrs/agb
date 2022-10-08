@@ -1,9 +1,9 @@
-use super::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager};
+use super::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager};
 
 crate::include_gfx!("gfx/agb_logo.toml");
 
 pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
-    vram.set_background_palettes(agb_logo::test_logo.palettes);
+    vram.set_background_palettes(agb_logo::PALETTES);
 
     let background_tilemap = TileSet::new(agb_logo::test_logo.tiles, TileFormat::FourBpp);
 
@@ -21,6 +21,7 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     map.commit(vram);
     map.show();
 }
+
 #[cfg(test)]
 mod tests {
     use crate::display::{tiled::RegularBackgroundSize, Priority};

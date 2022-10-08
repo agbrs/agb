@@ -1,7 +1,7 @@
 version = "1.0"
 
+transparent_colour = "2ce8f4"
+
 [image.background]
 filename = "tile_sheet.png"
 tile_size = "8x8"
-transparent_colour = "2ce8f4"
-

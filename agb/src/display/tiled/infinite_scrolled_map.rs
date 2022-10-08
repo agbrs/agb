@@ -1,6 +1,9 @@
 use alloc::boxed::Box;
 
-use super::{BackgroundID, MapLoan, RegularMap, TileSet, TileSetting, VRamManager};
+use super::{
+    BackgroundID, BackgroundSizePrivate, MapLoan, RegularMap, TileSet, TileSetting, TiledMap,
+    VRamManager,
+};
 
 use crate::{
     display,
@@ -157,7 +160,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # );
     /// #
     /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// let start_position = agb::fixnum::Vector2D::new(10, 10);
     /// backdrop.init(&mut vram, start_position, &mut || {
     ///     vblank.wait_for_vblank();
@@ -232,7 +235,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # );
     /// #
     /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// let start_position = agb::fixnum::Vector2D::new(10, 10);
     /// while backdrop.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
     ///     vblank.wait_for_vblank();
@@ -254,13 +257,9 @@ impl<'a> InfiniteScrolledMap<'a> {
         let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8) + 1;
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
-        let offset_scroll = (
-            self.map.size().tile_pos_x(offset.x),
-            self.map.size().tile_pos_y(offset.y),
-        )
-            .into();
 
-        self.map.set_scroll_pos(offset_scroll);
+        self.map
+            .set_scroll_pos((offset.x as i16, offset.y as i16).into());
         self.offset = (x_start, y_start).into();
 
         let copy_from = self.copied_up_to;
@@ -383,11 +382,7 @@ impl<'a> InfiniteScrolledMap<'a> {
         }
 
         let current_scroll = self.map.scroll_pos();
-        let new_scroll = (
-            size.px_offset_x(i32::from(current_scroll.x) + difference.x),
-            size.px_offset_y(i32::from(current_scroll.y) + difference.y),
-        )
-            .into();
+        let new_scroll = current_scroll + (difference.x as i16, difference.y as i16).into();
 
         self.map.set_scroll_pos(new_scroll);
 

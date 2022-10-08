@@ -5,5 +5,4 @@ crate_prefix = "crate"
 
 [image.test_logo]
 filename = "test_logo.png"
-transparent_colour = "010101"
 tile_size = "8x8"

@@ -22,6 +22,7 @@ use agb::{
     input::{Button, ButtonController, Tri},
     interrupt::VBlank,
     rng,
+    sound::mixer::Frequency,
 };
 use generational_arena::Arena;
 use sfx::Sfx;
@@ -129,7 +130,7 @@ impl<'a> Level<'a> {
         let factor: Number = Number::new(1) / Number::new(8);
         let (x, y) = (v * factor).floor().get();
 
-        if (x < 0 || x > tilemap::WIDTH as i32) || (y < 0 || y > tilemap::HEIGHT as i32) {
+        if !(0..=tilemap::WIDTH).contains(&x) || !(0..=tilemap::HEIGHT).contains(&y) {
             return Some(Rect::new((x * 8, y * 8).into(), (8, 8).into()));
         }
         let position = tilemap::WIDTH as usize * y as usize + x as usize;
@@ -1878,7 +1879,7 @@ enum MoveState {
 impl<'a> Game<'a> {
     fn has_just_reached_end(&self) -> bool {
         match self.boss {
-            BossState::NotSpawned => self.offset.x.floor() + 248 >= tilemap::WIDTH as i32 * 8,
+            BossState::NotSpawned => self.offset.x.floor() + 248 >= tilemap::WIDTH * 8,
             _ => false,
         }
     }
@@ -1901,13 +1902,13 @@ impl<'a> Game<'a> {
 
                 if self.has_just_reached_end() {
                     sfx.boss();
-                    self.offset.x = (tilemap::WIDTH as i32 * 8 - 248).into();
+                    self.offset.x = (tilemap::WIDTH * 8 - 248).into();
                     self.move_state = MoveState::PinnedAtEnd;
                     self.boss = BossState::Active(Boss::new(object_controller, self.offset))
                 }
             }
             MoveState::PinnedAtEnd => {
-                self.offset.x = (tilemap::WIDTH as i32 * 8 - 248).into();
+                self.offset.x = (tilemap::WIDTH * 8 - 248).into();
             }
             MoveState::FollowingPlayer => {
                 Game::update_sunrise(vram, self.sunrise_timer);
@@ -1917,8 +1918,8 @@ impl<'a> Game<'a> {
                     let difference = self.player.entity.position.x - (self.offset.x + WIDTH / 2);
 
                     self.offset.x += difference / 8;
-                    if self.offset.x > (tilemap::WIDTH as i32 * 8 - 248).into() {
-                        self.offset.x = (tilemap::WIDTH as i32 * 8 - 248).into();
+                    if self.offset.x > (tilemap::WIDTH * 8 - 248).into() {
+                        self.offset.x = (tilemap::WIDTH * 8 - 248).into();
                     } else if self.offset.x < 8.into() {
                         self.offset.x = 8.into();
                         self.move_state = MoveState::Ending;
@@ -2146,7 +2147,7 @@ impl<'a> Game<'a> {
     }
 
     fn update_sunrise(vram: &mut VRamManager, time: u16) {
-        let mut modified_palette = background::background.palettes[0].clone();
+        let mut modified_palette = background::PALETTES[0].clone();
 
         let a = modified_palette.colour(0);
         let b = modified_palette.colour(1);
@@ -2160,7 +2161,7 @@ impl<'a> Game<'a> {
     }
 
     fn update_fade_out(vram: &mut VRamManager, time: u16) {
-        let mut modified_palette = background::background.palettes[0].clone();
+        let mut modified_palette = background::PALETTES[0].clone();
 
         let c = modified_palette.colour(2);
 
@@ -2205,7 +2206,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let vblank = agb::interrupt::VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     mixer.enable();
 
     let mut sfx = sfx::Sfx::new(&mut mixer);
@@ -2216,7 +2217,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     loop {
         let (background, mut vram) = gba.display.video.tiled0();
 
-        vram.set_background_palettes(background::background.palettes);
+        vram.set_background_palettes(background::PALETTES);
 
         let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
 

@@ -1,6 +1,0 @@
-version = "1.0"
-
-[image.help]
-filename = "help-text.png"
-tile_size = "8x8"
-transparent_colour = "121105"

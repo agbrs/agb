@@ -16,7 +16,9 @@ impl<T> MemoryMapped<T> {
     }
 
     pub fn set(&self, val: T) {
-        unsafe { self.address.write_volatile(val) }
+        if core::mem::size_of::<T>() != 0 {
+            unsafe { self.address.write_volatile(val) }
+        }
     }
 }
 

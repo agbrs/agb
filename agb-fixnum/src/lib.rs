@@ -570,7 +570,8 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 }
 
 /// A vector of two points: (x, y) represened by integers or fixed point numbers
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
     pub x: T,
@@ -1015,6 +1016,14 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
+impl<T: Number + Neg<Output = T>> Neg for Vector2D<T> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        (-self.x, -self.y).into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -1216,6 +1225,15 @@ mod tests {
                 assert!(rem_euclid > 0.into());
             }
         }
+    }
+
+    #[test]
+    fn test_only_frac_bits() {
+        let quarter: Num<u8, 8> = num!(0.25);
+        let neg_quarter: Num<i16, 15> = num!(-0.25);
+
+        assert_eq!(quarter + quarter, num!(0.5));
+        assert_eq!(neg_quarter + neg_quarter, num!(-0.5));
     }
 
     #[test]

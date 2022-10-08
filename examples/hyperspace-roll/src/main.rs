@@ -10,11 +10,11 @@
 // which won't be a particularly clear error message.
 #![no_main]
 
-use agb::display;
 use agb::display::object::ObjectController;
-use agb::display::tiled::VRamManager;
+use agb::display::tiled::{TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
+use agb::{display, sound::mixer::Frequency};
 
 extern crate alloc;
 use alloc::vec;
@@ -138,7 +138,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut star_background = StarBackground::new(&mut background0, &mut background1, &mut vram);
     star_background.commit(&mut vram);
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
     let _interrupt_handler = mixer.setup_interrupt_handler();
 

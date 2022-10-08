@@ -3,11 +3,11 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularMap, TileSetting, VRamManager},
+        tiled::{RegularBackgroundSize, RegularMap, TileSetting, TiledMap, VRamManager},
         Font, Priority,
     },
     include_font, include_wav,
-    sound::mixer::SoundChannel,
+    sound::mixer::{Frequency, SoundChannel},
     Gba,
 };
 
@@ -40,7 +40,7 @@ fn main(mut gba: Gba) -> ! {
     let mut timer = timer_controller.timer2;
     timer.set_enabled(true);
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
     mixer.enable();
 
     let mut channel = SoundChannel::new(LET_IT_IN);

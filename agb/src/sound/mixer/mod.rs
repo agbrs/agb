@@ -14,17 +14,11 @@
 //!
 //! # Concepts
 //!
-//! The mixer runs at a fixed frequency which is determined at compile time by enabling
-//! certain features within the crate. The following features are currently available:
-//!
-//! | Feature | Frequency |
-//! |---------|-----------|
-//! | none    | 10512Hz   |
-//! | freq18157 | 18157Hz |
-//! | freq32768[^32768Hz] | 32768Hz |
+//! The mixer runs at a fixed frequency which is determined at initialisation time by
+//! passing certain [`Frequency`] options.
 //!
 //! All wav files you use within your application / game must use this _exact_ frequency.
-//! You will get a compile error if you use the incorrect frequency for your file.
+//! If you don't use this frequency, the sound will play either too slowly or too quickly.
 //!
 //! The mixer can play both mono and stereo sounds, but only mono sound effects can have
 //! effects applied to them (such as changing the speed at which they play or the panning).
@@ -38,11 +32,16 @@
 //! ```rust,no_run
 //! # #![no_std]
 //! # #![no_main]
+//! use agb::sound::mixer::Frequency;
 //! # fn foo(gba: &mut agb::Gba) {
-//! let mut mixer = gba.mixer.mixer();
+//! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 //! mixer.enable();
 //! # }
 //! ```
+//!
+//! Pass a frequency option. This option must be used for the entire lifetime of the `mixer`
+//! variable. If you want to change frequency, you will need to drop this one and create a new
+//! one.
 //!
 //! ## Doing the per-frame work
 //!
@@ -55,9 +54,10 @@
 //! ```rust,no_run
 //! # #![no_std]
 //! # #![no_main]
+//! use agb::sound::mixer::Frequency;
 //! # fn foo(gba: &mut agb::Gba) {
-//! # let mut mixer = gba.mixer.mixer();
-//! # let vblank = agb::interrupt::VBlank::get();
+//! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
+//! let vblank = agb::interrupt::VBlank::get();
 //! // Somewhere in your main loop:
 //! mixer.frame();
 //! vblank.wait_for_vblank();
@@ -70,10 +70,13 @@
 //! ```rust,no_run
 //! # #![no_std]
 //! # #![no_main]
+//! use agb::sound::mixer::Frequency;
 //! # fn foo(gba: &mut agb::Gba) {
-//! # let mut mixer = gba.mixer.mixer();
-//! # let vblank = agb::interrupt::VBlank::get();
+//! let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz32768);
+//! let vblank = agb::interrupt::VBlank::get();
 //! // outside your main loop, close to initialisation
+//! // you must assign this to a variable (not to _ or ignored) or rust will immediately drop it
+//! // and prevent the interrupt handler from firing.
 //! let _mixer_interrupt = mixer.setup_interrupt_handler();
 //!
 //! // inside your main loop
@@ -99,7 +102,7 @@
 //! # #![no_std]
 //! # #![no_main]
 //! # fn foo(gba: &mut agb::Gba) {
-//! # let mut mixer = gba.mixer.mixer();
+//! # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 //! # let vblank = agb::interrupt::VBlank::get();
 //! # use agb::{*, sound::mixer::*};
 //! // Outside your main function in global scope:
@@ -116,9 +119,6 @@
 //!
 //! Once you have run [`play_sound`](Mixer::play_sound), the mixer will play that sound until
 //! it has finished.
-//!
-//! [^32768Hz]: You must use interrupts when using 32768Hz
-
 mod hw;
 mod sw_mixer;
 
@@ -138,8 +138,8 @@ impl MixerController {
     }
 
     /// Get a [`Mixer`] in order to start producing sounds.
-    pub fn mixer(&mut self) -> Mixer {
-        Mixer::new()
+    pub fn mixer(&mut self, frequency: Frequency) -> Mixer {
+        Mixer::new(frequency)
     }
 }
 
@@ -147,6 +147,43 @@ impl MixerController {
 enum SoundPriority {
     High,
     Low,
+}
+
+/// The supported frequencies within AGB. These are chosen to work well with
+/// the hardware. Note that the higher the frequency, the better the quality of
+/// the sound but the more CPU time sound mixing will take.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Frequency {
+    /// 10512Hz
+    Hz10512,
+    /// 18157Hz
+    Hz18157,
+    /// 32768Hz - note that this option requires interrupts for buffer swapping
+    Hz32768,
+}
+
+// list here: http://deku.gbadev.org/program/sound1.html
+impl Frequency {
+    pub(crate) fn frequency(self) -> i32 {
+        use Frequency::*;
+
+        match self {
+            Hz10512 => 10512,
+            Hz18157 => 18157,
+            Hz32768 => 32768,
+        }
+    }
+
+    pub(crate) fn buffer_size(self) -> usize {
+        use Frequency::*;
+
+        match self {
+            Hz10512 => 176,
+            Hz18157 => 304,
+            Hz32768 => 560,
+        }
+    }
 }
 
 /// Describes one sound which should be playing. This could be a sound effect or
@@ -185,7 +222,7 @@ enum SoundPriority {
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
 /// bgm.stereo().should_loop();
 /// let _ = mixer.play_sound(bgm);
@@ -204,7 +241,7 @@ enum SoundPriority {
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let jump_sound = SoundChannel::new(JUMP_SOUND);
 /// let _ = mixer.play_sound(jump_sound);
 /// # }
@@ -241,7 +278,7 @@ impl SoundChannel {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
     /// const JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
     ///
@@ -283,7 +320,7 @@ impl SoundChannel {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
     /// const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     ///
