@@ -1,11 +1,11 @@
 version = "1.0"
 
+transparent_colour = "2ce8f4"
+
 [image.thanks_for_playing]
 filename = "thanks_for_playing.png"
 tile_size = "8x8"
-transparent_colour = "2ce8f4"
 
 [image.splash]
 filename = "splash.png"
 tile_size = "8x8"
-transparent_colour = "2ce8f4"
