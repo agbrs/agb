@@ -15,7 +15,7 @@ use super::{
 use crate::syscall::BgAffineSetData;
 use alloc::{vec, vec::Vec};
 
-pub trait TiledMapTypes {
+pub trait TiledMapTypes: private::Sealed {
     type Size: BackgroundSize + Copy;
 }
 
@@ -44,6 +44,8 @@ trait TiledMapPrivate: TiledMapTypes {
     }
 }
 
+/// Trait which describes methods available on both tiled maps and affine maps. Note that
+/// it is 'sealed' so you cannot implement this yourself.
 pub trait TiledMap: TiledMapTypes {
     fn clear(&mut self, vram: &mut VRamManager);
     fn show(&mut self);
@@ -428,4 +430,11 @@ impl<'a, T> Drop for MapLoan<'a, T> {
             screenblock_list.set(i as usize, false);
         }
     }
+}
+
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for super::RegularMap {}
+    impl Sealed for super::AffineMap {}
 }
