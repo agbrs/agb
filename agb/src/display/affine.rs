@@ -259,7 +259,7 @@ impl Mul for AffineMatrix {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         AffineMatrix {
-            a: self.a * rhs.a + self.b + rhs.c,
+            a: self.a * rhs.a + self.b * rhs.c,
             b: self.a * rhs.b + self.b * rhs.d,
             c: self.c * rhs.a + self.d * rhs.c,
             d: self.c * rhs.b + self.d * rhs.d,
