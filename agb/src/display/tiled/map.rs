@@ -40,7 +40,7 @@ trait TiledMapPrivate: TiledMapTypes {
         unsafe { MemoryMapped::new(0x0400_0008 + 2 * self.background_id()) }
     }
     fn screenblock_memory(&self) -> *mut u16 {
-        (0x0600_0000 + 0x1000 * self.screenblock() as usize / 2) as *mut u16
+        (0x0600_0000 + 0x1000 * self.screenblock() / 2) as *mut u16
     }
 }
 

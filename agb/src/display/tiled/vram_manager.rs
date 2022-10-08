@@ -333,7 +333,7 @@ impl VRamManager {
 
     pub(crate) fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
-            let key = tile_index.refcount_key() as usize;
+            let key = tile_index.refcount_key();
             if self.reference_counts[key].current_count() > 0 {
                 continue; // it has since been added back
             }
