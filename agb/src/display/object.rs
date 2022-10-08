@@ -558,10 +558,10 @@ impl Location {
         Self((d.as_ptr() as usize - PALETTE_SPRITE) / Palette16::layout().size())
     }
     fn as_palette_ptr(self) -> *mut u8 {
-        (self.0 as usize * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
+        (self.0 * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
     }
     fn as_sprite_ptr(self) -> *mut u8 {
-        (self.0 as usize * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
+        (self.0 * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
     }
 }
 
