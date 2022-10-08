@@ -219,11 +219,13 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             let width = f.width;
             let height = f.height;
             quote! {
-                Sprite::new(
-                    &PALETTES[#assignment],
-                    align_bytes!(u16, #data),
-                    Size::from_width_height(#width, #height)
-                )
+                unsafe {
+                        Sprite::new(
+                        &PALETTES[#assignment],
+                        align_bytes!(u16, #data),
+                        Size::from_width_height(#width, #height)
+                    )
+                }
             }
         });
 
