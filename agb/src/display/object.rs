@@ -627,7 +627,7 @@ impl ObjectController {
 
                     unsafe {
                         (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
-                            .add((i as usize) * 4)
+                            .add(i * 4)
                             .write_volatile(HIDDEN_VALUE);
                     }
 
@@ -794,7 +794,7 @@ impl ObjectController {
         });
 
         let loan = Loan {
-            index: index as u8,
+            index,
             phantom: PhantomData,
         };
 
@@ -916,8 +916,8 @@ impl<'a> Object<'a> {
     /// [ObjectController::commit] is called.
     pub fn set_x(&mut self, x: u16) -> &mut Self {
         let object_inner = unsafe { self.object_inner() };
-        object_inner.attrs.a1a.set_x(x.rem_euclid(1 << 9) as u16);
-        object_inner.attrs.a1s.set_x(x.rem_euclid(1 << 9) as u16);
+        object_inner.attrs.a1a.set_x(x.rem_euclid(1 << 9));
+        object_inner.attrs.a1s.set_x(x.rem_euclid(1 << 9));
         self
     }
 

@@ -51,7 +51,7 @@ fn set_bank(bank: u8) -> Result<(), Error> {
         Err(Error::OutOfBounds)
     } else if bank != CURRENT_BANK.read() {
         issue_flash_command(CMD_SET_BANK);
-        FLASH_PORT_BANK.set(bank as u8);
+        FLASH_PORT_BANK.set(bank);
         CURRENT_BANK.write(bank);
         Ok(())
     } else {
