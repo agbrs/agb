@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Colour {
     pub r: u8,
@@ -18,5 +20,24 @@ impl Colour {
 
     pub fn is_transparent(self) -> bool {
         self.a != 255
+    }
+}
+
+impl FromStr for Colour {
+    type Err = String;
+
+    fn from_str(colour: &str) -> Result<Self, Self::Err> {
+        if colour.len() != 6 {
+            return Err(format!(
+                "Expected colour to be 6 characters, got {}",
+                colour
+            ));
+        }
+
+        let r = u8::from_str_radix(&colour[0..2], 16).unwrap();
+        let g = u8::from_str_radix(&colour[2..4], 16).unwrap();
+        let b = u8::from_str_radix(&colour[4..6], 16).unwrap();
+
+        Ok(Colour::from_rgb(r, g, b, 255))
     }
 }

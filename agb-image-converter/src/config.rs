@@ -23,6 +23,7 @@ pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
 pub(crate) trait Config {
     fn crate_prefix(&self) -> String;
     fn images(&self) -> HashMap<String, &dyn Image>;
+    fn transparent_colour(&self) -> Option<Colour>;
 }
 
 pub(crate) trait Image {
@@ -36,6 +37,7 @@ pub(crate) trait Image {
 pub struct ConfigV1 {
     version: String,
     crate_prefix: Option<String>,
+    transparent_colour: Option<String>,
 
     image: HashMap<String, ImageV1>,
 }
@@ -53,6 +55,21 @@ impl Config for ConfigV1 {
             .map(|(filename, image)| (filename.clone(), image as &dyn Image))
             .collect()
     }
+
+    fn transparent_colour(&self) -> Option<Colour> {
+        if let Some(colour) = &self
+            .transparent_colour
+            .as_ref()
+            .map(|colour| colour.parse().unwrap())
+        {
+            return Some(*colour);
+        }
+
+        self.images()
+            .values()
+            .flat_map(|image| image.transparent_colour())
+            .next()
+    }
 }
 
 #[derive(Deserialize)]
@@ -69,19 +86,9 @@ impl Image for ImageV1 {
     }
 
     fn transparent_colour(&self) -> Option<Colour> {
-        if let Some(colour) = &self.transparent_colour {
-            if colour.len() != 6 {
-                panic!("Expected colour to be 6 characters, got {}", colour);
-            }
-
-            let r = u8::from_str_radix(&colour[0..2], 16).unwrap();
-            let g = u8::from_str_radix(&colour[2..4], 16).unwrap();
-            let b = u8::from_str_radix(&colour[4..6], 16).unwrap();
-
-            return Some(Colour::from_rgb(r, g, b, 255));
-        }
-
-        None
+        self.transparent_colour
+            .as_ref()
+            .map(|colour| colour.parse().unwrap())
     }
 
     fn tilesize(&self) -> TileSize {
