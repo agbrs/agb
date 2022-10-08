@@ -152,6 +152,12 @@ impl AffineMatrix {
     }
 }
 
+impl Default for AffineMatrix {
+    fn default() -> Self {
+        AffineMatrix::identity()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C, packed(4))]
 /// An affine matrix that can be used in affine backgrounds
