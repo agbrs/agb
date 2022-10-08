@@ -84,7 +84,7 @@ impl AffineMatrix {
     // Identity for rotation / scale / skew
     /// Generates the matrix that represents a translation by the position
     #[must_use]
-    pub fn from_position(position: Vector2D<Num<i32, 8>>) -> Self {
+    pub fn from_translation(position: Vector2D<Num<i32, 8>>) -> Self {
         AffineMatrix {
             a: 1.into(),
             b: 0.into(),
@@ -209,7 +209,7 @@ mod tests {
     fn test_simple_multiply(_: &mut crate::Gba) {
         let position = (20, 10).into();
 
-        let a = AffineMatrix::from_position(position);
+        let a = AffineMatrix::from_translation(position);
         let b = AffineMatrix::default();
 
         let c = a * b;
