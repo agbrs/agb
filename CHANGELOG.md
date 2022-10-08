@@ -11,15 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for using windows on the GBA. Windows are used to selectively enable rendering of certain layers or effects.
 - Support for the blend mode of the GBA. Blending allows for alpha blending between layers and fading to black and white.
 - Added a new agb::sync module that contains GBA-specific synchronization primitives.
+- Added support for save files.
+- Added implementation of `HashMap.retain()`.
 
 ### Changes
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
+- HashMap iterators now implement `size_hint` which should result in slightly better generation of code using those iterators.
 
 ### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
 - Fixed formatting of fixed point numbers in the range (-1, 0), which previously appeared positive.
 
-## Changed
+### Changed
 - `testing` is now a default feature, so you no longer need to add a separate `dev-dependencies` line for `agb` in order to enable unit tests for your project.
 
 ## [0.11.1] - 2022/08/02

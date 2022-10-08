@@ -7,6 +7,7 @@ fn main() {
         "src/sound/mixer/mixer.s",
         "src/agbabi/memset.s",
         "src/agbabi/memcpy.s",
+        "src/save/asm_routines.s",
     ];
 
     println!("cargo:rerun-if-changed=gba.ld");

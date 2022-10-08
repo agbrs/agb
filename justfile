@@ -68,8 +68,11 @@ update-linker-scripts:
 
 publish: (_run-tool "publish")
 
+release +args: (_run-tool "release" args)
+
 _run-tool +tool:
-    cargo run --manifest-path "{{justfile_directory() + "/tools/Cargo.toml"}}" -- {{tool}}
+    (cd tools && cargo build)
+    "$CARGO_TARGET_DIR/debug/tools" {{tool}}
 
 _build-rom folder name:
     #!/usr/bin/env bash

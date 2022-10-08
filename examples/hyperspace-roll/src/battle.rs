@@ -207,7 +207,7 @@ impl RolledDice {
         let heal = *face_counts.entry(Face::Heal).or_default();
         if heal != 0 {
             actions.push(Action::PlayerHeal {
-                amount: ((heal * (heal + 1)) / 2) as u32,
+                amount: (heal * (heal + 1)) / 2,
             });
         }
 

@@ -188,12 +188,24 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// An iterator visiting all key-value pairs in an arbitrary order
     pub fn iter(&self) -> impl Iterator<Item = (&'_ K, &'_ V)> {
-        self.nodes.nodes.iter().filter_map(Node::key_value_ref)
+        Iter {
+            map: self,
+            at: 0,
+            num_found: 0,
+        }
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order, with mutable references to the values
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ K, &'_ mut V)> {
         self.nodes.nodes.iter_mut().filter_map(Node::key_value_mut)
+    }
+
+    /// Retains only the elements specified by the predicate `f`.
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        self.nodes.retain(f);
     }
 
     /// Returns `true` if the map contains no elements
@@ -332,6 +344,7 @@ where
 pub struct Iter<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> {
     map: &'a HashMap<K, V, ALLOCATOR>,
     at: usize,
+    num_found: usize,
 }
 
 impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCATOR> {
@@ -347,9 +360,17 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
             self.at += 1;
 
             if node.has_value() {
+                self.num_found += 1;
                 return Some((node.key_ref().unwrap(), node.value_ref().unwrap()));
             }
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (
+            self.map.len() - self.num_found,
+            Some(self.map.len() - self.num_found),
+        )
     }
 }
 
@@ -358,7 +379,11 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, 
     type IntoIter = Iter<'a, K, V, ALLOCATOR>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter { map: self, at: 0 }
+        Iter {
+            map: self,
+            at: 0,
+            num_found: 0,
+        }
     }
 }
 
@@ -369,6 +394,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, 
 pub struct IterOwned<K, V, ALLOCATOR: Allocator = Global> {
     map: HashMap<K, V, ALLOCATOR>,
     at: usize,
+    num_found: usize,
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR> {
@@ -384,9 +410,17 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
             self.at += 1;
 
             if let Some((k, v, _)) = maybe_kv {
+                self.num_found += 1;
                 return Some((k, v));
             }
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (
+            self.map.len() - self.num_found,
+            Some(self.map.len() - self.num_found),
+        )
     }
 }
 
@@ -399,7 +433,11 @@ impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATO
     type IntoIter = IterOwned<K, V, ALLOCATOR>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterOwned { map: self, at: 0 }
+        IterOwned {
+            map: self,
+            at: 0,
+            num_found: 0,
+        }
     }
 }
 
@@ -727,6 +765,31 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
         self.number_of_items += 1;
         inserted_location
+    }
+
+    fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        let num_nodes = self.nodes.len();
+        let mut i = 0;
+
+        while i < num_nodes {
+            let node = &mut self.nodes[i];
+
+            if let Some((k, v)) = node.key_value_mut() {
+                if !f(k, v) {
+                    self.remove_from_location(i);
+
+                    // Need to continue before adding 1 to i because remove from location could
+                    // put the element which was next into the ith location in the nodes array,
+                    // so we need to check if that one needs removing too.
+                    continue;
+                }
+            }
+
+            i += 1;
+        }
     }
 
     fn remove_from_location(&mut self, location: usize) -> V {
@@ -1220,6 +1283,54 @@ mod test {
         }
 
         drop_registry.assert_dropped_n_times(id1, 2);
+    }
+
+    #[test_case]
+    fn test_retain(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..100 {
+            map.insert(i, i);
+        }
+
+        map.retain(|k, _| k % 2 == 0);
+
+        assert_eq!(map[&2], 2);
+        assert_eq!(map.get(&3), None);
+
+        assert_eq!(map.iter().count(), 50); // force full iteration
+    }
+
+    #[test_case]
+    fn test_size_hint_iter(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..100 {
+            map.insert(i, i);
+        }
+
+        let mut iter = map.iter();
+        assert_eq!(iter.size_hint(), (100, Some(100)));
+
+        iter.next();
+
+        assert_eq!(iter.size_hint(), (99, Some(99)));
+    }
+
+    #[test_case]
+    fn test_size_hint_into_iter(_gba: &mut Gba) {
+        let mut map = HashMap::new();
+
+        for i in 0..100 {
+            map.insert(i, i);
+        }
+
+        let mut iter = map.into_iter();
+        assert_eq!(iter.size_hint(), (100, Some(100)));
+
+        iter.next();
+
+        assert_eq!(iter.size_hint(), (99, Some(99)));
     }
 
     // Following test cases copied from the rust source

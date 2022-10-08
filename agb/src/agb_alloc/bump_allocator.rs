@@ -43,7 +43,7 @@ impl BumpAllocator {
         let resulting_ptr = ptr + amount_to_add;
         let new_current_ptr = resulting_ptr + layout.size();
 
-        if new_current_ptr as usize >= (self.start_end.borrow(cs).end)() {
+        if new_current_ptr >= (self.start_end.borrow(cs).end)() {
             return None;
         }
 

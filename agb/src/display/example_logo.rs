@@ -37,5 +37,8 @@ mod tests {
         display_logo(&mut map, &mut vram);
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
+
+        map.clear(&mut vram);
+        vram.gc();
     }
 }

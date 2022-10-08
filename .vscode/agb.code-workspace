@@ -32,6 +32,12 @@
 		},
 		{
 			"path": "../book"
+		},
+		{
+			"path": "../mgba-test-runner"
+		},
+		{
+			"path": "../tools"
 		}
 	]
 }

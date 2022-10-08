@@ -168,6 +168,7 @@ pub use agb_fixnum as fixnum;
 pub mod hash_map;
 /// Simple random number generator
 pub mod rng;
+pub mod save;
 mod single;
 /// Implements sound output.
 pub mod sound;
@@ -223,6 +224,8 @@ pub struct Gba {
     pub sound: sound::dmg::Sound,
     /// Manages access to the Game Boy Advance's direct sound mixer for playing raw wav files.
     pub mixer: sound::mixer::MixerController,
+    /// Manages access to the Game Boy Advance cartridge's save chip.
+    pub save: save::SaveManager,
     /// Manages access to the Game Boy Advance's 4 timers.
     pub timers: timer::TimerController,
 }
@@ -239,6 +242,7 @@ impl Gba {
             display: display::Display::new(),
             sound: sound::dmg::Sound::new(),
             mixer: sound::mixer::MixerController::new(),
+            save: save::SaveManager::new(),
             timers: timer::TimerController::new(),
         }
     }
