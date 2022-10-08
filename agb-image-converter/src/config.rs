@@ -28,7 +28,6 @@ pub(crate) trait Config {
 
 pub(crate) trait Image {
     fn filename(&self) -> String;
-    fn transparent_colour(&self) -> Option<Colour>;
     fn tilesize(&self) -> TileSize;
     fn colours(&self) -> Colours;
 }
@@ -65,7 +64,7 @@ impl Config for ConfigV1 {
             return Some(*colour);
         }
 
-        self.images()
+        self.image
             .values()
             .flat_map(|image| image.transparent_colour())
             .next()
@@ -85,12 +84,6 @@ impl Image for ImageV1 {
         self.filename.clone()
     }
 
-    fn transparent_colour(&self) -> Option<Colour> {
-        self.transparent_colour
-            .as_ref()
-            .map(|colour| colour.parse().unwrap())
-    }
-
     fn tilesize(&self) -> TileSize {
         self.tile_size.into()
     }
@@ -101,6 +94,14 @@ impl Image for ImageV1 {
             Some(256) => Colours::Colours256,
             _ => panic!("colours must either not be set or 16 or 256"),
         }
+    }
+}
+
+impl ImageV1 {
+    fn transparent_colour(&self) -> Option<Colour> {
+        self.transparent_colour
+            .as_ref()
+            .map(|colour| colour.parse().unwrap())
     }
 }
 
