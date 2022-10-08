@@ -22,6 +22,7 @@ use agb::{
     input::{Button, ButtonController, Tri},
     interrupt::VBlank,
     rng,
+    sound::mixer::Frequency,
 };
 use generational_arena::Arena;
 use sfx::Sfx;
@@ -2205,7 +2206,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let vblank = agb::interrupt::VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut mixer = gba.mixer.mixer();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     mixer.enable();
 
     let mut sfx = sfx::Sfx::new(&mut mixer);

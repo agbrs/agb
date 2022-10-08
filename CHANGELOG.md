@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HashMap iterators now implement `size_hint` which should result in slightly better generation of code using those iterators.
 - Transparency of backgrounds is now set once in the toml file rather than once for every image.
 - Palette generation now takes into account every single background a toml definition rather than one at a time, you can now find it in the PALETTES constant rather than in every individual image.
+- Sound frequency is no longer a crate feature, instead set when initialising the sound mixer.
 
 ### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).

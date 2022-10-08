@@ -160,7 +160,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # );
     /// #
     /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// let start_position = agb::fixnum::Vector2D::new(10, 10);
     /// backdrop.init(&mut vram, start_position, &mut || {
     ///     vblank.wait_for_vblank();
@@ -235,7 +235,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # );
     /// #
     /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// let start_position = agb::fixnum::Vector2D::new(10, 10);
     /// while backdrop.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
     ///     vblank.wait_for_vblank();
