@@ -2146,7 +2146,7 @@ impl<'a> Game<'a> {
     }
 
     fn update_sunrise(vram: &mut VRamManager, time: u16) {
-        let mut modified_palette = background::background.palettes[0].clone();
+        let mut modified_palette = background::PALETTES[0].clone();
 
         let a = modified_palette.colour(0);
         let b = modified_palette.colour(1);
@@ -2160,7 +2160,7 @@ impl<'a> Game<'a> {
     }
 
     fn update_fade_out(vram: &mut VRamManager, time: u16) {
-        let mut modified_palette = background::background.palettes[0].clone();
+        let mut modified_palette = background::PALETTES[0].clone();
 
         let c = modified_palette.colour(2);
 
@@ -2216,7 +2216,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     loop {
         let (background, mut vram) = gba.display.video.tiled0();
 
-        vram.set_background_palettes(background::background.palettes);
+        vram.set_background_palettes(background::PALETTES);
 
         let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
 

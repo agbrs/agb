@@ -19,7 +19,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let tileset = TileSet::new(affine_tiles::water_tiles.tiles, TileFormat::EightBpp);
 
-    vram.set_background_palettes(affine_tiles::water_tiles.palettes);
+    vram.set_background_palettes(affine_tiles::PALETTES);
 
     let mut bg = gfx.background(Priority::P0, AffineBackgroundSize::Background32x32);
 

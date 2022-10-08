@@ -7,19 +7,13 @@ use quote::{format_ident, quote};
 
 use std::iter;
 
-pub(crate) fn generate_code(
-    output_variable_name: &str,
+pub(crate) fn generate_palette_code(
     results: &Palette16OptimisationResults,
-    image: &Image,
-    image_filename: &str,
-    tile_size: TileSize,
-    crate_prefix: String,
-    assignment_offset: Option<usize>,
+    crate_prefix: &str,
 ) -> TokenStream {
     let crate_prefix = format_ident!("{}", crate_prefix);
-    let output_variable_name = format_ident!("{}", output_variable_name);
 
-    let palette_data = results.optimised_palettes.iter().map(|palette| {
+    let palettes = results.optimised_palettes.iter().map(|palette| {
         let colours = palette
             .clone()
             .into_iter()
@@ -34,6 +28,23 @@ pub(crate) fn generate_code(
             ])
         }
     });
+
+    quote! {
+        pub const PALETTES: &[#crate_prefix::display::palette16::Palette16] = &[#(#palettes),*];
+    }
+}
+
+pub(crate) fn generate_code(
+    output_variable_name: &str,
+    results: &Palette16OptimisationResults,
+    image: &Image,
+    image_filename: &str,
+    tile_size: TileSize,
+    crate_prefix: String,
+    assignment_offset: Option<usize>,
+) -> TokenStream {
+    let crate_prefix = format_ident!("{}", crate_prefix);
+    let output_variable_name = format_ident!("{}", output_variable_name);
 
     let (tile_data, assignments) = if let Some(assignment_offset) = assignment_offset {
         let mut tile_data = Vec::new();
@@ -68,17 +79,13 @@ pub(crate) fn generate_code(
         pub const #output_variable_name: #crate_prefix::display::tile_data::TileData = {
             const _: &[u8] = include_bytes!(#image_filename);
 
-            const PALETTE_DATA: &[#crate_prefix::display::palette16::Palette16] = &[
-                #(#palette_data),*
-            ];
-
             const TILE_DATA: &[u8] = #data;
 
             const PALETTE_ASSIGNMENT: &[u8] = &[
                 #(#assignments),*
             ];
 
-            #crate_prefix::display::tile_data::TileData::new(PALETTE_DATA, TILE_DATA, PALETTE_ASSIGNMENT)
+            #crate_prefix::display::tile_data::TileData::new(TILE_DATA, PALETTE_ASSIGNMENT)
         };
     }
 }

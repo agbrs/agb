@@ -127,9 +127,14 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
         ));
     }
 
+    let palette_code =
+        rust_generator::generate_palette_code(&optimisation_results, &config.crate_prefix());
+
     let module = quote! {
         mod #module_name {
             const _: &[u8] = include_bytes!(#include_path);
+
+            #palette_code
 
             #(#image_code)*
         }

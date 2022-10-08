@@ -8,7 +8,7 @@ use crate::sfx::Sfx;
 include_gfx!("gfx/backgrounds.toml");
 
 pub fn load_palettes(vram: &mut VRamManager) {
-    vram.set_background_palettes(backgrounds::stars.palettes);
+    vram.set_background_palettes(backgrounds::PALETTES);
 }
 
 pub(crate) fn load_help_text(
@@ -101,7 +101,7 @@ fn create_background_map(map: &mut RegularMap, vram: &mut VRamManager, stars_til
 
 pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sfx: &mut Sfx) {
     background.set_scroll_pos((0i16, 0).into());
-    vram.set_background_palettes(backgrounds::title.palettes);
+    vram.set_background_palettes(backgrounds::PALETTES);
     let tile_set = TileSet::new(
         backgrounds::title.tiles,
         agb::display::tiled::TileFormat::FourBpp,
