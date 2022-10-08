@@ -6,15 +6,6 @@ use quote::{quote, ToTokens};
 use std::path::Path;
 use syn::parse_macro_input;
 
-#[cfg(all(not(feature = "freq18157"), not(feature = "freq32768")))]
-const FREQUENCY: u32 = 10512;
-#[cfg(feature = "freq18157")]
-const FREQUENCY: u32 = 18157;
-#[cfg(feature = "freq32768")]
-const FREQUENCY: u32 = 32768;
-#[cfg(all(feature = "freq18157", feature = "freq32768"))]
-compile_error!("Must have at most one of freq18157 or freq32768 features enabled");
-
 use quote::TokenStreamExt;
 struct ByteString<'a>(&'a [u8]);
 impl ToTokens for ByteString<'_> {
@@ -36,13 +27,6 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
 
     let wav_reader = hound::WavReader::open(&path)
         .unwrap_or_else(|_| panic!("Failed to load file {}", include_path));
-
-    assert_eq!(
-        wav_reader.spec().sample_rate,
-        FREQUENCY,
-        "agb currently only supports sample rate of {}Hz",
-        FREQUENCY
-    );
 
     let samples: Vec<u8> = samples_from_reader(wav_reader).collect();
     let samples = ByteString(&samples);

@@ -1,12 +1,14 @@
 use core::cell::RefCell;
-use core::intrinsics::transmute;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use bare_metal::{CriticalSection, Mutex};
 
-use super::hw;
 use super::hw::LeftOrRight;
+use super::{hw, Frequency};
 use super::{SoundChannel, SoundPriority};
 
+use crate::InternalAllocator;
 use crate::{
     fixnum::Num,
     interrupt::free,
@@ -46,7 +48,7 @@ extern "C" {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// let mut mixer = gba.mixer.mixer();
+/// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// # }
 /// ```
 ///
@@ -58,13 +60,13 @@ extern "C" {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # let vblank = agb::interrupt::VBlank::get();
 /// // Outside your main function in global scope:
 /// const MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 ///
 /// // in your main function:
-/// let mut mixer = gba.mixer.mixer();
+/// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
 /// channel.stereo();
 /// let _ = mixer.play_sound(channel);
@@ -80,6 +82,7 @@ pub struct Mixer {
     buffer: MixerBuffer,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
+    frequency: Frequency,
 
     timer: Timer,
 }
@@ -96,7 +99,7 @@ pub struct Mixer {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
-/// # let mut mixer = gba.mixer.mixer();
+/// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
 /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
 /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
@@ -108,9 +111,10 @@ pub struct Mixer {
 pub struct ChannelId(usize, i32);
 
 impl Mixer {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(frequency: Frequency) -> Self {
         Self {
-            buffer: MixerBuffer::new(),
+            frequency,
+            buffer: MixerBuffer::new(frequency),
             channels: Default::default(),
             indices: Default::default(),
 
@@ -123,7 +127,7 @@ impl Mixer {
     /// You must call this method in order to start playing sound. You can do as much set up before
     /// this as you like, but you will not get any sound out of the console until this method is called.
     pub fn enable(&mut self) {
-        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, constants::SOUND_FREQUENCY);
+        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, self.frequency.frequency());
         hw::set_sound_control_register_for_mixer();
     }
 
@@ -138,7 +142,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
@@ -167,7 +171,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// // you must set this to a named variable to ensure that the scope is long enough
     /// let _mixer_interrupt = mixer.setup_interrupt_handler();
@@ -184,7 +188,7 @@ impl Mixer {
             .set_cascade(true)
             .set_divider(Divider::Divider1)
             .set_interrupt(true)
-            .set_overflow_amount(constants::SOUND_BUFFER_SIZE as u16)
+            .set_overflow_amount(self.frequency.buffer_size() as u16)
             .set_enabled(true);
 
         add_interrupt_handler(timer1.interrupt(), move |cs| self.buffer.swap(cs))
@@ -205,7 +209,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let vblank = agb::interrupt::VBlank::get();
     /// loop {
     ///     mixer.frame();
@@ -244,7 +248,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
@@ -293,7 +297,7 @@ impl Mixer {
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer();
+    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
@@ -313,47 +317,32 @@ impl Mixer {
     }
 }
 
-// These work perfectly with swapping the buffers every vblank
-// list here: http://deku.gbadev.org/program/sound1.html
-#[cfg(all(not(feature = "freq18157"), not(feature = "freq32768")))]
-mod constants {
-    pub const SOUND_FREQUENCY: i32 = 10512;
-    pub const SOUND_BUFFER_SIZE: usize = 176;
-}
-
-#[cfg(feature = "freq18157")]
-mod constants {
-    pub const SOUND_FREQUENCY: i32 = 18157;
-    pub const SOUND_BUFFER_SIZE: usize = 304;
-}
-
-#[cfg(feature = "freq32768")]
-mod constants {
-    pub const SOUND_FREQUENCY: i32 = 32768;
-    pub const SOUND_BUFFER_SIZE: usize = 560;
-}
-
-fn set_asm_buffer_size() {
+fn set_asm_buffer_size(frequency: Frequency) {
     extern "C" {
         static mut agb_rs__buffer_size: usize;
     }
 
     unsafe {
-        agb_rs__buffer_size = constants::SOUND_BUFFER_SIZE;
+        agb_rs__buffer_size = frequency.buffer_size();
     }
 }
 
-#[repr(C, align(4))]
-struct SoundBuffer([i8; constants::SOUND_BUFFER_SIZE * 2]);
+struct SoundBuffer(Box<[i8], InternalAllocator>);
 
-impl Default for SoundBuffer {
-    fn default() -> Self {
-        Self([0; constants::SOUND_BUFFER_SIZE * 2])
+impl SoundBuffer {
+    fn new(frequency: Frequency) -> Self {
+        let my_size = frequency.buffer_size() * 2;
+        let mut v = Vec::with_capacity_in(my_size, InternalAllocator);
+        v.resize(my_size, 0);
+
+        SoundBuffer(v.into_boxed_slice())
     }
 }
 
 struct MixerBuffer {
     buffers: [SoundBuffer; 3],
+    working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
+    frequency: Frequency,
 
     state: Mutex<RefCell<MixerBufferState>>,
 }
@@ -391,16 +380,26 @@ impl MixerBufferState {
 }
 
 impl MixerBuffer {
-    fn new() -> Self {
-        set_asm_buffer_size();
+    fn new(frequency: Frequency) -> Self {
+        let mut working_buffer =
+            Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
+        working_buffer.resize(frequency.buffer_size() * 2, 0.into());
 
         MixerBuffer {
-            buffers: Default::default(),
+            buffers: [
+                SoundBuffer::new(frequency),
+                SoundBuffer::new(frequency),
+                SoundBuffer::new(frequency),
+            ],
+
+            working_buffer: working_buffer.into_boxed_slice(),
 
             state: Mutex::new(RefCell::new(MixerBufferState {
                 active_buffer: 0,
                 playing_buffer: 0,
             })),
+
+            frequency,
         }
     }
 
@@ -413,15 +412,16 @@ impl MixerBuffer {
 
         let (left_buffer, right_buffer) = self.buffers[buffer]
             .0
-            .split_at(constants::SOUND_BUFFER_SIZE);
+            .split_at(self.frequency.buffer_size());
 
         hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
-        let mut buffer: [Num<i16, 4>; constants::SOUND_BUFFER_SIZE * 2] =
-            unsafe { transmute([0i16; constants::SOUND_BUFFER_SIZE * 2]) };
+        set_asm_buffer_size(self.frequency);
+
+        self.working_buffer.fill(0.into());
 
         for channel in channels {
             if channel.is_done {
@@ -434,7 +434,7 @@ impl MixerBuffer {
                 channel.playback_speed
             };
 
-            if (channel.pos + playback_speed * constants::SOUND_BUFFER_SIZE).floor()
+            if (channel.pos + playback_speed * self.frequency.buffer_size()).floor()
                 >= channel.data.len()
             {
                 // TODO: This should probably play what's left rather than skip the last bit
@@ -450,7 +450,7 @@ impl MixerBuffer {
                 unsafe {
                     agb_rs__mixer_add_stereo(
                         channel.data.as_ptr().add(channel.pos.floor()),
-                        buffer.as_mut_ptr(),
+                        self.working_buffer.as_mut_ptr(),
                         channel.volume,
                     );
                 }
@@ -461,7 +461,7 @@ impl MixerBuffer {
                 unsafe {
                     agb_rs__mixer_add(
                         channel.data.as_ptr().add(channel.pos.floor()),
-                        buffer.as_mut_ptr(),
+                        self.working_buffer.as_mut_ptr(),
                         playback_speed,
                         left_amount,
                         right_amount,
@@ -469,7 +469,7 @@ impl MixerBuffer {
                 }
             }
 
-            channel.pos += playback_speed * constants::SOUND_BUFFER_SIZE;
+            channel.pos += playback_speed * self.frequency.buffer_size();
         }
 
         let write_buffer_index = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
@@ -477,7 +477,7 @@ impl MixerBuffer {
         let write_buffer = &mut self.buffers[write_buffer_index].0;
 
         unsafe {
-            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), buffer.as_ptr());
+            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), self.working_buffer.as_ptr());
         }
     }
 }
