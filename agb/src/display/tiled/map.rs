@@ -245,7 +245,6 @@ pub struct AffineMap {
 
     scroll: Vector2D<i16>,
 
-    transform_origin: Vector2D<Num<i32, 8>>,
     transform: BgAffineSetData,
 
     tiles: Vec<u8>,
@@ -279,7 +278,7 @@ impl TiledMapPrivate for AffineMap {
         self.size
     }
     fn update_bg_registers(&self) {
-        let register_pos = self.transform.position + self.transform_origin;
+        let register_pos = self.transform.position;
         self.bg_x().set(register_pos.x);
         self.bg_y().set(register_pos.y);
         self.bg_affine_matrix().set(self.transform.matrix);
@@ -307,7 +306,6 @@ impl AffineMap {
 
             scroll: Default::default(),
 
-            transform_origin: Default::default(),
             transform: Default::default(),
 
             tiles: vec![Default::default(); size.num_tiles()],
@@ -353,11 +351,10 @@ impl AffineMap {
         scale: impl Into<Vector2D<Num<i16, 8>>>,
         rotation: impl Into<Num<u16, 8>>,
     ) {
-        self.transform_origin = transform_origin.into();
         let scale = scale.into();
         let rotation = rotation.into();
         self.transform =
-            crate::syscall::bg_affine_matrix(self.transform_origin, self.scroll, scale, rotation);
+            crate::syscall::bg_affine_matrix(transform_origin.into(), self.scroll, scale, rotation);
     }
 
     fn bg_x(&self) -> MemoryMapped<Num<i32, 8>> {
