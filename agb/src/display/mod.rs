@@ -25,6 +25,7 @@ pub mod video;
 
 pub mod blend;
 pub mod window;
+pub mod affine;
 
 mod font;
 pub use font::{Font, FontLetter};
