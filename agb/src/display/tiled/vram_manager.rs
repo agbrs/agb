@@ -224,7 +224,7 @@ impl VRamManager {
                 slice::from_raw_parts_mut(
                     tiles
                         .as_mut_ptr()
-                        .add((index * tile_format.tile_size()) as usize)
+                        .add(index * tile_format.tile_size())
                         .cast(),
                     tile_format.tile_size() / core::mem::size_of::<u32>(),
                 )
