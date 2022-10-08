@@ -2,7 +2,7 @@ use agb_fixnum::Vector2D;
 use core::arch::asm;
 use core::mem::MaybeUninit;
 
-use crate::display::object::AffineMatrixAttributes;
+use crate::display::affine::{AffineMatrixBackground, AffineMatrixObject};
 use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
@@ -139,20 +139,6 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-#[repr(C, packed(4))]
-pub struct BgAffineSetData {
-    pub matrix: AffineMatrixAttributes,
-    pub position: Vector2D<Num<i32, 8>>,
-}
-impl Default for BgAffineSetData {
-    fn default() -> Self {
-        Self {
-            matrix: AffineMatrixAttributes::default(),
-            position: (0, 0).into(),
-        }
-    }
-}
-
 /// `rotation` is in revolutions.
 #[must_use]
 pub fn bg_affine_matrix(
@@ -160,7 +146,7 @@ pub fn bg_affine_matrix(
     display_center: Vector2D<i16>,
     scale: Vector2D<Num<i16, 8>>,
     rotation: Num<u16, 8>,
-) -> BgAffineSetData {
+) -> AffineMatrixBackground {
     #[repr(C, packed(4))]
     struct Input {
         bg_center: Vector2D<Num<i32, 8>>,
@@ -195,10 +181,7 @@ pub fn bg_affine_matrix(
 
 /// `rotation` is in revolutions.
 #[must_use]
-pub fn obj_affine_matrix(
-    scale: Vector2D<Num<i16, 8>>,
-    rotation: Num<u8, 8>,
-) -> AffineMatrixAttributes {
+pub fn obj_affine_matrix(scale: Vector2D<Num<i16, 8>>, rotation: Num<u8, 8>) -> AffineMatrixObject {
     #[allow(dead_code)]
     #[repr(C, packed(4))]
     struct Input {
@@ -229,6 +212,8 @@ pub fn obj_affine_matrix(
 
 #[cfg(test)]
 mod tests {
+    use crate::display::affine::AffineMatrix;
+
     use super::*;
 
     #[test_case]
@@ -237,10 +222,9 @@ mod tests {
         let one: Num<i16, 8> = 1.into();
 
         let aff = obj_affine_matrix((one, one).into(), Num::default());
-        let (p_a, p_d) = (aff.p_a, aff.p_d);
+        let matrix = aff.to_affine_matrix();
 
-        assert_eq!(p_a, one);
-        assert_eq!(p_d, one);
+        assert_eq!(matrix, AffineMatrix::identity());
     }
 
     #[test_case]
@@ -253,11 +237,7 @@ mod tests {
             0.into(),
         );
 
-        let matrix = aff.matrix;
-        let (p_a, p_b, p_c, p_d) = (matrix.p_a, matrix.p_b, matrix.p_c, matrix.p_d);
-        assert_eq!(p_a, 1.into());
-        assert_eq!(p_b, 0.into());
-        assert_eq!(p_c, 0.into());
-        assert_eq!(p_d, 1.into());
+        let matrix = aff.to_affine_matrix();
+        assert_eq!(matrix, AffineMatrix::identity());
     }
 }

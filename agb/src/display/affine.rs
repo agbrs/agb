@@ -106,11 +106,11 @@ impl AffineMatrix {
     pub fn try_to_background(&self) -> Result<AffineMatrixBackground, OverflowError> {
         Ok(AffineMatrixBackground {
             a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            b: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            c: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            d: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            x: self.a.to_raw(),
-            y: self.a.to_raw(),
+            b: self.b.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            c: self.c.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            d: self.d.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            x: self.x.to_raw(),
+            y: self.y.to_raw(),
         })
     }
 
@@ -120,11 +120,34 @@ impl AffineMatrix {
     pub fn to_background_wrapping(&self) -> AffineMatrixBackground {
         AffineMatrixBackground {
             a: self.a.to_raw() as i16,
-            b: self.a.to_raw() as i16,
-            c: self.a.to_raw() as i16,
-            d: self.a.to_raw() as i16,
-            x: self.a.to_raw(),
-            y: self.a.to_raw(),
+            b: self.b.to_raw() as i16,
+            c: self.c.to_raw() as i16,
+            d: self.d.to_raw() as i16,
+            x: self.x.to_raw(),
+            y: self.y.to_raw(),
+        }
+    }
+
+    /// Attempts to convert the matrix to one which can be used in affine
+    /// objects.
+    pub fn try_to_object(&self) -> Result<AffineMatrixObject, OverflowError> {
+        Ok(AffineMatrixObject {
+            a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            b: self.b.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            c: self.c.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            d: self.d.to_raw().try_into().map_err(|_| OverflowError(()))?,
+        })
+    }
+
+    #[must_use]
+    /// Converts the matrix to one which can be used in affine objects
+    /// wrapping any value which is too large to be represented there.
+    pub fn to_object_wrapping(&self) -> AffineMatrixObject {
+        AffineMatrixObject {
+            a: self.a.to_raw() as i16,
+            b: self.b.to_raw() as i16,
+            c: self.c.to_raw() as i16,
+            d: self.d.to_raw() as i16,
         }
     }
 }
@@ -141,6 +164,12 @@ pub struct AffineMatrixBackground {
     // These are Num<i32, 8>
     x: i32,
     y: i32,
+}
+
+impl Default for AffineMatrixBackground {
+    fn default() -> Self {
+        AffineMatrix::identity().to_background_wrapping()
+    }
 }
 
 impl TryFrom<AffineMatrix> for AffineMatrixBackground {
@@ -173,9 +202,50 @@ impl From<AffineMatrixBackground> for AffineMatrix {
     }
 }
 
-impl Default for AffineMatrix {
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(C, packed(4))]
+/// An affine matrix that can be used in affine objects
+pub struct AffineMatrixObject {
+    // Internally these can be thought of as Num<i16, 8>
+    a: i16,
+    b: i16,
+    c: i16,
+    d: i16,
+}
+
+impl Default for AffineMatrixObject {
     fn default() -> Self {
-        AffineMatrix::identity()
+        AffineMatrix::identity().to_object_wrapping()
+    }
+}
+
+impl TryFrom<AffineMatrix> for AffineMatrixObject {
+    type Error = OverflowError;
+
+    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
+        value.try_to_object()
+    }
+}
+
+impl AffineMatrixObject {
+    #[must_use]
+    /// Converts to the affine matrix that is usable in performing efficient
+    /// calculations.
+    pub fn to_affine_matrix(&self) -> AffineMatrix {
+        AffineMatrix {
+            a: Num::from_raw(self.a.into()),
+            b: Num::from_raw(self.b.into()),
+            c: Num::from_raw(self.c.into()),
+            d: Num::from_raw(self.d.into()),
+            x: 0.into(),
+            y: 0.into(),
+        }
+    }
+}
+
+impl From<AffineMatrixObject> for AffineMatrix {
+    fn from(mat: AffineMatrixObject) -> Self {
+        mat.to_affine_matrix()
     }
 }
 

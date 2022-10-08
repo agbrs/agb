@@ -18,7 +18,7 @@ use super::{Priority, DISPLAY_CONTROL};
 use crate::agb_alloc::block_allocator::BlockAllocator;
 use crate::agb_alloc::bump_allocator::StartEnd;
 use crate::dma;
-use crate::fixnum::{Num, Vector2D};
+use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
 use attributes::*;
@@ -1191,42 +1191,6 @@ enum GraphicsMode {
 enum ColourMode {
     Four,
     Eight,
-}
-
-/// The parameters used for the PPU's affine transformation function
-/// that can apply to objects and background layers in modes 1 and 2.
-/// This can be obtained from X/Y scale and rotation angle with
-/// [`agb::syscall::affine_matrix`].
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(C, packed(4))]
-pub struct AffineMatrixAttributes {
-    /// Adjustment made to *X* coordinate when drawing *horizontal* lines.
-    /// Also known as "dx".
-    /// Typically computed as `x_scale * cos(angle)`.
-    pub p_a: Num<i16, 8>,
-    /// Adjustment made to *X* coordinate along *vertical* lines.
-    /// Also known as "dmx".
-    /// Typically computed as `y_scale * sin(angle)`.
-    pub p_b: Num<i16, 8>,
-    /// Adjustment made to *Y* coordinate along *horizontal* lines.
-    /// Also known as "dy".
-    /// Typically computed as `-x_scale * sin(angle)`.
-    pub p_c: Num<i16, 8>,
-    /// Adjustment made to *Y* coordinate along *vertical* lines.
-    /// Also known as "dmy".
-    /// Typically computed as `y_scale * cos(angle)`.
-    pub p_d: Num<i16, 8>,
-}
-
-impl Default for AffineMatrixAttributes {
-    fn default() -> Self {
-        Self {
-            p_a: 1.into(),
-            p_b: Default::default(),
-            p_c: Default::default(),
-            p_d: 1.into(),
-        }
-    }
 }
 
 // this mod is not public, so the internal parts don't need documenting.
