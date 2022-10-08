@@ -8,12 +8,7 @@ use crate::sfx::Sfx;
 include_gfx!("gfx/backgrounds.toml");
 
 pub fn load_palettes(vram: &mut VRamManager) {
-    vram.set_background_palettes(&[
-        backgrounds::stars.palettes[0].clone(),
-        backgrounds::descriptions1.palettes[0].clone(),
-        backgrounds::descriptions2.palettes[0].clone(),
-        backgrounds::help.palettes[0].clone(),
-    ]);
+    vram.set_background_palettes(backgrounds::stars.palettes);
 }
 
 pub(crate) fn load_help_text(
@@ -28,11 +23,18 @@ pub(crate) fn load_help_text(
     );
 
     for x in 0..16 {
+        let tile_id = help_text_line * 16 + x;
+
         background.set_tile(
             vram,
             (x + at_tile.0, at_tile.1).into(),
             &help_tileset,
-            TileSetting::new(help_text_line * 16 + x, false, false, 3),
+            TileSetting::new(
+                tile_id,
+                false,
+                false,
+                backgrounds::help.palette_assignments[tile_id as usize],
+            ),
         )
     }
 }
@@ -42,25 +44,32 @@ pub(crate) fn load_description(
     descriptions_map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
-    let tileset = if face_id < 10 {
-        TileSet::new(
-            backgrounds::descriptions1.tiles,
-            agb::display::tiled::TileFormat::FourBpp,
+    let (tileset, palette_assignments) = if face_id < 10 {
+        (
+            TileSet::new(
+                backgrounds::descriptions1.tiles,
+                agb::display::tiled::TileFormat::FourBpp,
+            ),
+            backgrounds::descriptions1.palette_assignments,
         )
     } else {
-        TileSet::new(
-            backgrounds::descriptions2.tiles,
-            agb::display::tiled::TileFormat::FourBpp,
+        (
+            TileSet::new(
+                backgrounds::descriptions2.tiles,
+                agb::display::tiled::TileFormat::FourBpp,
+            ),
+            backgrounds::descriptions2.palette_assignments,
         )
     };
 
     for y in 0..11 {
         for x in 0..8 {
+            let tile_id = y * 8 + x + 8 * 11 * (face_id as u16 - 10);
             descriptions_map.set_tile(
                 vram,
                 (x, y).into(),
                 &tileset,
-                TileSetting::new(y * 8 + x + 8 * 11 * (face_id as u16 - 10), false, false, 2),
+                TileSetting::new(tile_id, false, false, palette_assignments[tile_id as usize]),
             )
         }
     }
@@ -72,12 +81,16 @@ fn create_background_map(map: &mut RegularMap, vram: &mut VRamManager, stars_til
         for y in 0..32u16 {
             let blank = rng::gen().rem_euclid(32) < 30;
 
-            let tile_id = if blank {
-                (1 << 10) - 1
+            let (tile_id, palette_id) = if blank {
+                ((1 << 10) - 1, 0)
             } else {
-                rng::gen().rem_euclid(64) as u16
+                let tile_id = rng::gen().rem_euclid(64) as u16;
+                (
+                    tile_id,
+                    backgrounds::stars.palette_assignments[tile_id as usize],
+                )
             };
-            let tile_setting = TileSetting::new(tile_id, false, false, 0);
+            let tile_setting = TileSetting::new(tile_id, false, false, palette_id);
 
             map.set_tile(vram, (x, y).into(), stars_tileset, tile_setting);
         }
