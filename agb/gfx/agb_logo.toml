@@ -2,7 +2,6 @@ version = "1.0"
 
 # Only needed for within the agb crate
 crate_prefix = "crate"
-transparent_colour = "010101"
 
 [image.test_logo]
 filename = "test_logo.png"
