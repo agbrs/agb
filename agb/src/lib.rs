@@ -92,7 +92,7 @@
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
 /// let tileset = TileSet::new(water_tiles::water_tiles.tiles, TileFormat::FourBpp);
 ///
-/// vram.set_background_palettes(water_tiles::water_tiles.palettes);
+/// vram.set_background_palettes(water_tiles::PALETTES);
 ///
 /// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
 ///
