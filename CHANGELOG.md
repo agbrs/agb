@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a new agb::sync module that contains GBA-specific synchronization primitives.
 - Added support for save files.
 - Added implementation of `HashMap.retain()`.
+- Added support for affine backgrounds (tiled modes 1 and 2) which allows for scaling, rotating etc of tiled backgrounds.
+- Added support for 256 colour backgrounds (when working with affine ones).
 
 ### Changes
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
 - HashMap iterators now implement `size_hint` which should result in slightly better generation of code using those iterators.
+- Transparency of backgrounds is now set once in the toml file rather than once for every image.
+- Palette generation now takes into account every single background a toml definition rather than one at a time.
 
 ### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
