@@ -269,26 +269,6 @@ impl Mul for AffineMatrix {
     }
 }
 
-// impl Mul<Num<i32, 8>> for AffineMatrix {
-//     type Output = Self;
-//     fn mul(self, rhs: Num<i32, 8>) -> Self::Output {
-//         self * AffineMatrix {
-//             a: rhs,
-//             b: 0.into(),
-//             c: 0.into(),
-//             d: rhs,
-//             x: 0.into(),
-//             y: 0.into(),
-//         }
-//     }
-// }
-
-// impl MulAssign<Num<i32, 8>> for AffineMatrix {
-//     fn mul_assign(&mut self, rhs: Num<i32, 8>) {
-//         *self = *self * rhs;
-//     }
-// }
-
 impl MulAssign for AffineMatrix {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
