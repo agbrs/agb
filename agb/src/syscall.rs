@@ -139,9 +139,10 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-/// `rotation` is in revolutions.
+/// `rotation` is in revolutions. It is hard to create the rotation, usually
+/// you'll go in from a larger sized type.
 #[must_use]
-pub fn bg_affine_matrix(
+pub(crate) fn bg_affine_matrix(
     bg_center: Vector2D<Num<i32, 8>>,
     display_center: Vector2D<i16>,
     scale: Vector2D<Num<i16, 8>>,
@@ -185,53 +186,11 @@ pub fn bg_affine_matrix(
     unsafe { output.assume_init() }
 }
 
-/// `rotation` is in revolutions.
-#[must_use]
-pub fn obj_affine_matrix(scale: Vector2D<Num<i16, 8>>, rotation: Num<u8, 8>) -> AffineMatrixObject {
-    #[allow(dead_code)]
-    #[repr(C, packed(4))]
-    struct Input {
-        scale: Vector2D<Num<i16, 8>>,
-        rotation: u16,
-    }
-
-    let input = Input {
-        scale,
-        rotation: u16::from(rotation.to_raw()) << 8,
-    };
-
-    let mut output = MaybeUninit::uninit();
-
-    unsafe {
-        asm!(
-        "swi {SWI}",
-        SWI = const { swi_map(0x0F) },
-        in("r0") &input as *const Input,
-        in("r1") output.as_mut_ptr(),
-        in("r2") 1,
-        in("r3") 2,
-        );
-    }
-
-    unsafe { output.assume_init() }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::display::affine::AffineMatrix;
 
     use super::*;
-
-    #[test_case]
-    fn affine_obj(_gba: &mut crate::Gba) {
-        // expect identity matrix
-        let one: Num<i16, 8> = 1.into();
-
-        let aff = obj_affine_matrix((one, one).into(), Num::default());
-        let matrix = aff.to_affine_matrix();
-
-        assert_eq!(matrix, AffineMatrix::identity());
-    }
 
     #[test_case]
     fn affine_bg(_gba: &mut crate::Gba) {
@@ -240,7 +199,7 @@ mod tests {
             (0, 0).into(),
             (0i16, 0i16).into(),
             (1i16, 1i16).into(),
-            0.into(),
+            Default::default(),
         );
 
         let matrix = aff.to_affine_matrix();
