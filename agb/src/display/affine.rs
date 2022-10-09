@@ -68,7 +68,7 @@
 //!
 //! # fn foo(_gba: &mut agb::Gba) {
 //! // size of our thing is 10 pixels by 10 pixels
-//! let size_of_thing: Vector2D<Num<i32, 8>> = (10, 10).into()
+//! let size_of_thing: Vector2D<Num<i32, 8>> = (10, 10).into();
 //! // rotation by a quarter turn
 //! let rotation: Num<i32, 8> = num!(0.25);
 //! // the final position
@@ -281,10 +281,16 @@ impl AffineMatrixBackground {
     /// This can be done using the standard transformation matricies like
     ///
     /// ```rust,no_run
-    /// use agb::display::affine::AffineMatrix;
     /// # #![no_std]
     /// # #![no_main]
-    /// # fn something() {
+    /// # use agb_fixnum::{Vector2D, Num};
+    /// use agb::display::affine::AffineMatrix;
+    /// # fn from_scale_rotation_position(
+    /// #     transform_origin: Vector2D<Num<i32, 8>>,
+    /// #     scale: Vector2D<Num<i32, 8>>,
+    /// #     rotation: Num<i32, 16>,
+    /// #     position: Vector2D<Num<i32, 8>>,
+    /// # ) {
     /// let A = AffineMatrix::from_translation(-transform_origin)
     ///     * AffineMatrix::from_scale(scale)
     ///     * AffineMatrix::from_rotation(rotation)
