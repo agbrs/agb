@@ -2,7 +2,7 @@ use agb_fixnum::Vector2D;
 use core::arch::asm;
 use core::mem::MaybeUninit;
 
-use crate::display::affine::{AffineMatrixBackground, AffineMatrixObject};
+use crate::display::affine::AffineMatrixBackground;
 use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
