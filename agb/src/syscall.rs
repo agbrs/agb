@@ -2,7 +2,7 @@ use agb_fixnum::Vector2D;
 use core::arch::asm;
 use core::mem::MaybeUninit;
 
-use crate::display::object::AffineMatrixAttributes;
+use crate::display::affine::AffineMatrixBackground;
 use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
@@ -139,40 +139,33 @@ pub fn arc_tan2(x: i16, y: i32) -> i16 {
     result
 }
 
-#[repr(C, packed(4))]
-pub struct BgAffineSetData {
-    pub matrix: AffineMatrixAttributes,
-    pub position: Vector2D<Num<i32, 8>>,
-}
-impl Default for BgAffineSetData {
-    fn default() -> Self {
-        Self {
-            matrix: AffineMatrixAttributes::default(),
-            position: (0, 0).into(),
-        }
-    }
-}
-
-/// `rotation` is in revolutions.
+/// `rotation` is in revolutions. It is hard to create the rotation, usually
+/// you'll go in from a larger sized type.
 #[must_use]
-pub fn bg_affine_matrix(
+pub(crate) fn bg_affine_matrix(
     bg_center: Vector2D<Num<i32, 8>>,
     display_center: Vector2D<i16>,
     scale: Vector2D<Num<i16, 8>>,
-    rotation: Num<u16, 8>,
-) -> BgAffineSetData {
+    rotation: Num<u16, 16>,
+) -> AffineMatrixBackground {
     #[repr(C, packed(4))]
     struct Input {
-        bg_center: Vector2D<Num<i32, 8>>,
-        display_center: Vector2D<i16>,
-        scale: Vector2D<Num<i16, 8>>,
-        rotation: Num<u16, 8>,
+        bg_center_x: Num<i32, 8>,
+        bg_center_y: Num<i32, 8>,
+        display_center_x: i16,
+        display_center_y: i16,
+        scale_x: Num<i16, 8>,
+        scale_y: Num<i16, 8>,
+        rotation: Num<u16, 16>,
     }
 
     let input = Input {
-        bg_center,
-        display_center,
-        scale,
+        bg_center_x: bg_center.x,
+        bg_center_y: bg_center.y,
+        display_center_x: display_center.x,
+        display_center_y: display_center.y,
+        scale_x: scale.x,
+        scale_y: scale.y,
         rotation,
     };
 
@@ -193,55 +186,11 @@ pub fn bg_affine_matrix(
     unsafe { output.assume_init() }
 }
 
-/// `rotation` is in revolutions.
-#[must_use]
-pub fn obj_affine_matrix(
-    scale: Vector2D<Num<i16, 8>>,
-    rotation: Num<u8, 8>,
-) -> AffineMatrixAttributes {
-    #[allow(dead_code)]
-    #[repr(C, packed(4))]
-    struct Input {
-        scale: Vector2D<Num<i16, 8>>,
-        rotation: u16,
-    }
-
-    let input = Input {
-        scale,
-        rotation: u16::from(rotation.to_raw()) << 8,
-    };
-
-    let mut output = MaybeUninit::uninit();
-
-    unsafe {
-        asm!(
-        "swi {SWI}",
-        SWI = const { swi_map(0x0F) },
-        in("r0") &input as *const Input,
-        in("r1") output.as_mut_ptr(),
-        in("r2") 1,
-        in("r3") 2,
-        );
-    }
-
-    unsafe { output.assume_init() }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::display::affine::AffineMatrix;
+
     use super::*;
-
-    #[test_case]
-    fn affine_obj(_gba: &mut crate::Gba) {
-        // expect identity matrix
-        let one: Num<i16, 8> = 1.into();
-
-        let aff = obj_affine_matrix((one, one).into(), Num::default());
-        let (p_a, p_d) = (aff.p_a, aff.p_d);
-
-        assert_eq!(p_a, one);
-        assert_eq!(p_d, one);
-    }
 
     #[test_case]
     fn affine_bg(_gba: &mut crate::Gba) {
@@ -250,14 +199,10 @@ mod tests {
             (0, 0).into(),
             (0i16, 0i16).into(),
             (1i16, 1i16).into(),
-            0.into(),
+            Default::default(),
         );
 
-        let matrix = aff.matrix;
-        let (p_a, p_b, p_c, p_d) = (matrix.p_a, matrix.p_b, matrix.p_c, matrix.p_d);
-        assert_eq!(p_a, 1.into());
-        assert_eq!(p_b, 0.into());
-        assert_eq!(p_c, 0.into());
-        assert_eq!(p_d, 1.into());
+        let matrix = aff.to_affine_matrix();
+        assert_eq!(matrix, AffineMatrix::identity());
     }
 }

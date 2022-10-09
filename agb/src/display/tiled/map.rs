@@ -2,9 +2,10 @@ use core::cell::RefCell;
 use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
-use crate::display::{object::AffineMatrixAttributes, Priority, DISPLAY_CONTROL};
+use crate::display::affine::AffineMatrixBackground;
+use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
-use crate::fixnum::{Num, Vector2D};
+use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
 use super::{
@@ -12,7 +13,6 @@ use super::{
     RegularBackgroundSize, Tile, TileFormat, TileIndex, TileSet, TileSetting, VRamManager,
 };
 
-use crate::syscall::BgAffineSetData;
 use alloc::{vec, vec::Vec};
 
 pub trait TiledMapTypes: private::Sealed {
@@ -247,7 +247,7 @@ pub struct AffineMap {
 
     scroll: Vector2D<i16>,
 
-    transform: BgAffineSetData,
+    transform: AffineMatrixBackground,
 
     tiles: Vec<u8>,
     tiles_dirty: bool,
@@ -259,7 +259,7 @@ impl TiledMapTypes for AffineMap {
 
 impl TiledMapPrivate for AffineMap {
     type TileType = u8;
-    type AffineMatrix = AffineMatrixAttributes;
+    type AffineMatrix = AffineMatrixBackground;
 
     fn tiles_mut(&mut self) -> &mut [Self::TileType] {
         &mut self.tiles
@@ -280,10 +280,7 @@ impl TiledMapPrivate for AffineMap {
         self.size
     }
     fn update_bg_registers(&self) {
-        let register_pos = self.transform.position;
-        self.bg_x().set(register_pos.x);
-        self.bg_y().set(register_pos.y);
-        self.bg_affine_matrix().set(self.transform.matrix);
+        self.bg_affine_matrix().set(self.transform);
     }
     fn scroll_pos(&self) -> Vector2D<i16> {
         self.scroll
@@ -347,25 +344,11 @@ impl AffineMap {
         *self.tiles_dirty() = true;
     }
 
-    pub fn set_transform(
-        &mut self,
-        transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
-        scale: impl Into<Vector2D<Num<i16, 8>>>,
-        rotation: impl Into<Num<u16, 8>>,
-    ) {
-        let scale = scale.into();
-        let rotation = rotation.into();
-        self.transform =
-            crate::syscall::bg_affine_matrix(transform_origin.into(), self.scroll, scale, rotation);
+    pub fn set_transform(&mut self, transformation: impl Into<AffineMatrixBackground>) {
+        self.transform = transformation.into();
     }
 
-    fn bg_x(&self) -> MemoryMapped<Num<i32, 8>> {
-        unsafe { MemoryMapped::new(0x0400_0008 + 0x10 * self.background_id()) }
-    }
-    fn bg_y(&self) -> MemoryMapped<Num<i32, 8>> {
-        unsafe { MemoryMapped::new(0x0400_000c + 0x10 * self.background_id()) }
-    }
-    fn bg_affine_matrix(&self) -> MemoryMapped<AffineMatrixAttributes> {
+    fn bg_affine_matrix(&self) -> MemoryMapped<AffineMatrixBackground> {
         unsafe { MemoryMapped::new(0x0400_0000 + 0x10 * self.background_id()) }
     }
 }

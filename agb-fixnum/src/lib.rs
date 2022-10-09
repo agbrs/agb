@@ -133,8 +133,8 @@ fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
-#[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
 /// An often convenient representation for the Game Boy Advance using word sized
@@ -571,7 +571,6 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 
 /// A vector of two points: (x, y) represened by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-#[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
     pub x: T,
@@ -688,6 +687,17 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
             x: self.x.floor(),
             y: self.y.floor(),
         }
+    }
+
+    #[must_use]
+    /// Attempts to change the base returning None if the numbers cannot be represented
+    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+        self,
+    ) -> Option<Vector2D<Num<J, M>>> {
+        Some(Vector2D::new(
+            self.x.try_change_base()?,
+            self.y.try_change_base()?,
+        ))
     }
 }
 

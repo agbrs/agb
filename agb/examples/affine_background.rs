@@ -3,6 +3,7 @@
 
 use agb::{
     display::{
+        affine::AffineMatrixBackground,
         tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
         Priority,
     },
@@ -32,8 +33,8 @@ fn main(mut gba: agb::Gba) -> ! {
     bg.commit(&mut vram);
     bg.show();
 
-    let mut rotation: Num<u16, 8> = num!(0.);
-    let rotation_increase = num!(1.);
+    let mut rotation = num!(0.);
+    let rotation_increase: Num<i32, 16> = num!(0.01);
 
     let mut input = agb::input::ButtonController::new();
 
@@ -45,14 +46,19 @@ fn main(mut gba: agb::Gba) -> ! {
         scroll_x += input.x_tri() as i32;
         scroll_y += input.y_tri() as i32;
 
-        let scroll_pos = (scroll_x as i16, scroll_y as i16);
-        bg.set_scroll_pos(scroll_pos.into());
-        bg.set_transform((0, 0), (1, 1), rotation);
+        let scroll_pos = (scroll_x, scroll_y).into();
 
         rotation += rotation_increase;
-        if rotation >= num!(255.) {
-            rotation = 0.into();
-        }
+        rotation = rotation.rem_euclid(1.into());
+
+        let transformation = AffineMatrixBackground::from_scale_rotation_position(
+            (0, 0).into(),
+            (1, 1).into(),
+            rotation,
+            scroll_pos,
+        );
+
+        bg.set_transform(transformation);
 
         vblank.wait_for_vblank();
         bg.commit(&mut vram);
