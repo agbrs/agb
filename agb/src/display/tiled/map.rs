@@ -5,7 +5,7 @@ use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
 use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
-use crate::fixnum::{Num, Vector2D};
+use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
 use super::{
