@@ -19,7 +19,7 @@
 //! order changes the result, or `A * B ≢ B * A`.
 
 use core::{
-    convert::{TryFrom, TryInto},
+    convert::TryFrom,
     ops::{Mul, MulAssign},
 };
 
@@ -105,12 +105,12 @@ impl AffineMatrix {
     /// backgrounds.
     pub fn try_to_background(&self) -> Result<AffineMatrixBackground, OverflowError> {
         Ok(AffineMatrixBackground {
-            a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            b: self.b.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            c: self.c.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            d: self.d.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            x: self.x.to_raw(),
-            y: self.y.to_raw(),
+            a: self.a.try_change_base().ok_or(OverflowError(()))?,
+            b: self.b.try_change_base().ok_or(OverflowError(()))?,
+            c: self.c.try_change_base().ok_or(OverflowError(()))?,
+            d: self.d.try_change_base().ok_or(OverflowError(()))?,
+            x: self.x,
+            y: self.y,
         })
     }
 
@@ -119,12 +119,12 @@ impl AffineMatrix {
     /// wrapping any value which is too large to be represented there.
     pub fn to_background_wrapping(&self) -> AffineMatrixBackground {
         AffineMatrixBackground {
-            a: self.a.to_raw() as i16,
-            b: self.b.to_raw() as i16,
-            c: self.c.to_raw() as i16,
-            d: self.d.to_raw() as i16,
-            x: self.x.to_raw(),
-            y: self.y.to_raw(),
+            a: Num::from_raw(self.a.to_raw() as i16),
+            b: Num::from_raw(self.b.to_raw() as i16),
+            c: Num::from_raw(self.c.to_raw() as i16),
+            d: Num::from_raw(self.d.to_raw() as i16),
+            x: self.x,
+            y: self.y,
         }
     }
 
@@ -132,10 +132,10 @@ impl AffineMatrix {
     /// objects.
     pub fn try_to_object(&self) -> Result<AffineMatrixObject, OverflowError> {
         Ok(AffineMatrixObject {
-            a: self.a.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            b: self.b.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            c: self.c.to_raw().try_into().map_err(|_| OverflowError(()))?,
-            d: self.d.to_raw().try_into().map_err(|_| OverflowError(()))?,
+            a: self.a.try_change_base().ok_or(OverflowError(()))?,
+            b: self.b.try_change_base().ok_or(OverflowError(()))?,
+            c: self.c.try_change_base().ok_or(OverflowError(()))?,
+            d: self.d.try_change_base().ok_or(OverflowError(()))?,
         })
     }
 
@@ -144,10 +144,10 @@ impl AffineMatrix {
     /// wrapping any value which is too large to be represented there.
     pub fn to_object_wrapping(&self) -> AffineMatrixObject {
         AffineMatrixObject {
-            a: self.a.to_raw() as i16,
-            b: self.b.to_raw() as i16,
-            c: self.c.to_raw() as i16,
-            d: self.d.to_raw() as i16,
+            a: Num::from_raw(self.a.to_raw() as i16),
+            b: Num::from_raw(self.b.to_raw() as i16),
+            c: Num::from_raw(self.c.to_raw() as i16),
+            d: Num::from_raw(self.d.to_raw() as i16),
         }
     }
 }
@@ -162,14 +162,12 @@ impl Default for AffineMatrix {
 #[repr(C, packed(4))]
 /// An affine matrix that can be used in affine backgrounds
 pub struct AffineMatrixBackground {
-    // Internally these can be thought of as Num<i16, 8>
-    a: i16,
-    b: i16,
-    c: i16,
-    d: i16,
-    // These are Num<i32, 8>
-    x: i32,
-    y: i32,
+    a: Num<i16, 8>,
+    b: Num<i16, 8>,
+    c: Num<i16, 8>,
+    d: Num<i16, 8>,
+    x: Num<i32, 8>,
+    y: Num<i32, 8>,
 }
 
 impl Default for AffineMatrixBackground {
@@ -192,12 +190,12 @@ impl AffineMatrixBackground {
     /// calculations.
     pub fn to_affine_matrix(&self) -> AffineMatrix {
         AffineMatrix {
-            a: Num::from_raw(self.a.into()),
-            b: Num::from_raw(self.b.into()),
-            c: Num::from_raw(self.c.into()),
-            d: Num::from_raw(self.d.into()),
-            x: Num::from_raw(self.x),
-            y: Num::from_raw(self.y),
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
+            x: self.x,
+            y: self.y,
         }
     }
 }
@@ -212,11 +210,10 @@ impl From<AffineMatrixBackground> for AffineMatrix {
 #[repr(C, packed(4))]
 /// An affine matrix that can be used in affine objects
 pub struct AffineMatrixObject {
-    // Internally these can be thought of as Num<i16, 8>
-    a: i16,
-    b: i16,
-    c: i16,
-    d: i16,
+    a: Num<i16, 8>,
+    b: Num<i16, 8>,
+    c: Num<i16, 8>,
+    d: Num<i16, 8>,
 }
 
 impl Default for AffineMatrixObject {
@@ -239,10 +236,10 @@ impl AffineMatrixObject {
     /// calculations.
     pub fn to_affine_matrix(&self) -> AffineMatrix {
         AffineMatrix {
-            a: Num::from_raw(self.a.into()),
-            b: Num::from_raw(self.b.into()),
-            c: Num::from_raw(self.c.into()),
-            d: Num::from_raw(self.d.into()),
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
             x: 0.into(),
             y: 0.into(),
         }
