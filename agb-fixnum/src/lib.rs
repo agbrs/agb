@@ -134,7 +134,7 @@ fixed_width_signed_integer_impl!(i32);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
+#[repr(transparent)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
 /// An often convenient representation for the Game Boy Advance using word sized
