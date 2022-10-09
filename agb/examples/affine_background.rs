@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        affine::{AffineMatrix, AffineMatrixBackground},
+        affine::AffineMatrixBackground,
         tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
         Priority,
     },
