@@ -688,6 +688,17 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
             y: self.y.floor(),
         }
     }
+
+    #[must_use]
+    /// Attempts to change the base returning None if the numbers cannot be represented
+    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+        self,
+    ) -> Option<Vector2D<Num<J, M>>> {
+        Some(Vector2D::new(
+            self.x.try_change_base()?,
+            self.y.try_change_base()?,
+        ))
+    }
 }
 
 impl<const N: usize> Vector2D<Num<i32, N>> {

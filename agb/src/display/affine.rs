@@ -62,7 +62,7 @@ impl AffineMatrix {
     #[must_use]
     /// Generates the matrix that represents a rotation
     pub fn from_rotation<const N: usize>(angle: Num<i32, N>) -> Self {
-        fn from_rotation(angle: Num<i32, 28>) -> AffineMatrix {
+        fn from_rotation(angle: Num<i32, 8>) -> AffineMatrix {
             let cos = angle.cos().change_base();
             let sin = angle.sin().change_base();
 
@@ -71,8 +71,8 @@ impl AffineMatrix {
             // space rather than how you might conventionally think of it.
             AffineMatrix {
                 a: cos,
-                b: sin,
-                c: -sin,
+                b: -sin,
+                c: sin,
                 d: cos,
                 x: 0.into(),
                 y: 0.into(),
@@ -90,15 +90,15 @@ impl AffineMatrix {
             b: 0.into(),
             c: 0.into(),
             d: 1.into(),
-            x: position.x,
-            y: position.y,
+            x: -position.x,
+            y: -position.y,
         }
     }
 
     #[must_use]
     /// The position fields of the matrix
     pub fn position(&self) -> Vector2D<Num<i32, 8>> {
-        (self.x, self.y).into()
+        (-self.x, -self.y).into()
     }
 
     /// Attempts to convert the matrix to one which can be used in affine
@@ -150,6 +150,20 @@ impl AffineMatrix {
             d: Num::from_raw(self.d.to_raw() as i16),
         }
     }
+
+    #[must_use]
+    /// Creates an affine matrix from a given (x, y) scaling. This will scale by
+    /// the inverse, ie (2, 2) will produce half the size.
+    pub fn from_scale(scale: Vector2D<Num<i32, 8>>) -> AffineMatrix {
+        AffineMatrix {
+            a: scale.x,
+            b: 0.into(),
+            c: 0.into(),
+            d: scale.y,
+            x: 0.into(),
+            y: 0.into(),
+        }
+    }
 }
 
 impl Default for AffineMatrix {
@@ -197,6 +211,35 @@ impl AffineMatrixBackground {
             x: self.x,
             y: self.y,
         }
+    }
+
+    #[must_use]
+    /// Creates a transformation matrix using GBA specific syscalls.
+    /// This can be done using the standard transformation matricies like
+    ///
+    /// ```rust,no_run
+    /// use agb::display::affine::AffineMatrix;
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # fn something() {
+    /// let A = AffineMatrix::from_translation(-transform_origin)
+    ///     * AffineMatrix::from_scale(scale)
+    ///     * AffineMatrix::from_rotation(rotation)
+    ///     * AffineMatrix::from_translation(position);
+    /// # }
+    /// ```
+    pub fn from_scale_rotation_position(
+        transform_origin: Vector2D<Num<i32, 8>>,
+        scale: Vector2D<Num<i32, 8>>,
+        rotation: Num<i32, 16>,
+        position: Vector2D<Num<i32, 8>>,
+    ) -> Self {
+        crate::syscall::bg_affine_matrix(
+            transform_origin,
+            position.try_change_base::<i16, 8>().unwrap().floor(),
+            scale.try_change_base().unwrap(),
+            rotation.rem_euclid(1.into()).try_change_base().unwrap(),
+        )
     }
 }
 

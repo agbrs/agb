@@ -344,16 +344,8 @@ impl AffineMap {
         *self.tiles_dirty() = true;
     }
 
-    pub fn set_transform(
-        &mut self,
-        transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
-        scale: impl Into<Vector2D<Num<i16, 8>>>,
-        rotation: impl Into<Num<u16, 8>>,
-    ) {
-        let scale = scale.into();
-        let rotation = rotation.into();
-        self.transform =
-            crate::syscall::bg_affine_matrix(transform_origin.into(), self.scroll, scale, rotation);
+    pub fn set_transform(&mut self, transformation: impl Into<AffineMatrixBackground>) {
+        self.transform = transformation.into();
     }
 
     fn bg_affine_matrix(&self) -> MemoryMapped<AffineMatrixBackground> {

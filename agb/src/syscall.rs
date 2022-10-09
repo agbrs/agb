@@ -145,20 +145,26 @@ pub fn bg_affine_matrix(
     bg_center: Vector2D<Num<i32, 8>>,
     display_center: Vector2D<i16>,
     scale: Vector2D<Num<i16, 8>>,
-    rotation: Num<u16, 8>,
+    rotation: Num<u16, 16>,
 ) -> AffineMatrixBackground {
     #[repr(C, packed(4))]
     struct Input {
-        bg_center: Vector2D<Num<i32, 8>>,
-        display_center: Vector2D<i16>,
-        scale: Vector2D<Num<i16, 8>>,
-        rotation: Num<u16, 8>,
+        bg_center_x: Num<i32, 8>,
+        bg_center_y: Num<i32, 8>,
+        display_center_x: i16,
+        display_center_y: i16,
+        scale_x: Num<i16, 8>,
+        scale_y: Num<i16, 8>,
+        rotation: Num<u16, 16>,
     }
 
     let input = Input {
-        bg_center,
-        display_center,
-        scale,
+        bg_center_x: bg_center.x,
+        bg_center_y: bg_center.y,
+        display_center_x: display_center.x,
+        display_center_y: display_center.y,
+        scale_x: scale.x,
+        scale_y: scale.y,
         rotation,
     };
 
