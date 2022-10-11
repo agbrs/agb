@@ -33,9 +33,6 @@ trait TiledMapPrivate: TiledMapTypes {
 
     fn update_bg_registers(&self);
 
-    fn scroll_pos(&self) -> Vector2D<i16>;
-    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>);
-
     fn bg_control_register(&self) -> MemoryMapped<u16> {
         unsafe { MemoryMapped::new(0x0400_0008 + 2 * self.background_id()) }
     }
@@ -52,10 +49,6 @@ pub trait TiledMap: TiledMapTypes {
     fn hide(&mut self);
     fn commit(&mut self, vram: &mut VRamManager);
     fn size(&self) -> Self::Size;
-
-    #[must_use]
-    fn scroll_pos(&self) -> Vector2D<i16>;
-    fn set_scroll_pos(&mut self, pos: Vector2D<i16>);
 }
 
 impl<T> TiledMap for T
@@ -114,15 +107,6 @@ where
     fn size(&self) -> T::Size {
         self.map_size()
     }
-
-    #[must_use]
-    fn scroll_pos(&self) -> Vector2D<i16> {
-        TiledMapPrivate::scroll_pos(self)
-    }
-
-    fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
-        TiledMapPrivate::set_scroll_pos(self, pos);
-    }
 }
 
 pub struct RegularMap {
@@ -169,12 +153,6 @@ impl TiledMapPrivate for RegularMap {
     fn update_bg_registers(&self) {
         self.x_register().set(self.scroll.x);
         self.y_register().set(self.scroll.y);
-    }
-    fn scroll_pos(&self) -> Vector2D<i16> {
-        self.scroll
-    }
-    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>) {
-        self.scroll = new_pos;
     }
 }
 
@@ -230,6 +208,15 @@ impl RegularMap {
         *self.tiles_dirty() = true;
     }
 
+    #[must_use]
+    pub fn scroll_pos(&self) -> Vector2D<i16> {
+        self.scroll
+    }
+
+    pub fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
+        self.scroll = pos;
+    }
+
     fn x_register(&self) -> MemoryMapped<i16> {
         unsafe { MemoryMapped::new(0x0400_0010 + 4 * self.background_id as usize) }
     }
@@ -244,8 +231,6 @@ pub struct AffineMap {
     screenblock: u8,
     priority: Priority,
     size: AffineBackgroundSize,
-
-    scroll: Vector2D<i16>,
 
     transform: AffineMatrixBackground,
 
@@ -282,12 +267,6 @@ impl TiledMapPrivate for AffineMap {
     fn update_bg_registers(&self) {
         self.bg_affine_matrix().set(self.transform);
     }
-    fn scroll_pos(&self) -> Vector2D<i16> {
-        self.scroll
-    }
-    fn set_scroll_pos(&mut self, new_pos: Vector2D<i16>) {
-        self.scroll = new_pos;
-    }
 }
 
 impl AffineMap {
@@ -302,8 +281,6 @@ impl AffineMap {
             screenblock,
             priority,
             size,
-
-            scroll: Default::default(),
 
             transform: Default::default(),
 
