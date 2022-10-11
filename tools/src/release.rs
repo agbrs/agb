@@ -193,7 +193,9 @@ fn execute_git_command(root_directory: &Path, args: &[&str]) -> Result<String, E
 
     assert!(git_cmd.status.success());
 
-    String::from_utf8(git_cmd.stdout).map_err(|_| Error::Git("Output not utf-8"))
+    String::from_utf8(git_cmd.stdout)
+        .map(|output| output.trim().to_owned())
+        .map_err(|_| Error::Git("Output not utf-8"))
 }
 
 fn glob_many(root_directory: &Path, globs: &[&str]) -> Result<Vec<std::path::PathBuf>, Error> {
