@@ -957,6 +957,8 @@ pub fn main(mut agb: agb::Gba) -> ! {
             level.clear_backgrounds(&mut vram);
         }
 
+        object.commit();
+
         splash_screen::show_splash_screen(
             splash_screen::SplashScreen::End,
             Some(&mut mixer),
