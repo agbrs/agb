@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2022/10/11
+
 This version of `agb` has some exciting new features we'd like to highlight and some brand new contributors!
 
 1. Save support for multiple cartridge types (contributed by @Lymia)
