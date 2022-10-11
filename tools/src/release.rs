@@ -71,7 +71,7 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
             &[
                 "tag",
                 "-a",
-                &version.to_string(),
+                &format!("v{version}"),
                 "-m",
                 &format!("#v{version}\n{changelog_text}"),
             ],
