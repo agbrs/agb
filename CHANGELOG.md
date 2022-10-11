@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This version of `agb` has some exciting new features we'd like to highlight and some brand new contributors!
+
+1. Save support for multiple cartridge types (contributed by @Lymia)
+2. Affine background support (contributed by @lifning)
+
+We also had a contribution by @ijc8. We can't thank you all enough!
+
 ### Added
 - Custom allocator support using the `Allocator` trait for `HashMap`. This means the `HashMap` can be used with `InternalAllocator` to allocate to IWRAM or the `ExternalAllocator` to explicitly allocate to EWRAM.
 - Support for using windows on the GBA. Windows are used to selectively enable rendering of certain layers or effects.
@@ -18,19 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added affine matrix module. This allows for manipulation of affine matricies for use in backgrounds and in the future objects.
 - Added support for dynamic sprites generated at runtime, some parts of this may change significantly so breaking changes are expected here.
 
-### Changes
+### Changed
 - Many of the places that originally disabled IRQs now use the `sync` module, reducing the chance of missed interrupts.
 - HashMap iterators now implement `size_hint` which should result in slightly better generation of code using those iterators.
 - Transparency of backgrounds is now set once in the toml file rather than once for every image.
 - Palette generation now takes into account every single background a toml definition rather than one at a time, you can now find it in the PALETTES constant rather than in every individual image.
 - Sound frequency is no longer a crate feature, instead set when initialising the sound mixer.
+- `testing` is now a default feature, so you no longer need to add a separate `dev-dependencies` line for `agb` in order to enable unit tests for your project.
 
 ### Fixed
 - Fixed the fast magnitude function in agb_fixnum. This is also used in fast_normalise. Previously only worked for positive (x, y).
 - Fixed formatting of fixed point numbers in the range (-1, 0), which previously appeared positive.
-
-### Changed
-- `testing` is now a default feature, so you no longer need to add a separate `dev-dependencies` line for `agb` in order to enable unit tests for your project.
 
 ## [0.11.1] - 2022/08/02
 
