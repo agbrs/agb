@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2022/10/12
+
 This is a minor release to fix the build of the docs on [docs.rs/agb](https://docs.rs/agb).
 
 ### Fixed
