@@ -5,17 +5,18 @@
 //! There are, broadly speaking, three different kinds of save media that can be
 //! found in official Game Carts:
 //!
-//! * Battery-Backed SRAM: The simplest kind of save media, which can be accessed
-//!   like normal memory. You can have SRAM up to 32KiB, and while there exist a
-//!   few variants this does not matter much for a game developer.
+//! * Battery-Backed SRAM: The simplest kind of save media, which can be
+//!   accessed like normal memory. You can have SRAM up to 32KiB, and while
+//!   there exist a few variants this does not matter much for a game developer.
 //! * EEPROM: A kind of save media based on very cheap chips and slow chips.
 //!   These are accessed using a serial interface based on reading/writing bit
-//!   streams into IO registers. This memory comes in 8KiB and 512 byte versions,
-//!   which unfortunately cannot be distinguished at runtime.
-//! * Flash: A kind of save media based on flash memory. Flash memory can be read
-//!   like ordinary memory, but writing requires sending commands using multiple
-//!   IO register spread across the address space. This memory comes in 64KiB
-//!   and 128KiB variants, which can thankfully be distinguished using a chip ID.
+//!   streams into IO registers. This memory comes in 8KiB and 512 byte
+//!   versions, which unfortunately cannot be distinguished at runtime.
+//! * Flash: A kind of save media based on flash memory. Flash memory can be
+//!   read like ordinary memory, but writing requires sending commands using
+//!   multiple IO register spread across the address space. This memory comes in
+//!   64KiB and 128KiB variants, which can thankfully be distinguished using a
+//!   chip ID.
 //!
 //! As these various types of save media cannot be easily distinguished at
 //! runtime, the kind of media in use should be set manually.
@@ -39,24 +40,26 @@
 //!
 //! ## Using save media
 //!
-//! To access save media, use the [`SaveManager::access`] or [`SaveManager::access_with_timer`] methods to create a new
-//! [`SaveData`] object. Its methods are used to read or write save media.
+//! To access save media, use the [`SaveManager::access`] or
+//! [`SaveManager::access_with_timer`] methods to create a new [`SaveData`]
+//! object. Its methods are used to read or write save media.
 //!
 //! Reading data from the savegame is simple. Use [`read`] to copy data from an
 //! offset in the savegame into a buffer in memory.
 //!
-//! Writing to save media requires you to prepare the area for writing by calling
-//! the [`prepare_write`] method to return a [`SavePreparedBlock`], which contains
-//! the actual [`write`] method.
+//! Writing to save media requires you to prepare the area for writing by
+//! calling the [`prepare_write`] method to return a [`SavePreparedBlock`],
+//! which contains the actual [`write`] method.
 //!
 //! The `prepare_write` method leaves everything in a sector that overlaps the
-//! range passed to it in an implementation defined state. On some devices it may
-//! do nothing, and on others, it may clear the entire range to `0xFF`.
+//! range passed to it in an implementation defined state. On some devices it
+//! may do nothing, and on others, it may clear the entire range to `0xFF`.
 //!
-//! Because writes can only be prepared on a per-sector basis, a clear on a range
-//! of `4000..5000` on a device with 4096 byte sectors will actually clear a range
-//! of `0..8192`. Use [`sector_size`] to find the sector size, or [`align_range`]
-//! to directly calculate the range of memory that will be affected by the clear.
+//! Because writes can only be prepared on a per-sector basis, a clear on a
+//! range of `4000..5000` on a device with 4096 byte sectors will actually clear
+//! a range of `0..8192`. Use [`sector_size`] to find the sector size, or
+//! [`align_range`] to directly calculate the range of memory that will be
+//! affected by the clear.
 //!
 //! [`read`]: SaveData::read
 //! [`prepare_write`]: SaveData::prepare_write
@@ -78,9 +81,9 @@
 //! * Atmel flash chips have a sector size of 128 bytes. Reads to any alignment
 //!   are efficient, however, unaligned writes are extremely slow.
 //!   `prepare_write` does not immediately erase any data.
-//! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are
-//!   slower than aligned writes, however, this is easily mitigated by the
-//!   small sector size.
+//! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are slower
+//!   than aligned writes, however, this is easily mitigated by the small sector
+//!   size.
 
 use crate::save::utils::Timeout;
 use crate::sync::{Mutex, RawMutexGuard};
