@@ -82,10 +82,10 @@
 //!   slower than aligned writes, however, this is easily mitigated by the
 //!   small sector size.
 
-use core::ops::Range;
 use crate::save::utils::Timeout;
 use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
+use core::ops::Range;
 
 mod asm_utils;
 mod eeprom;
@@ -167,7 +167,12 @@ trait RawSaveAccess: Sync {
     fn info(&self) -> Result<&'static MediaInfo, Error>;
     fn read(&self, offset: usize, buffer: &mut [u8], timeout: &mut Timeout) -> Result<(), Error>;
     fn verify(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<bool, Error>;
-    fn prepare_write(&self, sector: usize, count: usize, timeout: &mut Timeout) -> Result<(), Error>;
+    fn prepare_write(
+        &self,
+        sector: usize,
+        count: usize,
+        timeout: &mut Timeout,
+    ) -> Result<(), Error>;
     fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
 }
 
@@ -175,7 +180,10 @@ static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::n
 
 fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
-    assert!(access.is_none(), "Cannot initialize the savegame engine more than once.");
+    assert!(
+        access.is_none(),
+        "Cannot initialize the savegame engine more than once."
+    );
     *access = Some(access_impl);
 }
 
@@ -277,12 +285,14 @@ impl SaveData {
             let range = self.align_range(range.clone());
             let shift = self.info.sector_shift;
             self.access.prepare_write(
-                range.start >> shift, range.len() >> shift, &mut self.timeout,
+                range.start >> shift,
+                range.len() >> shift,
+                &mut self.timeout,
             )?;
         }
         Ok(SavePreparedBlock {
             parent: self,
-            range
+            range,
         })
     }
 }
@@ -302,11 +312,14 @@ impl<'a> SavePreparedBlock<'a> {
     pub fn write(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
         if buffer.is_empty() {
             Ok(())
-        } else if !self.range.contains(&offset) ||
-            !self.range.contains(&(offset + buffer.len() - 1)) {
+        } else if !self.range.contains(&offset)
+            || !self.range.contains(&(offset + buffer.len() - 1))
+        {
             Err(Error::OutOfBounds)
         } else {
-            self.parent.access.write(offset, buffer, &mut self.parent.timeout)
+            self.parent
+                .access
+                .write(offset, buffer, &mut self.parent.timeout)
         }
     }
 
