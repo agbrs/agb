@@ -24,6 +24,13 @@ test-release:
 doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
 
+check-docs:
+    (cd agb && cargo doc --target=thumbv6m-none-eabi)
+    just _build_docs agb-fixnum
+
+_build_docs crate:
+    (cd "{{crate}}" && cargo doc)
+
 clean:
     just _all-crates _clean
 
@@ -45,7 +52,7 @@ check-linker-script-consistency:
     find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
     find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
 
-ci: check-linker-script-consistency build-debug clippy test build-release test-release doctest-agb build-roms build-book
+ci: check-linker-script-consistency build-debug clippy test build-release test-release doctest-agb build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"

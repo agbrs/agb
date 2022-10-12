@@ -78,7 +78,7 @@ unsafe fn transfer_align4_thumb<T: Copy>(mut dst: *mut T, mut src: *const T) {
     }
 }
 
-#[instruction_set(arm::a32)]
+#[cfg_attr(not(doc), instruction_set(arm::a32))]
 #[allow(unused_assignments)]
 unsafe fn transfer_align4_arm<T: Copy>(mut dst: *mut T, mut src: *const T) {
     let size = mem::size_of::<T>();
@@ -168,14 +168,14 @@ unsafe fn exchange<T>(dst: *mut T, src: *const T) -> T {
     }
 }
 
-#[instruction_set(arm::a32)]
+#[cfg_attr(not(doc), instruction_set(arm::a32))]
 unsafe fn exchange_align4_arm<T>(dst: *mut T, i: u32) -> u32 {
     let out;
     asm!("swp {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);
     out
 }
 
-#[instruction_set(arm::a32)]
+#[cfg_attr(not(doc), instruction_set(arm::a32))]
 unsafe fn exchange_align1_arm<T>(dst: *mut T, i: u8) -> u8 {
     let out;
     asm!("swpb {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);
@@ -220,7 +220,9 @@ pub struct Static<T> {
 impl<T> Static<T> {
     /// Creates a new static variable.
     pub const fn new(val: T) -> Self {
-        Static { data: UnsafeCell::new(val) }
+        Static {
+            data: UnsafeCell::new(val),
+        }
     }
 
     /// Replaces the current value of the static variable with another, and
@@ -260,10 +262,10 @@ unsafe impl<T> Sync for Static<T> {}
 
 #[cfg(test)]
 mod test {
-    use crate::Gba;
     use crate::interrupt::Interrupt;
     use crate::sync::Static;
     use crate::timer::Divider;
+    use crate::Gba;
 
     fn write_read_concurrency_test_impl<const COUNT: usize>(gba: &mut Gba) {
         let sentinel = [0x12345678; COUNT];
@@ -303,7 +305,7 @@ mod test {
             // and interrupt
             if interrupt_seen && no_interrupt_seen {
                 timer.set_enabled(false);
-                return
+                return;
             }
 
             if i % 8192 == 0 && i != 0 {

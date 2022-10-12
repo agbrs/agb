@@ -5,17 +5,18 @@
 //! There are, broadly speaking, three different kinds of save media that can be
 //! found in official Game Carts:
 //!
-//! * Battery-Backed SRAM: The simplest kind of save media, which can be accessed
-//!   like normal memory. You can have SRAM up to 32KiB, and while there exist a
-//!   few variants this does not matter much for a game developer.
+//! * Battery-Backed SRAM: The simplest kind of save media, which can be
+//!   accessed like normal memory. You can have SRAM up to 32KiB, and while
+//!   there exist a few variants this does not matter much for a game developer.
 //! * EEPROM: A kind of save media based on very cheap chips and slow chips.
 //!   These are accessed using a serial interface based on reading/writing bit
-//!   streams into IO registers. This memory comes in 8KiB and 512 byte versions,
-//!   which unfortunately cannot be distinguished at runtime.
-//! * Flash: A kind of save media based on flash memory. Flash memory can be read
-//!   like ordinary memory, but writing requires sending commands using multiple
-//!   IO register spread across the address space. This memory comes in 64KiB
-//!   and 128KiB variants, which can thankfully be distinguished using a chip ID.
+//!   streams into IO registers. This memory comes in 8KiB and 512 byte
+//!   versions, which unfortunately cannot be distinguished at runtime.
+//! * Flash: A kind of save media based on flash memory. Flash memory can be
+//!   read like ordinary memory, but writing requires sending commands using
+//!   multiple IO register spread across the address space. This memory comes in
+//!   64KiB and 128KiB variants, which can thankfully be distinguished using a
+//!   chip ID.
 //!
 //! As these various types of save media cannot be easily distinguished at
 //! runtime, the kind of media in use should be set manually.
@@ -39,30 +40,32 @@
 //!
 //! ## Using save media
 //!
-//! To access save media, use the [`SaveData::new`] method to create a new
-//! [`SaveData`] object. Its methods are used to read or write save media.
+//! To access save media, use the [`SaveManager::access`] or
+//! [`SaveManager::access_with_timer`] methods to create a new [`SaveData`]
+//! object. Its methods are used to read or write save media.
 //!
 //! Reading data from the savegame is simple. Use [`read`] to copy data from an
 //! offset in the savegame into a buffer in memory.
 //!
-//! Writing to save media requires you to prepare the area for writing by calling
-//! the [`prepare_write`] method to return a [`SavePreparedBlock`], which contains
-//! the actual [`write`] method.
+//! Writing to save media requires you to prepare the area for writing by
+//! calling the [`prepare_write`] method to return a [`SavePreparedBlock`],
+//! which contains the actual [`write`] method.
 //!
 //! The `prepare_write` method leaves everything in a sector that overlaps the
-//! range passed to it in an implementation defined state. On some devices it may
-//! do nothing, and on others, it may clear the entire range to `0xFF`.
+//! range passed to it in an implementation defined state. On some devices it
+//! may do nothing, and on others, it may clear the entire range to `0xFF`.
 //!
-//! Because writes can only be prepared on a per-sector basis, a clear on a range
-//! of `4000..5000` on a device with 4096 byte sectors will actually clear a range
-//! of `0..8192`. Use [`sector_size`] to find the sector size, or [`align_range`]
-//! to directly calculate the range of memory that will be affected by the clear.
+//! Because writes can only be prepared on a per-sector basis, a clear on a
+//! range of `4000..5000` on a device with 4096 byte sectors will actually clear
+//! a range of `0..8192`. Use [`sector_size`] to find the sector size, or
+//! [`align_range`] to directly calculate the range of memory that will be
+//! affected by the clear.
 //!
 //! [`read`]: SaveData::read
 //! [`prepare_write`]: SaveData::prepare_write
 //! [`write`]: SavePreparedBlock::write
-//! [`sector_size`]: SaveAccess::sector_size
-//! [`align_range`]: SaveAccess::align_range
+//! [`sector_size`]: SaveData::sector_size
+//! [`align_range`]: SaveData::align_range
 //!
 //! ## Performance and Other Details
 //!
@@ -78,14 +81,14 @@
 //! * Atmel flash chips have a sector size of 128 bytes. Reads to any alignment
 //!   are efficient, however, unaligned writes are extremely slow.
 //!   `prepare_write` does not immediately erase any data.
-//! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are
-//!   slower than aligned writes, however, this is easily mitigated by the
-//!   small sector size.
+//! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are slower
+//!   than aligned writes, however, this is easily mitigated by the small sector
+//!   size.
 
-use core::ops::Range;
 use crate::save::utils::Timeout;
 use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
+use core::ops::Range;
 
 mod asm_utils;
 mod eeprom;
@@ -167,7 +170,12 @@ trait RawSaveAccess: Sync {
     fn info(&self) -> Result<&'static MediaInfo, Error>;
     fn read(&self, offset: usize, buffer: &mut [u8], timeout: &mut Timeout) -> Result<(), Error>;
     fn verify(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<bool, Error>;
-    fn prepare_write(&self, sector: usize, count: usize, timeout: &mut Timeout) -> Result<(), Error>;
+    fn prepare_write(
+        &self,
+        sector: usize,
+        count: usize,
+        timeout: &mut Timeout,
+    ) -> Result<(), Error>;
     fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
 }
 
@@ -175,7 +183,10 @@ static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::n
 
 fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
-    assert!(access.is_none(), "Cannot initialize the savegame engine more than once.");
+    assert!(
+        access.is_none(),
+        "Cannot initialize the savegame engine more than once."
+    );
     *access = Some(access_impl);
 }
 
@@ -258,7 +269,7 @@ impl SaveData {
     /// Returns a range that contains all sectors the input range overlaps.
     ///
     /// This can be used to calculate which blocks would be erased by a call
-    /// to [`prepare_write`](`SaveAccess::prepare_write`)
+    /// to [`prepare_write`](`SaveData::prepare_write`)
     #[must_use]
     pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
         let shift = self.info.sector_shift;
@@ -270,19 +281,21 @@ impl SaveData {
     ///
     /// This will erase any data in any sector overlapping the input range. To
     /// calculate which offset ranges would be affected, use the
-    /// [`align_range`](`SaveAccess::align_range`) function.
+    /// [`align_range`](`SaveData::align_range`) function.
     pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
         self.check_bounds(range.clone())?;
         if self.info.uses_prepare_write {
             let range = self.align_range(range.clone());
             let shift = self.info.sector_shift;
             self.access.prepare_write(
-                range.start >> shift, range.len() >> shift, &mut self.timeout,
+                range.start >> shift,
+                range.len() >> shift,
+                &mut self.timeout,
             )?;
         }
         Ok(SavePreparedBlock {
             parent: self,
-            range
+            range,
         })
     }
 }
@@ -302,11 +315,14 @@ impl<'a> SavePreparedBlock<'a> {
     pub fn write(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
         if buffer.is_empty() {
             Ok(())
-        } else if !self.range.contains(&offset) ||
-            !self.range.contains(&(offset + buffer.len() - 1)) {
+        } else if !self.range.contains(&offset)
+            || !self.range.contains(&(offset + buffer.len() - 1))
+        {
             Err(Error::OutOfBounds)
         } else {
-            self.parent.access.write(offset, buffer, &mut self.parent.timeout)
+            self.parent
+                .access
+                .write(offset, buffer, &mut self.parent.timeout)
         }
     }
 
