@@ -39,7 +39,7 @@
 //!
 //! ## Using save media
 //!
-//! To access save media, use the [`SaveData::new`] method to create a new
+//! To access save media, use the [`SaveManager::access`] or [`SaveManager::access_with_timer`] methods to create a new
 //! [`SaveData`] object. Its methods are used to read or write save media.
 //!
 //! Reading data from the savegame is simple. Use [`read`] to copy data from an
@@ -61,8 +61,8 @@
 //! [`read`]: SaveData::read
 //! [`prepare_write`]: SaveData::prepare_write
 //! [`write`]: SavePreparedBlock::write
-//! [`sector_size`]: SaveAccess::sector_size
-//! [`align_range`]: SaveAccess::align_range
+//! [`sector_size`]: SaveData::sector_size
+//! [`align_range`]: SaveData::align_range
 //!
 //! ## Performance and Other Details
 //!
@@ -266,7 +266,7 @@ impl SaveData {
     /// Returns a range that contains all sectors the input range overlaps.
     ///
     /// This can be used to calculate which blocks would be erased by a call
-    /// to [`prepare_write`](`SaveAccess::prepare_write`)
+    /// to [`prepare_write`](`SaveData::prepare_write`)
     #[must_use]
     pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
         let shift = self.info.sector_shift;
@@ -278,7 +278,7 @@ impl SaveData {
     ///
     /// This will erase any data in any sector overlapping the input range. To
     /// calculate which offset ranges would be affected, use the
-    /// [`align_range`](`SaveAccess::align_range`) function.
+    /// [`align_range`](`SaveData::align_range`) function.
     pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
         self.check_bounds(range.clone())?;
         if self.info.uses_prepare_write {
