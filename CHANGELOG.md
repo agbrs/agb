@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This is a minor release to fix the build of the docs on [docs.rs/agb](https://docs.rs/agb).
+
+### Fixed
+- Fixed the agb crate's docs.rs build
+
 ## [0.12.0] - 2022/10/11
 
 This version of `agb` has some exciting new features we'd like to highlight and some brand new contributors!
