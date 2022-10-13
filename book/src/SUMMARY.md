@@ -11,3 +11,4 @@
 - [Learn agb part I - pong](./pong/01_introduction.md)
   - [The Gba struct](./pong/02_the_gba_struct.md)
   - [Sprites](./pong/03_sprites.md)
+  - [Controls](./pong/04_controls.md)
