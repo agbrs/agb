@@ -52,7 +52,8 @@ The third until the fifth is the ball, with various squashed states.
 The aseprite file defines tags for these sprites, being "Paddle End", "Paddle Mid", and "Ball".
 
 ```rust
-use agb::{include_aseprite,
+use agb::{
+    include_aseprite,
     display::object::{Graphics, Tag}
 };
 
