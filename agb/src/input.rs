@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 use crate::fixnum::Vector2D;
 use bitflags::bitflags;
 use core::convert::From;
@@ -80,7 +81,7 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 ///
 /// loop {
 ///     input.update(); // call update every loop
-///     
+///
 ///     match input.x_tri() {
 ///         Tri::Negative => { /* left is being pressed */ }
 ///         Tri::Positive => { /* right is being pressed */ }
@@ -150,6 +151,9 @@ impl ButtonController {
     }
 
     #[must_use]
+    /// Returns [Tri::Positive] if left was just pressed, [Tri::Negative] if right was just pressed and [Tri::Zero] if neither or both are just pressed.
+    ///
+    /// Also returns [Tri::Zero] after the call to [update()] if the button is still held.
     pub fn just_pressed_x_tri(&self) -> Tri {
         let left = self.is_just_pressed(Button::LEFT);
         let right = self.is_just_pressed(Button::RIGHT);
@@ -158,6 +162,9 @@ impl ButtonController {
     }
 
     #[must_use]
+    /// Returns [Tri::Positive] if down was just pressed, [Tri::Negative] if up was just pressed and [Tri::Zero] if neither or both are just pressed.
+    ///
+    /// Also returns [Tri::Zero] after the call to [update()] if the button is still held.
     pub fn just_pressed_y_tri(&self) -> Tri {
         let up = self.is_just_pressed(Button::UP);
         let down = self.is_just_pressed(Button::DOWN);
@@ -166,6 +173,7 @@ impl ButtonController {
     }
 
     #[must_use]
+    /// Returns a vector which represents the direction the button was just pressed in.
     pub fn just_pressed_vector<T>(&self) -> Vector2D<T>
     where
         T: From<i32> + crate::fixnum::FixedWidthUnsignedInteger,
@@ -178,6 +186,7 @@ impl ButtonController {
     }
 
     #[must_use]
+    /// Returns `true` if the provided keys are all pressed, and `false` if not.
     pub fn is_pressed(&self, keys: Button) -> bool {
         let currently_pressed = u32::from(self.current);
         let keys = keys.bits();
