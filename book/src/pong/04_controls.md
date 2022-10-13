@@ -79,4 +79,4 @@ In the next step, we'll cover meta-sprites and actually add a bat to our game of
 
 # Exercise
 
-Make it so the ball moves twice as fast if you're pressing the `A` button while moving it arond.
+Make it so the ball moves twice as fast if you're pressing the `A` button while moving it around.
