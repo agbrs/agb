@@ -27,7 +27,8 @@ For our pong game, all the sprites will be 16x16 pixels to make things a bit sim
 
 Sprites are stored in the Game Boy Advance in a special area of video memory called the 'Object Attribute Memory' (OAM).
 This has space for the 'attributes' of the sprites (things like whether or not they are visible, the location, which tile to use etc) but it does not store the actual pixel data.
-The pixel data is stored in a different part of video RAM (VRAM) and the OAM only stores which tiles to use from this area.
+The pixel data is stored in a video RAM (VRAM).
+Because of this split, it is possible to have multiple sprites refer to the same tiles in video RAM which saves space and allows for more objects on screen at once then repeating them would otherwise allow.
 
 Since RAM is in short supply, and at the time was quite expensive, the tile data is stored as indexed palette data.
 So rather than storing the full colour data for each pixel in the tile, the Game Boy Advance instead stores a 'palette' of colours and the tiles which make up the sprites are stored as indexes to the palette.
@@ -75,7 +76,7 @@ Using the `Gba` struct we get the [`ObjectController` struct](https://docs.rs/ag
 ```rust
 #[agb::entry]
 fn main(gba: mut agb::Gba) -> ! {
-    // Get the OAM manager
+    // Get the object manager
     let object = gba.display.object.get();
 
     // Create an object with the ball sprite
@@ -84,8 +85,9 @@ fn main(gba: mut agb::Gba) -> ! {
     // Place this at some point on the screen, (50, 50) for example
     ball.set_x(50).set_y(50).show();
 
-    // Now commit the object controller so this change is reflected on the screen, 
-    // this should normally be done in vblank but it'll work just fine here for now
+    // Now commit the object controller so this change is reflected on the screen.
+    // This isn't how we will do this in the final version of the code, but will do
+    // for this example.
     object.commit();
     
     loop {}
@@ -96,11 +98,16 @@ If you run this you should now see the ball for this pong game somewhere in the 
 
 # Making the sprite move
 
-As mentioned before, you should `.commit()` your sprites only during `vblank` which is the (very short) period of time nothing is being rendered to screen.
-`agb` provides a convenience function for waiting until this happens called `agb::display::busy_wait_for_vblank()`.
+The GBA renders to the screen one pixel at a time a line at a time from left to right.
+After it has finished rendering to each pixel of the screen, it briefly pauses rendering before starting again.
+This period of no drawing is called `vblank`, which stands for the 'vertical blanking interval'.
+There is also a 'horizontal blanking interval', but that is outside of the scope of this book.
+
+You should `.commit()` your sprites only during this `vblank` phase, because otherwise you may end up moving a sprite during the rendering which could cause tearing of your objects[^hblank].
+`agb` provides a convenience function for waiting until the right moment called `agb::display::busy_wait_for_vblank()`.
 You shouldn't use this is a real game (we'll do it properly later on), but for now we can use this to wait for the correct time to `commit` our sprites to memory.
 
-Making the sprite move 1 pixel every frame (so approximately 60 pixels per second) can be done as follows:
+Making the sprite move 1 pixel every frame (so 60 pixels per second) can be done as follows:
 
 ```rust
 // replace the call to object.commit() with the following:
@@ -137,3 +144,6 @@ loop {
 # What we did
 
 In this section, we covered why sprites are important, how to create and manage them using the `ObjectController` in `agb` and make a ball bounce around the screen.
+
+[^hblank]: Timing this can give you some really cool effects allowing you to push the hardware.
+  However, `agb` does not by default provide the timing accuracy needed to fully take advantage of this, erring on the side of making it easier to make games rather than squeezing every last drop of performance from the console.
