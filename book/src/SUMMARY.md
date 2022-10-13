@@ -7,7 +7,7 @@
     - [Linux setup](./setup/linux.md)
     - [Windows setup]()
     - [Mac OS setup]()
-  - [Building the game](./setup/building.md)
+  - [Building the template](./setup/building.md)
 - [Learn agb part I - pong](./pong/01_introduction.md)
   - [The Gba struct](./pong/02_the_gba_struct.md)
   - [Sprites](./pong/03_sprites.md)
