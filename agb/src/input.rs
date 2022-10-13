@@ -51,7 +51,7 @@ bitflags! {
         const START = 1 << 3;
         /// The RIGHT button on the D-Pad
         const RIGHT = 1 << 4;
-        /// The LFET button on the D-Pad
+        /// The LEFT button on the D-Pad
         const LEFT = 1 << 5;
         /// The UP button on the D-Pad
         const UP = 1 << 6;
