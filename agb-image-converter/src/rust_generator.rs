@@ -79,7 +79,19 @@ pub(crate) fn generate_code(
         pub const #output_variable_name: #crate_prefix::display::tile_data::TileData = {
             const _: &[u8] = include_bytes!(#image_filename);
 
-            const TILE_DATA: &[u8] = #data;
+            const TILE_DATA: &[u8] = {
+                pub struct AlignedAs<Align, Bytes: ?Sized> {
+                    pub _align: [Align; 0],
+                    pub bytes: Bytes,
+                }
+
+                const ALIGNED: &AlignedAs<u16, [u8]> = &AlignedAs {
+                    _align: [],
+                    bytes: *#data,
+                };
+
+                &ALIGNED.bytes
+            };
 
             const PALETTE_ASSIGNMENT: &[u8] = &[
                 #(#assignments),*
