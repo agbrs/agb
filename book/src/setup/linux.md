@@ -13,7 +13,7 @@ You can update rustup with `rustup update` if you have already installed it.
 
 We need this installed in order to be able to assemble the small amount of assembly in agb, and to do the final linking.
 
-* On Debian and derivatives (like Ubuntu): `sudo apt install binutils-arm-non-eabi`
+* On Debian and derivatives (like Ubuntu): `sudo apt install binutils-arm-none-eabi`
 * On Arch Linux and derivatives: `pacman -S arm-none-eabi-binutils`
 
 # 3. git
