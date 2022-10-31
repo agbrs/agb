@@ -336,7 +336,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     /// A bit for bit conversion from a number to a fixed num
-    pub fn from_raw(n: I) -> Self {
+    pub const fn from_raw(n: I) -> Self {
         Num(n)
     }
 
@@ -819,7 +819,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// A rectangle with a position in 2d space and a 2d size
 pub struct Rect<T: Number> {
     /// The position of the rectangle
@@ -901,7 +901,7 @@ impl<T: Number> Rect<T> {
     /// assert_eq!(r.overlapping_rect(r2), None);
     /// ```
     pub fn overlapping_rect(&self, other: Rect<T>) -> Option<Self> {
-        if !self.touches(other.clone()) {
+        if !self.touches(other) {
             return None;
         }
 

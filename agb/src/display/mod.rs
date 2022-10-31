@@ -23,11 +23,11 @@ pub mod tiled;
 /// Giving out graphics mode.
 pub mod video;
 
+pub mod affine;
 pub mod blend;
 pub mod window;
-pub mod affine;
 
-mod font;
+pub mod font;
 pub use font::{Font, FontLetter};
 
 const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };

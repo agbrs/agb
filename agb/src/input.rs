@@ -1,3 +1,4 @@
+use crate::fixnum::Vector2D;
 use bitflags::bitflags;
 use core::convert::From;
 
@@ -75,6 +76,42 @@ impl ButtonController {
         let down = self.is_pressed(Button::DOWN);
 
         (up, down).into()
+    }
+
+    #[must_use]
+    pub fn vector<T>(&self) -> Vector2D<T>
+    where
+        T: From<i32> + crate::fixnum::FixedWidthUnsignedInteger,
+    {
+        (self.x_tri() as i32, self.y_tri() as i32).into()
+    }
+
+    #[must_use]
+    pub fn just_pressed_x_tri(&self) -> Tri {
+        let left = self.is_just_pressed(Button::LEFT);
+        let right = self.is_just_pressed(Button::RIGHT);
+
+        (left, right).into()
+    }
+
+    #[must_use]
+    pub fn just_pressed_y_tri(&self) -> Tri {
+        let up = self.is_just_pressed(Button::UP);
+        let down = self.is_just_pressed(Button::DOWN);
+
+        (up, down).into()
+    }
+
+    #[must_use]
+    pub fn just_pressed_vector<T>(&self) -> Vector2D<T>
+    where
+        T: From<i32> + crate::fixnum::FixedWidthUnsignedInteger,
+    {
+        (
+            self.just_pressed_x_tri() as i32,
+            self.just_pressed_y_tri() as i32,
+        )
+            .into()
     }
 
     #[must_use]
