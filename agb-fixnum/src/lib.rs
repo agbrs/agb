@@ -336,7 +336,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     /// A bit for bit conversion from a number to a fixed num
-    pub fn from_raw(n: I) -> Self {
+    pub const fn from_raw(n: I) -> Self {
         Num(n)
     }
 
@@ -875,7 +875,7 @@ impl<T: Number> Rect<T> {
     /// let r2 = Rect::new(Vector2D::new(-10,-10), Vector2D::new(3,3));
     /// assert!(!r.touches(r2));
     /// ```
-    pub fn touches(&self, other: Rect<T>) -> bool {
+    pub fn touches(&self, other: &Rect<T>) -> bool {
         self.position.x < other.position.x + other.size.x
             && self.position.x + self.size.x > other.position.x
             && self.position.y < other.position.y + other.size.y
@@ -900,8 +900,8 @@ impl<T: Number> Rect<T> {
     ///
     /// assert_eq!(r.overlapping_rect(r2), None);
     /// ```
-    pub fn overlapping_rect(&self, other: Rect<T>) -> Option<Self> {
-        if !self.touches(other.clone()) {
+    pub fn overlapping_rect(&self, other: &Rect<T>) -> Option<Self> {
+        if !self.touches(other) {
             return None;
         }
 
