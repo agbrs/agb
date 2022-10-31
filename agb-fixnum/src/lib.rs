@@ -819,7 +819,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// A rectangle with a position in 2d space and a 2d size
 pub struct Rect<T: Number> {
     /// The position of the rectangle
@@ -875,7 +875,7 @@ impl<T: Number> Rect<T> {
     /// let r2 = Rect::new(Vector2D::new(-10,-10), Vector2D::new(3,3));
     /// assert!(!r.touches(r2));
     /// ```
-    pub fn touches(&self, other: &Rect<T>) -> bool {
+    pub fn touches(&self, other: Rect<T>) -> bool {
         self.position.x < other.position.x + other.size.x
             && self.position.x + self.size.x > other.position.x
             && self.position.y < other.position.y + other.size.y
@@ -900,7 +900,7 @@ impl<T: Number> Rect<T> {
     ///
     /// assert_eq!(r.overlapping_rect(r2), None);
     /// ```
-    pub fn overlapping_rect(&self, other: &Rect<T>) -> Option<Self> {
+    pub fn overlapping_rect(&self, other: Rect<T>) -> Option<Self> {
         if !self.touches(other) {
             return None;
         }
