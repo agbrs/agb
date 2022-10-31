@@ -39,7 +39,7 @@ loop {
     // x_tri and y_tri describe with -1, 0 and 1 which way the d-pad
     // buttons are being pressed
     x_velocity = input.x_tri() as i32;
-    y_velocity = input.y_try() as i32;
+    y_velocity = input.y_tri() as i32;
     
     ball.set_x(ball_x as u16).set_y(ball_y as u16);
 
