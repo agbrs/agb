@@ -14,7 +14,7 @@ use crate::{
 /// The abstraction allows only for static tiles, but it is possible to animate the tiles if needed.
 ///
 /// When you create a new infinite scrolled map, you need to provide a background which it will render itself
-/// onto and a function which takes a Vector2D<i32> position and returns which tile should be rendered there.
+/// onto and a function which takes a `Vector2D<i32>` position and returns which tile should be rendered there.
 ///
 /// The passed function should handle being out of bounds, as the scrolled map does buffer around the edges slightly.
 ///

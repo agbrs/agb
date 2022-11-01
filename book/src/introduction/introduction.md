@@ -27,3 +27,4 @@ It is super rewarding being able to play a game you made yourself on a piece of 
 * [agb's documentation](https://docs.rs/agb) which is useful if you need a quick reference
 * [Awesome Game Boy Advance development](https://github.com/gbdev/awesome-gbadev) contains links to popular libraries, emulators and the super friendly gbadev discord
 * [Example game](https://lostimmortal.itch.io/the-hat-chooses-the-wizard) written using agb as part of the 2021 GMTK game jam.
+* [More example games](https://github.com/agbrs/agb/releases/latest) built using agb. See them in `examples.zip` attached to the latest release.
