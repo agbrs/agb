@@ -153,7 +153,7 @@ impl ButtonController {
     #[must_use]
     /// Returns [Tri::Positive] if left was just pressed, [Tri::Negative] if right was just pressed and [Tri::Zero] if neither or both are just pressed.
     ///
-    /// Also returns [Tri::Zero] after the call to [update()] if the button is still held.
+    /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_x_tri(&self) -> Tri {
         let left = self.is_just_pressed(Button::LEFT);
         let right = self.is_just_pressed(Button::RIGHT);
@@ -164,7 +164,7 @@ impl ButtonController {
     #[must_use]
     /// Returns [Tri::Positive] if down was just pressed, [Tri::Negative] if up was just pressed and [Tri::Zero] if neither or both are just pressed.
     ///
-    /// Also returns [Tri::Zero] after the call to [update()] if the button is still held.
+    /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_y_tri(&self) -> Tri {
         let up = self.is_just_pressed(Button::UP);
         let down = self.is_just_pressed(Button::DOWN);

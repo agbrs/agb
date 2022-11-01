@@ -24,6 +24,7 @@
 #![deny(clippy::cloned_instead_of_copied)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(rustdoc::private_intra_doc_links)]
+#![deny(rustdoc::invalid_html_tags)]
 
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using the Rust
