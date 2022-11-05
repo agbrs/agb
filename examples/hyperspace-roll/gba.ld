@@ -2,7 +2,6 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
 ENTRY(__start)
-EXTERN(__RUST_INTERRUPT_HANDLER)
 EXTERN(__AGBRS_ASYNC_INTERRUPT_HANDLER)
 
 EXTERN(__agbabi_memset)
