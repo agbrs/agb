@@ -84,9 +84,10 @@ pub fn vblank_async() -> impl Future<Output = ()> {
     })
 }
 
+#[no_mangle]
 #[export_name = "__AGBRS_ASYNC_INTERRUPT_HANDLER"]
 /// Safety: This function is not reentrant
-pub(crate) extern "C" fn async_interrupt_handler(interrupt: u16) -> u16 {
+extern "C" fn async_interrupt_handler(interrupt: u16) -> u16 {
     static mut WRITER: Writer<'static, u32, 32> = unsafe { INTERRUPTS.get_rw_ref().1 };
 
     let _ = unsafe { &mut WRITER }.try_insert(interrupt as u32);
