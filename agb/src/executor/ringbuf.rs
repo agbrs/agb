@@ -26,7 +26,8 @@ impl<T, const N: usize> RingBuffer<T, N> {
         (Reader { buf: self }, Writer { buf: self })
     }
 
-    /// May only call this once
+    /// # Safety:
+    /// You must only have one reader and one writer
     pub const unsafe fn get_rw_ref(&self) -> (Reader<T, N>, Writer<T, N>) {
         (Reader { buf: self }, Writer { buf: self })
     }
