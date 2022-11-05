@@ -414,18 +414,6 @@ impl Executor {
         }
     }
 
-    pub fn spawn<F>(&mut self, future: F) -> TaskJoin<F::Output>
-    where
-        F: Future + 'static,
-    {
-        let (task, join) = Task::new(future);
-
-        let idx = self.futures.insert(task);
-        self.to_poll.borrow_mut().poll.push(idx);
-
-        join
-    }
-
     fn add_waiting(&mut self) {
         for task in TO_ADD_TO_EXECUTOR.cell.borrow_mut().drain(..) {
             let idx = self.futures.insert(task);
