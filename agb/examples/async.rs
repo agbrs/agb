@@ -1,10 +1,7 @@
 #![no_std]
 #![no_main]
 
-use agb::{
-    executor::{self, Executor},
-    println,
-};
+use agb::{executor, println};
 
 async fn count_frames(task_id: &str) {
     let mut count = 0;
@@ -27,7 +24,7 @@ async fn get_value() -> u32 {
 
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
-    agb::executor::async_main(gba, |_gba| async move {
+    executor::async_main(gba, |_gba| async move {
         let a = executor::spawn(count_frames("A"));
 
         let wait = executor::spawn(wait_for_n_frames(10));
