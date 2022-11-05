@@ -3,6 +3,7 @@ OUTPUT_ARCH(arm)
 
 ENTRY(__start)
 EXTERN(__RUST_INTERRUPT_HANDLER)
+EXTERN(__AGBRS_ASYNC_INTERRUPT_HANDLER)
 
 EXTERN(__agbabi_memset)
 EXTERN(__agbabi_memcpy)
