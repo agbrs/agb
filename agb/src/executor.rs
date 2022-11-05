@@ -254,6 +254,22 @@ impl Drop for StoredHeader {
     }
 }
 
+pub struct TaskJoinErased {
+    future: Pin<Rc<DebugRefCell<StoredHeader>>>,
+}
+
+impl Future for TaskJoinErased {
+    type Output = ();
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let mut d = self.future.get();
+
+        let h = NonNull::new(&mut **d as *mut _).unwrap();
+
+        Header::poll(h, cx)
+    }
+}
+
 pub struct TaskJoin<O> {
     future: Pin<Rc<DebugRefCell<StoredHeader>>>,
     _phantom: PhantomData<O>,
@@ -284,9 +300,10 @@ impl<O> TaskJoin<O> {
 }
 
 impl Task {
-    fn new<F>(future: F) -> (Task, TaskJoin<F::Output>)
+    /// You must ensure future lives long enough
+    unsafe fn new<F>(future: F) -> (Task, TaskJoin<F::Output>)
     where
-        F: Future + 'static,
+        F: Future,
     {
         let task = TaskCell {
             header: Header {
@@ -325,7 +342,7 @@ impl Task {
 }
 
 impl Executor {
-    pub unsafe fn new() -> Self {
+    unsafe fn new() -> Self {
         let (reader, _) = INTERRUPTS.get_rw_ref();
 
         Executor {
@@ -427,6 +444,9 @@ impl Executor {
                         Poll::Pending => {} // no work required
                     }
                 }
+
+                self.add_waiting();
+                self.process_interrupts();
             }
 
             syscall::halt();
@@ -464,12 +484,84 @@ static TO_ADD_TO_EXECUTOR: PromiseSingleThreadRefCell<Vec<Task>> = PromiseSingle
     cell: RefCell::new(Vec::new()),
 };
 
+pub fn async_main<F, Fut>(gba: crate::Gba, future: F) -> !
+where
+    F: FnOnce(crate::Gba) -> Fut,
+    Fut: Future + 'static,
+{
+    let (task, _) = unsafe { Task::new(future(gba)) };
+    TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
+
+    unsafe { Executor::new().run() }
+}
+
 pub fn spawn<F>(future: F) -> TaskJoin<F::Output>
 where
     F: Future + 'static,
 {
-    let (task, join) = Task::new(future);
+    let (task, join) = unsafe { Task::new(future) };
     TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
 
     join
+}
+
+pub struct Scope<'scope, 'env: 'scope> {
+    joiners: RefCell<Vec<TaskJoinErased>>,
+    scope: PhantomData<&'scope mut &'scope ()>,
+    env: PhantomData<&'env mut &'env ()>,
+}
+
+impl<'scope, 'env> Scope<'scope, 'env> {
+    pub fn spawn<F>(&'scope self, f: F) -> TaskJoin<F::Output>
+    where
+        F: Future,
+    {
+        let (task, join) = unsafe { Task::new(f) };
+
+        let erased = TaskJoinErased {
+            future: join.future.clone(),
+        };
+
+        crate::println!("Spawning task");
+
+        TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
+
+        self.joiners.borrow_mut().push(erased);
+
+        join
+    }
+}
+
+pub async fn scoped<'env, F, T>(f: F) -> T
+where
+    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
+{
+    let scope = Scope {
+        joiners: RefCell::new(Vec::new()),
+        scope: PhantomData,
+        env: PhantomData,
+    };
+    let r = f(&scope);
+
+    let joiners = scope.joiners.take();
+
+    for join in joiners {
+        join.await;
+    }
+
+    r
+}
+
+pub fn yeild() -> impl Future<Output = ()> {
+    let mut has_polled = false;
+
+    poll_fn(move |c| {
+        if has_polled {
+            Poll::Ready(())
+        } else {
+            has_polled = true;
+            c.waker().wake_by_ref();
+            Poll::Pending
+        }
+    })
 }
