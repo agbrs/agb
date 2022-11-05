@@ -388,7 +388,7 @@ impl Executor {
         .get_waker()
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> ! {
         loop {
             self.add_waiting();
 

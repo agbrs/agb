@@ -48,6 +48,4 @@ fn main(_gba: agb::Gba) -> ! {
     let mut executor = unsafe { Executor::new() };
 
     executor.run();
-
-    unreachable!();
 }
