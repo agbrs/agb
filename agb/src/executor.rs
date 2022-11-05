@@ -120,6 +120,10 @@ impl Header {
         let try_read_value = unsafe { header.as_ref() }.vtable.try_read_value;
         unsafe { try_read_value(header, dst, ctx) }
     }
+    fn abort(header: NonNull<Header>) {
+        let abort = unsafe { header.as_ref() }.vtable.abort;
+        unsafe { abort(header) }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -127,6 +131,7 @@ struct TaskVTable {
     poll: unsafe fn(NonNull<Header>, ctx: *mut Context) -> Poll<()>,
     drop: unsafe fn(NonNull<Header>),
     try_read_value: unsafe fn(NonNull<Header>, dst: *mut (), ctx: *mut Context),
+    abort: unsafe fn(NonNull<Header>),
 }
 
 impl TaskVTable {
@@ -151,6 +156,7 @@ impl TaskVTable {
                 },
                 Stage::Finished(_) => Poll::Ready(()),
                 Stage::Extracted => Poll::Ready(()),
+                Stage::Abort => Poll::Ready(()),
             }
         }
 
@@ -182,10 +188,16 @@ impl TaskVTable {
             }
         }
 
+        unsafe fn abort<F: Future>(head: NonNull<Header>) {
+            let task = &mut *head.as_ptr().cast::<TaskCell<F>>();
+            task.task.future = Stage::Abort;
+        }
+
         &TaskVTable {
             poll: poll::<F>,
             drop: drop::<F>,
             try_read_value: try_read_value::<F>,
+            abort: abort::<F>,
         }
     }
 }
@@ -208,6 +220,7 @@ enum Stage<F: Future> {
     Running(F),
     Finished(F::Output),
     Extracted,
+    Abort,
 }
 
 struct Task {
@@ -259,6 +272,14 @@ impl<O> Future for TaskJoin<O> {
         Header::try_read_value(h, &mut ret as *mut _ as *mut _, cx);
 
         ret
+    }
+}
+
+impl<O> TaskJoin<O> {
+    pub fn abort(self) {
+        let mut d = self.future.get();
+        let h = NonNull::new(&mut **d as *mut _).unwrap();
+        Header::abort(h);
     }
 }
 

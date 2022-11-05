@@ -27,8 +27,7 @@ async fn get_value() -> u32 {
 
 #[agb::entry]
 fn main(_gba: agb::Gba) -> ! {
-    executor::spawn(count_frames("A"));
-    executor::spawn(count_frames("B"));
+    let a = executor::spawn(count_frames("A"));
 
     let wait = executor::spawn(wait_for_n_frames(10));
 
@@ -37,7 +36,7 @@ fn main(_gba: agb::Gba) -> ! {
     executor::spawn(async {
         wait.await;
         agb::println!("waited for 10 frames!");
-        executor::spawn(count_frames("C"));
+        a.abort();
     });
 
     executor::spawn(async {
