@@ -13,6 +13,7 @@
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
+#![feature(waker_getters)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
@@ -166,6 +167,7 @@ mod memory_mapped;
 pub mod mgba;
 #[doc(inline)]
 pub use agb_fixnum as fixnum;
+pub mod executor;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
 pub mod hash_map;
 /// Simple random number generator

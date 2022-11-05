@@ -25,7 +25,7 @@ InterruptHandler:
     msr cpsr_c, r1
 
     @ call the rust interrupt handler with r0 set to the triggered interrupts
-    ldr r1, =__RUST_INTERRUPT_HANDLER
+    ldr r1, =__AGBRS_ASYNC_INTERRUPT_HANDLER
     push {r2, lr}
     mov lr, pc
     bx r1
