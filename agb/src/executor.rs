@@ -28,37 +28,20 @@ static CURRENT_VBLANK: Static<usize> = Static::new(0);
 static INTERRUPTS: RingBuffer<u32, 32> = RingBuffer::new();
 
 struct DebugRefCell<T> {
-    #[cfg(debug_assertions)]
-    cell: RefCell<T>,
-    #[cfg(not(debug_assertions))]
     cell: core::cell::UnsafeCell<T>,
 }
 
 impl<T> DebugRefCell<T> {
     fn new(t: T) -> Self {
-        #[cfg(debug_assertions)]
-        {
-            DebugRefCell {
-                cell: RefCell::new(t),
-            }
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            DebugRefCell {
-                cell: core::cell::UnsafeCell::new(t),
-            }
+        DebugRefCell {
+            cell: core::cell::UnsafeCell::new(t),
         }
     }
 
-    fn get(&'_ self) -> impl DerefMut<Target = T> + '_ {
-        #[cfg(debug_assertions)]
-        {
-            self.cell.borrow_mut()
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            unsafe { &mut *self.cell.get() }
-        }
+    fn get(&'_ self) -> NonNull<T> {
+        // # Safety
+        // I'm pretty sure theres some guarentee that an unsafe cell always gives a non null pointer.
+        unsafe { NonNull::new(self.cell.get()).unwrap_unchecked() }
     }
 }
 
@@ -124,6 +107,10 @@ impl Header {
         let abort = unsafe { header.as_ref() }.vtable.abort;
         unsafe { abort(header) }
     }
+    fn is_done(header: NonNull<Header>) -> bool {
+        let is_done = unsafe { header.as_ref() }.vtable.is_done;
+        unsafe { is_done(header) }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -132,6 +119,7 @@ struct TaskVTable {
     drop: unsafe fn(NonNull<Header>),
     try_read_value: unsafe fn(NonNull<Header>, dst: *mut (), ctx: *mut Context),
     abort: unsafe fn(NonNull<Header>),
+    is_done: unsafe fn(NonNull<Header>) -> bool,
 }
 
 impl TaskVTable {
@@ -193,11 +181,22 @@ impl TaskVTable {
             task.task.future = Stage::Abort;
         }
 
+        unsafe fn is_done<F: Future>(head: NonNull<Header>) -> bool {
+            let task = &mut *head.as_ptr().cast::<TaskCell<F>>();
+            match task.task.future {
+                Stage::Running(_) => false,
+                Stage::Finished(_) => true,
+                Stage::Extracted => true,
+                Stage::Abort => true,
+            }
+        }
+
         &TaskVTable {
             poll: poll::<F>,
             drop: drop::<F>,
             try_read_value: try_read_value::<F>,
             abort: abort::<F>,
+            is_done: is_done::<F>,
         }
     }
 }
@@ -262,11 +261,9 @@ impl Future for TaskJoinErased {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let mut d = self.future.get();
+        let h = self.future.get();
 
-        let h = NonNull::new(&mut **d as *mut _).unwrap();
-
-        Header::poll(h, cx)
+        Header::poll(h.cast(), cx)
     }
 }
 
@@ -279,13 +276,11 @@ impl<O> Future for TaskJoin<O> {
     type Output = O;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut d = self.future.get();
-
-        let h = NonNull::new(&mut **d as *mut _).unwrap();
+        let h = self.future.get();
 
         let mut ret = Poll::Pending;
 
-        Header::try_read_value(h, &mut ret as *mut _ as *mut _, cx);
+        Header::try_read_value(h.cast(), &mut ret as *mut _ as *mut _, cx);
 
         ret
     }
@@ -293,9 +288,16 @@ impl<O> Future for TaskJoin<O> {
 
 impl<O> TaskJoin<O> {
     pub fn abort(self) {
-        let mut d = self.future.get();
-        let h = NonNull::new(&mut **d as *mut _).unwrap();
-        Header::abort(h);
+        let h = self.future.get();
+
+        Header::abort(h.cast());
+    }
+
+    #[must_use]
+    pub fn is_done(&self) -> bool {
+        let h = self.future.get();
+
+        Header::is_done(h.cast())
     }
 }
 
@@ -334,10 +336,9 @@ impl Task {
     }
 
     fn poll(&mut self, context: &mut Context) -> Poll<()> {
-        let mut f = self.future.get();
-        let h = NonNull::new(&mut **f as *mut _).unwrap();
+        let h = self.future.get();
 
-        Header::poll(h, context)
+        Header::poll(h.cast(), context)
     }
 }
 
