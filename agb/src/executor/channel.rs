@@ -145,7 +145,6 @@ impl<T> Reader<T> {
     /// Reads from the channel or waits until there is data in the channel
     pub fn read(&mut self) -> impl Future<Output = Result<T, ChannelError>> + '_ {
         poll_fn(move |cx| {
-            unsafe { self.inner().waker.take() };
             match self.read_immediate() {
                 Ok(v) => {
                     if let Some(v) = v {
@@ -154,7 +153,19 @@ impl<T> Reader<T> {
                 }
                 Err(err) => return Poll::Ready(Err(err)),
             };
-            unsafe { self.inner().waker = Some(cx.waker().clone()) };
+
+            let mut inner = unsafe { self.inner() };
+
+            if let Some(v) = &inner.waker {
+                let c_id = unsafe { (*super::TaskWaker::from_ptr(cx.waker().as_raw().data())).id };
+                let o_id = unsafe { (*super::TaskWaker::from_ptr(v.as_raw().data())).id };
+
+                if c_id != o_id {
+                    inner.waker = Some(cx.waker().clone());
+                }
+            } else {
+                inner.waker = Some(cx.waker().clone());
+            }
             Poll::Pending
         })
     }

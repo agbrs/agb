@@ -13,7 +13,7 @@ pub mod channel;
 mod ringbox;
 mod ringbuf;
 
-use alloc::{rc::Rc, vec::Vec};
+use alloc::{boxed::Box, rc::Rc, vec::Vec};
 use slotmap::DefaultKey;
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
 
 use self::ringbuf::{Reader, RingBuffer};
 
-static CURRENT_VBLANK: Static<usize> = Static::new(0);
+pub static CURRENT_VBLANK: Static<usize> = Static::new(0);
 static INTERRUPTS: RingBuffer<u32, 32> = RingBuffer::new();
 
 struct DebugRefCell<T> {
@@ -59,12 +59,11 @@ pub fn vblank_async() -> impl Future<Output = ()> {
         } else {
             let raw_waker = c.waker().as_raw().data();
             let task_waker = unsafe { TaskWaker::from_ptr(raw_waker) };
-            task_waker
-                .to_poll
+            TO_POLL
+                .cell
                 .borrow_mut()
                 .vblank_waiting
-                .push(task_waker.id);
-            core::mem::forget(task_waker);
+                .push(unsafe { (*task_waker).id });
 
             Poll::Pending
         }
@@ -89,7 +88,6 @@ struct ToPoll {
 
 pub struct Executor {
     futures: slotmap::SlotMap<DefaultKey, Task>,
-    to_poll: Rc<RefCell<ToPoll>>,
     interrupt_reader: Reader<'static, u32, 32>,
     _vblank_interrupt: InterruptHandler<'static>,
 }
@@ -353,10 +351,6 @@ impl Executor {
         Executor {
             futures: slotmap::SlotMap::new(),
             interrupt_reader: reader,
-            to_poll: Rc::new(RefCell::new(ToPoll {
-                poll: Vec::new(),
-                vblank_waiting: Vec::new(),
-            })),
             _vblank_interrupt: interrupt::add_interrupt_handler(Interrupt::VBlank, |_| {
                 CURRENT_VBLANK.write(CURRENT_VBLANK.read() + 1);
             }),
@@ -367,51 +361,83 @@ impl Executor {
 #[derive(Clone)]
 struct TaskWaker {
     id: DefaultKey,
-    to_poll: Rc<RefCell<ToPoll>>,
+    boxed: bool,
 }
 
 impl TaskWaker {
-    unsafe fn from_ptr(ptr: *const ()) -> Rc<TaskWaker> {
-        unsafe { Rc::from_raw(ptr as *const TaskWaker) }
+    unsafe fn from_ptr(ptr: *const ()) -> *const TaskWaker {
+        ptr as *const TaskWaker
     }
 
-    fn get_raw_waker(self: Rc<Self>) -> RawWaker {
+    unsafe fn get_raw_waker(value: *const TaskWaker) -> RawWaker {
         fn clone(data: *const ()) -> RawWaker {
-            let me = unsafe { Rc::from_raw(data as *const TaskWaker) };
+            let data = unsafe { TaskWaker::from_ptr(data) };
 
-            core::mem::forget(Rc::clone(&me));
-            me.get_raw_waker()
+            let this = unsafe { &*data };
+
+            let next = Box::leak(Box::new(TaskWaker {
+                id: this.id,
+                boxed: true,
+            }));
+
+            unsafe { TaskWaker::get_raw_waker(next as *mut _ as *const _) }
         }
 
         fn wake(data: *const ()) {
-            let me = unsafe { Rc::from_raw(data as *const TaskWaker) };
-            me.to_poll.borrow_mut().poll.push(me.id);
+            let me = unsafe { TaskWaker::from_ptr(data) };
+            let boxed = {
+                let reference = unsafe { &*me };
+                let id = reference.id;
+
+                TO_POLL.cell.borrow_mut().poll.push(id);
+                reference.boxed
+            };
+
+            if boxed {
+                let _ = unsafe { Box::from_raw(me as *mut TaskWaker) };
+            }
         }
 
         fn wake_by_ref(data: *const ()) {
-            let me = unsafe { Rc::from_raw(data as *const TaskWaker) };
-            me.to_poll.borrow_mut().poll.push(me.id);
-            core::mem::forget(me);
+            let me = unsafe { TaskWaker::from_ptr(data) };
+            let reference = unsafe { &*me };
+            let id = reference.id;
+
+            TO_POLL.cell.borrow_mut().poll.push(id);
         }
 
         fn drop(data: *const ()) {
-            let me = unsafe { Rc::from_raw(data as *const TaskWaker) };
-            core::mem::drop(me);
+            let me = unsafe { TaskWaker::from_ptr(data) };
+            let boxed = {
+                let reference = unsafe { &*me };
+                reference.boxed
+            };
+
+            if boxed {
+                let _ = unsafe { Box::from_raw(me as *mut TaskWaker) };
+            }
         }
 
         let vtable = &RawWakerVTable::new(clone, wake, wake_by_ref, drop);
 
-        RawWaker::new(Rc::into_raw(self) as *const (), vtable)
+        RawWaker::new(value as *const (), vtable)
     }
 
-    fn get_waker(self) -> Waker {
-        unsafe { Waker::from_raw(Rc::new(self).get_raw_waker()) }
+    unsafe fn get_waker(&self) -> Waker {
+        unsafe { Waker::from_raw(TaskWaker::get_raw_waker(self as *const _)) }
     }
 }
 
+static TO_POLL: PromiseSingleThreadRefCell<ToPoll> = PromiseSingleThreadRefCell {
+    cell: RefCell::new(ToPoll {
+        poll: Vec::new(),
+        vblank_waiting: Vec::new(),
+    }),
+};
+
 impl Executor {
     fn get_to_poll(&mut self) -> Option<Vec<DefaultKey>> {
-        let mut poll = self.to_poll.borrow_mut();
+        let mut poll = TO_POLL.cell.borrow_mut();
 
         if poll.poll.is_empty() {
             return None;
@@ -423,21 +449,17 @@ impl Executor {
         Some(to_poll)
     }
 
-    fn get_waker_for_task(&self, task: DefaultKey) -> Waker {
-        TaskWaker {
-            id: task,
-            to_poll: Rc::clone(&self.to_poll),
-        }
-        .get_waker()
-    }
-
     pub fn run(&mut self) -> ! {
         loop {
             self.add_waiting();
 
             while let Some(to_poll) = self.get_to_poll() {
                 for text_index in to_poll {
-                    let waker = self.get_waker_for_task(text_index);
+                    let task_waker = TaskWaker {
+                        id: text_index,
+                        boxed: false,
+                    };
+                    let waker = unsafe { task_waker.get_waker() };
 
                     let task = &mut self.futures[text_index];
 
@@ -450,8 +472,8 @@ impl Executor {
                     }
                 }
 
-                self.add_waiting();
-                self.process_interrupts();
+                // self.add_waiting();
+                // self.process_interrupts();
             }
 
             syscall::halt();
@@ -463,14 +485,14 @@ impl Executor {
     fn add_waiting(&mut self) {
         for task in TO_ADD_TO_EXECUTOR.cell.borrow_mut().drain(..) {
             let idx = self.futures.insert(task);
-            self.to_poll.borrow_mut().poll.push(idx);
+            TO_POLL.cell.borrow_mut().poll.push(idx);
         }
     }
 
     fn process_interrupts(&mut self) {
         while let Some(interrupts) = self.interrupt_reader.try_read() {
             if interrupts & (1 << Interrupt::VBlank as u32) != 0 {
-                let poll = self.to_poll.borrow_mut();
+                let poll = TO_POLL.cell.borrow_mut();
                 let (mut poll, mut vblank) =
                     RefMut::map_split(poll, |f| (&mut f.poll, &mut f.vblank_waiting));
                 poll.append(&mut *vblank);
@@ -527,8 +549,6 @@ impl<'scope, 'env> Scope<'scope, 'env> {
             future: join.future.clone(),
         };
 
-        crate::println!("Spawning task");
-
         TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
 
         self.joiners.borrow_mut().push(erased);
@@ -569,4 +589,8 @@ pub fn yeild() -> impl Future<Output = ()> {
             Poll::Pending
         }
     })
+}
+
+pub fn suspend() -> impl Future<Output = ()> {
+    poll_fn(|_| Poll::Pending)
 }
