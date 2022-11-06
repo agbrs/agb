@@ -9,6 +9,7 @@ use core::{
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
+pub mod channel;
 mod ringbox;
 mod ringbuf;
 
@@ -47,6 +48,9 @@ impl<T> DebugRefCell<T> {
 
 /// This only works with the async executor in agb! It avoids the standard waker
 /// to use a more efficient waker specifically for the built in executor.
+///
+/// TODO: Should this be unsafe / can we avoid this being unsound when used with
+/// a different executor
 pub fn vblank_async() -> impl Future<Output = ()> {
     let current_vblank = CURRENT_VBLANK.read();
     poll_fn(move |c| {
