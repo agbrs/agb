@@ -156,16 +156,7 @@ impl<T> Reader<T> {
 
             let mut inner = unsafe { self.inner() };
 
-            if let Some(v) = &inner.waker {
-                let c_id = unsafe { (*super::TaskWaker::from_ptr(cx.waker().as_raw().data())).id };
-                let o_id = unsafe { (*super::TaskWaker::from_ptr(v.as_raw().data())).id };
-
-                if c_id != o_id {
-                    inner.waker = Some(cx.waker().clone());
-                }
-            } else {
-                inner.waker = Some(cx.waker().clone());
-            }
+            inner.waker = Some(cx.waker().clone());
             Poll::Pending
         })
     }

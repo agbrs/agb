@@ -9,11 +9,13 @@ use core::{
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
+use bitflags::bitflags;
+
 pub mod channel;
 mod ringbox;
 mod ringbuf;
 
-use alloc::{boxed::Box, rc::Rc, vec::Vec};
+use alloc::{rc::Rc, vec::Vec};
 use slotmap::DefaultKey;
 
 use crate::{
@@ -58,12 +60,9 @@ pub fn vblank_async() -> impl Future<Output = ()> {
             Poll::Ready(())
         } else {
             let raw_waker = c.waker().as_raw().data();
-            let task_waker = unsafe { TaskWaker::from_ptr(raw_waker) };
-            TO_POLL
-                .cell
-                .borrow_mut()
-                .vblank_waiting
-                .push(unsafe { (*task_waker).id });
+            add_to_vblank_list(unsafe {
+                NonNull::new(raw_waker.cast_mut().cast()).unwrap_unchecked()
+            });
 
             Poll::Pending
         }
@@ -82,8 +81,51 @@ extern "C" fn async_interrupt_handler(interrupt: u16) -> u16 {
 
 #[derive(Default)]
 struct ToPoll {
-    poll: Vec<DefaultKey>,
-    vblank_waiting: Vec<DefaultKey>,
+    poll: PollList,
+    vblankers: PollList,
+}
+
+#[derive(Default)]
+struct PollList {
+    first: Option<NonNull<Header>>,
+    last: Option<NonNull<Header>>,
+}
+
+fn add_to_run_list(value: NonNull<Header>) {
+    let state = unsafe { (*value.as_ptr()).state };
+
+    if state.intersects(State::RUN_QUEUED | State::VBLANK_QUEUED) {
+        return;
+    }
+
+    TO_POLL.cell.borrow_mut().poll.add(value);
+
+    unsafe { (*value.as_ptr()).state |= State::RUN_QUEUED }
+}
+
+fn add_to_vblank_list(value: NonNull<Header>) {
+    let state = unsafe { (*value.as_ptr()).state };
+
+    if state.intersects(State::RUN_QUEUED | State::VBLANK_QUEUED) {
+        return;
+    }
+
+    TO_POLL.cell.borrow_mut().vblankers.add(value);
+
+    unsafe { (*value.as_ptr()).state |= State::VBLANK_QUEUED }
+}
+
+impl PollList {
+    fn add(&mut self, value: NonNull<Header>) {
+        match self.last {
+            Some(last) => unsafe { (*last.as_ptr()).next = Some(value) },
+            None => {
+                self.first = Some(value);
+            }
+        }
+        self.last = Some(value);
+        unsafe { (*value.as_ptr()).next = None };
+    }
 }
 
 pub struct Executor {
@@ -92,7 +134,17 @@ pub struct Executor {
     _vblank_interrupt: InterruptHandler<'static>,
 }
 
+bitflags! {
+    pub struct State: u32 {
+        const RUN_QUEUED = 1 << 0;    // mutually exclusive with other queues
+        const VBLANK_QUEUED = 1 << 1; // mutually exclusive with other queues
+    }
+}
+
 struct Header {
+    next: Option<NonNull<Header>>,
+    id: DefaultKey,
+    state: State,
     vtable: &'static TaskVTable,
 }
 
@@ -311,6 +363,9 @@ impl Task {
     {
         let task = TaskCell {
             header: Header {
+                next: None,
+                state: State::empty(),
+                id: Default::default(),
                 vtable: TaskVTable::new::<F>(),
             },
             task: TaskRun {
@@ -358,90 +413,48 @@ impl Executor {
     }
 }
 
-#[derive(Clone)]
-struct TaskWaker {
-    id: DefaultKey,
-    boxed: bool,
+unsafe fn get_raw_waker(value: NonNull<Header>) -> RawWaker {
+    fn clone(data: *const ()) -> RawWaker {
+        unsafe { get_raw_waker(NonNull::new(data.cast_mut().cast()).unwrap()) }
+    }
+
+    fn wake(data: *const ()) {
+        add_to_run_list(NonNull::new(data.cast_mut().cast()).unwrap());
+    }
+
+    fn wake_by_ref(data: *const ()) {
+        add_to_run_list(NonNull::new(data.cast_mut().cast()).unwrap());
+    }
+
+    fn drop(_data: *const ()) {}
+
+    let vtable = &RawWakerVTable::new(clone, wake, wake_by_ref, drop);
+
+    RawWaker::new(value.as_ptr() as *const _ as *const _, vtable)
 }
 
-impl TaskWaker {
-    unsafe fn from_ptr(ptr: *const ()) -> *const TaskWaker {
-        ptr as *const TaskWaker
-    }
-
-    unsafe fn get_raw_waker(value: *const TaskWaker) -> RawWaker {
-        fn clone(data: *const ()) -> RawWaker {
-            let data = unsafe { TaskWaker::from_ptr(data) };
-
-            let this = unsafe { &*data };
-
-            let next = Box::leak(Box::new(TaskWaker {
-                id: this.id,
-                boxed: true,
-            }));
-
-            unsafe { TaskWaker::get_raw_waker(next as *mut _ as *const _) }
-        }
-
-        fn wake(data: *const ()) {
-            let me = unsafe { TaskWaker::from_ptr(data) };
-            let boxed = {
-                let reference = unsafe { &*me };
-                let id = reference.id;
-
-                TO_POLL.cell.borrow_mut().poll.push(id);
-                reference.boxed
-            };
-
-            if boxed {
-                let _ = unsafe { Box::from_raw(me as *mut TaskWaker) };
-            }
-        }
-
-        fn wake_by_ref(data: *const ()) {
-            let me = unsafe { TaskWaker::from_ptr(data) };
-            let reference = unsafe { &*me };
-            let id = reference.id;
-
-            TO_POLL.cell.borrow_mut().poll.push(id);
-        }
-
-        fn drop(data: *const ()) {
-            let me = unsafe { TaskWaker::from_ptr(data) };
-            let boxed = {
-                let reference = unsafe { &*me };
-                reference.boxed
-            };
-
-            if boxed {
-                let _ = unsafe { Box::from_raw(me as *mut TaskWaker) };
-            }
-        }
-
-        let vtable = &RawWakerVTable::new(clone, wake, wake_by_ref, drop);
-
-        RawWaker::new(value as *const (), vtable)
-    }
-
-    unsafe fn get_waker(&self) -> Waker {
-        unsafe { Waker::from_raw(TaskWaker::get_raw_waker(self as *const _)) }
-    }
+unsafe fn get_waker(value: NonNull<Header>) -> Waker {
+    unsafe { Waker::from_raw(get_raw_waker(value)) }
 }
 
 static TO_POLL: PromiseSingleThreadRefCell<ToPoll> = PromiseSingleThreadRefCell {
     cell: RefCell::new(ToPoll {
-        poll: Vec::new(),
-        vblank_waiting: Vec::new(),
+        poll: PollList {
+            first: None,
+            last: None,
+        },
+        vblankers: PollList {
+            first: None,
+            last: None,
+        },
     }),
 };
 
 impl Executor {
-    fn get_to_poll(&mut self) -> Option<Vec<DefaultKey>> {
+    fn get_to_poll(&mut self) -> Option<PollList> {
         let mut poll = TO_POLL.cell.borrow_mut();
 
-        if poll.poll.is_empty() {
-            return None;
-        }
+        poll.poll.first?;
 
         let mut to_poll = Default::default();
         core::mem::swap(&mut poll.poll, &mut to_poll);
@@ -449,31 +462,37 @@ impl Executor {
         Some(to_poll)
     }
 
-    pub fn run(&mut self) -> ! {
+    fn run(&mut self) -> ! {
         loop {
             self.add_waiting();
 
-            while let Some(to_poll) = self.get_to_poll() {
-                for text_index in to_poll {
-                    let task_waker = TaskWaker {
-                        id: text_index,
-                        boxed: false,
-                    };
-                    let waker = unsafe { task_waker.get_waker() };
+            while let Some(mut to_poll) = self.get_to_poll() {
+                let mut next = to_poll.first.take();
 
-                    let task = &mut self.futures[text_index];
+                while let Some(mut header) = next {
+                    let waker = unsafe { get_waker(header) };
+                    let to_be_next = unsafe { header.as_mut().next.take() };
 
                     let mut ctx = Context::from_waker(&waker);
-                    match task.poll(&mut ctx) {
+
+                    unsafe {
+                        (*header.as_ptr())
+                            .state
+                            .remove(State::RUN_QUEUED | State::VBLANK_QUEUED);
+                    }
+
+                    match Header::poll(header, &mut ctx) {
                         Poll::Ready(()) => {
-                            self.futures.remove(text_index);
+                            self.futures.remove(unsafe { header.as_ref().id });
                         }
                         Poll::Pending => {} // no work required
                     }
+
+                    next = to_be_next;
                 }
 
-                // self.add_waiting();
-                // self.process_interrupts();
+                self.add_waiting();
+                self.process_interrupts();
             }
 
             syscall::halt();
@@ -484,8 +503,10 @@ impl Executor {
 
     fn add_waiting(&mut self) {
         for task in TO_ADD_TO_EXECUTOR.cell.borrow_mut().drain(..) {
+            let fut = task.future.get().cast();
+            add_to_run_list(fut);
             let idx = self.futures.insert(task);
-            TO_POLL.cell.borrow_mut().poll.push(idx);
+            unsafe { (*fut.as_ptr()).id = idx };
         }
     }
 
@@ -494,8 +515,29 @@ impl Executor {
             if interrupts & (1 << Interrupt::VBlank as u32) != 0 {
                 let poll = TO_POLL.cell.borrow_mut();
                 let (mut poll, mut vblank) =
-                    RefMut::map_split(poll, |f| (&mut f.poll, &mut f.vblank_waiting));
-                poll.append(&mut *vblank);
+                    RefMut::map_split(poll, |f| (&mut f.poll, &mut f.vblankers));
+
+                let mut next = vblank.first.take();
+
+                while let Some(mut header) = next {
+                    let to_be_next = unsafe { header.as_mut().next.take() };
+
+                    unsafe {
+                        (*header.as_ptr())
+                            .state
+                            .remove(State::RUN_QUEUED | State::VBLANK_QUEUED);
+                    }
+
+                    poll.add(header);
+
+                    unsafe {
+                        (*header.as_ptr()).state.insert(State::RUN_QUEUED);
+                    }
+
+                    next = to_be_next;
+                }
+
+                vblank.last.take();
             }
         }
     }
