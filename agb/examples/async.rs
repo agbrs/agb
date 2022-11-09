@@ -41,5 +41,25 @@ fn main(gba: agb::Gba) -> ! {
             let value = value.await;
             agb::println!("The value was {}", value);
         });
+
+        let (mut reader, mut writer) = executor::channel::new_with_capacity(16);
+
+        executor::spawn(async move {
+            executor::vblank_async().await;
+            for i in 0..256 {
+                let _ = writer.write(i);
+                executor::yeild().await;
+            }
+        });
+
+        executor::spawn(async move {
+            let start = executor::CURRENT_VBLANK.read();
+            while (reader.read().await).is_ok() {}
+            let end = executor::CURRENT_VBLANK.read();
+            agb::println!(
+                "Writer associated with this reader has closed, took {} frames to read all",
+                end - start
+            );
+        });
     });
 }
