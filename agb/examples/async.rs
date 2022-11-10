@@ -42,13 +42,12 @@ fn main(gba: agb::Gba) -> ! {
             agb::println!("The value was {}", value);
         });
 
-        let (mut reader, mut writer) = executor::channel::new_with_capacity(16);
+        let (mut reader, mut writer) = executor::channel::new_with_capacity(256);
 
         executor::spawn(async move {
             executor::vblank_async().await;
-            for i in 0..256 {
-                let _ = writer.write(i);
-                executor::yeild().await;
+            for i in 0..262144 {
+                let _ = writer.write(i).await;
             }
         });
 
