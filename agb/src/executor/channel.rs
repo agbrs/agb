@@ -14,7 +14,8 @@ use alloc::{boxed::Box, rc::Rc, vec::Vec};
 struct Inner<T> {
     read_head: usize,
     length: usize,
-    waker: Option<Waker>,
+    read_waker: Option<Waker>,
+    write_waker: Option<Waker>,
     data: Box<[MaybeUninit<T>]>,
 }
 
@@ -47,11 +48,15 @@ impl<T> Inner<T> {
         if self.is_full() {
             Err(ChannelError::Full)
         } else {
-            self.data[mod_power_of_2(self.read_head + self.length, self.data.len())].write(value);
-            self.length += 1;
+            unsafe { self.write_assume_not_full(value) };
 
             Ok(())
         }
+    }
+
+    unsafe fn write_assume_not_full(&mut self, value: T) {
+        self.data[mod_power_of_2(self.read_head + self.length, self.data.len())].write(value);
+        self.length += 1;
     }
 }
 
@@ -87,7 +92,8 @@ pub fn new_with_capacity<T>(capacity: usize) -> (Reader<T>, Writer<T>) {
     let inner = Inner {
         read_head: 0,
         length: 0,
-        waker: None,
+        read_waker: None,
+        write_waker: None,
         data: storage.into_boxed_slice(),
     };
     let inner = Rc::new(UnsafeCell::new(inner));
@@ -100,6 +106,7 @@ pub fn new_with_capacity<T>(capacity: usize) -> (Reader<T>, Writer<T>) {
     )
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum ChannelError {
     Closed,
     Full,
@@ -107,7 +114,7 @@ pub enum ChannelError {
 
 impl<T> Drop for Writer<T> {
     fn drop(&mut self) {
-        if let Some(waker) = unsafe { self.inner().waker.take() } {
+        if let Some(waker) = unsafe { self.inner().read_waker.take() } {
             waker.wake();
         }
     }
@@ -118,9 +125,9 @@ impl<T> Writer<T> {
         &mut *self.inner.get()
     }
 
-    pub fn write(&mut self, value: T) -> Result<(), ChannelError> {
+    pub fn write_immediate(&mut self, value: T) -> Result<(), ChannelError> {
         let mut inner = unsafe { self.inner() };
-        if let Some(waker) = inner.waker.take() {
+        if let Some(waker) = inner.read_waker.take() {
             waker.wake();
         }
         inner.write(value)
@@ -134,6 +141,48 @@ impl<T> Writer<T> {
     #[must_use]
     pub fn is_full(&self) -> bool {
         unsafe { self.inner() }.is_full()
+    }
+}
+
+pub struct WriterFuture<'a, T> {
+    value_to_write: UnsafeCell<Option<T>>,
+    inner: &'a Rc<UnsafeCell<Inner<T>>>,
+}
+
+impl<'a, T> Future for WriterFuture<'a, T> {
+    type Output = Result<(), ChannelError>;
+
+    fn poll(
+        self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> Poll<Self::Output> {
+        let strong_count = Rc::strong_count(self.inner);
+        let inner = unsafe { &mut *self.inner.get() };
+
+        if inner.is_full() {
+            inner.write_waker = Some(cx.waker().clone());
+            return Poll::Pending;
+        }
+        if strong_count == 1 {
+            return Poll::Ready(Err(ChannelError::Closed));
+        }
+        if let Some(value) = unsafe { &mut *self.value_to_write.get() }.take() {
+            unsafe { inner.write_assume_not_full(value) };
+            if let Some(waker) = inner.read_waker.take() {
+                waker.wake();
+            }
+        }
+
+        Poll::Ready(Ok(()))
+    }
+}
+
+impl<T: Clone> Writer<T> {
+    pub fn write(&mut self, value: T) -> WriterFuture<'_, T> {
+        WriterFuture {
+            value_to_write: UnsafeCell::new(Some(value)),
+            inner: &self.inner,
+        }
     }
 }
 
@@ -156,15 +205,22 @@ impl<T> Reader<T> {
 
             let mut inner = unsafe { self.inner() };
 
-            inner.waker = Some(cx.waker().clone());
+            inner.read_waker = Some(cx.waker().clone());
             Poll::Pending
         })
     }
 
     /// Immediately reads a value from the channel or None if the channel is empty.
     pub fn read_immediate(&mut self) -> Result<Option<T>, ChannelError> {
-        match unsafe { self.inner().read() } {
-            Some(x) => Ok(Some(x)),
+        let mut inner = unsafe { self.inner() };
+
+        match inner.read() {
+            Some(x) => {
+                if let Some(waker) = inner.write_waker.take() {
+                    waker.wake();
+                }
+                Ok(Some(x))
+            }
             None => {
                 if Rc::strong_count(&self.inner) == 1 {
                     Err(ChannelError::Closed)
