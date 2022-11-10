@@ -326,6 +326,16 @@ pub struct TaskJoin<O> {
     _phantom: PhantomData<O>,
 }
 
+pub struct TaskDropAbort<O> {
+    join: TaskJoin<O>,
+}
+
+impl<O> Drop for TaskDropAbort<O> {
+    fn drop(&mut self) {
+        self.join.abort();
+    }
+}
+
 impl<O> Future for TaskJoin<O> {
     type Output = O;
 
@@ -341,10 +351,15 @@ impl<O> Future for TaskJoin<O> {
 }
 
 impl<O> TaskJoin<O> {
-    pub fn abort(self) {
+    pub fn abort(&self) {
         let h = self.future.get();
 
         Header::abort(h.cast());
+    }
+
+    #[must_use]
+    pub fn abort_on_drop(self) -> TaskDropAbort<O> {
+        TaskDropAbort { join: self }
     }
 
     #[must_use]
@@ -599,16 +614,17 @@ impl<'scope, 'env> Scope<'scope, 'env> {
     }
 }
 
-pub async fn scoped<'env, F, T>(f: F) -> T
+pub async fn scoped<'env, F, Fut>(f: F) -> Fut::Output
 where
-    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
+    Fut: Future,
+    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> Fut,
 {
     let scope = Scope {
         joiners: RefCell::new(Vec::new()),
         scope: PhantomData,
         env: PhantomData,
     };
-    let r = f(&scope);
+    let r = f(&scope).await;
 
     let joiners = scope.joiners.take();
 

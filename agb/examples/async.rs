@@ -31,7 +31,7 @@ fn main(gba: agb::Gba) -> ! {
 
         let value = executor::spawn(get_value());
 
-        executor::spawn(async {
+        executor::spawn(async move {
             wait.await;
             agb::println!("waited for 10 frames!");
             a.abort();
