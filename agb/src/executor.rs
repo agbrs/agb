@@ -598,7 +598,7 @@ pub struct Scope<'scope, 'env: 'scope> {
 impl<'scope, 'env> Scope<'scope, 'env> {
     pub fn spawn<F>(&'scope self, f: F) -> TaskJoin<F::Output>
     where
-        F: Future,
+        F: Future + 'env,
     {
         let (task, join) = unsafe { Task::new(f) };
 
@@ -614,17 +614,16 @@ impl<'scope, 'env> Scope<'scope, 'env> {
     }
 }
 
-pub async fn scoped<'env, F, Fut>(f: F) -> Fut::Output
+pub async fn scoped<'env, F, T>(f: F) -> T
 where
-    Fut: Future,
-    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> Fut,
+    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
 {
     let scope = Scope {
         joiners: RefCell::new(Vec::new()),
         scope: PhantomData,
         env: PhantomData,
     };
-    let r = f(&scope).await;
+    let r = f(&scope);
 
     let joiners = scope.joiners.take();
 
