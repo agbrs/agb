@@ -2,8 +2,6 @@ use core::{
     cell::{RefCell, RefMut},
     future::{poll_fn, Future},
     marker::PhantomData,
-    mem::MaybeUninit,
-    ops::{Deref, DerefMut},
     pin::Pin,
     ptr::NonNull,
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
@@ -15,38 +13,19 @@ pub mod channel;
 mod ringbox;
 mod ringbuf;
 
-use alloc::{rc::Rc, vec::Vec};
-use slotmap::DefaultKey;
+use alloc::{boxed::Box, vec::Vec};
 
 use crate::{
     executor::ringbuf::Writer,
     interrupt::{self, Interrupt, InterruptHandler, __RUST_INTERRUPT_HANDLER},
     sync::Static,
-    syscall,
+    syscall, InternalAllocator,
 };
 
 use self::ringbuf::{Reader, RingBuffer};
 
 pub static CURRENT_VBLANK: Static<usize> = Static::new(0);
 static INTERRUPTS: RingBuffer<u32, 32> = RingBuffer::new();
-
-struct DebugRefCell<T> {
-    cell: core::cell::UnsafeCell<T>,
-}
-
-impl<T> DebugRefCell<T> {
-    fn new(t: T) -> Self {
-        DebugRefCell {
-            cell: core::cell::UnsafeCell::new(t),
-        }
-    }
-
-    fn get(&'_ self) -> NonNull<T> {
-        // # Safety
-        // I'm pretty sure theres some guarentee that an unsafe cell always gives a non null pointer.
-        unsafe { NonNull::new(self.cell.get()).unwrap_unchecked() }
-    }
-}
 
 /// This only works with the async executor in agb! It avoids the standard waker
 /// to use a more efficient waker specifically for the built in executor.
@@ -129,7 +108,6 @@ impl PollList {
 }
 
 pub struct Executor {
-    futures: slotmap::SlotMap<DefaultKey, Task>,
     interrupt_reader: Reader<'static, u32, 32>,
     _vblank_interrupt: InterruptHandler<'static>,
 }
@@ -143,8 +121,9 @@ bitflags! {
 
 struct Header {
     next: Option<NonNull<Header>>,
-    id: DefaultKey,
+    count: usize,
     state: State,
+    erased_waker: Option<Waker>,
     vtable: &'static TaskVTable,
 }
 
@@ -165,6 +144,18 @@ impl Header {
         let is_done = unsafe { header.as_ref() }.vtable.is_done;
         unsafe { is_done(header) }
     }
+    fn increment_count(mut header: NonNull<Header>) {
+        unsafe { header.as_mut() }.count += 1;
+    }
+    /// Do not use your header after calling this
+    unsafe fn decrement_count(mut header: NonNull<Header>) {
+        unsafe { header.as_mut() }.count -= 1;
+        let count = unsafe { header.as_mut() }.count;
+        if count == 0 {
+            let drop = unsafe { header.as_ref() }.vtable.drop;
+            drop(header);
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -183,12 +174,16 @@ impl TaskVTable {
 
             let ctx = unsafe { &mut *ctx };
 
+            let header = &mut task.header;
             let task = &mut task.task;
 
             match &mut task.future {
                 Stage::Running(f) => match Pin::new_unchecked(f).poll(ctx) {
                     Poll::Ready(v) => {
-                        if let Some(waker) = &task.join_waker {
+                        if let Some(waker) = task.join_waker.take() {
+                            waker.wake();
+                        }
+                        if let Some(waker) = header.erased_waker.take() {
                             waker.wake_by_ref();
                         }
                         task.future = Stage::Finished(v);
@@ -204,7 +199,7 @@ impl TaskVTable {
 
         unsafe fn drop<F: Future>(head: NonNull<Header>) {
             let ptr: NonNull<TaskCell<F>> = head.cast();
-            unsafe { &mut *ptr.cast::<MaybeUninit<TaskCell<F>>>().as_ptr() }.assume_init_drop();
+            Box::from_raw_in(ptr.as_ptr(), InternalAllocator);
         }
 
         unsafe fn try_read_value<F: Future>(
@@ -277,52 +272,36 @@ enum Stage<F: Future> {
 }
 
 struct Task {
-    future: Pin<Rc<DebugRefCell<StoredHeader>>>,
-}
-
-struct StoredHeader {
-    header: Header,
-}
-
-impl Deref for StoredHeader {
-    type Target = Header;
-
-    fn deref(&self) -> &Self::Target {
-        &self.header
-    }
-}
-
-impl DerefMut for StoredHeader {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.header
-    }
-}
-
-impl Drop for StoredHeader {
-    fn drop(&mut self) {
-        let drop = self.header.vtable.drop;
-        let p = NonNull::new(&mut **self as *mut Header).unwrap();
-
-        unsafe { drop(p) };
-    }
+    future: NonNull<Header>,
 }
 
 pub struct TaskJoinErased {
-    future: Pin<Rc<DebugRefCell<StoredHeader>>>,
+    future: NonNull<Header>,
+}
+
+impl Drop for TaskJoinErased {
+    fn drop(&mut self) {
+        unsafe { Header::decrement_count(self.future) }
+    }
 }
 
 impl Future for TaskJoinErased {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let h = self.future.get();
+        let mut h = self.future;
 
-        Header::poll(h.cast(), cx)
+        unsafe { h.as_mut() }.erased_waker = Some(cx.waker().clone());
+        if Header::is_done(self.future) {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
+        }
     }
 }
 
 pub struct TaskJoin<O> {
-    future: Pin<Rc<DebugRefCell<StoredHeader>>>,
+    future: NonNull<Header>,
     _phantom: PhantomData<O>,
 }
 
@@ -340,11 +319,9 @@ impl<O> Future for TaskJoin<O> {
     type Output = O;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let h = self.future.get();
-
         let mut ret = Poll::Pending;
 
-        Header::try_read_value(h.cast(), &mut ret as *mut _ as *mut _, cx);
+        Header::try_read_value(self.future, &mut ret as *mut _ as *mut _, cx);
 
         ret
     }
@@ -352,9 +329,7 @@ impl<O> Future for TaskJoin<O> {
 
 impl<O> TaskJoin<O> {
     pub fn abort(&self) {
-        let h = self.future.get();
-
-        Header::abort(h.cast());
+        Header::abort(self.future);
     }
 
     #[must_use]
@@ -364,9 +339,20 @@ impl<O> TaskJoin<O> {
 
     #[must_use]
     pub fn is_done(&self) -> bool {
-        let h = self.future.get();
+        Header::is_done(self.future)
+    }
 
-        Header::is_done(h.cast())
+    fn create_erased(&self) -> TaskJoinErased {
+        Header::increment_count(self.future);
+        TaskJoinErased {
+            future: self.future,
+        }
+    }
+}
+
+impl<O> Drop for TaskJoin<O> {
+    fn drop(&mut self) {
+        unsafe { Header::decrement_count(self.future) }
     }
 }
 
@@ -379,8 +365,9 @@ impl Task {
         let task = TaskCell {
             header: Header {
                 next: None,
+                count: 2,
+                erased_waker: None,
                 state: State::empty(),
-                id: Default::default(),
                 vtable: TaskVTable::new::<F>(),
             },
             task: TaskRun {
@@ -389,17 +376,12 @@ impl Task {
             },
         };
 
-        let rc = Rc::new(DebugRefCell::new(task));
-
-        let erased = unsafe {
-            let ptr = Rc::into_raw(rc);
-            Pin::new_unchecked(Rc::<DebugRefCell<StoredHeader>>::from_raw(ptr as *const _))
-        };
+        let boxed = Box::new_in(task, InternalAllocator);
+        let leaked = Box::into_raw(boxed);
+        let erased = NonNull::new(leaked).unwrap().cast();
 
         (
-            Task {
-                future: erased.clone(),
-            },
+            Task { future: erased },
             TaskJoin {
                 future: erased,
                 _phantom: PhantomData,
@@ -408,9 +390,7 @@ impl Task {
     }
 
     fn poll(&mut self, context: &mut Context) -> Poll<()> {
-        let h = self.future.get();
-
-        Header::poll(h.cast(), context)
+        Header::poll(self.future, context)
     }
 }
 
@@ -419,7 +399,6 @@ impl Executor {
         let (reader, _) = INTERRUPTS.get_rw_ref();
 
         Executor {
-            futures: slotmap::SlotMap::new(),
             interrupt_reader: reader,
             _vblank_interrupt: interrupt::add_interrupt_handler(Interrupt::VBlank, |_| {
                 CURRENT_VBLANK.write(CURRENT_VBLANK.read() + 1);
@@ -497,10 +476,10 @@ impl Executor {
                     }
 
                     match Header::poll(header, &mut ctx) {
-                        Poll::Ready(()) => {
-                            self.futures.remove(unsafe { header.as_ref().id });
-                        }
-                        Poll::Pending => {} // no work required
+                        Poll::Ready(_) => unsafe {
+                            Header::decrement_count(header);
+                        },
+                        Poll::Pending => {}
                     }
 
                     next = to_be_next;
@@ -518,10 +497,7 @@ impl Executor {
 
     fn add_waiting(&mut self) {
         for task in TO_ADD_TO_EXECUTOR.cell.borrow_mut().drain(..) {
-            let fut = task.future.get().cast();
-            add_to_run_list(fut);
-            let idx = self.futures.insert(task);
-            unsafe { (*fut.as_ptr()).id = idx };
+            add_to_run_list(task.future);
         }
     }
 
@@ -602,9 +578,7 @@ impl<'scope, 'env> Scope<'scope, 'env> {
     {
         let (task, join) = unsafe { Task::new(f) };
 
-        let erased = TaskJoinErased {
-            future: join.future.clone(),
-        };
+        let erased = join.create_erased();
 
         TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
 
