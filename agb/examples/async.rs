@@ -42,27 +42,24 @@ fn main(gba: agb::Gba) -> ! {
             agb::println!("The value was {}", value);
         });
 
-        let mut channel = executor::channel::new_with_capacity_in(256, agb::InternalAllocator);
+        // let mut channel = executor::channel::new_with_capacity_in(256, agb::InternalAllocator);
 
-        executor::scoped(|s| {
-            let (mut reader, mut writer) = channel.get_reader_writer();
+        // let (mut reader, mut writer) = channel.get_reader_writer();
 
-            s.spawn(async move {
-                for i in 0..262144 {
-                    let _ = writer.write(i).await;
-                }
-            });
+        // executor::spawn(async move {
+        //     for i in 0..262144 {
+        //         let _ = writer.write(i).await;
+        //     }
+        // });
 
-            s.spawn(async move {
-                let start = executor::CURRENT_VBLANK.read();
-                while (reader.read().await).is_ok() {}
-                let end = executor::CURRENT_VBLANK.read();
-                agb::println!(
-                    "Writer associated with this reader has closed, took {} frames to read all",
-                    end - start
-                );
-            });
-        })
-        .await;
+        // executor::spawn(async move {
+        //     let start = executor::CURRENT_VBLANK.read();
+        //     while (reader.read().await).is_ok() {}
+        //     let end = executor::CURRENT_VBLANK.read();
+        //     agb::println!(
+        //         "Writer associated with this reader has closed, took {} frames to read all",
+        //         end - start
+        //     );
+        // });
     });
 }

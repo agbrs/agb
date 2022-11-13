@@ -123,7 +123,6 @@ struct Header {
     next: Option<NonNull<Header>>,
     count: usize,
     state: State,
-    erased_waker: Option<Waker>,
     vtable: &'static TaskVTable,
 }
 
@@ -174,7 +173,6 @@ impl TaskVTable {
 
             let ctx = unsafe { &mut *ctx };
 
-            let header = &mut task.header;
             let task = &mut task.task;
 
             match &mut task.future {
@@ -182,9 +180,6 @@ impl TaskVTable {
                     Poll::Ready(v) => {
                         if let Some(waker) = task.join_waker.take() {
                             waker.wake();
-                        }
-                        if let Some(waker) = header.erased_waker.take() {
-                            waker.wake_by_ref();
                         }
                         task.future = Stage::Finished(v);
                         Poll::Ready(())
@@ -275,31 +270,6 @@ struct Task {
     future: NonNull<Header>,
 }
 
-pub struct TaskJoinErased {
-    future: NonNull<Header>,
-}
-
-impl Drop for TaskJoinErased {
-    fn drop(&mut self) {
-        unsafe { Header::decrement_count(self.future) }
-    }
-}
-
-impl Future for TaskJoinErased {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let mut h = self.future;
-
-        unsafe { h.as_mut() }.erased_waker = Some(cx.waker().clone());
-        if Header::is_done(self.future) {
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
-    }
-}
-
 pub struct TaskJoin<O> {
     future: NonNull<Header>,
     _phantom: PhantomData<O>,
@@ -341,13 +311,6 @@ impl<O> TaskJoin<O> {
     pub fn is_done(&self) -> bool {
         Header::is_done(self.future)
     }
-
-    fn create_erased(&self) -> TaskJoinErased {
-        Header::increment_count(self.future);
-        TaskJoinErased {
-            future: self.future,
-        }
-    }
 }
 
 impl<O> Drop for TaskJoin<O> {
@@ -366,7 +329,6 @@ impl Task {
             header: Header {
                 next: None,
                 count: 2,
-                erased_waker: None,
                 state: State::empty(),
                 vtable: TaskVTable::new::<F>(),
             },
@@ -563,49 +525,6 @@ where
     TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
 
     join
-}
-
-pub struct Scope<'scope, 'env: 'scope> {
-    joiners: RefCell<Vec<TaskJoinErased>>,
-    scope: PhantomData<&'scope mut &'scope ()>,
-    env: PhantomData<&'env mut &'env ()>,
-}
-
-impl<'scope, 'env> Scope<'scope, 'env> {
-    pub fn spawn<F>(&'scope self, f: F) -> TaskJoin<F::Output>
-    where
-        F: Future + 'env,
-    {
-        let (task, join) = unsafe { Task::new(f) };
-
-        let erased = join.create_erased();
-
-        TO_ADD_TO_EXECUTOR.cell.borrow_mut().push(task);
-
-        self.joiners.borrow_mut().push(erased);
-
-        join
-    }
-}
-
-pub async fn scoped<'env, F, T>(f: F) -> T
-where
-    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
-{
-    let scope = Scope {
-        joiners: RefCell::new(Vec::new()),
-        scope: PhantomData,
-        env: PhantomData,
-    };
-    let r = f(&scope);
-
-    let joiners = scope.joiners.take();
-
-    for join in joiners {
-        join.await;
-    }
-
-    r
 }
 
 pub fn yeild() -> impl Future<Output = ()> {
