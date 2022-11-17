@@ -16,6 +16,7 @@ pub struct Rc<T, A: Allocator = Global> {
 }
 
 impl<T> Rc<T> {
+    #[cfg(test)]
     pub fn new(data: T) -> Self {
         Rc::new_in(data, Global)
     }

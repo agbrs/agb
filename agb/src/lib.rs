@@ -171,7 +171,7 @@ pub mod executor;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
 pub mod hash_map;
 /// Rough equivalent of [alloc::rc::Rc] that can have its allocator changed
-pub mod rc;
+mod rc;
 /// Simple random number generator
 pub mod rng;
 pub mod save;
