@@ -28,7 +28,7 @@ pub(crate) trait Config {
 
 pub(crate) trait Image {
     fn filename(&self) -> String;
-    fn tilesize(&self) -> TileSize;
+    fn tile_size(&self) -> TileSize;
     fn colours(&self) -> Colours;
 }
 
@@ -84,7 +84,7 @@ impl Image for ImageV1 {
         self.filename.clone()
     }
 
-    fn tilesize(&self) -> TileSize {
+    fn tile_size(&self) -> TileSize {
         self.tile_size.into()
     }
 
