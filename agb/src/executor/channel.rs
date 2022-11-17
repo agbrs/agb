@@ -9,6 +9,8 @@ use core::{
 
 use alloc::{alloc::Global, boxed::Box, vec::Vec};
 
+use crate::rc::Rc;
+
 /// This is implemented using a read head and a length. This avoids wasting a
 /// slot in the backing array due to no ambiguity between full and empty.
 /// This works in single threaded land (and is not interrupt safe, which the ringbuf is).
@@ -17,12 +19,7 @@ struct Inner<T, A: Allocator = Global> {
     length: usize,
     read_waker: Option<Waker>,
     write_waker: Option<Waker>,
-    count: usize,
     data: Box<[MaybeUninit<T>], A>,
-}
-
-pub struct Channel<T, A: Allocator = Global> {
-    inner: UnsafeCell<Inner<T, A>>,
 }
 
 fn mod_power_of_2(left: usize, right: usize) -> usize {
@@ -50,21 +47,15 @@ impl<T, A: Allocator> Inner<T, A> {
         }
     }
 
-    fn read_immediate(&mut self) -> Result<Option<T>, ChannelError> {
+    fn read_immediate(&mut self) -> Option<T> {
         match self.read() {
             Some(x) => {
                 if let Some(waker) = self.write_waker.take() {
                     waker.wake();
                 }
-                Ok(Some(x))
+                Some(x)
             }
-            None => {
-                if self.count == 1 {
-                    Err(ChannelError::Closed)
-                } else {
-                    Ok(None)
-                }
-            }
+            None => None,
         }
     }
 
@@ -92,22 +83,25 @@ impl<T, A: Allocator> Drop for Inner<T, A> {
     }
 }
 
-pub struct Reader<'channel, T, A: Allocator> {
-    inner: &'channel UnsafeCell<Inner<T, A>>,
+pub struct Reader<T, A: Allocator = Global> {
+    inner: Rc<UnsafeCell<Inner<T, A>>, A>,
 }
 
-pub struct Writer<'channel, T, A: Allocator> {
-    inner: &'channel UnsafeCell<Inner<T, A>>,
+pub struct Writer<T, A: Allocator = Global> {
+    inner: Rc<UnsafeCell<Inner<T, A>>, A>,
 }
 
 #[must_use]
-pub fn new_with_capacity_in<T, A: Allocator>(capacity: usize, allocator: A) -> Channel<T, A> {
+pub fn new_with_capacity_in<T, A: Allocator + Clone>(
+    capacity: usize,
+    allocator: A,
+) -> (Writer<T, A>, Reader<T, A>) {
     assert!(
         capacity.is_power_of_two(),
         "capacity should be a power of 2"
     );
 
-    let mut storage = Vec::with_capacity_in(capacity, allocator);
+    let mut storage = Vec::with_capacity_in(capacity, allocator.clone());
 
     for _ in 0..capacity {
         storage.push(MaybeUninit::uninit());
@@ -118,26 +112,21 @@ pub fn new_with_capacity_in<T, A: Allocator>(capacity: usize, allocator: A) -> C
         length: 0,
         read_waker: None,
         write_waker: None,
-        count: 0,
         data: storage.into_boxed_slice(),
     };
-    let inner = UnsafeCell::new(inner);
+    let inner = Rc::new_in(UnsafeCell::new(inner), allocator);
 
-    Channel { inner }
+    (
+        Writer {
+            inner: inner.clone(),
+        },
+        Reader { inner },
+    )
 }
 
 #[must_use]
-pub fn new_with_capacity<T>(capacity: usize) -> Channel<T> {
+pub fn new_with_capacity<T>(capacity: usize) -> (Writer<T>, Reader<T>) {
     new_with_capacity_in(capacity, Global)
-}
-
-impl<T, A: Allocator> Channel<T, A> {
-    pub fn get_reader_writer(&mut self) -> (Reader<T, A>, Writer<T, A>) {
-        let inner = self.inner.get_mut();
-        inner.count += 2;
-
-        (Reader { inner: &self.inner }, Writer { inner: &self.inner })
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
@@ -146,17 +135,16 @@ pub enum ChannelError {
     Full,
 }
 
-impl<'ch, T, A: Allocator> Drop for Writer<'ch, T, A> {
+impl<T, A: Allocator> Drop for Writer<T, A> {
     fn drop(&mut self) {
         let mut inner = unsafe { self.inner() };
         if let Some(waker) = inner.read_waker.take() {
             waker.wake();
         }
-        inner.count -= 1;
     }
 }
 
-impl<'ch, T, A: Allocator> Writer<'ch, T, A> {
+impl<T, A: Allocator> Writer<T, A> {
     unsafe fn inner(&self) -> impl DerefMut<Target = Inner<T, A>> + '_ {
         &mut *self.inner.get()
     }
@@ -179,15 +167,16 @@ impl<'ch, T, A: Allocator> Writer<'ch, T, A> {
         unsafe { self.inner() }.is_full()
     }
 
-    pub fn write(&mut self, value: T) -> impl Future<Output = Result<(), ChannelError>> + 'ch {
+    pub fn write(&mut self, value: T) -> impl Future<Output = Result<(), ChannelError>> + '_ {
         let mut val = Some(value);
-        let inner = self.inner;
+        let inner = &self.inner;
 
         poll_fn(move |cx| {
-            let inner = unsafe { &mut *inner.get() };
-            if inner.count == 1 {
+            if Rc::strong_count(inner) == 1 {
                 return Poll::Ready(Err(ChannelError::Closed));
             }
+            let inner = unsafe { &mut *inner.get() };
+
             if inner.is_full() {
                 inner.write_waker = Some(cx.waker().clone());
                 return Poll::Pending;
@@ -206,28 +195,28 @@ impl<'ch, T, A: Allocator> Writer<'ch, T, A> {
     }
 }
 
-impl<'ch, T, A: Allocator> Reader<'ch, T, A> {
+impl<T, A: Allocator> Reader<T, A> {
     unsafe fn inner(&self) -> impl DerefMut<Target = Inner<T, A>> + '_ {
         &mut *self.inner.get()
     }
 
     /// Reads from the channel or waits until there is data in the channel
-    pub fn read(&mut self) -> impl Future<Output = Result<T, ChannelError>> + 'ch {
-        let inner = self.inner;
+    pub fn read(&mut self) -> impl Future<Output = Result<T, ChannelError>> + '_ {
+        let inner = &self.inner;
 
         poll_fn(move |cx| {
-            let inner = unsafe { &mut *inner.get() };
+            let inner_s = unsafe { &mut *inner.get() };
 
-            match inner.read_immediate() {
-                Ok(v) => {
-                    if let Some(v) = v {
-                        return Poll::Ready(Ok(v));
+            match inner_s.read_immediate() {
+                Some(x) => return Poll::Ready(Ok(x)),
+                None => {
+                    if Rc::strong_count(inner) == 1 {
+                        return Poll::Ready(Err(ChannelError::Closed));
                     }
                 }
-                Err(err) => return Poll::Ready(Err(err)),
             };
 
-            inner.read_waker = Some(cx.waker().clone());
+            inner_s.read_waker = Some(cx.waker().clone());
             Poll::Pending
         })
     }
@@ -235,7 +224,16 @@ impl<'ch, T, A: Allocator> Reader<'ch, T, A> {
     /// Immediately reads a value from the channel or None if the channel is empty.
     pub fn read_immediate(&mut self) -> Result<Option<T>, ChannelError> {
         let mut inner = unsafe { self.inner() };
-        inner.read_immediate()
+        match inner.read_immediate() {
+            x @ Some(_) => Ok(x),
+            None => {
+                if Rc::strong_count(&self.inner) == 1 {
+                    Err(ChannelError::Closed)
+                } else {
+                    Ok(None)
+                }
+            }
+        }
     }
 
     #[must_use]
@@ -249,12 +247,11 @@ impl<'ch, T, A: Allocator> Reader<'ch, T, A> {
     }
 }
 
-impl<'ch, T, A: Allocator> Drop for Reader<'ch, T, A> {
+impl<T, A: Allocator> Drop for Reader<T, A> {
     fn drop(&mut self) {
         let mut inner = unsafe { self.inner() };
         if let Some(waker) = inner.write_waker.take() {
             waker.wake();
         }
-        inner.count -= 1;
     }
 }

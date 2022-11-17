@@ -44,8 +44,8 @@ impl<T, A: Allocator> Rc<T, A> {
         }
     }
 
-    pub fn strong_count(&self) -> usize {
-        self.inner().strong.get()
+    pub fn strong_count(this: &Self) -> usize {
+        this.inner().strong.get()
     }
 }
 
@@ -108,10 +108,10 @@ mod tests {
             let _b = r.clone();
 
             assert_eq!(*r, 10);
-            assert_eq!(_b.strong_count(), 2);
-            assert_eq!(r.strong_count(), 2);
+            assert_eq!(Rc::strong_count(&_b), 2);
+            assert_eq!(Rc::strong_count(&r), 2);
         }
 
-        assert_eq!(r.strong_count(), 1);
+        assert_eq!(Rc::strong_count(&r), 1);
     }
 }
