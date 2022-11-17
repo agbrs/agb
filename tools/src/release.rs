@@ -151,7 +151,7 @@ fn update_changelog(root_directory: &Path, new_version: &Version) -> Result<Stri
     let changelog_content =
         std::fs::read_to_string(&changelog_file).map_err(|_| Error::FailedToReadChangelog)?;
 
-    let today = chrono::Local::today();
+    let today = chrono::Local::now();
     let formatted_date = format!(
         "{:04}/{:02}/{:02}",
         today.year(),
