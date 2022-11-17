@@ -58,10 +58,10 @@ impl Bitmap4 {
     /// index whose colour is specified in the background palette. Panics if (x,
     /// y) is out of the bounds of the screen.
     pub fn draw_point(&mut self, x: i32, y: i32, colour: u8) {
-        let disp = DISPLAY_CONTROL.get();
+        let display = DISPLAY_CONTROL.get();
 
         // get other page
-        let page = if disp & GraphicsSettings::PAGE_SELECT.bits() != 0 {
+        let page = if display & GraphicsSettings::PAGE_SELECT.bits() != 0 {
             Page::Front
         } else {
             Page::Back
@@ -78,8 +78,8 @@ impl Bitmap4 {
     /// Flips page, changing the Gameboy advance to draw the contents of the
     /// other page
     pub fn flip_page(&mut self) {
-        let disp = DISPLAY_CONTROL.get();
-        let swapped = disp ^ GraphicsSettings::PAGE_SELECT.bits();
+        let display = DISPLAY_CONTROL.get();
+        let swapped = display ^ GraphicsSettings::PAGE_SELECT.bits();
         DISPLAY_CONTROL.set(swapped);
     }
 }
