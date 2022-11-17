@@ -151,9 +151,6 @@ impl Header {
         let is_done = unsafe { header.as_ref() }.vtable.is_done;
         unsafe { is_done(header) }
     }
-    fn increment_count(mut header: NonNull<Header>) {
-        unsafe { header.as_mut() }.count += 1;
-    }
     /// Do not use your header after calling this
     unsafe fn decrement_count(mut header: NonNull<Header>) {
         unsafe { header.as_mut() }.count -= 1;
