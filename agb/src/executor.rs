@@ -355,10 +355,6 @@ impl Task {
             },
         )
     }
-
-    fn poll(&mut self, context: &mut Context) -> Poll<()> {
-        Header::poll(self.future, context)
-    }
 }
 
 impl Executor {
