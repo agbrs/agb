@@ -280,12 +280,12 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Upgrade => {
-                let old_updade = cursor.upgrade;
+                let old_upgrade = cursor.upgrade;
                 cursor.upgrade = (cursor.upgrade as isize + ud as isize)
                     .rem_euclid(upgrades.len() as isize) as usize;
 
                 if (upgrades[cursor.upgrade] as u32) < 17 {
-                    if cursor.upgrade != old_updade {
+                    if cursor.upgrade != old_upgrade {
                         load_description(
                             upgrades[cursor.upgrade] as usize,
                             descriptions_map,

@@ -1,8 +1,8 @@
-use agb::Gba;
 use agb::save::Error;
 use agb::sync::Static;
+use agb::Gba;
 
-static HIGHSCORE: Static<u32> = Static::new(0);
+static HIGH_SCORE: Static<u32> = Static::new(0);
 
 pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
     gba.save.init_sram();
@@ -22,9 +22,9 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
         let high_score = u32::from_le_bytes(buffer);
 
         if high_score > 100 {
-            HIGHSCORE.write(0)
+            HIGH_SCORE.write(0)
         } else {
-            HIGHSCORE.write(high_score)
+            HIGH_SCORE.write(high_score)
         }
     }
 
@@ -32,11 +32,14 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
 }
 
 pub fn load_high_score() -> u32 {
-    HIGHSCORE.read()
+    HIGH_SCORE.read()
 }
 
 pub fn save_high_score(gba: &mut Gba, score: u32) -> Result<(), Error> {
-    gba.save.access()?.prepare_write(1..5)?.write(1, &score.to_le_bytes())?;
-    HIGHSCORE.write(score);
+    gba.save
+        .access()?
+        .prepare_write(1..5)?
+        .write(1, &score.to_le_bytes())?;
+    HIGH_SCORE.write(score);
     Ok(())
 }
