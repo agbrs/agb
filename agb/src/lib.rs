@@ -437,11 +437,11 @@ mod test {
             let address = iwram_ptr as usize;
             assert!(
                 (0x0300_0000..0x0300_8000).contains(&address),
-                "iwram is located beween 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
+                "iwram is located between 0x0300_0000 and 0x0300_8000, but was actually found to be at {:#010X}",
                 address
             );
             let c = iwram_ptr.read_volatile();
-            assert_eq!(c, 9, "exctected content to be 9");
+            assert_eq!(c, 9, "expected content to be 9");
             iwram_ptr.write_volatile(u32::MAX);
             let c = iwram_ptr.read_volatile();
             assert_eq!(c, u32::MAX, "expected content to be {}", u32::MAX);
@@ -460,7 +460,7 @@ mod test {
                 address
             );
             let c = iwram_ptr.read_volatile();
-            assert_eq!(c, 9, "exctected content to be 9");
+            assert_eq!(c, 9, "expected content to be 9");
             iwram_ptr.write_volatile(u32::MAX);
             let c = iwram_ptr.read_volatile();
             assert_eq!(c, u32::MAX, "expected content to be {}", u32::MAX);
