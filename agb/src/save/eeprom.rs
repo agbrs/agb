@@ -61,14 +61,14 @@ impl BufferData {
 
     /// Reads a number from the input buffer.
     fn read_num(&mut self, off: usize, count: usize) -> u32 {
-        let mut accum = 0;
+        let mut accumulator = 0;
         unsafe {
             for i in 0..count {
-                accum <<= 1;
-                accum |= self.data.bits[off + i] as u32;
+                accumulator <<= 1;
+                accumulator |= self.data.bits[off + i] as u32;
             }
         }
-        accum
+        accumulator
     }
 
     /// Receives a number of words into the input buffer.
