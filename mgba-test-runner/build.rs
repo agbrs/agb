@@ -26,7 +26,7 @@ fn main() {
         .compile("test-runner");
 
     println!("cargo:rustc-link-search={}", out_path.to_str().unwrap());
-    println!("cargo:rustc-link-lib=static={}", "mgba-cycle");
+    println!("cargo:rustc-link-lib=static=mgba-cycle");
     println!("cargo:rustc-link-lib=elf");
 
     let bindings = bindgen::Builder::default()
