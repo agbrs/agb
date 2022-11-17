@@ -128,8 +128,8 @@ impl Window {
     /// Sets whether the blend is enabled inside of this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
-        self.set_bit(5, blnd);
+    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
+        self.set_bit(5, blend);
 
         self
     }
@@ -204,8 +204,8 @@ impl MovableWindow {
     /// Sets whether the blend is enabled inside of this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blnd: bool) -> &mut Self {
-        self.inner.set_blend_enable(blnd);
+    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
+        self.inner.set_blend_enable(blend);
         self
     }
     /// Sets whether the given background will be rendered inside this window,
