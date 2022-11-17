@@ -10,7 +10,6 @@ use core::{
 use bitflags::bitflags;
 
 pub mod channel;
-mod ringbox;
 mod ringbuf;
 
 use alloc::{boxed::Box, vec::Vec};
