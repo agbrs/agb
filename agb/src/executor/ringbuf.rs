@@ -22,6 +22,7 @@ impl<T, const N: usize> RingBuffer<T, N> {
         }
     }
 
+    #[cfg(test)]
     pub fn get_rw(&mut self) -> (Reader<T, N>, Writer<T, N>) {
         (Reader { buf: self }, Writer { buf: self })
     }
