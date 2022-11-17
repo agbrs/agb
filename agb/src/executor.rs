@@ -73,25 +73,25 @@ struct PollList {
 fn add_to_run_list(value: NonNull<Header>) {
     let state = unsafe { (*value.as_ptr()).state };
 
-    if state.intersects(State::RUN_QUEUED | State::VBLANK_QUEUED) {
+    if state.intersects(State::QUEUED) {
         return;
     }
 
     TO_POLL.cell.borrow_mut().poll.add(value);
 
-    unsafe { (*value.as_ptr()).state |= State::RUN_QUEUED }
+    unsafe { (*value.as_ptr()).state |= State::QUEUED }
 }
 
 fn add_to_vblank_list(value: NonNull<Header>) {
     let state = unsafe { (*value.as_ptr()).state };
 
-    if state.intersects(State::RUN_QUEUED | State::VBLANK_QUEUED) {
+    if state.intersects(State::QUEUED) {
         return;
     }
 
     TO_POLL.cell.borrow_mut().vblankers.add(value);
 
-    unsafe { (*value.as_ptr()).state |= State::VBLANK_QUEUED }
+    unsafe { (*value.as_ptr()).state |= State::QUEUED }
 }
 
 impl PollList {
@@ -105,6 +105,16 @@ impl PollList {
         self.last = Some(value);
         unsafe { (*value.as_ptr()).next = None };
     }
+
+    fn add_list(&mut self, value: NonNull<Header>) {
+        match self.last {
+            Some(last) => unsafe { (*last.as_ptr()).next = Some(value) },
+            None => {
+                self.first = Some(value);
+            }
+        }
+        self.last = Some(value);
+    }
 }
 
 pub struct Executor {
@@ -114,8 +124,7 @@ pub struct Executor {
 
 bitflags! {
     pub struct State: u32 {
-        const RUN_QUEUED = 1 << 0;    // mutually exclusive with other queues
-        const VBLANK_QUEUED = 1 << 1; // mutually exclusive with other queues
+        const QUEUED = 1 << 0;
     }
 }
 
@@ -432,9 +441,7 @@ impl Executor {
                     let mut ctx = Context::from_waker(&waker);
 
                     unsafe {
-                        (*header.as_ptr())
-                            .state
-                            .remove(State::RUN_QUEUED | State::VBLANK_QUEUED);
+                        (*header.as_ptr()).state.remove(State::QUEUED);
                     }
 
                     match Header::poll(header, &mut ctx) {
@@ -470,26 +477,10 @@ impl Executor {
                 let (mut poll, mut vblank) =
                     RefMut::map_split(poll, |f| (&mut f.poll, &mut f.vblankers));
 
-                let mut next = vblank.first.take();
-
-                while let Some(mut header) = next {
-                    let to_be_next = unsafe { header.as_mut().next.take() };
-
-                    unsafe {
-                        (*header.as_ptr())
-                            .state
-                            .remove(State::RUN_QUEUED | State::VBLANK_QUEUED);
-                    }
-
-                    poll.add(header);
-
-                    unsafe {
-                        (*header.as_ptr()).state.insert(State::RUN_QUEUED);
-                    }
-
-                    next = to_be_next;
+                let list = vblank.first.take();
+                if let Some(list) = list {
+                    poll.add_list(list);
                 }
-
                 vblank.last.take();
             }
         }
