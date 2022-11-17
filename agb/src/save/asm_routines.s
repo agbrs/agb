@@ -36,14 +36,14 @@ agb_thumb_end agb_rs__WramVerifyBuf
 
 
 @
-@ void WramXferBuf(const char* source, char* dest, int count);
+@ void WramTransferBuf(const char* source, char* dest, int count);
 @
 @ A routine that copies one buffer into another.
 @
-agb_thumb_func agb_rs__WramXferBuf
+agb_thumb_func agb_rs__WramTransferBuf
 0:  sub r2, #1
     ldrb r3, [r0,r2]
     strb r3, [r1,r2]
     bne 0b
     bx lr
-agb_thumb_end agb_rs__WramXferBuf
+agb_thumb_end agb_rs__WramTransferBuf
