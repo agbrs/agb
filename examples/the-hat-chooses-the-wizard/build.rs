@@ -49,7 +49,7 @@ mod tiled_export {
             })
             .collect();
 
-        let tile_info = (0..tilemap.tilecount)
+        let tile_info = (0..tilemap.tile_count)
             .map(|id| *tile_data.get(&id).unwrap_or(&0))
             .map(|tile_type| tile_type.to_string())
             .collect::<Vec<String>>()
@@ -222,7 +222,7 @@ mod tiled_export {
     #[derive(Deserialize)]
     struct TiledTilemap {
         tiles: Vec<TiledTile>,
-        tilecount: i32,
+        tile_count: i32,
     }
 
     #[derive(Deserialize)]
