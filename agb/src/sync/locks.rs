@@ -26,7 +26,7 @@ impl RawMutex {
     /// Locks the mutex and returns whether a lock was successfully acquired.
     fn raw_lock(&self) -> bool {
         if self.0.replace(true) {
-            // value was already true, opps.
+            // value was already true, oops.
             false
         } else {
             // prevent any weird reordering, and continue
