@@ -33,17 +33,17 @@ use sfx::Sfx;
 const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
-const LONGSWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
-const LONGSWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
-const LONGSWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
-const LONGSWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
-const LONGSWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
+const LONG_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
+const LONG_SWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
+const LONG_SWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
+const LONG_SWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
+const LONG_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
 
-const SHORTSWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
-const SHORTSWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
-const SHORTSWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
-const SHORTSWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
-const SHORTSWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
+const SHORT_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
+const SHORT_SWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
+const SHORT_SWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
+const SHORT_SWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
+const SHORT_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
 
 const KNIFE_IDLE: &Tag = TAG_MAP.get("idle - knife");
 const KNIFE_WALK: &Tag = TAG_MAP.get("walk - knife");
@@ -166,7 +166,7 @@ struct Entity<'a> {
 
 impl<'a> Entity<'a> {
     fn new(object_controller: &'a ObjectController, collision_mask: Rect<u16>) -> Self {
-        let s = object_controller.sprite(LONGSWORD_IDLE.sprite(0));
+        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         let mut sprite = object_controller.object(s);
         sprite.set_priority(Priority::P1);
         Entity {
@@ -353,16 +353,16 @@ impl SwordState {
     fn idle_animation(self, counter: u16) -> &'static Sprite {
         let counter = counter as usize;
         match self {
-            SwordState::LongSword => LONGSWORD_IDLE.animation_sprite(counter / 8),
-            SwordState::ShortSword => SHORTSWORD_IDLE.animation_sprite(counter / 8),
+            SwordState::LongSword => LONG_SWORD_IDLE.animation_sprite(counter / 8),
+            SwordState::ShortSword => SHORT_SWORD_IDLE.animation_sprite(counter / 8),
             SwordState::Dagger => KNIFE_IDLE.animation_sprite(counter / 8),
             SwordState::Swordless => SWORDLESS_IDLE.animation_sprite(counter / 8),
         }
     }
     fn jump_tag(self) -> &'static Tag {
         match self {
-            SwordState::LongSword => LONGSWORD_JUMP,
-            SwordState::ShortSword => SHORTSWORD_JUMP,
+            SwordState::LongSword => LONG_SWORD_JUMP,
+            SwordState::ShortSword => SHORT_SWORD_JUMP,
             SwordState::Dagger => KNIFE_JUMP,
             SwordState::Swordless => SWORDLESS_JUMP,
         }
@@ -370,8 +370,8 @@ impl SwordState {
     fn walk_animation(self, counter: u16) -> &'static Sprite {
         let counter = counter as usize;
         match self {
-            SwordState::LongSword => LONGSWORD_WALK.animation_sprite(counter / 4),
-            SwordState::ShortSword => SHORTSWORD_WALK.animation_sprite(counter / 4),
+            SwordState::LongSword => LONG_SWORD_WALK.animation_sprite(counter / 4),
+            SwordState::ShortSword => SHORT_SWORD_WALK.animation_sprite(counter / 4),
             SwordState::Dagger => KNIFE_WALK.animation_sprite(counter / 4),
             SwordState::Swordless => SWORDLESS_WALK.animation_sprite(counter / 4),
         }
@@ -402,8 +402,8 @@ impl SwordState {
     }
     fn jump_attack_tag(self) -> &'static Tag {
         match self {
-            SwordState::LongSword => LONGSWORD_JUMP_ATTACK,
-            SwordState::ShortSword => SHORTSWORD_JUMP_ATTACK,
+            SwordState::LongSword => LONG_SWORD_JUMP_ATTACK,
+            SwordState::ShortSword => SHORT_SWORD_JUMP_ATTACK,
             SwordState::Dagger => KNIFE_JUMP_ATTACK,
             SwordState::Swordless => SWORDLESS_JUMP_ATTACK,
         }
@@ -425,8 +425,8 @@ impl SwordState {
     }
     fn attack_tag(self) -> &'static Tag {
         match self {
-            SwordState::LongSword => LONGSWORD_ATTACK,
-            SwordState::ShortSword => SHORTSWORD_ATTACK,
+            SwordState::LongSword => LONG_SWORD_ATTACK,
+            SwordState::ShortSword => SHORT_SWORD_ATTACK,
             SwordState::Dagger => KNIFE_ATTACK,
             SwordState::Swordless => SWORDLESS_ATTACK,
         }
@@ -539,7 +539,7 @@ impl<'a> Player<'a> {
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),
         );
-        let s = object_controller.sprite(LONGSWORD_IDLE.sprite(0));
+        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
         entity.position = (144, 0).into();
@@ -739,7 +739,7 @@ impl<'a> Player<'a> {
         instruction
     }
 
-    // retuns true if the player is alive and false otherwise
+    // returns true if the player is alive and false otherwise
     fn damage(&mut self) -> (bool, bool) {
         if self.damage_cooldown != 0 {
             return (true, false);
@@ -1284,9 +1284,9 @@ impl EmuData {
                 let gravity = gravity / 16;
                 entity.velocity.y += gravity;
 
-                let distance_travelled = entity.update_position(level);
+                let distance_traveled = entity.update_position(level);
 
-                if distance_travelled.x == 0.into() {
+                if distance_traveled.x == 0.into() {
                     sfx.emu_crash();
                     self.state = EmuState::Knockback;
                     entity.velocity = (-direction / 2, Number::new(-1)).into();

@@ -77,8 +77,8 @@ fn extract_tiles(layer: &'_ tiled::LayerData) -> impl Iterator<Item = u16> + '_ 
     .map(get_map_id)
 }
 
-fn get_map_id(tileid: u32) -> u16 {
-    match tileid {
+fn get_map_id(tile_id: u32) -> u16 {
+    match tile_id {
         0 => 0,
         i => i as u16 - 1,
     }
