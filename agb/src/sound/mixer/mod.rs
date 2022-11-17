@@ -306,7 +306,7 @@ impl SoundChannel {
     /// Creates a new high priority [`SoundChannel`].
     ///
     /// A high priority sound channel will override low priority ones if
-    /// the mixer runs out of channels. They will also never be overriden
+    /// the mixer runs out of channels. They will also never be overridden
     /// by other high priority channels.
     ///
     /// High priority channels are intended for background music and for
