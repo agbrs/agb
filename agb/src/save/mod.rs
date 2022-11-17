@@ -44,8 +44,8 @@
 //! [`SaveManager::access_with_timer`] methods to create a new [`SaveData`]
 //! object. Its methods are used to read or write save media.
 //!
-//! Reading data from the savegame is simple. Use [`read`] to copy data from an
-//! offset in the savegame into a buffer in memory.
+//! Reading data from the save media is simple. Use [`read`] to copy data from an
+//! offset in the save media into a buffer in memory.
 //!
 //! Writing to save media requires you to prepare the area for writing by
 //! calling the [`prepare_write`] method to return a [`SavePreparedBlock`],
@@ -185,7 +185,7 @@ fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
     assert!(
         access.is_none(),
-        "Cannot initialize the savegame engine more than once."
+        "Cannot initialize the save media engine more than once."
     );
     *access = Some(access_impl);
 }
@@ -202,7 +202,7 @@ pub struct SaveData {
     timeout: utils::Timeout,
 }
 impl SaveData {
-    /// Creates a new save accessor around the current save implementaiton.
+    /// Creates a new save accessor around the current save implementation.
     fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
         match get_save_implementation() {
             Some(access) => Ok(SaveData {

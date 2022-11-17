@@ -84,7 +84,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
         match settings.colours() {
             Colours::Colours16 => {
-                let tile_size = settings.tilesize().to_size();
+                let tile_size = settings.tile_size().to_size();
                 if image.width % tile_size != 0 || image.height % tile_size != 0 {
                     panic!("Image size not a multiple of tile size");
                 }
@@ -96,7 +96,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
                     config.transparent_colour(),
                 );
 
-                let num_tiles = image.width * image.height / settings.tilesize().to_size().pow(2);
+                let num_tiles = image.width * image.height / settings.tile_size().to_size().pow(2);
                 assignment_offsets.insert(name, assignment_offset);
                 assignment_offset += num_tiles;
             }
@@ -183,7 +183,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             let height = frame.height();
             assert!(
                 valid_sprite_size(width, height),
-                "File {} contains sprites with unrepresentable size {}x{}",
+                "File {} contains sprites with size {}x{} which cannot be represented on the GameBoy Advance",
                 filename.display(),
                 width,
                 height
@@ -290,7 +290,7 @@ fn convert_image(
         optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
-        settings.tilesize(),
+        settings.tile_size(),
         crate_prefix.to_owned(),
         assignment_offset,
     )

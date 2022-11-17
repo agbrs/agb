@@ -66,7 +66,7 @@ bitflags! {
 
 const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 
-// const BUTTON_INTURRUPT: *mut u16 = (0x04000132) as *mut u16;
+// const BUTTON_INTERRUPT: *mut u16 = (0x04000132) as *mut u16;
 
 /// Helper to make it easy to get the current state of the GBA's buttons.
 ///

@@ -3,7 +3,7 @@
 //! For now a description of how blending can be used is found on [the tonc page
 //! for graphic
 //! effects](https://www.coranac.com/tonc/text/gfx.htm#ssec-bld-gba). See the
-//! [Blend] struct for all the functions to manage blend effects. You accquire
+//! [Blend] struct for all the functions to manage blend effects. You acquire
 //! the Blend struct through the [Display][super::Display] struct.
 //! ```no_run
 //! # #![no_main]
@@ -28,12 +28,12 @@ pub enum Layer {
     Bottom = 1,
 }
 
-/// The different blend modes avaliable on the GBA
+/// The different blend modes available on the GBA
 #[derive(Clone, Copy, Debug)]
 pub enum BlendMode {
     // No blending
     Off = 0,
-    // Aditive blending, use the [Blend::set_blend_weight] function to use this
+    // Additive blending, use the [Blend::set_blend_weight] function to use this
     Normal = 0b01,
     // Brighten, use the [Blend::set_fade] to use this
     FadeToWhite = 0b10,
@@ -129,7 +129,7 @@ impl Blend {
         self
     }
 
-    /// Reset targers, blend weights, and fades
+    /// Reset targets, blend weights, and fades
     pub fn reset(&mut self) -> &mut Self {
         self.reset_targets().reset_fades().reset_weights()
     }

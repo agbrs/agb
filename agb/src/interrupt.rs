@@ -312,7 +312,7 @@ where
 pub struct VBlank {}
 
 impl VBlank {
-    /// Handles setting up everything reqired to be able to use the wait for
+    /// Handles setting up everything required to be able to use the wait for
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {

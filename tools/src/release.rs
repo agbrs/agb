@@ -129,7 +129,7 @@ fn update_to_version(
                 toml_edit::Item::None => continue,
                 _ => {
                     return Err(Error::InvalidToml(format!(
-                        "{:?} while seaching dependencies in {}",
+                        "{:?} while searching dependencies in {}",
                         this_dep,
                         cargo_toml_file.to_string_lossy()
                     )))

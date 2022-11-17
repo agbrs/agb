@@ -424,7 +424,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 
 impl<const N: usize> Num<i32, N> {
     #[must_use]
-    /// Returns the square root of a number, it is calcuated a digit at a time.
+    /// Returns the square root of a number, it is calculated a digit at a time.
     /// ```
     /// # use agb_fixnum::*;
     /// let n: Num<i32, 8> = num!(16.);
@@ -530,7 +530,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
 
         let mut fractional = self.0 & mask;
 
-        // Negative fix nums are awkward to print if they have non zero fractional part.
+        // Negative fixnums are awkward to print if they have non zero fractional part.
         // This is because you can think of them as `number + non negative fraction`.
         //
         // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
@@ -569,7 +569,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
     }
 }
 
-/// A vector of two points: (x, y) represened by integers or fixed point numbers
+/// A vector of two points: (x, y) represented by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
@@ -675,7 +675,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 
     #[must_use]
-    /// Floors the x and y coordnate, see [Num::floor]
+    /// Floors the x and y coordinate, see [Num::floor]
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = Vector2D::new(num!(1.56), num!(-2.2));
@@ -984,7 +984,7 @@ impl<T: Number> Vector2D<T> {
         Vector2D { x, y }
     }
 
-    /// Returns the tuple of the coorinates
+    /// Returns the tuple of the coordinates
     /// ```
     /// # use agb_fixnum::*;
     /// let v = Vector2D::new(1, 2);

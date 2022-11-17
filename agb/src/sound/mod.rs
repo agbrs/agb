@@ -6,7 +6,7 @@
 //! which allows for Game Boy and Game Boy Color style sound effects, or the mixer
 //! which allows for more advanced sounds.
 //!
-//! The [`dmg`](crate::sound::dmg) module is very rudimentry and doesn't support most of the possible
+//! The [`dmg`](crate::sound::dmg) module is very rudimentary and doesn't support most of the possible
 //! sounds possible. However, it may be expanded in the future.
 //!
 //! The [`mixer`](crate::sound::mixer) module is high performance, and allows for playing wav files at

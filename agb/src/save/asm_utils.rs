@@ -3,7 +3,7 @@
 //! performed via code in WRAM and cannot be accessed by DMA.
 
 extern "C" {
-    fn agb_rs__WramXferBuf(src: *const u8, dst: *mut u8, count: usize);
+    fn agb_rs__WramTransferBuf(src: *const u8, dst: *mut u8, count: usize);
     fn agb_rs__WramReadByte(src: *const u8) -> u8;
     fn agb_rs__WramVerifyBuf(buf1: *const u8, buf2: *const u8, count: usize) -> bool;
 }
@@ -18,7 +18,7 @@ extern "C" {
 #[inline(always)]
 pub unsafe fn read_raw_buf(dst: &mut [u8], src: usize) {
     if !dst.is_empty() {
-        agb_rs__WramXferBuf(src as _, dst.as_mut_ptr(), dst.len());
+        agb_rs__WramTransferBuf(src as _, dst.as_mut_ptr(), dst.len());
     }
 }
 
@@ -31,7 +31,7 @@ pub unsafe fn read_raw_buf(dst: &mut [u8], src: usize) {
 #[inline(always)]
 pub unsafe fn write_raw_buf(dst: usize, src: &[u8]) {
     if !src.is_empty() {
-        agb_rs__WramXferBuf(src.as_ptr(), dst as _, src.len());
+        agb_rs__WramTransferBuf(src.as_ptr(), dst as _, src.len());
     }
 }
 

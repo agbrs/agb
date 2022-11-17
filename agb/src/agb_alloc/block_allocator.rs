@@ -67,9 +67,9 @@ impl BlockAllocator {
             let mut count = 0;
 
             let mut list_ptr = &mut state.first_free_block;
-            while let Some(mut curr) = list_ptr {
+            while let Some(mut current) = list_ptr {
                 count += 1;
-                list_ptr = &mut curr.as_mut().next;
+                list_ptr = &mut current.as_mut().next;
             }
 
             count
@@ -89,18 +89,18 @@ impl BlockAllocator {
 
             let mut list_ptr = &mut state.first_free_block;
 
-            while let Some(mut curr) = list_ptr {
-                if let Some(next_elem) = curr.as_mut().next {
+            while let Some(mut current) = list_ptr {
+                if let Some(next_elem) = current.as_mut().next {
                     let difference = next_elem
                         .as_ptr()
                         .cast::<u8>()
-                        .offset_from(curr.as_ptr().cast::<u8>());
+                        .offset_from(current.as_ptr().cast::<u8>());
                     let usize_difference: usize = difference
                         .try_into()
                         .expect("distances in alloc'd blocks must be positive");
 
-                    if usize_difference == curr.as_mut().size {
-                        let current = curr.as_mut();
+                    if usize_difference == current.as_mut().size {
+                        let current = current.as_mut();
                         let next = next_elem.as_ref();
 
                         current.size += next.size;
@@ -108,7 +108,7 @@ impl BlockAllocator {
                         continue;
                     }
                 }
-                list_ptr = &mut curr.as_mut().next;
+                list_ptr = &mut current.as_mut().next;
             }
         });
     }
@@ -128,18 +128,18 @@ impl BlockAllocator {
             // This iterates the free list until it either finds a block that
             // is the exact size requested or a block that can be split into
             // one with the desired size and another block header.
-            while let Some(mut curr) = current_block {
-                let curr_block = curr.as_mut();
-                if curr_block.size == full_layout.size() {
-                    *list_ptr = curr_block.next;
-                    return Some(curr.cast());
-                } else if curr_block.size >= block_after_layout.size() {
+            while let Some(mut current) = current_block {
+                let block_to_examine = current.as_mut();
+                if block_to_examine.size == full_layout.size() {
+                    *list_ptr = block_to_examine.next;
+                    return Some(current.cast());
+                } else if block_to_examine.size >= block_after_layout.size() {
                     // can split block
                     let split_block = Block {
-                        size: curr_block.size - block_after_layout_offset,
-                        next: curr_block.next,
+                        size: block_to_examine.size - block_after_layout_offset,
+                        next: block_to_examine.next,
                     };
-                    let split_ptr = curr
+                    let split_ptr = current
                         .as_ptr()
                         .cast::<u8>()
                         .add(block_after_layout_offset)
@@ -147,10 +147,10 @@ impl BlockAllocator {
                     *split_ptr = split_block;
                     *list_ptr = NonNull::new(split_ptr).map(SendNonNull);
 
-                    return Some(curr.cast());
+                    return Some(current.cast());
                 }
-                current_block = curr_block.next;
-                list_ptr = &mut curr_block.next;
+                current_block = block_to_examine.next;
+                list_ptr = &mut block_to_examine.next;
             }
 
             self.new_block(layout, key)

@@ -14,7 +14,7 @@ use std::path::Path;
 enum Status {
     Running,
     Failed,
-    Sucess,
+    Success,
 }
 
 enum Timing {
@@ -84,7 +84,7 @@ fn test_file(file_to_run: &str) -> Status {
             }
 
             if out == "Tests finished successfully" {
-                finished = Status::Sucess;
+                finished = Status::Success;
             }
         }
     });
@@ -111,7 +111,7 @@ fn main() -> Result<(), Error> {
 
     match output {
         Status::Failed => Err(anyhow!("Tests failed!")),
-        Status::Sucess => Ok(()),
+        Status::Success => Ok(()),
         _ => {
             unreachable!("very bad thing happened");
         }
