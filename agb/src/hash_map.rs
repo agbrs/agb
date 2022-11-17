@@ -27,7 +27,7 @@ type HashType = u32;
 // The key concept is to keep the distance from the initial bucket chosen for a given
 // key to a minimum. We shall call this distance the "distance to the initial bucket"
 // or DIB for short. With each key - value pair, we store its DIB. When inserting
-// a value into the hashtable, we check to see if there is an element in the initial
+// a value into the hash table, we check to see if there is an element in the initial
 // bucket. If there is, we move onto the next value. Then, we check to see if there
 // is already a value there and if there is, we check its DIB. If our DIB is greater
 // than or equal to the DIB of the value that is already there, we swap the working
@@ -942,7 +942,7 @@ impl<K, V> Node<K, V> {
             let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
             unsafe { old_value.assume_init() }
         } else {
-            panic!("Cannot replace an unininitalised node");
+            panic!("Cannot replace an uninitialised node");
         }
     }
 
