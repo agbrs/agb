@@ -26,7 +26,7 @@ use attributes::*;
 
 /// Include this type if you call `get_object_controller` in impl block. This
 /// helps you use the right lifetimes and doesn't impl Sync (using from two
-/// "threads" without syncronisation is not safe), but sending to another
+/// "threads" without synchronisation is not safe), but sending to another
 /// "thread" is safe.
 #[derive(Clone, Copy)]
 struct ObjectControllerReference<'a> {
@@ -314,7 +314,7 @@ impl TagMap {
 
     /// Gets a tag associated with the name. A tag in aseprite refers to a
     /// sequence of sprites with some metadata for how to animate it. You should
-    /// call this in a constant context so it is evalulated at compile time. It
+    /// call this in a constant context so it is evaluated at compile time. It
     /// is inefficient to call this elsewhere.
     /// ```rust,no_run
     /// # #![no_std]
@@ -376,7 +376,7 @@ impl Tag {
         unsafe { slice::from_raw_parts(self.sprites, self.len) }
     }
 
-    /// A single sprite refered to by index in the animation sequence.
+    /// A single sprite referred to by index in the animation sequence.
     #[must_use]
     pub const fn sprite(&self, idx: usize) -> &'static Sprite {
         if idx >= self.len {
@@ -667,7 +667,7 @@ struct ObjectInner {
 }
 
 struct ObjectControllerStatic {
-    _free_affine_matricies: Vec<u8>,
+    _free_affine_matrices: Vec<u8>,
     free_object: Vec<u8>,
     shadow_oam: Vec<Option<ObjectInner>>,
     z_order: Vec<u8>,
@@ -680,7 +680,7 @@ impl ObjectControllerStatic {
             shadow_oam: (0..128).map(|_| None).collect(),
             z_order: (0..128).collect(),
             free_object: (0..128).collect(),
-            _free_affine_matricies: (0..32).collect(),
+            _free_affine_matrices: (0..32).collect(),
             sprite_controller: SpriteControllerInner::new(),
         }
     }
@@ -1033,7 +1033,7 @@ impl<'a> Object<'a> {
         self
     }
 
-    /// Sets the z priority of the sprite. Higher priority will be dislayed
+    /// Sets the z priority of the sprite. Higher priority will be displayed
     /// above background layers with lower priorities. No change will be seen
     /// until [ObjectController::commit] is called.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
@@ -1067,7 +1067,7 @@ impl<'a> Object<'a> {
     }
 
     /// Sets the z position of the sprite, this controls which sprites are above
-    /// eachother. No change will be seen until [ObjectController::commit] is
+    /// each other. No change will be seen until [ObjectController::commit] is
     /// called.
     pub fn set_z(&mut self, z: i32) -> &mut Self {
         {
