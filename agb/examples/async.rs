@@ -52,13 +52,8 @@ fn main(gba: agb::Gba) -> ! {
         });
 
         executor::spawn(async move {
-            let start = executor::CURRENT_VBLANK.read();
             while (reader.read().await).is_ok() {}
-            let end = executor::CURRENT_VBLANK.read();
-            agb::println!(
-                "Writer associated with this reader has closed, took {} frames to read all",
-                end - start
-            );
+            agb::println!("Writer associated with this reader has closed");
         });
     });
 }

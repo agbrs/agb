@@ -23,7 +23,7 @@ use crate::{
 
 use self::ringbuf::{Reader, RingBuffer};
 
-pub static CURRENT_VBLANK: Static<usize> = Static::new(0);
+static CURRENT_VBLANK: Static<usize> = Static::new(0);
 static INTERRUPTS: RingBuffer<u32, 32> = RingBuffer::new();
 
 /// This only works with the async executor in agb! It avoids the standard waker
