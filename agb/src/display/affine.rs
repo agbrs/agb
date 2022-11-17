@@ -1,50 +1,50 @@
 #![deny(missing_docs)]
-//! # Affine matricies for the Game Boy Advance
+//! # Affine matrices for the Game Boy Advance
 //!
 //! An affine matrix represents an affine transformation, an affine
 //! transformation being one which preserves parallel lines (note that this
 //! therefore cannot represent perspective seen in games like Super Mario Kart).
-//! Affine matricies are used in two places on the GBA, for affine backgrounds
+//! Affine matrices are used in two places on the GBA, for affine backgrounds
 //! and for affine objects.
 //!
 //! # Linear Algebra
 //! As a matrix, they can be manipulated using linear algebra. The short version
 //! of this section is to beware that the matrix is the inverse of the normal
-//! transformation matricies.
+//! transformation matrices.
 //!
 //! One quick thing to point out at the start as it will become very relevant is
 //! that matrix-matrix multiplication is not commutative, meaning swapping the
 //! order changes the result, or **A** × **B** ≢ **B** × **A**. However,
-//! matricies are, at least in the case they are used here, associative, meaning
+//! matrices are, at least in the case they are used here, associative, meaning
 //! (**AB**)**C** = **A**(**BC**).
 //!
-//! ## Normal (wrong on GBA!) transformation matricies
+//! ## Normal (wrong on GBA!) transformation matrices
 //!
-//! As a start, normal transformation matricies will transform a shape from it's
+//! As a start, normal transformation matrices will transform a shape from it's
 //! original position to it's new position. Generally when people talk about
-//! transformation matricies they are talking about them in this sense.
+//! transformation matrices they are talking about them in this sense.
 //!
-//! > If **A** and **B** are transformation matricies, then matrix **C** = **A**
+//! > If **A** and **B** are transformation matrices, then matrix **C** = **A**
 //! > × **B** represents the transformation **A** performed on **B**, or
 //! > alternatively **C** is transformation **B** followed by transformation
 //! > **A**.
 //!
 //! This is not what they represent on the GBA! If you are looking up more
-//! information about tranformation matricies bear this in mind.
+//! information about transformation matrices bear this in mind.
 //!
-//! ## Correct (on GBA) transformation matricies
+//! ## Correct (on GBA) transformation matrices
 //!
 //! On the GBA, the affine matrix works the other way around. The GBA wants to
 //! know for each pixel what colour it should render, to do this it applies the
 //! affine transformation matrix to the pixel it is rendering to lookup correct
 //! pixel in the texture.
 //!
-//! This describes the inverse of the previously given transformation matricies.
+//! This describes the inverse of the previously given transformation matrices.
 //!
 //! Above I described the matrix **C** = **A** × **B**, but what the GBA wants
 //! is the inverse of **C**, or **C**<sup>-1</sup> = (**AB**)<sup>-1</sup> =
 //! **B**<sup>-1</sup> × **A**<sup>-1</sup>. This means that if we have the
-//! matricies **I** and **J** in the form the GBA expects then
+//! matrices **I** and **J** in the form the GBA expects then
 //!
 //! > Transformation **K** = **I** × **J** is the transformation **I** followed
 //! > by the transformation **J**.
@@ -278,7 +278,7 @@ impl AffineMatrixBackground {
 
     #[must_use]
     /// Creates a transformation matrix using GBA specific syscalls.
-    /// This can be done using the standard transformation matricies like
+    /// This can be done using the standard transformation matrices like
     ///
     /// ```rust,no_run
     /// # #![no_std]
