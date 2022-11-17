@@ -348,7 +348,7 @@ impl TagMap {
 enum Direction {
     Forward,
     Backward,
-    Pingpong,
+    PingPong,
 }
 
 impl Direction {
@@ -356,7 +356,7 @@ impl Direction {
         match a {
             0 => Direction::Forward,
             1 => Direction::Backward,
-            2 => Direction::Pingpong,
+            2 => Direction::PingPong,
             _ => panic!("Invalid direction, this is a bug in image converter or agb"),
         }
     }
@@ -400,7 +400,7 @@ impl Tag {
         match self.direction {
             Direction::Forward => self.sprite(idx % self.len),
             Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
-            Direction::Pingpong => self.sprite(
+            Direction::PingPong => self.sprite(
                 (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize)
                     .unsigned_abs(),
             ),
