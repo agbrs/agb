@@ -94,6 +94,7 @@ impl<'a, 'b, 'c> Write for TextWriter<'a, 'b, 'c> {
                 self.background_colour,
             );
         }
+
         Ok(())
     }
 }
