@@ -57,7 +57,8 @@ impl Font {
 }
 
 impl Font {
-    pub fn render_text<'a>(&'a self, tile_pos: Vector2D<u16>) -> TextRenderer<'a> {
+    #[must_use]
+    pub fn render_text(&self, tile_pos: Vector2D<u16>) -> TextRenderer<'_> {
         TextRenderer {
             current_x_pos: 0,
             current_y_pos: 0,
@@ -100,7 +101,7 @@ impl<'a, 'b, 'c> Write for TextWriter<'a, 'b, 'c> {
 }
 impl<'a, 'b, 'c> TextWriter<'a, 'b, 'c> {
     pub fn commit(self) {
-        self.text_renderer.commit(self.bg, self.vram_manager)
+        self.text_renderer.commit(self.bg, self.vram_manager);
     }
 }
 
