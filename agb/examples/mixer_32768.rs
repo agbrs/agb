@@ -30,7 +30,7 @@ fn main(mut gba: Gba) -> ! {
     let mut title_renderer = FONT.render_text((0u16, 3u16).into());
     let mut writer = title_renderer.writer(1, 0, &mut bg, &mut vram);
 
-    writeln!(&mut writer, "Crazy Glue by Josh Woodward\n\n").unwrap();
+    writeln!(&mut writer, "Crazy Glue by Josh Woodward").unwrap();
 
     writer.commit();
 
