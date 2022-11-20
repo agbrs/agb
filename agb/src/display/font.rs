@@ -5,6 +5,11 @@ use crate::hash_map::HashMap;
 
 use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
 
+/// The text renderer renders a variable width fixed size
+/// bitmap font using dynamic tiles as a rendering surface.
+/// Does not support any unicode features.
+/// For usage see the `text_render.rs` example 
+
 pub struct FontLetter {
     width: u8,
     height: u8,
@@ -58,6 +63,7 @@ impl Font {
 
 impl Font {
     #[must_use]
+    /// Create renderer starting at the given tile co-ordinates.
     pub fn render_text(&self, tile_pos: Vector2D<u16>) -> TextRenderer<'_> {
         TextRenderer {
             current_x_pos: 0,
@@ -70,6 +76,7 @@ impl Font {
 }
 
 pub struct TextRenderer<'a> {
+    /// Keeps track of the cursor and manages rendered tiles.
     current_x_pos: i32,
     current_y_pos: i32,
     font: &'a Font,
@@ -78,6 +85,8 @@ pub struct TextRenderer<'a> {
 }
 
 pub struct TextWriter<'a, 'b: 'a, 'c> {
+    /// Generated from the renderer for use
+    /// with `Write` trait methods.
     foreground_colour: u8,
     background_colour: u8,
     text_renderer: &'a mut TextRenderer<'c>,
@@ -100,6 +109,7 @@ impl<'a, 'b, 'c> Write for TextWriter<'a, 'b, 'c> {
     }
 }
 impl<'a, 'b, 'c> TextWriter<'a, 'b, 'c> {
+    /// Calls commit on the parent renderer, consuming the writer.
     pub fn commit(self) {
         self.text_renderer.commit(self.bg, self.vram_manager);
     }
@@ -125,6 +135,9 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             vram_manager,
         }
     }
+
+    /// Renders a single character creating as many dynamic tiles as needed.
+    /// The foreground and background colour are palette indicies.
     fn render_letter(
         &mut self,
         letter: &FontLetter,
@@ -192,7 +205,7 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             }
         }
     }
-
+    /// Commit the dynamic tiles that contain the text to the background.
     pub fn commit(&self, bg: &'b mut RegularMap, vram_manager: &'b mut VRamManager) {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
@@ -203,6 +216,7 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             );
         }
     }
+    /// Write another char into the text, moving the cursor as appropriate.
     pub fn write_char(
         &mut self,
         c: char,
@@ -219,6 +233,8 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             self.current_x_pos += i32::from(letter.advance_width);
         }
     }
+
+    /// Clear the text, removing the tiles from vram and resetting the cursor.
     pub fn clear(&mut self, vram_manager: &mut VRamManager) {
         self.current_x_pos = 0;
         self.current_y_pos = 0;
