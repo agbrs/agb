@@ -27,9 +27,10 @@ fn main(mut gba: Gba) -> ! {
 
     init_background(&mut bg, &mut vram);
 
-    let mut writer = FONT.render_text((0u16, 3u16).into(), 1, 0, &mut bg, &mut vram);
+    let mut title_renderer = FONT.render_text((0u16, 3u16).into());
+    let mut writer = title_renderer.writer(1, 0, &mut bg, &mut vram);
 
-    writeln!(&mut writer, "Let it in by Josh Woodward").unwrap();
+    writeln!(&mut writer, "Crazy Glue by Josh Woodward\n\n").unwrap();
 
     writer.commit();
 
@@ -49,6 +50,8 @@ fn main(mut gba: Gba) -> ! {
 
     let mut frame_counter = 0i32;
     let mut has_written_frame_time = false;
+
+    let mut stats_renderer = FONT.render_text((0u16, 6u16).into());
     loop {
         vblank_provider.wait_for_vblank();
         bg.commit(&mut vram);
@@ -64,8 +67,8 @@ fn main(mut gba: Gba) -> ! {
             let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles) as u32;
 
             let percent = (total_cycles * 100) / 280896;
-
-            let mut writer = FONT.render_text((0u16, 6u16).into(), 2, 0, &mut bg, &mut vram);
+            
+            let mut writer = stats_renderer.writer(1, 0, &mut bg, &mut vram);
             writeln!(&mut writer, "{total_cycles} cycles").unwrap();
             writeln!(&mut writer, "{percent} percent").unwrap();
 
