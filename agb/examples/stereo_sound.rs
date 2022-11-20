@@ -67,7 +67,7 @@ fn main(mut gba: Gba) -> ! {
             let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles) as u32;
 
             let percent = (total_cycles * 100) / 280896;
-            
+
             let mut writer = stats_renderer.writer(1, 0, &mut bg, &mut vram);
             writeln!(&mut writer, "{total_cycles} cycles").unwrap();
             writeln!(&mut writer, "{percent} percent").unwrap();
