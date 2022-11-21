@@ -40,7 +40,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.remove_dynamic_tile(background_tile);
 
-    let mut writer = FONT.render_text((0u16, 3u16).into(), 1, 2, &mut bg, &mut vram);
+    let mut renderer = FONT.render_text((0u16, 3u16).into());
+    let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
     writeln!(&mut writer, "Hello, World!").unwrap();
     writeln!(&mut writer, "This is a font rendering example").unwrap();
@@ -53,7 +54,8 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut frame = 0;
 
     loop {
-        let mut writer = FONT.render_text((4u16, 0u16).into(), 1, 2, &mut bg, &mut vram);
+        let mut renderer = FONT.render_text((4u16, 0u16).into());
+        let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
         writeln!(&mut writer, "Frame {}", frame).unwrap();
         writer.commit();
