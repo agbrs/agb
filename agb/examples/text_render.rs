@@ -64,5 +64,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
         vblank.wait_for_vblank();
         bg.commit(&mut vram);
+
+        renderer.clear(&mut vram);
     }
 }
