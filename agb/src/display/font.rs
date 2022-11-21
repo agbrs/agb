@@ -85,10 +85,10 @@ pub struct TextRenderer<'a> {
 
 /// Generated from the renderer for use
 /// with `Write` trait methods.
-pub struct TextWriter<'a, 'c> {
+pub struct TextWriter<'a, 'b> {
     foreground_colour: u8,
     background_colour: u8,
-    text_renderer: &'a mut TextRenderer<'c>,
+    text_renderer: &'a mut TextRenderer<'b>,
     vram_manager: &'a mut VRamManager,
     bg: &'a mut RegularMap,
 }
@@ -118,14 +118,14 @@ fn div_ceil(quotient: i32, divisor: i32) -> i32 {
     (quotient + divisor - 1) / divisor
 }
 
-impl<'a, 'c> TextRenderer<'c> {
+impl<'a, 'b> TextRenderer<'b> {
     pub fn writer(
         &'a mut self,
         foreground_colour: u8,
         background_colour: u8,
         bg: &'a mut RegularMap,
         vram_manager: &'a mut VRamManager,
-    ) -> TextWriter<'a, 'c> {
+    ) -> TextWriter<'a, 'b> {
         TextWriter {
             text_renderer: self,
             foreground_colour,
