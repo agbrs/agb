@@ -144,6 +144,9 @@ impl<'a, 'b> TextRenderer<'b> {
         foreground_colour: u8,
         background_colour: u8,
     ) {
+        assert!(foreground_colour < 16);
+        assert!(background_colour < 16);
+
         let x_start = (self.current_x_pos + i32::from(letter.xmin)).max(0);
         let y_start = self.current_y_pos + self.font.ascent
             - i32::from(letter.height)
