@@ -8,8 +8,7 @@ use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
 /// Does not support any unicode features.
-/// For usage see the `text_render.rs` example 
-
+/// For usage see the `text_render.rs` example
 pub struct FontLetter {
     width: u8,
     height: u8,
@@ -75,8 +74,8 @@ impl Font {
     }
 }
 
+/// Keeps track of the cursor and manages rendered tiles.
 pub struct TextRenderer<'a> {
-    /// Keeps track of the cursor and manages rendered tiles.
     current_x_pos: i32,
     current_y_pos: i32,
     font: &'a Font,
@@ -84,17 +83,17 @@ pub struct TextRenderer<'a> {
     tiles: HashMap<(i32, i32), DynamicTile<'a>>,
 }
 
-pub struct TextWriter<'a, 'b: 'a, 'c> {
-    /// Generated from the renderer for use
-    /// with `Write` trait methods.
+/// Generated from the renderer for use
+/// with `Write` trait methods.
+pub struct TextWriter<'a, 'c> {
     foreground_colour: u8,
     background_colour: u8,
     text_renderer: &'a mut TextRenderer<'c>,
-    vram_manager: &'b mut VRamManager,
-    bg: &'b mut RegularMap,
+    vram_manager: &'a mut VRamManager,
+    bg: &'a mut RegularMap,
 }
 
-impl<'a, 'b, 'c> Write for TextWriter<'a, 'b, 'c> {
+impl<'a, 'b> Write for TextWriter<'a, 'b> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
         for c in text.chars() {
             self.text_renderer.write_char(
@@ -108,8 +107,8 @@ impl<'a, 'b, 'c> Write for TextWriter<'a, 'b, 'c> {
         Ok(())
     }
 }
-impl<'a, 'b, 'c> TextWriter<'a, 'b, 'c> {
-    /// Calls commit on the parent renderer, consuming the writer.
+
+impl<'a, 'b> TextWriter<'a, 'b> {
     pub fn commit(self) {
         self.text_renderer.commit(self.bg, self.vram_manager);
     }
@@ -119,14 +118,14 @@ fn div_ceil(quotient: i32, divisor: i32) -> i32 {
     (quotient + divisor - 1) / divisor
 }
 
-impl<'a, 'b, 'c> TextRenderer<'c> {
+impl<'a, 'c> TextRenderer<'c> {
     pub fn writer(
         &'a mut self,
         foreground_colour: u8,
         background_colour: u8,
-        bg: &'b mut RegularMap,
-        vram_manager: &'b mut VRamManager,
-    ) -> TextWriter<'a, 'b, 'c> {
+        bg: &'a mut RegularMap,
+        vram_manager: &'a mut VRamManager,
+    ) -> TextWriter<'a, 'c> {
         TextWriter {
             text_renderer: self,
             foreground_colour,
@@ -205,8 +204,9 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             }
         }
     }
+
     /// Commit the dynamic tiles that contain the text to the background.
-    pub fn commit(&self, bg: &'b mut RegularMap, vram_manager: &'b mut VRamManager) {
+    pub fn commit(&self, bg: &'a mut RegularMap, vram_manager: &'a mut VRamManager) {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
                 vram_manager,
@@ -216,6 +216,7 @@ impl<'a, 'b, 'c> TextRenderer<'c> {
             );
         }
     }
+
     /// Write another char into the text, moving the cursor as appropriate.
     pub fn write_char(
         &mut self,
