@@ -16,4 +16,4 @@ image = { version = "0.24", default-features = false, features = [ "png", "bmp" 
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
-bindgen = "0.62"
+bindgen = "0.63"
