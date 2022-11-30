@@ -1,3 +1,5 @@
+use crate::bindings;
+
 use std::ffi::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -9,9 +11,6 @@ use std::os::raw::c_char;
     non_camel_case_types,
     non_snake_case
 )]
-mod bindings {
-    include!(concat!(env!("OUT_DIR"), "/runner-bindings.rs"));
-}
 
 pub struct MGBA {
     mgba: *mut bindings::MGBA,

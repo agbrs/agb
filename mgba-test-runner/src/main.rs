@@ -1,6 +1,8 @@
 #![allow(clippy::all)]
 
+mod bindings;
 mod runner;
+
 use anyhow::{anyhow, Error};
 use image::io::Reader;
 use image::GenericImage;
