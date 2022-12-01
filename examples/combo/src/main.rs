@@ -5,6 +5,6 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 #[agb::entry]
-fn entry(mut gba: agb::Gba) -> ! {
-    hyperspace_roll::main(gba)
+fn entry(gba: agb::Gba) -> ! {
+    combo::main(gba);
 }
