@@ -25,11 +25,11 @@ doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
 
 check-docs:
-    (cd agb && cargo doc --target=thumbv6m-none-eabi)
+    (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
     just _build_docs agb-fixnum
 
 _build_docs crate:
-    (cd "{{crate}}" && cargo doc)
+    (cd "{{crate}}" && cargo doc --no-deps)
 
 clean:
     just _all-crates _clean
