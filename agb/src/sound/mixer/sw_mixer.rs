@@ -187,7 +187,6 @@ impl Mixer {
     /// loop {
     ///     mixer.frame();
     ///     vblank.wait_for_vblank();
-    ///     mixer.after_vblank(); // optional, only if not using interrupts
     /// }
     /// # }
     /// ```
