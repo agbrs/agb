@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Text renderer can now be re-used which is useful for rpg style character/word at a time text boxes.
+- Audio now automatically uses interrupts, so you can remove the `setup_interrupt_handler` or `after_vblank` calls to the mixer.
 
 ## [0.12.2] - 2022/10/22
 
