@@ -85,7 +85,6 @@ impl<'a> Level<'a> {
         let mut between_updates = || {
             sfx.frame();
             vblank.wait_for_vblank();
-            sfx.after_vblank();
         };
 
         backdrop.init(vram, start_pos, &mut between_updates);
@@ -2283,7 +2282,6 @@ fn game_with_level(gba: &mut agb::Gba) {
         start_at_boss = loop {
             sfx.frame();
             vblank.wait_for_vblank();
-            sfx.after_vblank();
             object.commit();
             match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}

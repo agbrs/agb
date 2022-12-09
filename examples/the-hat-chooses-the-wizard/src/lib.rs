@@ -832,7 +832,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
             music_box.before_frame(&mut mixer);
             mixer.frame();
             vblank.wait_for_vblank();
-            mixer.after_vblank();
 
             level_display::write_level(
                 &mut world_display,
@@ -848,7 +847,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
             music_box.before_frame(&mut mixer);
             mixer.frame();
             vblank.wait_for_vblank();
-            mixer.after_vblank();
 
             let map_current_level = current_level;
             let mut background = InfiniteScrolledMap::new(
@@ -894,21 +892,18 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();
-                mixer.after_vblank();
             }
 
             while level.background.init_foreground(&mut vram) != PartialUpdateStatus::Done {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();
-                mixer.after_vblank();
             }
 
             for _ in 0..20 {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();
-                mixer.after_vblank();
             }
 
             object.commit();
@@ -930,7 +925,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                             music_box.before_frame(&mut mixer);
                             mixer.frame();
                             vblank.wait_for_vblank();
-                            mixer.after_vblank();
                             object.commit();
                         }
                         break;
@@ -944,7 +938,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 music_box.before_frame(&mut mixer);
                 mixer.frame();
                 vblank.wait_for_vblank();
-                mixer.after_vblank();
                 object.commit();
             }
 

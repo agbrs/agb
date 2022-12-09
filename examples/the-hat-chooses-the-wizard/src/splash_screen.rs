@@ -41,10 +41,6 @@ pub fn show_splash_screen(
 
     vblank.wait_for_vblank();
 
-    if let Some(ref mut mixer) = mixer {
-        mixer.after_vblank();
-    }
-
     for y in 0..20u16 {
         for x in 0..30u16 {
             map.set_tile(
@@ -63,10 +59,6 @@ pub fn show_splash_screen(
         }
 
         vblank.wait_for_vblank();
-
-        if let Some(ref mut mixer) = mixer {
-            mixer.after_vblank();
-        }
     }
 
     map.commit(vram);
@@ -83,17 +75,13 @@ pub fn show_splash_screen(
         ) {
             break;
         }
-        if let Some(ref mut mixer) = mixer {
-            if let Some(ref mut music_box) = music_box {
+        if let Some(mixer) = &mut mixer {
+            if let Some(music_box) = &mut music_box {
                 music_box.before_frame(mixer);
             }
             mixer.frame();
         }
         vblank.wait_for_vblank();
-
-        if let Some(ref mut mixer) = mixer {
-            mixer.after_vblank();
-        }
     }
 
     map.hide();

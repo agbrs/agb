@@ -39,10 +39,6 @@ impl<'a> Sfx<'a> {
         self.mixer.frame();
     }
 
-    pub fn after_vblank(&mut self) {
-        self.mixer.after_vblank();
-    }
-
     pub fn stop_music(&mut self) {
         if let Some(bgm) = &self.bgm {
             let channel = self.mixer.channel(bgm).unwrap();
