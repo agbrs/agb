@@ -10,7 +10,7 @@ fn main() {
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR environment variable must be specified");
 
     let playground_filename = "map/map.tmx";
-    println!("cargo:rerun-if-changed={}", playground_filename);
+    println!("cargo:rerun-if-changed={playground_filename}");
 
     let map = tiled::parse_file(Path::new(playground_filename)).unwrap();
 
@@ -60,11 +60,11 @@ fn main() {
         pub const TILE_TYPES: &[u8] = &[#(#tile_types),*];
     };
 
-    let output_file = File::create(format!("{}/tilemap.rs", out_dir))
+    let output_file = File::create(format!("{out_dir}/tilemap.rs"))
         .expect("failed to open tilemap.rs file for writing");
     let mut writer = BufWriter::new(output_file);
 
-    write!(&mut writer, "{}", output).unwrap();
+    write!(&mut writer, "{output}").unwrap();
 }
 
 fn extract_tiles(layer: &'_ tiled::LayerData) -> impl Iterator<Item = u16> + '_ {

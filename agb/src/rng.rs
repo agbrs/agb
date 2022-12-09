@@ -78,9 +78,7 @@ mod test {
         for (i, &value) in values.iter().enumerate() {
             assert!(
                 value >= 500 / 10 / 3,
-                "{} came up less than expected {}",
-                i,
-                value
+                "{i} came up less than expected {value}"
             );
         }
     }
@@ -96,9 +94,7 @@ mod test {
         for (i, &value) in values.iter().enumerate() {
             assert!(
                 value >= 500 / 10 / 3,
-                "{} came up less than expected {}",
-                i,
-                value
+                "{i} came up less than expected {value}"
             );
         }
     }

@@ -57,7 +57,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut renderer = FONT.render_text((4u16, 0u16).into());
         let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
-        writeln!(&mut writer, "Frame {}", frame).unwrap();
+        writeln!(&mut writer, "Frame {frame}").unwrap();
         writer.commit();
 
         frame += 1;

@@ -170,8 +170,7 @@ mod test {
         let address = &*first_box as *const _ as usize;
         assert!(
             (EWRAM_START..EWRAM_END).contains(&address),
-            "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
-            address
+            "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {address:#010X}"
         );
     }
 
@@ -197,8 +196,7 @@ mod test {
             let address = &*x as *const _ as usize;
             assert!(
                 (EWRAM_START..EWRAM_END).contains(&address),
-                "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {:#010X}",
-                address
+                "ewram is located between 0x0200_0000 and 0x0204_0000, address was actually found to be {address:#010X}"
             );
         }
 
@@ -225,8 +223,7 @@ mod test {
 
         assert!(
             0x0200_0000 <= data_end,
-            "data end should be bigger than 0x0200_0000, got {}",
-            data_end
+            "data end should be bigger than 0x0200_0000, got {data_end}"
         );
         assert!(
             0x0204_0000 > data_end,
@@ -240,8 +237,7 @@ mod test {
 
         assert!(
             (0x0300_0000..0x0300_8000).contains(&data_end),
-            "iwram data end should be in iwram, instead was {}",
-            data_end
+            "iwram data end should be in iwram, instead was {data_end}"
         );
     }
 
@@ -252,8 +248,7 @@ mod test {
         let addr = p as usize;
         assert!(
             (0x0300_0000..0x0300_8000).contains(&addr),
-            "address of allocation should be within iwram, instead at {:?}",
-            p
+            "address of allocation should be within iwram, instead at {p:?}"
         );
     }
 }

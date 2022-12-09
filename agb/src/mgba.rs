@@ -51,7 +51,7 @@ impl Mgba {
         output: core::fmt::Arguments,
         level: DebugLevel,
     ) -> Result<(), core::fmt::Error> {
-        write!(self, "{}", output)?;
+        write!(self, "{output}")?;
         self.set_level(level);
         Ok(())
     }

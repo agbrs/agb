@@ -22,7 +22,7 @@ fn main() {
     let mut o_files = vec![];
 
     for &a in asm.iter() {
-        println!("cargo:rerun-if-changed={}", a);
+        println!("cargo:rerun-if-changed={a}");
         let filename = path::Path::new(a);
         let filename = filename.with_extension("o");
         let filename = filename
@@ -31,7 +31,7 @@ fn main() {
             .to_str()
             .expect("Please make it valid utf-8");
 
-        let out_file_path = format!("{}/{}", out_dir, filename);
+        let out_file_path = format!("{out_dir}/{filename}");
 
         let out = std::process::Command::new("arm-none-eabi-as")
             .arg("-mthumb-interwork")
@@ -40,7 +40,7 @@ fn main() {
             .args(["-o", out_file_path.as_str()])
             .arg(a)
             .output()
-            .unwrap_or_else(|_| panic!("failed to compile {}", a));
+            .unwrap_or_else(|_| panic!("failed to compile {a}"));
 
         assert!(
             out.status.success(),
@@ -50,7 +50,7 @@ fn main() {
 
         for warning_line in String::from_utf8_lossy(&out.stderr).split('\n') {
             if !warning_line.is_empty() {
-                println!("cargo:warning={}", warning_line);
+                println!("cargo:warning={warning_line}");
             }
         }
 
