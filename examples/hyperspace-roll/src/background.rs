@@ -64,7 +64,7 @@ pub(crate) fn load_description(
 
     for y in 0..11 {
         for x in 0..8 {
-            let tile_id = y * 8 + x + 8 * 11 * (face_id as u16 - 10);
+            let tile_id = y * 8 + x + 8 * 11 * (face_id as u16 % 10);
             descriptions_map.set_tile(
                 vram,
                 (x, y).into(),
