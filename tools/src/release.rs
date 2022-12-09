@@ -72,6 +72,7 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
                 "tag",
                 "-a",
                 &format!("v{version}"),
+                "--cleanup=whitespace",
                 "-m",
                 &format!("#v{version}\n{changelog_text}"),
             ],
