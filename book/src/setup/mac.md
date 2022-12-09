@@ -9,39 +9,39 @@ Firstly, ensure that you have **rustup** installed which you can do by following
 
 You can update rustup with `rustup update` if you have already installed it.
 
-# 2. arm-none-eabi
+# 2. Install arm-none-eabi
 
 We need this installed in order to be able to assemble the small amount of assembly in agb, and to do the final linking.
 
-## From ARM
+## Install from ARM
 
-Download the toolchain from ARM here: https://developer.arm.com/downloads/-/gnu-rm
+Download the toolchain from [ARM here](https://developer.arm.com/downloads/-/gnu-rm)
  * Run the .pkg to install
  * Add `/Applications/ARM/bin` to your `/etc/paths` file
 
-## From Homebrew
+## Install from Homebrew
 
-Or you can try installing with homebrew from the (Arm Mbed repo)[https://github.com/ARMmbed/homebrew-formulae]:
+Or you can try installing with homebrew from the [Arm Mbed repo](https://github.com/ARMmbed/homebrew-formulae):
 
 ```
 brew tap ArmMbed/homebrew-formulae
 brew install arm-none-eabi-gcc
 ```
 
-# 3. git
+# 3. Get git
 
-The source code for the game is hosted on github, so you will need git installed. Follow the instructions at (git-scm.com)[https://git-scm.com/]
+The source code for the game is hosted on github, so you will need git installed. Follow the instructions at [git-scm.com](https://git-scm.com/)
 
-# 4. mGBA
+# 4. GBA Emulator - mGBA
 
-We recommend using the mGBA emulator which you can download for Mac (here)[https://mgba.io/downloads.html].
+We recommend using the mGBA emulator which you can download for Mac [here](https://mgba.io/downloads.html).
 
 After installing to your `/Applications` folder you can add the binary to your path and create an alias for the agb run command to use.
 
 * Add `/Applications/mGBA.app/Contents/MacOS` to `/etc/paths`
 * Inside the `/Applications/mGBA.app/Contents/MacOS` directory (in a terminal) run: `ln -s mGBA mgba-qt`
 
-# 4. gbafix
+# 5. Real hardware - gbafix
 
 In order to be able to play on real hardware or on some emulators, you may need to install 'gbafix'.
 The rust implementation can be installed very easily using `cargo install gbafix`.
