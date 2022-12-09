@@ -24,13 +24,13 @@ mod tiled_export {
 
     pub fn export_tilemap(out_dir: &str) -> std::io::Result<()> {
         let filename = "map/tilemap.json";
-        println!("cargo:rerun-if-changed={}", filename);
+        println!("cargo:rerun-if-changed={filename}");
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
 
         let tilemap: TiledTilemap = serde_json::from_reader(reader)?;
 
-        let output_file = File::create(format!("{}/tilemap.rs", out_dir))?;
+        let output_file = File::create(format!("{out_dir}/tilemap.rs"))?;
         let mut writer = BufWriter::new(output_file);
 
         let tile_data: HashMap<_, _> = tilemap
@@ -57,31 +57,26 @@ mod tiled_export {
 
         writeln!(
             &mut writer,
-            "pub const COLLISION_TILE: i32 = {};",
-            COLLISION_TILE
+            "pub const COLLISION_TILE: i32 = {COLLISION_TILE};",
         )?;
 
-        writeln!(&mut writer, "pub const KILL_TILE: i32 = {};", KILL_TILE)?;
-        writeln!(&mut writer, "pub const WIN_TILE: i32 = {};", WIN_TILE)?;
+        writeln!(&mut writer, "pub const KILL_TILE: i32 = {KILL_TILE};")?;
+        writeln!(&mut writer, "pub const WIN_TILE: i32 = {WIN_TILE};")?;
 
-        writeln!(
-            &mut writer,
-            "pub const TILE_DATA: &[u32] = &[{}];",
-            tile_info
-        )?;
+        writeln!(&mut writer, "pub const TILE_DATA: &[u32] = &[{tile_info}];")?;
 
         Ok(())
     }
 
     pub fn export_level(out_dir: &str, level_file: &str) -> std::io::Result<()> {
-        let filename = format!("map/{}", level_file);
-        println!("cargo:rerun-if-changed={}", filename);
+        let filename = format!("map/{level_file}");
+        println!("cargo:rerun-if-changed={filename}");
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
 
         let level: TiledLevel = serde_json::from_reader(reader)?;
 
-        let output_file = File::create(format!("{}/{}.rs", out_dir, level_file))?;
+        let output_file = File::create(format!("{out_dir}/{level_file}.rs"))?;
         let mut writer = BufWriter::new(output_file);
 
         let layer_1 = level.layers[0]
@@ -103,8 +98,8 @@ mod tiled_export {
 
         writeln!(&mut writer, "const WIDTH: u32 = {};", level.width)?;
         writeln!(&mut writer, "const HEIGHT: u32 = {};", level.height)?;
-        writeln!(&mut writer, "const TILEMAP: &[u16] = &[{}];", layer_1)?;
-        writeln!(&mut writer, "const BACKGROUND: &[u16] = &[{}];", layer_2)?;
+        writeln!(&mut writer, "const TILEMAP: &[u16] = &[{layer_1}];")?;
+        writeln!(&mut writer, "const BACKGROUND: &[u16] = &[{layer_2}];")?;
 
         let objects = level.layers[2]
             .objects
@@ -147,18 +142,15 @@ mod tiled_export {
 
         writeln!(
             &mut writer,
-            "const SNAILS: &[(i32, i32)] = &[{}];",
-            snails_str
+            "const SNAILS: &[(i32, i32)] = &[{snails_str}];",
         )?;
         writeln!(
             &mut writer,
-            "const SLIMES: &[(i32, i32)] = &[{}];",
-            slimes_str
+            "const SLIMES: &[(i32, i32)] = &[{slimes_str}];",
         )?;
         writeln!(
             &mut writer,
-            "const ENEMY_STOPS: &[(i32, i32)] = &[{}];",
-            enemy_stop_str
+            "const ENEMY_STOPS: &[(i32, i32)] = &[{enemy_stop_str}];",
         )?;
         writeln!(
             &mut writer,
