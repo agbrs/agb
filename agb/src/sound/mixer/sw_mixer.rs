@@ -75,7 +75,7 @@ extern "C" {
 /// loop {
 ///    mixer.frame();
 ///    vblank.wait_for_vblank();
-///    mixer.after_vblank();   
+///    mixer.after_vblank();
 /// }
 /// # }
 /// ```
@@ -89,7 +89,7 @@ pub struct Mixer {
     indices: [i32; 8],
     frequency: Frequency,
 
-    timer: Timer,
+    fifo_timer: Timer,
 }
 
 /// A pointer to a currently playing channel.
@@ -120,6 +120,9 @@ impl Mixer {
         let buffer = Box::pin(MixerBuffer::new(frequency));
 
         // SAFETY: you can only ever have 1 Mixer at a time
+        let fifo_timer = unsafe { Timer::new(0) };
+
+        // SAFETY: you can only ever have 1 Mixer at a time
         let mut interrupt_timer = unsafe { Timer::new(1) };
         interrupt_timer
             .set_cascade(true)
@@ -146,7 +149,7 @@ impl Mixer {
             interrupt_timer,
             _interrupt_handler: interrupt_handler,
 
-            timer: unsafe { Timer::new(0) },
+            fifo_timer,
         }
     }
 
@@ -155,7 +158,10 @@ impl Mixer {
     /// You must call this method in order to start playing sound. You can do as much set up before
     /// this as you like, but you will not get any sound out of the console until this method is called.
     pub fn enable(&mut self) {
-        hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, self.frequency.frequency());
+        hw::set_timer_counter_for_frequency_and_enable(
+            &mut self.fifo_timer,
+            self.frequency.frequency(),
+        );
         hw::set_sound_control_register_for_mixer();
 
         self.interrupt_timer.set_enabled(true);
