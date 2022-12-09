@@ -32,7 +32,6 @@ fn main(mut gba: Gba) -> ! {
 
     writeln!(&mut writer, "Let it in by Josh Woodward").unwrap();
 
-
     writer.commit();
 
     bg.commit(&mut vram);
@@ -58,7 +57,6 @@ fn main(mut gba: Gba) -> ! {
         bg.commit(&mut vram);
 
         let before_mixing_cycles = timer.value();
-        mixer.after_vblank();
         mixer.frame();
         let after_mixing_cycles = timer.value();
 

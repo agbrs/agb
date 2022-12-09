@@ -51,6 +51,5 @@ fn main(mut gba: Gba) -> ! {
 
         mixer.frame();
         vblank_provider.wait_for_vblank();
-        mixer.after_vblank();
     }
 }

@@ -43,7 +43,6 @@ fn main(mut gba: Gba) -> ! {
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
-    let _interrupt = mixer.setup_interrupt_handler();
 
     let mut channel = SoundChannel::new(CRAZY_GLUE);
     channel.stereo();
