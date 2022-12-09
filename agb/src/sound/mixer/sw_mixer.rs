@@ -1,4 +1,5 @@
 use core::cell::RefCell;
+use core::pin::Pin;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -79,7 +80,11 @@ extern "C" {
 /// # }
 /// ```
 pub struct Mixer {
-    buffer: MixerBuffer,
+    interrupt_timer: Timer,
+    // SAFETY: Has to go before buffer because it holds a reference to it
+    _interrupt_handler: InterruptHandler<'static>,
+
+    buffer: Pin<Box<MixerBuffer>>,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
     frequency: Frequency,
@@ -112,11 +117,34 @@ pub struct ChannelId(usize, i32);
 
 impl Mixer {
     pub(super) fn new(frequency: Frequency) -> Self {
+        let buffer = Box::pin(MixerBuffer::new(frequency));
+
+        // SAFETY: you can only ever have 1 Mixer at a time
+        let mut interrupt_timer = unsafe { Timer::new(1) };
+        interrupt_timer
+            .set_cascade(true)
+            .set_divider(Divider::Divider1)
+            .set_interrupt(true)
+            .set_overflow_amount(frequency.buffer_size() as u16);
+
+        let buffer_pointer_for_interrupt_handler: &MixerBuffer = &buffer;
+
+        // SAFETY: dropping the lifetime, sound because interrupt handler dropped before the buffer is
+        //         In the case of the mixer being forgotten, both stay alive so okay
+        let buffer_pointer_for_interrupt_handler: &MixerBuffer =
+            unsafe { core::mem::transmute(buffer_pointer_for_interrupt_handler) };
+        let interrupt_handler = add_interrupt_handler(interrupt_timer.interrupt(), |cs| {
+            buffer_pointer_for_interrupt_handler.swap(cs);
+        });
+
         Self {
             frequency,
-            buffer: MixerBuffer::new(frequency),
+            buffer,
             channels: Default::default(),
             indices: Default::default(),
+
+            interrupt_timer,
+            _interrupt_handler: interrupt_handler,
 
             timer: unsafe { Timer::new(0) },
         }
@@ -129,69 +157,8 @@ impl Mixer {
     pub fn enable(&mut self) {
         hw::set_timer_counter_for_frequency_and_enable(&mut self.timer, self.frequency.frequency());
         hw::set_sound_control_register_for_mixer();
-    }
 
-    /// Do post-vblank work. You can use either this or [`setup_interrupt_handler()`](Mixer::setup_interrupt_handler),
-    /// but not both. Note that this is not available if using 32768Hz sounds since those require more irregular timings.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # use agb::sound::mixer::*;
-    /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// # let vblank = agb::interrupt::VBlank::get();
-    /// loop {
-    ///     mixer.frame();
-    ///     vblank.wait_for_vblank();
-    ///     mixer.after_vblank();   
-    /// }
-    /// # }
-    /// ```
-    #[cfg(not(feature = "freq32768"))]
-    pub fn after_vblank(&mut self) {
-        free(|cs| self.buffer.swap(cs));
-    }
-
-    /// Use timer interrupts to do the timing required for ensuring the music runs smoothly.
-    ///
-    /// Note that if you set up an interrupt handler, you should not call [`after_vblank`](Mixer::after_vblank) any more
-    /// You are still required to call [`frame`](Mixer::frame).
-    ///
-    /// This is required if using 32768Hz music, but optional for other frequencies.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # use agb::sound::mixer::*;
-    /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
-    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// # let vblank = agb::interrupt::VBlank::get();
-    /// // you must set this to a named variable to ensure that the scope is long enough
-    /// let _mixer_interrupt = mixer.setup_interrupt_handler();
-    ///
-    /// loop {
-    ///    mixer.frame();
-    ///    vblank.wait_for_vblank();
-    /// }
-    /// # }
-    /// ```
-    pub fn setup_interrupt_handler(&self) -> InterruptHandler<'_> {
-        let mut timer1 = unsafe { Timer::new(1) };
-        timer1
-            .set_cascade(true)
-            .set_divider(Divider::Divider1)
-            .set_interrupt(true)
-            .set_overflow_amount(self.frequency.buffer_size() as u16)
-            .set_enabled(true);
-
-        add_interrupt_handler(timer1.interrupt(), move |cs| self.buffer.swap(cs))
+        self.interrupt_timer.set_enabled(true);
     }
 
     /// Do the CPU intensive mixing for the next frame's worth of data.
