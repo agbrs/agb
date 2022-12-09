@@ -84,7 +84,7 @@ pub struct Mixer {
     // SAFETY: Has to go before buffer because it holds a reference to it
     _interrupt_handler: InterruptHandler<'static>,
 
-    buffer: Pin<Box<MixerBuffer>>,
+    buffer: Pin<Box<MixerBuffer, InternalAllocator>>,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
     frequency: Frequency,
@@ -117,7 +117,7 @@ pub struct ChannelId(usize, i32);
 
 impl Mixer {
     pub(super) fn new(frequency: Frequency) -> Self {
-        let buffer = Box::pin(MixerBuffer::new(frequency));
+        let buffer = Box::pin_in(MixerBuffer::new(frequency), InternalAllocator);
 
         // SAFETY: you can only ever have 1 Mixer at a time
         let fifo_timer = unsafe { Timer::new(0) };
