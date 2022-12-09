@@ -6,7 +6,7 @@
   - [Environment setup](./setup/setup.md)
     - [Linux setup](./setup/linux.md)
     - [Windows setup]()
-    - [Mac OS setup]()
+    - [Mac OS setup](./setup/mac.md)
   - [Building the template](./setup/building.md)
 - [Learn agb part I - pong](./pong/01_introduction.md)
   - [The Gba struct](./pong/02_the_gba_struct.md)
