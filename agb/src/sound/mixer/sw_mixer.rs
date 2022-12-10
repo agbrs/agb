@@ -321,7 +321,6 @@ impl SoundBuffer {
 }
 
 struct MixerBuffer {
-    buffers: [SoundBuffer; 3],
     frequency: Frequency,
 
     state: Mutex<RefCell<MixerBufferState>>,
@@ -330,6 +329,7 @@ struct MixerBuffer {
 struct MixerBufferState {
     active_buffer: usize,
     playing_buffer: usize,
+    buffers: [SoundBuffer; 3],
 }
 
 /// Only returns a valid result if 0 <= x <= 3
@@ -348,29 +348,28 @@ impl MixerBufferState {
         mod3_estimate(self.active_buffer + 1) != self.playing_buffer
     }
 
-    fn playing_advanced(&mut self) -> usize {
+    fn playing_advanced(&mut self) -> *const i8 {
         self.playing_buffer = mod3_estimate(self.playing_buffer + 1);
-        self.playing_buffer
+        self.buffers[self.playing_buffer].0.as_ptr()
     }
 
-    fn active_advanced(&mut self) -> usize {
+    fn active_advanced(&mut self) -> *mut i8 {
         self.active_buffer = mod3_estimate(self.active_buffer + 1);
-        self.active_buffer
+        self.buffers[self.active_buffer].0.as_mut_ptr()
     }
 }
 
 impl MixerBuffer {
     fn new(frequency: Frequency) -> Self {
         MixerBuffer {
-            buffers: [
-                SoundBuffer::new(frequency),
-                SoundBuffer::new(frequency),
-                SoundBuffer::new(frequency),
-            ],
-
             state: Mutex::new(RefCell::new(MixerBufferState {
                 active_buffer: 0,
                 playing_buffer: 0,
+                buffers: [
+                    SoundBuffer::new(frequency),
+                    SoundBuffer::new(frequency),
+                    SoundBuffer::new(frequency),
+                ],
             })),
 
             frequency,
@@ -384,16 +383,16 @@ impl MixerBuffer {
     fn swap(&self, cs: CriticalSection) {
         let buffer = self.state.borrow(cs).borrow_mut().playing_advanced();
 
-        let (left_buffer, right_buffer) = self.buffers[buffer]
-            .0
-            .split_at(self.frequency.buffer_size());
+        let left_buffer = buffer;
+        // SAFETY: starting pointer is fine, resulting pointer also fine because buffer has length buffer_size() * 2 by construction
+        let right_buffer = unsafe { buffer.add(self.frequency.buffer_size()) };
 
         hw::enable_dma_for_sound(left_buffer, LeftOrRight::Left);
         hw::enable_dma_for_sound(right_buffer, LeftOrRight::Right);
     }
 
     fn write_channels<'a>(
-        &mut self,
+        &self,
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
@@ -448,12 +447,10 @@ impl MixerBuffer {
             channel.pos += playback_speed * self.frequency.buffer_size();
         }
 
-        let write_buffer_index = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
-
-        let write_buffer = &mut self.buffers[write_buffer_index].0;
+        let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
 
         unsafe {
-            agb_rs__mixer_collapse(write_buffer.as_mut_ptr(), working_buffer.as_ptr());
+            agb_rs__mixer_collapse(write_buffer, working_buffer.as_ptr());
         }
     }
 }

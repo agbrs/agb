@@ -46,23 +46,23 @@ pub(super) enum LeftOrRight {
     Right,
 }
 
-pub(super) fn enable_dma_for_sound(sound_memory: &[i8], lr: LeftOrRight) {
+pub(super) fn enable_dma_for_sound(sound_memory: *const i8, lr: LeftOrRight) {
     match lr {
         LeftOrRight::Left => enable_dma1_for_sound(sound_memory),
         LeftOrRight::Right => enable_dma2_for_sound(sound_memory),
     }
 }
 
-fn enable_dma1_for_sound(sound_memory: &[i8]) {
+fn enable_dma1_for_sound(sound_memory: *const i8) {
     DMA1_CONTROL.set(0);
-    DMA1_SOURCE_ADDR.set(sound_memory.as_ptr() as u32);
+    DMA1_SOURCE_ADDR.set(sound_memory as u32);
     DMA1_DEST_ADDR.set(FIFO_A_DEST_ADDR);
     DMA1_CONTROL.set(DMA_CONTROL_SETTING_FOR_SOUND);
 }
 
-fn enable_dma2_for_sound(sound_memory: &[i8]) {
+fn enable_dma2_for_sound(sound_memory: *const i8) {
     DMA2_CONTROL.set(0);
-    DMA2_SOURCE_ADDR.set(sound_memory.as_ptr() as u32);
+    DMA2_SOURCE_ADDR.set(sound_memory as u32);
     DMA2_DEST_ADDR.set(FIFO_B_DEST_ADDR);
     DMA2_CONTROL.set(DMA_CONTROL_SETTING_FOR_SOUND);
 }
