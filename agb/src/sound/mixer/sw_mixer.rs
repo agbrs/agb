@@ -337,7 +337,7 @@ const fn mod3_estimate(x: usize) -> usize {
 
 impl MixerBufferState {
     fn should_calculate(&self) -> bool {
-        mod3_estimate(self.active_buffer + 1) != mod3_estimate(self.playing_buffer)
+        mod3_estimate(self.active_buffer + 1) != self.playing_buffer
     }
 
     fn playing_advanced(&mut self) -> usize {
