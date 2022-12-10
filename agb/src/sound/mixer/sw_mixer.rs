@@ -75,7 +75,6 @@ extern "C" {
 /// loop {
 ///    mixer.frame();
 ///    vblank.wait_for_vblank();
-///    mixer.after_vblank();
 /// }
 /// # }
 /// ```
