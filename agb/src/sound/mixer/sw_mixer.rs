@@ -140,6 +140,8 @@ impl Mixer {
             buffer_pointer_for_interrupt_handler.swap(cs);
         });
 
+        set_asm_buffer_size(frequency);
+
         Self {
             frequency,
             buffer,
@@ -391,8 +393,6 @@ impl MixerBuffer {
     }
 
     fn write_channels<'a>(&mut self, channels: impl Iterator<Item = &'a mut SoundChannel>) {
-        set_asm_buffer_size(self.frequency);
-
         self.working_buffer.fill(0.into());
 
         for channel in channels {
