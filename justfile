@@ -25,11 +25,11 @@ doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
 
 check-docs:
-    (cd agb && cargo doc --target=thumbv6m-none-eabi)
+    (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
     just _build_docs agb-fixnum
 
 _build_docs crate:
-    (cd "{{crate}}" && cargo doc)
+    (cd "{{crate}}" && cargo doc --no-deps)
 
 clean:
     just _all-crates _clean
@@ -58,6 +58,7 @@ build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
     just _build-rom "examples/the-hat-chooses-the-wizard" "HATWIZARD"
     just _build-rom "examples/hyperspace-roll" "HYPERSPACE"
+    just _build-rom "examples/combo" "AGBJAMS"
 
     just _build-rom "book/games/pong" "PONG"
 
