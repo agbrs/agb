@@ -13,7 +13,7 @@ use agb::display::{
 };
 use agb_fixnum::{num, Num, Vector2D};
 
-const GRAPHICS: &Graphics = agb::include_aseprite!("examples/gfx/tall.aseprite");
+const GRAPHICS: &Graphics = agb::include_aseprite!("examples/gfx/heart.aseprite");
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
 const SPRITE: &Tag = TAG_MAP.get("Heart");
