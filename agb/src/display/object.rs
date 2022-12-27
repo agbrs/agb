@@ -99,7 +99,7 @@ static PALETTE_ALLOCATOR: BlockAllocator = unsafe {
 
 const PALETTE_SPRITE: usize = 0x0500_0200;
 const TILE_SPRITE: usize = 0x06010000;
-const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
+pub(crate) const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
 
 /// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
@@ -1061,6 +1061,30 @@ impl<'a> Object<'a> {
         {
             let mut object_inner = unsafe { self.object_inner() };
             object_inner.attrs.a0.set_y(y as u8);
+        }
+
+        self
+    }
+    /// Set the affine mode, allowing affine transformations
+    pub fn set_affine(&mut self) -> &mut Self {
+        {
+            let mut object_inner = unsafe { self.object_inner() };
+            object_inner.attrs.a0.set_object_mode(ObjectMode::Affine);
+        }
+
+        self
+    }
+
+    /// Set the index to determine which affine matrix to use. For usage see the 
+    /// affine_sprites.rs example.
+    pub fn set_affine_matrix(&mut self, idx: u8) -> &mut Self {
+        {
+            let mut object_inner = unsafe { self.object_inner() };
+            assert!(matches!(
+                object_inner.attrs.a0.object_mode(),
+                ObjectMode::Affine
+            ));
+            object_inner.attrs.a1a.set_affine_index(idx)
         }
 
         self

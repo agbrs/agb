@@ -88,6 +88,8 @@ use core::{
 
 use agb_fixnum::{Num, Vector2D};
 
+use super::object::OBJECT_ATTRIBUTE_MEMORY;
+
 type AffineMatrixElement = Num<i32, 8>;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -355,6 +357,20 @@ impl AffineMatrixObject {
             x: 0.into(),
             y: 0.into(),
         }
+    }
+    /// Write the affine matrix to OAM memory
+    pub fn commit(&self, index: u8) {
+        // The memory layout of the affine matrix is unusual, each matrix entry
+        // occupies the leftover slot in a single sprites object attribute memory, so for every 4
+        // sprites there is one affine matrix. See https://wiki.nycresistor.com/wiki/GB101:Affine_Sprites
+        // for more detail.
+        unsafe {
+            for (idx, val) in [self.a, self.b, self.c, self.d].iter().enumerate() {
+                let ptr =
+                    (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(((index as usize) * 4 + idx) * 4);
+                ptr.add(3).write_volatile(val.to_raw() as u16);
+            }
+        };
     }
 }
 
