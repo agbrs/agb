@@ -1084,7 +1084,7 @@ impl<'a> Object<'a> {
                 object_inner.attrs.a0.object_mode(),
                 ObjectMode::Affine
             ));
-            object_inner.attrs.a1a.set_affine_index(idx)
+            object_inner.attrs.a1a.set_affine_index(idx);
         }
 
         self
