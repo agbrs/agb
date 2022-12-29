@@ -3,8 +3,7 @@
 
 /// This example shows how to apply affine transformations
 /// (just rotation and scaling in this example) to sprites.
-/// Note that these transformations will cause any content outside the
-/// sprites size to be clipped.
+
 extern crate alloc;
 
 use agb::display::{
@@ -24,17 +23,28 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut rot_sprite = gfx.object(gfx.sprite(SPRITE.sprite(0)));
     let mut scale_sprite = gfx.object(gfx.sprite(SPRITE.sprite(0)));
-    scale_sprite.set_affine();
-    rot_sprite.set_affine();
+    let mut scale_sprite_double = gfx.object(gfx.sprite(SPRITE.sprite(0)));
+
+    // The transformed version of these sprites are clipped
+    // to the sprite size 
+    scale_sprite.show_affine();
+    rot_sprite.show_affine();
+
+    // The transformed version of this sprite are clipped
+    // to the 2x sprite size 
+    scale_sprite_double.show_affine_double();
+
 
     let rot_matrix_idx = 0;
     rot_sprite.set_affine_matrix(rot_matrix_idx);
 
     let scale_matrix_idx = 1;
     scale_sprite.set_affine_matrix(scale_matrix_idx);
+    scale_sprite_double.set_affine_matrix(scale_matrix_idx);
 
-    scale_sprite.set_position(Vector2D { x: 130, y: 50 });
-    rot_sprite.set_position(Vector2D { x: 30, y: 50 });
+    rot_sprite.set_position(Vector2D { x: 30, y: 40 });
+    scale_sprite.set_position(Vector2D { x: 150, y: 40 });
+    scale_sprite_double.set_position(Vector2D { x: 90, y: 100 });
 
     let zero = num!(0.);
     let one = num!(1.);
@@ -58,7 +68,7 @@ fn main(mut gba: agb::Gba) -> ! {
             }
         } else {
             scale -= num!(0.06);
-            if scale < num!(1.) {
+            if scale < num!(0.5) {
                 scale_increasing = true;
             }
         }

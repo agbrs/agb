@@ -988,15 +988,30 @@ impl<'a> Object<'a> {
         object_inner.sprite = sprite;
     }
 
-    /// Shows the sprite. No change will be seen until
-    /// [ObjectController::commit] is called.
-    pub fn show(&mut self) -> &mut Self {
+    fn set_mode(&mut self, mode: ObjectMode) -> &mut Self {
         {
             let mut object_inner = unsafe { self.object_inner() };
-            object_inner.attrs.a0.set_object_mode(ObjectMode::Normal);
+            object_inner.attrs.a0.set_object_mode(mode);
         }
 
         self
+    }
+
+    /// Shows the sprite. No change will be seen until
+    /// [ObjectController::commit] is called.
+    pub fn show(&mut self) -> &mut Self {
+        self.set_mode(ObjectMode::Normal)
+    }
+
+    /// Set the sprite to affine mode, allowing affine transformations
+    pub fn show_affine(&mut self) -> &mut Self {
+        self.set_mode(ObjectMode::Affine)
+    }
+
+    /// Set the sprite to affine double mode, allowing
+    /// affine transformations with double area to avoid clipping
+    pub fn show_affine_double(&mut self) -> &mut Self {
+        self.set_mode(ObjectMode::AffineDouble)
     }
 
     /// Controls whether the sprite is flipped horizontally, for example useful
@@ -1065,24 +1080,15 @@ impl<'a> Object<'a> {
 
         self
     }
-    /// Set the affine mode, allowing affine transformations
-    pub fn set_affine(&mut self) -> &mut Self {
-        {
-            let mut object_inner = unsafe { self.object_inner() };
-            object_inner.attrs.a0.set_object_mode(ObjectMode::Affine);
-        }
 
-        self
-    }
-
-    /// Set the index to determine which affine matrix to use. For usage see the 
+    /// Set the index to determine which affine matrix to use. For usage see the
     /// affine_sprites.rs example.
     pub fn set_affine_matrix(&mut self, idx: u8) -> &mut Self {
         {
             let mut object_inner = unsafe { self.object_inner() };
             assert!(matches!(
                 object_inner.attrs.a0.object_mode(),
-                ObjectMode::Affine
+                ObjectMode::Affine | ObjectMode::AffineDouble
             ));
             object_inner.attrs.a1a.set_affine_index(idx);
         }
