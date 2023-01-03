@@ -145,7 +145,6 @@ impl<'a> BattleScreenDisplay<'a> {
         );
 
         let enemy_attack_display = (0..2)
-            .into_iter()
             .map(|i| {
                 let mut attack_obj = obj.object(
                     obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack)),
