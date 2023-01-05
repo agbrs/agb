@@ -85,9 +85,36 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
         .map(|s| Path::new(&root).join(&*s))
         .collect();
 
+    let mm_converted = mmutil::mm_convert(&filenames);
+
+    let constants = mm_converted.constants.iter().map(|(name, value)| {
+        quote! {
+            const #name: i32 = #value;
+        }
+    });
+
+    let include_files = filenames.iter().map(|filename| {
+        let filename = filename.to_string_lossy();
+        quote! { const _: &[u8] = include_bytes!(#filename); }
+    });
+
+    let soundbank_data = ByteString(&mm_converted.soundbank_data);
+    let soundbank_data = quote! {
+        const SOUNDBANK_DATA: &[u8] = {
+            #[repr(align(4))]
+            struct AlignmentWrapper<const N: usize>([u8; N]);
+
+            &AlignmentWrapper(*#soundbank_data).0
+        };
+    };
+
     let result = quote! {
         mod music {
+            #(#constants)*
 
+            #soundbank_data
+
+            #(#include_files)*
         }
     };
 
