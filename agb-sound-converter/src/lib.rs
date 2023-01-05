@@ -1,5 +1,7 @@
 #![deny(clippy::all)]
 
+mod mmutil;
+
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use quote::{quote, ToTokens};
