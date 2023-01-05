@@ -1,12 +1,13 @@
 #![deny(clippy::all)]
 
 mod mmutil;
+mod mmutil_sys;
 
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use quote::{quote, ToTokens};
-use std::path::Path;
-use syn::parse_macro_input;
+use std::path::{Path, PathBuf};
+use syn::{parse::Parser, parse_macro_input, punctuated::Punctuated, LitStr};
 
 use quote::TokenStreamExt;
 struct ByteString<'a>(&'a [u8]);
@@ -66,4 +67,29 @@ where
                 .map(move |sample| (sample.unwrap() >> reduction) as u8),
         ),
     }
+}
+
+#[proc_macro]
+pub fn include_sounds(input: TokenStream) -> TokenStream {
+    let parser = Punctuated::<LitStr, syn::Token![,]>::parse_separated_nonempty;
+    let parsed = match parser.parse(input) {
+        Ok(e) => e,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+
+    let filenames: Vec<PathBuf> = parsed
+        .iter()
+        .map(|s| s.value())
+        .map(|s| Path::new(&root).join(&*s))
+        .collect();
+
+    let result = quote! {
+        mod music {
+
+        }
+    };
+
+    TokenStream::from(result)
 }

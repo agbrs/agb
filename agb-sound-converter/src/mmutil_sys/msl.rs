@@ -1,17 +1,6 @@
-use ::libc;
+use ::libc::{self, fclose, fopen, fprintf, free, malloc, printf, strlen, toupper, FILE};
 
 extern "C" {
-    pub type _IO_wide_data;
-    pub type _IO_codecvt;
-    pub type _IO_marker;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    fn __ctype_toupper_loc() -> *mut *const __int32_t;
-    fn fclose(__stream: *mut FILE) -> libc::c_int;
-    fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
-    fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
-    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn write32(p_v: u32_0);
     fn fseek(__stream: *mut FILE, __off: libc::c_long, __whence: libc::c_int) -> libc::c_int;
     fn ftell(__stream: *mut FILE) -> libc::c_long;
@@ -53,41 +42,7 @@ pub type u16_0 = libc::c_ushort;
 pub type u32_0 = libc::c_uint;
 pub type u8_0 = libc::c_uchar;
 pub type bool_0 = libc::c_uchar;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub _codecvt: *mut _IO_codecvt,
-    pub _wide_data: *mut _IO_wide_data,
-    pub _freeres_list: *mut _IO_FILE,
-    pub _freeres_buf: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-pub type FILE = _IO_FILE;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct tInstrument_Envelope {
@@ -195,14 +150,7 @@ pub struct tMAS_Module {
     pub patterns: *mut Pattern,
 }
 pub type MAS_Module = tMAS_Module;
-#[inline]
-unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
-    return if __c >= -(128 as libc::c_int) && __c < 256 as libc::c_int {
-        *(*__ctype_toupper_loc()).offset(__c as isize)
-    } else {
-        __c
-    };
-}
+
 #[no_mangle]
 pub static mut F_SCRIPT: *mut FILE = 0 as *const FILE as *mut FILE;
 #[no_mangle]
@@ -426,10 +374,12 @@ pub unsafe extern "C" fn MSL_Export(mut filename: *mut libc::c_char) {
     write8('d' as i32 as u8_0);
     write8('*' as i32 as u8_0);
     parap_samp = malloc(
-        (MSL_NSAMPS as libc::c_ulong).wrapping_mul(::std::mem::size_of::<u32_0>() as libc::c_ulong),
+        (MSL_NSAMPS as libc::c_ulong).wrapping_mul(::std::mem::size_of::<u32_0>() as libc::c_ulong)
+            as libc::size_t,
     ) as *mut u32_0;
     parap_song = malloc(
-        (MSL_NSONGS as libc::c_ulong).wrapping_mul(::std::mem::size_of::<u32_0>() as libc::c_ulong),
+        (MSL_NSONGS as libc::c_ulong).wrapping_mul(::std::mem::size_of::<u32_0>() as libc::c_ulong)
+            as libc::size_t,
     ) as *mut u32_0;
     x = 0 as libc::c_int as u32_0;
     while x < MSL_NSAMPS as libc::c_uint {
@@ -520,27 +470,7 @@ pub unsafe extern "C" fn MSL_PrintDefinition(
         if !(*filename.offset(x as isize) as libc::c_int != '.' as i32) {
             break;
         }
-        newtitle[(x - s) as usize] = ({
-            let mut __res: libc::c_int = 0;
-            if ::std::mem::size_of::<libc::c_char>() as libc::c_ulong
-                > 1 as libc::c_int as libc::c_ulong
-            {
-                if 0 != 0 {
-                    let mut __c = *filename.offset(x as isize) as libc::c_int;
-                    __res = if __c < -(128 as libc::c_int) || __c > 255 as libc::c_int {
-                        __c
-                    } else {
-                        *(*__ctype_toupper_loc()).offset(__c as isize)
-                    };
-                } else {
-                    __res = toupper(*filename.offset(x as isize) as libc::c_int);
-                }
-            } else {
-                __res = *(*__ctype_toupper_loc())
-                    .offset(*filename.offset(x as isize) as libc::c_int as isize);
-            }
-            __res
-        }) as libc::c_char;
+        newtitle[(x - s) as usize] = toupper(x) as libc::c_char;
         if newtitle[(x - s) as usize] as libc::c_int >= ' ' as i32
             && newtitle[(x - s) as usize] as libc::c_int <= '/' as i32
         {

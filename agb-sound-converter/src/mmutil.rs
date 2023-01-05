@@ -1,17 +1,5 @@
-#![allow(clippy::all)]
+use std::path::PathBuf;
 
-mod adpcm;
-mod files;
-mod gba;
-mod it;
-mod kiwi;
-mod mas;
-mod mod_mod;
-mod msl;
-mod nds;
-mod s3m;
-mod samplefix;
-mod simple;
-mod upload;
-mod wav;
-mod xm;
+pub struct MmConverted {}
+
+pub fn mm_convert(inputs: &[PathBuf]) -> MmConverted {}
