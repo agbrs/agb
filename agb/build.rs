@@ -8,6 +8,12 @@ fn main() {
         "src/agbabi/memset.s",
         "src/agbabi/memcpy.s",
         "src/save/asm_routines.s",
+        "src/sound/maxmod/mm_init_default.S",
+        "src/sound/maxmod/mm_effect.S",
+        "src/sound/maxmod/mm_main_gba.S",
+        "src/sound/maxmod/mm_main.S",
+        "src/sound/maxmod/mm_mas_arm.S",
+        "src/sound/maxmod/mm_mixer_gba.S",
     ];
 
     println!("cargo:rerun-if-changed=gba.ld");
@@ -33,7 +39,9 @@ fn main() {
 
         let out_file_path = format!("{out_dir}/{filename}");
 
-        let out = std::process::Command::new("arm-none-eabi-as")
+        let out = std::process::Command::new("arm-none-eabi-gcc")
+            .arg("-DSYS_GBA")
+            .arg("-c")
             .arg("-mthumb-interwork")
             .arg("-mcpu=arm7tdmi")
             .arg("-g")
