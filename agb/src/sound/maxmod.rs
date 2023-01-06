@@ -10,6 +10,7 @@ extern "C" {
     fn mmFrame();
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum MixMode {
     Hz8,
     Hz10,
@@ -19,6 +20,23 @@ pub enum MixMode {
     Hz21,
     Hz27,
     Hz31,
+}
+
+impl MixMode {
+    const fn buf_size(self) -> usize {
+        use MixMode::*;
+
+        match self {
+            Hz8 => 544,
+            Hz10 => 704,
+            Hz13 => 896,
+            Hz16 => 1056,
+            Hz18 => 1216,
+            Hz21 => 1408,
+            Hz27 => 1792,
+            Hz31 => 2112,
+        }
+    }
 }
 
 #[repr(C)]
@@ -38,23 +56,26 @@ const MM_SIZEOF_MODCH: isize = 40;
 const MM_SIZEOF_ACTCH: isize = 28;
 const MM_SIZEOF_MIXCH: isize = 24;
 
-pub fn init(soundbank: &'static [u8], num_channels: i32) {
+pub fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
     let num_channels = num_channels as isize;
+    let buf_size = mix_mode.buf_size();
 
     let buffer: Vec<u8> = vec![
         0;
-        (num_channels * (MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH) + 2112)
+        (num_channels * (MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH))
             as usize
+            + buf_size
     ];
     let buffer = Box::into_raw(buffer.into_boxed_slice()) as *mut u8;
 
-    let mut mixing_memory = Vec::<u8, InternalAllocator>::with_capacity_in(2112, InternalAllocator);
-    mixing_memory.resize(1056, 0);
+    let mut mixing_memory =
+        Vec::<u8, InternalAllocator>::with_capacity_in(buf_size, InternalAllocator);
+    mixing_memory.resize(buf_size, 0);
     let mixing_memory = Box::into_raw(mixing_memory.into_boxed_slice()) as *mut u8;
 
     unsafe {
         let mut max_mod_system = MaxModGbaSystem {
-            mix_mode: MixMode::Hz31 as i32,
+            mix_mode: mix_mode as i32,
             mod_channel_count: num_channels as u32,
             mix_channel_count: num_channels as u32,
             module_channels: buffer,

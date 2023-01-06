@@ -470,7 +470,8 @@ pub unsafe extern "C" fn MSL_PrintDefinition(
         if !(*filename.offset(x as isize) as libc::c_int != '.' as i32) {
             break;
         }
-        newtitle[(x - s) as usize] = toupper(x) as libc::c_char;
+        newtitle[(x - s) as usize] =
+            toupper(*filename.offset(x as isize) as libc::c_int) as libc::c_char;
         if newtitle[(x - s) as usize] as libc::c_int >= ' ' as i32
             && newtitle[(x - s) as usize] as libc::c_int <= '/' as i32
         {
