@@ -179,7 +179,7 @@ fn update_changelog(root_directory: &Path, new_version: &Version) -> Result<Stri
         1,
     );
 
-    std::fs::write(&changelog_file, &changelog_content)
+    std::fs::write(&changelog_file, changelog_content)
         .map_err(|_| Error::FailedToWriteChangelog)?;
 
     Ok(change_content)
