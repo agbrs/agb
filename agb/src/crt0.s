@@ -74,3 +74,15 @@ b .Initialise_mb
 1:
     b 1b
 .pool
+
+    .thumb
+    .align 2
+.global _call_via_r7
+_call_via_r7:
+    bx r7
+
+    .thumb
+    .align 2
+.global _call_via_r1
+_call_via_r1:
+    bx r1

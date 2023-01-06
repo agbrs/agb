@@ -14,4 +14,5 @@
 
 pub mod dmg;
 
+pub mod maxmod;
 pub mod mixer;
