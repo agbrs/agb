@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::CString, fs, path::PathBuf};
+use std::{collections::HashMap, ffi::CString, fs, iter, path::PathBuf};
 
 pub struct MmConverted {
     pub constants: HashMap<String, i32>,
@@ -14,8 +14,8 @@ pub fn mm_convert(inputs: &[PathBuf]) -> MmConverted {
     let soundbank_file = CString::new(soundbank_file_path.to_str().unwrap()).unwrap();
     let header_file = CString::new(header_file_path.to_str().unwrap()).unwrap();
 
-    let mut args: Vec<_> = inputs
-        .iter()
+    let mut args: Vec<_> = iter::once(&PathBuf::from("dummy"))
+        .chain(inputs)
         .map(|arg| {
             CString::new(arg.to_str().expect("Need utf8 filename"))
                 .expect("filename cannot contain null bytes")
@@ -29,7 +29,7 @@ pub fn mm_convert(inputs: &[PathBuf]) -> MmConverted {
             args.len() as i32,
             soundbank_file.into_raw(),
             header_file.into_raw(),
-            0,
+            1,
         );
     }
 
@@ -38,15 +38,18 @@ pub fn mm_convert(inputs: &[PathBuf]) -> MmConverted {
 
     let constants = header_data
         .split('\n')
-        .map(|line| {
+        .filter_map(|line| {
             let split_line: Vec<_> = line.split_ascii_whitespace().collect();
 
-            (
+            if split_line.len() != 3 {
+                return None;
+            }
+
+            Some((
                 split_line[1].to_owned(),
                 split_line[2].parse::<i32>().unwrap(),
-            )
+            ))
         })
-        .filter(|(field, _)| !field.starts_with("MSL_"))
         .collect();
 
     MmConverted {

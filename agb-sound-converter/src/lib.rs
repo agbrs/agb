@@ -5,7 +5,7 @@ mod mmutil_sys;
 
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use std::path::{Path, PathBuf};
 use syn::{parse::Parser, parse_macro_input, punctuated::Punctuated, LitStr};
 
@@ -88,8 +88,9 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
     let mm_converted = mmutil::mm_convert(&filenames);
 
     let constants = mm_converted.constants.iter().map(|(name, value)| {
+        let name = format_ident!("{}", name);
         quote! {
-            const #name: i32 = #value;
+            pub const #name: i32 = #value;
         }
     });
 
@@ -100,7 +101,7 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
 
     let soundbank_data = ByteString(&mm_converted.soundbank_data);
     let soundbank_data = quote! {
-        const SOUNDBANK_DATA: &[u8] = {
+        pub const SOUNDBANK_DATA: &[u8] = {
             #[repr(align(4))]
             struct AlignmentWrapper<const N: usize>([u8; N]);
 
