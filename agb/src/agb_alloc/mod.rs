@@ -251,4 +251,45 @@ mod test {
             "address of allocation should be within iwram, instead at {p:?}"
         );
     }
+
+    #[test_case]
+    fn benchmark_allocation(_gba: &mut crate::Gba) {
+        let mut stored: Vec<Vec<u8>> = Vec::new();
+
+        let mut rng = crate::rng::RandomNumberGenerator::new();
+
+        const MAX_VEC_LENGTH: usize = 100;
+
+        enum Action {
+            Add { size: usize },
+            Remove { index: usize },
+        }
+
+        let next_action = |rng: &mut crate::rng::RandomNumberGenerator, stored: &[Vec<u8>]| {
+            if stored.len() >= MAX_VEC_LENGTH {
+                Action::Remove {
+                    index: (rng.gen() as usize) % stored.len(),
+                }
+            } else if stored.is_empty() || rng.gen() as usize % 4 != 0 {
+                Action::Add {
+                    size: rng.gen() as usize % 32,
+                }
+            } else {
+                Action::Remove {
+                    index: (rng.gen() as usize) % stored.len(),
+                }
+            }
+        };
+
+        for _ in 0..10000 {
+            match next_action(&mut rng, &stored) {
+                Action::Add { size } => {
+                    stored.push(Vec::with_capacity(size));
+                }
+                Action::Remove { index } => {
+                    stored.swap_remove(index);
+                }
+            }
+        }
+    }
 }

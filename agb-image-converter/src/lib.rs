@@ -79,7 +79,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
     let mut palette256 = Palette256::new();
 
     for (name, settings) in images.iter() {
-        let image_filename = &parent.join(&settings.filename());
+        let image_filename = &parent.join(settings.filename());
         let image = Image::load_from_file(image_filename);
 
         match settings.colours() {
@@ -282,7 +282,7 @@ fn convert_image(
     optimisation_results: &Palette16OptimisationResults,
     assignment_offset: Option<usize>,
 ) -> proc_macro2::TokenStream {
-    let image_filename = &parent.join(&settings.filename());
+    let image_filename = &parent.join(settings.filename());
     let image = Image::load_from_file(image_filename);
 
     rust_generator::generate_code(
@@ -339,7 +339,6 @@ fn palette_tile_data(
                 .map(|colour| colour.to_rgb15())
                 .chain(iter::repeat(0))
                 .take(16)
-                .map(|colour| colour as u16)
                 .collect()
         })
         .collect();
