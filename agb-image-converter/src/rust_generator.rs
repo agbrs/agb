@@ -19,8 +19,7 @@ pub(crate) fn generate_palette_code(
             .into_iter()
             .map(|colour| colour.to_rgb15())
             .chain(iter::repeat(0))
-            .take(16)
-            .map(|colour| colour as u16);
+            .take(16);
 
         quote! {
             #crate_prefix::display::palette16::Palette16::new([
