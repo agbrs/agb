@@ -10,6 +10,17 @@ extern "C" {
     fn mmFrame();
 }
 
+pub enum MixMode {
+    Hz8,
+    Hz10,
+    Hz13,
+    Hz16,
+    Hz18,
+    Hz21,
+    Hz27,
+    Hz31,
+}
+
 #[repr(C)]
 struct MaxModGbaSystem {
     mix_mode: i32,
@@ -23,10 +34,18 @@ struct MaxModGbaSystem {
     soundbank: *const u8,
 }
 
+const MM_SIZEOF_MODCH: isize = 40;
+const MM_SIZEOF_ACTCH: isize = 28;
+const MM_SIZEOF_MIXCH: isize = 24;
+
 pub fn init(soundbank: &'static [u8], num_channels: i32) {
     let num_channels = num_channels as isize;
 
-    let buffer: Vec<u8> = vec![0; num_channels as usize * (40 + 28 + 24) + 2112];
+    let buffer: Vec<u8> = vec![
+        0;
+        (num_channels * (MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH) + 2112)
+            as usize
+    ];
     let buffer = Box::into_raw(buffer.into_boxed_slice()) as *mut u8;
 
     let mut mixing_memory = Vec::<u8, InternalAllocator>::with_capacity_in(2112, InternalAllocator);
@@ -35,14 +54,15 @@ pub fn init(soundbank: &'static [u8], num_channels: i32) {
 
     unsafe {
         let mut max_mod_system = MaxModGbaSystem {
-            mix_mode: 7,
+            mix_mode: MixMode::Hz31 as i32,
             mod_channel_count: num_channels as u32,
             mix_channel_count: num_channels as u32,
             module_channels: buffer,
-            active_channels: buffer.offset(num_channels * 40),
-            mixing_channels: buffer.offset(num_channels * (40 + 28)),
+            active_channels: buffer.offset(num_channels * MM_SIZEOF_MODCH),
+            mixing_channels: buffer.offset(num_channels * (MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH)),
             mixing_memory,
-            wave_memory: buffer.offset(num_channels * (40 + 28 + 24)),
+            wave_memory: buffer
+                .offset(num_channels * (MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH)),
             soundbank: soundbank.as_ptr(),
         };
 
