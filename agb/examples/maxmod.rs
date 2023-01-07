@@ -4,7 +4,7 @@
 extern crate alloc;
 
 use agb::{
-    sound::maxmod::{self, include_sounds, MixMode},
+    sound::maxmod::{include_sounds, MixMode},
     Gba,
 };
 
@@ -13,19 +13,19 @@ include_sounds!("examples/pk_lz0_07.xm");
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
+    let tracker = gba.mixer.tracker::<music::Music>(8, MixMode::Hz31);
 
-    maxmod::init(music::SOUNDBANK_DATA, 8, MixMode::Hz31);
-    maxmod::start(music::MOD_PK_LZ0_07);
+    tracker.start(music::ModFiles::MOD_PK_LZ0_07);
 
     let mut timer = gba.timers.timers().timer2;
     timer.set_enabled(true);
 
     loop {
         vblank_provider.wait_for_vblank();
-        maxmod::vblank();
+        tracker.vblank();
 
         let before = timer.value();
-        maxmod::frame();
+        tracker.frame();
         let after = timer.value();
 
         agb::println!(

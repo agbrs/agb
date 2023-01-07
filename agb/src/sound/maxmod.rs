@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 pub use agb_sound_converter::include_sounds;
 use alloc::{boxed::Box, vec, vec::Vec};
 
@@ -8,6 +10,55 @@ extern "C" {
     fn mmStart(id: i32, play_mode: i32);
     fn mmVBlank();
     fn mmFrame();
+}
+
+#[doc(hidden)]
+pub unsafe trait TrackerId: Copy {
+    fn id(self) -> i32;
+}
+
+#[doc(hidden)]
+pub unsafe trait TrackerOutput {
+    type ModId;
+    fn sound_bank() -> &'static [u8];
+}
+
+#[non_exhaustive]
+pub struct Tracker<'a, Output: TrackerOutput> {
+    _tracker: PhantomData<Output>,
+    _lifetime: PhantomData<&'a ()>,
+}
+
+impl<'a, Output: TrackerOutput> Tracker<'a, Output>
+where
+    Output::ModId: TrackerId,
+{
+    pub(crate) unsafe fn new(num_channels: i32, mix_mode: MixMode) -> Self {
+        init(Output::sound_bank(), num_channels, mix_mode);
+
+        Self {
+            _tracker: PhantomData,
+            _lifetime: PhantomData,
+        }
+    }
+
+    pub fn start(&self, music: Output::ModId) {
+        unsafe {
+            start(music.id());
+        }
+    }
+
+    pub fn vblank(&self) {
+        unsafe {
+            vblank();
+        }
+    }
+
+    pub fn frame(&self) {
+        unsafe {
+            frame();
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -39,17 +90,6 @@ impl MixMode {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct ModFile(i32);
-
-impl ModFile {
-    #[must_use]
-    #[doc(hidden)]
-    pub const unsafe fn new(id: i32) -> Self {
-        Self(id)
-    }
-}
-
 #[repr(C)]
 struct MaxModGbaSystem {
     mix_mode: i32,
@@ -67,7 +107,7 @@ const MM_SIZEOF_MODCH: isize = 40;
 const MM_SIZEOF_ACTCH: isize = 28;
 const MM_SIZEOF_MIXCH: isize = 24;
 
-pub fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
+unsafe fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
     let num_channels = num_channels as isize;
     let buf_size = mix_mode.buf_size();
 
@@ -102,19 +142,19 @@ pub fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
     }
 }
 
-pub fn start(id: ModFile) {
+unsafe fn start(id: i32) {
     unsafe {
-        mmStart(id.0, 0);
+        mmStart(id, 0);
     }
 }
 
-pub fn vblank() {
+unsafe fn vblank() {
     unsafe {
         mmVBlank();
     }
 }
 
-pub fn frame() {
+unsafe fn frame() {
     unsafe {
         mmFrame();
     }

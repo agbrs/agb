@@ -87,18 +87,16 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
 
     let mm_converted = mmutil::mm_convert(&filenames);
 
-    let constants = mm_converted.constants.iter().map(|(name, value)| {
+    let mod_files = mm_converted.constants.iter().filter_map(|(name, value)| {
         let name_ident = format_ident!("{}", name);
+        let value = *value as isize;
 
         if name.starts_with("MOD_") {
-            // SAFETY: this ID comes from maxmod so safe to create
-            quote! {
-                pub const #name_ident: ::agb::sound::maxmod::ModFile = unsafe { ::agb::sound::maxmod::ModFile::new(#value) };
-            }
+            Some(quote! {
+                #name_ident = #value,
+            })
         } else {
-            quote! {
-                pub const #name_ident: i32 = #value;
-            }
+            None
         }
     });
 
@@ -109,22 +107,41 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
 
     let soundbank_data = ByteString(&mm_converted.soundbank_data);
     let soundbank_data = quote! {
-        pub const SOUNDBANK_DATA: &[u8] = {
+        {
             #[repr(align(4))]
             struct AlignmentWrapper<const N: usize>([u8; N]);
 
             &AlignmentWrapper(*#soundbank_data).0
-        };
+        }
     };
 
     let result = quote! {
         mod music {
-            #(#constants)*
+            use ::agb::sound::maxmod::*;
 
-            #soundbank_data
+            pub struct Music;
+
+            #[derive(Debug, Clone, Copy)]
+            pub enum ModFiles {
+                #(#mod_files)*
+            }
+
+            unsafe impl TrackerId for ModFiles {
+                fn id(self) -> i32 { self as i32 }
+            }
+
+            const SOUND_BANK_DATA: &[u8] = #soundbank_data;
+
+            unsafe impl TrackerOutput for Music {
+                type ModId = ModFiles;
+
+                fn sound_bank() -> &'static [u8] {
+                    SOUND_BANK_DATA
+                }
+            }
 
             #(#include_files)*
-        }
+       }
     };
 
     TokenStream::from(result)

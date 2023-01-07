@@ -127,6 +127,8 @@ pub use sw_mixer::Mixer;
 
 use crate::fixnum::Num;
 
+use super::maxmod::{MixMode, Tracker, TrackerId, TrackerOutput};
+
 /// Controls access to the mixer and the underlying hardware it uses. A zero sized type that
 /// ensures that mixer access is exclusive.
 #[non_exhaustive]
@@ -140,6 +142,18 @@ impl MixerController {
     /// Get a [`Mixer`] in order to start producing sounds.
     pub fn mixer(&mut self, frequency: Frequency) -> Mixer {
         Mixer::new(frequency)
+    }
+
+    /// Get a [`Tracker`] in order to play tracker files.
+    pub fn tracker<Output: TrackerOutput>(
+        &mut self,
+        num_channels: i32,
+        mix_mode: MixMode,
+    ) -> Tracker<'_, Output>
+    where
+        Output::ModId: TrackerId,
+    {
+        unsafe { Tracker::<Output>::new(num_channels, mix_mode) }
     }
 }
 
