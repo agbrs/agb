@@ -152,7 +152,7 @@ pub unsafe extern "C" fn Load_WAV(
                             (dat + 128 as libc::c_int) as u8_0;
                     } else {
                         *((*samp).data as *mut u16_0).offset(t as isize) =
-                            (dat + 32768 as libc::c_int) as u16_0;
+                            (dat.wrapping_add(32768) as libc::c_int) as u16_0;
                     }
                     t += 1;
                 }

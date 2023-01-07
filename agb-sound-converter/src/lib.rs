@@ -88,9 +88,17 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
     let mm_converted = mmutil::mm_convert(&filenames);
 
     let constants = mm_converted.constants.iter().map(|(name, value)| {
-        let name = format_ident!("{}", name);
-        quote! {
-            pub const #name: i32 = #value;
+        let name_ident = format_ident!("{}", name);
+
+        if name.starts_with("MOD_") {
+            // SAFETY: this ID comes from maxmod so safe to create
+            quote! {
+                pub const #name_ident: ::agb::sound::maxmod::ModFile = unsafe { ::agb::sound::maxmod::ModFile::new(#value) };
+            }
+        } else {
+            quote! {
+                pub const #name_ident: i32 = #value;
+            }
         }
     });
 

@@ -39,6 +39,17 @@ impl MixMode {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct ModFile(i32);
+
+impl ModFile {
+    #[must_use]
+    #[doc(hidden)]
+    pub const unsafe fn new(id: i32) -> Self {
+        Self(id)
+    }
+}
+
 #[repr(C)]
 struct MaxModGbaSystem {
     mix_mode: i32,
@@ -91,9 +102,9 @@ pub fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
     }
 }
 
-pub fn start(id: i32) {
+pub fn start(id: ModFile) {
     unsafe {
-        mmStart(id, 0);
+        mmStart(id.0, 0);
     }
 }
 
