@@ -22,7 +22,6 @@ fn main(mut gba: Gba) -> ! {
 
     loop {
         vblank_provider.wait_for_vblank();
-        tracker.vblank();
 
         let before = timer.value();
         tracker.frame();

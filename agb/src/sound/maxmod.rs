@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 pub use agb_sound_converter::include_sounds;
 use alloc::{boxed::Box, vec, vec::Vec};
 
-use crate::InternalAllocator;
+use crate::{InternalAllocator, interrupt::{add_interrupt_handler, InterruptHandler, Interrupt}};
 
 extern "C" {
     fn mmInit(gba_system: *mut MaxModGbaSystem);
@@ -26,7 +26,7 @@ pub unsafe trait TrackerOutput {
 #[non_exhaustive]
 pub struct Tracker<'a, Output: TrackerOutput> {
     _tracker: PhantomData<Output>,
-    _lifetime: PhantomData<&'a ()>,
+    _interrupt_handler: InterruptHandler<'a>,
 }
 
 impl<'a, Output: TrackerOutput> Tracker<'a, Output>
@@ -35,22 +35,17 @@ where
 {
     pub(crate) unsafe fn new(num_channels: i32, mix_mode: MixMode) -> Self {
         init(Output::sound_bank(), num_channels, mix_mode);
+        let vblank_handler = add_interrupt_handler(Interrupt::VBlank, |_cs| unsafe { vblank() });
 
         Self {
             _tracker: PhantomData,
-            _lifetime: PhantomData,
+            _interrupt_handler: vblank_handler,
         }
     }
 
     pub fn start(&self, music: Output::ModId) {
         unsafe {
             start(music.id());
-        }
-    }
-
-    pub fn vblank(&self) {
-        unsafe {
-            vblank();
         }
     }
 
@@ -148,14 +143,20 @@ unsafe fn start(id: i32) {
     }
 }
 
+static mut HAS_RUN_VBLANK: bool = false;
+
 unsafe fn vblank() {
     unsafe {
         mmVBlank();
+        HAS_RUN_VBLANK = true;
     }
 }
 
 unsafe fn frame() {
     unsafe {
-        mmFrame();
+        if HAS_RUN_VBLANK {
+            HAS_RUN_VBLANK = false;
+            mmFrame();
+        }
     }
 }
