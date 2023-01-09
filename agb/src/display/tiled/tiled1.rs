@@ -1,9 +1,13 @@
 use core::cell::RefCell;
 
-use super::{CreatableAffineTiledMode, CreatableRegularTiledMode, TiledMode};
+use super::{
+    AffineBackgroundSize, AffineMap, AffineTiledMode, CreatableAffineTiledMode,
+    CreatableRegularTiledMode, MapLoan, RegularBackgroundSize, RegularMap, RegularTiledMode,
+    TiledMode,
+};
 use crate::{
     bitarray::Bitarray,
-    display::{set_graphics_mode, tiled::AFFINE_BG_ID_OFFSET, DisplayMode},
+    display::{set_graphics_mode, tiled::AFFINE_BG_ID_OFFSET, DisplayMode, Priority},
 };
 
 pub struct Tiled1 {
@@ -26,6 +30,18 @@ impl Tiled1 {
             affine,
             screenblocks: Default::default(),
         }
+    }
+
+    pub fn regular(
+        &self,
+        priority: Priority,
+        size: RegularBackgroundSize,
+    ) -> MapLoan<'_, RegularMap> {
+        self.regular_background(priority, size)
+    }
+
+    pub fn affine(&self, priority: Priority, size: AffineBackgroundSize) -> MapLoan<'_, AffineMap> {
+        self.affine_background(priority, size)
     }
 }
 
