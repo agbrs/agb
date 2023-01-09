@@ -28,7 +28,8 @@ fn main(mut gba: Gba) -> ! {
         input.update();
 
         if input.is_just_pressed(Button::A) {
-            let sfx = SoundEffectOptions::new(music::SfxFiles::SFX_ACCEPT);
+            let mut sfx = SoundEffectOptions::new(music::SfxFiles::SFX_ACCEPT);
+            sfx.volume(255);
             let handle = tracker.effect(sfx);
 
             agb::println!("Plaing 'accept' with handle {:?}", handle);

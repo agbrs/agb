@@ -15,7 +15,7 @@ extern "C" {
     fn mmVBlank();
     fn mmFrame();
 
-    fn mmEffectEx(sound_effect: *const MaxModSoundEffect) -> i32;
+    fn mmEffectEx(sound_effect: *const MaxModSoundEffect) -> u16;
 }
 
 #[doc(hidden)]
@@ -182,7 +182,7 @@ unsafe fn frame() {
     }
 }
 
-unsafe fn play_effect(effect: &MaxModSoundEffect) -> i32 {
+unsafe fn play_effect(effect: &MaxModSoundEffect) -> u16 {
     unsafe { mmEffectEx(effect) }
 }
 
@@ -190,18 +190,18 @@ unsafe fn play_effect(effect: &MaxModSoundEffect) -> i32 {
 struct MaxModSoundEffect {
     id: i32,
     rate: Num<u16, 10>,
-    handle_to_recycle: i32,
+    handle_to_recycle: u16,
     volume: u8,
     panning: u8,
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct SoundEffectHandle(i32);
+pub struct SoundEffectHandle(u16);
 
 pub struct SoundEffectOptions<T> {
     id: T,
     rate: Num<u16, 10>,
-    handle_to_recycle: Option<T>,
+    handle_to_recycle: Option<SoundEffectHandle>,
     volume: u8,
     panning: u8,
 }
@@ -220,11 +220,31 @@ where
         }
     }
 
+    pub fn rate(&mut self, new_rate: Num<u16, 10>) -> &mut Self {
+        self.rate = new_rate;
+        self
+    }
+
+    pub fn volume(&mut self, new_volume: u8) -> &mut Self {
+        self.volume = new_volume;
+        self
+    }
+    
+    pub fn panning(&mut self, new_panning: u8) -> &mut Self {
+        self.panning = new_panning;
+        self
+    }
+
+    pub fn recycle(&mut self, handle: SoundEffectHandle) -> &mut Self {
+        self.handle_to_recycle = Some(handle);
+        self
+    }
+
     fn into_maxmod(self) -> MaxModSoundEffect {
         MaxModSoundEffect {
             id: self.id.id(),
             rate: self.rate,
-            handle_to_recycle: self.handle_to_recycle.map_or(-1, TrackerId::id),
+            handle_to_recycle: self.handle_to_recycle.map_or(0, |h| h.0),
             volume: self.volume,
             panning: self.panning,
         }
