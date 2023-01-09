@@ -3,7 +3,10 @@ use core::marker::PhantomData;
 pub use agb_sound_converter::include_sounds;
 use alloc::{boxed::Box, vec, vec::Vec};
 
-use crate::{InternalAllocator, interrupt::{add_interrupt_handler, InterruptHandler, Interrupt}};
+use crate::{
+    interrupt::{add_interrupt_handler, Interrupt, InterruptHandler},
+    InternalAllocator,
+};
 
 extern "C" {
     fn mmInit(gba_system: *mut MaxModGbaSystem);
@@ -102,7 +105,14 @@ const MM_SIZEOF_MODCH: isize = 40;
 const MM_SIZEOF_ACTCH: isize = 28;
 const MM_SIZEOF_MIXCH: isize = 24;
 
+static mut HAS_INITED: bool = false;
+
 unsafe fn init(soundbank: &'static [u8], num_channels: i32, mix_mode: MixMode) {
+    if HAS_INITED {
+        panic!("Can only init tracker once");
+    }
+    HAS_INITED = true;
+
     let num_channels = num_channels as isize;
     let buf_size = mix_mode.buf_size();
 
