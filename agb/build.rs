@@ -8,12 +8,12 @@ fn main() {
         "src/agbabi/memset.s",
         "src/agbabi/memcpy.s",
         "src/save/asm_routines.s",
-        "src/sound/maxmod/mm_effect.s",
-        "src/sound/maxmod/mm_main_gba.s",
-        "src/sound/maxmod/mm_main.s",
-        "src/sound/maxmod/mm_mas_arm.s",
-        "src/sound/maxmod/mm_mas.s",
-        "src/sound/maxmod/mm_mixer_gba.s",
+        "src/sound/tracker/mm_effect.s",
+        "src/sound/tracker/mm_main_gba.s",
+        "src/sound/tracker/mm_main.s",
+        "src/sound/tracker/mm_mas_arm.s",
+        "src/sound/tracker/mm_mas.s",
+        "src/sound/tracker/mm_mixer_gba.s",
     ];
 
     println!("cargo:rerun-if-changed=gba.ld");

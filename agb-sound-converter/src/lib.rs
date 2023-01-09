@@ -130,7 +130,7 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
 
     let result = quote! {
         mod music {
-            use ::agb::sound::maxmod::*;
+            use ::agb::sound::tracker::*;
 
             pub struct Music;
 

@@ -4,8 +4,8 @@
 extern crate alloc;
 
 use agb::{
-    sound::maxmod::{include_sounds, MixMode, SoundEffectOptions},
     input::{Button, ButtonController},
+    sound::tracker::{include_sounds, MixMode, SoundEffectOptions},
     Gba,
 };
 

@@ -14,5 +14,5 @@
 
 pub mod dmg;
 
-pub mod maxmod;
+pub mod tracker;
 pub mod mixer;

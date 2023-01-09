@@ -127,7 +127,7 @@ pub use sw_mixer::Mixer;
 
 use crate::fixnum::Num;
 
-use super::maxmod::{MixMode, Tracker, TrackerId, TrackerOutput};
+use super::tracker::{MixMode, Tracker, TrackerId, TrackerOutput};
 
 /// Controls access to the mixer and the underlying hardware it uses. A zero sized type that
 /// ensures that mixer access is exclusive.
