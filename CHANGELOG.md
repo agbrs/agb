@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tracker file module support provided by maxmod. You can now play your tracker modules which will allow you to include much more music before running into cartridge size limits.
+
 ### Changed
 - Text renderer can now be re-used which is useful for rpg style character/word at a time text boxes.
 
