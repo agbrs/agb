@@ -126,6 +126,8 @@ text in the `LICENSE` file.
 AGBRS contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
 details for which you can find under `agb/src/agbabi`.
 
+AGBRS contains a subset of the code from [maxmod](https://maxmod.devkitpro.org/) which is released under the ISC licence.
+
 The template is released under [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) to allow you to make whatever
 changes you wish.
 
