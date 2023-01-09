@@ -1,4 +1,6 @@
-use std::{collections::HashMap, ffi::CString, fs, iter, path::PathBuf};
+use std::{collections::HashMap, ffi::CString, fs, iter, path::PathBuf, sync::Mutex};
+
+static mut MMUTIL_MUTEX: Mutex<()> = Mutex::new(());
 
 pub struct MmConverted {
     pub constants: HashMap<String, i32>,
@@ -24,6 +26,8 @@ pub fn mm_convert(inputs: &[PathBuf]) -> MmConverted {
         .collect();
 
     unsafe {
+        let _guard = MMUTIL_MUTEX.lock().unwrap();
+
         crate::mmutil_sys::MSL_Create(
             args.as_mut_ptr(),
             args.len() as i32,
