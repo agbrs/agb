@@ -100,6 +100,19 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
         }
     });
 
+    let sfx_files = mm_converted.constants.iter().filter_map(|(name, value)| {
+        let name_ident = format_ident!("{}", name);
+        let value = *value as isize;
+
+        if name.starts_with("SFX_") {
+            Some(quote! {
+                #name_ident = #value,
+            })
+        } else {
+            None
+        }
+    });
+
     let include_files = filenames.iter().map(|filename| {
         let filename = filename.to_string_lossy();
         quote! { const _: &[u8] = include_bytes!(#filename); }
@@ -126,7 +139,16 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
                 #(#mod_files)*
             }
 
+            #[derive(Debug, Clone, Copy)]
+            pub enum SfxFiles {
+                #(#sfx_files)*
+            }
+
             unsafe impl TrackerId for ModFiles {
+                fn id(self) -> i32 { self as i32 }
+            }
+
+            unsafe impl TrackerId for SfxFiles {
                 fn id(self) -> i32 { self as i32 }
             }
 
@@ -134,6 +156,7 @@ pub fn include_sounds(input: TokenStream) -> TokenStream {
 
             unsafe impl TrackerOutput for Music {
                 type ModId = ModFiles;
+                type SfxId = SfxFiles;
 
                 fn sound_bank() -> &'static [u8] {
                     SOUND_BANK_DATA

@@ -152,6 +152,7 @@ impl MixerController {
     ) -> Tracker<'_, Output>
     where
         Output::ModId: TrackerId,
+        Output::SfxId: TrackerId,
     {
         unsafe { Tracker::<Output>::new(num_channels, mix_mode) }
     }

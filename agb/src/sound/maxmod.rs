@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
 
+use agb_fixnum::Num;
 pub use agb_sound_converter::include_sounds;
 use alloc::{boxed::Box, vec, vec::Vec};
 
@@ -13,6 +14,8 @@ extern "C" {
     fn mmStart(id: i32, play_mode: i32);
     fn mmVBlank();
     fn mmFrame();
+
+    fn mmEffectEx(sound_effect: *const MaxModSoundEffect) -> i32;
 }
 
 #[doc(hidden)]
@@ -23,6 +26,7 @@ pub unsafe trait TrackerId: Copy {
 #[doc(hidden)]
 pub unsafe trait TrackerOutput {
     type ModId;
+    type SfxId;
     fn sound_bank() -> &'static [u8];
 }
 
@@ -35,6 +39,7 @@ pub struct Tracker<'a, Output: TrackerOutput> {
 impl<'a, Output: TrackerOutput> Tracker<'a, Output>
 where
     Output::ModId: TrackerId,
+    Output::SfxId: TrackerId,
 {
     pub(crate) unsafe fn new(num_channels: i32, mix_mode: MixMode) -> Self {
         init(Output::sound_bank(), num_channels, mix_mode);
@@ -56,6 +61,12 @@ where
         unsafe {
             frame();
         }
+    }
+
+    pub fn effect(&self, effect: SoundEffectOptions<Output::SfxId>) -> SoundEffectHandle {
+        let handle = unsafe { play_effect(&effect.into_maxmod()) };
+
+        SoundEffectHandle(handle)
     }
 }
 
@@ -167,6 +178,55 @@ unsafe fn frame() {
         if HAS_RUN_VBLANK {
             HAS_RUN_VBLANK = false;
             mmFrame();
+        }
+    }
+}
+
+unsafe fn play_effect(effect: &MaxModSoundEffect) -> i32 {
+    unsafe { mmEffectEx(effect) }
+}
+
+#[repr(C)]
+struct MaxModSoundEffect {
+    id: i32,
+    rate: Num<u16, 10>,
+    handle_to_recycle: i32,
+    volume: u8,
+    panning: u8,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct SoundEffectHandle(i32);
+
+pub struct SoundEffectOptions<T> {
+    id: T,
+    rate: Num<u16, 10>,
+    handle_to_recycle: Option<T>,
+    volume: u8,
+    panning: u8,
+}
+
+impl<T> SoundEffectOptions<T>
+where
+    T: TrackerId,
+{
+    pub fn new(sfx_id: T) -> Self {
+        Self {
+            id: sfx_id,
+            rate: 1.into(),
+            handle_to_recycle: None,
+            volume: 128,
+            panning: 128,
+        }
+    }
+
+    fn into_maxmod(self) -> MaxModSoundEffect {
+        MaxModSoundEffect {
+            id: self.id.id(),
+            rate: self.rate,
+            handle_to_recycle: self.handle_to_recycle.map_or(-1, TrackerId::id),
+            volume: self.volume,
+            panning: self.panning,
         }
     }
 }

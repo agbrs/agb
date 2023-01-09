@@ -4,16 +4,19 @@
 extern crate alloc;
 
 use agb::{
-    sound::maxmod::{include_sounds, MixMode},
+    sound::maxmod::{include_sounds, MixMode, SoundEffectOptions},
+    input::{Button, ButtonController},
     Gba,
 };
 
-include_sounds!("examples/pk_lz0_07.xm");
+include_sounds!("examples/pk_lz0_07.xm", "examples/accept.wav");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
+    let mut input = ButtonController::new();
+
     let vblank_provider = agb::interrupt::VBlank::get();
-    let tracker = gba.mixer.tracker::<music::Music>(8, MixMode::Hz31);
+    let tracker = gba.mixer.tracker::<music::Music>(10, MixMode::Hz31);
 
     tracker.start(music::ModFiles::MOD_PK_LZ0_07);
 
@@ -22,6 +25,14 @@ fn main(mut gba: Gba) -> ! {
 
     loop {
         vblank_provider.wait_for_vblank();
+        input.update();
+
+        if input.is_just_pressed(Button::A) {
+            let sfx = SoundEffectOptions::new(music::SfxFiles::SFX_ACCEPT);
+            let handle = tracker.effect(sfx);
+
+            agb::println!("Plaing 'accept' with handle {:?}", handle);
+        }
 
         let before = timer.value();
         tracker.frame();
