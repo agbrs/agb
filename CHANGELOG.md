@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added missed implementations of `regular()` and `affine()` to `Tiled1` which made `Tiled1` impossible to use.
+
 ### Changed
 - Text renderer can now be re-used which is useful for rpg style character/word at a time text boxes.
 
