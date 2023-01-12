@@ -7,7 +7,7 @@ use core::{
 use alloc::boxed::Box;
 use bare_metal::CriticalSection;
 
-use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
+use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped, sync::Static};
 
 #[derive(Clone, Copy)]
 pub enum Interrupt {
@@ -308,27 +308,43 @@ where
     r
 }
 
+static NUM_VBLANKS: Static<usize> = Static::new(0); // overflows after 2.27 years
+static HAS_CREATED_INTERRUPT: Static<bool> = Static::new(false);
+
 #[non_exhaustive]
-pub struct VBlank {}
+pub struct VBlank {
+    last_waited_number: Cell<usize>,
+}
 
 impl VBlank {
     /// Handles setting up everything required to be able to use the wait for
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
-        interrupt_to_root(Interrupt::VBlank).add();
-        VBlank {}
+        if !HAS_CREATED_INTERRUPT.read() {
+            let handler = add_interrupt_handler(Interrupt::VBlank, |_| {
+                NUM_VBLANKS.write(NUM_VBLANKS.read() + 1);
+            });
+            core::mem::forget(handler);
+
+            HAS_CREATED_INTERRUPT.write(true);
+        }
+
+        VBlank {
+            last_waited_number: Cell::new(NUM_VBLANKS.read()),
+        }
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
     pub fn wait_for_vblank(&self) {
-        crate::syscall::wait_for_vblank();
-    }
-}
+        let last_waited_number = self.last_waited_number.get();
+        self.last_waited_number.set(NUM_VBLANKS.read() + 1);
 
-impl Drop for VBlank {
-    fn drop(&mut self) {
-        interrupt_to_root(Interrupt::VBlank).reduce();
+        if last_waited_number < NUM_VBLANKS.read() {
+            return;
+        }
+
+        crate::syscall::wait_for_vblank();
     }
 }
 
@@ -339,18 +355,19 @@ mod tests {
     use core::cell::RefCell;
 
     #[test_case]
-    fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
+    fn test_can_create_and_destroy_interrupt_handlers(_gba: &mut crate::Gba) {
+        let mut counter = Mutex::new(RefCell::new(0));
+        let counter_2 = Mutex::new(RefCell::new(0));
+
+        let vblank = VBlank::get();
+
         {
-            let counter = Mutex::new(RefCell::new(0));
-            let counter_2 = Mutex::new(RefCell::new(0));
             let _a = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
                 *counter.borrow(key).borrow_mut() += 1;
             });
             let _b = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
                 *counter_2.borrow(key).borrow_mut() += 1;
             });
-
-            let vblank = VBlank::get();
 
             while free(|key| {
                 *counter.borrow(key).borrow() < 100 || *counter_2.borrow(key).borrow() < 100
@@ -359,11 +376,10 @@ mod tests {
             }
         }
 
-        assert_eq!(
-            interrupt_to_root(Interrupt::VBlank).next.get(),
-            core::ptr::null(),
-            "expected the interrupt table for vblank to be empty"
-        );
+        vblank.wait_for_vblank();
+        vblank.wait_for_vblank();
+
+        assert_eq!(*counter.get_mut().get_mut(), 100);
     }
 
     #[test_case]
