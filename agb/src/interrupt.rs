@@ -355,18 +355,19 @@ mod tests {
     use core::cell::RefCell;
 
     #[test_case]
-    fn test_vblank_interrupt_handler(_gba: &mut crate::Gba) {
+    fn test_can_create_and_destroy_interrupt_handlers(_gba: &mut crate::Gba) {
+        let mut counter = Mutex::new(RefCell::new(0));
+        let counter_2 = Mutex::new(RefCell::new(0));
+
+        let vblank = VBlank::get();
+
         {
-            let counter = Mutex::new(RefCell::new(0));
-            let counter_2 = Mutex::new(RefCell::new(0));
             let _a = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
                 *counter.borrow(key).borrow_mut() += 1;
             });
             let _b = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
                 *counter_2.borrow(key).borrow_mut() += 1;
             });
-
-            let vblank = VBlank::get();
 
             while free(|key| {
                 *counter.borrow(key).borrow() < 100 || *counter_2.borrow(key).borrow() < 100
@@ -375,11 +376,10 @@ mod tests {
             }
         }
 
-        assert_eq!(
-            interrupt_to_root(Interrupt::VBlank).next.get(),
-            core::ptr::null(),
-            "expected the interrupt table for vblank to be empty"
-        );
+        vblank.wait_for_vblank();
+        vblank.wait_for_vblank();
+
+        assert_eq!(*counter.get_mut().get_mut(), 100);
     }
 
     #[test_case]
