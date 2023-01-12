@@ -7,7 +7,7 @@ use core::{
 use alloc::boxed::Box;
 use bare_metal::CriticalSection;
 
-use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
+use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped, sync::Static};
 
 #[derive(Clone, Copy)]
 pub enum Interrupt {
@@ -308,27 +308,43 @@ where
     r
 }
 
+static NUM_VBLANKS: Static<usize> = Static::new(0); // overflows after 2.27 years
+static HAS_CREATED_INTERRUPT: Static<bool> = Static::new(false);
+
 #[non_exhaustive]
-pub struct VBlank {}
+pub struct VBlank {
+    last_waited_number: Cell<usize>,
+}
 
 impl VBlank {
     /// Handles setting up everything required to be able to use the wait for
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
-        interrupt_to_root(Interrupt::VBlank).add();
-        VBlank {}
+        if !HAS_CREATED_INTERRUPT.read() {
+            let handler = add_interrupt_handler(Interrupt::VBlank, |_| {
+                NUM_VBLANKS.write(NUM_VBLANKS.read() + 1);
+            });
+            core::mem::forget(handler);
+
+            HAS_CREATED_INTERRUPT.write(true);
+        }
+
+        VBlank {
+            last_waited_number: Cell::new(NUM_VBLANKS.read()),
+        }
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
     pub fn wait_for_vblank(&self) {
-        crate::syscall::wait_for_vblank();
-    }
-}
+        let last_waited_number = self.last_waited_number.get();
+        self.last_waited_number.set(NUM_VBLANKS.read() + 1);
 
-impl Drop for VBlank {
-    fn drop(&mut self) {
-        interrupt_to_root(Interrupt::VBlank).reduce();
+        if last_waited_number < NUM_VBLANKS.read() {
+            return;
+        }
+
+        crate::syscall::wait_for_vblank();
     }
 }
 
