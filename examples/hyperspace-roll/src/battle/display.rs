@@ -88,7 +88,6 @@ impl<'a> BattleScreenDisplay<'a> {
         let shield_sprite = SHIP_SPRITES.sprite_for_ship(Ship::Shield);
 
         let player_shield: Vec<_> = (0..5)
-            .into_iter()
             .map(|i| {
                 let mut shield_obj = obj.object(obj.sprite(shield_sprite));
                 shield_obj
@@ -101,7 +100,6 @@ impl<'a> BattleScreenDisplay<'a> {
             .collect();
 
         let enemy_shield: Vec<_> = (0..5)
-            .into_iter()
             .map(|i| {
                 let mut shield_obj = obj.object(obj.sprite(shield_sprite));
                 shield_obj
@@ -147,7 +145,6 @@ impl<'a> BattleScreenDisplay<'a> {
         );
 
         let enemy_attack_display = (0..2)
-            .into_iter()
             .map(|i| {
                 let mut attack_obj = obj.object(
                     obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack)),

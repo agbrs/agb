@@ -145,7 +145,6 @@ impl<'a> HealthBar<'a> {
         assert_eq!(max % 8, 0);
 
         let sprites = (0..(max / 8))
-            .into_iter()
             .map(|i| {
                 let health_sprite = obj.sprite(SMALL_SPRITES.red_bar(0));
 
