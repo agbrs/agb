@@ -64,6 +64,8 @@ same_modification:
     lsrs r7, r7, #1
     bne 1b
 
+    sub r3, r3, #1
+
     mov r5, #0                   @ current index we're reading from
     ldr r8, =agb_rs__buffer_size @ the number of steps left
     ldr r8, [r8]
