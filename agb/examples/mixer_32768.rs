@@ -39,11 +39,12 @@ fn main(mut gba: Gba) -> ! {
 
     let timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer2;
+    let mut timer2 = timer_controller.timer3;
     timer.set_enabled(true);
+    timer2.set_cascade(true).set_enabled(true);
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
-    let _interrupt = mixer.setup_interrupt_handler();
 
     let mut channel = SoundChannel::new(CRAZY_GLUE);
     channel.stereo();
@@ -57,14 +58,22 @@ fn main(mut gba: Gba) -> ! {
         vblank_provider.wait_for_vblank();
         bg.commit(&mut vram);
 
-        let before_mixing_cycles = timer.value();
+        let before_mixing_cycles_high = timer2.value();
+        let before_mixing_cycles_low = timer.value();
+
         mixer.frame();
-        let after_mixing_cycles = timer.value();
+
+        let after_mixing_cycles_low = timer.value();
+        let after_mixing_cycles_high = timer2.value();
 
         frame_counter = frame_counter.wrapping_add(1);
 
         if frame_counter % 128 == 0 && !has_written_frame_time {
-            let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles) as u32;
+            let before_mixing_cycles =
+                ((before_mixing_cycles_high as u32) << 16) + before_mixing_cycles_low as u32;
+            let after_mixing_cycles =
+                ((after_mixing_cycles_high as u32) << 16) + after_mixing_cycles_low as u32;
+            let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles);
 
             let percent = (total_cycles * 100) / 280896;
 

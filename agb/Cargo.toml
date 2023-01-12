@@ -12,7 +12,8 @@ opt-level = 3
 debug = true
 
 [profile.release]
-lto = true
+opt-level = "s"
+lto = "thin"
 debug = true
 
 [features]

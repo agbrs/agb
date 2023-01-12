@@ -142,7 +142,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
-    let _interrupt_handler = mixer.setup_interrupt_handler();
 
     let sfx = Sfx::new(&mut mixer);
 

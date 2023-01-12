@@ -45,11 +45,13 @@
 //!
 //! ## Doing the per-frame work
 //!
-//! Then, you have a choice of whether you want to use interrupts or do the buffer swapping
-//! yourself after a vblank interrupt. If you are using 32768Hz as the frequency of your
-//! files, you _must_ use the interrupt version.
+//! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10%
+//! depending on number of channels and frequency) to do the per-frame tasks, so should be done
+//! towards the end of the frame time (just before waiting for vblank) in order to give as much
+//! time during vblank as possible for rendering related tasks.
 //!
-//! Without interrupts:
+//! In order to avoid skipping audio, call the [`Mixer::frame()`] function at least once per frame
+//! as shown below:
 //!
 //! ```rust,no_run
 //! # #![no_std]
@@ -61,34 +63,8 @@
 //! // Somewhere in your main loop:
 //! mixer.frame();
 //! vblank.wait_for_vblank();
-//! mixer.after_vblank();
 //! # }
 //! ```
-//!
-//! Or with interrupts:
-//!
-//! ```rust,no_run
-//! # #![no_std]
-//! # #![no_main]
-//! use agb::sound::mixer::Frequency;
-//! # fn foo(gba: &mut agb::Gba) {
-//! let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz32768);
-//! let vblank = agb::interrupt::VBlank::get();
-//! // outside your main loop, close to initialisation
-//! // you must assign this to a variable (not to _ or ignored) or rust will immediately drop it
-//! // and prevent the interrupt handler from firing.
-//! let _mixer_interrupt = mixer.setup_interrupt_handler();
-//!
-//! // inside your main loop
-//! mixer.frame();
-//! vblank.wait_for_vblank();
-//! # }
-//! ```
-//!
-//! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10%
-//! depending on number of channels and frequency) to do the per-frame tasks, so should be done
-//! towards the end of the frame time (just before waiting for vblank) in order to give as much
-//! time during vblank as possible for rendering related tasks.
 //!
 //! ## Loading a sample
 //!
@@ -159,7 +135,7 @@ pub enum Frequency {
     Hz10512,
     /// 18157Hz
     Hz18157,
-    /// 32768Hz - note that this option requires interrupts for buffer swapping
+    /// 32768Hz
     Hz32768,
 }
 
