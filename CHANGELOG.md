@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Text renderer can now be re-used which is useful for rpg style character/word at a time text boxes.
 
+### Fixed
+- Zero volume now plays no sound.
+- Fixed issue where volume was incorrect for volumes which were powers of 2.
+
 ## [0.12.2] - 2022/10/22
 
 This is a minor release to fix an alignment issue with background tiles.
