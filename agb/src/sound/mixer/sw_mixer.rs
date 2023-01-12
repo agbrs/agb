@@ -446,26 +446,28 @@ impl MixerBuffer {
                 }
             }
 
-            if channel.is_stereo {
-                unsafe {
-                    agb_rs__mixer_add_stereo(
-                        channel.data.as_ptr().add(channel.pos.floor()),
-                        self.working_buffer.as_mut_ptr(),
-                        channel.volume,
-                    );
-                }
-            } else {
-                let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-                let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+            if channel.volume != 0.into() {
+                if channel.is_stereo {
+                    unsafe {
+                        agb_rs__mixer_add_stereo(
+                            channel.data.as_ptr().add(channel.pos.floor()),
+                            self.working_buffer.as_mut_ptr(),
+                            channel.volume,
+                        );
+                    }
+                } else {
+                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-                unsafe {
-                    agb_rs__mixer_add(
-                        channel.data.as_ptr().add(channel.pos.floor()),
-                        self.working_buffer.as_mut_ptr(),
-                        playback_speed,
-                        left_amount,
-                        right_amount,
-                    );
+                    unsafe {
+                        agb_rs__mixer_add(
+                            channel.data.as_ptr().add(channel.pos.floor()),
+                            self.working_buffer.as_mut_ptr(),
+                            playback_speed,
+                            left_amount,
+                            right_amount,
+                        );
+                    }
                 }
             }
 
