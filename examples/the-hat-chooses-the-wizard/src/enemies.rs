@@ -21,16 +21,12 @@ enum UpdateState {
     Remove,
 }
 
+#[derive(Default)]
 pub enum Enemy<'a> {
     Slime(Slime<'a>),
     Snail(Snail<'a>),
+    #[default]
     Empty,
-}
-
-impl<'a> Default for Enemy<'a> {
-    fn default() -> Self {
-        Enemy::Empty
-    }
 }
 
 pub enum EnemyUpdateState {
