@@ -41,15 +41,15 @@ impl Palette16 {
         true
     }
 
-    pub fn colour_index(&self, colour: Colour, transparent_colour: Option<Colour>) -> u8 {
-        let colour_to_search = match (transparent_colour, colour.is_transparent()) {
-            (Some(transparent_colour), true) => transparent_colour,
-            _ => colour,
-        };
+    pub fn colour_index(&self, colour: Colour) -> u8 {
+        // A transparent color is always index 0
+        if colour.is_transparent() {
+            return 0;
+        }
 
         self.colours
             .iter()
-            .position(|c| *c == colour_to_search)
+            .position(|c| *c == colour)
             .unwrap_or_else(|| {
                 panic!(
                     "Can't get a colour index without it existing, looking for {:?}, got {:?}",
