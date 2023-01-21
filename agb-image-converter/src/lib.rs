@@ -386,7 +386,7 @@ fn add_image_to_tile_data(
                         for i in inner_x * 8..inner_x * 8 + 8 {
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
                             tile_data
-                                .push(palette.colour_index(colour, optimiser.transparent_colour));
+                                .push(palette.colour_index(colour));
                         }
                     }
                 }
