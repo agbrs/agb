@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Alpha channel is now considered by `include_gfx!()` even when `transparent_colour` is absent.
+
 ## [0.13.0] - 2023/01/19
 
 ### Added
