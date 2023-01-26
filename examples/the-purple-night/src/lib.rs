@@ -580,7 +580,6 @@ impl<'a> Player<'a> {
 
         match self.state {
             PlayerState::OnGround => {
-                self.entity.velocity.y = 0.into();
                 self.entity.velocity.x = self.entity.velocity.x * 40 / 64;
 
                 match &mut self.attack_timer {
