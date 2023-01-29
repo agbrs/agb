@@ -980,7 +980,7 @@ impl<T: Number> Vector2D<T> {
     /// assert_eq!(v.x, 1);
     /// assert_eq!(v.y, 2);
     /// ```
-    pub fn new(x: T, y: T) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Vector2D { x, y }
     }
 
