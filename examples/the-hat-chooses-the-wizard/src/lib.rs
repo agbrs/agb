@@ -361,6 +361,7 @@ impl<'a> Player<'a> {
         hat.sprite.show();
 
         hat.sprite.set_z(-1);
+        controller.update_z_ordering();
 
         wizard.position = start_position;
         hat.position = start_position - (0, 10).into();

@@ -57,6 +57,7 @@ impl<'a> BattleScreenDisplay<'a> {
 
         player_obj.set_x(player_x).set_y(player_y).set_z(1).show();
         enemy_obj.set_x(enemy_x).set_y(player_y).set_z(1).show();
+        obj.update_z_ordering();
 
         misc_sprites.push(player_obj);
         misc_sprites.push(enemy_obj);
