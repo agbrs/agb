@@ -947,6 +947,11 @@ impl ObjectController {
             .sprite_controller
             .try_get_sprite(sprite)
     }
+    /// Sort the sprites by z position so they are displayed in correct order.
+    /// Must be called before [ObjectController::commit].
+    pub fn update_z_ordering(&self) {
+        unsafe { self.inner.borrow_mut().update_z_ordering() };
+    }
 }
 
 impl<'a> Object<'a> {
@@ -1067,14 +1072,15 @@ impl<'a> Object<'a> {
     }
 
     /// Sets the z position of the sprite, this controls which sprites are above
-    /// each other. No change will be seen until [ObjectController::commit] is
+    /// each other. You must call [ObjectController::update_z_ordering] to actually
+    /// order all the sprites correctly.
+    /// No change will be seen until [ObjectController::commit] is
     /// called.
     pub fn set_z(&mut self, z: i32) -> &mut Self {
         {
             let mut object_inner = unsafe { self.object_inner() };
             object_inner.z = z;
         }
-        unsafe { self.loan.controller.borrow_mut().update_z_ordering() };
 
         self
     }
@@ -1321,6 +1327,7 @@ mod tests {
             x.set_z(100);
             x.set_sprite(object.sprite(BOSS.sprite(2)));
 
+            object.update_z_ordering();
             object.commit();
         }
 
