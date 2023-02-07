@@ -236,7 +236,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             let direction = tag.animation_direction() as usize;
 
             let name = tag.name();
-            assert!(start <= end, "Tag {} has start > end", name);
+            assert!(start <= end, "Tag {name} has start > end");
 
             quote! {
                 (#name, Tag::new(SPRITES, #start, #end, #direction))

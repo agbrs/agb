@@ -545,7 +545,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
             fractional = (I::one() << N) - fractional;
         }
 
-        write!(f, "{}", integral)?;
+        write!(f, "{integral}")?;
 
         if fractional != I::zero() {
             write!(f, ".")?;
@@ -1046,7 +1046,7 @@ mod tests {
     fn formats_whole_numbers_correctly() {
         let a = Num::<i32, 8>::new(-4i32);
 
-        assert_eq!(format!("{}", a), "-4");
+        assert_eq!(format!("{a}"), "-4");
     }
 
     #[test]
@@ -1060,9 +1060,9 @@ mod tests {
         let d: Num<i32, 8> = minus_one / four;
 
         assert_eq!(b + c, 0.into());
-        assert_eq!(format!("{}", b), "1.25");
-        assert_eq!(format!("{}", c), "-1.25");
-        assert_eq!(format!("{}", d), "-0.25");
+        assert_eq!(format!("{b}"), "1.25");
+        assert_eq!(format!("{c}"), "-1.25");
+        assert_eq!(format!("{d}"), "-0.25");
     }
 
     #[test]

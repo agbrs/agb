@@ -116,7 +116,7 @@ pub fn num(input: TokenStream) -> TokenStream {
 
 fn hashed_ident<T: Hash>(f: &T) -> Ident {
     let hash = calculate_hash(f);
-    Ident::new(&format!("_agb_main_func_{}", hash), Span::call_site())
+    Ident::new(&format!("_agb_main_func_{hash}"), Span::call_site())
 }
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {

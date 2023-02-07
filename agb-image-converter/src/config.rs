@@ -6,7 +6,7 @@ use crate::{Colour, Colours, TileSize};
 
 pub(crate) fn parse(filename: &str) -> Box<dyn Config> {
     let config_toml =
-        fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read file {}", filename));
+        fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read file {filename}"));
 
     let config: ConfigV1 = toml::from_str(&config_toml).expect("Failed to parse file");
 
