@@ -118,7 +118,7 @@ mod tiled_export {
                 "Slime Spawn" => slimes.push((x, y)),
                 "Player Start" => player_start = Some((x, y)),
                 "Enemy Stop" => enemy_stops.push((x, y)),
-                _ => panic!("Unknown object type {}", object_type),
+                _ => panic!("Unknown object type {object_type}"),
             }
         }
 

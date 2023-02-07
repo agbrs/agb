@@ -26,7 +26,7 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
     let include_path = path.to_string_lossy();
 
     let wav_reader = hound::WavReader::open(&path)
-        .unwrap_or_else(|_| panic!("Failed to load file {}", include_path));
+        .unwrap_or_else(|_| panic!("Failed to load file {include_path}"));
 
     let samples: Vec<u8> = samples_from_reader(wav_reader).collect();
     let samples = ByteString(&samples);

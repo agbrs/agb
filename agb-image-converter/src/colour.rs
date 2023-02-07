@@ -29,8 +29,7 @@ impl FromStr for Colour {
     fn from_str(colour: &str) -> Result<Self, Self::Err> {
         if colour.len() != 6 {
             return Err(format!(
-                "Expected colour to be 6 characters, got {}",
-                colour
+                "Expected colour to be 6 characters, got {colour}"
             ));
         }
 

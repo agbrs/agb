@@ -26,7 +26,7 @@ Then replace the `name` field in `Cargo.toml` with `pong`, to end up with someth
 name = "pong"
 version = "0.1.0"
 authors = ["Your name here"]
-edition = "2018"
+edition = "2021"
 
 # ...
 ```

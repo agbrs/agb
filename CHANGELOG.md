@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Made Vector2D::new a const function
+- Made Vector2D::new a const function.
+- The template now uses rust 2021 edition by default.
 
 ### Fixed
 - Alpha channel is now considered by `include_gfx!()` even when `transparent_colour` is absent.
