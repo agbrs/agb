@@ -2,7 +2,7 @@
 name = "agb_sound_converter"
 version = "0.13.0"
 authors = ["Gwilym Kuiper <gw@ilym.me>"]
-edition = "2018"
+edition = "2021"
 license = "MPL-2.0"
 description = "Library for converting wavs for use on the Game Boy Advance"
 repository = "https://github.com/agbrs/agb"
