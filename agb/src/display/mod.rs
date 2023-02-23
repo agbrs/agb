@@ -97,7 +97,7 @@ impl WindowDist {
 pub struct BlendDist;
 
 impl BlendDist {
-    pub fn get(&mut self) -> Blend {
+    pub fn get(&mut self) -> Blend<'_> {
         Blend::new()
     }
 }

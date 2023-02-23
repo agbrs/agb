@@ -15,6 +15,8 @@
 //! ```
 //! where `gba` is a mutable [Gba][crate::Gba] struct.
 
+use core::marker::PhantomData;
+
 use crate::{fixnum::Num, memory_mapped::set_bits};
 
 use super::tiled::BackgroundID;
@@ -43,21 +45,22 @@ pub enum BlendMode {
 
 /// Manages the blending, won't cause anything to change unless [Blend::commit]
 /// is called.
-pub struct Blend {
+pub struct Blend<'a> {
     targets: u16,
     blend_weights: u16,
     fade_weight: u16,
+    phantom: PhantomData<&'a ()>,
 }
 
 /// When making many modifications to a layer, it is convenient to operate on
 /// that layer directly. This is created by the [Blend::layer] function and
 /// operates on that layer.
-pub struct BlendLayer<'blend> {
-    blend: &'blend mut Blend,
+pub struct BlendLayer<'blend, 'a> {
+    blend: &'blend mut Blend<'a>,
     layer: Layer,
 }
 
-impl BlendLayer<'_> {
+impl<'a> BlendLayer<'_, 'a> {
     /// Set whether a background is enabled for blending on this layer.
     pub fn set_background_enable(&mut self, background: BackgroundID, enable: bool) -> &mut Self {
         self.blend
@@ -95,12 +98,13 @@ const BLEND_ALPHAS: *mut u16 = 0x0400_0052 as *mut _;
 
 const BLEND_FADES: *mut u16 = 0x0400_0054 as *mut _;
 
-impl Blend {
+impl<'a> Blend<'a> {
     pub(crate) fn new() -> Self {
         let blend = Self {
             targets: 0,
             blend_weights: 0,
             fade_weight: 0,
+            phantom: PhantomData,
         };
         blend.commit();
 
@@ -137,7 +141,7 @@ impl Blend {
     /// Creates a layer object whose functions work only on that layer,
     /// convenient when performing multiple operations on that layer without the
     /// need of specifying the layer every time.
-    pub fn layer(&mut self, layer: Layer) -> BlendLayer {
+    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_, 'a> {
         BlendLayer { blend: self, layer }
     }
 
@@ -209,7 +213,7 @@ impl Blend {
     }
 }
 
-impl Drop for Blend {
+impl Drop for Blend<'_> {
     fn drop(&mut self) {
         self.reset().commit();
     }
