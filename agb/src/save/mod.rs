@@ -375,6 +375,7 @@ mod marker {
 /// Allows access to the cartridge's save data.
 #[non_exhaustive]
 pub struct SaveManager {}
+
 impl SaveManager {
     pub(crate) const fn new() -> Self {
         SaveManager {}
