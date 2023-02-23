@@ -37,40 +37,14 @@ mod effects {
     pub const SNAIL_DEATH: &[u8] = agb::include_wav!("sfx/snail-death.wav");
 }
 
-pub struct MusicBox {
-    frame: i32,
-}
-
-impl MusicBox {
-    pub fn new() -> Self {
-        MusicBox { frame: 0 }
-    }
-
-    pub fn before_frame(&mut self, mixer: &mut Mixer) {
-        if self.frame == 0 {
-            // play the introduction
-            mixer.play_sound(SoundChannel::new_high_priority(music_data::INTRO_MUSIC));
-        } else if self.frame == music_data::TRIGGER_MUSIC_POINT
-            || (self.frame - music_data::TRIGGER_MUSIC_POINT) % music_data::LOOP_MUSIC == 0
-        {
-            mixer.play_sound(SoundChannel::new_high_priority(music_data::LOOP));
-        }
-
-        self.frame += 1;
-    }
-}
-
 pub struct SfxPlayer<'a> {
-    mixer: &'a mut Mixer,
+    mixer: &'a mut Mixer<'a>,
     frame: i32,
 }
 
 impl<'a> SfxPlayer<'a> {
-    pub fn new(mixer: &'a mut Mixer, music_box: &MusicBox) -> Self {
-        SfxPlayer {
-            mixer,
-            frame: music_box.frame,
-        }
+    pub fn new(mixer: &'a mut Mixer<'a>) -> Self {
+        SfxPlayer { mixer, frame: 0 }
     }
 
     pub fn catch(&mut self) {
@@ -120,7 +94,24 @@ impl<'a> SfxPlayer<'a> {
 
     fn play_random(&mut self, effect: &[&'static [u8]]) {
         self.mixer.play_sound(SoundChannel::new(
-            effect[(self.frame as usize) % effect.len()],
+            effect[agb::rng::gen() as usize % effect.len()],
         ));
+    }
+
+    pub fn frame(&mut self) {
+        if self.frame == 0 {
+            // play the introduction
+            self.mixer
+                .play_sound(SoundChannel::new_high_priority(music_data::INTRO_MUSIC));
+        } else if self.frame == music_data::TRIGGER_MUSIC_POINT
+            || (self.frame - music_data::TRIGGER_MUSIC_POINT) % music_data::LOOP_MUSIC == 0
+        {
+            self.mixer
+                .play_sound(SoundChannel::new_high_priority(music_data::LOOP));
+        }
+
+        self.frame += 1;
+
+        self.mixer.frame();
     }
 }

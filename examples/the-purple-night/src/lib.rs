@@ -533,7 +533,7 @@ struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    fn new(object_controller: &'a ObjectController) -> Player {
+    fn new(object_controller: &'a ObjectController<'a>) -> Player {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),

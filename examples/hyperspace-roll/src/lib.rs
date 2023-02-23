@@ -90,7 +90,7 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
-    obj: ObjectController,
+    obj: ObjectController<'a>,
     vblank: VBlank,
     star_background: StarBackground<'a>,
     vram: VRamManager,
@@ -101,7 +101,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     save::init_save(&mut gba).expect("Could not initialize save game");
 
     if save::load_high_score() > 1000 {
-        save::save_high_score(&mut gba, 0).expect("Could not reset high score");
+        save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
     let gfx = gba.display.object.get();
@@ -208,7 +208,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
                     agb.obj.commit();
                     agb.sfx.customise();
                     if save::load_high_score() < current_level {
-                        save::save_high_score(&mut gba, current_level)
+                        save::save_high_score(&mut gba.save, current_level)
                             .expect("Could not save high score");
                     }
                     break;
