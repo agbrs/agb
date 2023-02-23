@@ -88,7 +88,7 @@ impl ObjectDistribution {
 pub struct WindowDist;
 
 impl WindowDist {
-    pub fn get(&mut self) -> Windows {
+    pub fn get(&mut self) -> Windows<'_> {
         Windows::new()
     }
 }
