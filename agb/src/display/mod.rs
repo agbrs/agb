@@ -79,7 +79,7 @@ pub struct Display {
 pub struct ObjectDistribution;
 
 impl ObjectDistribution {
-    pub fn get(&mut self) -> ObjectController {
+    pub fn get(&mut self) -> ObjectController<'_> {
         ObjectController::new()
     }
 }
