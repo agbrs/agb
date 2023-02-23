@@ -694,12 +694,12 @@ impl ObjectControllerStatic {
 
 /// A controller that distributes objects and sprites. This controls sprites and
 /// objects being copied to vram when it needs to be.
-pub struct ObjectController<'a> {
-    phantom: PhantomData<&'a ()>,
+pub struct ObjectController<'gba> {
+    phantom: PhantomData<&'gba ()>,
     inner: ObjectControllerReference<'static>,
 }
 
-impl<'a> Drop for ObjectController<'a> {
+impl<'gba> Drop for ObjectController<'gba> {
     fn drop(&mut self) {
         unsafe {
             ObjectControllerReference::uninit();
@@ -709,7 +709,7 @@ impl<'a> Drop for ObjectController<'a> {
 
 const HIDDEN_VALUE: u16 = 0b10 << 8;
 
-impl<'object> ObjectController<'object> {
+impl<'gba> ObjectController<'gba> {
     /// Commits the objects to vram and delete sprites where possible. This
     /// should be called shortly after having waited for the next vblank to
     /// ensure what is displayed on screen doesn't change part way through.

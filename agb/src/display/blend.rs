@@ -45,22 +45,22 @@ pub enum BlendMode {
 
 /// Manages the blending, won't cause anything to change unless [Blend::commit]
 /// is called.
-pub struct Blend<'a> {
+pub struct Blend<'gba> {
     targets: u16,
     blend_weights: u16,
     fade_weight: u16,
-    phantom: PhantomData<&'a ()>,
+    phantom: PhantomData<&'gba ()>,
 }
 
 /// When making many modifications to a layer, it is convenient to operate on
 /// that layer directly. This is created by the [Blend::layer] function and
 /// operates on that layer.
-pub struct BlendLayer<'blend, 'a> {
-    blend: &'blend mut Blend<'a>,
+pub struct BlendLayer<'blend, 'gba> {
+    blend: &'blend mut Blend<'gba>,
     layer: Layer,
 }
 
-impl<'a> BlendLayer<'_, 'a> {
+impl<'gba> BlendLayer<'_, 'gba> {
     /// Set whether a background is enabled for blending on this layer.
     pub fn set_background_enable(&mut self, background: BackgroundID, enable: bool) -> &mut Self {
         self.blend
@@ -98,7 +98,7 @@ const BLEND_ALPHAS: *mut u16 = 0x0400_0052 as *mut _;
 
 const BLEND_FADES: *mut u16 = 0x0400_0054 as *mut _;
 
-impl<'a> Blend<'a> {
+impl<'gba> Blend<'gba> {
     pub(crate) fn new() -> Self {
         let blend = Self {
             targets: 0,
@@ -141,7 +141,7 @@ impl<'a> Blend<'a> {
     /// Creates a layer object whose functions work only on that layer,
     /// convenient when performing multiple operations on that layer without the
     /// need of specifying the layer every time.
-    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_, 'a> {
+    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_, 'gba> {
         BlendLayer { blend: self, layer }
     }
 

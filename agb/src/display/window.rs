@@ -9,11 +9,11 @@ use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 /// The windows feature of the Game Boy Advance can selectively display
 /// backgrounds or objects on the screen and can selectively enable and disable
 /// effects. This gives out references and holds changes before they can be committed.
-pub struct Windows<'a> {
+pub struct Windows<'gba> {
     wins: [MovableWindow; 2],
     out: Window,
     obj: Window,
-    phantom: PhantomData<&'a ()>,
+    phantom: PhantomData<&'gba ()>,
 }
 
 const REG_HORIZONTAL_BASE: *mut u16 = 0x0400_0040 as *mut _;
@@ -29,7 +29,7 @@ pub enum WinIn {
     Win1,
 }
 
-impl<'a> Windows<'a> {
+impl<'gba> Windows<'gba> {
     pub(crate) fn new() -> Self {
         let s = Self {
             wins: [MovableWindow::new(), MovableWindow::new()],
