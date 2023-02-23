@@ -1,4 +1,5 @@
 use core::cell::RefCell;
+use core::marker::PhantomData;
 use core::pin::Pin;
 
 use alloc::boxed::Box;
@@ -78,7 +79,7 @@ extern "C" {
 /// }
 /// # }
 /// ```
-pub struct Mixer {
+pub struct Mixer<'gba> {
     interrupt_timer: Timer,
     // SAFETY: Has to go before buffer because it holds a reference to it
     _interrupt_handler: InterruptHandler<'static>,
@@ -91,6 +92,8 @@ pub struct Mixer {
     working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
 
     fifo_timer: Timer,
+
+    phantom: PhantomData<&'gba ()>,
 }
 
 /// A pointer to a currently playing channel.
@@ -116,7 +119,7 @@ pub struct Mixer {
 /// ```
 pub struct ChannelId(usize, i32);
 
-impl Mixer {
+impl Mixer<'_> {
     pub(super) fn new(frequency: Frequency) -> Self {
         let buffer = Box::pin_in(MixerBuffer::new(frequency), InternalAllocator);
 
@@ -158,6 +161,8 @@ impl Mixer {
 
             working_buffer: working_buffer.into_boxed_slice(),
             fifo_timer,
+
+            phantom: PhantomData,
         }
     }
 
