@@ -1,8 +1,5 @@
-use super::sfx::MusicBox;
-use agb::{
-    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager},
-    sound::mixer::Mixer,
-};
+use super::sfx::SfxPlayer;
+use agb::display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager};
 
 agb::include_gfx!("gfx/splash_screens.toml");
 
@@ -13,8 +10,7 @@ pub enum SplashScreen {
 
 pub fn show_splash_screen(
     which: SplashScreen,
-    mut mixer: Option<&mut Mixer>,
-    mut music_box: Option<&mut MusicBox>,
+    sfx: &mut SfxPlayer,
     map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
@@ -32,13 +28,7 @@ pub fn show_splash_screen(
 
     let mut input = agb::input::ButtonController::new();
 
-    if let Some(ref mut mixer) = mixer {
-        if let Some(ref mut music_box) = music_box {
-            music_box.before_frame(mixer);
-        }
-        mixer.frame();
-    }
-
+    sfx.frame();
     vblank.wait_for_vblank();
 
     for y in 0..20u16 {
@@ -51,13 +41,7 @@ pub fn show_splash_screen(
             );
         }
 
-        if let Some(ref mut mixer) = mixer {
-            if let Some(ref mut music_box) = music_box {
-                music_box.before_frame(mixer);
-            }
-            mixer.frame();
-        }
-
+        sfx.frame();
         vblank.wait_for_vblank();
     }
 
@@ -75,12 +59,8 @@ pub fn show_splash_screen(
         ) {
             break;
         }
-        if let Some(mixer) = &mut mixer {
-            if let Some(music_box) = &mut music_box {
-                music_box.before_frame(mixer);
-            }
-            mixer.frame();
-        }
+
+        sfx.frame();
         vblank.wait_for_vblank();
     }
 

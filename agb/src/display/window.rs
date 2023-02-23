@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 //! The window feature of the GBA.
+use core::marker::PhantomData;
+
 use crate::{fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
@@ -7,10 +9,11 @@ use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 /// The windows feature of the Game Boy Advance can selectively display
 /// backgrounds or objects on the screen and can selectively enable and disable
 /// effects. This gives out references and holds changes before they can be committed.
-pub struct Windows {
+pub struct Windows<'gba> {
     wins: [MovableWindow; 2],
     out: Window,
     obj: Window,
+    phantom: PhantomData<&'gba ()>,
 }
 
 const REG_HORIZONTAL_BASE: *mut u16 = 0x0400_0040 as *mut _;
@@ -26,12 +29,13 @@ pub enum WinIn {
     Win1,
 }
 
-impl Windows {
+impl<'gba> Windows<'gba> {
     pub(crate) fn new() -> Self {
         let s = Self {
             wins: [MovableWindow::new(), MovableWindow::new()],
             out: Window::new(),
             obj: Window::new(),
+            phantom: PhantomData,
         };
         s.commit();
         s

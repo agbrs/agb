@@ -114,7 +114,7 @@ impl MixerController {
     }
 
     /// Get a [`Mixer`] in order to start producing sounds.
-    pub fn mixer(&mut self, frequency: Frequency) -> Mixer {
+    pub fn mixer(&mut self, frequency: Frequency) -> Mixer<'_> {
         Mixer::new(frequency)
     }
 }

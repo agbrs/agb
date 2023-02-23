@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::memory_mapped::MemoryMapped;
 
 const fn timer_data(timer: usize) -> MemoryMapped<u16> {
@@ -39,16 +41,20 @@ pub struct Timer {
 }
 
 #[non_exhaustive]
-pub struct Timers {
+pub struct Timers<'gba> {
     pub timer2: Timer,
     pub timer3: Timer,
+
+    phantom: PhantomData<&'gba ()>,
 }
 
-impl Timers {
+impl Timers<'_> {
     pub(crate) unsafe fn new() -> Self {
         Self {
             timer2: Timer::new(2),
             timer3: Timer::new(3),
+
+            phantom: PhantomData,
         }
     }
 }
@@ -129,7 +135,7 @@ impl TimerController {
         Self {}
     }
 
-    pub fn timers(&mut self) -> Timers {
+    pub fn timers(&mut self) -> Timers<'_> {
         unsafe { Timers::new() }
     }
 }

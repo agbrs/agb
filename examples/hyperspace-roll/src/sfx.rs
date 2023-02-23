@@ -45,14 +45,14 @@ enum BattleOrMenu {
 }
 
 pub struct Sfx<'a> {
-    mixer: &'a mut Mixer,
+    mixer: &'a mut Mixer<'a>,
     state: BattleOrMenu,
 
     current_bgm: ChannelId,
 }
 
 impl<'a> Sfx<'a> {
-    pub fn new(mixer: &'a mut Mixer) -> Self {
+    pub fn new(mixer: &'a mut Mixer<'a>) -> Self {
         let mut title_music = SoundChannel::new_high_priority(TITLE_BGM);
         title_music.should_loop();
         let title_channel = mixer.play_sound(title_music).unwrap();

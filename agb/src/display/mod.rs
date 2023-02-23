@@ -79,7 +79,7 @@ pub struct Display {
 pub struct ObjectDistribution;
 
 impl ObjectDistribution {
-    pub fn get(&mut self) -> ObjectController {
+    pub fn get(&mut self) -> ObjectController<'_> {
         ObjectController::new()
     }
 }
@@ -88,7 +88,7 @@ impl ObjectDistribution {
 pub struct WindowDist;
 
 impl WindowDist {
-    pub fn get(&mut self) -> Windows {
+    pub fn get(&mut self) -> Windows<'_> {
         Windows::new()
     }
 }
@@ -97,7 +97,7 @@ impl WindowDist {
 pub struct BlendDist;
 
 impl BlendDist {
-    pub fn get(&mut self) -> Blend {
+    pub fn get(&mut self) -> Blend<'_> {
         Blend::new()
     }
 }
