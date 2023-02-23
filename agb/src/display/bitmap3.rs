@@ -4,19 +4,23 @@ use super::{
     set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, HEIGHT, WIDTH,
 };
 
-use core::convert::TryInto;
+use core::{convert::TryInto, marker::PhantomData};
 
 const BITMAP_MODE_3: MemoryMapped2DArray<u16, { WIDTH as usize }, { HEIGHT as usize }> =
     unsafe { MemoryMapped2DArray::new(0x600_0000) };
 
 #[non_exhaustive]
-pub struct Bitmap3 {}
+pub struct Bitmap3<'gba> {
+    phantom: PhantomData<&'gba ()>,
+}
 
-impl Bitmap3 {
+impl Bitmap3<'_> {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Bitmap3);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
-        Bitmap3 {}
+        Bitmap3 {
+            phantom: PhantomData,
+        }
     }
 
     /// Draws point to screen at (x, y) coordinates with colour and panics if

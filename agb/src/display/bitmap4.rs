@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::memory_mapped::{MemoryMapped1DArray, MemoryMapped2DArray};
 
 use super::{
@@ -25,13 +27,17 @@ pub enum Page {
 }
 
 #[non_exhaustive]
-pub struct Bitmap4 {}
+pub struct Bitmap4<'gba> {
+    phantom: PhantomData<&'gba ()>,
+}
 
-impl Bitmap4 {
+impl Bitmap4<'_> {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Bitmap4);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
-        Bitmap4 {}
+        Bitmap4 {
+            phantom: PhantomData,
+        }
     }
 
     /// Draws point on specified page at (x, y) coordinates with colour index

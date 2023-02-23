@@ -1,4 +1,4 @@
-use core::cell::RefCell;
+use core::{cell::RefCell, marker::PhantomData};
 
 use super::{
     AffineBackgroundSize, AffineMap, AffineTiledMode, CreatableAffineTiledMode, MapLoan, TiledMode,
@@ -8,12 +8,13 @@ use crate::{
     display::{set_graphics_mode, tiled::AFFINE_BG_ID_OFFSET, DisplayMode, Priority},
 };
 
-pub struct Tiled2 {
+pub struct Tiled2<'gba> {
     affine: RefCell<Bitarray<1>>,
     screenblocks: RefCell<Bitarray<1>>,
+    phantom: PhantomData<&'gba ()>,
 }
 
-impl Tiled2 {
+impl Tiled2<'_> {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Tiled2);
 
@@ -25,6 +26,7 @@ impl Tiled2 {
         Self {
             affine,
             screenblocks: Default::default(),
+            phantom: PhantomData,
         }
     }
 
@@ -37,13 +39,13 @@ impl Tiled2 {
     }
 }
 
-impl TiledMode for Tiled2 {
+impl TiledMode for Tiled2<'_> {
     fn screenblocks(&self) -> &RefCell<Bitarray<1>> {
         &self.screenblocks
     }
 }
 
-impl CreatableAffineTiledMode for Tiled2 {
+impl CreatableAffineTiledMode for Tiled2<'_> {
     const AFFINE_BACKGROUNDS: usize = 2;
 
     fn affine(&self) -> &RefCell<Bitarray<1>> {
