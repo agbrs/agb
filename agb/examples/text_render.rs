@@ -8,7 +8,6 @@ use agb::{
     },
     include_font,
 };
-use modular_bitfield::private::checks::FourMod8;
 
 use core::fmt::Write;
 

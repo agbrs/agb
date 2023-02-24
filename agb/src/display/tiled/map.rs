@@ -195,6 +195,14 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
+        if tileset.format() != self.colours() {
+            panic!(
+                "Cannot set a {:?} colour tile on a {:?} colour background",
+                tileset.format(),
+                self.colours()
+            );
+        }
+
         let pos = self.map_size().gba_offset(pos);
 
         let old_tile = self.tiles_mut()[pos];
