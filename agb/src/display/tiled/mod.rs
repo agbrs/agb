@@ -229,6 +229,7 @@ trait RegularTiledMode {
         &self,
         priority: Priority,
         size: RegularBackgroundSize,
+        colours: TileFormat,
     ) -> MapLoan<'_, RegularMap>;
 }
 
@@ -248,6 +249,7 @@ where
         &self,
         priority: Priority,
         size: RegularBackgroundSize,
+        colours: TileFormat,
     ) -> MapLoan<'_, RegularMap> {
         let mut regular = self.regular().borrow_mut();
         let new_background = regular.first_zero().unwrap();
@@ -266,7 +268,13 @@ where
             screenblocks.set(id, true);
         }
 
-        let bg = RegularMap::new(new_background as u8, screenblock as u8 + 16, priority, size);
+        let bg = RegularMap::new(
+            new_background as u8,
+            screenblock as u8 + 16,
+            priority,
+            size,
+            colours,
+        );
 
         regular.set(new_background, true);
 

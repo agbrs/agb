@@ -20,7 +20,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.set_background_palettes(water_tiles::PALETTES);
 
-    let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut bg = gfx.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     for y in 0..20u16 {
         for x in 0..30u16 {

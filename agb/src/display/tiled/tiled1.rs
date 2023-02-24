@@ -3,7 +3,7 @@ use core::{cell::RefCell, marker::PhantomData};
 use super::{
     AffineBackgroundSize, AffineMap, AffineTiledMode, CreatableAffineTiledMode,
     CreatableRegularTiledMode, MapLoan, RegularBackgroundSize, RegularMap, RegularTiledMode,
-    TiledMode,
+    TileFormat, TiledMode,
 };
 use crate::{
     bitarray::Bitarray,
@@ -38,8 +38,9 @@ impl Tiled1<'_> {
         &self,
         priority: Priority,
         size: RegularBackgroundSize,
+        colours: TileFormat,
     ) -> MapLoan<'_, RegularMap> {
-        self.regular_background(priority, size)
+        self.regular_background(priority, size, colours)
     }
 
     pub fn affine(&self, priority: Priority, size: AffineBackgroundSize) -> MapLoan<'_, AffineMap> {

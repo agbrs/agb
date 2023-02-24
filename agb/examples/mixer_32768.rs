@@ -3,7 +3,9 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularMap, TileSetting, TiledMap, VRamManager},
+        tiled::{
+            RegularBackgroundSize, RegularMap, TileFormat, TileSetting, TiledMap, VRamManager,
+        },
         Font, Priority,
     },
     include_font, include_wav,
@@ -23,7 +25,11 @@ fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
     let (gfx, mut vram) = gba.display.video.tiled0();
-    let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut bg = gfx.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     init_background(&mut bg, &mut vram);
 

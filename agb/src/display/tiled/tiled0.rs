@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use super::{
     CreatableRegularTiledMode, MapLoan, RegularBackgroundSize, RegularMap, RegularTiledMode,
-    TiledMode,
+    TileFormat, TiledMode,
 };
 use crate::{
     bitarray::Bitarray,
@@ -30,8 +30,9 @@ impl Tiled0<'_> {
         &self,
         priority: Priority,
         size: RegularBackgroundSize,
+        colours: TileFormat,
     ) -> MapLoan<'_, RegularMap> {
-        self.regular_background(priority, size)
+        self.regular_background(priority, size, colours)
     }
 }
 
