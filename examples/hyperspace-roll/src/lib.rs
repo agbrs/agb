@@ -111,19 +111,23 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let mut background0 = tiled.background(
         Priority::P0,
         display::tiled::RegularBackgroundSize::Background64x32,
+        TileFormat::FourBpp,
     );
     let mut background1 = tiled.background(
         Priority::P0,
         display::tiled::RegularBackgroundSize::Background64x32,
+        TileFormat::FourBpp,
     );
     let mut card_descriptions = tiled.background(
         Priority::P1,
         display::tiled::RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     let mut help_background = tiled.background(
         Priority::P1,
         display::tiled::RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     let basic_die = Die {

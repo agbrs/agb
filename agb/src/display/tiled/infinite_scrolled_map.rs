@@ -54,7 +54,7 @@ use crate::{
 /// let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
 ///
 /// let mut backdrop = InfiniteScrolledMap::new(
-///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
+///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
 ///     Box::new(|pos| {
 ///         (
 ///             &tileset,
@@ -146,7 +146,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
-    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
+    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
     /// #    Box::new(|pos| {
     /// #        (
     /// #            &tileset,
@@ -221,7 +221,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
-    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32),
+    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
     /// #    Box::new(|pos| {
     /// #        (
     /// #            &tileset,

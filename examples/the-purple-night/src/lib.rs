@@ -2225,7 +2225,11 @@ fn game_with_level(gba: &mut agb::Gba) {
         let object = gba.display.object.get();
 
         let backdrop = InfiniteScrolledMap::new(
-            background.background(Priority::P2, RegularBackgroundSize::Background32x32),
+            background.background(
+                Priority::P2,
+                RegularBackgroundSize::Background32x32,
+                TileFormat::FourBpp,
+            ),
             Box::new(|pos| {
                 (
                     &tileset,
@@ -2239,7 +2243,11 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         let foreground = InfiniteScrolledMap::new(
-            background.background(Priority::P0, RegularBackgroundSize::Background32x32),
+            background.background(
+                Priority::P0,
+                RegularBackgroundSize::Background32x32,
+                TileFormat::FourBpp,
+            ),
             Box::new(|pos| {
                 (
                     &tileset,
@@ -2253,7 +2261,11 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         let clouds = InfiniteScrolledMap::new(
-            background.background(Priority::P3, RegularBackgroundSize::Background32x32),
+            background.background(
+                Priority::P3,
+                RegularBackgroundSize::Background32x32,
+                TileFormat::FourBpp,
+            ),
             Box::new(|pos| {
                 (
                     &tileset,

@@ -65,7 +65,11 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     vram.set_background_palettes(games::PALETTES);
 
     let mut bg = InfiniteScrolledMap::new(
-        tile.background(Priority::P0, RegularBackgroundSize::Background32x32),
+        tile.background(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        ),
         Box::new(|pos| {
             let y = pos.y.rem_euclid(20);
             let x = pos.x.rem_euclid(30);

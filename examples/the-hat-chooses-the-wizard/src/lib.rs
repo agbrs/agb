@@ -783,8 +783,16 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 pub fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::PALETTES);
-    let mut splash_screen = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
-    let mut world_display = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut splash_screen = tiled.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+    let mut world_display = tiled.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     let tileset = TileSet::new(tile_sheet::background.tiles, TileFormat::FourBpp);
 
