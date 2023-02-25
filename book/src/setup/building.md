@@ -1,31 +1,71 @@
-# Building the template
+# Building and running the agb template
 
-By the end of this section, you should be able to build and run the **agb** template.
+In this section, you will learn how to build and run the agb template.
+By the end of this section, you will have a working GBA game that you can run on your emulator of choice.
 
-# 1. Get the source code
+## 1. Clone the repository
 
-The source code can be fetched using `git clone https://github.com/agbrs/template.git`.
+The first step is to clone the agb template repository using Git.
+Open a terminal or command prompt and run the following command:
 
-# 2. Build the template
+```sh
+git clone https://github.com/agbrs/template.git
+```
 
-Build a copy of the template using `cargo build --release`.
-This could take quite a while, but eventually you'll end up with a copy of the template in `target/thumbv4t-none-eabi/release/template` or `target/thumbv4t-none-eabi/release/template.elf` depending on platform.
+This will create a copy of the agb template repository on your local machine.
 
-This can be run directly by some emulators, but we need to run an extra step in order to convert the elf file into a '.gba' file.
+## 2. Build the template
+
+Next, navigate to the `template` directory in the repository and build the template using the following command:
+
+```sh
+cd template
+cargo build --release
+```
+
+This command will compile the agb template in release mode.
+The resulting binary file can be found in the `target/thumbv4t-none-eabi/release` directory.
+Depending on your platform, the file will have either a `.elf` extension or no extension.
+
+## 3. Convert the binary to a GBA file
+
+In order to run the game on an emulator, we need to convert the binary file to a GBA file.
+To do this, we'll use two tools: `arm-none-eabi-objcopy` and `gbafix`.
+
+Run the following command to convert the binary file to a GBA file:
 
 ```sh
 arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/template template.gba
-gbafix template.gba
 ```
 
 or
 
 ```sh
 arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/template.elf template.gba
+```
+
+Depending on whether your file has the .elf extension.
+This command will create a template.gba file in the template directory.
+
+Next, run the following command to fix the GBA header:
+
+```sh
 gbafix template.gba
 ```
 
-And then load the resulting file in your emulator of choice.
-That's all there is to it!
+This command will add the correct GBA header to the template.gba file.
 
-If you have `mgba-qt` in your path, then you can launch the template directly using `cargo run --release`.
+## 4. Run the game
+
+Finally, you can run the game on your emulator of choice.
+Load the template.gba file in your emulator, and you should see the agb template running.
+
+If you have mgba-qt installed on your machine, you can run the game directly from the command line using the following command:
+
+```sh
+cargo run --release
+```
+
+This will build and run the agb template in a single step.
+
+That's it! You now have a working agb template that you can use as a starting point for your own GBA game.
