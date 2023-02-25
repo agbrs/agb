@@ -13,7 +13,7 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::display::object::ObjectController;
-use agb::display::tiled::{TiledMap, VRamManager};
+use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
 use agb::{display, sound::mixer::Frequency};
