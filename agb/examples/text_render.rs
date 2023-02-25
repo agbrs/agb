@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, TileSetting, TiledMap},
+        tiled::{RegularBackgroundSize, TileFormat, TileSetting, TiledMap},
         Font, Priority,
     },
     include_font,
@@ -25,7 +25,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let background_tile = vram.new_dynamic_tile().fill_with(0);
 
-    let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut bg = gfx.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     for y in 0..20u16 {
         for x in 0..30u16 {

@@ -2,6 +2,7 @@
 #![no_main]
 
 use agb::display::blend::{BlendMode, Layer};
+use agb::display::tiled::TileFormat;
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
 use agb::display::{HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
@@ -20,6 +21,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut map = gfx.background(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
     let mut window = gba.display.window.get();
     window

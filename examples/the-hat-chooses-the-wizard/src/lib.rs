@@ -783,8 +783,16 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 pub fn main(mut agb: agb::Gba) -> ! {
     let (tiled, mut vram) = agb.display.video.tiled0();
     vram.set_background_palettes(tile_sheet::PALETTES);
-    let mut splash_screen = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
-    let mut world_display = tiled.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut splash_screen = tiled.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+    let mut world_display = tiled.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     let tileset = TileSet::new(tile_sheet::background.tiles, TileFormat::FourBpp);
 
@@ -849,7 +857,11 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             let map_current_level = current_level;
             let mut background = InfiniteScrolledMap::new(
-                tiled.background(Priority::P2, RegularBackgroundSize::Background32x64),
+                tiled.background(
+                    Priority::P2,
+                    RegularBackgroundSize::Background32x64,
+                    TileFormat::FourBpp,
+                ),
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
@@ -864,7 +876,11 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 }),
             );
             let mut foreground = InfiniteScrolledMap::new(
-                tiled.background(Priority::P0, RegularBackgroundSize::Background64x32),
+                tiled.background(
+                    Priority::P0,
+                    RegularBackgroundSize::Background64x32,
+                    TileFormat::FourBpp,
+                ),
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (

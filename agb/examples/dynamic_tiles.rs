@@ -3,7 +3,7 @@
 
 use agb::display::{
     palette16::Palette16,
-    tiled::{RegularBackgroundSize, TileSetting, TiledMap},
+    tiled::{RegularBackgroundSize, TileFormat, TileSetting, TiledMap},
     Priority,
 };
 
@@ -17,7 +17,11 @@ fn main(mut gba: agb::Gba) -> ! {
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     ])]);
 
-    let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+    let mut bg = gfx.background(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
 
     for y in 0..20u32 {
         for x in 0..30u32 {

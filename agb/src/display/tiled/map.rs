@@ -26,6 +26,8 @@ trait TiledMapPrivate: TiledMapTypes {
     fn tiles_mut(&mut self) -> &mut [Self::TileType];
     fn tiles_dirty(&mut self) -> &mut bool;
 
+    fn colours(&self) -> TileFormat;
+
     fn background_id(&self) -> usize;
     fn screenblock(&self) -> usize;
     fn priority(&self) -> Priority;
@@ -79,25 +81,27 @@ where
     }
 
     fn commit(&mut self, vram: &mut VRamManager) {
-        let new_bg_control_value = (self.priority() as u16)
-            | ((self.screenblock() as u16) << 8)
-            | (self.map_size().size_flag() << 14);
-
-        self.bg_control_register().set(new_bg_control_value);
-        self.update_bg_registers();
-
         let screenblock_memory = self.screenblock_memory();
-        let x: TileIndex = unsafe { *self.tiles_mut().get_unchecked(0) }.into();
-        let x = x.format().tile_size() / TileFormat::FourBpp.tile_size();
+        let tile_count_divisor = self.colours().tile_size() / TileFormat::FourBpp.tile_size();
         if *self.tiles_dirty() {
             unsafe {
                 dma_copy16(
                     self.tiles_mut().as_ptr() as *const u16,
                     screenblock_memory,
-                    self.map_size().num_tiles() / x,
+                    self.map_size().num_tiles() / tile_count_divisor,
                 );
             }
         }
+
+        let tile_colour_flag: u16 = (tile_count_divisor == 2).into();
+
+        let new_bg_control_value = (self.priority() as u16)
+            | ((self.screenblock() as u16) << 8)
+            | (tile_colour_flag << 7)
+            | (self.map_size().size_flag() << 14);
+
+        self.bg_control_register().set(new_bg_control_value);
+        self.update_bg_registers();
 
         vram.gc();
 
@@ -114,6 +118,8 @@ pub struct RegularMap {
     screenblock: u8,
     priority: Priority,
     size: RegularBackgroundSize,
+
+    colours: TileFormat,
 
     scroll: Vector2D<i16>,
 
@@ -154,6 +160,9 @@ impl TiledMapPrivate for RegularMap {
         self.x_register().set(self.scroll.x);
         self.y_register().set(self.scroll.y);
     }
+    fn colours(&self) -> TileFormat {
+        self.colours
+    }
 }
 
 impl RegularMap {
@@ -162,6 +171,7 @@ impl RegularMap {
         screenblock: u8,
         priority: Priority,
         size: RegularBackgroundSize,
+        colours: TileFormat,
     ) -> Self {
         Self {
             background_id,
@@ -170,6 +180,8 @@ impl RegularMap {
             size,
 
             scroll: Default::default(),
+
+            colours,
 
             tiles: vec![Default::default(); size.num_tiles()],
             tiles_dirty: true,
@@ -183,6 +195,14 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
+        if tileset.format() != self.colours() {
+            panic!(
+                "Cannot set a {:?} colour tile on a {:?} colour background",
+                tileset.format(),
+                self.colours()
+            );
+        }
+
         let pos = self.map_size().gba_offset(pos);
 
         let old_tile = self.tiles_mut()[pos];
@@ -266,6 +286,9 @@ impl TiledMapPrivate for AffineMap {
     }
     fn update_bg_registers(&self) {
         self.bg_affine_matrix().set(self.transform);
+    }
+    fn colours(&self) -> TileFormat {
+        TileFormat::EightBpp
     }
 }
 

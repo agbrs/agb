@@ -13,7 +13,7 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::display::object::ObjectController;
-use agb::display::tiled::{TiledMap, VRamManager};
+use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
 use agb::{display, sound::mixer::Frequency};
@@ -111,19 +111,23 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let mut background0 = tiled.background(
         Priority::P0,
         display::tiled::RegularBackgroundSize::Background64x32,
+        TileFormat::FourBpp,
     );
     let mut background1 = tiled.background(
         Priority::P0,
         display::tiled::RegularBackgroundSize::Background64x32,
+        TileFormat::FourBpp,
     );
     let mut card_descriptions = tiled.background(
         Priority::P1,
         display::tiled::RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     let mut help_background = tiled.background(
         Priority::P1,
         display::tiled::RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     let basic_die = Die {

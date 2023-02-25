@@ -253,7 +253,7 @@ impl<'a, 'b> TextRenderer<'b> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::tiled::TiledMap;
+    use crate::display::tiled::{TileFormat, TiledMap};
     const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
@@ -263,6 +263,7 @@ mod tests {
         let mut bg = gfx.background(
             crate::display::Priority::P0,
             crate::display::tiled::RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
         );
 
         vram.set_background_palette_raw(&[

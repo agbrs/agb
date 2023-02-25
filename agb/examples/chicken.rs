@@ -58,6 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut background = gfx.background(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     for (i, &tile) in MAP_MAP.iter().enumerate() {

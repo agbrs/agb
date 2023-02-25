@@ -57,6 +57,10 @@ impl<'a> TileSet<'a> {
     fn reference(&self) -> NonNull<[u8]> {
         self.tiles.into()
     }
+
+    pub(crate) fn format(&self) -> TileFormat {
+        self.format
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -32,7 +32,11 @@ mod tests {
     fn logo_display(gba: &mut crate::Gba) {
         let (gfx, mut vram) = gba.display.video.tiled0();
 
-        let mut map = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32);
+        let mut map = gfx.background(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
 
         display_logo(&mut map, &mut vram);
 

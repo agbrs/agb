@@ -1,7 +1,10 @@
 #![no_std]
 #![no_main]
 
-use agb::display::{example_logo, tiled::RegularBackgroundSize};
+use agb::display::{
+    example_logo,
+    tiled::{RegularBackgroundSize, TileFormat},
+};
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
@@ -10,6 +13,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut map = gfx.background(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     example_logo::display_logo(&mut map, &mut vram);

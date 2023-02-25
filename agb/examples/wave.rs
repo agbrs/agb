@@ -4,7 +4,10 @@
 use core::cell::RefCell;
 
 use agb::{
-    display::{example_logo, tiled::RegularBackgroundSize},
+    display::{
+        example_logo,
+        tiled::{RegularBackgroundSize, TileFormat},
+    },
     fixnum::FixedNum,
     interrupt::{free, Interrupt},
 };
@@ -22,6 +25,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut background = gfx.background(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
     );
 
     example_logo::display_logo(&mut background, &mut vram);
