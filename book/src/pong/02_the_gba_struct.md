@@ -4,13 +4,16 @@ In this section, we'll cover the importance of the Gba struct and how it gets cr
 
 # The importance of the Gba struct
 
-Almost all interaction with the Game Boy Advance's hardware goes through the [Gba singleton struct](https://docs.rs/agb/latest/agb/struct.Gba.html).
-You should not create the Gba struct yourself, instead having it be passed into your main function.
+The [Gba singleton struct](https://docs.rs/agb/latest/agb/struct.Gba.html) is a crucial part of agb game development.
+It is used for almost all interactions with the Game Boy Advance's hardware, such as graphics rendering, timer access and audio playback.
 
-The Gba struct is used to take advantage of rust's borrow checker, and lean on it to ensure that access to the Game Boy Advance hardware is done 'sensibly'.
-You won't have to worry about 2 bits of your code modifying data in the wrong way!
+You should not create the Gba struct yourself. Instead, it is passed to your main function as an owned reference.
+This allows rust's borrow checker to ensure that access to the Game Boy Advance hardware is done in a safe and sensible manner, preventing two bits of your code from modifying data in the wrong way.
 
 # How all agb games start
+
+To use the Gba struct in your agb game, you'll need to create a function (normally called `main`) which takes an owned reference to the Gba instance.
+The recommended way to do this is by using the `#[agb::entry]` attribute macro provided by the `agb` crate.
 
 Replace the content of the `main` function with the following:
 
@@ -23,15 +26,14 @@ loop {} // infinite loop for now
 # }
 ```
 
-and ignore warnings for now.
+This creates an infinite loop and allows you to start building your game.
 
 # Running your pong game
 
-Although there isn't much to see at the moment (just a black screen), you can start the game by using `cargo run` or whatever worked for you in the introduction.
+At this point, your game won't do much except display a black screen. To run your game, use the `cargo run` command as before.
 
-# What we did
+# What we covered
 
-This was a very simple but incredibly important part of any game using `agb`.
-All interactions with the hardware are gated via the Gba struct, which you never create yourself.
-
-You are now ready to learn about display modes and how to start getting things onto the screen!
+In this section, we covered the importance of the Gba struct in agb game development.
+By using the Gba struct as a gatekeeper for all hardware interactions, you can ensure that your code is safe and efficient.
+You are now ready to learn about sprites and start getting things onto the screen!
