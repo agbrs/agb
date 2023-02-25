@@ -1,4 +1,4 @@
-# AGBRS
+# AGB
 
 ## Rust for the Game Boy Advance
 
@@ -14,7 +14,7 @@ programming language. It attempts to be a high level abstraction over the
 internal workings of the Game Boy Advance whilst still being high performance
 and memory efficient.
 
-AGBRS provides the following features:
+agb provides the following features:
 
 * Simple build process with minimal dependencies
 * Built in importing of sprites, backgrounds, music and sound effects
@@ -69,7 +69,7 @@ to just write games for the Game Boy Advance using this library:
 * [gbafix](https://crates.io/crates/gbafix)
     * Install with `cargo install gbafix`
 
-With all of this installed, you should be able to run a full build of agbrs using by running
+With all of this installed, you should be able to run a full build of agb using by running
 ```sh
 just ci
 ```
@@ -111,7 +111,7 @@ Once we hit version 1.0, we will maintain stronger semantic versioning.
 
 ## Acknowledgments
 
-AGBRS would not be possible without the help from the following (non-exhaustive) list of projects:
+agb would not be possible without the help from the following (non-exhaustive) list of projects:
 
 * The amazing work of the [rust-console](https://github.com/rust-console) for making this all possible in the first place
 * The [asefile](https://crates.io/crates/asefile) crate for loading aseprite files
@@ -120,15 +120,15 @@ AGBRS would not be possible without the help from the following (non-exhaustive)
 
 ## Licence
 
-AGBRS and all its subcrates are released under MPL version 2.0. See full licence
+agb and all its subcrates are released under MPL version 2.0. See full licence
 text in the `LICENSE` file.
 
-AGBRS contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
+agb contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
 details for which you can find under `agb/src/agbabi`.
 
 The template is released under [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) to allow you to make whatever
 changes you wish.
 
-The AGBRS logo is released under [Creative Commons Attribution-ShareAlike 4.0](http://creativecommons.org/licenses/by-sa/4.0/)
+The agb logo is released under [Creative Commons Attribution-ShareAlike 4.0](http://creativecommons.org/licenses/by-sa/4.0/)
 
 The music used for the examples is by [Josh Woodward](https://www.joshwoodward.com) and released under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)
