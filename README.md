@@ -1,4 +1,4 @@
-# AGBRS
+# AGB
 
 ## Rust for the Game Boy Advance
 
@@ -10,17 +10,17 @@
 ![AGB logo](.github/logo.png)
 
 This is a library for making games on the Game Boy Advance using the Rust
-programming language. It attempts to be a high level abstraction over the
-internal workings of the Game Boy Advance whilst still being high performance
-and memory efficient.
+programming language. The library's main focus is to provide an abstraction
+that allows you to develop games which take advantage of the GBA's capabilities
+without needing to have extensive knowledge of its low-level implementation.
 
-AGBRS provides the following features:
+agb provides the following features:
 
 * Simple build process with minimal dependencies
 * Built in importing of sprites, backgrounds, music and sound effects
 * High performance audio mixer
-* Simple sprite and tiled background usage
-* Global allocator allowing for use of both `core` and `alloc`
+* Easy to use sprite and tiled background usage
+* A global allocator allowing for use of both `core` and `alloc`
 
 The documentation for the latest release can be found on
 [docs.rs](https://docs.rs/agb/latest/agb/).
@@ -69,7 +69,7 @@ to just write games for the Game Boy Advance using this library:
 * [gbafix](https://crates.io/crates/gbafix)
     * Install with `cargo install gbafix`
 
-With all of this installed, you should be able to run a full build of agbrs using by running
+With all of this installed, you should be able to run a full build of agb using by running
 ```sh
 just ci
 ```
@@ -103,15 +103,14 @@ for performant decimals.
 
 ## Stability
 
-While in 0.x releases, we are following a semi-semantic versioning.
-So 0.x.y will be compatible with 0.x.z provided that y > z, but any changes
-to the minor version will be incompatible with one another.
+While agb is in the pre-1.0 phase, we follow a semi-semantic versioning scheme to ensure compatibility between minor releases.
+Specifically, any 0.x.y release is guaranteed to be compatible with another 0.x.z release provided that y > z, but there may be breaking changes between minor releases (i.e., changes to the second digit, e.g., between 0.1 and 0.2).
 
-Once we hit version 1.0, we will maintain stronger semantic versioning.
+Once agb reaches version 1.0, we will transition to stronger semantic versioning, meaning that any breaking changes will be indicated by an increment to the major version (i.e., the first digit, e.g., from 1.0 to 2.0).
 
 ## Acknowledgments
 
-AGBRS would not be possible without the help from the following (non-exhaustive) list of projects:
+agb would not be possible without the help from the following (non-exhaustive) list of projects:
 
 * The amazing work of the [rust-console](https://github.com/rust-console) for making this all possible in the first place
 * The [asefile](https://crates.io/crates/asefile) crate for loading aseprite files
@@ -120,15 +119,15 @@ AGBRS would not be possible without the help from the following (non-exhaustive)
 
 ## Licence
 
-AGBRS and all its subcrates are released under MPL version 2.0. See full licence
+agb and all its subcrates are released under MPL version 2.0. See full licence
 text in the `LICENSE` file.
 
-AGBRS contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
+agb contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
 details for which you can find under `agb/src/agbabi`.
 
 The template is released under [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) to allow you to make whatever
 changes you wish.
 
-The AGBRS logo is released under [Creative Commons Attribution-ShareAlike 4.0](http://creativecommons.org/licenses/by-sa/4.0/)
+The agb logo is released under [Creative Commons Attribution-ShareAlike 4.0](http://creativecommons.org/licenses/by-sa/4.0/)
 
 The music used for the examples is by [Josh Woodward](https://www.joshwoodward.com) and released under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)

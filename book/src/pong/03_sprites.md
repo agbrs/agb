@@ -1,56 +1,44 @@
 # Sprites
 
-In this section, we'll put the sprites needed for our pong game onto the screen.
-We'll cover what sprites are in the Game Boy Advance, and how to get them to show up on screen.
-We'll briefly cover vblank and by the end of this section, you'll have a ball bouncing around the screen!
+In this section, we'll cover what sprites are in the Game Boy Advance and how to put them on the screen in our pong game.
+We'll briefly cover vblank, and by the end of this section, you'll have a ball bouncing around the screen!
 
-# Why do we need sprites in the first place?
+# Why do we need sprites?
 
-The Game Boy Advance has a 240x160px screen, with 15-bit RGB colour support.
-In order to manually set the colour for each pixel in the screen, you would need to update a total of 38,400 pixels per frame, or 2,304,000 pixels per second at 60 fps.
-With a 16MHz processor, that means you would need to be able to calculate 1 pixel every 8 clock cycles, which is pretty much impossible.
-You could get clever with how you update these pixels, but using the tools provided by the Game Boy Advance to put pixels on the screen, you'll have a much easier time.
+The Game Boy Advance has a 240x160px screen with 15-bit RGB color support. Setting the color for each pixel manually would require updating 38,400 pixels per frame, or 2,304,000 pixels per second at 60 fps.
+With a 16 MHz processor, this means calculating 1 pixel every 8 clock cycles, which is pretty much impossible. 
+he Game Boy Advance provides two ways to easily put pixels on the screen: tiles and sprites.
 
-So there are 2 ways that the Game Boy Advance allows you to get these pixels on screen much more easily.
-Tiles and sprites.
 Tiles are 8x8 pixels in size and can be placed in a grid on the screen.
 You can also scroll the whole tile layer to arbitrary positions, but the tiles will remain in this 8x8 pixel grid.
-We'll cover tiles in more detail later.
 
-The other way you can draw things on screen is using sprites, which we'll cover in more detail in this section.
+Sprites are the other way to draw things on the screen, which we'll cover in this section.
+The Game Boy Advance supports 256 hardware sprites, with different sizes ranging from square 8x8 to more exotic sizes like 8x32 pixels.
+In our pong game, all the sprites will be 16x16 pixels to make things simpler.
 
-# Sprites on the Game Boy Advance
+Sprites are stored in a special area of video memory called the 'Object Attribute Memory' (OAM).
+OAM has space for the 'attributes' of the sprites, such as their location, whether or not they are visible, and which tile to use, but it does not store the actual pixel data.
+The pixel data is stored in video RAM (VRAM).
+This split allows multiple sprites to refer to the same tiles in VRAM, which saves space and allows for more objects on screen than would be possible by repeating them.
 
-The Game Boy Advance supports 256 hardware sprites.
-These can be in one of many sizes, ranging from square 8x8 to more exotic sizes like 8x32 pixels.
-For our pong game, all the sprites will be 16x16 pixels to make things a bit simpler.
+Since RAM is in short supply and expensive, the tile data is stored as indexed palette data.
+Instead of storing the full color data for each pixel in the tile, the Game Boy Advance stores a 'palette' of colors, and the tiles that make up the sprites are stored as indexes to the palette.
+Each sprite can use a maximum of 16 colors out of the total sprite palette of 256 colors.
 
-Sprites are stored in the Game Boy Advance in a special area of video memory called the 'Object Attribute Memory' (OAM).
-This has space for the 'attributes' of the sprites (things like whether or not they are visible, the location, which tile to use etc) but it does not store the actual pixel data.
-The pixel data is stored in a video RAM (VRAM).
-Because of this split, it is possible to have multiple sprites refer to the same tiles in video RAM which saves space and allows for more objects on screen at once then repeating them would otherwise allow.
-
-Since RAM is in short supply, and at the time was quite expensive, the tile data is stored as indexed palette data.
-So rather than storing the full colour data for each pixel in the tile, the Game Boy Advance instead stores a 'palette' of colours and the tiles which make up the sprites are stored as indexes to the palette.
-You don't need to worry about this though, because `agb` handles it for you, but it is important to keep in mind that each sprite can use a maximum of 16 colours out of the total sprite palette of 256 colours.
-
-There are technically 2 types of sprite, regular and affine sprites.
+There are technically two types of sprites: regular and affine sprites.
 For now, we will only be dealing with regular sprites.
 
 # Import the sprite
 
 Firstly, you're going to need to import the sprites into your project.
-`agb` has great support for the [aseprite](https://www.aseprite.org/) sprite editor which can be bought for $20 or you can compile it yourself for free.
+`agb` has excellent support for the [aseprite](https://www.aseprite.org/) sprite editor which can be bought for $20 or you can compile it yourself for free.
 Aseprite files can be natively imported by `agb` for use on the Game Boy Advance.
 Here is the sprite sheet we will use as a png, but you should [download the aseprite file](sprites.aseprite) and place it in `gfx/sprites.aseprite`.
 
 ![pong sprites](sprites.png)
 
-This contains 5 `16x16px` sprites.
-The first is the end cap for the paddle.
-The second is the centre part of the paddle, which could potentially be repeated a few times.
-The third until the fifth is the ball, with various squashed states.
-The aseprite file defines tags for these sprites, being "Paddle End", "Paddle Mid", and "Ball".
+This contains 5 `16x16px` sprites: the end cap for the paddle, the center part of the paddle, which could potentially be repeated a few times, and the ball with various squashed states.
+The aseprite file defines tags for these sprites: "Paddle End," "Paddle Mid," and "Ball."
 
 ```rust
 use agb::{

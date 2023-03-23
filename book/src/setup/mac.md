@@ -4,14 +4,14 @@ This guide has been tested on MacOS 13.0.1 on an M1 chip.
 
 # 1. Install a recent version of rust
 
-agb unfortunately relies on a few nightly rust features, so you need to ensure you have that installed.
+To use agb, you'll need to use nightly rust since it requires a few nightly features.
 Firstly, ensure that you have **rustup** installed which you can do by following the instructions on the [rust website](https://www.rust-lang.org/tools/install)
 
-You can update rustup with `rustup update` if you have already installed it.
+If you have already installed rustup, you can update it with `rustup update`.
 
 # 2. Install arm-none-eabi
 
-We need this installed in order to be able to assemble the small amount of assembly in agb, and to do the final linking.
+To assemble the small amount of assembly in agb and to do the final linking, you'll need to install the `arm-none-eabi` binutils.
 
 ## Install from ARM
 
@@ -43,10 +43,10 @@ After installing to your `/Applications` folder you can add the binary to your p
 
 # 5. Real hardware - gbafix
 
-In order to be able to play on real hardware or on some emulators, you may need to install 'gbafix'.
+In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'gbafix'.
 The rust implementation can be installed very easily using `cargo install gbafix`.
 
 Make sure that the Cargo bin directory is in your `PATH` as we'll need to use it later.
 
-That is all you need to get started.
+That is all you need to get started!
 You can now move on to 'building the game'.
