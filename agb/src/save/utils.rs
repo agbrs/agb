@@ -2,7 +2,7 @@
 
 use super::Error;
 use crate::sync::{RawMutex, RawMutexGuard};
-use crate::timer::{Timer, Divider};
+use crate::timer::{Divider, Timer};
 
 /// A timeout type used to prevent hardware errors in save media from hanging
 /// the game.

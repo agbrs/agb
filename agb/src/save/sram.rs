@@ -3,9 +3,9 @@
 //! SRAM acts as ordinary memory mapped into the memory space, and as such
 //! is accessed using normal memory read/write commands.
 
-use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use crate::save::asm_utils::*;
 use crate::save::utils::Timeout;
+use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 
 const SRAM_SIZE: usize = 32 * 1024; // 32 KiB
 

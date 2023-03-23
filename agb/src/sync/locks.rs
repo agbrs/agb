@@ -81,7 +81,10 @@ impl<T> Mutex<T> {
     /// Creates a new lock containing a given value.
     #[must_use]
     pub const fn new(t: T) -> Self {
-        Mutex { raw: RawMutex::new(), data: UnsafeCell::new(t) }
+        Mutex {
+            raw: RawMutex::new(),
+            data: UnsafeCell::new(t),
+        }
     }
 
     /// Returns a guard for this lock, or panics if there is another lock active.
@@ -92,7 +95,10 @@ impl<T> Mutex<T> {
     /// Returns a guard for this lock or `None` if there is another lock active.
     pub fn try_lock(&self) -> Option<MutexGuard<'_, T>> {
         if self.raw.raw_lock() {
-            Some(MutexGuard { underlying: self, ptr: self.data.get() })
+            Some(MutexGuard {
+                underlying: self,
+                ptr: self.data.get(),
+            })
         } else {
             None
         }

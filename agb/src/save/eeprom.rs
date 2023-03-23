@@ -3,8 +3,8 @@
 //! EEPROM requires using DMA to issue commands for both reading and writing.
 
 use crate::memory_mapped::MemoryMapped;
-use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use crate::save::utils::Timeout;
+use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use core::cmp;
 
 const PORT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0DFFFF00) };
@@ -41,7 +41,10 @@ union BufferContents {
 }
 impl BufferData {
     fn new() -> Self {
-        BufferData { idx: 0, data: BufferContents { uninit: () } }
+        BufferData {
+            idx: 0,
+            data: BufferContents { uninit: () },
+        }
     }
 
     /// Writes a bit to the output buffer.
@@ -120,7 +123,10 @@ impl EepromProperties {
     /// Writes a sector directly.
     #[allow(clippy::needless_range_loop)]
     fn write_sector_raw(
-        &self, word: usize, block: &[u8], timeout: &mut Timeout,
+        &self,
+        word: usize,
+        block: &[u8],
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         // Write sector command. The command is a one bit, followed by a
         // zero bit, followed by the address, followed by 64 bits of data.
@@ -150,7 +156,11 @@ impl EepromProperties {
     /// Writes a sector to the EEPROM, keeping any current contents outside the
     /// buffer's range.
     fn write_sector_safe(
-        &self, word: usize, data: &[u8], start: usize, timeout: &mut Timeout,
+        &self,
+        word: usize,
+        data: &[u8],
+        start: usize,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         let mut buf = self.read_sector(word);
         buf[start..start + data.len()].copy_from_slice(data);
@@ -159,7 +169,11 @@ impl EepromProperties {
 
     /// Writes a sector to the EEPROM.
     fn write_sector(
-        &self, word: usize, data: &[u8], start: usize, timeout: &mut Timeout,
+        &self,
+        word: usize,
+        data: &[u8],
+        start: usize,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         if data.len() == 8 && start == 0 {
             self.write_sector_raw(word, data, timeout)
@@ -219,8 +233,14 @@ impl EepromProperties {
         Ok(())
     }
 }
-const PROPS_512B: EepromProperties = EepromProperties { addr_bits: 6, byte_len: 512 };
-const PROPS_8K: EepromProperties = EepromProperties { addr_bits: 14, byte_len: 8 * 1024 };
+const PROPS_512B: EepromProperties = EepromProperties {
+    addr_bits: 6,
+    byte_len: 512,
+};
+const PROPS_8K: EepromProperties = EepromProperties {
+    addr_bits: 14,
+    byte_len: 8 * 1024,
+};
 
 /// The [`RawSaveAccess`] used for 512 byte EEPROM.
 pub struct Eeprom512B;

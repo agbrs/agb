@@ -6,11 +6,11 @@
 // TODO: Setup cartridge read timings for faster Flash access.
 
 use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
-use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use crate::save::asm_utils::*;
+use crate::save::utils::Timeout;
+use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
 use crate::sync::{InitOnce, Static};
 use core::cmp;
-use crate::save::utils::Timeout;
 
 // Volatile address ports for flash
 const FLASH_PORT_BANK: MemoryMapped<u8> = unsafe { MemoryMapped::new(0x0E000000) };
@@ -314,7 +314,11 @@ impl ChipInfo {
 
     /// Waits for a timeout, or an operation to complete.
     fn wait_for_timeout(
-        &self, offset: usize, val: u8, ms: u16, timeout: &mut Timeout,
+        &self,
+        offset: usize,
+        val: u8,
+        ms: u16,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         timeout.start();
         let offset = 0x0E000000 + offset;
@@ -371,7 +375,10 @@ impl ChipInfo {
     /// Erases and writes an entire 128b sector on Atmel devices.
     #[allow(clippy::needless_range_loop)]
     fn write_atmel_sector_raw(
-        &self, offset: usize, buf: &[u8], timeout: &mut Timeout,
+        &self,
+        offset: usize,
+        buf: &[u8],
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         crate::interrupt::free(|_| {
             issue_flash_command(CMD_WRITE);
@@ -387,12 +394,19 @@ impl ChipInfo {
     /// case of non-sector aligned writes.
     #[inline(never)] // avoid allocating the 128 byte buffer for no reason.
     fn write_atmel_sector_safe(
-        &self, offset: usize, buf: &[u8], start: usize, timeout: &mut Timeout,
+        &self,
+        offset: usize,
+        buf: &[u8],
+        start: usize,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         let mut sector = [0u8; 128];
         self.read_buffer(offset, &mut sector[0..start])?;
         sector[start..start + buf.len()].copy_from_slice(buf);
-        self.read_buffer(offset + start + buf.len(), &mut sector[start + buf.len()..128])?;
+        self.read_buffer(
+            offset + start + buf.len(),
+            &mut sector[start + buf.len()..128],
+        )?;
         self.write_atmel_sector_raw(offset, &sector, timeout)
     }
 
@@ -401,7 +415,11 @@ impl ChipInfo {
     ///
     /// This avoids allocating stack if there is no need to.
     fn write_atmel_sector(
-        &self, offset: usize, buf: &[u8], start: usize, timeout: &mut Timeout,
+        &self,
+        offset: usize,
+        buf: &[u8],
+        start: usize,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         if start == 0 && buf.len() == 128 {
             self.write_atmel_sector_raw(offset, buf, timeout)
@@ -433,7 +451,10 @@ impl RawSaveAccess for FlashAccess {
     }
 
     fn prepare_write(
-        &self, sector: usize, count: usize, timeout: &mut Timeout,
+        &self,
+        sector: usize,
+        count: usize,
+        timeout: &mut Timeout,
     ) -> Result<(), Error> {
         let chip = cached_chip_info()?;
         chip.check_sector_len(sector, count)?;

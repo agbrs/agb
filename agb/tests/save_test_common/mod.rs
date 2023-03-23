@@ -1,6 +1,6 @@
-use core::cmp;
 use agb::save::{Error, MediaInfo};
 use agb::sync::InitOnce;
+use core::cmp;
 
 fn init_sram(gba: &mut agb::Gba) -> &'static MediaInfo {
     static ONCE: InitOnce<MediaInfo> = InitOnce::new();
@@ -31,7 +31,11 @@ const MAX_BLOCK_SIZE: usize = 4 * 1024;
 
 #[allow(clippy::needless_range_loop)]
 fn do_test(
-    gba: &mut agb::Gba, seed: Rng, offset: usize, len: usize, block_size: usize,
+    gba: &mut agb::Gba,
+    seed: Rng,
+    offset: usize,
+    len: usize,
+    block_size: usize,
 ) -> Result<(), Error> {
     let mut buffer = [0; MAX_BLOCK_SIZE];
 
@@ -61,9 +65,12 @@ fn do_test(
         for i in 0..cur_len {
             let cur_byte = rng.next_u8();
             assert_eq!(
-                buffer[i], cur_byte,
+                buffer[i],
+                cur_byte,
                 "Read does not match earlier write: {} != {} @ 0x{:05x}",
-                buffer[i], cur_byte, current + i,
+                buffer[i],
+                cur_byte,
+                current + i,
             );
         }
         current += cur_len;
