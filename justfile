@@ -34,6 +34,13 @@ _build_docs crate:
 clean:
     just _all-crates _clean
 
+fmt:
+    just _all-crates _fmt
+    just _fmt tools
+fmt-check:
+    just _all-crates _fmt-check
+    just _fmt-check tools
+
 run-example example:
     just _build-example "{{example}}"
     mgba-qt "$CARGO_TARGET_DIR/thumbv4t-none-eabi/debug/examples/{{example}}"
@@ -52,7 +59,7 @@ check-linker-script-consistency:
     find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
     find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
 
-ci: check-linker-script-consistency build-debug clippy test build-release test-release doctest-agb build-roms build-book check-docs
+ci: check-linker-script-consistency build-debug clippy fmt-check test build-release test-release doctest-agb build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -94,7 +101,7 @@ _build-rom folder name:
     TARGET_FOLDER="${CARGO_TARGET_DIR:-$GAME_FOLDER/target}"
     GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
 
-    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi -- {{CLIPPY_ARGUMENTS}})
+    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi -- {{CLIPPY_ARGUMENTS}} && cargo fmt --all -- --check)
 
     mkdir -p examples/target/examples
 
@@ -127,6 +134,10 @@ _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
     (cd "{{crate}}" && cargo clean)
+_fmt crate:
+    (cd "{{crate}}" && cargo fmt --all)
+_fmt-check crate:
+    (cd "{{crate}}" && cargo fmt --all -- --check)
 
 _build-example example:
     (cd agb && cargo build "--example={{example}}")
