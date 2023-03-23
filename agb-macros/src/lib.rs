@@ -8,56 +8,82 @@ use syn::{FnArg, Ident, ItemFn, Pat, ReturnType, Token, Type, Visibility};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+fn token_stream_with_string_error(mut tokens: TokenStream, error_str: &str) -> TokenStream {
+    tokens.extend(TokenStream::from(quote! { compile_error!(#error_str); }));
+    tokens
+}
+
 #[proc_macro_attribute]
 pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
-    let f: ItemFn = syn::parse(input).expect("#[agb::entry] must be applied to a function");
+    let f: ItemFn = match syn::parse(input.clone()) {
+        Ok(it) => it,
+        Err(_) => return input,
+    };
 
     // Check that the function signature is correct
-    assert!(
-        f.sig.constness.is_none()
-            && f.vis == Visibility::Inherited
-            && f.sig.abi.is_none()
-            && f.sig.generics.params.is_empty()
-            && f.sig.generics.where_clause.is_none()
-            && match f.sig.output {
-                ReturnType::Type(_, ref ty) => matches!(**ty, Type::Never(_)),
-                _ => false,
-            },
-        "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !"
-    );
+    if !(f.sig.constness.is_none()
+        && f.vis == Visibility::Inherited
+        && f.sig.abi.is_none()
+        && f.sig.generics.params.is_empty()
+        && f.sig.generics.where_clause.is_none()
+        && match f.sig.output {
+            ReturnType::Type(_, ref ty) => matches!(**ty, Type::Never(_)),
+            _ => false,
+        })
+    {
+        return token_stream_with_string_error(
+            input,
+            "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !",
+        );
+    }
 
     // Check that the function signature takes 1 argument, agb::Gba
     let arguments: Vec<_> = f.sig.inputs.iter().collect();
 
-    assert_eq!(
-        arguments.len(),
-        1,
-        "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !, but got {} arguments",
-        arguments.len(),
-    );
+    if arguments.len() != 1 {
+        return token_stream_with_string_error(
+            input,
+            &format!(
+                "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !, but got {} arguments",
+                arguments.len()
+            )
+        );
+    }
 
     let (argument_type, (argument_name, is_mutable)) = match arguments[0] {
         FnArg::Typed(pat_type) => (
             pat_type.ty.to_token_stream(),
             match &*pat_type.pat {
                 Pat::Ident(ident) => {
-                    assert!(
-                        ident.attrs.is_empty() && ident.by_ref.is_none() && ident.subpat.is_none(),
-                        "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !"
-                    );
+                    if !(ident.attrs.is_empty() && ident.by_ref.is_none() && ident.subpat.is_none())
+                    {
+                        return token_stream_with_string_error(
+                            input,
+                            "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !",
+                        );
+                    }
 
                     (ident.ident.clone(), ident.mutability.is_some())
                 }
-                _ => panic!("Expected first argument to #[agb::entry] to be a basic identifier"),
+                _ => {
+                    return token_stream_with_string_error(
+                        input,
+                        "Expected first argument to #[agb::entry] to be a basic identifier",
+                    )
+                }
             },
         ),
-        _ => panic!("Expected first argument to #[agb::entry] to not be self"),
+        _ => {
+            return token_stream_with_string_error(
+                input,
+                "Expected first argument to #[agb::entry] to not be self",
+            )
+        }
     };
 
-    assert!(
-        args.to_string() == "",
-        "Must pass no args to #[agb::entry] macro"
-    );
+    if args.to_string() != "" {
+        return token_stream_with_string_error(input, "Must pass no args to #[agb::entry] macro");
+    }
 
     let fn_name = hashed_ident(&f);
 
@@ -70,10 +96,9 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         None
     };
 
-    assert!(
-        argument_type.to_string().ends_with("Gba"),
-        "Expected first argument to have type 'Gba'"
-    );
+    if !argument_type.to_string().ends_with("Gba") {
+        return token_stream_with_string_error(input, "Expected first argument to have type 'Gba'");
+    }
 
     quote!(
         #[cfg(not(test))]
