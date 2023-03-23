@@ -11,6 +11,6 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1", features = ["full", "extra-traits"] }
+syn = { version = "2", features = ["full", "extra-traits"] }
 proc-macro2 = "1"
 quote = "1"
