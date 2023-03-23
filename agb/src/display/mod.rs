@@ -35,6 +35,7 @@ pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
 bitflags! {
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     struct GraphicsSettings: u16 {
         const PAGE_SELECT = 1 << 0x4;
         const OAM_HBLANK = 1 << 0x5;

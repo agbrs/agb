@@ -40,6 +40,7 @@ impl From<(bool, bool)> for Tri {
 
 bitflags! {
     /// Represents a button on the GBA
+    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Button: u32 {
         /// The A button
         const A = 1 << 0;

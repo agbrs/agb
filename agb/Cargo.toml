@@ -21,7 +21,7 @@ default = ["testing"]
 testing = []
 
 [dependencies]
-bitflags = "1"
+bitflags = "2"
 agb_image_converter = { version = "0.13.0", path = "../agb-image-converter" }
 agb_sound_converter = { version = "0.13.0", path = "../agb-sound-converter" }
 agb_macros = { version = "0.13.0", path = "../agb-macros" }
