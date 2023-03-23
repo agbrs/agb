@@ -12,7 +12,7 @@ proc-macro = true
 
 [dependencies]
 image = { version = "0.23", default-features = false, features = [ "png", "bmp" ] }
-toml = "0.5"
+toml = "0.7"
 serde = { version = "1", features = ["derive"] }
 syn = { version = "2", features = ["full"] }
 proc-macro2 = "1"
