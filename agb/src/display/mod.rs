@@ -4,7 +4,11 @@ use bitflags::bitflags;
 use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
-use self::{blend::Blend, object::ObjectController, window::Windows};
+use self::{
+    blend::Blend,
+    object::{initilise_oam, OAMManager, StaticSpriteLoader, UnmanagedOAM},
+    window::Windows,
+};
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
@@ -80,8 +84,14 @@ pub struct Display {
 pub struct ObjectDistribution;
 
 impl ObjectDistribution {
-    pub fn get(&mut self) -> ObjectController<'_> {
-        ObjectController::new()
+    pub fn get_unmanaged(&mut self) -> (UnmanagedOAM<'_>, StaticSpriteLoader) {
+        unsafe { initilise_oam() };
+        (UnmanagedOAM::new(), StaticSpriteLoader::new())
+    }
+
+    pub fn get_managed(&mut self) -> (OAMManager<'_>, StaticSpriteLoader) {
+        unsafe { initilise_oam() };
+        (OAMManager::new(), StaticSpriteLoader::new())
     }
 }
 
@@ -143,7 +153,7 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy)]
+#[derive(BitfieldSpecifier, Clone, Copy, Debug)]
 pub enum Priority {
     P0 = 0,
     P1 = 1,

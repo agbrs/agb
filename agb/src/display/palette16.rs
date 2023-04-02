@@ -1,3 +1,5 @@
+use core::alloc::Layout;
+
 #[repr(C)]
 #[derive(Clone)]
 pub struct Palette16 {
@@ -20,5 +22,9 @@ impl Palette16 {
     #[must_use]
     pub fn colour(&self, index: usize) -> u16 {
         self.colours[index]
+    }
+
+    pub(crate) const fn layout() -> Layout {
+        Layout::new::<Self>()
     }
 }

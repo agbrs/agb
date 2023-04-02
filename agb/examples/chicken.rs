@@ -4,7 +4,7 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{Object, ObjectController, Size, Sprite},
+        object::{Object, Size, Sprite, StaticSpriteLoader},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
@@ -74,11 +74,11 @@ fn main(mut gba: agb::Gba) -> ! {
     background.show();
     background.commit(&mut vram);
 
-    let object = gba.display.object.get();
+    let (object, mut sprites) = gba.display.object.get_managed();
 
-    let sprite = object.sprite(&CHICKEN_SPRITES[0]);
+    let sprite = sprites.get_vram_sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
-        object: object.object(sprite),
+        object: object.add_object(sprite),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,
@@ -137,15 +137,15 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         restrict_to_screen(&mut chicken);
-        update_chicken_object(&mut chicken, &object, state, frame_count);
+        update_chicken_object(&mut chicken, &mut sprites, state, frame_count);
 
         object.commit();
     }
 }
 
-fn update_chicken_object<'a>(
-    chicken: &'_ mut Character<'a>,
-    object: &'a ObjectController,
+fn update_chicken_object(
+    chicken: &'_ mut Character<'_>,
+    sprites: &mut StaticSpriteLoader,
     state: State,
     frame_count: u32,
 ) {
@@ -158,19 +158,19 @@ fn update_chicken_object<'a>(
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken.object.set_sprite(
-                    object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
+                    sprites.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
                 );
             } else {
                 chicken
                     .object
-                    .set_sprite(object.sprite(&CHICKEN_SPRITES[0]));
+                    .set_sprite(sprites.get_vram_sprite(&CHICKEN_SPRITES[0]));
             }
         }
         State::Upwards => {}
         State::Flapping => {
-            chicken
-                .object
-                .set_sprite(object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
+            chicken.object.set_sprite(
+                sprites.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]),
+            );
         }
     }
 
