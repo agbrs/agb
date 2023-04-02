@@ -4,11 +4,12 @@ use core::{
 };
 
 use agb_fixnum::Vector2D;
+use alloc::vec::Vec;
 use slotmap::{new_key_type, SlotMap};
 
-use crate::display::Priority;
+use crate::{display::Priority, sync::Static};
 
-use super::{AffineMode, SpriteVram, UnmanagedOAM, UnmanagedObject};
+use super::{AffineMode, Sprite, SpriteVram, StaticSpriteLoader, UnmanagedOAM, UnmanagedObject};
 
 new_key_type! {struct ObjectKey; }
 
@@ -26,6 +27,7 @@ struct ObjectItem {
 
 struct Store {
     store: UnsafeCell<slotmap::SlotMap<ObjectKey, ObjectItem>>,
+    removal_list: UnsafeCell<Vec<ObjectKey>>,
     first_z: Cell<Option<ObjectKey>>,
 }
 
@@ -111,10 +113,22 @@ impl Store {
     }
 
     fn remove_object(&self, object: ObjectKey) {
-        remove_from_linked_list(self, object);
-
         let data = unsafe { &mut *self.store.get() };
         data.remove(object);
+    }
+
+    fn remove_all_in_removal_list(&self) {
+        let removal_list = unsafe { &mut *self.removal_list.get() };
+        for object in removal_list.drain(..) {
+            self.remove_object(object);
+        }
+    }
+
+    fn mark_for_removal(&self, object: ObjectKey) {
+        let removal_list = unsafe { &mut *self.removal_list.get() };
+        removal_list.push(object);
+
+        remove_from_linked_list(self, object);
     }
 
     fn get_object(&self, key: ObjectKey) -> &ObjectItem {
@@ -125,6 +139,7 @@ impl Store {
 pub struct OAMManager<'gba> {
     phantom: PhantomData<&'gba ()>,
     object_store: Store,
+    sprite_loader: UnsafeCell<StaticSpriteLoader>,
 }
 
 impl OAMManager<'_> {
@@ -133,15 +148,28 @@ impl OAMManager<'_> {
             phantom: PhantomData,
             object_store: Store {
                 store: UnsafeCell::new(SlotMap::with_key()),
+                removal_list: UnsafeCell::new(Vec::new()),
                 first_z: Cell::new(None),
             },
+            sprite_loader: UnsafeCell::new(StaticSpriteLoader::new()),
         }
+    }
+
+    pub fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
+    where
+        C: Fn(&mut StaticSpriteLoader) -> T,
+    {
+        let sprite_loader = unsafe { &mut *self.sprite_loader.get() };
+
+        c(sprite_loader)
     }
 
     pub fn commit(&self) {
         let mut count = 0;
 
         let mut unmanaged = UnmanagedOAM::new();
+
+        // do interactions with OAM
 
         for (object, mut slot) in unsafe { self.object_store.iter() }
             .map(|item| unsafe { &*item.object.get() })
@@ -151,15 +179,25 @@ impl OAMManager<'_> {
             slot.set(object);
             count += 1;
         }
-
-        crate::println!("{}", count);
-
         unmanaged.clear_from(count);
+
+        // finished OAM interactions
+
+        self.object_store.remove_all_in_removal_list();
+        self.do_work_with_sprite_loader(StaticSpriteLoader::garbage_collect);
     }
 
     pub fn add_object(&self, sprite: SpriteVram) -> Object<'_> {
         self.object_store
             .insert_object(UnmanagedObject::new(sprite))
+    }
+
+    pub fn get_vram_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
+        self.do_work_with_sprite_loader(|sprite_loader| sprite_loader.get_vram_sprite(sprite))
+    }
+
+    pub fn add_object_static_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
+        self.add_object(self.get_vram_sprite(sprite))
     }
 }
 
@@ -170,7 +208,7 @@ pub struct Object<'controller> {
 
 impl Drop for Object<'_> {
     fn drop(&mut self) {
-        self.store.remove_object(self.me);
+        self.store.mark_for_removal(self.me);
     }
 }
 

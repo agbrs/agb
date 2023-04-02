@@ -89,9 +89,9 @@ impl ObjectDistribution {
         (UnmanagedOAM::new(), StaticSpriteLoader::new())
     }
 
-    pub fn get_managed(&mut self) -> (OAMManager<'_>, StaticSpriteLoader) {
+    pub fn get_managed(&mut self) -> OAMManager<'_> {
         unsafe { initilise_oam() };
-        (OAMManager::new(), StaticSpriteLoader::new())
+        OAMManager::new()
     }
 }
 

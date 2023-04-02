@@ -4,7 +4,7 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{Object, Size, Sprite, StaticSpriteLoader},
+        object::{OAMManager, Object, Size, Sprite, StaticSpriteLoader},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
@@ -74,9 +74,9 @@ fn main(mut gba: agb::Gba) -> ! {
     background.show();
     background.commit(&mut vram);
 
-    let (object, mut sprites) = gba.display.object.get_managed();
+    let object = gba.display.object.get_managed();
 
-    let sprite = sprites.get_vram_sprite(&CHICKEN_SPRITES[0]);
+    let sprite = object.get_vram_sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
         object: object.add_object(sprite),
         position: Vector2D {
@@ -137,7 +137,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         restrict_to_screen(&mut chicken);
-        update_chicken_object(&mut chicken, &mut sprites, state, frame_count);
+        update_chicken_object(&mut chicken, &object, state, frame_count);
 
         object.commit();
     }
@@ -145,7 +145,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
 fn update_chicken_object(
     chicken: &'_ mut Character<'_>,
-    sprites: &mut StaticSpriteLoader,
+    gfx: &OAMManager,
     state: State,
     frame_count: u32,
 ) {
@@ -158,18 +158,18 @@ fn update_chicken_object(
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken.object.set_sprite(
-                    sprites.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
+                    gfx.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
                 );
             } else {
                 chicken
                     .object
-                    .set_sprite(sprites.get_vram_sprite(&CHICKEN_SPRITES[0]));
+                    .set_sprite(gfx.get_vram_sprite(&CHICKEN_SPRITES[0]));
             }
         }
         State::Upwards => {}
         State::Flapping => {
             chicken.object.set_sprite(
-                sprites.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]),
+                gfx.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]),
             );
         }
     }

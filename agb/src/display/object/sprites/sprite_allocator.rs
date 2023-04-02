@@ -231,7 +231,7 @@ impl StaticSpriteLoader {
         }
     }
 
-    fn gc(&mut self) {
+    pub fn garbage_collect(&mut self) {
         self.static_sprite_map
             .retain(|_, v| Weak::strong_count(v) != 0);
         self.static_palette_map
