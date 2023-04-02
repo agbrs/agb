@@ -14,7 +14,7 @@ use alloc::{boxed::Box, vec::Vec};
 
 use agb::{
     display::{
-        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
+        object::{Graphics, OAMManager, Object, Sprite, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting,
             VRamManager,
@@ -164,9 +164,8 @@ struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    fn new(object_controller: &'a ObjectController, collision_mask: Rect<u16>) -> Self {
-        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
-        let mut sprite = object_controller.object(s);
+    fn new(object_controller: &'a OAMManager, collision_mask: Rect<u16>) -> Self {
+        let mut sprite = object_controller.add_object_static_sprite(LONG_SWORD_IDLE.sprite(0));
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
@@ -533,12 +532,12 @@ struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    fn new(object_controller: &'a ObjectController<'a>) -> Player {
+    fn new(object_controller: &'a OAMManager<'a>) -> Player {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),
         );
-        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
+        let s = object_controller.get_vram_sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
         entity.position = (144, 0).into();
@@ -559,7 +558,7 @@ impl<'a> Player<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         buttons: &ButtonController,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -590,12 +589,12 @@ impl<'a> Player<'a> {
                         self.entity.sprite.set_hflip(self.facing == Tri::Negative);
                         self.entity.velocity.x += self.sword.ground_walk_force() * x as i32;
                         if self.entity.velocity.x.abs() > Number::new(1) / 10 {
-                            let sprite =
-                                controller.sprite(self.sword.walk_animation(self.sprite_offset));
+                            let sprite = controller
+                                .get_vram_sprite(self.sword.walk_animation(self.sprite_offset));
                             self.entity.sprite.set_sprite(sprite);
                         } else {
-                            let sprite =
-                                controller.sprite(self.sword.idle_animation(self.sprite_offset));
+                            let sprite = controller
+                                .get_vram_sprite(self.sword.idle_animation(self.sprite_offset));
                             self.entity.sprite.set_sprite(sprite);
                         }
 
@@ -615,7 +614,8 @@ impl<'a> Player<'a> {
                         let frame = self.sword.attack_frame(*a);
                         self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
                         let tag = self.sword.attack_tag();
-                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
+                        let sprite =
+                            controller.get_vram_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.ground_attack_hurtbox(frame);
@@ -629,7 +629,8 @@ impl<'a> Player<'a> {
                         let frame = self.sword.hold_frame();
                         self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
                         let tag = self.sword.attack_tag();
-                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
+                        let sprite =
+                            controller.get_vram_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
                         if *a == 0 {
                             self.attack_timer = AttackTimer::Idle;
@@ -654,7 +655,8 @@ impl<'a> Player<'a> {
                             2
                         };
                         let tag = self.sword.jump_tag();
-                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
+                        let sprite =
+                            controller.get_vram_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         if x != Tri::Zero {
@@ -676,7 +678,8 @@ impl<'a> Player<'a> {
                         *a -= 1;
                         let frame = self.sword.jump_attack_frame(*a);
                         let tag = self.sword.jump_attack_tag();
-                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
+                        let sprite =
+                            controller.get_vram_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.air_attack_hurtbox(frame);
@@ -811,7 +814,7 @@ impl BatData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -839,7 +842,7 @@ impl BatData {
                 }
 
                 let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 8);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -874,7 +877,7 @@ impl BatData {
                 }
 
                 let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -901,7 +904,7 @@ impl BatData {
             BatState::Dead => {
                 const BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
                 let sprite = BAT_DEAD.sprite(0);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -944,7 +947,7 @@ impl SlimeData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -969,7 +972,7 @@ impl SlimeData {
                 const IDLE: &Tag = TAG_MAP.get("slime idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1009,7 +1012,7 @@ impl SlimeData {
                     const CHASE: &Tag = TAG_MAP.get("Slime jump");
 
                     let sprite = CHASE.sprite(frame as usize);
-                    let sprite = controller.sprite(sprite);
+                    let sprite = controller.get_vram_sprite(sprite);
 
                     entity.sprite.set_sprite(sprite);
 
@@ -1039,7 +1042,7 @@ impl SlimeData {
                 if *count < 5 * 4 {
                     const DEATH: &Tag = TAG_MAP.get("Slime death");
                     let sprite = DEATH.sprite(*count as usize / 4);
-                    let sprite = controller.sprite(sprite);
+                    let sprite = controller.get_vram_sprite(sprite);
 
                     entity.sprite.set_sprite(sprite);
                     *count += 1;
@@ -1073,7 +1076,7 @@ impl MiniFlameData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
@@ -1107,7 +1110,7 @@ impl MiniFlameData {
                     }
                 } else {
                     let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 8);
-                    let sprite = controller.sprite(sprite);
+                    let sprite = controller.get_vram_sprite(sprite);
                     entity.sprite.set_sprite(sprite);
 
                     entity.velocity = (0.into(), Number::new(-1) / Number::new(4)).into();
@@ -1155,7 +1158,7 @@ impl MiniFlameData {
                 }
 
                 let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
                 entity.sprite.set_sprite(sprite);
             }
             MiniFlameState::Dead => {
@@ -1167,7 +1170,7 @@ impl MiniFlameData {
                 const DEATH: &Tag = TAG_MAP.get("angry boss dead");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 12);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1202,7 +1205,7 @@ impl EmuData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -1228,7 +1231,7 @@ impl EmuData {
                 const IDLE: &Tag = TAG_MAP.get("emu - idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 if (entity.position.y - player.entity.position.y).abs() < 10.into() {
@@ -1275,7 +1278,7 @@ impl EmuData {
                 const WALK: &Tag = TAG_MAP.get("emu-walk");
 
                 let sprite = WALK.sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 let gravity: Number = 1.into();
@@ -1330,7 +1333,7 @@ impl EmuData {
                 const DEATH: &Tag = TAG_MAP.get("emu - die");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 4);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1375,7 +1378,7 @@ impl EnemyData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -1396,11 +1399,11 @@ struct Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
-    fn new(object_controller: &'a ObjectController, enemy_data: EnemyData) -> Self {
+    fn new(object_controller: &'a OAMManager, enemy_data: EnemyData) -> Self {
         let mut entity = Entity::new(object_controller, enemy_data.collision_mask());
 
         let sprite = enemy_data.sprite();
-        let sprite = object_controller.sprite(sprite);
+        let sprite = object_controller.get_vram_sprite(sprite);
 
         entity.sprite.set_sprite(sprite);
         entity.sprite.show();
@@ -1410,7 +1413,7 @@ impl<'a> Enemy<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -1441,7 +1444,7 @@ impl ParticleData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
@@ -1454,7 +1457,7 @@ impl ParticleData {
 
                 const DUST: &Tag = TAG_MAP.get("dust");
                 let sprite = DUST.sprite(*frame as usize / 3);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1468,7 +1471,7 @@ impl ParticleData {
 
                 const HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1494,7 +1497,7 @@ impl ParticleData {
             ParticleData::BossHealer(frame, target) => {
                 const HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
-                let sprite = controller.sprite(sprite);
+                let sprite = controller.get_vram_sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1529,7 +1532,7 @@ struct Particle<'a> {
 
 impl<'a> Particle<'a> {
     fn new(
-        object_controller: &'a ObjectController,
+        object_controller: &'a OAMManager,
         particle_data: ParticleData,
         position: Vector2D<Number>,
     ) -> Self {
@@ -1548,7 +1551,7 @@ impl<'a> Particle<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OAMManager,
         player: &Player,
         level: &Level,
     ) -> UpdateInstruction {
@@ -1575,7 +1578,7 @@ impl<'a> BossState<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OAMManager,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
@@ -1610,7 +1613,7 @@ struct FollowingBoss<'a> {
 }
 
 impl<'a> FollowingBoss<'a> {
-    fn new(object_controller: &'a ObjectController, position: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a OAMManager, position: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (0_u16, 0_u16).into()),
@@ -1625,7 +1628,7 @@ impl<'a> FollowingBoss<'a> {
             gone: false,
         }
     }
-    fn update(&mut self, controller: &'a ObjectController, player: &Player) {
+    fn update(&mut self, controller: &'a OAMManager, player: &Player) {
         let difference = player.entity.position - self.entity.position;
         self.timer += 1;
 
@@ -1658,7 +1661,7 @@ impl<'a> FollowingBoss<'a> {
         const BOSS: &Tag = TAG_MAP.get("happy boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
-        let sprite = controller.sprite(sprite);
+        let sprite = controller.get_vram_sprite(sprite);
 
         self.entity.sprite.set_sprite(sprite);
 
@@ -1694,7 +1697,7 @@ enum BossInstruction {
 }
 
 impl<'a> Boss<'a> {
-    fn new(object_controller: &'a ObjectController, screen_coords: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a OAMManager, screen_coords: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(
             object_controller,
             Rect::new((0_u16, 0_u16).into(), (28_u16, 28_u16).into()),
@@ -1713,7 +1716,7 @@ impl<'a> Boss<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OAMManager,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
@@ -1794,7 +1797,7 @@ impl<'a> Boss<'a> {
         const BOSS: &Tag = TAG_MAP.get("Boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
-        let sprite = object_controller.sprite(sprite);
+        let sprite = object_controller.get_vram_sprite(sprite);
 
         self.entity.sprite.set_sprite(sprite);
 
@@ -1817,7 +1820,7 @@ impl<'a> Boss<'a> {
         self.entity
             .commit_with_size(offset + shake, (32, 32).into());
     }
-    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a ObjectController) {
+    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a OAMManager) {
         for _ in 0..(6 - self.health) {
             let x_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
             let y_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
@@ -1891,7 +1894,7 @@ impl<'a> Game<'a> {
 
     fn advance_frame(
         &mut self,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OAMManager,
         vram: &mut VRamManager,
         sfx: &mut sfx::Sfx,
     ) -> GameStatus {
@@ -2105,7 +2108,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn load_enemies(&mut self, object_controller: &'a ObjectController) {
+    fn load_enemies(&mut self, object_controller: &'a OAMManager) {
         if self.slime_load < self.level.slime_spawns.len() {
             for (idx, slime_spawn) in self
                 .level
@@ -2175,7 +2178,7 @@ impl<'a> Game<'a> {
         vram.set_background_palettes(&modified_palettes);
     }
 
-    fn new(object: &'a ObjectController, level: Level<'a>, start_at_boss: bool) -> Self {
+    fn new(object: &'a OAMManager, level: Level<'a>, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
         let mut offset = (8, 8).into();
         if start_at_boss {
@@ -2222,7 +2225,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
 
-        let object = gba.display.object.get();
+        let object = gba.display.object.get_managed();
 
         let backdrop = InfiniteScrolledMap::new(
             background.background(

@@ -1,5 +1,5 @@
 use agb::{
-    display::object::{Object, ObjectController, Sprite, Tag},
+    display::object::{OAMManager, Object, Sprite, Tag},
     fixnum::Vector2D,
 };
 use alloc::vec::Vec;
@@ -141,14 +141,12 @@ pub struct HealthBar<'a> {
 }
 
 impl<'a> HealthBar<'a> {
-    pub fn new(pos: Vector2D<i32>, max: usize, obj: &'a ObjectController) -> Self {
+    pub fn new(pos: Vector2D<i32>, max: usize, obj: &'a OAMManager) -> Self {
         assert_eq!(max % 8, 0);
 
         let sprites = (0..(max / 8))
             .map(|i| {
-                let health_sprite = obj.sprite(SMALL_SPRITES.red_bar(0));
-
-                let mut health_object = obj.object(health_sprite);
+                let mut health_object = obj.add_object_static_sprite(SMALL_SPRITES.red_bar(0));
                 health_object
                     .set_position(pos + (i as i32 * 8, 0).into())
                     .show();
@@ -159,16 +157,18 @@ impl<'a> HealthBar<'a> {
         Self { max, sprites }
     }
 
-    pub fn set_value(&mut self, new_value: usize, obj: &'a ObjectController) {
+    pub fn set_value(&mut self, new_value: usize, obj: &'a OAMManager) {
         assert!(new_value <= self.max);
 
         for (i, sprite) in self.sprites.iter_mut().enumerate() {
             if (i + 1) * 8 < new_value {
-                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(0)));
+                sprite.set_sprite(obj.get_vram_sprite(SMALL_SPRITES.red_bar(0)));
             } else if i * 8 < new_value {
-                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(8 - (new_value - i * 8))));
+                sprite.set_sprite(
+                    obj.get_vram_sprite(SMALL_SPRITES.red_bar(8 - (new_value - i * 8))),
+                );
             } else {
-                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(8)));
+                sprite.set_sprite(obj.get_vram_sprite(SMALL_SPRITES.red_bar(8)));
             }
         }
     }
@@ -195,22 +195,22 @@ pub struct FractionDisplay<'a> {
 }
 
 impl<'a> FractionDisplay<'a> {
-    pub fn new(pos: Vector2D<i32>, digits: usize, obj: &'a ObjectController) -> Self {
+    pub fn new(pos: Vector2D<i32>, digits: usize, obj: &'a OAMManager) -> Self {
         let mut sprites = Vec::with_capacity(digits * 2 + 1);
 
         for i in 0..digits {
-            let mut left_digit = obj.object(obj.sprite(SMALL_SPRITES.number(0)));
+            let mut left_digit = obj.add_object_static_sprite(SMALL_SPRITES.number(0));
             left_digit.set_position(pos + (i as i32 * 4, 0).into());
 
             sprites.push(left_digit);
 
-            let mut right_digit = obj.object(obj.sprite(SMALL_SPRITES.number(0)));
+            let mut right_digit = obj.add_object_static_sprite(SMALL_SPRITES.number(0));
             right_digit.set_position(pos + (i as i32 * 4 + digits as i32 * 4 + 7, 0).into());
 
             sprites.push(right_digit);
         }
 
-        let mut slash = obj.object(obj.sprite(SMALL_SPRITES.slash()));
+        let mut slash = obj.add_object_static_sprite(SMALL_SPRITES.slash());
         slash.set_position(pos + (digits as i32 * 4 + 1, 0).into());
         sprites.push(slash);
 
@@ -222,7 +222,7 @@ impl<'a> FractionDisplay<'a> {
         }
     }
 
-    pub fn set_value(&mut self, current: usize, max: usize, obj: &'a ObjectController) {
+    pub fn set_value(&mut self, current: usize, max: usize, obj: &'a OAMManager) {
         if self.current_current == current && self.current_max == max {
             return;
         }
@@ -235,12 +235,13 @@ impl<'a> FractionDisplay<'a> {
             current /= 10;
             let current_value_sprite = &mut self.sprites[(self.digits - i) * 2 - 2];
             current_value_sprite
-                .set_sprite(obj.sprite(SMALL_SPRITES.number(current_value_digit as u32)));
+                .set_sprite(obj.get_vram_sprite(SMALL_SPRITES.number(current_value_digit as u32)));
 
             let max_value_digit = max % 10;
             max /= 10;
             let max_value_sprite = &mut self.sprites[(self.digits - i) * 2 - 1];
-            max_value_sprite.set_sprite(obj.sprite(SMALL_SPRITES.number(max_value_digit as u32)));
+            max_value_sprite
+                .set_sprite(obj.get_vram_sprite(SMALL_SPRITES.number(max_value_digit as u32)));
         }
     }
 }
@@ -260,7 +261,7 @@ impl<'a> NumberDisplay<'a> {
         }
     }
 
-    pub fn set_value(&mut self, new_value: Option<u32>, obj: &'a ObjectController) {
+    pub fn set_value(&mut self, new_value: Option<u32>, obj: &'a OAMManager) {
         if self.value == new_value {
             return;
         }
@@ -271,7 +272,7 @@ impl<'a> NumberDisplay<'a> {
 
         if let Some(mut new_value) = new_value {
             if new_value == 0 {
-                let mut zero_object = obj.object(obj.sprite(SMALL_SPRITES.number(0)));
+                let mut zero_object = obj.add_object_static_sprite(SMALL_SPRITES.number(0));
                 zero_object.show().set_position(self.position);
 
                 self.objects.push(zero_object);
@@ -284,7 +285,7 @@ impl<'a> NumberDisplay<'a> {
                 new_value /= 10;
 
                 let mut current_value_obj =
-                    obj.object(obj.sprite(SMALL_SPRITES.number(current_value_digit)));
+                    obj.add_object_static_sprite(SMALL_SPRITES.number(current_value_digit));
 
                 current_value_obj
                     .show()

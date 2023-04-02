@@ -102,13 +102,22 @@ pub struct UnmanagedObject {
 impl UnmanagedObject {
     #[must_use]
     pub fn new(sprite: SpriteVram) -> Self {
-        Self {
+        let sprite_location = sprite.location();
+        let palette_location = sprite.palette_location();
+        let (shape, size) = sprite.size().shape_size();
+
+        let mut sprite = Self {
             attributes: Attributes::default(),
             sprites: UnsafeCell::new(VramSprites {
                 sprite,
                 previous_sprite: None,
             }),
-        }
+        };
+
+        sprite.attributes.set_sprite(sprite_location, shape, size);
+        sprite.attributes.set_palette(palette_location);
+
+        sprite
     }
 
     pub fn is_visible(&self) -> bool {
@@ -170,16 +179,21 @@ impl UnmanagedObject {
         self
     }
 
-    pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
-        // SAFETY: This is called here and in OAMSlot set, neither of which call the other.
-        let sprites = unsafe { &mut *self.sprites.get() };
-
+    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
         let size = sprite.size();
         let (shape, size) = size.shape_size();
 
         self.attributes.set_sprite(sprite.location(), shape, size);
         self.attributes.set_palette(sprite.palette_location());
 
+        self
+    }
+
+    pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
+        self.set_sprite_attributes(&sprite);
+
+        // SAFETY: This is called here and in OAMSlot set, neither of which call the other.
+        let sprites = unsafe { &mut *self.sprites.get() };
         sprites.sprite = sprite;
 
         self

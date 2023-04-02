@@ -7,7 +7,7 @@ use agb_fixnum::Vector2D;
 use alloc::vec::Vec;
 use slotmap::{new_key_type, SlotMap};
 
-use crate::{display::Priority, sync::Static};
+use crate::display::Priority;
 
 use super::{AffineMode, Sprite, SpriteVram, StaticSpriteLoader, UnmanagedOAM, UnmanagedObject};
 

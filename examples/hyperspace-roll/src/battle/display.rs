@@ -1,4 +1,4 @@
-use agb::display::object::{Object, ObjectController};
+use agb::display::object::{OAMManager, Object};
 use agb::rng;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -39,7 +39,7 @@ pub struct BattleScreenDisplay<'a> {
 const HEALTH_BAR_WIDTH: usize = 48;
 
 impl<'a> BattleScreenDisplay<'a> {
-    pub fn new(obj: &'a ObjectController, current_battle_state: &CurrentBattleState) -> Self {
+    pub fn new(obj: &'a OAMManager, current_battle_state: &CurrentBattleState) -> Self {
         let mut misc_sprites = vec![];
         let player_x = 12;
         let player_y = 8;
@@ -52,8 +52,8 @@ impl<'a> BattleScreenDisplay<'a> {
             Ship::PilotedShip
         });
 
-        let mut player_obj = obj.object(obj.sprite(player_sprite));
-        let mut enemy_obj = obj.object(obj.sprite(enemy_sprite));
+        let mut player_obj = obj.add_object_static_sprite(player_sprite);
+        let mut enemy_obj = obj.add_object_static_sprite(enemy_sprite);
 
         player_obj.set_x(player_x).set_y(player_y).set_z(1).show();
         enemy_obj.set_x(enemy_x).set_y(player_y).set_z(1).show();
@@ -66,7 +66,7 @@ impl<'a> BattleScreenDisplay<'a> {
             .faces_to_render()
             .enumerate()
             .map(|(i, (face, _))| {
-                let mut die_obj = obj.object(obj.sprite(FACE_SPRITES.sprite_for_face(face)));
+                let mut die_obj = obj.add_object_static_sprite(FACE_SPRITES.sprite_for_face(face));
 
                 die_obj.set_y(120).set_x(i as u16 * 40 + 28).show();
 
@@ -89,7 +89,7 @@ impl<'a> BattleScreenDisplay<'a> {
 
         let player_shield: Vec<_> = (0..5)
             .map(|i| {
-                let mut shield_obj = obj.object(obj.sprite(shield_sprite));
+                let mut shield_obj = obj.add_object_static_sprite(shield_sprite);
                 shield_obj
                     .set_x(player_x + 18 + 11 * i)
                     .set_y(player_y)
@@ -101,7 +101,7 @@ impl<'a> BattleScreenDisplay<'a> {
 
         let enemy_shield: Vec<_> = (0..5)
             .map(|i| {
-                let mut shield_obj = obj.object(obj.sprite(shield_sprite));
+                let mut shield_obj = obj.add_object_static_sprite(shield_sprite);
                 shield_obj
                     .set_x(enemy_x - 16 - 11 * i)
                     .set_y(player_y)
@@ -146,8 +146,8 @@ impl<'a> BattleScreenDisplay<'a> {
 
         let enemy_attack_display = (0..2)
             .map(|i| {
-                let mut attack_obj = obj.object(
-                    obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack)),
+                let mut attack_obj = obj.add_object_static_sprite(
+                    ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack),
                 );
 
                 let attack_obj_position = (120, 56 + 32 * i).into();
@@ -189,14 +189,14 @@ impl<'a> BattleScreenDisplay<'a> {
 
     pub fn update(
         &mut self,
-        obj: &'a ObjectController,
+        obj: &'a OAMManager,
         current_battle_state: &CurrentBattleState,
     ) -> Vec<Action> {
         for (i, player_shield) in self.objs.player_shield.iter_mut().enumerate() {
             if i < current_battle_state.player.shield_count as usize {
                 player_shield
                     .show()
-                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
+                    .set_sprite(obj.get_vram_sprite(SHIELD.sprite(0)));
             } else {
                 player_shield.hide();
             }
@@ -206,7 +206,7 @@ impl<'a> BattleScreenDisplay<'a> {
             if i < current_battle_state.enemy.shield_count as usize {
                 player_shield
                     .show()
-                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
+                    .set_sprite(obj.get_vram_sprite(SHIELD.sprite(0)));
             } else {
                 player_shield.hide();
             }
@@ -250,7 +250,7 @@ impl<'a> BattleScreenDisplay<'a> {
             .zip(current_battle_state.rolled_dice.faces_to_render())
             .zip(self.objs.dice_cooldowns.iter_mut())
         {
-            die_obj.set_sprite(obj.sprite(FACE_SPRITES.sprite_for_face(current_face)));
+            die_obj.set_sprite(obj.get_vram_sprite(FACE_SPRITES.sprite_for_face(current_face)));
 
             if let Some(cooldown) = cooldown {
                 cooldown_healthbar
@@ -279,7 +279,7 @@ impl<'a> BattleScreenDisplay<'a> {
         actions_to_apply
     }
 
-    pub fn add_action(&mut self, action: Action, obj: &'a ObjectController, sfx: &mut Sfx) {
+    pub fn add_action(&mut self, action: Action, obj: &'a OAMManager, sfx: &mut Sfx) {
         play_sound_for_action_start(&action, sfx);
 
         self.animations
@@ -309,10 +309,10 @@ impl<'a> EnemyAttackDisplay<'a> {
         }
     }
 
-    pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a ObjectController) {
+    pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a OAMManager) {
         if let Some(attack) = attack {
             self.face.show().set_sprite(
-                obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
+                obj.get_vram_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
             );
             self.cooldown
                 .set_value((attack.cooldown * 48 / attack.max_cooldown) as usize, obj);
@@ -350,27 +350,27 @@ enum AnimationUpdateState {
 }
 
 impl<'a> AnimationStateHolder<'a> {
-    fn for_action(a: Action, obj: &'a ObjectController) -> Self {
+    fn for_action(a: Action, obj: &'a OAMManager) -> Self {
         let state = match a {
             Action::PlayerActivateShield { amount, .. } => {
                 AnimationState::PlayerActivateShield { amount, frame: 0 }
             }
             Action::PlayerShoot { .. } => AnimationState::PlayerShoot {
-                bullet: obj.object(obj.sprite(BULLET_SPRITE)),
+                bullet: obj.add_object_static_sprite(BULLET_SPRITE),
                 x: 64,
             },
             Action::PlayerDisrupt { .. } => AnimationState::PlayerDisrupt {
-                bullet: obj.object(obj.sprite(DISRUPT_BULLET)),
+                bullet: obj.add_object_static_sprite(DISRUPT_BULLET),
                 x: 64,
             },
             Action::PlayerHeal { .. } => AnimationState::PlayerHeal {},
             Action::PlayerBurstShield { .. } => AnimationState::PlayerBurstShield { frame: 0 },
             Action::PlayerSendBurstShield { .. } => AnimationState::PlayerSendBurstShield {
-                bullet: obj.object(obj.sprite(BURST_BULLET)),
+                bullet: obj.add_object_static_sprite(BURST_BULLET),
                 x: 64,
             },
             Action::EnemyShoot { .. } => AnimationState::EnemyShoot {
-                bullet: obj.object(obj.sprite(BULLET_SPRITE)),
+                bullet: obj.add_object_static_sprite(BULLET_SPRITE),
                 x: 175,
             },
             Action::EnemyShield { amount, .. } => AnimationState::EnemyShield { amount, frame: 0 },
@@ -383,7 +383,7 @@ impl<'a> AnimationStateHolder<'a> {
     fn update(
         &mut self,
         objs: &mut BattleScreenDisplayObjects<'a>,
-        obj: &'a ObjectController,
+        obj: &'a OAMManager,
         current_battle_state: &CurrentBattleState,
     ) -> AnimationUpdateState {
         match &mut self.state {
@@ -414,7 +414,7 @@ impl<'a> AnimationStateHolder<'a> {
                     for i in current_player_shields..*amount {
                         objs.player_shield[i as usize]
                             .show()
-                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
+                            .set_sprite(obj.get_vram_sprite(SHIELD.sprite(3 - *frame / 2)));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -445,7 +445,7 @@ impl<'a> AnimationStateHolder<'a> {
                     for i in current_enemy_shields..*amount {
                         objs.enemy_shield[i as usize]
                             .show()
-                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
+                            .set_sprite(obj.get_vram_sprite(SHIELD.sprite(3 - *frame / 2)));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -468,7 +468,7 @@ impl<'a> AnimationStateHolder<'a> {
             AnimationState::PlayerBurstShield { frame } => {
                 if *frame < 10 {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.sprite(SHIELD.sprite(*frame / 2)));
+                        shield.set_sprite(obj.get_vram_sprite(SHIELD.sprite(*frame / 2)));
                     }
 
                     *frame += 1;
@@ -476,7 +476,7 @@ impl<'a> AnimationStateHolder<'a> {
                     AnimationUpdateState::Continue
                 } else {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.sprite(SHIELD.sprite(0)));
+                        shield.set_sprite(obj.get_vram_sprite(SHIELD.sprite(0)));
                     }
 
                     AnimationUpdateState::RemoveWithAction(self.action.clone())
