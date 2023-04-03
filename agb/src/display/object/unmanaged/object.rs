@@ -90,7 +90,7 @@ impl UnmanagedOAM<'_> {
 
     pub(crate) fn new() -> Self {
         Self {
-            up_to: Cell::new(0),
+            up_to: Cell::new(-1),
             phantom: PhantomData,
         }
     }
