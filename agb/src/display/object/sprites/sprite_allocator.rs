@@ -81,6 +81,12 @@ struct PaletteVramData {
     location: Location,
 }
 
+impl Drop for PaletteVramData {
+    fn drop(&mut self) {
+        unsafe { PALETTE_ALLOCATOR.dealloc(self.location.as_palette_ptr(), Palette16::layout()) }
+    }
+}
+
 #[derive(Debug)]
 pub struct PaletteVram {
     data: Rc<PaletteVramData>,
