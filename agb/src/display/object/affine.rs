@@ -61,7 +61,7 @@ impl AffineMatrixVram {
         for (idx, component) in components.iter().enumerate() {
             unsafe {
                 (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
-                    .add(location * 4 * idx + 3)
+                    .add(location * 16 + idx * 4 + 3)
                     .write_volatile(*component);
             }
         }
