@@ -1,3 +1,4 @@
+mod affine;
 mod managed;
 mod sprites;
 mod unmanaged;
@@ -7,8 +8,11 @@ pub use sprites::{
     TagMap,
 };
 
+pub use affine::AffineMatrix;
 pub use managed::{OAMManager, Object};
 pub use unmanaged::{AffineMode, OAMIterator, OAMSlot, UnmanagedOAM, UnmanagedObject};
+
+pub(crate) use affine::init_affine;
 
 use super::DISPLAY_CONTROL;
 

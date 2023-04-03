@@ -236,6 +236,7 @@ impl Gba {
     #[doc(hidden)]
     #[must_use]
     pub unsafe fn new_in_entry() -> Self {
+        display::object::init_affine();
         Self::single_new()
     }
 

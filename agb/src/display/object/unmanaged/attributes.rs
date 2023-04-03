@@ -6,7 +6,7 @@ use self::attributes::{
     ObjectAttribute0, ObjectAttribute1Affine, ObjectAttribute1Standard, ObjectAttribute2,
 };
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Attributes {
     a0: ObjectAttribute0,
     a1s: ObjectAttribute1Standard,

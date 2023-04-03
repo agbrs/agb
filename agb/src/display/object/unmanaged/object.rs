@@ -4,7 +4,9 @@ use agb_fixnum::Vector2D;
 use alloc::vec::Vec;
 
 use crate::display::{
-    object::{sprites::SpriteVram, OBJECT_ATTRIBUTE_MEMORY},
+    object::{
+        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrix, OBJECT_ATTRIBUTE_MEMORY,
+    },
     Priority,
 };
 
@@ -39,10 +41,7 @@ impl OAMSlot<'_> {
         // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
         let frame_data = unsafe { &mut *self.frame_data.get() };
 
-        // SAFETY: This is called here and in set_sprite, neither of which call the other.
-        let sprite = unsafe { &mut *object.sprites.get() };
-
-        frame_data.this_frame_sprites.push(sprite.clone());
+        frame_data.this_frame_sprites.push(object.sprite.clone());
 
         frame_data.up_to = self.slot as i32;
     }
@@ -116,10 +115,11 @@ impl UnmanagedOAM<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnmanagedObject {
     attributes: Attributes,
-    sprites: UnsafeCell<SpriteVram>,
+    sprite: SpriteVram,
+    affine_matrix: Option<AffineMatrixVram>,
 }
 
 impl UnmanagedObject {
@@ -131,7 +131,8 @@ impl UnmanagedObject {
 
         let mut sprite = Self {
             attributes: Attributes::default(),
-            sprites: UnsafeCell::new(sprite),
+            sprite,
+            affine_matrix: None,
         };
 
         sprite.attributes.set_sprite(sprite_location, shape, size);
@@ -140,6 +141,7 @@ impl UnmanagedObject {
         sprite
     }
 
+    #[must_use]
     pub fn is_visible(&self) -> bool {
         self.attributes.is_visible()
     }
@@ -151,6 +153,11 @@ impl UnmanagedObject {
     }
 
     pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
+        assert!(
+            self.affine_matrix.is_some(),
+            "affine matrix must be set before enabling affine matrix!"
+        );
+
         self.attributes.show_affine(affine_mode);
 
         self
@@ -199,6 +206,15 @@ impl UnmanagedObject {
         self
     }
 
+    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrix) -> &mut Self {
+        let vram = affine_matrix.vram();
+        let location = vram.location();
+        self.affine_matrix = Some(vram);
+        self.attributes.set_affine_matrix(location);
+
+        self
+    }
+
     fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
         let size = sprite.size();
         let (shape, size) = size.shape_size();
@@ -212,9 +228,7 @@ impl UnmanagedObject {
     pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
         self.set_sprite_attributes(&sprite);
 
-        // SAFETY: This is called here and in OAMSlot set, neither of which call the other.
-        let sprites = unsafe { &mut *self.sprites.get() };
-        *sprites = sprite;
+        self.sprite = sprite;
 
         self
     }

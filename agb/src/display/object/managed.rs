@@ -1,15 +1,13 @@
-use core::{
-    cell::{Cell, UnsafeCell},
-    marker::PhantomData,
-};
+use core::cell::{Cell, UnsafeCell};
 
 use agb_fixnum::Vector2D;
-use alloc::vec::Vec;
 use slotmap::{new_key_type, SlotMap};
 
 use crate::display::Priority;
 
-use super::{AffineMode, Sprite, SpriteVram, StaticSpriteLoader, UnmanagedOAM, UnmanagedObject};
+use super::{
+    AffineMatrix, AffineMode, Sprite, SpriteVram, StaticSpriteLoader, UnmanagedOAM, UnmanagedObject,
+};
 
 new_key_type! {struct ObjectKey; }
 
@@ -412,6 +410,13 @@ impl Object<'_> {
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_position(position) };
+
+        self
+    }
+
+    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrix) -> &mut Self {
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_affine_matrix(affine_matrix) };
 
         self
     }
