@@ -155,7 +155,7 @@ impl OAMManager<'_> {
         }
     }
 
-    pub fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
+    fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
     where
         C: Fn(&mut StaticSpriteLoader) -> T,
     {
