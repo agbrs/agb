@@ -3,7 +3,12 @@
 
 extern crate alloc;
 
-use agb::display::object::{Graphics, OAMManager, Sprite, TagMap};
+use agb::display::{
+    affine::AffineMatrix,
+    object::{self, Graphics, OAMManager, Sprite, TagMap},
+};
+use agb::fixnum::num;
+use agb_fixnum::Num;
 use alloc::vec::Vec;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
@@ -15,14 +20,20 @@ const GRAPHICS: &Graphics = agb::include_aseprite!(
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &OAMManager) {
+fn all_sprites(gfx: &OAMManager, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
+
+    let mut rotation: Num<i32, 16> = num!(0.);
+
+    let rotation_matrix = AffineMatrix::from_rotation(rotation);
+    let matrix = object::AffineMatrix::new(rotation_matrix.to_object_wrapping());
 
     for y in 0..9 {
         for x in 0..14 {
             let mut obj = gfx.add_object_static_sprite(&SPRITES[0]);
-            obj.show();
+            obj.set_affine_matrix(matrix.clone());
+            obj.show_affine(object::AffineMode::Affine);
             obj.set_position((x * 16 + 8, y * 16 + 8).into());
             objs.push(obj);
         }
@@ -41,6 +52,15 @@ fn all_sprites(gfx: &OAMManager) {
             break;
         }
 
+        rotation += rotation_speed;
+        let rotation_matrix = AffineMatrix::from_rotation(rotation);
+
+        let matrix = object::AffineMatrix::new(rotation_matrix.to_object_wrapping());
+
+        for obj in objs.iter_mut() {
+            obj.set_affine_matrix(matrix.clone());
+        }
+
         count += 1;
 
         if count % 5 == 0 {
@@ -50,8 +70,8 @@ fn all_sprites(gfx: &OAMManager) {
                 let this_image = (image + i) % SPRITES.len();
                 obj.set_sprite(gfx.get_vram_sprite(&SPRITES[this_image]));
             }
-            gfx.commit();
         }
+        gfx.commit();
     }
 }
 
@@ -103,8 +123,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     loop {
         all_tags(&gfx);
-        gfx.commit();
-        all_sprites(&gfx);
-        gfx.commit();
+        all_sprites(&gfx, num!(0.));
+        all_sprites(&gfx, num!(0.01));
     }
 }
