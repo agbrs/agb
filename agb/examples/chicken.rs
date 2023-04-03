@@ -4,7 +4,7 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{OAMManager, Object, Size, Sprite, StaticSpriteLoader},
+        object::{OAMManager, Object, Size, Sprite},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
