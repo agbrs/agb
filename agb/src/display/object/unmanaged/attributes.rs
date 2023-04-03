@@ -17,7 +17,7 @@ pub struct Attributes {
 impl Default for Attributes {
     fn default() -> Self {
         Self {
-            a0: ObjectAttribute0::from_bytes([0b01, 0]),
+            a0: ObjectAttribute0::from_bytes([0, 0b10]),
             a1s: Default::default(),
             a1a: Default::default(),
             a2: Default::default(),
