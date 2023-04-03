@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alpha channel is now considered by `include_gfx!()` even when `transparent_colour` is absent.
 - 256 colour backgrounds are now correctly rendered (breaking change).
 - The `#[agb::entry]` macro now reports errors better.
+- Added the shstrtab section to the linker to ensure that agb builds with lld.
 
 ## [0.13.0] - 2023/01/19
 
