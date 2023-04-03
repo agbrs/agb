@@ -27,7 +27,6 @@ struct ObjectItem {
 
 struct Store {
     store: UnsafeCell<slotmap::SlotMap<ObjectKey, ObjectItem>>,
-    removal_list: UnsafeCell<Vec<ObjectKey>>,
     first_z: Cell<Option<ObjectKey>>,
 }
 
@@ -113,22 +112,10 @@ impl Store {
     }
 
     fn remove_object(&self, object: ObjectKey) {
+        remove_from_linked_list(self, object);
+
         let data = unsafe { &mut *self.store.get() };
         data.remove(object);
-    }
-
-    fn remove_all_in_removal_list(&self) {
-        let removal_list = unsafe { &mut *self.removal_list.get() };
-        for object in removal_list.drain(..) {
-            self.remove_object(object);
-        }
-    }
-
-    fn mark_for_removal(&self, object: ObjectKey) {
-        let removal_list = unsafe { &mut *self.removal_list.get() };
-        removal_list.push(object);
-
-        remove_from_linked_list(self, object);
     }
 
     fn get_object(&self, key: ObjectKey) -> &ObjectItem {
@@ -137,21 +124,20 @@ impl Store {
 }
 
 pub struct OAMManager<'gba> {
-    phantom: PhantomData<&'gba ()>,
     object_store: Store,
     sprite_loader: UnsafeCell<StaticSpriteLoader>,
+    unmanaged: UnsafeCell<UnmanagedOAM<'gba>>,
 }
 
 impl OAMManager<'_> {
     pub(crate) fn new() -> Self {
         Self {
-            phantom: PhantomData,
             object_store: Store {
                 store: UnsafeCell::new(SlotMap::with_key()),
-                removal_list: UnsafeCell::new(Vec::new()),
                 first_z: Cell::new(None),
             },
             sprite_loader: UnsafeCell::new(StaticSpriteLoader::new()),
+            unmanaged: UnsafeCell::new(UnmanagedOAM::new()),
         }
     }
 
@@ -167,9 +153,8 @@ impl OAMManager<'_> {
     }
 
     pub fn commit(&self) {
-        let mut unmanaged = UnmanagedOAM::new();
-
-        // do interactions with OAM
+        // safety: commit is not reentrant
+        let unmanaged = unsafe { &mut *self.unmanaged.get() };
 
         for (object, mut slot) in unsafe { self.object_store.iter() }
             .map(|item| unsafe { &*item.object.get() })
@@ -179,9 +164,6 @@ impl OAMManager<'_> {
             slot.set(object);
         }
 
-        // finished OAM interactions
-
-        self.object_store.remove_all_in_removal_list();
         // safety: not reentrant
         unsafe {
             self.do_work_with_sprite_loader(StaticSpriteLoader::garbage_collect);
@@ -212,7 +194,7 @@ pub struct Object<'controller> {
 
 impl Drop for Object<'_> {
     fn drop(&mut self) {
-        self.store.mark_for_removal(self.me);
+        self.store.remove_object(self.me);
     }
 }
 
