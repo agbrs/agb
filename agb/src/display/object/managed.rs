@@ -155,7 +155,9 @@ impl OAMManager<'_> {
         }
     }
 
-    fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
+    /// SAFETY:
+    /// Do not reenter or recurse or otherwise use sprite loader cell during this.
+    unsafe fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
     where
         C: Fn(&mut StaticSpriteLoader) -> T,
     {
@@ -184,7 +186,10 @@ impl OAMManager<'_> {
         // finished OAM interactions
 
         self.object_store.remove_all_in_removal_list();
-        self.do_work_with_sprite_loader(StaticSpriteLoader::garbage_collect);
+        // safety: not reentrant
+        unsafe {
+            self.do_work_with_sprite_loader(StaticSpriteLoader::garbage_collect);
+        }
     }
 
     pub fn add_object(&self, sprite: SpriteVram) -> Object<'_> {
@@ -193,7 +198,10 @@ impl OAMManager<'_> {
     }
 
     pub fn get_vram_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
-        self.do_work_with_sprite_loader(|sprite_loader| sprite_loader.get_vram_sprite(sprite))
+        // safety: not reentrant
+        unsafe {
+            self.do_work_with_sprite_loader(|sprite_loader| sprite_loader.get_vram_sprite(sprite))
+        }
     }
 
     pub fn add_object_static_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
