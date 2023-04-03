@@ -357,75 +357,90 @@ impl Object<'_> {
         self
     }
 
-    fn object(&mut self) -> &mut UnmanagedObject {
+    /// Safety:
+    /// Only have *ONE* of these at a time, do not call any functions that modify the slot map while having this.
+    unsafe fn object(&mut self) -> &mut UnmanagedObject {
         unsafe { &mut *self.store.get_object(self.me).object.get() }
     }
 
-    fn object_shared(&self) -> &UnmanagedObject {
+    /// Safety:
+    /// Don't have a mutable one of these while having one of these, do not call any functions that modify the slot map while having this.
+    unsafe fn object_shared(&self) -> &UnmanagedObject {
         unsafe { &*self.store.get_object(self.me).object.get() }
     }
 
     #[must_use]
     pub fn is_visible(&self) -> bool {
-        self.object_shared().is_visible()
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object_shared() }.is_visible()
     }
 
     pub fn show(&mut self) -> &mut Self {
-        self.object().show();
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().show() };
 
         self
     }
 
     pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
-        self.object().show_affine(affine_mode);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().show_affine(affine_mode) };
 
         self
     }
 
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
-        self.object().set_hflip(flip);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_hflip(flip) };
 
         self
     }
 
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
-        self.object().set_vflip(flip);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_vflip(flip) };
 
         self
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.object().set_x(x);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_x(x) };
 
         self
     }
 
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
-        self.object().set_priority(priority);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_priority(priority) };
 
         self
     }
 
     pub fn hide(&mut self) -> &mut Self {
-        self.object().hide();
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().hide() };
 
         self
     }
 
     pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.object().set_y(y);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_y(y) };
 
         self
     }
 
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        self.object().set_position(position);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_position(position) };
 
         self
     }
 
     pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
-        self.object().set_sprite(sprite);
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_sprite(sprite) };
 
         self
     }
