@@ -16,12 +16,14 @@ use super::attributes::{AffineMode, Attributes};
 struct OamFrameModifyables {
     up_to: i32,
     this_frame_sprites: Vec<SpriteVram>,
+    this_frame_affine: Vec<AffineMatrixVram>,
 }
 
 pub struct UnmanagedOAM<'gba> {
     phantom: PhantomData<&'gba ()>,
     frame_data: UnsafeCell<OamFrameModifyables>,
     previous_frame_sprites: Vec<SpriteVram>,
+    previous_frame_affine: Vec<AffineMatrixVram>,
 }
 
 pub struct OAMIterator<'oam> {
@@ -42,6 +44,9 @@ impl OAMSlot<'_> {
         let frame_data = unsafe { &mut *self.frame_data.get() };
 
         frame_data.this_frame_sprites.push(object.sprite.clone());
+        if let Some(affine) = &object.affine_matrix {
+            frame_data.this_frame_affine.push(affine.clone());
+        }
 
         frame_data.up_to = self.slot as i32;
     }
@@ -100,6 +105,13 @@ impl UnmanagedOAM<'_> {
             &mut self.previous_frame_sprites,
         );
 
+        // Drain previous frame affine matricies
+        self.previous_frame_affine.drain(..);
+        core::mem::swap(
+            &mut frame_data.this_frame_affine,
+            &mut self.previous_frame_affine,
+        );
+
         OAMIterator {
             index: 0,
             frame_data: &self.frame_data,
@@ -111,6 +123,7 @@ impl UnmanagedOAM<'_> {
             frame_data: Default::default(),
             phantom: PhantomData,
             previous_frame_sprites: Default::default(),
+            previous_frame_affine: Default::default(),
         }
     }
 }
