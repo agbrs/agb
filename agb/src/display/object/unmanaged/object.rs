@@ -82,9 +82,10 @@ impl Drop for OAMIterator<'_> {
 
 impl UnmanagedOAM<'_> {
     pub fn iter(&mut self) -> OAMIterator<'_> {
+        self.up_to.set(-1);
         OAMIterator {
             index: 0,
-            up_to: &mut self.up_to,
+            up_to: &self.up_to,
         }
     }
 
