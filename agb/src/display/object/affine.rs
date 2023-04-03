@@ -1,37 +1,63 @@
+use core::cell::Cell;
+
 use alloc::rc::Rc;
 
-use crate::{display::affine::AffineMatrixObject, sync::Static};
+use crate::display::affine::AffineMatrixObject;
 
 use super::OBJECT_ATTRIBUTE_MEMORY;
 
 #[derive(Debug)]
-struct AffineMatrixLocation {
-    location: u16,
+struct AffineMatrixData {
+    frame_count: Cell<u32>,
+    location: Cell<u32>,
+    matrix: AffineMatrixObject,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct AffineMatrixVram(Rc<AffineMatrixLocation>);
+pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AffineMatrix {
     location: AffineMatrixVram,
 }
 
 impl AffineMatrix {
-    pub fn new(affine_matrix: AffineMatrixObject) -> Option<AffineMatrix> {
-        let mut matrix = AFFINE_MATRIX_DISTRIBUTOR.get_matrix()?;
-        matrix.write(affine_matrix);
-
-        Some(matrix)
+    #[must_use]
+    pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrix {
+        AffineMatrix {
+            location: AffineMatrixVram(Rc::new(AffineMatrixData {
+                frame_count: Cell::new(u32::MAX),
+                location: Cell::new(u32::MAX),
+                matrix: affine_matrix,
+            })),
+        }
     }
 
     pub(crate) fn vram(self) -> AffineMatrixVram {
         self.location
     }
+}
 
-    fn write(&mut self, affine_matrix: AffineMatrixObject) {
-        let components = affine_matrix.components();
-        let location = self.location.0.location as usize;
+impl AffineMatrixVram {
+    pub fn frame_count(&self) -> u32 {
+        self.0.frame_count.get()
+    }
+
+    pub fn set_frame_count(&self, frame: u32) {
+        self.0.frame_count.set(frame);
+    }
+
+    pub fn location(&self) -> u32 {
+        self.0.location.get()
+    }
+
+    pub fn set_location(&self, location: u32) {
+        self.0.location.set(location);
+    }
+
+    pub fn write_to_location(&self) {
+        let components = self.0.matrix.components();
+        let location = self.0.location.get() as usize;
         for (idx, component) in components.iter().enumerate() {
             unsafe {
                 (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
@@ -42,74 +68,15 @@ impl AffineMatrix {
     }
 }
 
-impl AffineMatrixVram {
-    pub fn location(&self) -> u16 {
-        self.0.location
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl Drop for AffineMatrixLocation {
-    fn drop(&mut self) {
-        // safety: obtained via affine matrix distributor
-        unsafe { AFFINE_MATRIX_DISTRIBUTOR.return_matrix(self.location) }
-    }
-}
-
-struct AffineMatrixDistributor {
-    tip: Static<u16>,
-}
-
-static AFFINE_MATRIX_DISTRIBUTOR: AffineMatrixDistributor = AffineMatrixDistributor::new();
-
-pub(crate) unsafe fn init_affine() {
-    AFFINE_MATRIX_DISTRIBUTOR.initialise_affine_matricies();
-}
-
-impl AffineMatrixDistributor {
-    const fn new() -> Self {
-        AffineMatrixDistributor {
-            tip: Static::new(u16::MAX),
-        }
-    }
-
-    unsafe fn initialise_affine_matricies(&self) {
-        for i in 0..32 {
-            let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(i * 16 + 3);
-
-            if i == 31 {
-                // none
-                ptr.write_volatile(u16::MAX);
-            } else {
-                ptr.write_volatile(i as u16 + 1);
-            }
-        }
-
-        self.tip.write(0);
-    }
-
-    fn location_of(affine_matrix_location: u16) -> *mut u16 {
-        unsafe {
-            (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(affine_matrix_location as usize * 16 + 3)
-        }
-    }
-
-    fn get_matrix(&self) -> Option<AffineMatrix> {
-        let location = self.tip.read();
-        if location == u16::MAX {
-            return None;
-        }
-
-        let next_tip = unsafe { Self::location_of(location).read_volatile() };
-
-        self.tip.write(next_tip);
-
-        Some(AffineMatrix {
-            location: AffineMatrixVram(Rc::new(AffineMatrixLocation { location })),
-        })
-    }
-
-    unsafe fn return_matrix(&self, mat_id: u16) {
-        Self::location_of(mat_id).write_volatile(mat_id);
-        self.tip.write(mat_id);
+    #[test_case]
+    fn niche_optimisation(_gba: &mut crate::Gba) {
+        assert_eq!(
+            core::mem::size_of::<AffineMatrix>(),
+            core::mem::size_of::<Option<AffineMatrix>>()
+        );
     }
 }

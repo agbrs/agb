@@ -16,14 +16,14 @@ use super::attributes::{AffineMode, Attributes};
 struct OamFrameModifyables {
     up_to: i32,
     this_frame_sprites: Vec<SpriteVram>,
-    this_frame_affine: Vec<AffineMatrixVram>,
+    frame: u32,
+    affine_matrix_count: u32,
 }
 
 pub struct UnmanagedOAM<'gba> {
     phantom: PhantomData<&'gba ()>,
     frame_data: UnsafeCell<OamFrameModifyables>,
     previous_frame_sprites: Vec<SpriteVram>,
-    previous_frame_affine: Vec<AffineMatrixVram>,
 }
 
 pub struct OAMIterator<'oam> {
@@ -38,15 +38,28 @@ pub struct OAMSlot<'oam> {
 
 impl OAMSlot<'_> {
     pub fn set(&mut self, object: &UnmanagedObject) {
-        self.set_bytes(object.attributes.bytes());
-
+        let mut attributes = object.attributes;
         // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
         let frame_data = unsafe { &mut *self.frame_data.get() };
 
-        frame_data.this_frame_sprites.push(object.sprite.clone());
-        if let Some(affine) = &object.affine_matrix {
-            frame_data.this_frame_affine.push(affine.clone());
+        if let Some(affine_matrix) = &object.affine_matrix {
+            if affine_matrix.frame_count() != frame_data.frame {
+                affine_matrix.set_frame_count(frame_data.frame);
+                assert!(
+                    frame_data.affine_matrix_count <= 32,
+                    "too many affine matricies in one frame"
+                );
+                affine_matrix.set_location(frame_data.affine_matrix_count);
+                frame_data.affine_matrix_count += 1;
+                affine_matrix.write_to_location();
+            }
+
+            attributes.set_affine_matrix(affine_matrix.location() as u16);
         }
+
+        self.set_bytes(attributes.bytes());
+
+        frame_data.this_frame_sprites.push(object.sprite.clone());
 
         frame_data.up_to = self.slot as i32;
     }
@@ -96,6 +109,8 @@ impl UnmanagedOAM<'_> {
     pub fn iter(&mut self) -> OAMIterator<'_> {
         let frame_data = self.frame_data.get_mut();
         frame_data.up_to = -1;
+        frame_data.frame = frame_data.frame.wrapping_add(1);
+        frame_data.affine_matrix_count = 0;
 
         // We drain the previous frame sprites here to reuse the Vecs allocation and remove the now unused sprites.
         // Any sprites currently being shown will now be put in the new Vec.
@@ -103,13 +118,6 @@ impl UnmanagedOAM<'_> {
         core::mem::swap(
             &mut frame_data.this_frame_sprites,
             &mut self.previous_frame_sprites,
-        );
-
-        // Drain previous frame affine matricies
-        self.previous_frame_affine.drain(..);
-        core::mem::swap(
-            &mut frame_data.this_frame_affine,
-            &mut self.previous_frame_affine,
         );
 
         OAMIterator {
@@ -123,7 +131,6 @@ impl UnmanagedOAM<'_> {
             frame_data: Default::default(),
             phantom: PhantomData,
             previous_frame_sprites: Default::default(),
-            previous_frame_affine: Default::default(),
         }
     }
 }
@@ -221,9 +228,7 @@ impl UnmanagedObject {
 
     pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrix) -> &mut Self {
         let vram = affine_matrix.vram();
-        let location = vram.location();
         self.affine_matrix = Some(vram);
-        self.attributes.set_affine_matrix(location);
 
         self
     }

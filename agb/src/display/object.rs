@@ -12,8 +12,6 @@ pub use affine::AffineMatrix;
 pub use managed::{OAMManager, Object};
 pub use unmanaged::{AffineMode, OAMIterator, OAMSlot, UnmanagedOAM, UnmanagedObject};
 
-pub(crate) use affine::init_affine;
-
 use super::DISPLAY_CONTROL;
 
 const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;

@@ -6,7 +6,7 @@ use self::attributes::{
     ObjectAttribute0, ObjectAttribute1Affine, ObjectAttribute1Standard, ObjectAttribute2,
 };
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Attributes {
     a0: ObjectAttribute0,
     a1s: ObjectAttribute1Standard,
@@ -32,7 +32,7 @@ pub enum AffineMode {
 }
 
 impl Attributes {
-    pub fn bytes(&self) -> [u8; 6] {
+    pub fn bytes(self) -> [u8; 6] {
         let mode = self.a0.object_mode();
         let attrs = match mode {
             ObjectMode::Normal => [
@@ -51,7 +51,7 @@ impl Attributes {
         unsafe { core::mem::transmute(attrs) }
     }
 
-    pub fn is_visible(&self) -> bool {
+    pub fn is_visible(self) -> bool {
         self.a0.object_mode() != ObjectMode::Disabled
     }
 
