@@ -1,4 +1,7 @@
-use core::{cell::UnsafeCell, marker::PhantomData};
+use core::{
+    cell::{Cell, UnsafeCell},
+    marker::PhantomData,
+};
 
 use agb_fixnum::Vector2D;
 
@@ -11,16 +14,17 @@ use super::attributes::{AffineMode, Attributes};
 
 pub struct UnmanagedOAM<'gba> {
     phantom: PhantomData<&'gba ()>,
+    up_to: Cell<i32>,
 }
 
 pub struct OAMIterator<'oam> {
-    phantom: PhantomData<&'oam ()>,
     index: usize,
+    up_to: &'oam Cell<i32>,
 }
 
 pub struct OAMSlot<'oam> {
-    phantom: PhantomData<&'oam ()>,
     slot: usize,
+    up_to: &'oam Cell<i32>,
 }
 
 impl OAMSlot<'_> {
@@ -31,6 +35,8 @@ impl OAMSlot<'_> {
         let sprites = unsafe { &mut *object.sprites.get() };
 
         sprites.previous_sprite = Some(sprites.sprite.clone());
+
+        self.up_to.set(self.slot as i32);
     }
 
     fn set_bytes(&mut self, bytes: [u8; 6]) {
@@ -52,9 +58,24 @@ impl<'oam> Iterator for OAMIterator<'oam> {
             None
         } else {
             Some(OAMSlot {
-                phantom: PhantomData,
                 slot: idx,
+                up_to: self.up_to,
             })
+        }
+    }
+}
+
+impl Drop for OAMIterator<'_> {
+    fn drop(&mut self) {
+        let last_written = self.up_to.get();
+
+        let number_writen = (last_written + 1) as usize;
+
+        for idx in number_writen..128 {
+            unsafe {
+                let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(idx * 4);
+                ptr.write_volatile(0b10 << 8);
+            }
         }
     }
 }
@@ -62,27 +83,15 @@ impl<'oam> Iterator for OAMIterator<'oam> {
 impl UnmanagedOAM<'_> {
     pub fn iter(&mut self) -> OAMIterator<'_> {
         OAMIterator {
-            phantom: PhantomData,
             index: 0,
+            up_to: &mut self.up_to,
         }
     }
 
     pub(crate) fn new() -> Self {
         Self {
+            up_to: Cell::new(0),
             phantom: PhantomData,
-        }
-    }
-
-    pub fn clear_from(&self, from: usize) {
-        if from >= 128 {
-            return;
-        }
-
-        for i in from..128 {
-            unsafe {
-                let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(i * 4);
-                ptr.write_volatile(0b10 << 8);
-            }
         }
     }
 }

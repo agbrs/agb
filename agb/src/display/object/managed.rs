@@ -167,8 +167,6 @@ impl OAMManager<'_> {
     }
 
     pub fn commit(&self) {
-        let mut count = 0;
-
         let mut unmanaged = UnmanagedOAM::new();
 
         // do interactions with OAM
@@ -179,9 +177,7 @@ impl OAMManager<'_> {
             .zip(unmanaged.iter())
         {
             slot.set(object);
-            count += 1;
         }
-        unmanaged.clear_from(count);
 
         // finished OAM interactions
 
