@@ -55,6 +55,7 @@ impl Store {
         }
     }
 
+    #[cfg(test)]
     fn is_all_ordered_right(&self) -> bool {
         let mut previous_z = i32::MIN;
         let mut current_index = self.first_z.get();
@@ -427,5 +428,45 @@ impl Object<'_> {
         unsafe { self.object().set_sprite(sprite) };
 
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec::Vec;
+
+    use crate::{display::object::Graphics, include_aseprite};
+
+    use super::*;
+
+    const TEST_SPRITES: &Graphics = include_aseprite!("examples/gfx/tall.aseprite");
+
+    const TEST_SPRITE: &Sprite = &TEST_SPRITES.sprites()[0];
+
+    #[test_case]
+    fn test_always_ordered(gba: &mut crate::Gba) {
+        let managed = gba.display.object.get_managed();
+
+        let sprite = managed.get_vram_sprite(TEST_SPRITE);
+
+        let mut objects = Vec::new();
+        for _ in 0..200 {
+            let obj = managed.add_object(sprite.clone());
+            objects.push(obj);
+        }
+
+        for modification_number in 0..10_000 {
+            let index_to_modify = (crate::rng::gen() as usize) % objects.len();
+            let modify_to = crate::rng::gen();
+            objects[index_to_modify].set_z(modify_to);
+
+            assert!(
+                managed.object_store.is_all_ordered_right(),
+                "objects are unordered after {} modifications. Modified {} to {}.",
+                modification_number + 1,
+                index_to_modify,
+                modify_to
+            );
+        }
     }
 }
