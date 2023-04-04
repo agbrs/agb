@@ -1,4 +1,4 @@
-use agb::display::object::{OAMManager, Object};
+use agb::display::object::{OamManager, Object};
 use agb::rng;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -39,7 +39,7 @@ pub struct BattleScreenDisplay<'a> {
 const HEALTH_BAR_WIDTH: usize = 48;
 
 impl<'a> BattleScreenDisplay<'a> {
-    pub fn new(obj: &'a OAMManager, current_battle_state: &CurrentBattleState) -> Self {
+    pub fn new(obj: &'a OamManager, current_battle_state: &CurrentBattleState) -> Self {
         let mut misc_sprites = vec![];
         let player_x = 12;
         let player_y = 8;
@@ -189,7 +189,7 @@ impl<'a> BattleScreenDisplay<'a> {
 
     pub fn update(
         &mut self,
-        obj: &'a OAMManager,
+        obj: &'a OamManager,
         current_battle_state: &CurrentBattleState,
     ) -> Vec<Action> {
         for (i, player_shield) in self.objs.player_shield.iter_mut().enumerate() {
@@ -279,7 +279,7 @@ impl<'a> BattleScreenDisplay<'a> {
         actions_to_apply
     }
 
-    pub fn add_action(&mut self, action: Action, obj: &'a OAMManager, sfx: &mut Sfx) {
+    pub fn add_action(&mut self, action: Action, obj: &'a OamManager, sfx: &mut Sfx) {
         play_sound_for_action_start(&action, sfx);
 
         self.animations
@@ -309,7 +309,7 @@ impl<'a> EnemyAttackDisplay<'a> {
         }
     }
 
-    pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a OAMManager) {
+    pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a OamManager) {
         if let Some(attack) = attack {
             self.face.show().set_sprite(
                 obj.get_vram_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
@@ -350,7 +350,7 @@ enum AnimationUpdateState {
 }
 
 impl<'a> AnimationStateHolder<'a> {
-    fn for_action(a: Action, obj: &'a OAMManager) -> Self {
+    fn for_action(a: Action, obj: &'a OamManager) -> Self {
         let state = match a {
             Action::PlayerActivateShield { amount, .. } => {
                 AnimationState::PlayerActivateShield { amount, frame: 0 }
@@ -383,7 +383,7 @@ impl<'a> AnimationStateHolder<'a> {
     fn update(
         &mut self,
         objs: &mut BattleScreenDisplayObjects<'a>,
-        obj: &'a OAMManager,
+        obj: &'a OamManager,
         current_battle_state: &CurrentBattleState,
     ) -> AnimationUpdateState {
         match &mut self.state {

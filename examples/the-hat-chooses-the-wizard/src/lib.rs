@@ -8,7 +8,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, OAMManager, Object, Tag, TagMap},
+        object::{Graphics, OamManager, Object, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
@@ -124,7 +124,7 @@ pub struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    pub fn new(object: &'a OAMManager, collision_mask: Vector2D<u16>) -> Self {
+    pub fn new(object: &'a OamManager, collision_mask: Vector2D<u16>) -> Self {
         let mut dummy_object = object.add_object_static_sprite(WALKING.sprite(0));
         dummy_object.set_priority(Priority::P1);
         Entity {
@@ -347,7 +347,7 @@ fn ping_pong(i: i32, n: i32) -> i32 {
 }
 
 impl<'a> Player<'a> {
-    fn new(controller: &'a OAMManager, start_position: Vector2D<FixedNumberType>) -> Self {
+    fn new(controller: &'a OamManager, start_position: Vector2D<FixedNumberType>) -> Self {
         let mut wizard = Entity::new(controller, (6_u16, 14_u16).into());
         let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
 
@@ -381,7 +381,7 @@ impl<'a> Player<'a> {
     fn update_frame(
         &mut self,
         input: &ButtonController,
-        controller: &'a OAMManager,
+        controller: &'a OamManager,
         timer: i32,
         level: &Level,
         enemies: &[enemies::Enemy],
@@ -615,7 +615,7 @@ enum UpdateState {
 impl<'a, 'b> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
-        object_control: &'a OAMManager,
+        object_control: &'a OamManager,
         background: &'a mut InfiniteScrolledMap<'b>,
         foreground: &'a mut InfiniteScrolledMap<'b>,
         input: ButtonController,
@@ -676,7 +676,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self, controller: &'a OAMManager) -> bool {
+    fn dead_update(&mut self, controller: &'a OamManager) -> bool {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
@@ -695,7 +695,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         &mut self,
         sfx_player: &mut SfxPlayer,
         vram: &mut VRamManager,
-        controller: &'a OAMManager,
+        controller: &'a OamManager,
     ) -> UpdateState {
         self.timer += 1;
         self.input.update();

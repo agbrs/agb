@@ -1,6 +1,6 @@
 use agb::{
     display::{
-        object::{OAMManager, Object},
+        object::{OamManager, Object},
         tiled::{RegularMap, TiledMap},
         HEIGHT, WIDTH,
     },
@@ -91,7 +91,7 @@ fn move_net_position_ud(idx: usize, direction: Tri) -> usize {
     }
 }
 
-fn create_dice_display<'a>(gfx: &'a OAMManager, dice: &'_ PlayerDice) -> Vec<Object<'a>> {
+fn create_dice_display<'a>(gfx: &'a OamManager, dice: &'_ PlayerDice) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, dice) in dice.dice.iter().enumerate() {
         let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(dice.faces[1]));
@@ -105,7 +105,7 @@ fn create_dice_display<'a>(gfx: &'a OAMManager, dice: &'_ PlayerDice) -> Vec<Obj
     objects
 }
 
-fn create_net<'a>(gfx: &'a OAMManager, die: &'_ Die, modified: &[usize]) -> Vec<Object<'a>> {
+fn create_net<'a>(gfx: &'a OamManager, die: &'_ Die, modified: &[usize]) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, &face) in die.faces.iter().enumerate() {
         let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(face));
@@ -139,7 +139,7 @@ fn upgrade_position(idx: usize) -> (u32, u32) {
     )
 }
 
-fn create_upgrade_objects<'a>(gfx: &'a OAMManager, upgrades: &[Face]) -> Vec<Object<'a>> {
+fn create_upgrade_objects<'a>(gfx: &'a OamManager, upgrades: &[Face]) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, &upgrade) in upgrades.iter().enumerate() {
         let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(upgrade));

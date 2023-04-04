@@ -12,7 +12,7 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::display::object::OAMManager;
+use agb::display::object::OamManager;
 use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
@@ -90,7 +90,7 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
-    obj: OAMManager<'a>,
+    obj: OamManager<'a>,
     vblank: VBlank,
     star_background: StarBackground<'a>,
     vram: VRamManager,

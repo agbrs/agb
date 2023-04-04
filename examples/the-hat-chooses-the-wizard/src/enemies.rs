@@ -2,7 +2,7 @@ use crate::TAG_MAP;
 
 use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
 use agb::{
-    display::object::{OAMManager, Tag},
+    display::object::{OamManager, Tag},
     fixnum::Vector2D,
 };
 
@@ -35,11 +35,11 @@ pub enum EnemyUpdateState {
 }
 
 impl<'a> Enemy<'a> {
-    pub fn new_slime(object: &'a OAMManager, start_pos: Vector2D<FixedNumberType>) -> Self {
+    pub fn new_slime(object: &'a OamManager, start_pos: Vector2D<FixedNumberType>) -> Self {
         Enemy::Slime(Slime::new(object, start_pos + (0, 1).into()))
     }
 
-    pub fn new_snail(object: &'a OAMManager, start_pos: Vector2D<FixedNumberType>) -> Self {
+    pub fn new_snail(object: &'a OamManager, start_pos: Vector2D<FixedNumberType>) -> Self {
         Enemy::Snail(Snail::new(object, start_pos))
     }
 
@@ -52,7 +52,7 @@ impl<'a> Enemy<'a> {
 
     pub fn update(
         &mut self,
-        controller: &'a OAMManager,
+        controller: &'a OamManager,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -94,7 +94,7 @@ struct EnemyInfo<'a> {
 
 impl<'a> EnemyInfo<'a> {
     fn new(
-        object: &'a OAMManager,
+        object: &'a OamManager,
         start_pos: Vector2D<FixedNumberType>,
         collision: Vector2D<u16>,
     ) -> Self {
@@ -135,7 +135,7 @@ pub struct Slime<'a> {
 }
 
 impl<'a> Slime<'a> {
-    fn new(object: &'a OAMManager, start_pos: Vector2D<FixedNumberType>) -> Self {
+    fn new(object: &'a OamManager, start_pos: Vector2D<FixedNumberType>) -> Self {
         let slime = Slime {
             enemy_info: EnemyInfo::new(object, start_pos, (14u16, 14u16).into()),
             state: SlimeState::Idle,
@@ -146,7 +146,7 @@ impl<'a> Slime<'a> {
 
     fn update(
         &mut self,
-        controller: &'a OAMManager,
+        controller: &'a OamManager,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -257,7 +257,7 @@ pub struct Snail<'a> {
 }
 
 impl<'a> Snail<'a> {
-    fn new(object: &'a OAMManager, start_pos: Vector2D<FixedNumberType>) -> Self {
+    fn new(object: &'a OamManager, start_pos: Vector2D<FixedNumberType>) -> Self {
         let snail = Snail {
             enemy_info: EnemyInfo::new(object, start_pos, (16u16, 16u16).into()),
             state: SnailState::Idle(0),
@@ -272,7 +272,7 @@ impl<'a> Snail<'a> {
 
     fn update(
         &mut self,
-        controller: &'a OAMManager,
+        controller: &'a OamManager,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,

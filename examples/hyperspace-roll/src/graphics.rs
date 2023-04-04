@@ -1,5 +1,5 @@
 use agb::{
-    display::object::{OAMManager, Object, Sprite, Tag},
+    display::object::{OamManager, Object, Sprite, Tag},
     fixnum::Vector2D,
 };
 use alloc::vec::Vec;
@@ -141,7 +141,7 @@ pub struct HealthBar<'a> {
 }
 
 impl<'a> HealthBar<'a> {
-    pub fn new(pos: Vector2D<i32>, max: usize, obj: &'a OAMManager) -> Self {
+    pub fn new(pos: Vector2D<i32>, max: usize, obj: &'a OamManager) -> Self {
         assert_eq!(max % 8, 0);
 
         let sprites = (0..(max / 8))
@@ -157,7 +157,7 @@ impl<'a> HealthBar<'a> {
         Self { max, sprites }
     }
 
-    pub fn set_value(&mut self, new_value: usize, obj: &'a OAMManager) {
+    pub fn set_value(&mut self, new_value: usize, obj: &'a OamManager) {
         assert!(new_value <= self.max);
 
         for (i, sprite) in self.sprites.iter_mut().enumerate() {
@@ -195,7 +195,7 @@ pub struct FractionDisplay<'a> {
 }
 
 impl<'a> FractionDisplay<'a> {
-    pub fn new(pos: Vector2D<i32>, digits: usize, obj: &'a OAMManager) -> Self {
+    pub fn new(pos: Vector2D<i32>, digits: usize, obj: &'a OamManager) -> Self {
         let mut sprites = Vec::with_capacity(digits * 2 + 1);
 
         for i in 0..digits {
@@ -222,7 +222,7 @@ impl<'a> FractionDisplay<'a> {
         }
     }
 
-    pub fn set_value(&mut self, current: usize, max: usize, obj: &'a OAMManager) {
+    pub fn set_value(&mut self, current: usize, max: usize, obj: &'a OamManager) {
         if self.current_current == current && self.current_max == max {
             return;
         }
@@ -261,7 +261,7 @@ impl<'a> NumberDisplay<'a> {
         }
     }
 
-    pub fn set_value(&mut self, new_value: Option<u32>, obj: &'a OAMManager) {
+    pub fn set_value(&mut self, new_value: Option<u32>, obj: &'a OamManager) {
         if self.value == new_value {
             return;
         }
