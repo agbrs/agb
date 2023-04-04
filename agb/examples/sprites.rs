@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::display::{
     affine::AffineMatrix,
-    object::{self, Graphics, OAMManager, Sprite, TagMap},
+    object::{self, Graphics, OamManager, Sprite, TagMap},
 };
 use agb::fixnum::num;
 use agb_fixnum::Num;
@@ -20,14 +20,14 @@ const GRAPHICS: &Graphics = agb::include_aseprite!(
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &OAMManager, rotation_speed: Num<i32, 16>) {
+fn all_sprites(gfx: &OamManager, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
     let mut rotation: Num<i32, 16> = num!(0.);
 
     let rotation_matrix = AffineMatrix::from_rotation(rotation);
-    let matrix = object::AffineMatrix::new(rotation_matrix.to_object_wrapping());
+    let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
 
     for y in 0..9 {
         for x in 0..14 {
@@ -55,7 +55,7 @@ fn all_sprites(gfx: &OAMManager, rotation_speed: Num<i32, 16>) {
         rotation += rotation_speed;
         let rotation_matrix = AffineMatrix::from_rotation(rotation);
 
-        let matrix = object::AffineMatrix::new(rotation_matrix.to_object_wrapping());
+        let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
 
         for obj in objs.iter_mut() {
             obj.set_affine_matrix(matrix.clone());
@@ -75,7 +75,7 @@ fn all_sprites(gfx: &OAMManager, rotation_speed: Num<i32, 16>) {
     }
 }
 
-fn all_tags(gfx: &OAMManager) {
+fn all_tags(gfx: &OamManager) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 

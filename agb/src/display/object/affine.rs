@@ -15,14 +15,14 @@ struct AffineMatrixData {
 pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 
 #[derive(Debug, Clone)]
-pub struct AffineMatrix {
+pub struct AffineMatrixInstance {
     location: AffineMatrixVram,
 }
 
-impl AffineMatrix {
+impl AffineMatrixInstance {
     #[must_use]
-    pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrix {
-        AffineMatrix {
+    pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrixInstance {
+        AffineMatrixInstance {
             location: AffineMatrixVram(Rc::new(AffineMatrixData {
                 frame_count: Cell::new(u32::MAX),
                 location: Cell::new(u32::MAX),
@@ -72,8 +72,8 @@ mod tests {
     #[test_case]
     fn niche_optimisation(_gba: &mut crate::Gba) {
         assert_eq!(
-            core::mem::size_of::<AffineMatrix>(),
-            core::mem::size_of::<Option<AffineMatrix>>()
+            core::mem::size_of::<AffineMatrixInstance>(),
+            core::mem::size_of::<Option<AffineMatrixInstance>>()
         );
     }
 }

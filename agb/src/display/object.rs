@@ -4,13 +4,12 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, Graphics, Size, Sprite, SpriteVram, StaticSpriteLoader, Tag,
-    TagMap,
+    include_aseprite, DynamicSprite, Graphics, Size, Sprite, SpriteLoader, SpriteVram, Tag, TagMap,
 };
 
-pub use affine::AffineMatrix;
-pub use managed::{OAMManager, Object};
-pub use unmanaged::{AffineMode, OAMIterator, OAMSlot, UnmanagedOAM, UnmanagedObject};
+pub use affine::AffineMatrixInstance;
+pub use managed::{OamManager, Object};
+pub use unmanaged::{AffineMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged};
 
 use super::DISPLAY_CONTROL;
 

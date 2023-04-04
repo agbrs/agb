@@ -4,7 +4,7 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{OAMManager, Object, Size, Sprite},
+        object::{OamManager, Object, Size, Sprite},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
@@ -145,7 +145,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
 fn update_chicken_object(
     chicken: &'_ mut Character<'_>,
-    gfx: &OAMManager,
+    gfx: &OamManager,
     state: State,
     frame_count: u32,
 ) {

@@ -6,7 +6,8 @@ use slotmap::{new_key_type, SlotMap};
 use crate::display::Priority;
 
 use super::{
-    AffineMatrix, AffineMode, Sprite, SpriteVram, StaticSpriteLoader, UnmanagedOAM, UnmanagedObject,
+    AffineMatrixInstance, AffineMode, OamUnmanaged, ObjectUnmanaged, Sprite, SpriteLoader,
+    SpriteVram,
 };
 
 new_key_type! {struct ObjectKey; }
@@ -18,7 +19,7 @@ struct Ordering {
 }
 
 struct ObjectItem {
-    object: UnsafeCell<UnmanagedObject>,
+    object: UnsafeCell<ObjectUnmanaged>,
     z_order: Cell<Ordering>,
     z_index: Cell<i32>,
 }
@@ -71,7 +72,7 @@ impl Store {
         true
     }
 
-    fn insert_object(&self, object: UnmanagedObject) -> Object {
+    fn insert_object(&self, object: ObjectUnmanaged) -> Object {
         let object_item = ObjectItem {
             object: UnsafeCell::new(object),
             z_order: Cell::new(Ordering {
@@ -121,21 +122,21 @@ impl Store {
     }
 }
 
-pub struct OAMManager<'gba> {
+pub struct OamManager<'gba> {
     object_store: Store,
-    sprite_loader: UnsafeCell<StaticSpriteLoader>,
-    unmanaged: UnsafeCell<UnmanagedOAM<'gba>>,
+    sprite_loader: UnsafeCell<SpriteLoader>,
+    unmanaged: UnsafeCell<OamUnmanaged<'gba>>,
 }
 
-impl OAMManager<'_> {
+impl OamManager<'_> {
     pub(crate) fn new() -> Self {
         Self {
             object_store: Store {
                 store: UnsafeCell::new(SlotMap::with_key()),
                 first_z: Cell::new(None),
             },
-            sprite_loader: UnsafeCell::new(StaticSpriteLoader::new()),
-            unmanaged: UnsafeCell::new(UnmanagedOAM::new()),
+            sprite_loader: UnsafeCell::new(SpriteLoader::new()),
+            unmanaged: UnsafeCell::new(OamUnmanaged::new()),
         }
     }
 
@@ -143,7 +144,7 @@ impl OAMManager<'_> {
     /// Do not reenter or recurse or otherwise use sprite loader cell during this.
     unsafe fn do_work_with_sprite_loader<C, T>(&self, c: C) -> T
     where
-        C: Fn(&mut StaticSpriteLoader) -> T,
+        C: Fn(&mut SpriteLoader) -> T,
     {
         let sprite_loader = unsafe { &mut *self.sprite_loader.get() };
 
@@ -164,13 +165,13 @@ impl OAMManager<'_> {
 
         // safety: not reentrant
         unsafe {
-            self.do_work_with_sprite_loader(StaticSpriteLoader::garbage_collect);
+            self.do_work_with_sprite_loader(SpriteLoader::garbage_collect);
         }
     }
 
     pub fn add_object(&self, sprite: SpriteVram) -> Object<'_> {
         self.object_store
-            .insert_object(UnmanagedObject::new(sprite))
+            .insert_object(ObjectUnmanaged::new(sprite))
     }
 
     pub fn get_vram_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
@@ -335,13 +336,13 @@ impl Object<'_> {
 
     /// Safety:
     /// Only have *ONE* of these at a time, do not call any functions that modify the slot map while having this.
-    unsafe fn object(&mut self) -> &mut UnmanagedObject {
+    unsafe fn object(&mut self) -> &mut ObjectUnmanaged {
         unsafe { &mut *self.store.get_object(self.me).object.get() }
     }
 
     /// Safety:
     /// Don't have a mutable one of these while having one of these, do not call any functions that modify the slot map while having this.
-    unsafe fn object_shared(&self) -> &UnmanagedObject {
+    unsafe fn object_shared(&self) -> &ObjectUnmanaged {
         unsafe { &*self.store.get_object(self.me).object.get() }
     }
 
@@ -414,7 +415,7 @@ impl Object<'_> {
         self
     }
 
-    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrix) -> &mut Self {
+    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_affine_matrix(affine_matrix) };
 

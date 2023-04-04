@@ -53,7 +53,7 @@ impl PaletteId {
 }
 
 /// This holds loading of static sprites and palettes.
-pub struct StaticSpriteLoader {
+pub struct SpriteLoader {
     static_palette_map: HashMap<PaletteId, Weak<PaletteVramData>>,
     static_sprite_map: HashMap<SpriteId, Weak<SpriteVramData>>,
 }
@@ -159,7 +159,7 @@ impl SpriteVram {
     }
 }
 
-impl StaticSpriteLoader {
+impl SpriteLoader {
     fn create_sprite_no_insert(
         palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
         sprite: &'static Sprite,
@@ -245,7 +245,7 @@ impl StaticSpriteLoader {
     }
 }
 
-impl Default for StaticSpriteLoader {
+impl Default for SpriteLoader {
     fn default() -> Self {
         Self::new()
     }

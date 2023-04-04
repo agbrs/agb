@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 
 use crate::display::{
     object::{
-        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrix, OBJECT_ATTRIBUTE_MEMORY,
+        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance,
+        OBJECT_ATTRIBUTE_MEMORY,
     },
     Priority,
 };
@@ -20,24 +21,24 @@ struct OamFrameModifyables {
     affine_matrix_count: u32,
 }
 
-pub struct UnmanagedOAM<'gba> {
+pub struct OamUnmanaged<'gba> {
     phantom: PhantomData<&'gba ()>,
     frame_data: UnsafeCell<OamFrameModifyables>,
     previous_frame_sprites: Vec<SpriteVram>,
 }
 
-pub struct OAMIterator<'oam> {
+pub struct OamIterator<'oam> {
     index: usize,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
-pub struct OAMSlot<'oam> {
+pub struct OamSlot<'oam> {
     slot: usize,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
-impl OAMSlot<'_> {
-    pub fn set(&mut self, object: &UnmanagedObject) {
+impl OamSlot<'_> {
+    pub fn set(&mut self, object: &ObjectUnmanaged) {
         let mut attributes = object.attributes;
         // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
         let frame_data = unsafe { &mut *self.frame_data.get() };
@@ -72,8 +73,8 @@ impl OAMSlot<'_> {
     }
 }
 
-impl<'oam> Iterator for OAMIterator<'oam> {
-    type Item = OAMSlot<'oam>;
+impl<'oam> Iterator for OamIterator<'oam> {
+    type Item = OamSlot<'oam>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.index;
@@ -82,7 +83,7 @@ impl<'oam> Iterator for OAMIterator<'oam> {
         if idx >= 128 {
             None
         } else {
-            Some(OAMSlot {
+            Some(OamSlot {
                 slot: idx,
                 frame_data: self.frame_data,
             })
@@ -90,7 +91,7 @@ impl<'oam> Iterator for OAMIterator<'oam> {
     }
 }
 
-impl Drop for OAMIterator<'_> {
+impl Drop for OamIterator<'_> {
     fn drop(&mut self) {
         let last_written = unsafe { &*self.frame_data.get() }.up_to;
 
@@ -105,8 +106,8 @@ impl Drop for OAMIterator<'_> {
     }
 }
 
-impl UnmanagedOAM<'_> {
-    pub fn iter(&mut self) -> OAMIterator<'_> {
+impl OamUnmanaged<'_> {
+    pub fn iter(&mut self) -> OamIterator<'_> {
         let frame_data = self.frame_data.get_mut();
         frame_data.up_to = -1;
         frame_data.frame = frame_data.frame.wrapping_add(1);
@@ -120,7 +121,7 @@ impl UnmanagedOAM<'_> {
             &mut self.previous_frame_sprites,
         );
 
-        OAMIterator {
+        OamIterator {
             index: 0,
             frame_data: &self.frame_data,
         }
@@ -136,13 +137,13 @@ impl UnmanagedOAM<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct UnmanagedObject {
+pub struct ObjectUnmanaged {
     attributes: Attributes,
     sprite: SpriteVram,
     affine_matrix: Option<AffineMatrixVram>,
 }
 
-impl UnmanagedObject {
+impl ObjectUnmanaged {
     #[must_use]
     pub fn new(sprite: SpriteVram) -> Self {
         let sprite_location = sprite.location();
@@ -226,7 +227,7 @@ impl UnmanagedObject {
         self
     }
 
-    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrix) -> &mut Self {
+    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
         let vram = affine_matrix.vram();
         self.affine_matrix = Some(vram);
 
