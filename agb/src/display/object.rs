@@ -14,11 +14,11 @@ pub use unmanaged::{AffineMode, OAMIterator, OAMSlot, UnmanagedOAM, UnmanagedObj
 
 use super::DISPLAY_CONTROL;
 
-const OBJECT_ATTRIBUTE_MEMORY: usize = 0x0700_0000;
+const OBJECT_ATTRIBUTE_MEMORY: *mut u16 = 0x0700_0000 as *mut u16;
 
 pub(super) unsafe fn initilise_oam() {
     for i in 0..128 {
-        let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(i * 4);
+        let ptr = (OBJECT_ATTRIBUTE_MEMORY).add(i * 4);
         ptr.write_volatile(0b10 << 8);
     }
 

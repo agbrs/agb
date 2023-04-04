@@ -4,8 +4,6 @@ use alloc::rc::Rc;
 
 use crate::display::affine::AffineMatrixObject;
 
-use super::OBJECT_ATTRIBUTE_MEMORY;
-
 #[derive(Debug)]
 struct AffineMatrixData {
     frame_count: Cell<u32>,
@@ -55,13 +53,12 @@ impl AffineMatrixVram {
         self.0.location.set(location);
     }
 
-    pub fn write_to_location(&self) {
+    pub fn write_to_location(&self, oam: *mut u16) {
         let components = self.0.matrix.components();
         let location = self.0.location.get() as usize;
         for (idx, component) in components.iter().enumerate() {
             unsafe {
-                (OBJECT_ATTRIBUTE_MEMORY as *mut u16)
-                    .add(location * 16 + idx * 4 + 3)
+                oam.add(location * 16 + idx * 4 + 3)
                     .write_volatile(*component);
             }
         }

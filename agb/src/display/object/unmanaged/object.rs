@@ -51,7 +51,7 @@ impl OAMSlot<'_> {
                 );
                 affine_matrix.set_location(frame_data.affine_matrix_count);
                 frame_data.affine_matrix_count += 1;
-                affine_matrix.write_to_location();
+                affine_matrix.write_to_location(OBJECT_ATTRIBUTE_MEMORY);
             }
 
             attributes.set_affine_matrix(affine_matrix.location() as u16);
