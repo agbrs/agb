@@ -8,14 +8,13 @@ edition = "2021"
 
 [dependencies]
 agb = { version = "0.13.0", path = "../../agb" }
-bare-metal = "1"
 
 [profile.dev]
 opt-level = 2
 debug = true
 
-
 [profile.release]
 panic = "abort"
 lto = true
 debug = true
+codegen-units = 1
