@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made Vector2D::new a const function.
 - The template now uses rust 2021 edition by default.
 - All objects which should only be created once now have the correct lifetimes to only allow one to exist.
+- Template now uses codegen-units=1 to workaround bug in nightly.
 
 ### Fixed
 - Alpha channel is now considered by `include_gfx!()` even when `transparent_colour` is absent.
