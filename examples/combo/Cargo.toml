@@ -20,3 +20,4 @@ debug = true
 panic = "abort"
 lto = true
 debug = true
+codegen-units = 1
