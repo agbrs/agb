@@ -1,16 +1,18 @@
 use core::cell::{Cell, UnsafeCell};
 
 use agb_fixnum::Vector2D;
-use slotmap::{new_key_type, SlotMap};
 
-use crate::display::Priority;
+use crate::{
+    arena::{Arena, ArenaKey},
+    display::Priority,
+};
 
 use super::{
     AffineMatrixInstance, AffineMode, OamUnmanaged, ObjectUnmanaged, Sprite, SpriteLoader,
     SpriteVram,
 };
 
-new_key_type! {struct ObjectKey; }
+type ObjectKey = ArenaKey;
 
 #[derive(Clone, Copy)]
 struct Ordering {
@@ -25,12 +27,12 @@ struct ObjectItem {
 }
 
 struct Store {
-    store: UnsafeCell<slotmap::SlotMap<ObjectKey, ObjectItem>>,
+    store: UnsafeCell<Arena<ObjectItem>>,
     first_z: Cell<Option<ObjectKey>>,
 }
 
 struct StoreIterator<'store> {
-    store: &'store slotmap::SlotMap<ObjectKey, ObjectItem>,
+    store: &'store Arena<ObjectItem>,
     current: Option<ObjectKey>,
 }
 
@@ -38,7 +40,7 @@ impl<'store> Iterator for StoreIterator<'store> {
     type Item = &'store ObjectItem;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let to_output = &self.store[self.current?];
+        let to_output = unsafe { self.store.get(self.current?) };
         self.current = to_output.z_order.get().next;
         Some(to_output)
     }
@@ -84,7 +86,7 @@ impl Store {
         };
         let idx = {
             let data = unsafe { &mut *self.store.get() };
-            data.insert(object_item)
+            unsafe { data.insert(object_item) }
         };
 
         if let Some(first) = self.first_z.get() {
@@ -115,11 +117,11 @@ impl Store {
         remove_from_linked_list(self, object);
 
         let data = unsafe { &mut *self.store.get() };
-        data.remove(object);
+        unsafe { data.remove(object) };
     }
 
     fn get_object(&self, key: ObjectKey) -> &ObjectItem {
-        &(unsafe { &*self.store.get() }[key])
+        unsafe { (*self.store.get()).get(key) }
     }
 }
 
@@ -133,7 +135,7 @@ impl OamManager<'_> {
     pub(crate) fn new() -> Self {
         Self {
             object_store: Store {
-                store: UnsafeCell::new(SlotMap::with_key()),
+                store: UnsafeCell::new(Arena::new()),
                 first_z: Cell::new(None),
             },
             sprite_loader: UnsafeCell::new(SpriteLoader::new()),

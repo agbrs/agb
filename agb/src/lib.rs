@@ -181,6 +181,8 @@ pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 
+pub(crate) mod arena;
+
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
 #[cfg(not(any(test, feature = "testing")))]

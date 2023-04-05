@@ -30,7 +30,6 @@ agb_fixnum = { version = "0.13.0", path = "../agb-fixnum" }
 bare-metal = "1"
 modular-bitfield = "0.11"
 rustc-hash =  { version = "1", default-features = false }
-slotmap = { version = "1.0", default-features = false }
 
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
