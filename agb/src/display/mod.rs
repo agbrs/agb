@@ -6,7 +6,7 @@ use video::Video;
 
 use self::{
     blend::Blend,
-    object::{initilise_oam, OamManager, OamUnmanaged, SpriteLoader},
+    object::{initilise_oam, OamManaged, OamUnmanaged, SpriteLoader},
     window::Windows,
 };
 
@@ -89,9 +89,9 @@ impl ObjectDistribution {
         (OamUnmanaged::new(), SpriteLoader::new())
     }
 
-    pub fn get_managed(&mut self) -> OamManager<'_> {
+    pub fn get_managed(&mut self) -> OamManaged<'_> {
         unsafe { initilise_oam() };
-        OamManager::new()
+        OamManaged::new()
     }
 }
 

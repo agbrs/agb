@@ -8,7 +8,7 @@ pub use sprites::{
 };
 
 pub use affine::AffineMatrixInstance;
-pub use managed::{OamManager, Object};
+pub use managed::{OamManaged, Object};
 pub use unmanaged::{AffineMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged};
 
 use super::DISPLAY_CONTROL;

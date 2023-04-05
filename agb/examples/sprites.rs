@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::display::{
     affine::AffineMatrix,
-    object::{self, Graphics, OamManager, Sprite, TagMap},
+    object::{self, Graphics, OamManaged, Sprite, TagMap},
 };
 use agb::fixnum::num;
 use agb_fixnum::Num;
@@ -20,7 +20,7 @@ const GRAPHICS: &Graphics = agb::include_aseprite!(
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &OamManager, rotation_speed: Num<i32, 16>) {
+fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -31,7 +31,7 @@ fn all_sprites(gfx: &OamManager, rotation_speed: Num<i32, 16>) {
 
     for y in 0..9 {
         for x in 0..14 {
-            let mut obj = gfx.add_object_static_sprite(&SPRITES[0]);
+            let mut obj = gfx.object_sprite(&SPRITES[0]);
             obj.set_affine_matrix(matrix.clone());
             obj.show_affine(object::AffineMode::Affine);
             obj.set_position((x * 16 + 8, y * 16 + 8).into());
@@ -68,14 +68,14 @@ fn all_sprites(gfx: &OamManager, rotation_speed: Num<i32, 16>) {
             image %= SPRITES.len();
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i) % SPRITES.len();
-                obj.set_sprite(gfx.get_vram_sprite(&SPRITES[this_image]));
+                obj.set_sprite(gfx.get_sprite(&SPRITES[this_image]));
             }
         }
         gfx.commit();
     }
 }
 
-fn all_tags(gfx: &OamManager) {
+fn all_tags(gfx: &OamManaged) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -85,7 +85,7 @@ fn all_tags(gfx: &OamManager) {
         let sprite = v.sprite(0);
         let (size_x, size_y) = sprite.size().to_width_height();
         let (size_x, size_y) = (size_x as i32, size_y as i32);
-        let mut obj = gfx.add_object_static_sprite(sprite);
+        let mut obj = gfx.object_sprite(sprite);
         obj.show();
         obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
         objs.push((obj, v));
@@ -110,7 +110,7 @@ fn all_tags(gfx: &OamManager) {
         if count % 5 == 0 {
             image += 1;
             for (obj, tag) in objs.iter_mut() {
-                obj.set_sprite(gfx.get_vram_sprite(tag.animation_sprite(image)));
+                obj.set_sprite(gfx.get_sprite(tag.animation_sprite(image)));
             }
             gfx.commit();
         }

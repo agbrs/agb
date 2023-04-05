@@ -125,13 +125,13 @@ impl Store {
     }
 }
 
-pub struct OamManager<'gba> {
+pub struct OamManaged<'gba> {
     object_store: Store,
     sprite_loader: UnsafeCell<SpriteLoader>,
     unmanaged: UnsafeCell<OamUnmanaged<'gba>>,
 }
 
-impl OamManager<'_> {
+impl OamManaged<'_> {
     pub(crate) fn new() -> Self {
         Self {
             object_store: Store {
@@ -172,20 +172,20 @@ impl OamManager<'_> {
         }
     }
 
-    pub fn add_object(&self, sprite: SpriteVram) -> Object<'_> {
+    pub fn object(&self, sprite: SpriteVram) -> Object<'_> {
         self.object_store
             .insert_object(ObjectUnmanaged::new(sprite))
     }
 
-    pub fn get_vram_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
+    pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
         // safety: not reentrant
         unsafe {
             self.do_work_with_sprite_loader(|sprite_loader| sprite_loader.get_vram_sprite(sprite))
         }
     }
 
-    pub fn add_object_static_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
-        self.add_object(self.get_vram_sprite(sprite))
+    pub fn object_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
+        self.object(self.get_sprite(sprite))
     }
 }
 
@@ -449,11 +449,11 @@ mod tests {
     fn test_always_ordered(gba: &mut crate::Gba) {
         let managed = gba.display.object.get_managed();
 
-        let sprite = managed.get_vram_sprite(TEST_SPRITE);
+        let sprite = managed.get_sprite(TEST_SPRITE);
 
         let mut objects = Vec::new();
         for _ in 0..200 {
-            let obj = managed.add_object(sprite.clone());
+            let obj = managed.object(sprite.clone());
             objects.push(obj);
         }
 

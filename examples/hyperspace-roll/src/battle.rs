@@ -494,7 +494,7 @@ pub(crate) fn battle_screen(
 
     let obj = &agb.obj;
 
-    let mut select_box_obj = agb.obj.add_object_static_sprite(SELECT_BOX.sprite(0));
+    let mut select_box_obj = agb.obj.object_sprite(SELECT_BOX.sprite(0));
     select_box_obj.show();
 
     let num_dice = player_dice.dice.len();
@@ -587,7 +587,7 @@ pub(crate) fn battle_screen(
             .set_x(selected_die as u16 * 40 + 28 - 4)
             .set_sprite(
                 agb.obj
-                    .get_vram_sprite(SELECT_BOX.animation_sprite(counter / 10)),
+                    .get_sprite(SELECT_BOX.animation_sprite(counter / 10)),
             );
 
         agb.star_background.update();

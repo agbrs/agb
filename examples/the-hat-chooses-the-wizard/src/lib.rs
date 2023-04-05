@@ -8,7 +8,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, OamManager, Object, Tag, TagMap},
+        object::{Graphics, OamManaged, Object, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
@@ -124,8 +124,8 @@ pub struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    pub fn new(object: &'a OamManager, collision_mask: Vector2D<u16>) -> Self {
-        let mut dummy_object = object.add_object_static_sprite(WALKING.sprite(0));
+    pub fn new(object: &'a OamManaged, collision_mask: Vector2D<u16>) -> Self {
+        let mut dummy_object = object.object_sprite(WALKING.sprite(0));
         dummy_object.set_priority(Priority::P1);
         Entity {
             sprite: dummy_object,
@@ -347,15 +347,15 @@ fn ping_pong(i: i32, n: i32) -> i32 {
 }
 
 impl<'a> Player<'a> {
-    fn new(controller: &'a OamManager, start_position: Vector2D<FixedNumberType>) -> Self {
+    fn new(controller: &'a OamManaged, start_position: Vector2D<FixedNumberType>) -> Self {
         let mut wizard = Entity::new(controller, (6_u16, 14_u16).into());
         let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
 
         wizard
             .sprite
-            .set_sprite(controller.get_vram_sprite(HAT_SPIN_1.sprite(0)));
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.sprite(0)));
         hat.sprite
-            .set_sprite(controller.get_vram_sprite(HAT_SPIN_1.sprite(0)));
+            .set_sprite(controller.get_sprite(HAT_SPIN_1.sprite(0)));
 
         wizard.sprite.show();
         hat.sprite.show();
@@ -381,7 +381,7 @@ impl<'a> Player<'a> {
     fn update_frame(
         &mut self,
         input: &ButtonController,
-        controller: &'a OamManager,
+        controller: &'a OamManaged,
         timer: i32,
         level: &Level,
         enemies: &[enemies::Enemy],
@@ -460,7 +460,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = offset as u8;
 
                 let frame = WALKING.animation_sprite(offset);
-                let sprite = controller.get_vram_sprite(frame);
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -470,7 +470,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 5;
 
                 let frame = JUMPING.animation_sprite(0);
-                let sprite = controller.get_vram_sprite(frame);
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
@@ -485,7 +485,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 0;
 
                 let frame = FALLING.animation_sprite(offset);
-                let sprite = controller.get_vram_sprite(frame);
+                let sprite = controller.get_sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -512,13 +512,13 @@ impl<'a> Player<'a> {
                 self.wizard.sprite.set_hflip(true);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_vram_sprite(hat_base_tile.sprite(5)));
+                    .set_sprite(controller.get_sprite(hat_base_tile.sprite(5)));
             }
             agb::input::Tri::Positive => {
                 self.wizard.sprite.set_hflip(false);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_vram_sprite(hat_base_tile.sprite(0)));
+                    .set_sprite(controller.get_sprite(hat_base_tile.sprite(0)));
             }
             _ => {}
         }
@@ -544,7 +544,7 @@ impl<'a> Player<'a> {
                 let hat_sprite_offset = (timer / hat_sprite_divider) as usize;
 
                 self.hat.sprite.set_sprite(
-                    controller.get_vram_sprite(hat_base_tile.animation_sprite(hat_sprite_offset)),
+                    controller.get_sprite(hat_base_tile.animation_sprite(hat_sprite_offset)),
                 );
 
                 if self.hat_slow_counter < 30 && self.hat.velocity.magnitude() < 2.into() {
@@ -577,7 +577,7 @@ impl<'a> Player<'a> {
             }
             HatState::WizardTowards => {
                 self.hat.sprite.set_sprite(
-                    controller.get_vram_sprite(hat_base_tile.animation_sprite(timer as usize / 2)),
+                    controller.get_sprite(hat_base_tile.animation_sprite(timer as usize / 2)),
                 );
                 let distance_vector =
                     self.hat.position - self.wizard.position + hat_resting_position;
@@ -615,7 +615,7 @@ enum UpdateState {
 impl<'a, 'b> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
-        object_control: &'a OamManager,
+        object_control: &'a OamManaged,
         background: &'a mut InfiniteScrolledMap<'b>,
         foreground: &'a mut InfiniteScrolledMap<'b>,
         input: ButtonController,
@@ -676,11 +676,11 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self, controller: &'a OamManager) -> bool {
+    fn dead_update(&mut self, controller: &'a OamManaged) -> bool {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
-        let sprite = controller.get_vram_sprite(frame);
+        let sprite = controller.get_sprite(frame);
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;
@@ -695,7 +695,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         &mut self,
         sfx_player: &mut SfxPlayer,
         vram: &mut VRamManager,
-        controller: &'a OamManager,
+        controller: &'a OamManaged,
     ) -> UpdateState {
         self.timer += 1;
         self.input.update();

@@ -1,6 +1,6 @@
 use agb::{
     display::{
-        object::{OamManager, Object},
+        object::{OamManaged, Object},
         tiled::{RegularMap, TiledMap},
         HEIGHT, WIDTH,
     },
@@ -91,10 +91,10 @@ fn move_net_position_ud(idx: usize, direction: Tri) -> usize {
     }
 }
 
-fn create_dice_display<'a>(gfx: &'a OamManager, dice: &'_ PlayerDice) -> Vec<Object<'a>> {
+fn create_dice_display<'a>(gfx: &'a OamManaged, dice: &'_ PlayerDice) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, dice) in dice.dice.iter().enumerate() {
-        let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(dice.faces[1]));
+        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(dice.faces[1]));
         obj.set_x((idx as i32 * 32 - 24 / 2 + 20) as u16);
         obj.set_y(16 - 24 / 2);
 
@@ -105,10 +105,10 @@ fn create_dice_display<'a>(gfx: &'a OamManager, dice: &'_ PlayerDice) -> Vec<Obj
     objects
 }
 
-fn create_net<'a>(gfx: &'a OamManager, die: &'_ Die, modified: &[usize]) -> Vec<Object<'a>> {
+fn create_net<'a>(gfx: &'a OamManaged, die: &'_ Die, modified: &[usize]) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, &face) in die.faces.iter().enumerate() {
-        let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(face));
+        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(face));
         let (x, y) = screen_position_for_index(idx);
         obj.set_x((x - 24 / 2) as u16);
         obj.set_y((y - 24 / 2) as u16);
@@ -119,7 +119,7 @@ fn create_net<'a>(gfx: &'a OamManager, die: &'_ Die, modified: &[usize]) -> Vec<
     }
 
     for &m in modified.iter().chain(core::iter::once(&3)) {
-        let mut obj = gfx.add_object_static_sprite(MODIFIED_BOX);
+        let mut obj = gfx.object_sprite(MODIFIED_BOX);
         let (x, y) = screen_position_for_index(m);
         obj.set_x((x - 32 / 2) as u16);
         obj.set_y((y - 32 / 2) as u16);
@@ -139,10 +139,10 @@ fn upgrade_position(idx: usize) -> (u32, u32) {
     )
 }
 
-fn create_upgrade_objects<'a>(gfx: &'a OamManager, upgrades: &[Face]) -> Vec<Object<'a>> {
+fn create_upgrade_objects<'a>(gfx: &'a OamManaged, upgrades: &[Face]) -> Vec<Object<'a>> {
     let mut objects = Vec::new();
     for (idx, &upgrade) in upgrades.iter().enumerate() {
-        let mut obj = gfx.add_object_static_sprite(FACE_SPRITES.sprite_for_face(upgrade));
+        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(upgrade));
         let (x, y) = upgrade_position(idx);
         obj.set_x((x - 24 / 2) as u16);
         obj.set_y((y - 24 / 2) as u16);
@@ -180,13 +180,13 @@ pub(crate) fn customise_screen(
 
     let mut input = agb::input::ButtonController::new();
 
-    let mut select_box = agb.obj.add_object_static_sprite(SELECT_BOX.sprite(0));
+    let mut select_box = agb.obj.object_sprite(SELECT_BOX.sprite(0));
 
     select_box.show();
 
-    let mut selected_dice = agb.obj.add_object_static_sprite(SELECTED_BOX);
+    let mut selected_dice = agb.obj.object_sprite(SELECTED_BOX);
     selected_dice.hide();
-    let mut selected_face = agb.obj.add_object_static_sprite(SELECTED_BOX);
+    let mut selected_face = agb.obj.object_sprite(SELECTED_BOX);
     selected_face.hide();
     agb.sfx.frame();
 
@@ -340,7 +340,7 @@ pub(crate) fn customise_screen(
 
         select_box.set_sprite(
             agb.obj
-                .get_vram_sprite(SELECT_BOX.animation_sprite(counter / 10)),
+                .get_sprite(SELECT_BOX.animation_sprite(counter / 10)),
         );
 
         agb.star_background.update();
