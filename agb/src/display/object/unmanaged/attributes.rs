@@ -26,8 +26,11 @@ impl Default for Attributes {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+/// The affine mode
 pub enum AffineMode {
+    /// Normal affine, this is where the area of the affine is equal to the sprite size
     Affine = 1,
+    /// Double affine, this is where the area of the affine is double that of the sprite
     AffineDouble = 3,
 }
 

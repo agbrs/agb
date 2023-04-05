@@ -87,14 +87,17 @@ impl Drop for PaletteVramData {
     }
 }
 
-#[derive(Debug)]
+/// A palette in vram, this is reference counted so it is cheap to Clone.
+#[derive(Debug, Clone)]
 pub struct PaletteVram {
     data: Rc<PaletteVramData>,
 }
 
 impl PaletteVram {
-    fn new(palette: &Palette16) -> Option<PaletteVram> {
-        let allocated = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout()) }?;
+    /// Attempts to allocate a new palette in sprite vram
+    pub fn new(palette: &Palette16) -> Result<PaletteVram, LoaderError> {
+        let allocated = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout()) }
+            .ok_or(LoaderError::PaletteFull)?;
 
         unsafe {
             allocated
@@ -103,7 +106,7 @@ impl PaletteVram {
                 .copy_from_nonoverlapping(palette.colours.as_ptr(), palette.colours.len());
         }
 
-        Some(PaletteVram {
+        Ok(PaletteVram {
             data: Rc::new(PaletteVramData {
                 location: Location::from_palette_ptr(allocated),
             }),
@@ -124,20 +127,37 @@ impl Drop for SpriteVramData {
     }
 }
 
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LoaderError {
+    SpriteFull,
+    PaletteFull,
+}
+
+/// A sprite that is currently loaded into vram.
+///
+/// This is referenced counted such that clones of this are cheap and can be
+/// reused between objects. When nothing references the sprite it gets
+/// deallocated from vram.
+///
+/// You can create one of these either via the [DynamicSprite] interface, which
+/// allows you to generate sprites at run time, or via a [SpriteLoader] (or
+/// [OamManaged][super::super::OamManaged]).
 #[derive(Clone, Debug)]
 pub struct SpriteVram {
     data: Rc<SpriteVramData>,
 }
 
 impl SpriteVram {
-    fn new(data: &[u8], size: Size, palette: PaletteVram) -> Option<SpriteVram> {
-        let allocated = unsafe { SPRITE_ALLOCATOR.alloc(size.layout()) }?;
+    fn new(data: &[u8], size: Size, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
+        let allocated =
+            unsafe { SPRITE_ALLOCATOR.alloc(size.layout()) }.ok_or(LoaderError::SpriteFull)?;
         unsafe {
             allocated
                 .as_ptr()
                 .copy_from_nonoverlapping(data.as_ptr(), data.len());
         }
-        Some(SpriteVram {
+        Ok(SpriteVram {
             data: Rc::new(SpriteVramData {
                 location: Location::from_sprite_ptr(allocated),
                 size,
@@ -163,19 +183,19 @@ impl SpriteLoader {
     fn create_sprite_no_insert(
         palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
         sprite: &'static Sprite,
-    ) -> Option<(Weak<SpriteVramData>, SpriteVram)> {
+    ) -> Result<(Weak<SpriteVramData>, SpriteVram), LoaderError> {
         let palette = Self::try_get_vram_palette_asoc(palette_map, sprite.palette)?;
 
         let sprite = SpriteVram::new(sprite.data, sprite.size, palette)?;
-        Some((Rc::downgrade(&sprite.data), sprite))
+        Ok((Rc::downgrade(&sprite.data), sprite))
     }
 
     fn try_get_vram_palette_asoc(
         palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
         palette: &'static Palette16,
-    ) -> Option<PaletteVram> {
+    ) -> Result<PaletteVram, LoaderError> {
         let id = PaletteId::from_static_palette(palette);
-        Some(match palette_map.entry(id) {
+        Ok(match palette_map.entry(id) {
             crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
                 Some(data) => PaletteVram { data },
                 None => {
@@ -192,12 +212,16 @@ impl SpriteLoader {
         })
     }
 
-    pub fn try_get_vram_sprite(&mut self, sprite: &'static Sprite) -> Option<SpriteVram> {
+    /// Attempts to get a sprite
+    pub fn try_get_vram_sprite(
+        &mut self,
+        sprite: &'static Sprite,
+    ) -> Result<SpriteVram, LoaderError> {
         // check if we already have the sprite in vram
 
         let id = SpriteId::from_static_sprite(sprite);
 
-        Some(match self.static_sprite_map.entry(id) {
+        Ok(match self.static_sprite_map.entry(id) {
             crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
                 Some(data) => SpriteVram { data },
                 None => {
@@ -216,18 +240,24 @@ impl SpriteLoader {
         })
     }
 
-    pub fn try_get_vram_palette(&mut self, palette: &'static Palette16) -> Option<PaletteVram> {
+    /// Attempts to allocate a static palette
+    pub fn try_get_vram_palette(
+        &mut self,
+        palette: &'static Palette16,
+    ) -> Result<PaletteVram, LoaderError> {
         Self::try_get_vram_palette_asoc(&mut self.static_palette_map, palette)
     }
 
+    /// Allocates a sprite to vram, panics if it cannot fit.
     pub fn get_vram_sprite(&mut self, sprite: &'static Sprite) -> SpriteVram {
         self.try_get_vram_sprite(sprite)
-            .expect("no free sprite slots")
+            .expect("cannot create sprite")
     }
 
+    /// Allocates a palette to vram, panics if it cannot fit.
     pub fn get_vram_palette(&mut self, palette: &'static Palette16) -> PaletteVram {
         self.try_get_vram_palette(palette)
-            .expect("no free palette slots")
+            .expect("cannot create sprite")
     }
 
     pub(crate) fn new() -> Self {
@@ -237,6 +267,9 @@ impl SpriteLoader {
         }
     }
 
+    /// Remove internal references to sprites that no longer exist in vram. If
+    /// you neglect calling this, memory will leak over time in relation to the
+    /// total number of different sprites used. It will not leak vram.
     pub fn garbage_collect(&mut self) {
         self.static_sprite_map
             .retain(|_, v| Weak::strong_count(v) != 0);
@@ -277,18 +310,15 @@ impl DynamicSprite<'_> {
         DynamicSprite { data, size }
     }
 
-    #[must_use]
     /// Tries to copy the sprite to vram to be used to set object sprites.
-    /// Returns None if there is no room in sprite vram.
-    pub fn try_vram(&self, palette: PaletteVram) -> Option<SpriteVram> {
+    pub fn try_vram(&self, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
         SpriteVram::new(self.data, self.size, palette)
     }
 
     #[must_use]
     /// Tries to copy the sprite to vram to be used to set object sprites.
-    /// Panics if there is no room in sprite vram.
+    /// Panics if it cannot be allocated.
     pub fn to_vram(&self, palette: PaletteVram) -> SpriteVram {
-        self.try_vram(palette)
-            .expect("No slot for sprite available")
+        self.try_vram(palette).expect("cannot create sprite")
     }
 }

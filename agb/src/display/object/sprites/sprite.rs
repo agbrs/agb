@@ -28,6 +28,7 @@ impl Sprite {
     }
 
     #[must_use]
+    /// Gives the size of the sprite
     pub fn size(&self) -> Size {
         self.size
     }

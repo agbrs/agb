@@ -16,7 +16,6 @@ pub mod bitmap3;
 pub mod bitmap4;
 /// Test logo of agb.
 pub mod example_logo;
-/// Implements sprites.
 pub mod object;
 /// Palette type.
 pub mod palette16;

@@ -1,10 +1,21 @@
+#![warn(missing_docs)]
+//! # Sprites and objects
+//!
+//! There are two implementations of objects depending on how you want to make
+//! your game. There is the *Managed* and *Unmanaged* systems, given by
+//! [OamManaged] and [OamUnmanaged] respectively. The managed Oam is easier to
+//! use and has built in support for setting the `z` coordinate. The unmanaged
+//! Oam is simpler and more efficient with the tradeoff that it is slightly
+//! harder to integrate into your games depending on how they are architectured.
+
 mod affine;
 mod managed;
 mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, Graphics, Size, Sprite, SpriteLoader, SpriteVram, Tag, TagMap,
+    include_aseprite, DynamicSprite, Graphics, PaletteVram, Size, Sprite, SpriteLoader, SpriteVram,
+    Tag, TagMap,
 };
 
 pub use affine::AffineMatrixInstance;

@@ -14,6 +14,11 @@ struct AffineMatrixData {
 #[derive(Debug, Clone)]
 pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 
+/// An affine matrix that can be used on objects. It is just in time copied to
+/// vram, so you can have as many as you like of these but you can only use up
+/// to 16 in one frame. They are reference counted (Cloning is cheap) and
+/// immutable, if you want to change a matrix you must make a new one and set it
+/// on all your objects.
 #[derive(Debug, Clone)]
 pub struct AffineMatrixInstance {
     location: AffineMatrixVram,
@@ -21,6 +26,9 @@ pub struct AffineMatrixInstance {
 
 impl AffineMatrixInstance {
     #[must_use]
+    /// Creates an instance of an affine matrix from its object form. Check out
+    /// the docs for [AffineMatrix][crate::display::affine::AffineMatrix] to see
+    /// how you can use them to create effects.
     pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrixInstance {
         AffineMatrixInstance {
             location: AffineMatrixVram(Rc::new(AffineMatrixData {
