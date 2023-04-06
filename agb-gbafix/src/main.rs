@@ -12,7 +12,7 @@ fn main() -> Result<()> {
         .about("Convert elf files directly to a valid GBA ROM")
         .arg(arg!(<INPUT> "Input elf file").value_parser(value_parser!(PathBuf)))
         .arg(arg!(-o --output <OUTPUT> "Set output file, defaults to replacing INPUT's extension to .gba").value_parser(value_parser!(PathBuf)))
-        .arg(arg!(-t --title <TITLE> "Set the title. At most 12 bytes"))
+        .arg(arg!(-t --title <TITLE> "Set the title. At most 12 bytes. Defaults to truncating the input file name"))
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
         .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 0-65535").value_parser(value_parser!(u16)))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
@@ -26,7 +26,17 @@ fn main() -> Result<()> {
 
     let mut header = gbafix::GBAHeader::default();
 
-    if let Some(title) = matches.get_one::<String>("title") {
+    {
+        let title = if let Some(title) = matches.get_one::<String>("title") {
+            title.clone()
+        } else {
+            let title = input
+                .file_stem()
+                .ok_or_else(|| anyhow!("Invalid filename {}", input.to_string_lossy()))?
+                .to_string_lossy();
+            title.into_owned()
+        };
+
         for (i, &c) in title.as_bytes().iter().enumerate().take(12) {
             header.title[i] = c;
         }
