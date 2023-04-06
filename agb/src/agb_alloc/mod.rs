@@ -292,4 +292,18 @@ mod test {
             }
         }
     }
+
+    #[test_case]
+    fn growth_works(_gba: &mut crate::Gba) {
+        let mut growing_vector = Vec::with_capacity(1);
+
+        for i in 0..1000 {
+            growing_vector.push(i);
+            growing_vector.reserve_exact(i + 2);
+
+            for (idx, elem) in growing_vector.iter().enumerate() {
+                assert_eq!(idx, *elem);
+            }
+        }
+    }
 }

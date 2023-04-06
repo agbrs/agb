@@ -36,6 +36,10 @@ impl BumpAllocatorInner {
         }
     }
 
+    pub fn tip(&self) -> Option<NonNull<u8>> {
+        self.current_ptr.map(|x| x.0)
+    }
+
     pub fn alloc(&mut self, layout: Layout) -> Option<NonNull<u8>> {
         let current_ptr = &mut self.current_ptr;
 
