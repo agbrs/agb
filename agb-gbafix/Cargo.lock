@@ -6,11 +6,28 @@ version = 3
 name = "agb-gbafix"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "elf",
+ "gbafix",
 ]
+
+[[package]]
+name = "bytemuck"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
 
 [[package]]
 name = "elf"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2b183d6ce6ca4cf30e3db37abf5b52568b5f9015c97d9fbdd7026aa5dcdd758"
+
+[[package]]
+name = "gbafix"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7e47af9d5377b8b0def53d9916f6c28521f2e5b97c5fec137797417c26ab4b7"
+dependencies = [
+ "bytemuck",
+]

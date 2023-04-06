@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 elf = "0.7"
+gbafix = "1"
+bytemuck = "1"

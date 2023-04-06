@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, Write},
+    io::{BufWriter, Write},
     path::PathBuf,
 };
 
@@ -11,16 +11,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(file_data)?;
 
-    let (section_headers, strtab) = elf_file.section_headers_with_strtab()?;
-    let section_headers = section_headers.expect("Expected section headers");
-    let strtab = strtab.expect("Expected string table");
+    let section_headers = elf_file
+        .section_headers()
+        .expect("Expected section headers");
 
-    let output = fs::File::create("out.gba")?;
-    let mut buf_writer = io::BufWriter::new(output);
+    let mut output = BufWriter::new(fs::File::create("out.gba")?);
 
+    let mut header = gbafix::GBAHeader::default();
+
+    let mut written_header = false;
     for section_header in section_headers.iter() {
-        let section_name = strtab.get(section_header.sh_name as usize)?;
-
         const SHT_NOBITS: u32 = 8;
         const SHT_NULL: u32 = 0;
         const SHF_ALLOC: u64 = 2;
@@ -31,17 +31,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue;
         }
 
-        println!("{section_name}");
-
-        let (data, compression) = elf_file.section_data(&section_header)?;
+        let (mut data, compression) = elf_file.section_data(&section_header)?;
         if let Some(compression) = compression {
             panic!("Cannot decompress elf content, but got compression header {compression:?}");
         }
 
-        buf_writer.write_all(data)?;
+        if !written_header {
+            assert!(
+                data.len() > 192,
+                "first section must be at least as big as the gba header"
+            );
+
+            header.start_code = data[0..4].try_into().unwrap();
+            header.update_checksum();
+
+            let header_bytes = bytemuck::bytes_of(&header);
+            output.write_all(header_bytes)?;
+
+            data = &data[192..];
+            written_header = true;
+        }
+
+        output.write_all(data)?;
     }
 
-    buf_writer.flush()?;
+    output.flush()?;
 
     Ok(())
 }
