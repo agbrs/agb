@@ -10,9 +10,9 @@ use core::convert::TryInto;
 use core::ptr::NonNull;
 
 use crate::interrupt::free;
-use bare_metal::{CriticalSection, Mutex};
+use bare_metal::Mutex;
 
-use super::bump_allocator::{BumpAllocator, StartEnd};
+use super::bump_allocator::{BumpAllocatorInner, StartEnd};
 use super::SendNonNull;
 
 struct Block {
@@ -43,77 +43,104 @@ struct BlockAllocatorState {
     first_free_block: Option<SendNonNull<Block>>,
 }
 
+struct BlockAllocatorInner {
+    inner_allocator: BumpAllocatorInner,
+    state: BlockAllocatorState,
+}
+
 pub struct BlockAllocator {
-    inner_allocator: BumpAllocator,
-    state: Mutex<RefCell<BlockAllocatorState>>,
+    inner: Mutex<RefCell<BlockAllocatorInner>>,
 }
 
 impl BlockAllocator {
     pub(crate) const unsafe fn new(start: StartEnd) -> Self {
         Self {
-            inner_allocator: BumpAllocator::new(start),
-            state: Mutex::new(RefCell::new(BlockAllocatorState {
-                first_free_block: None,
-            })),
+            inner: Mutex::new(RefCell::new(BlockAllocatorInner::new(start))),
         }
     }
 
     #[doc(hidden)]
     #[cfg(any(test, feature = "testing"))]
     pub unsafe fn number_of_blocks(&self) -> u32 {
-        free(|key| {
-            let mut state = self.state.borrow(key).borrow_mut();
-
-            let mut count = 0;
-
-            let mut list_ptr = &mut state.first_free_block;
-            while let Some(mut current) = list_ptr {
-                count += 1;
-                list_ptr = &mut current.as_mut().next;
-            }
-
-            count
-        })
-    }
-
-    /// Requests a brand new block from the inner bump allocator
-    fn new_block(&self, layout: Layout, cs: CriticalSection) -> Option<NonNull<u8>> {
-        let overall_layout = Block::either_layout(layout);
-        self.inner_allocator.alloc_critical(overall_layout, cs)
-    }
-
-    /// Merges blocks together to create a normalised list
-    unsafe fn normalise(&self) {
-        free(|key| {
-            let mut state = self.state.borrow(key).borrow_mut();
-
-            let mut list_ptr = &mut state.first_free_block;
-
-            while let Some(mut current) = list_ptr {
-                if let Some(next_elem) = current.as_mut().next {
-                    let difference = next_elem
-                        .as_ptr()
-                        .cast::<u8>()
-                        .offset_from(current.as_ptr().cast::<u8>());
-                    let usize_difference: usize = difference
-                        .try_into()
-                        .expect("distances in alloc'd blocks must be positive");
-
-                    if usize_difference == current.as_mut().size {
-                        let current = current.as_mut();
-                        let next = next_elem.as_ref();
-
-                        current.size += next.size;
-                        current.next = next.next;
-                        continue;
-                    }
-                }
-                list_ptr = &mut current.as_mut().next;
-            }
-        });
+        free(|key| self.inner.borrow(key).borrow_mut().number_of_blocks())
     }
 
     pub unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
+        free(|key| self.inner.borrow(key).borrow_mut().alloc(layout))
+    }
+
+    pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        free(|key| self.inner.borrow(key).borrow_mut().dealloc(ptr, layout))
+    }
+
+    pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
+        free(|key| {
+            self.inner
+                .borrow(key)
+                .borrow_mut()
+                .dealloc_no_normalise(ptr, layout)
+        })
+    }
+}
+
+impl BlockAllocatorInner {
+    pub(crate) const unsafe fn new(start: StartEnd) -> Self {
+        Self {
+            inner_allocator: BumpAllocatorInner::new(start),
+            state: BlockAllocatorState {
+                first_free_block: None,
+            },
+        }
+    }
+
+    #[doc(hidden)]
+    #[cfg(any(test, feature = "testing"))]
+    pub unsafe fn number_of_blocks(&mut self) -> u32 {
+        let mut count = 0;
+
+        let mut list_ptr = &mut self.state.first_free_block;
+        while let Some(mut current) = list_ptr {
+            count += 1;
+            list_ptr = &mut current.as_mut().next;
+        }
+
+        count
+    }
+
+    /// Requests a brand new block from the inner bump allocator
+    fn new_block(&mut self, layout: Layout) -> Option<NonNull<u8>> {
+        let overall_layout = Block::either_layout(layout);
+        self.inner_allocator.alloc(overall_layout)
+    }
+
+    /// Merges blocks together to create a normalised list
+    unsafe fn normalise(&mut self) {
+        let mut list_ptr = &mut self.state.first_free_block;
+
+        while let Some(mut current) = list_ptr {
+            if let Some(next_elem) = current.as_mut().next {
+                let difference = next_elem
+                    .as_ptr()
+                    .cast::<u8>()
+                    .offset_from(current.as_ptr().cast::<u8>());
+                let usize_difference: usize = difference
+                    .try_into()
+                    .expect("distances in alloc'd blocks must be positive");
+
+                if usize_difference == current.as_mut().size {
+                    let current = current.as_mut();
+                    let next = next_elem.as_ref();
+
+                    current.size += next.size;
+                    current.next = next.next;
+                    continue;
+                }
+            }
+            list_ptr = &mut current.as_mut().next;
+        }
+    }
+
+    pub unsafe fn alloc(&mut self, layout: Layout) -> Option<NonNull<u8>> {
         // find a block that this current request fits in
         let full_layout = Block::either_layout(layout);
 
@@ -121,86 +148,80 @@ impl BlockAllocator {
             .extend(Layout::new::<Block>().align_to(8).unwrap().pad_to_align())
             .unwrap();
 
-        free(|key| {
-            let mut state = self.state.borrow(key).borrow_mut();
-            let mut current_block = state.first_free_block;
-            let mut list_ptr = &mut state.first_free_block;
-            // This iterates the free list until it either finds a block that
-            // is the exact size requested or a block that can be split into
-            // one with the desired size and another block header.
-            while let Some(mut current) = current_block {
-                let block_to_examine = current.as_mut();
-                if block_to_examine.size == full_layout.size() {
-                    *list_ptr = block_to_examine.next;
-                    return Some(current.cast());
-                } else if block_to_examine.size >= block_after_layout.size() {
-                    // can split block
-                    let split_block = Block {
-                        size: block_to_examine.size - block_after_layout_offset,
-                        next: block_to_examine.next,
-                    };
-                    let split_ptr = current
-                        .as_ptr()
-                        .cast::<u8>()
-                        .add(block_after_layout_offset)
-                        .cast();
-                    *split_ptr = split_block;
-                    *list_ptr = NonNull::new(split_ptr).map(SendNonNull);
+        let mut current_block = self.state.first_free_block;
+        let mut list_ptr = &mut self.state.first_free_block;
+        // This iterates the free list until it either finds a block that
+        // is the exact size requested or a block that can be split into
+        // one with the desired size and another block header.
+        while let Some(mut current) = current_block {
+            let block_to_examine = current.as_mut();
+            if block_to_examine.size == full_layout.size() {
+                *list_ptr = block_to_examine.next;
+                return Some(current.cast());
+            } else if block_to_examine.size >= block_after_layout.size() {
+                // can split block
+                let split_block = Block {
+                    size: block_to_examine.size - block_after_layout_offset,
+                    next: block_to_examine.next,
+                };
+                let split_ptr = current
+                    .as_ptr()
+                    .cast::<u8>()
+                    .add(block_after_layout_offset)
+                    .cast();
+                *split_ptr = split_block;
+                *list_ptr = NonNull::new(split_ptr).map(SendNonNull);
 
-                    return Some(current.cast());
-                }
-                current_block = block_to_examine.next;
-                list_ptr = &mut block_to_examine.next;
+                return Some(current.cast());
             }
+            current_block = block_to_examine.next;
+            list_ptr = &mut block_to_examine.next;
+        }
 
-            self.new_block(layout, key)
-        })
+        self.new_block(layout)
     }
 
-    pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+    pub unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
         self.dealloc_no_normalise(ptr, layout);
         self.normalise();
     }
 
-    pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
+    pub unsafe fn dealloc_no_normalise(&mut self, ptr: *mut u8, layout: Layout) {
         let new_layout = Block::either_layout(layout).pad_to_align();
-        free(|key| {
-            let mut state = self.state.borrow(key).borrow_mut();
 
-            // note that this is a reference to a pointer
-            let mut list_ptr = &mut state.first_free_block;
+        // note that this is a reference to a pointer
+        let mut list_ptr = &mut self.state.first_free_block;
 
-            // This searches the free list until it finds a block further along
-            // than the block that is being freed. The newly freed block is then
-            // inserted before this block. If the end of the list is reached
-            // then the block is placed at the end with no new block after it.
-            loop {
-                match list_ptr {
-                    Some(mut current_block) => {
-                        if current_block.as_ptr().cast() > ptr {
-                            let new_block_content = Block {
-                                size: new_layout.size(),
-                                next: Some(current_block),
-                            };
-                            *ptr.cast() = new_block_content;
-                            *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
-                            break;
-                        }
-                        list_ptr = &mut current_block.as_mut().next;
-                    }
-                    None => {
-                        // reached the end of the list without finding a place to insert the value
+        // This searches the free list until it finds a block further along
+        // than the block that is being freed. The newly freed block is then
+        // inserted before this block. If the end of the list is reached
+        // then the block is placed at the end with no new block after it.
+        loop {
+            match list_ptr {
+                Some(mut current_block) => {
+                    if current_block.as_ptr().cast() > ptr {
                         let new_block_content = Block {
                             size: new_layout.size(),
-                            next: None,
+                            next: Some(current_block),
                         };
                         *ptr.cast() = new_block_content;
                         *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
                         break;
                     }
+                    list_ptr = &mut current_block.as_mut().next;
+                }
+                None => {
+                    // reached the end of the list without finding a place to insert the value
+                    let new_block_content = Block {
+                        size: new_layout.size(),
+                        next: None,
+                    };
+                    *ptr.cast() = new_block_content;
+                    *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
+                    break;
                 }
             }
-        });
+        }
     }
 }
 
