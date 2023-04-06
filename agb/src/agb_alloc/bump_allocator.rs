@@ -20,14 +20,6 @@ pub(crate) struct BumpAllocator {
     inner: Mutex<RefCell<BumpAllocatorInner>>,
 }
 
-impl BumpAllocator {
-    pub const fn new(start_end: StartEnd) -> Self {
-        Self {
-            inner: Mutex::new(RefCell::new(BumpAllocatorInner::new(start_end))),
-        }
-    }
-}
-
 impl BumpAllocatorInner {
     pub const fn new(start_end: StartEnd) -> Self {
         Self {
