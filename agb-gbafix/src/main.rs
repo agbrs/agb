@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let (data, compression) = elf_file.section_data(&section_header)?;
         if let Some(compression) = compression {
-            panic!("Cannot compress elf content, but got compression header {compression:?}");
+            panic!("Cannot decompress elf content, but got compression header {compression:?}");
         }
 
         buf_writer.write_all(data)?;
