@@ -228,6 +228,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 ///
 /// # Safety
 /// * You *must not* allocate in an interrupt.
+///     - Many functions in agb allocate and it isn't always clear.
 ///
 /// # Staticness
 /// * The closure must be static because forgetting the interrupt handler will
@@ -240,12 +241,14 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// use bare_metal::CriticalSection;
-///
 /// # fn foo() {
-/// # use agb::interrupt::{add_interrupt_handler, Interrupt};
-/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
-///     agb::println!("Woah there! There's been a vblank!");
+/// use bare_metal::CriticalSection;
+/// use agb::interrupt::{add_interrupt_handler, Interrupt};
+/// // Safety: doesn't allocate
+/// let _a = unsafe {
+///     add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
+///         agb::println!("Woah there! There's been a vblank!");
+///     }
 /// });
 /// # }
 /// ```
