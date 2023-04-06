@@ -267,65 +267,71 @@ mod test {
     use crate::timer::Divider;
     use crate::Gba;
 
-    fn write_read_concurrency_test_impl<const COUNT: usize>(gba: &mut Gba) {
-        let sentinel = [0x12345678; COUNT];
-        let value: Static<[u32; COUNT]> = Static::new(sentinel);
+    macro_rules! generate_concurrency_test {
+        ($count:literal, $gba:ident) => {{
+            (|gba: &mut Gba| {
+                const SENTINEL: [u32; $count] = [0x12345678; $count];
+                static VALUE: Static<[u32; $count]> = Static::new(SENTINEL);
 
-        // set up a timer and an interrupt that uses the timer
-        let mut timer = gba.timers.timers().timer2;
-        timer.set_cascade(false);
-        timer.set_divider(Divider::Divider1);
-        timer.set_overflow_amount(1049);
-        timer.set_interrupt(true);
-        timer.set_enabled(true);
+                // set up a timer and an interrupt that uses the timer
+                let mut timer = gba.timers.timers().timer2;
+                timer.set_cascade(false);
+                timer.set_divider(Divider::Divider1);
+                timer.set_overflow_amount(1049);
+                timer.set_interrupt(true);
+                timer.set_enabled(true);
 
-        let _int = crate::interrupt::add_interrupt_handler(Interrupt::Timer2, |_| {
-            value.write(sentinel);
-        });
+                let _int = unsafe {
+                    crate::interrupt::add_interrupt_handler(Interrupt::Timer2, |_| {
+                        VALUE.write(SENTINEL);
+                    })
+                };
 
-        // the actual main test loop
-        let mut interrupt_seen = false;
-        let mut no_interrupt_seen = false;
-        for i in 0..250000 {
-            // write to the static
-            let new_value = [i; COUNT];
-            value.write(new_value);
+                // the actual main test loop
+                let mut interrupt_seen = false;
+                let mut no_interrupt_seen = false;
+                for i in 0..250000 {
+                    // write to the static
+                    let new_value = [i; $count];
+                    VALUE.write(new_value);
 
-            // check the current value
-            let current = value.read();
-            if current == new_value {
-                no_interrupt_seen = true;
-            } else if current == sentinel {
-                interrupt_seen = true;
-            } else {
-                panic!("Unexpected value found in `Static`.");
-            }
+                    // check the current value
+                    let current = VALUE.read();
+                    if current == new_value {
+                        no_interrupt_seen = true;
+                    } else if current == SENTINEL {
+                        interrupt_seen = true;
+                    } else {
+                        panic!("Unexpected value found in `Static`.");
+                    }
 
-            // we return as soon as we've seen both the value written by the main thread
-            // and interrupt
-            if interrupt_seen && no_interrupt_seen {
-                timer.set_enabled(false);
-                return;
-            }
+                    // we return as soon as we've seen both the value written by the main thread
+                    // and interrupt
+                    if interrupt_seen && no_interrupt_seen {
+                        timer.set_enabled(false);
+                        return;
+                    }
 
-            if i % 8192 == 0 && i != 0 {
-                timer.set_overflow_amount(1049 + (i / 64) as u16);
-            }
-        }
-        panic!("Concurrency test timed out: {}", COUNT)
+                    if i % 8192 == 0 && i != 0 {
+                        timer.set_overflow_amount(1049 + (i / 64) as u16);
+                    }
+                }
+                panic!("Concurrency test timed out: {}", $count)
+            })($gba);
+        }};
     }
 
     #[test_case]
     fn write_read_concurrency_test(gba: &mut Gba) {
-        write_read_concurrency_test_impl::<1>(gba);
-        write_read_concurrency_test_impl::<2>(gba);
-        write_read_concurrency_test_impl::<3>(gba);
-        write_read_concurrency_test_impl::<4>(gba);
-        write_read_concurrency_test_impl::<5>(gba);
-        write_read_concurrency_test_impl::<6>(gba);
-        write_read_concurrency_test_impl::<7>(gba);
-        write_read_concurrency_test_impl::<8>(gba);
-        write_read_concurrency_test_impl::<9>(gba);
-        write_read_concurrency_test_impl::<10>(gba);
+        generate_concurrency_test!(1, gba);
+        generate_concurrency_test!(2, gba);
+        generate_concurrency_test!(3, gba);
+        generate_concurrency_test!(4, gba);
+        generate_concurrency_test!(5, gba);
+        generate_concurrency_test!(6, gba);
+        generate_concurrency_test!(7, gba);
+        generate_concurrency_test!(8, gba);
+        generate_concurrency_test!(9, gba);
+        generate_concurrency_test!(10, gba);
     }
 }

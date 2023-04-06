@@ -82,7 +82,7 @@ extern "C" {
 pub struct Mixer<'gba> {
     interrupt_timer: Timer,
     // SAFETY: Has to go before buffer because it holds a reference to it
-    _interrupt_handler: InterruptHandler<'static>,
+    _interrupt_handler: InterruptHandler,
 
     buffer: Pin<Box<MixerBuffer, InternalAllocator>>,
     channels: [Option<SoundChannel>; 8],
@@ -140,9 +140,11 @@ impl Mixer<'_> {
         //         In the case of the mixer being forgotten, both stay alive so okay
         let buffer_pointer_for_interrupt_handler: &MixerBuffer =
             unsafe { core::mem::transmute(buffer_pointer_for_interrupt_handler) };
-        let interrupt_handler = add_interrupt_handler(interrupt_timer.interrupt(), |cs| {
-            buffer_pointer_for_interrupt_handler.swap(cs);
-        });
+        let interrupt_handler = unsafe {
+            add_interrupt_handler(interrupt_timer.interrupt(), |cs| {
+                buffer_pointer_for_interrupt_handler.swap(cs);
+            })
+        };
 
         set_asm_buffer_size(frequency);
 
