@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Result};
+use clap::{arg, command, value_parser};
 
 use std::{
     fs,
@@ -7,10 +8,20 @@ use std::{
 };
 
 fn main() -> Result<()> {
-    let mut output = BufWriter::new(fs::File::create("out.gba")?);
+    let matches = command!()
+        .arg(arg!(<INPUT> "Input elf file").value_parser(value_parser!(PathBuf)))
+        .arg(arg!(-o --output <OUTPUT> "Set output file, defaults to replacing INPUT's extension to .gba").value_parser(value_parser!(PathBuf)))
+        .get_matches();
 
-    let path = PathBuf::from("tests/text_render");
-    let file_data = fs::read(path)?;
+    let input = matches.get_one::<PathBuf>("INPUT").unwrap();
+    let output = match matches.get_one::<PathBuf>("output") {
+        Some(output) => output.clone(),
+        None => input.with_extension("gba"),
+    };
+
+    let mut output = BufWriter::new(fs::File::create(output)?);
+
+    let file_data = fs::read(input)?;
 
     write_gba_file(file_data.as_slice(), &mut output)?;
 
