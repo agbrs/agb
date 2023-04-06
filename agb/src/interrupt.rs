@@ -248,8 +248,8 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// let _a = unsafe {
 ///     add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
 ///         agb::println!("Woah there! There's been a vblank!");
-///     }
-/// });
+///     })
+/// };
 /// # }
 /// ```
 pub unsafe fn add_interrupt_handler(
