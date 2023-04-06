@@ -11,6 +11,10 @@ fn main() -> Result<()> {
     let matches = command!()
         .arg(arg!(<INPUT> "Input elf file").value_parser(value_parser!(PathBuf)))
         .arg(arg!(-o --output <OUTPUT> "Set output file, defaults to replacing INPUT's extension to .gba").value_parser(value_parser!(PathBuf)))
+        .arg(arg!(-t --title <TITLE> "Set the title. At most 12 bytes"))
+        .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
+        .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 0-65535").value_parser(value_parser!(u16)))
+        .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("INPUT").unwrap();
@@ -19,25 +23,48 @@ fn main() -> Result<()> {
         None => input.with_extension("gba"),
     };
 
-    let mut output = BufWriter::new(fs::File::create(output)?);
+    let mut header = gbafix::GBAHeader::default();
 
+    if let Some(title) = matches.get_one::<String>("title") {
+        for (i, &c) in title.as_bytes().iter().enumerate().take(12) {
+            header.title[i] = c;
+        }
+    }
+
+    if let Some(maker_code) = matches.get_one::<u16>("makercode") {
+        header.maker_code = maker_code.to_le_bytes();
+    }
+
+    if let Some(game_version) = matches.get_one::<u8>("gameversion") {
+        header.version = *game_version;
+    }
+
+    if let Some(game_code) = matches.get_one::<String>("gamecode") {
+        for (i, &c) in game_code.as_bytes().iter().enumerate().take(4) {
+            header.game_code[i] = c;
+        }
+    }
+
+    let mut output = BufWriter::new(fs::File::create(output)?);
     let file_data = fs::read(input)?;
 
-    write_gba_file(file_data.as_slice(), &mut output)?;
+    write_gba_file(file_data.as_slice(), header, &mut output)?;
 
     output.flush()?;
 
     Ok(())
 }
 
-fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<()> {
+fn write_gba_file<W: Write>(
+    input: &[u8],
+    mut header: gbafix::GBAHeader,
+    output: &mut W,
+) -> Result<()> {
     let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
 
     let section_headers = elf_file
         .section_headers()
         .ok_or_else(|| anyhow!("Failed to parse as elf file"))?;
-
-    let mut header = gbafix::GBAHeader::default();
 
     const GBA_START_ADDRESS: u64 = 0x8000000;
     let mut address = GBA_START_ADDRESS;
