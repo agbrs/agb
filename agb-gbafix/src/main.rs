@@ -1,21 +1,28 @@
 use std::{
-    fs,
+    error, fs,
     io::{BufWriter, Write},
     path::PathBuf,
 };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn error::Error>> {
+    let mut output = BufWriter::new(fs::File::create("out.gba")?);
+
     let path = PathBuf::from("tests/text_render");
     let file_data = fs::read(path)?;
-    let file_data = file_data.as_slice();
 
-    let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(file_data)?;
+    write_gba_file(file_data.as_slice(), &mut output)?;
+
+    output.flush()?;
+
+    Ok(())
+}
+
+fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<(), Box<dyn error::Error>> {
+    let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
 
     let section_headers = elf_file
         .section_headers()
         .expect("Expected section headers");
-
-    let mut output = BufWriter::new(fs::File::create("out.gba")?);
 
     let mut header = gbafix::GBAHeader::default();
 
@@ -63,8 +70,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         output.write_all(data)?;
         address += data.len() as u64;
     }
-
-    output.flush()?;
 
     Ok(())
 }
