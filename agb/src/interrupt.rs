@@ -226,10 +226,10 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// Adds an interrupt handler as long as the returned value is alive. The
 /// closure takes a [`CriticalSection`] which can be used for mutexes.
 ///
-/// SAFETY:
+/// # Safety
 /// * You *must not* allocate in an interrupt.
 ///
-/// STATICNESS:
+/// # Staticness
 /// * The closure must be static because forgetting the interrupt handler will
 ///   cause a use after free.
 ///
