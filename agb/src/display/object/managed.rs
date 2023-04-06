@@ -158,7 +158,7 @@ impl OamManaged<'_> {
         // safety: commit is not reentrant
         let unmanaged = unsafe { &mut *self.unmanaged.get() };
 
-        for (object, mut slot) in unsafe { self.object_store.iter() }
+        for (object, slot) in unsafe { self.object_store.iter() }
             .map(|item| unsafe { &*item.object.get() })
             .filter(|object| object.is_visible())
             .zip(unmanaged.iter())

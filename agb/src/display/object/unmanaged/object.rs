@@ -15,7 +15,6 @@ use super::attributes::{AffineMode, Attributes};
 
 #[derive(Default, Debug)]
 struct OamFrameModifyables {
-    up_to: i32,
     this_frame_sprites: Vec<SpriteVram>,
     frame: u32,
     affine_matrix_count: u32,
@@ -32,17 +31,42 @@ pub struct OamIterator<'oam> {
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
+/// A slot in Oam that you can write to. Note that you must call [OamSlot::set]
+/// or else it is a bug and will panic when dropped.
 pub struct OamSlot<'oam> {
     slot: usize,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
+impl Drop for OamSlot<'_> {
+    #[track_caller]
+    fn drop(&mut self) {
+        panic!("Dropping an OamSlot is a bug in your code. Use the slot by calling set (this consumes the slot) or don't obtain one. See documentation for notes on potential pitfalls.")
+    }
+}
+
 impl OamSlot<'_> {
-    pub fn set(&mut self, object: &ObjectUnmanaged) {
+    /// Set the slot in OAM to contain the sprite given.
+    pub fn set(mut self, object: &ObjectUnmanaged) {
         let mut attributes = object.attributes;
         // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
         let frame_data = unsafe { &mut *self.frame_data.get() };
 
+        Self::handle_affine(&mut attributes, frame_data, object);
+        self.set_bytes(attributes.bytes());
+
+        frame_data.this_frame_sprites.push(object.sprite.clone());
+
+        // don't call the drop implementation.
+        // okay as none of the fields we have have drop implementations.
+        core::mem::forget(self);
+    }
+
+    fn handle_affine(
+        attributes: &mut Attributes,
+        frame_data: &mut OamFrameModifyables,
+        object: &ObjectUnmanaged,
+    ) {
         if let Some(affine_matrix) = &object.affine_matrix {
             if affine_matrix.frame_count() != frame_data.frame {
                 affine_matrix.set_frame_count(frame_data.frame);
@@ -57,12 +81,6 @@ impl OamSlot<'_> {
 
             attributes.set_affine_matrix(affine_matrix.location() as u16);
         }
-
-        self.set_bytes(attributes.bytes());
-
-        frame_data.this_frame_sprites.push(object.sprite.clone());
-
-        frame_data.up_to = self.slot as i32;
     }
 
     fn set_bytes(&mut self, bytes: [u8; 6]) {
@@ -93,9 +111,7 @@ impl<'oam> Iterator for OamIterator<'oam> {
 
 impl Drop for OamIterator<'_> {
     fn drop(&mut self) {
-        let last_written = unsafe { &*self.frame_data.get() }.up_to;
-
-        let number_writen = (last_written + 1) as usize;
+        let number_writen = self.index;
 
         for idx in number_writen..128 {
             unsafe {
@@ -109,7 +125,6 @@ impl Drop for OamIterator<'_> {
 impl OamUnmanaged<'_> {
     pub fn iter(&mut self) -> OamIterator<'_> {
         let frame_data = self.frame_data.get_mut();
-        frame_data.up_to = -1;
         frame_data.frame = frame_data.frame.wrapping_add(1);
         frame_data.affine_matrix_count = 0;
 
@@ -250,5 +265,41 @@ impl ObjectUnmanaged {
         self.sprite = sprite;
 
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        display::object::{Graphics, Tag},
+        include_aseprite,
+    };
+
+    use super::*;
+
+    #[test_case]
+    fn object_usage(gba: &mut crate::Gba) {
+        const GRAPHICS: &Graphics = include_aseprite!(
+            "../examples/the-purple-night/gfx/objects.aseprite",
+            "../examples/the-purple-night/gfx/boss.aseprite"
+        );
+
+        const BOSS: &Tag = GRAPHICS.tags().get("Boss");
+
+        let (mut gfx, mut loader) = gba.display.object.get_unmanaged();
+
+        {
+            let mut slotter = gfx.iter();
+
+            let slot_a = slotter.next().unwrap();
+            let slot_b = slotter.next().unwrap();
+
+            let mut obj = ObjectUnmanaged::new(loader.get_vram_sprite(BOSS.sprite(2)));
+
+            obj.show();
+
+            slot_b.set(&obj);
+            slot_a.set(&obj);
+        }
     }
 }
