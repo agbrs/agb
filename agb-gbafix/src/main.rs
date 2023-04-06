@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Result};
-use clap::{arg, command, value_parser};
+use clap::{arg, value_parser};
 
 use std::{
     fs,
@@ -8,7 +8,8 @@ use std::{
 };
 
 fn main() -> Result<()> {
-    let matches = command!()
+    let matches = clap::Command::new("agb-gbafix")
+        .about("Convert elf files directly to a valid GBA ROM")
         .arg(arg!(<INPUT> "Input elf file").value_parser(value_parser!(PathBuf)))
         .arg(arg!(-o --output <OUTPUT> "Set output file, defaults to replacing INPUT's extension to .gba").value_parser(value_parser!(PathBuf)))
         .arg(arg!(-t --title <TITLE> "Set the title. At most 12 bytes"))

@@ -10,4 +10,4 @@ elf = "0.7"
 gbafix = "1"
 bytemuck = "1"
 anyhow = "1"
-clap = { version = "4", features = ["cargo"] }
+clap = { version = "4" }
