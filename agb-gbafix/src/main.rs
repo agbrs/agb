@@ -37,8 +37,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if !written_header {
+            const GBA_HEADER_SIZE: usize = 192;
+
             assert!(
-                data.len() > 192,
+                data.len() > GBA_HEADER_SIZE,
                 "first section must be at least as big as the gba header"
             );
 
@@ -48,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let header_bytes = bytemuck::bytes_of(&header);
             output.write_all(header_bytes)?;
 
-            data = &data[192..];
+            data = &data[GBA_HEADER_SIZE..];
             written_header = true;
         }
 
