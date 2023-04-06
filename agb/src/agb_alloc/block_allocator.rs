@@ -5,12 +5,9 @@
 
 use core::alloc::{Allocator, GlobalAlloc, Layout};
 
-use core::cell::RefCell;
+use core::cell::UnsafeCell;
 use core::convert::TryInto;
 use core::ptr::NonNull;
-
-use crate::interrupt::free;
-use bare_metal::Mutex;
 
 use super::bump_allocator::{BumpAllocatorInner, StartEnd};
 use super::SendNonNull;
@@ -53,36 +50,45 @@ struct BlockAllocatorInner {
 }
 
 pub struct BlockAllocator {
-    inner: Mutex<RefCell<BlockAllocatorInner>>,
+    inner: UnsafeCell<BlockAllocatorInner>,
 }
+
+unsafe impl Sync for BlockAllocator {}
 
 impl BlockAllocator {
     pub(crate) const unsafe fn new(start: StartEnd) -> Self {
         Self {
-            inner: Mutex::new(RefCell::new(BlockAllocatorInner::new(start))),
+            inner: UnsafeCell::new(BlockAllocatorInner::new(start)),
         }
+    }
+
+    #[inline(always)]
+    unsafe fn with_inner<F, T>(&self, f: F) -> T
+    where
+        F: Fn(&mut BlockAllocatorInner) -> T,
+    {
+        let inner = &mut *self.inner.get();
+
+        f(inner)
     }
 
     #[doc(hidden)]
     #[cfg(any(test, feature = "testing"))]
     pub unsafe fn number_of_blocks(&self) -> u32 {
-        free(|key| self.inner.borrow(key).borrow_mut().number_of_blocks())
+        self.with_inner(|inner| inner.number_of_blocks())
     }
 
     pub unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
-        free(|key| self.inner.borrow(key).borrow_mut().alloc(layout))
+        self.with_inner(|inner| inner.alloc(layout))
     }
 
     pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        free(|key| self.inner.borrow(key).borrow_mut().dealloc(ptr, layout));
+        self.with_inner(|inner| inner.dealloc(ptr, layout));
     }
 
     pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
-        free(|key| {
-            self.inner
-                .borrow(key)
-                .borrow_mut()
-                .dealloc_no_normalise(ptr, layout);
+        self.with_inner(|inner| {
+            inner.dealloc_no_normalise(ptr, layout);
         });
     }
 
@@ -92,12 +98,7 @@ impl BlockAllocator {
         layout: Layout,
         new_layout: Layout,
     ) -> Option<NonNull<u8>> {
-        free(|key| {
-            self.inner
-                .borrow(key)
-                .borrow_mut()
-                .grow(ptr, layout, new_layout)
-        })
+        self.with_inner(|inner| inner.grow(ptr, layout, new_layout))
     }
 }
 
