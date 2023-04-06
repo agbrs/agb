@@ -1,10 +1,12 @@
+use anyhow::{anyhow, bail, ensure, Result};
+
 use std::{
-    error, fs,
+    fs,
     io::{BufWriter, Write},
     path::PathBuf,
 };
 
-fn main() -> Result<(), Box<dyn error::Error>> {
+fn main() -> Result<()> {
     let mut output = BufWriter::new(fs::File::create("out.gba")?);
 
     let path = PathBuf::from("tests/text_render");
@@ -17,12 +19,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
-fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<(), Box<dyn error::Error>> {
+fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<()> {
     let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
 
     let section_headers = elf_file
         .section_headers()
-        .expect("Expected section headers");
+        .ok_or_else(|| anyhow!("Failed to parse as elf file"))?;
 
     let mut header = gbafix::GBAHeader::default();
 
@@ -46,13 +48,13 @@ fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<(), Box<dyn 
 
         let (mut data, compression) = elf_file.section_data(&section_header)?;
         if let Some(compression) = compression {
-            panic!("Cannot decompress elf content, but got compression header {compression:?}");
+            bail!("Cannot decompress elf content, but got compression header {compression:?}");
         }
 
         if address == GBA_START_ADDRESS {
             const GBA_HEADER_SIZE: usize = 192;
 
-            assert!(
+            ensure!(
                 data.len() > GBA_HEADER_SIZE,
                 "first section must be at least as big as the gba header"
             );
