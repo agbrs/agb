@@ -42,8 +42,12 @@ fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<()> {
             continue;
         }
 
-        for _ in address..section_header.sh_addr {
-            output.write_all(&[0])?;
+        if address < section_header.sh_addr {
+            for _ in address..section_header.sh_addr {
+                output.write_all(&[0])?;
+            }
+
+            address = section_header.sh_addr;
         }
 
         let (mut data, compression) = elf_file.section_data(&section_header)?;
@@ -71,6 +75,16 @@ fn write_gba_file<W: Write>(input: &[u8], output: &mut W) -> Result<()> {
 
         output.write_all(data)?;
         address += data.len() as u64;
+    }
+
+    let length = address - GBA_START_ADDRESS;
+
+    if !length.is_power_of_two() {
+        let required_padding = length.next_power_of_two() - length;
+
+        for _ in 0..required_padding {
+            output.write_all(&[0])?;
+        }
     }
 
     Ok(())
