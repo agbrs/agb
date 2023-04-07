@@ -35,23 +35,26 @@ pub enum AffineMode {
 }
 
 impl Attributes {
-    pub fn bytes(self) -> [u8; 6] {
+    pub fn write(self, ptr: *mut u16) {
         let mode = self.a0.object_mode();
-        let attrs = match mode {
-            ObjectMode::Normal => [
-                self.a0.into_bytes(),
-                self.a1s.into_bytes(),
-                self.a2.into_bytes(),
-            ],
-            _ => [
-                self.a0.into_bytes(),
-                self.a1a.into_bytes(),
-                self.a2.into_bytes(),
-            ],
-        };
+        unsafe {
+            let attrs = core::mem::transmute::<_, [u16; 3]>(match mode {
+                ObjectMode::Normal => [
+                    self.a0.into_bytes(),
+                    self.a1s.into_bytes(),
+                    self.a2.into_bytes(),
+                ],
+                _ => [
+                    self.a0.into_bytes(),
+                    self.a1a.into_bytes(),
+                    self.a2.into_bytes(),
+                ],
+            });
 
-        // Safety: length and alignment are the same, and every possible value is valid
-        unsafe { core::mem::transmute(attrs) }
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
+        }
     }
 
     pub fn is_visible(self) -> bool {

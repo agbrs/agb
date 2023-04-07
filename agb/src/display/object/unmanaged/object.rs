@@ -13,11 +13,12 @@ use crate::display::{
 
 use super::attributes::{AffineMode, Attributes};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 struct OamFrameModifyables {
     this_frame_sprites: Vec<SpriteVram>,
     frame: u32,
     affine_matrix_count: u32,
+    previous_index: usize,
 }
 
 pub struct OamUnmanaged<'gba> {
@@ -47,60 +48,62 @@ impl Drop for OamSlot<'_> {
 
 impl OamSlot<'_> {
     /// Set the slot in OAM to contain the sprite given.
-    pub fn set(mut self, object: &ObjectUnmanaged) {
-        let mut attributes = object.attributes;
-        // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
-        let frame_data = unsafe { &mut *self.frame_data.get() };
-
-        Self::handle_affine(&mut attributes, frame_data, object);
-        self.set_bytes(attributes.bytes());
-
-        frame_data.this_frame_sprites.push(object.sprite.clone());
+    #[inline(always)]
+    pub fn set(self, object: &ObjectUnmanaged) {
+        self.set_inner(object);
 
         // don't call the drop implementation.
         // okay as none of the fields we have have drop implementations.
         core::mem::forget(self);
     }
 
+    /// By writing these as two separate functions, one inlined and one not, the
+    /// compiler doesn't have to copy around the slot structure while still
+    /// keeping move semantics. This is slightly faster in benchmarks.
+    #[inline(never)]
+    fn set_inner(&self, object: &ObjectUnmanaged) {
+        let mut attributes = object.attributes;
+        // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
+        let frame_data = unsafe { &mut *self.frame_data.get() };
+
+        if let Some(affine_matrix) = &object.affine_matrix {
+            Self::handle_affine(&mut attributes, frame_data, affine_matrix);
+        }
+        attributes.write(unsafe { (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.slot * 4) });
+
+        frame_data.this_frame_sprites.push(object.sprite.clone());
+    }
+
     fn handle_affine(
         attributes: &mut Attributes,
         frame_data: &mut OamFrameModifyables,
-        object: &ObjectUnmanaged,
+        affine_matrix: &AffineMatrixVram,
     ) {
-        if let Some(affine_matrix) = &object.affine_matrix {
-            if affine_matrix.frame_count() != frame_data.frame {
-                affine_matrix.set_frame_count(frame_data.frame);
-                assert!(
-                    frame_data.affine_matrix_count <= 32,
-                    "too many affine matricies in one frame"
-                );
-                affine_matrix.set_location(frame_data.affine_matrix_count);
-                frame_data.affine_matrix_count += 1;
-                affine_matrix.write_to_location(OBJECT_ATTRIBUTE_MEMORY);
-            }
-
-            attributes.set_affine_matrix(affine_matrix.location() as u16);
+        if affine_matrix.frame_count() != frame_data.frame {
+            affine_matrix.set_frame_count(frame_data.frame);
+            assert!(
+                frame_data.affine_matrix_count <= 32,
+                "too many affine matricies in one frame"
+            );
+            affine_matrix.set_location(frame_data.affine_matrix_count);
+            frame_data.affine_matrix_count += 1;
+            affine_matrix.write_to_location(OBJECT_ATTRIBUTE_MEMORY);
         }
-    }
 
-    fn set_bytes(&mut self, bytes: [u8; 6]) {
-        unsafe {
-            let address = (OBJECT_ATTRIBUTE_MEMORY as *mut u8).add(self.slot * 8);
-            address.copy_from_nonoverlapping(bytes.as_ptr(), bytes.len());
-        }
+        attributes.set_affine_matrix(affine_matrix.location() as u16);
     }
 }
 
 impl<'oam> Iterator for OamIterator<'oam> {
     type Item = OamSlot<'oam>;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.index;
-        self.index += 1;
-
-        if idx >= 128 {
+        if idx == 128 {
             None
         } else {
+            self.index += 1;
             Some(OamSlot {
                 slot: idx,
                 frame_data: self.frame_data,
@@ -112,13 +115,15 @@ impl<'oam> Iterator for OamIterator<'oam> {
 impl Drop for OamIterator<'_> {
     fn drop(&mut self) {
         let number_writen = self.index;
+        let last_frame_written = unsafe { &mut (*self.frame_data.get()).previous_index };
 
-        for idx in number_writen..128 {
+        for idx in number_writen..*last_frame_written {
             unsafe {
                 let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(idx * 4);
                 ptr.write_volatile(0b10 << 8);
             }
         }
+        *last_frame_written = number_writen;
     }
 }
 
@@ -130,7 +135,7 @@ impl OamUnmanaged<'_> {
 
         // We drain the previous frame sprites here to reuse the Vecs allocation and remove the now unused sprites.
         // Any sprites currently being shown will now be put in the new Vec.
-        self.previous_frame_sprites.drain(..);
+        self.previous_frame_sprites.clear();
         core::mem::swap(
             &mut frame_data.this_frame_sprites,
             &mut self.previous_frame_sprites,
@@ -144,7 +149,12 @@ impl OamUnmanaged<'_> {
 
     pub(crate) fn new() -> Self {
         Self {
-            frame_data: Default::default(),
+            frame_data: UnsafeCell::new(OamFrameModifyables {
+                this_frame_sprites: Vec::new(),
+                frame: 0,
+                affine_matrix_count: 0,
+                previous_index: 0,
+            }),
             phantom: PhantomData,
             previous_frame_sprites: Default::default(),
         }
