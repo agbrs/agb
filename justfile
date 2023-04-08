@@ -105,7 +105,7 @@ _build-rom folder name:
 
     mkdir -p examples/target/examples
 
-    just gbafix --title "${INTERNAL_NAME:0:12}" --gamecode "${INTERNAL_NAME:0:4}" "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" -o "$GBA_FILE"
+    just gbafix --title "${INTERNAL_NAME:0:12}" --gamecode "${INTERNAL_NAME:0:4}" --makercode GC "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" -o "$GBA_FILE"
 
     cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
 

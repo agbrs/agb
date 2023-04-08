@@ -14,7 +14,7 @@ fn main() -> Result<()> {
         .arg(arg!(-o --output <OUTPUT> "Set output file, defaults to replacing INPUT's extension to .gba").value_parser(value_parser!(PathBuf)))
         .arg(arg!(-t --title <TITLE> "Set the title. At most 12 bytes. Defaults to truncating the input file name"))
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
-        .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 0-65535").value_parser(value_parser!(u16)))
+        .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 2 bytes"))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
         .arg(arg!(-p "Ignored for compatibility with gbafix"))
         .get_matches();
@@ -43,8 +43,19 @@ fn main() -> Result<()> {
         }
     }
 
-    if let Some(maker_code) = matches.get_one::<u16>("makercode") {
-        header.maker_code = maker_code.to_le_bytes();
+    if let Some(maker_code) = matches.get_one::<String>("makercode") {
+        let maker_code = maker_code.as_bytes();
+        if maker_code.len() > 2 {
+            bail!(
+                "Maker code must be at most 2 bytes, got {}",
+                maker_code.len()
+            );
+        }
+
+        header.maker_code = [
+            *maker_code.first().unwrap_or(&0),
+            *maker_code.get(1).unwrap_or(&0),
+        ];
     }
 
     if let Some(game_version) = matches.get_one::<u8>("gameversion") {
