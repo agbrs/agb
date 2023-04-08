@@ -105,10 +105,12 @@ _build-rom folder name:
 
     mkdir -p examples/target/examples
 
-    arm-none-eabi-objcopy -O binary "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
-    gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
+    just _gbafix --title "${INTERNAL_NAME:0:12}" --gamecode "${INTERNAL_NAME:0:4}" "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" -o "$GBA_FILE"
 
     cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
+
+_gbafix +args:
+    (cd agb-gbafix && cargo run --release -- {{args}})
 
 _all-crates target:
     for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml; do \
