@@ -16,6 +16,7 @@ fn main() -> Result<()> {
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
         .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 0-65535").value_parser(value_parser!(u16)))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
+        .arg(arg!(-p "Ignored for compatibility with gbafix"))
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("INPUT").unwrap();
