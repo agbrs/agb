@@ -16,7 +16,7 @@ fn main() -> Result<()> {
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
         .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 2 bytes"))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
-        .arg(arg!(-p "Ignored for compatibility with gbafix"))
+        .arg(arg!(-p --padding "Ignored for compatibility with gbafix"))
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("INPUT").unwrap();
@@ -89,9 +89,7 @@ fn write_gba_file<W: Write>(
         .section_headers()
         .ok_or_else(|| anyhow!("Failed to parse as elf file"))?;
 
-    const GBA_START_ADDRESS: u64 = 0x8000000;
-    let mut address = GBA_START_ADDRESS;
-
+    let mut bytes_written = 0;
     for section_header in section_headers.iter() {
         const SHT_NOBITS: u32 = 8;
         const SHT_NULL: u32 = 0;
@@ -103,12 +101,12 @@ fn write_gba_file<W: Write>(
             continue;
         }
 
-        if address < section_header.sh_addr {
-            for _ in address..section_header.sh_addr {
+        let align = bytes_written % section_header.sh_addralign;
+        if align != 0 {
+            for _ in 0..(section_header.sh_addralign - align) {
                 output.write_all(&[0])?;
+                bytes_written += 1;
             }
-
-            address = section_header.sh_addr;
         }
 
         let (mut data, compression) = elf_file.section_data(&section_header)?;
@@ -116,7 +114,7 @@ fn write_gba_file<W: Write>(
             bail!("Cannot decompress elf content, but got compression header {compression:?}");
         }
 
-        if address == GBA_START_ADDRESS {
+        if bytes_written == 0 {
             const GBA_HEADER_SIZE: usize = 192;
 
             ensure!(
@@ -131,17 +129,15 @@ fn write_gba_file<W: Write>(
             output.write_all(header_bytes)?;
 
             data = &data[GBA_HEADER_SIZE..];
-            address += GBA_HEADER_SIZE as u64;
+            bytes_written += GBA_HEADER_SIZE as u64;
         }
 
         output.write_all(data)?;
-        address += data.len() as u64;
+        bytes_written += data.len() as u64;
     }
 
-    let length = address - GBA_START_ADDRESS;
-
-    if !length.is_power_of_two() {
-        let required_padding = length.next_power_of_two() - length;
+    if !bytes_written.is_power_of_two() {
+        let required_padding = bytes_written.next_power_of_two() - bytes_written;
 
         for _ in 0..required_padding {
             output.write_all(&[0])?;
