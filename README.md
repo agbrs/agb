@@ -66,8 +66,6 @@ to just write games for the Game Boy Advance using this library:
     * Install with `cargo install just`
 * [mdbook](https://rust-lang.github.io/mdBook/index.html)
     * Install with `cargo install mdbook`
-* [gbafix](https://crates.io/crates/gbafix)
-    * Install with `cargo install gbafix`
 
 With all of this installed, you should be able to run a full build of agb using by running
 ```sh
@@ -119,8 +117,10 @@ agb would not be possible without the help from the following (non-exhaustive) l
 
 ## Licence
 
-agb and all its subcrates are released under MPL version 2.0. See full licence
+agb and all its subcrates (except agb-gbafix) are released under MPL version 2.0. See full licence
 text in the `LICENSE` file.
+
+agb-gbafix is released under GPL version 3.0. See the full licence in the agb-gbafix/LICENSE file
 
 agb contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
 details for which you can find under `agb/src/agbabi`.
