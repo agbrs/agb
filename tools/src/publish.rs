@@ -39,7 +39,9 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     let mut published_crates: HashSet<String> = HashSet::new();
 
     let dependencies = build_dependency_graph(&root_directory)?;
-    let crates_to_publish: Vec<_> = dependencies.keys().collect();
+    let mut crates_to_publish: Vec<_> = dependencies.keys().collect();
+    let agb_gbafix = "agb-gbafix".to_owned();
+    crates_to_publish.push(&agb_gbafix);
 
     while published_crates.len() != crates_to_publish.len() {
         // find all crates which can be published now but haven't
@@ -47,10 +49,13 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
             .iter()
             .filter(|&&crate_to_publish| !published_crates.contains(crate_to_publish))
             .filter(|&&crate_to_publish| {
-                let dependencies_of_crate = &dependencies[crate_to_publish];
-                for dependency_of_crate in dependencies_of_crate {
-                    if !fully_published_crates.contains(dependency_of_crate) {
-                        return false;
+                let dependencies_of_crate = &dependencies.get(crate_to_publish);
+
+                if let Some(dependencies_of_crate) = dependencies_of_crate {
+                    for dependency_of_crate in *dependencies_of_crate {
+                        if !fully_published_crates.contains(dependency_of_crate) {
+                            return false;
+                        }
                     }
                 }
 
