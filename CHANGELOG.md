@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added custom `gbafix` implementation which can take the elf file produced by `cargo build` directly, removing the need for the objcopy step.
+
 ### Changed
 - Made Vector2D::new a const function.
 - The template now uses rust 2021 edition by default.

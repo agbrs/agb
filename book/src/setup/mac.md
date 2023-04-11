@@ -43,8 +43,8 @@ After installing to your `/Applications` folder you can add the binary to your p
 
 # 5. Real hardware - gbafix
 
-In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'gbafix'.
-The rust implementation can be installed very easily using `cargo install gbafix`.
+In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'agb-gbafix'.
+Agb's implementation can be installed very easily using `cargo install agb-gbafix`.
 
 Make sure that the Cargo bin directory is in your `PATH` as we'll need to use it later.
 

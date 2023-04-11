@@ -30,30 +30,21 @@ Depending on your platform, the file will have either a `.elf` extension or no e
 ## 3. Convert the binary to a GBA file
 
 In order to run the game on an emulator, we need to convert the binary file to a GBA file.
-To do this, we'll use two tools: `arm-none-eabi-objcopy` and `gbafix`.
+To do this, we'll use the tool `agb-gbafix`.
 
-Run the following command to convert the binary file to a GBA file:
+Run the following command to convert the binary file to a GBA ROM:
 
 ```sh
-arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/template template.gba
+agb-gbafix target/thumbv4t-none-eabi/release/template -o template.gba
 ```
 
 or
 
 ```sh
-arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/template.elf template.gba
+agb-gbafix target/thumbv4t-none-eabi/release/template.elf -o template.gba
 ```
 
-Depending on whether your file has the .elf extension.
-This command will create a template.gba file in the template directory.
-
-Next, run the following command to fix the GBA header:
-
-```sh
-gbafix template.gba
-```
-
-This command will add the correct GBA header to the template.gba file.
+This command will add the correct GBA header to the template.gba file and it will be playable on real hardware or an emulator.
 
 ## 4. Run the game
 

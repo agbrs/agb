@@ -25,8 +25,8 @@ The source code for the game is hosted on github, so you will need to install gi
 
 # 4. gbafix
 
-In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'gbafix'.
-The rust implementation can be installed very easily using `cargo install gbafix`.
+In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'agb-gbafix'.
+Agb's implementation can be installed very easily using `cargo install agb-gbafix`.
 
 Make sure that the Cargo bin directory is in your `PATH` as we'll need to use it later.
 

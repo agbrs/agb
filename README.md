@@ -66,8 +66,6 @@ to just write games for the Game Boy Advance using this library:
     * Install with `cargo install just`
 * [mdbook](https://rust-lang.github.io/mdBook/index.html)
     * Install with `cargo install mdbook`
-* [gbafix](https://crates.io/crates/gbafix)
-    * Install with `cargo install gbafix`
 
 With all of this installed, you should be able to run a full build of agb using by running
 ```sh
