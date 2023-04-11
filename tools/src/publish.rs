@@ -1,10 +1,11 @@
 use clap::{Arg, ArgAction, ArgMatches};
-use std::collections::{HashMap, HashSet};
+use dependency_graph::DependencyGraph;
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use std::thread;
-use std::time::Duration;
 use toml_edit::Document;
 
 use crate::utils::*;
@@ -17,6 +18,23 @@ pub enum Error {
     CrateVersion,
     ReadingDependencies,
     CargoToml,
+}
+
+struct Package {
+    name: String,
+    dependencies: Vec<String>,
+}
+
+impl dependency_graph::Node for Package {
+    type DependencyType = String;
+
+    fn dependencies(&self) -> &[Self::DependencyType] {
+        &self.dependencies
+    }
+
+    fn matches(&self, dependency: &Self::DependencyType) -> bool {
+        &self.name == dependency
+    }
 }
 
 pub fn command() -> clap::Command {
@@ -32,94 +50,49 @@ pub fn command() -> clap::Command {
 
 pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     let dry_run = matches.get_one::<bool>("Dry run").expect("defined by clap");
+    let dry_run = if *dry_run { vec!["--dry-run"] } else { vec![] };
 
     let root_directory = find_agb_root_directory().map_err(|_| Error::FindRootDirectory)?;
 
-    let mut fully_published_crates: HashSet<String> = HashSet::new();
-    let mut published_crates: HashSet<String> = HashSet::new();
+    let mut in_progress: HashMap<_, RefCell<std::process::Child>> = HashMap::new();
 
     let dependencies = build_dependency_graph(&root_directory)?;
-    let mut crates_to_publish: Vec<_> = dependencies.keys().collect();
-    let agb_gbafix = "agb-gbafix".to_owned();
-    crates_to_publish.push(&agb_gbafix);
+    let graph = DependencyGraph::from(&dependencies[..]);
 
-    while published_crates.len() != crates_to_publish.len() {
-        // find all crates which can be published now but haven't
-        let publishable_crates: Vec<_> = crates_to_publish
-            .iter()
-            .filter(|&&crate_to_publish| !published_crates.contains(crate_to_publish))
-            .filter(|&&crate_to_publish| {
-                let dependencies_of_crate = &dependencies.get(crate_to_publish);
+    for package in graph {
+        let package = package.as_resolved().unwrap();
 
-                if let Some(dependencies_of_crate) = dependencies_of_crate {
-                    for dependency_of_crate in *dependencies_of_crate {
-                        if !fully_published_crates.contains(dependency_of_crate) {
-                            return false;
-                        }
-                    }
-                }
-
-                true
-            })
-            .collect();
-
-        for publishable_crate in publishable_crates {
-            if *dry_run {
-                println!("Would execute cargo publish for {publishable_crate}");
-            } else {
-                assert!(Command::new("cargo")
-                    .arg("publish")
-                    .current_dir(&root_directory.join(publishable_crate))
-                    .status()
-                    .map_err(|_| Error::PublishCrate)?
-                    .success());
-            }
-
-            published_crates.insert(publishable_crate.to_string());
+        for dep in &package.dependencies {
+            assert!(in_progress
+                .get(dep)
+                .unwrap()
+                .borrow_mut()
+                .wait()
+                .map_err(|_| Error::PublishCrate)?
+                .success());
         }
 
-        for published_crate in published_crates.iter() {
-            if !fully_published_crates.contains(published_crate) {
-                let expected_version =
-                    read_cargo_toml_version(&root_directory.join(published_crate))?;
-                if check_if_released(published_crate, &expected_version)? {
-                    fully_published_crates.insert(published_crate.clone());
-                }
-            }
-        }
+        println!("Publishing {}", package.name);
 
-        thread::sleep(Duration::from_secs(10));
+        let publish_cmd = Command::new("cargo")
+            .arg("publish")
+            .args(&dry_run)
+            .current_dir(root_directory.join(&package.name))
+            .spawn()
+            .map_err(|_| Error::PublishCrate)?;
+
+        in_progress.insert(package.name.clone(), RefCell::new(publish_cmd));
+    }
+
+    for (_, in_progress) in in_progress {
+        assert!(in_progress
+            .borrow_mut()
+            .wait()
+            .map_err(|_| Error::PublishCrate)?
+            .success());
     }
 
     Ok(())
-}
-
-fn check_if_released(crate_to_publish: &str, expected_version: &str) -> Result<bool, Error> {
-    let url_to_poll = &get_url_to_poll(crate_to_publish);
-
-    println!("Polling crates.io with URL {url_to_poll} for {crate_to_publish} hoping for version {expected_version}.");
-
-    let curl_result = Command::new("curl")
-        .arg(url_to_poll)
-        .output()
-        .map_err(|_| Error::Poll)?;
-
-    Ok(String::from_utf8_lossy(&curl_result.stdout).contains(expected_version))
-}
-
-fn get_url_to_poll(crate_name: &str) -> String {
-    let crate_name_with_underscores = crate_name.replace('-', "_");
-
-    let crate_folder = if crate_name_with_underscores.len() == 3 {
-        format!("3/{}", crate_name_with_underscores.chars().next().unwrap())
-    } else {
-        let first_two_characters = &crate_name_with_underscores[0..2];
-        let second_two_characters = &crate_name_with_underscores[2..4];
-
-        format!("{first_two_characters}/{second_two_characters}")
-    };
-
-    format!("https://raw.githubusercontent.com/rust-lang/crates.io-index/master/{crate_folder}/{crate_name_with_underscores}")
 }
 
 fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
@@ -134,30 +107,33 @@ fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
     Ok(version_value.to_owned())
 }
 
-fn build_dependency_graph(root: &Path) -> Result<HashMap<String, Vec<String>>, Error> {
-    let mut result = HashMap::new();
-    result.insert("agb".to_owned(), get_agb_dependencies(&root.join("agb"))?);
+fn build_dependency_graph(root: &Path) -> Result<Vec<Package>, Error> {
+    let dirs = fs::read_dir(root).map_err(|_| Error::ReadingDependencies)?;
+    let mut packages = vec![];
 
-    let mut added_new_crates = true;
-    while added_new_crates {
-        added_new_crates = false;
-
-        let all_crates: HashSet<String> = HashSet::from_iter(result.values().flatten().cloned());
-
-        for dep_crate in all_crates {
-            if result.contains_key(&dep_crate) {
-                continue;
-            }
-
-            added_new_crates = true;
-            result.insert(
-                dep_crate.to_owned(),
-                get_agb_dependencies(&root.join(dep_crate))?,
-            );
+    for dir in dirs {
+        let dir = dir.map_err(|_| Error::ReadingDependencies)?;
+        if !dir
+            .file_type()
+            .map_err(|_| Error::ReadingDependencies)?
+            .is_dir()
+        {
+            continue;
         }
+
+        if !dir.file_name().to_string_lossy().starts_with("agb") {
+            continue;
+        }
+
+        let crate_path = root.join(dir.path());
+
+        packages.push(Package {
+            name: dir.file_name().to_string_lossy().to_string(),
+            dependencies: get_agb_dependencies(&crate_path)?,
+        });
     }
 
-    Ok(result)
+    Ok(packages)
 }
 
 fn get_agb_dependencies(folder: &Path) -> Result<Vec<String>, Error> {
