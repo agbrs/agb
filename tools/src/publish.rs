@@ -1,6 +1,5 @@
 use clap::{Arg, ArgAction, ArgMatches};
 use dependency_graph::DependencyGraph;
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
@@ -95,18 +94,6 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     Ok(())
 }
 
-fn read_cargo_toml_version(folder: &Path) -> Result<String, Error> {
-    let cargo_toml = read_cargo_toml(folder)?;
-
-    let version_value = cargo_toml["package"]["version"]
-        .as_value()
-        .ok_or(Error::CrateVersion)?
-        .as_str()
-        .ok_or(Error::CrateVersion)?;
-
-    Ok(version_value.to_owned())
-}
-
 fn build_dependency_graph(root: &Path) -> Result<Vec<Package>, Error> {
     let dirs = fs::read_dir(root).map_err(|_| Error::ReadingDependencies)?;
     let mut packages = vec![];
@@ -170,34 +157,6 @@ mod test {
     #[test]
     fn verify_cli() {
         command().debug_assert();
-    }
-
-    #[test]
-    fn url_to_poll_should_return_correct_url() {
-        let test_cases = [
-            ["agb", "3/a/agb"],
-            ["agb-image-converter", "ag/b_/agb_image_converter"],
-            ["agb-fixnum", "ag/b_/agb_fixnum"],
-        ];
-
-        for [name, result] in test_cases {
-            let url = get_url_to_poll(name);
-            assert_eq!(
-                url,
-                format!(
-                    "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/{result}",
-                )
-            )
-        }
-    }
-
-    #[test]
-    fn should_read_version() -> Result<(), Error> {
-        let root_directory = crate::utils::find_agb_root_directory().unwrap();
-        let my_version = read_cargo_toml_version(&root_directory.join("tools"))?;
-
-        assert_eq!(my_version, "0.1.0");
-        Ok(())
     }
 
     #[test]
