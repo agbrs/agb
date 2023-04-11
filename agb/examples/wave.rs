@@ -18,6 +18,11 @@ struct BackCosines {
     row: usize,
 }
 
+static BACK: Mutex<RefCell<BackCosines>> = Mutex::new(RefCell::new(BackCosines {
+    cosines: [0; 32],
+    row: 0,
+}));
+
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let (gfx, mut vram) = gba.display.video.tiled0();
@@ -30,24 +35,22 @@ fn main(mut gba: agb::Gba) -> ! {
 
     example_logo::display_logo(&mut background, &mut vram);
 
-    let mut time = 0;
-    let cosines = [0_u16; 32];
-
-    let back = Mutex::new(RefCell::new(BackCosines { cosines, row: 0 }));
-
-    let _a = agb::interrupt::add_interrupt_handler(Interrupt::HBlank, |key: CriticalSection| {
-        let mut back = back.borrow(key).borrow_mut();
-        let deflection = back.cosines[back.row % 32];
-        unsafe { ((0x0400_0010) as *mut u16).write_volatile(deflection) }
-        back.row += 1;
-    });
+    let _a = unsafe {
+        agb::interrupt::add_interrupt_handler(Interrupt::HBlank, |key: CriticalSection| {
+            let mut back = BACK.borrow(key).borrow_mut();
+            let deflection = back.cosines[back.row % 32];
+            ((0x0400_0010) as *mut u16).write_volatile(deflection);
+            back.row += 1;
+        })
+    };
 
     let vblank = agb::interrupt::VBlank::get();
+    let mut time = 0;
 
     loop {
         vblank.wait_for_vblank();
         free(|key| {
-            let mut back = back.borrow(key).borrow_mut();
+            let mut back = BACK.borrow(key).borrow_mut();
             back.row = 0;
             time += 1;
             for (r, a) in back.cosines.iter_mut().enumerate() {
