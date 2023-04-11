@@ -231,7 +231,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 ///     - Many functions in agb allocate and it isn't always clear.
 ///
 /// # Staticness
-/// * The closure must be static because forgetting the interrupt handler will
+/// * The closure must be static because forgetting the interrupt handler would
 ///   cause a use after free.
 ///
 /// [`CriticalSection`]: bare_metal::CriticalSection
