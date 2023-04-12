@@ -81,7 +81,7 @@ update-linker-scripts:
     find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
     find -type f -name gba_mb.ld | grep -v ./agb/gba_mb.ld | xargs -n1 cp -v -- agb/gba_mb.ld
 
-publish: (_run-tool "publish")
+publish *args: (_run-tool "publish" args)
 
 release +args: (_run-tool "release" args)
 
