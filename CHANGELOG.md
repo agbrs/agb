@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- You can now import aseprite files directly (in addition to the already supported png and bmp files) when importing background tiles.
+
+### Changed
+- Importing background tiles has been improved. You no longer need to use `include_gfx!` with the toml file. Instead, use `include_background_gfx`. See the documentation for usage.
+
 ## [0.14.0] - 2023/04/11
 
 ### Added
