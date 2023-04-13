@@ -1,24 +1,18 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from 'react';
+import { Mgba } from './mgba';
 
 function App() {
+
+  const [onGame, setOnGame] = useState(false);
+  const [volume, setVolume] = useState(1.0);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {
+        onGame && <><Mgba gameUrl="/game.gba" volume={volume} />
+          <input type="range" value={volume} min="0" max="1" step="0.05" onChange={(e) => setVolume(Number(e.target.value))}></input></>
+      }
+      <button onClick={() => setOnGame(!onGame)}>{onGame ? "End Game" : "Start Game"}</button>
     </div>
   );
 }
