@@ -29,8 +29,6 @@ use colour::Colour;
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum TileSize {
     Tile8,
-    Tile16,
-    Tile32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -43,8 +41,6 @@ impl TileSize {
     fn to_size(self) -> usize {
         match self {
             TileSize::Tile8 => 8,
-            TileSize::Tile16 => 16,
-            TileSize::Tile32 => 32,
         }
     }
 }
@@ -174,31 +170,6 @@ pub fn include_background_gfx(input: TokenStream) -> TokenStream {
 
     let module_name = config.module_name.clone();
     include_gfx_from_config(config, module_name, Path::new(&root))
-}
-
-#[proc_macro]
-pub fn include_gfx(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as syn::LitStr);
-
-    let filename = input.value();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let path = Path::new(&root).join(&*filename);
-
-    let config = config::parse(&path.to_string_lossy());
-
-    let parent = path
-        .parent()
-        .expect("Expected a parent directory for the path");
-
-    let module_name = format_ident!(
-        "{}",
-        path.file_stem()
-            .expect("Expected a file stem")
-            .to_string_lossy()
-    );
-
-    include_gfx_from_config(config, module_name, parent)
 }
 
 fn include_gfx_from_config(

@@ -57,7 +57,7 @@ const SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
 const SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
 const SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
-agb::include_gfx!("gfx/background.toml");
+agb::include_background_gfx!(background, "53269a", background => "gfx/background.png");
 
 type Number = FixedNum<8>;
 
