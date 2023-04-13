@@ -6,9 +6,9 @@ use agb::{
 use crate::sfx::Sfx;
 
 include_background_gfx!(backgrounds, "121105",
-    stars => "gfx/stars.png",
-    title => "gfx/title-screen.png",
-    help => "gfx/help-text.png",
+    stars => "gfx/stars.aseprite",
+    title => "gfx/title-screen.aseprite",
+    help => "gfx/help-text.aseprite",
     descriptions1 => "gfx/descriptions1.png",
     descriptions2 => "gfx/descriptions2.png",
 );

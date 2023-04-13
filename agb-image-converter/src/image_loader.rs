@@ -1,6 +1,6 @@
-use std::path;
+use std::{ffi::OsStr, path};
 
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView};
 
 use crate::colour::Colour;
 
@@ -12,7 +12,17 @@ pub(crate) struct Image {
 
 impl Image {
     pub fn load_from_file(image_path: &path::Path) -> Self {
-        let img = image::open(image_path).expect("Expected image to exist");
+        let img = if image_path
+            .extension()
+            .is_some_and(|extension| extension == OsStr::new("aseprite"))
+        {
+            let ase =
+                asefile::AsepriteFile::read_file(image_path).expect("failed to read aseprite file");
+            DynamicImage::ImageRgba8(ase.frame(0).image())
+        } else {
+            image::open(image_path).expect("Expected image to exist")
+        };
+
         Self::load_from_dyn_image(img)
     }
 
