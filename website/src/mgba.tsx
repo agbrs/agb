@@ -90,7 +90,7 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume }) => {
         }}>Load State</button>
         <button onClick={() => {
             if (state !== MgbaState.Initialised) return;
-            mgbaModule.current.quickReload(0);
+            mgbaModule.current.quickReload();
         }}>Restart</button>
 
     </>;
