@@ -71,10 +71,10 @@ impl config::Image for BackgroundGfxOption {
 
 impl Parse for BackgroundGfxOption {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
         let module_name: syn::Ident = input.parse()?;
         let _: Token![=>] = input.parse()?;
+
+        let lookahead = input.lookahead1();
 
         let colours = if lookahead.peek(syn::LitInt) {
             let num_colours: syn::LitInt = input.parse()?;
@@ -125,6 +125,7 @@ impl Parse for IncludeBackgroundGfxInput {
         let module_name: syn::Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
 
+        let lookahead = input.lookahead1();
         let transparent_colour: Colour = if lookahead.peek(syn::LitStr) {
             let colour_str: syn::LitStr = input.parse()?;
             let _: Token![,] = input.parse()?;
