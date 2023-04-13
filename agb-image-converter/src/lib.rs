@@ -27,22 +27,9 @@ use image_loader::Image;
 use colour::Colour;
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum TileSize {
-    Tile8,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub(crate) enum Colours {
     Colours16,
     Colours256,
-}
-
-impl TileSize {
-    fn to_size(self) -> usize {
-        match self {
-            TileSize::Tile8 => 8,
-        }
-    }
 }
 
 struct BackgroundGfxOption {
@@ -54,10 +41,6 @@ struct BackgroundGfxOption {
 impl config::Image for BackgroundGfxOption {
     fn filename(&self) -> String {
         self.file_name.clone()
-    }
-
-    fn tile_size(&self) -> TileSize {
-        TileSize::Tile8
     }
 
     fn colours(&self) -> Colours {
@@ -191,7 +174,7 @@ fn include_gfx_from_config(
 
         match settings.colours() {
             Colours::Colours16 => {
-                let tile_size = settings.tile_size().to_size();
+                let tile_size = 8;
                 if image.width % tile_size != 0 || image.height % tile_size != 0 {
                     panic!("Image size not a multiple of tile size");
                 }
@@ -203,7 +186,7 @@ fn include_gfx_from_config(
                     config.transparent_colour(),
                 );
 
-                let num_tiles = image.width * image.height / settings.tile_size().to_size().pow(2);
+                let num_tiles = image.width * image.height / 8usize.pow(2);
                 assignment_offsets.insert(name, assignment_offset);
                 assignment_offset += num_tiles;
             }
@@ -395,7 +378,6 @@ fn convert_image(
         optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
-        settings.tile_size(),
         crate_prefix.to_owned(),
         assignment_offset,
     )
@@ -449,10 +431,9 @@ fn palette_tile_data(
         .collect();
 
     let mut tile_data = Vec::new();
-    let tile_size = TileSize::Tile8;
 
     for image in images {
-        add_image_to_tile_data(&mut tile_data, image, tile_size, optimiser, 0)
+        add_image_to_tile_data(&mut tile_data, image, optimiser, 0)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -472,11 +453,10 @@ fn collapse_to_4bpp(tile_data: &[u8]) -> Vec<u8> {
 fn add_image_to_tile_data(
     tile_data: &mut Vec<u8>,
     image: &Image,
-    tile_size: TileSize,
     optimiser: &Palette16OptimisationResults,
     assignment_offset: usize,
 ) {
-    let tile_size = tile_size.to_size();
+    let tile_size = 8;
     let tiles_x = image.width / tile_size;
     let tiles_y = image.height / tile_size;
 
@@ -502,10 +482,9 @@ fn add_image_to_tile_data(
 fn add_image_256_to_tile_data(
     tile_data: &mut Vec<u8>,
     image: &Image,
-    tile_size: TileSize,
     optimiser: &Palette16OptimisationResults,
 ) {
-    let tile_size = tile_size.to_size();
+    let tile_size = 8;
     let tiles_x = image.width / tile_size;
     let tiles_y = image.height / tile_size;
 
