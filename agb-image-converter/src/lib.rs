@@ -2,9 +2,9 @@ use palette16::{Palette16OptimisationResults, Palette16Optimiser};
 use palette256::Palette256;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
-use syn::parse::Parser;
+use syn::parse::{Parse, Parser};
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
-use syn::{Expr, ExprLit, Lit};
+use syn::{Expr, ExprLit, Lit, Token};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -33,6 +33,7 @@ pub(crate) enum TileSize {
     Tile32,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum Colours {
     Colours16,
     Colours256,
@@ -48,6 +49,132 @@ impl TileSize {
     }
 }
 
+struct BackgroundGfxOption {
+    module_name: String,
+    file_name: String,
+    colours: Colours,
+}
+
+impl config::Image for BackgroundGfxOption {
+    fn filename(&self) -> String {
+        self.file_name.clone()
+    }
+
+    fn tile_size(&self) -> TileSize {
+        TileSize::Tile8
+    }
+
+    fn colours(&self) -> Colours {
+        self.colours
+    }
+}
+
+impl Parse for BackgroundGfxOption {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        let module_name: syn::Ident = input.parse()?;
+        let _: Token![=>] = input.parse()?;
+
+        let colours = if lookahead.peek(syn::LitInt) {
+            let num_colours: syn::LitInt = input.parse()?;
+
+            match num_colours.base10_parse()? {
+                16 => Colours::Colours16,
+                256 => Colours::Colours256,
+                _ => {
+                    return Err(syn::Error::new_spanned(
+                        num_colours,
+                        "Number of colours must be 16 or 256",
+                    ))
+                }
+            }
+        } else {
+            Colours::Colours16
+        };
+
+        let file_name: syn::LitStr = input.parse()?;
+
+        Ok(Self {
+            module_name: module_name.to_string(),
+            file_name: file_name.value(),
+            colours,
+        })
+    }
+}
+
+struct IncludeBackgroundGfxInput {
+    module_name: syn::Ident,
+    crate_prefix: String,
+    transparent_colour: Colour,
+    background_gfx_options: Vec<BackgroundGfxOption>,
+}
+
+impl Parse for IncludeBackgroundGfxInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        let crate_prefix: syn::Ident = if lookahead.peek(Token![crate]) {
+            let _: Token![crate] = input.parse()?;
+            let _: Token![,] = input.parse()?;
+            format_ident!("crate")
+        } else {
+            format_ident!("agb")
+        };
+
+        let module_name: syn::Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+
+        let transparent_colour: Colour = if lookahead.peek(syn::LitStr) {
+            let colour_str: syn::LitStr = input.parse()?;
+            let _: Token![,] = input.parse()?;
+            colour_str
+                .value()
+                .parse()
+                .map_err(|msg| syn::Error::new_spanned(colour_str, msg))?
+        } else {
+            Colour::from_rgb(255, 0, 255, 0)
+        };
+
+        let background_gfx_options =
+            input.parse_terminated(BackgroundGfxOption::parse, Token![,])?;
+
+        Ok(Self {
+            module_name,
+            crate_prefix: crate_prefix.to_string(),
+            transparent_colour,
+            background_gfx_options: background_gfx_options.into_iter().collect(),
+        })
+    }
+}
+
+impl config::Config for IncludeBackgroundGfxInput {
+    fn crate_prefix(&self) -> String {
+        self.crate_prefix.clone()
+    }
+
+    fn images(&self) -> HashMap<String, &dyn config::Image> {
+        self.background_gfx_options
+            .iter()
+            .map(|options| (options.module_name.clone(), options as &dyn config::Image))
+            .collect()
+    }
+
+    fn transparent_colour(&self) -> Option<Colour> {
+        Some(self.transparent_colour)
+    }
+}
+
+#[proc_macro]
+pub fn include_background_gfx(input: TokenStream) -> TokenStream {
+    let config = Box::new(parse_macro_input!(input as IncludeBackgroundGfxInput));
+
+    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+
+    let module_name = config.module_name.clone();
+    include_gfx_from_config(config, module_name, Path::new(&root))
+}
+
 #[proc_macro]
 pub fn include_gfx(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::LitStr);
@@ -56,11 +183,12 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
     let path = Path::new(&root).join(&*filename);
+
+    let config = config::parse(&path.to_string_lossy());
+
     let parent = path
         .parent()
         .expect("Expected a parent directory for the path");
-
-    let config = config::parse(&path.to_string_lossy());
 
     let module_name = format_ident!(
         "{}",
@@ -68,8 +196,15 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
             .expect("Expected a file stem")
             .to_string_lossy()
     );
-    let include_path = path.to_string_lossy();
 
+    include_gfx_from_config(config, module_name, parent)
+}
+
+fn include_gfx_from_config(
+    config: Box<dyn config::Config>,
+    module_name: syn::Ident,
+    parent: &Path,
+) -> TokenStream {
     let images = config.images();
 
     let mut optimiser = Palette16Optimiser::new(config.transparent_colour());
@@ -132,8 +267,6 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let module = quote! {
         mod #module_name {
-            const _: &[u8] = include_bytes!(#include_path);
-
             #palette_code
 
             #(#image_code)*

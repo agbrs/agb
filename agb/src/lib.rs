@@ -13,6 +13,7 @@
 #![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
+#![feature(trace_macros)]
 #![warn(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
@@ -119,6 +120,8 @@ pub use agb_image_converter::include_aseprite_inner;
 
 #[doc(hidden)]
 pub use agb_image_converter::include_font as include_font_inner;
+
+pub use agb_image_converter::include_background_gfx;
 
 #[macro_export]
 macro_rules! include_font {
