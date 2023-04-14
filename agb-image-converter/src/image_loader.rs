@@ -12,10 +12,7 @@ pub(crate) struct Image {
 
 impl Image {
     pub fn load_from_file(image_path: &path::Path) -> Self {
-        let img = if image_path
-            .extension()
-            .is_some_and(|extension| extension == OsStr::new("aseprite"))
-        {
+        let img = if image_path.extension() == Some(OsStr::new("aseprite")) {
             let ase =
                 asefile::AsepriteFile::read_file(image_path).expect("failed to read aseprite file");
             DynamicImage::ImageRgba8(ase.frame(0).image())
