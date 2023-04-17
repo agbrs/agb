@@ -2269,12 +2269,12 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         start_at_boss = loop {
-            sfx.frame();
             vblank.wait_for_vblank();
-            object.commit();
+            sfx.frame();
             game.level.background.commit(&mut vram);
             game.level.foreground.commit(&mut vram);
             game.level.clouds.commit(&mut vram);
+            object.commit();
             match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
