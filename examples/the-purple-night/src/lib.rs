@@ -600,7 +600,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Attack(a) => {
                         *a -= 1;
                         let frame = self.sword.attack_frame(*a);
-                        self.fudge_factor.x += self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
                         let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
@@ -614,7 +614,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Cooldown(a) => {
                         *a -= 1;
                         let frame = self.sword.hold_frame();
-                        self.fudge_factor.x += self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
                         let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
