@@ -1966,6 +1966,8 @@ impl<'a> Game<'a> {
             self.shake_time -= 1;
         }
 
+        let this_frame_offset = this_frame_offset.floor().into();
+
         self.input.update();
         if let UpdateInstruction::CreateParticle(data, position) =
             self.player
