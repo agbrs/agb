@@ -524,7 +524,7 @@ struct Player<'a> {
 
 impl<'a> Player<'a> {
     fn new(object_controller: &'a ObjectController<'a>) -> Player {
-        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (5, 12).into()));
+        let mut entity = Entity::new(object_controller, Rect::new((0, 1).into(), (5, 10).into()));
         let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
