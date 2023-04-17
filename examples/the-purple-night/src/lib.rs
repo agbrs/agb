@@ -21,7 +21,7 @@ use agb::{
         },
         Priority, HEIGHT, WIDTH,
     },
-    fixnum::{FixedNum, Rect, Vector2D},
+    fixnum::{num, FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
     interrupt::VBlank,
     rng,
@@ -159,12 +159,12 @@ struct Entity<'a> {
     sprite: Object<'a>,
     position: Vector2D<Number>,
     velocity: Vector2D<Number>,
-    collision_mask: Rect<u16>,
+    collision_mask: Rect<Number>,
     visible: bool,
 }
 
 impl<'a> Entity<'a> {
-    fn new(object_controller: &'a ObjectController, collision_mask: Rect<u16>) -> Self {
+    fn new(object_controller: &'a ObjectController, collision_mask: Rect<Number>) -> Self {
         let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         let mut sprite = object_controller.object(s);
         sprite.set_priority(Priority::P1);
@@ -213,18 +213,7 @@ impl<'a> Entity<'a> {
     }
 
     fn collider(&self) -> Rect<Number> {
-        let mut number_collision: Rect<Number> = Rect::new(
-            (
-                self.collision_mask.position.x as i32,
-                self.collision_mask.position.y as i32,
-            )
-                .into(),
-            (
-                self.collision_mask.size.x as i32,
-                self.collision_mask.size.y as i32,
-            )
-                .into(),
-        );
+        let mut number_collision = self.collision_mask;
         number_collision.position =
             self.position + number_collision.position - number_collision.size / 2;
         number_collision
@@ -273,11 +262,12 @@ impl<'a> Entity<'a> {
         (final_distance, has_collided)
     }
 
-    fn commit_with_fudge(&mut self, offset: Vector2D<Number>, fudge: Vector2D<i32>) {
+    fn commit_with_fudge(&mut self, offset: Vector2D<Number>, fudge: Vector2D<Number>) {
         if !self.visible {
             self.sprite.hide();
         } else {
-            let position = (self.position - offset).floor() + fudge;
+            let position =
+                (self.position - offset + fudge + Vector2D::new(num!(0.5), num!(0.5))).floor();
             self.sprite.set_position(position - (8, 8).into());
             if position.x < -8
                 || position.x > WIDTH + 8
@@ -527,17 +517,14 @@ struct Player<'a> {
     attack_timer: AttackTimer,
     damage_cooldown: u16,
     sword: SwordState,
-    fudge_factor: Vector2D<i32>,
+    fudge_factor: Vector2D<Number>,
     hurtbox: Option<Rect<Number>>,
     controllable: bool,
 }
 
 impl<'a> Player<'a> {
     fn new(object_controller: &'a ObjectController<'a>) -> Player {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (5, 12).into()));
         let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
@@ -613,7 +600,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Attack(a) => {
                         *a -= 1;
                         let frame = self.sword.attack_frame(*a);
-                        self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x += self.sword.fudge(frame) * self.facing as i32;
                         let tag = self.sword.attack_tag();
                         let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
@@ -627,7 +614,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Cooldown(a) => {
                         *a -= 1;
                         let frame = self.sword.hold_frame();
-                        self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x += self.sword.fudge(frame) * self.facing as i32;
                         let tag = self.sword.attack_tag();
                         let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
@@ -694,6 +681,8 @@ impl<'a> Player<'a> {
         let gravity: Number = 1.into();
         let gravity = gravity / 16;
         self.entity.velocity.y += gravity;
+
+        self.fudge_factor.x -= num!(1.5) * (self.facing as i32);
 
         let fudge_number = (self.fudge_factor.x, self.fudge_factor.y).into();
 
@@ -1351,12 +1340,12 @@ enum UpdateInstruction {
 }
 
 impl EnemyData {
-    fn collision_mask(&self) -> Rect<u16> {
+    fn collision_mask(&self) -> Rect<Number> {
         match self {
-            EnemyData::Slime(_) => Rect::new((0u16, 0u16).into(), (4u16, 11u16).into()),
-            EnemyData::Bat(_) => Rect::new((0u16, 0u16).into(), (12u16, 4u16).into()),
-            EnemyData::MiniFlame(_) => Rect::new((0u16, 0u16).into(), (12u16, 12u16).into()),
-            EnemyData::Emu(_) => Rect::new((0u16, 0u16).into(), (7u16, 11u16).into()),
+            EnemyData::Slime(_) => Rect::new((0.into(), num!(1.5)).into(), (4, 11).into()),
+            EnemyData::Bat(_) => Rect::new((0, 0).into(), (12, 4).into()),
+            EnemyData::MiniFlame(_) => Rect::new((0, 0).into(), (12, 12).into()),
+            EnemyData::Emu(_) => Rect::new((0, 0).into(), (7, 11).into()),
         }
     }
 
@@ -1533,10 +1522,7 @@ impl<'a> Particle<'a> {
         particle_data: ParticleData,
         position: Vector2D<Number>,
     ) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0u16, 0u16).into(), (0u16, 0u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (0, 0).into()));
 
         entity.position = position;
 
@@ -1611,10 +1597,7 @@ struct FollowingBoss<'a> {
 
 impl<'a> FollowingBoss<'a> {
     fn new(object_controller: &'a ObjectController, position: Vector2D<Number>) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (0_u16, 0_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (0, 0).into()));
         entity.position = position;
 
         Self {
@@ -1695,10 +1678,7 @@ enum BossInstruction {
 
 impl<'a> Boss<'a> {
     fn new(object_controller: &'a ObjectController, screen_coords: Vector2D<Number>) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (28_u16, 28_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (28, 28).into()));
         entity.position = screen_coords + (144, 136).into();
         Self {
             entity,
