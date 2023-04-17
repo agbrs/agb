@@ -2193,15 +2193,12 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let mut start_at_boss = false;
 
+    let (background, mut vram) = gba.display.video.tiled0();
+    vram.set_background_palettes(background::PALETTES);
+    let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
+    let object = gba.display.object.get();
+
     loop {
-        let (background, mut vram) = gba.display.video.tiled0();
-
-        vram.set_background_palettes(background::PALETTES);
-
-        let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
-
-        let object = gba.display.object.get();
-
         let backdrop = InfiniteScrolledMap::new(
             background.background(
                 Priority::P2,
