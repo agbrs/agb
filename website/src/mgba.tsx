@@ -1,11 +1,13 @@
 import { FC, useEffect, useRef, useState } from "react";
 import mGBA from "./vendor/mgba";
+import { KeyBindings } from "./bindings";
 
 type Module = any;
 
 interface MgbaProps {
   gameUrl: string;
   volume?: Number;
+  controls: KeyBindings;
 }
 
 enum MgbaState {
@@ -16,7 +18,7 @@ enum MgbaState {
 
 const MGBA_ROM_DIRECTORY = "/data/games";
 
-export const Mgba: FC<MgbaProps> = ({ gameUrl, volume }) => {
+export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls }) => {
   const canvas = useRef(null);
   const mgbaModule = useRef<Module>({});
 
@@ -67,6 +69,23 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume }) => {
         } catch {}
       };
   }, [state]);
+
+  useEffect(() => {
+    if (state !== MgbaState.Initialised) return;
+
+    const controlEntries = Object.entries(controls);
+
+    for (const [key, value] of controlEntries) {
+      const binding =
+        value === "Enter"
+          ? "Return"
+          : value.toLowerCase().replace("arrow", "").replace("key", "");
+
+      console.log(`Key: ${key} will be ${binding}`);
+
+      mgbaModule.current.bindKey(binding, key);
+    }
+  }, [controls, state]);
 
   useEffect(() => {
     if (state !== MgbaState.Initialised) return;

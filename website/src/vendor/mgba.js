@@ -3579,14 +3579,6 @@ var mGBA = (function () {
             crypto.getRandomValues(randomBuffer);
             return randomBuffer[0];
           };
-        } else if (ENVIRONMENT_IS_NODE) {
-          try {
-            var crypto_module = require("crypto");
-            random_device = function () {
-              return crypto_module["randomBytes"](1)[0];
-            };
-          } catch (e) {}
-        } else {
         }
         if (!random_device) {
           random_device = function () {
