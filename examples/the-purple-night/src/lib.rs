@@ -2066,10 +2066,6 @@ impl<'a> Game<'a> {
                 .commit_with_fudge(this_frame_offset, (0, 0).into());
         }
 
-        self.level.background.commit(vram);
-        self.level.foreground.commit(vram);
-        self.level.clouds.commit(vram);
-
         for i in remove {
             self.particles.remove(i);
         }
@@ -2274,6 +2270,9 @@ fn game_with_level(gba: &mut agb::Gba) {
             sfx.frame();
             vblank.wait_for_vblank();
             object.commit();
+            game.level.background.commit(&mut vram);
+            game.level.foreground.commit(&mut vram);
+            game.level.clouds.commit(&mut vram);
             match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
