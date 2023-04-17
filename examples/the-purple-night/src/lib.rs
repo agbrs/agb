@@ -1978,7 +1978,7 @@ impl<'a> Game<'a> {
             self.particles.insert(new_particle);
         }
 
-        let mut remove = Vec::with_capacity(10);
+        let mut remove = Vec::new();
         for (idx, enemy) in self.enemies.iter_mut() {
             if enemy.entity.position.x < self.offset.x - 8 {
                 remove.push(idx);
