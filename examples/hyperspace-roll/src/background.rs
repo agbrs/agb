@@ -1,11 +1,17 @@
 use agb::{
     display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager},
-    include_gfx, rng,
+    include_background_gfx, rng,
 };
 
 use crate::sfx::Sfx;
 
-include_gfx!("gfx/backgrounds.toml");
+include_background_gfx!(backgrounds, "121105",
+    stars => "gfx/stars.aseprite",
+    title => "gfx/title-screen.aseprite",
+    help => "gfx/help-text.aseprite",
+    descriptions1 => "gfx/descriptions1.png",
+    descriptions2 => "gfx/descriptions2.png",
+);
 
 pub fn load_palettes(vram: &mut VRamManager) {
     vram.set_background_palettes(backgrounds::PALETTES);

@@ -8,10 +8,10 @@ use agb::{
         Priority,
     },
     fixnum::{num, Num},
-    include_gfx,
+    include_background_gfx,
 };
 
-include_gfx!("examples/affine_tiles.toml");
+include_background_gfx!(affine_tiles, water_tiles => 256 "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

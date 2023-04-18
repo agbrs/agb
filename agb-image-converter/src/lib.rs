@@ -2,9 +2,9 @@ use palette16::{Palette16OptimisationResults, Palette16Optimiser};
 use palette256::Palette256;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
-use syn::parse::Parser;
+use syn::parse::{Parse, Parser};
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
-use syn::{Expr, ExprLit, Lit};
+use syn::{Expr, ExprLit, Lit, Token};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -27,49 +27,139 @@ use image_loader::Image;
 use colour::Colour;
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum TileSize {
-    Tile8,
-    Tile16,
-    Tile32,
-}
-
 pub(crate) enum Colours {
     Colours16,
     Colours256,
 }
 
-impl TileSize {
-    fn to_size(self) -> usize {
-        match self {
-            TileSize::Tile8 => 8,
-            TileSize::Tile16 => 16,
-            TileSize::Tile32 => 32,
-        }
+struct BackgroundGfxOption {
+    module_name: String,
+    file_name: String,
+    colours: Colours,
+}
+
+impl config::Image for BackgroundGfxOption {
+    fn filename(&self) -> String {
+        self.file_name.clone()
+    }
+
+    fn colours(&self) -> Colours {
+        self.colours
+    }
+}
+
+impl Parse for BackgroundGfxOption {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let module_name: syn::Ident = input.parse()?;
+        let _: Token![=>] = input.parse()?;
+
+        let lookahead = input.lookahead1();
+
+        let colours = if lookahead.peek(syn::LitInt) {
+            let num_colours: syn::LitInt = input.parse()?;
+
+            match num_colours.base10_parse()? {
+                16 => Colours::Colours16,
+                256 => Colours::Colours256,
+                _ => {
+                    return Err(syn::Error::new_spanned(
+                        num_colours,
+                        "Number of colours must be 16 or 256",
+                    ))
+                }
+            }
+        } else {
+            Colours::Colours16
+        };
+
+        let file_name: syn::LitStr = input.parse()?;
+
+        Ok(Self {
+            module_name: module_name.to_string(),
+            file_name: file_name.value(),
+            colours,
+        })
+    }
+}
+
+struct IncludeBackgroundGfxInput {
+    module_name: syn::Ident,
+    crate_prefix: String,
+    transparent_colour: Colour,
+    background_gfx_options: Vec<BackgroundGfxOption>,
+}
+
+impl Parse for IncludeBackgroundGfxInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        let crate_prefix: syn::Ident = if lookahead.peek(Token![crate]) {
+            let _: Token![crate] = input.parse()?;
+            let _: Token![,] = input.parse()?;
+            format_ident!("crate")
+        } else {
+            format_ident!("agb")
+        };
+
+        let module_name: syn::Ident = input.parse()?;
+        let _: Token![,] = input.parse()?;
+
+        let lookahead = input.lookahead1();
+        let transparent_colour: Colour = if lookahead.peek(syn::LitStr) {
+            let colour_str: syn::LitStr = input.parse()?;
+            let _: Token![,] = input.parse()?;
+            colour_str
+                .value()
+                .parse()
+                .map_err(|msg| syn::Error::new_spanned(colour_str, msg))?
+        } else {
+            Colour::from_rgb(255, 0, 255, 0)
+        };
+
+        let background_gfx_options =
+            input.parse_terminated(BackgroundGfxOption::parse, Token![,])?;
+
+        Ok(Self {
+            module_name,
+            crate_prefix: crate_prefix.to_string(),
+            transparent_colour,
+            background_gfx_options: background_gfx_options.into_iter().collect(),
+        })
+    }
+}
+
+impl config::Config for IncludeBackgroundGfxInput {
+    fn crate_prefix(&self) -> String {
+        self.crate_prefix.clone()
+    }
+
+    fn images(&self) -> HashMap<String, &dyn config::Image> {
+        self.background_gfx_options
+            .iter()
+            .map(|options| (options.module_name.clone(), options as &dyn config::Image))
+            .collect()
+    }
+
+    fn transparent_colour(&self) -> Option<Colour> {
+        Some(self.transparent_colour)
     }
 }
 
 #[proc_macro]
-pub fn include_gfx(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as syn::LitStr);
-
-    let filename = input.value();
+pub fn include_background_gfx(input: TokenStream) -> TokenStream {
+    let config = Box::new(parse_macro_input!(input as IncludeBackgroundGfxInput));
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let path = Path::new(&root).join(&*filename);
-    let parent = path
-        .parent()
-        .expect("Expected a parent directory for the path");
 
-    let config = config::parse(&path.to_string_lossy());
+    let module_name = config.module_name.clone();
+    include_gfx_from_config(config, module_name, Path::new(&root))
+}
 
-    let module_name = format_ident!(
-        "{}",
-        path.file_stem()
-            .expect("Expected a file stem")
-            .to_string_lossy()
-    );
-    let include_path = path.to_string_lossy();
-
+fn include_gfx_from_config(
+    config: Box<dyn config::Config>,
+    module_name: syn::Ident,
+    parent: &Path,
+) -> TokenStream {
     let images = config.images();
 
     let mut optimiser = Palette16Optimiser::new(config.transparent_colour());
@@ -84,7 +174,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
         match settings.colours() {
             Colours::Colours16 => {
-                let tile_size = settings.tile_size().to_size();
+                let tile_size = 8;
                 if image.width % tile_size != 0 || image.height % tile_size != 0 {
                     panic!("Image size not a multiple of tile size");
                 }
@@ -96,7 +186,7 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
                     config.transparent_colour(),
                 );
 
-                let num_tiles = image.width * image.height / settings.tile_size().to_size().pow(2);
+                let num_tiles = image.width * image.height / 8usize.pow(2);
                 assignment_offsets.insert(name, assignment_offset);
                 assignment_offset += num_tiles;
             }
@@ -132,8 +222,6 @@ pub fn include_gfx(input: TokenStream) -> TokenStream {
 
     let module = quote! {
         mod #module_name {
-            const _: &[u8] = include_bytes!(#include_path);
-
             #palette_code
 
             #(#image_code)*
@@ -290,7 +378,6 @@ fn convert_image(
         optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
-        settings.tile_size(),
         crate_prefix.to_owned(),
         assignment_offset,
     )
@@ -344,10 +431,9 @@ fn palette_tile_data(
         .collect();
 
     let mut tile_data = Vec::new();
-    let tile_size = TileSize::Tile8;
 
     for image in images {
-        add_image_to_tile_data(&mut tile_data, image, tile_size, optimiser, 0)
+        add_image_to_tile_data(&mut tile_data, image, optimiser, 0)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -367,11 +453,10 @@ fn collapse_to_4bpp(tile_data: &[u8]) -> Vec<u8> {
 fn add_image_to_tile_data(
     tile_data: &mut Vec<u8>,
     image: &Image,
-    tile_size: TileSize,
     optimiser: &Palette16OptimisationResults,
     assignment_offset: usize,
 ) {
-    let tile_size = tile_size.to_size();
+    let tile_size = 8;
     let tiles_x = image.width / tile_size;
     let tiles_y = image.height / tile_size;
 
@@ -397,10 +482,9 @@ fn add_image_to_tile_data(
 fn add_image_256_to_tile_data(
     tile_data: &mut Vec<u8>,
     image: &Image,
-    tile_size: TileSize,
     optimiser: &Palette16OptimisationResults,
 ) {
-    let tile_size = tile_size.to_size();
+    let tile_size = 8;
     let tiles_x = image.width / tile_size;
     let tiles_y = image.height / tile_size;
 

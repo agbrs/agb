@@ -6,10 +6,10 @@ use agb::{
         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, TiledMap},
         Priority,
     },
-    include_gfx,
+    include_background_gfx,
 };
 
-include_gfx!("examples/water_tiles.toml");
+include_background_gfx!(water_tiles, water_tiles => "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

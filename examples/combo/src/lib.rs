@@ -12,7 +12,7 @@ use agb::{
         Priority,
     },
     fixnum::{Num, Vector2D},
-    include_gfx,
+    include_background_gfx,
     input::Button,
 };
 
@@ -42,7 +42,12 @@ impl Game {
     }
 }
 
-include_gfx!("gfx/games.toml");
+include_background_gfx!(
+    games, "121105",
+    hat => "gfx/hat.png",
+    purple => "gfx/purple.png",
+    hyperspace => "gfx/hyperspace.png"
+);
 
 fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();

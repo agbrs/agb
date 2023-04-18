@@ -12,9 +12,7 @@ proc-macro = true
 
 [dependencies]
 image = { version = "0.23", default-features = false, features = [ "png", "bmp" ] }
-toml = "0.7"
-serde = { version = "1", features = ["derive"] }
-syn = { version = "2", features = ["full"] }
+syn = { version = "2", features = ["proc-macro", "parsing"] }
 proc-macro2 = "1"
 quote = "1"
 asefile = "0.3.5"

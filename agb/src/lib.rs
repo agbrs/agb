@@ -35,42 +35,27 @@
 
 /// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
 ///
-/// The macro expects to be linked to a `toml` file which contains a metadata about the image
-/// and a link to the png or bmp itself. See the examples below for a full definition of the format.
+/// Suppose you have a file in `examples/water_tiles.png` which contains some tiles you'd like to use.
 ///
-/// # The manifest file format
-///
-/// The following is an example of the toml file you would need to create. Generally you will
-/// find this in the `gfx` folder in the same level as the `src` folder (see the examples).
-///
-/// Suppose that the following is in `examples/water_tiles.toml`.
-///
-/// ```toml
-/// version = "1.0"
-///
-/// [image.tiles]
-/// filename = "water_tiles.png"
-/// tile_size = "8x8"
-/// ```
-///
-/// You then import this using:
+/// You import them using:
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
-/// agb::include_gfx!("examples/water_tiles.toml");
+/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 /// ```
 ///
 /// This will generate something along the lines of the following:
 ///
 /// ```rust,ignore
-/// // module name comes from the name of the toml file, so `water_tiles` in this case because it is
-/// // called `water_tiles.toml`
+/// // module name comes from the first argument, name of the constant from the arrow
 /// mod water_tiles {
-///     const tiles = /* ... */;
+///     pub const tiles = /* ... */;
 /// }
 /// ```
 ///
 /// And tiles will be an instance of [`TileData`][crate::display::tile_data::TileData]
+///
+/// You can import multiple files at once, and the palette data will be combined so they can all be visible.
 ///
 /// # Examples
 ///
@@ -86,13 +71,13 @@
 ///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, Tiled0, TiledMap, VRamManager},
 ///         Priority,
 ///     },
-///     include_gfx,
+///     include_background_gfx,
 /// };
 ///
-/// agb::include_gfx!("examples/water_tiles.toml");
+/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
-/// let tileset = TileSet::new(water_tiles::water_tiles.tiles, TileFormat::FourBpp);
+/// let tileset = TileSet::new(water_tiles::tiles.tiles, TileFormat::FourBpp);
 ///
 /// vram.set_background_palettes(water_tiles::PALETTES);
 ///
@@ -112,7 +97,7 @@
 /// bg.show();
 /// # }
 /// ```
-pub use agb_image_converter::include_gfx;
+pub use agb_image_converter::include_background_gfx;
 
 #[doc(hidden)]
 pub use agb_image_converter::include_aseprite_inner;
