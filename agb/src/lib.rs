@@ -71,10 +71,10 @@
 ///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, Tiled0, TiledMap, VRamManager},
 ///         Priority,
 ///     },
-///     include_gfx,
+///     include_background_gfx,
 /// };
 ///
-/// agb::include_background_gfx!(water_tiles, tiles => "exmaples/water_tiles.png");
+/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
 /// let tileset = TileSet::new(water_tiles::tiles.tiles, TileFormat::FourBpp);
