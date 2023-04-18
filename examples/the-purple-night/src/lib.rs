@@ -2266,8 +2266,8 @@ fn game_with_level(gba: &mut agb::Gba) {
         );
 
         start_at_boss = loop {
-            vblank.wait_for_vblank();
             sfx.frame();
+            vblank.wait_for_vblank();
             game.level.background.commit(&mut vram);
             game.level.foreground.commit(&mut vram);
             game.level.clouds.commit(&mut vram);
