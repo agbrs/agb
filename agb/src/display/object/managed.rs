@@ -125,6 +125,15 @@ impl Store {
     }
 }
 
+/// OAM that manages z ordering and commit all visible objects in one call. This
+/// is simpler to use than the [`OamUnmanaged`], but is less performant
+/// depending on how objects are stored.
+///
+/// Use this if:
+/// * You don't want to handle z ordering.
+/// * You don't want to deal with the complexity of committing all objects during vblank.
+///
+/// Otherwise I'd recommend using [`OamUnmanaged`].
 pub struct OamManaged<'gba> {
     object_store: Store,
     sprite_loader: UnsafeCell<SpriteLoader>,
@@ -154,6 +163,8 @@ impl OamManaged<'_> {
         c(sprite_loader)
     }
 
+    /// Commits all the visible objects. Call during vblank to make changes made
+    /// to objects visible.
     pub fn commit(&self) {
         // safety: commit is not reentrant
         let unmanaged = unsafe { &mut *self.unmanaged.get() };
@@ -172,11 +183,13 @@ impl OamManaged<'_> {
         }
     }
 
+    /// Creates an object from the sprite in vram.
     pub fn object(&self, sprite: SpriteVram) -> Object<'_> {
         self.object_store
             .insert_object(ObjectUnmanaged::new(sprite))
     }
 
+    /// Creates a sprite in vram from a static sprite from [`include_aseprite`][crate::include_aseprite].
     pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
         // safety: not reentrant
         unsafe {
@@ -184,11 +197,13 @@ impl OamManaged<'_> {
         }
     }
 
+    /// Creates a sprite in vram and uses it to make an object from a static sprite from [`include_aseprite`][crate::include_aseprite].
     pub fn object_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
         self.object(self.get_sprite(sprite))
     }
 }
 
+/// A managed object used with the [`OamManaged`] interface.
 pub struct Object<'controller> {
     me: ObjectKey,
     store: &'controller Store,
@@ -291,6 +306,13 @@ fn move_after(store: &Store, source: ObjectKey, after_this: ObjectKey) {
 }
 
 impl Object<'_> {
+    /// Sets the z position of an object. This is not a GBA concept. It causes
+    /// the order of rendering to be different, thus changing whether objects
+    /// are rendered above eachother.
+    ///
+    /// Negative z is more towards the outside and positive z is further into
+    /// the screen => an object with a more *negative* z is drawn on top of an
+    /// object with a more *positive* z.
     pub fn set_z(&mut self, z_index: i32) -> &mut Self {
         let my_object = &self.store.get_object(self.me);
 
@@ -350,11 +372,14 @@ impl Object<'_> {
     }
 
     #[must_use]
+    /// Checks whether the object is not marked as hidden. Note that it could be
+    /// off screen or completely transparent and still claimed to be visible.
     pub fn is_visible(&self) -> bool {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object_shared() }.is_visible()
     }
 
+    /// Display the sprite in Normal mode.
     pub fn show(&mut self) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().show() };
@@ -362,6 +387,7 @@ impl Object<'_> {
         self
     }
 
+    /// Display the sprite in Affine mode.
     pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().show_affine(affine_mode) };
@@ -369,6 +395,7 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_hflip(flip) };
@@ -376,6 +403,7 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_vflip(flip) };
@@ -383,13 +411,7 @@ impl Object<'_> {
         self
     }
 
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
-        // safety: only have one of these, doesn't modify slotmap
-        unsafe { self.object().set_x(x) };
-
-        self
-    }
-
+    /// Sets the priority of the object relative to the backgrounds priority.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_priority(priority) };
@@ -397,6 +419,9 @@ impl Object<'_> {
         self
     }
 
+    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
+    /// modes using [`show`][Object::show] and
+    /// [`show_affine`][Object::show_affine] respectively.
     pub fn hide(&mut self) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().hide() };
@@ -404,6 +429,15 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the x position of the object.
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        // safety: only have one of these, doesn't modify slotmap
+        unsafe { self.object().set_x(x) };
+
+        self
+    }
+
+    /// Sets the y position of the object.
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_y(y) };
@@ -411,6 +445,7 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the position of the object.
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_position(position) };
@@ -418,6 +453,7 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the affine matrix. This only has an affect in Affine mode.
     pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_affine_matrix(affine_matrix) };
@@ -425,6 +461,7 @@ impl Object<'_> {
         self
     }
 
+    /// Sets the current sprite for the object.
     pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_sprite(sprite) };

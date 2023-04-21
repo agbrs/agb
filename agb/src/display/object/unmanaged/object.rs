@@ -21,11 +21,50 @@ struct OamFrameModifyables {
     previous_index: usize,
 }
 
+/// This handles the unmanaged oam system which gives more control to the OAM slots.
+/// This is utilised by calling the iter function and writing objects to those slots.
 pub struct OamUnmanaged<'gba> {
     phantom: PhantomData<&'gba ()>,
     frame_data: UnsafeCell<OamFrameModifyables>,
     previous_frame_sprites: Vec<SpriteVram>,
 }
+
+/// The iterator over the OAM slots. Dropping this will finalise the frame. To
+/// use, iterate over and write to each slot.
+///
+/// For example, it could look like this:
+///
+/// ```no_run
+/// # #![no_main]
+/// # #![no_std]
+/// use agb::display::object::{OamIterator, ObjectUnmanaged};
+///
+/// fn write_to_oam(oam_iterator: OamIterator, objects: &[ObjectUnmanaged]) {
+///     for (object, slot) in objects.iter().zip(oam_iterator) {
+///         slot.set(&object);
+///     }
+/// }
+/// ```
+///
+/// # Pitfalls
+/// You *must* use each OamSlot you obtain, this can be an issue if instead of
+/// the above you write
+///
+/// ```no_run
+/// # #![no_main]
+/// # #![no_std]
+/// use agb::display::object::{OamIterator, ObjectUnmanaged};
+///
+/// fn write_to_oam(oam_iterator: OamIterator, objects: &[ObjectUnmanaged]) {
+///     for (slot, object) in oam_iterator.iter().zip(objects.iter()) {
+///         slot.set(&object);
+///     }
+/// }
+/// ```
+///
+/// This will panic if called because when you run out of objects the zip will
+/// have already grabbed the next OamSlot before realising there are no more
+/// objects.
 
 pub struct OamIterator<'oam> {
     index: usize,
@@ -34,6 +73,8 @@ pub struct OamIterator<'oam> {
 
 /// A slot in Oam that you can write to. Note that you must call [OamSlot::set]
 /// or else it is a bug and will panic when dropped.
+///
+/// See [`OamIterator`] for potential pitfalls.
 pub struct OamSlot<'oam> {
     slot: usize,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
@@ -128,6 +169,7 @@ impl Drop for OamIterator<'_> {
 }
 
 impl OamUnmanaged<'_> {
+    /// Returns the OamSlot iterator for this frame.
     pub fn iter(&mut self) -> OamIterator<'_> {
         let frame_data = self.frame_data.get_mut();
         frame_data.frame = frame_data.frame.wrapping_add(1);
@@ -162,6 +204,8 @@ impl OamUnmanaged<'_> {
 }
 
 #[derive(Debug, Clone)]
+/// An object to be used by the [`OamUnmanaged`] system. Changes made here are
+/// reflected when set to an OamSlot using [`OamSlot::set`].
 pub struct ObjectUnmanaged {
     attributes: Attributes,
     sprite: SpriteVram,
@@ -170,6 +214,7 @@ pub struct ObjectUnmanaged {
 
 impl ObjectUnmanaged {
     #[must_use]
+    /// Creates an unmanaged object from a sprite in vram.
     pub fn new(sprite: SpriteVram) -> Self {
         let sprite_location = sprite.location();
         let palette_location = sprite.palette_location();
@@ -188,16 +233,20 @@ impl ObjectUnmanaged {
     }
 
     #[must_use]
+    /// Checks whether the object is not marked as hidden. Note that it could be
+    /// off screen or completely transparent and still claimed to be visible.
     pub fn is_visible(&self) -> bool {
         self.attributes.is_visible()
     }
 
+    /// Display the sprite in Normal mode.
     pub fn show(&mut self) -> &mut Self {
         self.attributes.show();
 
         self
     }
 
+    /// Display the sprite in Affine mode.
     pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
         assert!(
             self.affine_matrix.is_some(),
@@ -209,42 +258,51 @@ impl ObjectUnmanaged {
         self
     }
 
+    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_hflip(flip);
 
         self
     }
 
+    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_vflip(flip);
 
         self
     }
 
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attributes.set_x(x);
-
-        self
-    }
-
+    /// Sets the priority of the object relative to the backgrounds priority.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.attributes.set_priority(priority);
 
         self
     }
 
+    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
+    /// modes using [`show`][ObjectUnmanaged::show] and
+    /// [`show_affine`][ObjectUnmanaged::show_affine] respectively.
     pub fn hide(&mut self) -> &mut Self {
         self.attributes.hide();
 
         self
     }
 
+    /// Sets the x position of the object.
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.attributes.set_x(x);
+
+        self
+    }
+
+    /// Sets the y position of the object.
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         self.attributes.set_y(y);
 
         self
     }
 
+    /// Sets the position of the object.
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         self.set_y(position.y.rem_euclid(1 << 9) as u16);
         self.set_x(position.x.rem_euclid(1 << 9) as u16);
@@ -252,6 +310,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    /// Sets the affine matrix. This only has an affect in Affine mode.
     pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
         let vram = affine_matrix.vram();
         self.affine_matrix = Some(vram);
@@ -269,6 +328,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    /// Sets the current sprite for the object.
     pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
         self.set_sprite_attributes(&sprite);
 
