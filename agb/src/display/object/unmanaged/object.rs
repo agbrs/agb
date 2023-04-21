@@ -56,7 +56,7 @@ pub struct OamUnmanaged<'gba> {
 /// use agb::display::object::{OamIterator, ObjectUnmanaged};
 ///
 /// fn write_to_oam(oam_iterator: OamIterator, objects: &[ObjectUnmanaged]) {
-///     for (slot, object) in oam_iterator.iter().zip(objects.iter()) {
+///     for (slot, object) in oam_iterator.zip(objects.iter()) {
 ///         slot.set(&object);
 ///     }
 /// }
