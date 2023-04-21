@@ -22,8 +22,8 @@ You will also want to install an emulator. The best support in agb is with [mgba
 `println!` support via `agb::println!` but any emulator should work. You'll get the best experience if
 `mgba-qt` is in your `PATH`.
 
-If you want to run your game on real hardware, you will also need to install `gbafix` which you can do after installing
-rust with the following: `cargo install gbafix`. This is not required if you are only running your game in an emulator.
+If you want to run your game on real hardware, you will also need to install `agb-gbafix` which you can do after installing
+rust with the following: `cargo install agb-gbafix`. This is not required if you are only running your game in an emulator.
 
 ### Running in an emulator
 
@@ -68,6 +68,5 @@ running on the real thing.
 First build the binary in release mode using the instructions above, then do the following:
 
 ```sh
-arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/<your game> <your game>.gba
-gbafix <your game>.gba
+agb-gbafix target/thumbv4t-none-eabi/release/<your game> -o <your game>.gba
 ```

@@ -30,8 +30,6 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         run: bash .github/scripts/update-template-repo.sh
 
-      - name: Install gbafix
-        run: cargo install gbafix
       - name: Build the examples
         run: just build-roms
       - name: Upload examples to the release

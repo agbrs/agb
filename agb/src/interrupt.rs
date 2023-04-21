@@ -1,8 +1,4 @@
-use core::{
-    cell::Cell,
-    marker::{PhantomData, PhantomPinned},
-    pin::Pin,
-};
+use core::{cell::Cell, marker::PhantomPinned, pin::Pin};
 
 use alloc::boxed::Box;
 use bare_metal::CriticalSection;
@@ -206,9 +202,8 @@ impl Drop for InterruptInner {
     }
 }
 
-pub struct InterruptHandler<'a> {
+pub struct InterruptHandler {
     _inner: Pin<Box<InterruptInner>>,
-    _lifetime: PhantomData<&'a ()>,
 }
 
 impl InterruptRoot {
@@ -231,6 +226,14 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// Adds an interrupt handler as long as the returned value is alive. The
 /// closure takes a [`CriticalSection`] which can be used for mutexes.
 ///
+/// # Safety
+/// * You *must not* allocate in an interrupt.
+///     - Many functions in agb allocate and it isn't always clear.
+///
+/// # Staticness
+/// * The closure must be static because forgetting the interrupt handler would
+///   cause a use after free.
+///
 /// [`CriticalSection`]: bare_metal::CriticalSection
 ///
 /// # Examples
@@ -238,23 +241,22 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// use bare_metal::CriticalSection;
-///
 /// # fn foo() {
-/// # use agb::interrupt::{add_interrupt_handler, Interrupt};
-/// let _a = add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
-///     agb::println!("Woah there! There's been a vblank!");
-/// });
+/// use bare_metal::CriticalSection;
+/// use agb::interrupt::{add_interrupt_handler, Interrupt};
+/// // Safety: doesn't allocate
+/// let _a = unsafe {
+///     add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
+///         agb::println!("Woah there! There's been a vblank!");
+///     })
+/// };
 /// # }
 /// ```
-pub fn add_interrupt_handler<'a>(
+pub unsafe fn add_interrupt_handler(
     interrupt: Interrupt,
-    handler: impl Fn(CriticalSection) + Send + Sync + 'a,
-) -> InterruptHandler<'a> {
-    fn do_with_inner<'a>(
-        interrupt: Interrupt,
-        inner: Pin<Box<InterruptInner>>,
-    ) -> InterruptHandler<'a> {
+    handler: impl Fn(CriticalSection) + Send + Sync + 'static,
+) -> InterruptHandler {
+    fn do_with_inner(interrupt: Interrupt, inner: Pin<Box<InterruptInner>>) -> InterruptHandler {
         free(|_| {
             let root = interrupt_to_root(interrupt);
             root.add();
@@ -274,10 +276,7 @@ pub fn add_interrupt_handler<'a>(
             }
         });
 
-        InterruptHandler {
-            _inner: inner,
-            _lifetime: PhantomData,
-        }
+        InterruptHandler { _inner: inner }
     }
     let root = interrupt_to_root(interrupt) as *const _;
     let inner = unsafe { create_interrupt_inner(handler, root) };
@@ -322,9 +321,12 @@ impl VBlank {
     #[must_use]
     pub fn get() -> Self {
         if !HAS_CREATED_INTERRUPT.read() {
-            let handler = add_interrupt_handler(Interrupt::VBlank, |_| {
-                NUM_VBLANKS.write(NUM_VBLANKS.read() + 1);
-            });
+            // safety: we don't allocate in the interrupt
+            let handler = unsafe {
+                add_interrupt_handler(Interrupt::VBlank, |_| {
+                    NUM_VBLANKS.write(NUM_VBLANKS.read() + 1);
+                })
+            };
             core::mem::forget(handler);
 
             HAS_CREATED_INTERRUPT.write(true);
@@ -351,36 +353,6 @@ impl VBlank {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bare_metal::Mutex;
-    use core::cell::RefCell;
-
-    #[test_case]
-    fn test_can_create_and_destroy_interrupt_handlers(_gba: &mut crate::Gba) {
-        let mut counter = Mutex::new(RefCell::new(0));
-        let counter_2 = Mutex::new(RefCell::new(0));
-
-        let vblank = VBlank::get();
-
-        {
-            let _a = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
-                *counter.borrow(key).borrow_mut() += 1;
-            });
-            let _b = add_interrupt_handler(Interrupt::VBlank, |key: CriticalSection| {
-                *counter_2.borrow(key).borrow_mut() += 1;
-            });
-
-            while free(|key| {
-                *counter.borrow(key).borrow() < 100 || *counter_2.borrow(key).borrow() < 100
-            }) {
-                vblank.wait_for_vblank();
-            }
-        }
-
-        vblank.wait_for_vblank();
-        vblank.wait_for_vblank();
-
-        assert_eq!(*counter.get_mut().get_mut(), 100);
-    }
 
     #[test_case]
     fn test_interrupt_table_length(_gba: &mut crate::Gba) {
@@ -406,7 +378,9 @@ pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandle
     timer.set_overflow_amount(period);
     timer.set_enabled(true);
 
-    add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
-        crate::println!("{:#010x}", crate::program_counter_before_interrupt());
-    })
+    unsafe {
+        add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
+            crate::println!("{:#010x}", crate::program_counter_before_interrupt());
+        })
+    }
 }

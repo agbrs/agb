@@ -11,7 +11,6 @@ impl<T> Singleton<T> {
         Singleton { single: None }
     }
     pub fn take(&mut self) -> T {
-        let g = core::mem::replace(&mut self.single, None);
-        g.unwrap()
+        self.single.take().unwrap()
     }
 }

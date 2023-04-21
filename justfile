@@ -81,7 +81,7 @@ update-linker-scripts:
     find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
     find -type f -name gba_mb.ld | grep -v ./agb/gba_mb.ld | xargs -n1 cp -v -- agb/gba_mb.ld
 
-publish: (_run-tool "publish")
+publish *args: (_run-tool "publish" args)
 
 release +args: (_run-tool "release" args)
 
@@ -105,10 +105,12 @@ _build-rom folder name:
 
     mkdir -p examples/target/examples
 
-    arm-none-eabi-objcopy -O binary "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" "$GBA_FILE"
-    gbafix -p "-t${INTERNAL_NAME:0:12}" "-c${INTERNAL_NAME:0:4}" -mGC "$GBA_FILE"
+    just gbafix --title "${INTERNAL_NAME:0:12}" --gamecode "${INTERNAL_NAME:0:4}" --makercode GC "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" -o "$GBA_FILE"
 
     cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
+
+gbafix *args:
+    (cd agb-gbafix && cargo run --release -- {{args}})
 
 _all-crates target:
     for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml; do \

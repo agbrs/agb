@@ -1,5 +1,5 @@
 use crate::palette16::Palette16OptimisationResults;
-use crate::{add_image_256_to_tile_data, add_image_to_tile_data, collapse_to_4bpp, TileSize};
+use crate::{add_image_256_to_tile_data, add_image_to_tile_data, collapse_to_4bpp};
 use crate::{image_loader::Image, ByteString};
 
 use proc_macro2::TokenStream;
@@ -38,7 +38,6 @@ pub(crate) fn generate_code(
     results: &Palette16OptimisationResults,
     image: &Image,
     image_filename: &str,
-    tile_size: TileSize,
     crate_prefix: String,
     assignment_offset: Option<usize>,
 ) -> TokenStream {
@@ -48,11 +47,11 @@ pub(crate) fn generate_code(
     let (tile_data, assignments) = if let Some(assignment_offset) = assignment_offset {
         let mut tile_data = Vec::new();
 
-        add_image_to_tile_data(&mut tile_data, image, tile_size, results, assignment_offset);
+        add_image_to_tile_data(&mut tile_data, image, results, assignment_offset);
 
         let tile_data = collapse_to_4bpp(&tile_data);
 
-        let num_tiles = image.width * image.height / tile_size.to_size().pow(2);
+        let num_tiles = image.width * image.height / 8usize.pow(2);
 
         let assignments = results
             .assignments
@@ -66,7 +65,7 @@ pub(crate) fn generate_code(
     } else {
         let mut tile_data = Vec::new();
 
-        add_image_256_to_tile_data(&mut tile_data, image, tile_size, results);
+        add_image_256_to_tile_data(&mut tile_data, image, results);
 
         (tile_data, vec![])
     };

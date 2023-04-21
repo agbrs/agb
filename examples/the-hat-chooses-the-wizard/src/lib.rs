@@ -101,7 +101,7 @@ mod map_tiles {
     }
 }
 
-agb::include_gfx!("gfx/tile_sheet.toml");
+agb::include_background_gfx!(tile_sheet, "2ce8f4", background => "gfx/tile_sheet.png");
 
 const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
 const TAG_MAP: &TagMap = GRAPHICS.tags();

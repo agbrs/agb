@@ -33,8 +33,6 @@ jobs:
       run: cargo install --path mgba-test-runner --verbose
     - name: Set CARGO_TARGET_DIR
       run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
-    - name: Install gbafix
-      run: cargo install gbafix
     - uses: extractions/setup-just@v1
     - name: Setup mdBook
       uses: peaceiris/actions-mdbook@v1

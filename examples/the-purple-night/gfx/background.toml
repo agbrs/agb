@@ -1,7 +1,0 @@
-version = "1.0"
-
-transparent_colour = "53269a"
-
-[image.background]
-filename = "background.png"
-tile_size = "8x8"

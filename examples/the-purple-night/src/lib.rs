@@ -21,7 +21,7 @@ use agb::{
         },
         Priority, HEIGHT, WIDTH,
     },
-    fixnum::{FixedNum, Rect, Vector2D},
+    fixnum::{num, FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
     interrupt::VBlank,
     rng,
@@ -57,7 +57,7 @@ const SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
 const SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
 const SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
-agb::include_gfx!("gfx/background.toml");
+agb::include_background_gfx!(background, "53269a", background => "gfx/background.aseprite");
 
 type Number = FixedNum<8>;
 
@@ -159,12 +159,12 @@ struct Entity<'a> {
     sprite: Object<'a>,
     position: Vector2D<Number>,
     velocity: Vector2D<Number>,
-    collision_mask: Rect<u16>,
+    collision_mask: Rect<Number>,
     visible: bool,
 }
 
 impl<'a> Entity<'a> {
-    fn new(object_controller: &'a OamManaged, collision_mask: Rect<u16>) -> Self {
+    fn new(object_controller: &'a OamManaged, collision_mask: Rect<Number>) -> Self {
         let mut sprite = object_controller.object_sprite(LONG_SWORD_IDLE.sprite(0));
         sprite.set_priority(Priority::P1);
         Entity {
@@ -212,18 +212,7 @@ impl<'a> Entity<'a> {
     }
 
     fn collider(&self) -> Rect<Number> {
-        let mut number_collision: Rect<Number> = Rect::new(
-            (
-                self.collision_mask.position.x as i32,
-                self.collision_mask.position.y as i32,
-            )
-                .into(),
-            (
-                self.collision_mask.size.x as i32,
-                self.collision_mask.size.y as i32,
-            )
-                .into(),
-        );
+        let mut number_collision = self.collision_mask;
         number_collision.position =
             self.position + number_collision.position - number_collision.size / 2;
         number_collision
@@ -272,11 +261,12 @@ impl<'a> Entity<'a> {
         (final_distance, has_collided)
     }
 
-    fn commit_with_fudge(&mut self, offset: Vector2D<Number>, fudge: Vector2D<i32>) {
+    fn commit_with_fudge(&mut self, offset: Vector2D<Number>, fudge: Vector2D<Number>) {
         if !self.visible {
             self.sprite.hide();
         } else {
-            let position = (self.position - offset).floor() + fudge;
+            let position =
+                (self.position - offset + fudge + Vector2D::new(num!(0.5), num!(0.5))).floor();
             self.sprite.set_position(position - (8, 8).into());
             if position.x < -8
                 || position.x > WIDTH + 8
@@ -526,17 +516,14 @@ struct Player<'a> {
     attack_timer: AttackTimer,
     damage_cooldown: u16,
     sword: SwordState,
-    fudge_factor: Vector2D<i32>,
+    fudge_factor: Vector2D<Number>,
     hurtbox: Option<Rect<Number>>,
     controllable: bool,
 }
 
 impl<'a> Player<'a> {
     fn new(object_controller: &'a OamManaged<'_>) -> Player<'a> {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (4_u16, 12_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 1).into(), (5, 10).into()));
         let s = object_controller.get_sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
@@ -612,7 +599,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Attack(a) => {
                         *a -= 1;
                         let frame = self.sword.attack_frame(*a);
-                        self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
                         let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
@@ -626,7 +613,7 @@ impl<'a> Player<'a> {
                     AttackTimer::Cooldown(a) => {
                         *a -= 1;
                         let frame = self.sword.hold_frame();
-                        self.fudge_factor.x = self.sword.fudge(frame) * self.facing as i32;
+                        self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
                         let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
@@ -693,6 +680,8 @@ impl<'a> Player<'a> {
         let gravity: Number = 1.into();
         let gravity = gravity / 16;
         self.entity.velocity.y += gravity;
+
+        self.fudge_factor.x -= num!(1.5) * (self.facing as i32);
 
         let fudge_number = (self.fudge_factor.x, self.fudge_factor.y).into();
 
@@ -1350,12 +1339,12 @@ enum UpdateInstruction {
 }
 
 impl EnemyData {
-    fn collision_mask(&self) -> Rect<u16> {
+    fn collision_mask(&self) -> Rect<Number> {
         match self {
-            EnemyData::Slime(_) => Rect::new((0u16, 0u16).into(), (4u16, 11u16).into()),
-            EnemyData::Bat(_) => Rect::new((0u16, 0u16).into(), (12u16, 4u16).into()),
-            EnemyData::MiniFlame(_) => Rect::new((0u16, 0u16).into(), (12u16, 12u16).into()),
-            EnemyData::Emu(_) => Rect::new((0u16, 0u16).into(), (7u16, 11u16).into()),
+            EnemyData::Slime(_) => Rect::new((0.into(), num!(1.5)).into(), (4, 11).into()),
+            EnemyData::Bat(_) => Rect::new((0, 0).into(), (12, 4).into()),
+            EnemyData::MiniFlame(_) => Rect::new((0, 0).into(), (12, 12).into()),
+            EnemyData::Emu(_) => Rect::new((0, 0).into(), (7, 11).into()),
         }
     }
 
@@ -1532,10 +1521,7 @@ impl<'a> Particle<'a> {
         particle_data: ParticleData,
         position: Vector2D<Number>,
     ) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0u16, 0u16).into(), (0u16, 0u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (0, 0).into()));
 
         entity.position = position;
 
@@ -1610,10 +1596,7 @@ struct FollowingBoss<'a> {
 
 impl<'a> FollowingBoss<'a> {
     fn new(object_controller: &'a OamManaged, position: Vector2D<Number>) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (0_u16, 0_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (0, 0).into()));
         entity.position = position;
 
         Self {
@@ -1694,10 +1677,7 @@ enum BossInstruction {
 
 impl<'a> Boss<'a> {
     fn new(object_controller: &'a OamManaged, screen_coords: Vector2D<Number>) -> Self {
-        let mut entity = Entity::new(
-            object_controller,
-            Rect::new((0_u16, 0_u16).into(), (28_u16, 28_u16).into()),
-        );
+        let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (28, 28).into()));
         entity.position = screen_coords + (144, 136).into();
         Self {
             entity,
@@ -1985,6 +1965,8 @@ impl<'a> Game<'a> {
             self.shake_time -= 1;
         }
 
+        let this_frame_offset = this_frame_offset.floor().into();
+
         self.input.update();
         if let UpdateInstruction::CreateParticle(data, position) =
             self.player
@@ -1995,7 +1977,7 @@ impl<'a> Game<'a> {
             self.particles.insert(new_particle);
         }
 
-        let mut remove = Vec::with_capacity(10);
+        let mut remove = Vec::new();
         for (idx, enemy) in self.enemies.iter_mut() {
             if enemy.entity.position.x < self.offset.x - 8 {
                 remove.push(idx);
@@ -2084,10 +2066,6 @@ impl<'a> Game<'a> {
                 .entity
                 .commit_with_fudge(this_frame_offset, (0, 0).into());
         }
-
-        self.level.background.commit(vram);
-        self.level.foreground.commit(vram);
-        self.level.clouds.commit(vram);
 
         for i in remove {
             self.particles.remove(i);
@@ -2214,15 +2192,12 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let mut start_at_boss = false;
 
+    let (background, mut vram) = gba.display.video.tiled0();
+    vram.set_background_palettes(background::PALETTES);
+    let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
+    let object = gba.display.object.get_managed();
+
     loop {
-        let (background, mut vram) = gba.display.video.tiled0();
-
-        vram.set_background_palettes(background::PALETTES);
-
-        let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
-
-        let object = gba.display.object.get_managed();
-
         let backdrop = InfiniteScrolledMap::new(
             background.background(
                 Priority::P2,
@@ -2292,6 +2267,9 @@ fn game_with_level(gba: &mut agb::Gba) {
         start_at_boss = loop {
             sfx.frame();
             vblank.wait_for_vblank();
+            game.level.background.commit(&mut vram);
+            game.level.foreground.commit(&mut vram);
+            game.level.clouds.commit(&mut vram);
             object.commit();
             match game.advance_frame(&object, &mut vram, &mut sfx) {
                 GameStatus::Continue => {}

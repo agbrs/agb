@@ -1,8 +1,0 @@
-version = "1.0"
-
-# Only needed for within the agb crate
-crate_prefix = "crate"
-
-[image.test_logo]
-filename = "test_logo.png"
-tile_size = "8x8"

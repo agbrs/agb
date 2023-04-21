@@ -1,7 +1,10 @@
 use super::sfx::SfxPlayer;
 use agb::display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager};
 
-agb::include_gfx!("gfx/splash_screens.toml");
+agb::include_background_gfx!(splash_screens,
+    splash => "gfx/splash.png",
+    thanks_for_playing => "gfx/thanks_for_playing.png",
+);
 
 pub enum SplashScreen {
     Start,
