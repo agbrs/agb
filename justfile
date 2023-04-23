@@ -14,6 +14,7 @@ clippy:
 test:
     just _test-debug agb
     just _test-debug agb-fixnum
+    just _test-debug agb-hashmap
     just _test-debug-arm agb
     just _test-debug tools
 
@@ -27,6 +28,7 @@ doctest-agb:
 check-docs:
     (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
     just _build_docs agb-fixnum
+    just _build_docs agb-hashmap
 
 _build_docs crate:
     (cd "{{crate}}" && cargo doc --no-deps)
@@ -59,7 +61,7 @@ check-linker-script-consistency:
     find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
     find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
 
-ci: check-linker-script-consistency build-debug clippy fmt-check test build-release test-release doctest-agb build-roms build-book check-docs
+ci: check-linker-script-consistency build-debug clippy fmt-check test miri build-release test-release doctest-agb build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -84,6 +86,9 @@ update-linker-scripts:
 publish *args: (_run-tool "publish" args)
 
 release +args: (_run-tool "release" args)
+
+miri:
+    (cd agb-hashmap && cargo miri test)
 
 _run-tool +tool:
     (cd tools && cargo build)

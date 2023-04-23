@@ -66,6 +66,8 @@ to just write games for the Game Boy Advance using this library:
     * Install with `cargo install just`
 * [mdbook](https://rust-lang.github.io/mdBook/index.html)
     * Install with `cargo install mdbook`
+* [miri](https://github.com/rust-lang/miri)
+  * Some of the unsafe code is tested using miri, install with `rustup component add miri`
 
 With all of this installed, you should be able to run a full build of agb using by running
 ```sh
@@ -84,6 +86,8 @@ for performant decimals.
 `agb-macros` - miscellaneous proc-macros which have to be in a different crate
 
 `agb-sound-converter` - a crate which converts wav files into a format supported by the game boy advance
+
+`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
 
 `agb` - the main library code
 

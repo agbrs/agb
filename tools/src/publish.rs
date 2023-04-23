@@ -170,7 +170,8 @@ mod test {
                 "agb-image-converter",
                 "agb-sound-converter",
                 "agb-macros",
-                "agb-fixnum"
+                "agb-fixnum",
+                "agb-hashmap",
             ]
         );
         Ok(())
