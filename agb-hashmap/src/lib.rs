@@ -376,7 +376,25 @@ where
 
     /// Returns a mutable reference to the value corresponding to the key. Return [`None`] if
     /// there is no element in the map with the given key.
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+    ///
+    /// # Example
+    /// ```
+    /// use agb_hashmap::HashMap;
+    ///
+    /// let mut map = HashMap::new();
+    /// map.insert("a".to_string(), "A");
+    ///
+    /// if let Some(x) = map.get_mut("a") {
+    ///     *x = "b";
+    /// }
+    ///
+    /// assert_eq!(map["a"], "b");
+    /// ```
+    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let hash = self.hash(key);
 
         if let Some(location) = self.nodes.location(key, hash) {
@@ -732,25 +750,15 @@ where
     }
 }
 
-impl<K, V, ALLOCATOR: ClonableAllocator> Index<&K> for HashMap<K, V, ALLOCATOR>
+impl<K, V, Q, ALLOCATOR: ClonableAllocator> Index<&Q> for HashMap<K, V, ALLOCATOR>
 where
-    K: Eq + Hash,
+    K: Eq + Hash + Borrow<Q>,
+    Q: Eq + Hash + ?Sized,
 {
     type Output = V;
 
-    fn index(&self, key: &K) -> &V {
+    fn index(&self, key: &Q) -> &V {
         self.get(key).expect("no entry found for key")
-    }
-}
-
-impl<K, V, ALLOCATOR: ClonableAllocator> Index<K> for HashMap<K, V, ALLOCATOR>
-where
-    K: Eq + Hash,
-{
-    type Output = V;
-
-    fn index(&self, key: K) -> &V {
-        self.get(&key).expect("no entry found for key")
     }
 }
 
