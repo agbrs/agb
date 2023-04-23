@@ -21,6 +21,7 @@ jobs:
     - name: Install Miri
       run: |
           rustup toolchain install nightly --component miri
+          rustup override set nightly
           cargo miri setup
     - uses: actions/checkout@v3
     - name: Cache
