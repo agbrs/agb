@@ -161,7 +161,7 @@ impl<'a> Slime<'a> {
                 let offset = (timer / 16) as usize;
 
                 let frame = SLIME_IDLE.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
 
@@ -201,7 +201,7 @@ impl<'a> Slime<'a> {
                     self.state = SlimeState::Idle;
                 } else {
                     let frame = SLIME_JUMP.animation_sprite(offset);
-                    let sprite = controller.get_sprite(frame);
+                    let sprite = controller.sprite(frame);
 
                     self.enemy_info.entity.sprite.set_sprite(sprite);
                 }
@@ -227,7 +227,7 @@ impl<'a> Slime<'a> {
                 }
 
                 let frame = SLIME_SPLAT.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
             }
@@ -298,7 +298,7 @@ impl<'a> Snail<'a> {
                 }
 
                 let frame = SNAIL_IDLE.animation_sprite(0);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
                 if player_has_collided {
@@ -318,7 +318,7 @@ impl<'a> Snail<'a> {
                 self.enemy_info.entity.velocity = (0, 0).into();
 
                 let frame = SNAIL_EMERGE.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
 
@@ -340,7 +340,7 @@ impl<'a> Snail<'a> {
                 let offset = (timer - time) as usize / 8;
 
                 let frame = SNAIL_MOVE.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
 
@@ -374,7 +374,7 @@ impl<'a> Snail<'a> {
                 }
 
                 let frame = SNAIL_EMERGE.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
                 self.enemy_info.entity.velocity = (0, 0).into();
@@ -403,7 +403,7 @@ impl<'a> Snail<'a> {
                     return UpdateState::Remove;
                 };
 
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.enemy_info.entity.sprite.set_sprite(sprite);
                 self.enemy_info.entity.velocity = (0, 0).into();

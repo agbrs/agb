@@ -195,7 +195,7 @@ impl<'a> BattleScreenDisplay<'a> {
             if i < current_battle_state.player.shield_count as usize {
                 player_shield
                     .show()
-                    .set_sprite(obj.get_sprite(SHIELD.sprite(0)));
+                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
             } else {
                 player_shield.hide();
             }
@@ -205,7 +205,7 @@ impl<'a> BattleScreenDisplay<'a> {
             if i < current_battle_state.enemy.shield_count as usize {
                 player_shield
                     .show()
-                    .set_sprite(obj.get_sprite(SHIELD.sprite(0)));
+                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
             } else {
                 player_shield.hide();
             }
@@ -249,7 +249,7 @@ impl<'a> BattleScreenDisplay<'a> {
             .zip(current_battle_state.rolled_dice.faces_to_render())
             .zip(self.objs.dice_cooldowns.iter_mut())
         {
-            die_obj.set_sprite(obj.get_sprite(FACE_SPRITES.sprite_for_face(current_face)));
+            die_obj.set_sprite(obj.sprite(FACE_SPRITES.sprite_for_face(current_face)));
 
             if let Some(cooldown) = cooldown {
                 cooldown_healthbar
@@ -311,7 +311,7 @@ impl<'a> EnemyAttackDisplay<'a> {
     pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a OamManaged) {
         if let Some(attack) = attack {
             self.face.show().set_sprite(
-                obj.get_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
+                obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
             );
             self.cooldown
                 .set_value((attack.cooldown * 48 / attack.max_cooldown) as usize, obj);
@@ -413,7 +413,7 @@ impl<'a> AnimationStateHolder<'a> {
                     for i in current_player_shields..*amount {
                         objs.player_shield[i as usize]
                             .show()
-                            .set_sprite(obj.get_sprite(SHIELD.sprite(3 - *frame / 2)));
+                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -444,7 +444,7 @@ impl<'a> AnimationStateHolder<'a> {
                     for i in current_enemy_shields..*amount {
                         objs.enemy_shield[i as usize]
                             .show()
-                            .set_sprite(obj.get_sprite(SHIELD.sprite(3 - *frame / 2)));
+                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -467,7 +467,7 @@ impl<'a> AnimationStateHolder<'a> {
             AnimationState::PlayerBurstShield { frame } => {
                 if *frame < 10 {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.get_sprite(SHIELD.sprite(*frame / 2)));
+                        shield.set_sprite(obj.sprite(SHIELD.sprite(*frame / 2)));
                     }
 
                     *frame += 1;
@@ -475,7 +475,7 @@ impl<'a> AnimationStateHolder<'a> {
                     AnimationUpdateState::Continue
                 } else {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.get_sprite(SHIELD.sprite(0)));
+                        shield.set_sprite(obj.sprite(SHIELD.sprite(0)));
                     }
 
                     AnimationUpdateState::RemoveWithAction(self.action.clone())

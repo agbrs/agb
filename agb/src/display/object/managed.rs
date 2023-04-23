@@ -190,7 +190,7 @@ impl OamManaged<'_> {
     }
 
     /// Creates a sprite in vram from a static sprite from [`include_aseprite`][crate::include_aseprite].
-    pub fn get_sprite(&self, sprite: &'static Sprite) -> SpriteVram {
+    pub fn sprite(&self, sprite: &'static Sprite) -> SpriteVram {
         // safety: not reentrant
         unsafe {
             self.do_work_with_sprite_loader(|sprite_loader| sprite_loader.get_vram_sprite(sprite))
@@ -199,7 +199,7 @@ impl OamManaged<'_> {
 
     /// Creates a sprite in vram and uses it to make an object from a static sprite from [`include_aseprite`][crate::include_aseprite].
     pub fn object_sprite(&self, sprite: &'static Sprite) -> Object<'_> {
-        self.object(self.get_sprite(sprite))
+        self.object(self.sprite(sprite))
     }
 }
 
@@ -486,7 +486,7 @@ mod tests {
     fn test_always_ordered(gba: &mut crate::Gba) {
         let managed = gba.display.object.get_managed();
 
-        let sprite = managed.get_sprite(TEST_SPRITE);
+        let sprite = managed.sprite(TEST_SPRITE);
 
         let mut objects = Vec::new();
         for _ in 0..200 {

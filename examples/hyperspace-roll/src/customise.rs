@@ -338,10 +338,7 @@ pub(crate) fn customise_screen(
             break;
         }
 
-        select_box.set_sprite(
-            agb.obj
-                .get_sprite(SELECT_BOX.animation_sprite(counter / 10)),
-        );
+        select_box.set_sprite(agb.obj.sprite(SELECT_BOX.animation_sprite(counter / 10)));
 
         agb.star_background.update();
         let _ = agb::rng::gen();

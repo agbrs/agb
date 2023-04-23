@@ -353,9 +353,9 @@ impl<'a> Player<'a> {
 
         wizard
             .sprite
-            .set_sprite(controller.get_sprite(HAT_SPIN_1.sprite(0)));
+            .set_sprite(controller.sprite(HAT_SPIN_1.sprite(0)));
         hat.sprite
-            .set_sprite(controller.get_sprite(HAT_SPIN_1.sprite(0)));
+            .set_sprite(controller.sprite(HAT_SPIN_1.sprite(0)));
 
         wizard.sprite.show();
         hat.sprite.show();
@@ -460,7 +460,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = offset as u8;
 
                 let frame = WALKING.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -470,7 +470,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 5;
 
                 let frame = JUMPING.animation_sprite(0);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
@@ -485,7 +485,7 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 0;
 
                 let frame = FALLING.animation_sprite(offset);
-                let sprite = controller.get_sprite(frame);
+                let sprite = controller.sprite(frame);
 
                 self.wizard.sprite.set_sprite(sprite);
             }
@@ -512,13 +512,13 @@ impl<'a> Player<'a> {
                 self.wizard.sprite.set_hflip(true);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_sprite(hat_base_tile.sprite(5)));
+                    .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
             }
             agb::input::Tri::Positive => {
                 self.wizard.sprite.set_hflip(false);
                 self.hat
                     .sprite
-                    .set_sprite(controller.get_sprite(hat_base_tile.sprite(0)));
+                    .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
             }
             _ => {}
         }
@@ -544,7 +544,7 @@ impl<'a> Player<'a> {
                 let hat_sprite_offset = (timer / hat_sprite_divider) as usize;
 
                 self.hat.sprite.set_sprite(
-                    controller.get_sprite(hat_base_tile.animation_sprite(hat_sprite_offset)),
+                    controller.sprite(hat_base_tile.animation_sprite(hat_sprite_offset)),
                 );
 
                 if self.hat_slow_counter < 30 && self.hat.velocity.magnitude() < 2.into() {
@@ -577,7 +577,7 @@ impl<'a> Player<'a> {
             }
             HatState::WizardTowards => {
                 self.hat.sprite.set_sprite(
-                    controller.get_sprite(hat_base_tile.animation_sprite(timer as usize / 2)),
+                    controller.sprite(hat_base_tile.animation_sprite(timer as usize / 2)),
                 );
                 let distance_vector =
                     self.hat.position - self.wizard.position + hat_resting_position;
@@ -680,7 +680,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
-        let sprite = controller.get_sprite(frame);
+        let sprite = controller.sprite(frame);
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;

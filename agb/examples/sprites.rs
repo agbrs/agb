@@ -68,7 +68,7 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
             image %= SPRITES.len();
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i) % SPRITES.len();
-                obj.set_sprite(gfx.get_sprite(&SPRITES[this_image]));
+                obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
             }
         }
         gfx.commit();
@@ -110,7 +110,7 @@ fn all_tags(gfx: &OamManaged) {
         if count % 5 == 0 {
             image += 1;
             for (obj, tag) in objs.iter_mut() {
-                obj.set_sprite(gfx.get_sprite(tag.animation_sprite(image)));
+                obj.set_sprite(gfx.sprite(tag.animation_sprite(image)));
             }
             gfx.commit();
         }

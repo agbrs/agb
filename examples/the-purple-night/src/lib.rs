@@ -524,7 +524,7 @@ struct Player<'a> {
 impl<'a> Player<'a> {
     fn new(object_controller: &'a OamManaged<'_>) -> Player<'a> {
         let mut entity = Entity::new(object_controller, Rect::new((0, 1).into(), (5, 10).into()));
-        let s = object_controller.get_sprite(LONG_SWORD_IDLE.sprite(0));
+        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
         entity.sprite.show();
         entity.position = (144, 0).into();
@@ -576,12 +576,12 @@ impl<'a> Player<'a> {
                         self.entity.sprite.set_hflip(self.facing == Tri::Negative);
                         self.entity.velocity.x += self.sword.ground_walk_force() * x as i32;
                         if self.entity.velocity.x.abs() > Number::new(1) / 10 {
-                            let sprite = controller
-                                .get_sprite(self.sword.walk_animation(self.sprite_offset));
+                            let sprite =
+                                controller.sprite(self.sword.walk_animation(self.sprite_offset));
                             self.entity.sprite.set_sprite(sprite);
                         } else {
-                            let sprite = controller
-                                .get_sprite(self.sword.idle_animation(self.sprite_offset));
+                            let sprite =
+                                controller.sprite(self.sword.idle_animation(self.sprite_offset));
                             self.entity.sprite.set_sprite(sprite);
                         }
 
@@ -601,7 +601,7 @@ impl<'a> Player<'a> {
                         let frame = self.sword.attack_frame(*a);
                         self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
-                        let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
+                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.ground_attack_hurtbox(frame);
@@ -615,7 +615,7 @@ impl<'a> Player<'a> {
                         let frame = self.sword.hold_frame();
                         self.fudge_factor.x = (self.sword.fudge(frame) * self.facing as i32).into();
                         let tag = self.sword.attack_tag();
-                        let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
+                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
                         if *a == 0 {
                             self.attack_timer = AttackTimer::Idle;
@@ -640,7 +640,7 @@ impl<'a> Player<'a> {
                             2
                         };
                         let tag = self.sword.jump_tag();
-                        let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
+                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         if x != Tri::Zero {
@@ -662,7 +662,7 @@ impl<'a> Player<'a> {
                         *a -= 1;
                         let frame = self.sword.jump_attack_frame(*a);
                         let tag = self.sword.jump_attack_tag();
-                        let sprite = controller.get_sprite(tag.animation_sprite(frame as usize));
+                        let sprite = controller.sprite(tag.animation_sprite(frame as usize));
                         self.entity.sprite.set_sprite(sprite);
 
                         hurtbox = self.sword.air_attack_hurtbox(frame);
@@ -827,7 +827,7 @@ impl BatData {
                 }
 
                 let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 8);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -862,7 +862,7 @@ impl BatData {
                 }
 
                 let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -889,7 +889,7 @@ impl BatData {
             BatState::Dead => {
                 const BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
                 let sprite = BAT_DEAD.sprite(0);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -957,7 +957,7 @@ impl SlimeData {
                 const IDLE: &Tag = TAG_MAP.get("slime idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -997,7 +997,7 @@ impl SlimeData {
                     const CHASE: &Tag = TAG_MAP.get("Slime jump");
 
                     let sprite = CHASE.sprite(frame as usize);
-                    let sprite = controller.get_sprite(sprite);
+                    let sprite = controller.sprite(sprite);
 
                     entity.sprite.set_sprite(sprite);
 
@@ -1027,7 +1027,7 @@ impl SlimeData {
                 if *count < 5 * 4 {
                     const DEATH: &Tag = TAG_MAP.get("Slime death");
                     let sprite = DEATH.sprite(*count as usize / 4);
-                    let sprite = controller.get_sprite(sprite);
+                    let sprite = controller.sprite(sprite);
 
                     entity.sprite.set_sprite(sprite);
                     *count += 1;
@@ -1095,7 +1095,7 @@ impl MiniFlameData {
                     }
                 } else {
                     let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 8);
-                    let sprite = controller.get_sprite(sprite);
+                    let sprite = controller.sprite(sprite);
                     entity.sprite.set_sprite(sprite);
 
                     entity.velocity = (0.into(), Number::new(-1) / Number::new(4)).into();
@@ -1143,7 +1143,7 @@ impl MiniFlameData {
                 }
 
                 let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
                 entity.sprite.set_sprite(sprite);
             }
             MiniFlameState::Dead => {
@@ -1155,7 +1155,7 @@ impl MiniFlameData {
                 const DEATH: &Tag = TAG_MAP.get("angry boss dead");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 12);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1216,7 +1216,7 @@ impl EmuData {
                 const IDLE: &Tag = TAG_MAP.get("emu - idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 if (entity.position.y - player.entity.position.y).abs() < 10.into() {
@@ -1263,7 +1263,7 @@ impl EmuData {
                 const WALK: &Tag = TAG_MAP.get("emu-walk");
 
                 let sprite = WALK.sprite(self.sprite_offset as usize / 2);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 let gravity: Number = 1.into();
@@ -1318,7 +1318,7 @@ impl EmuData {
                 const DEATH: &Tag = TAG_MAP.get("emu - die");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 4);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1388,7 +1388,7 @@ impl<'a> Enemy<'a> {
         let mut entity = Entity::new(object_controller, enemy_data.collision_mask());
 
         let sprite = enemy_data.sprite();
-        let sprite = object_controller.get_sprite(sprite);
+        let sprite = object_controller.sprite(sprite);
 
         entity.sprite.set_sprite(sprite);
         entity.sprite.show();
@@ -1442,7 +1442,7 @@ impl ParticleData {
 
                 const DUST: &Tag = TAG_MAP.get("dust");
                 let sprite = DUST.sprite(*frame as usize / 3);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1456,7 +1456,7 @@ impl ParticleData {
 
                 const HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1482,7 +1482,7 @@ impl ParticleData {
             ParticleData::BossHealer(frame, target) => {
                 const HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
-                let sprite = controller.get_sprite(sprite);
+                let sprite = controller.sprite(sprite);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1640,7 +1640,7 @@ impl<'a> FollowingBoss<'a> {
         const BOSS: &Tag = TAG_MAP.get("happy boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
-        let sprite = controller.get_sprite(sprite);
+        let sprite = controller.sprite(sprite);
 
         self.entity.sprite.set_sprite(sprite);
 
@@ -1773,7 +1773,7 @@ impl<'a> Boss<'a> {
         const BOSS: &Tag = TAG_MAP.get("Boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
-        let sprite = object_controller.get_sprite(sprite);
+        let sprite = object_controller.sprite(sprite);
 
         self.entity.sprite.set_sprite(sprite);
 

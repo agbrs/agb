@@ -585,10 +585,7 @@ pub(crate) fn battle_screen(
         select_box_obj
             .set_y(120 - 4)
             .set_x(selected_die as u16 * 40 + 28 - 4)
-            .set_sprite(
-                agb.obj
-                    .get_sprite(SELECT_BOX.animation_sprite(counter / 10)),
-            );
+            .set_sprite(agb.obj.sprite(SELECT_BOX.animation_sprite(counter / 10)));
 
         agb.star_background.update();
         agb.sfx.frame();

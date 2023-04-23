@@ -162,11 +162,11 @@ impl<'a> HealthBar<'a> {
 
         for (i, sprite) in self.sprites.iter_mut().enumerate() {
             if (i + 1) * 8 < new_value {
-                sprite.set_sprite(obj.get_sprite(SMALL_SPRITES.red_bar(0)));
+                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(0)));
             } else if i * 8 < new_value {
-                sprite.set_sprite(obj.get_sprite(SMALL_SPRITES.red_bar(8 - (new_value - i * 8))));
+                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(8 - (new_value - i * 8))));
             } else {
-                sprite.set_sprite(obj.get_sprite(SMALL_SPRITES.red_bar(8)));
+                sprite.set_sprite(obj.sprite(SMALL_SPRITES.red_bar(8)));
             }
         }
     }
@@ -233,13 +233,12 @@ impl<'a> FractionDisplay<'a> {
             current /= 10;
             let current_value_sprite = &mut self.sprites[(self.digits - i) * 2 - 2];
             current_value_sprite
-                .set_sprite(obj.get_sprite(SMALL_SPRITES.number(current_value_digit as u32)));
+                .set_sprite(obj.sprite(SMALL_SPRITES.number(current_value_digit as u32)));
 
             let max_value_digit = max % 10;
             max /= 10;
             let max_value_sprite = &mut self.sprites[(self.digits - i) * 2 - 1];
-            max_value_sprite
-                .set_sprite(obj.get_sprite(SMALL_SPRITES.number(max_value_digit as u32)));
+            max_value_sprite.set_sprite(obj.sprite(SMALL_SPRITES.number(max_value_digit as u32)));
         }
     }
 }
