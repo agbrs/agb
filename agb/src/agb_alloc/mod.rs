@@ -120,15 +120,6 @@ pub(crate) unsafe fn number_of_blocks() -> u32 {
     GLOBAL_ALLOC.number_of_blocks()
 }
 
-#[alloc_error_handler]
-fn alloc_error(layout: Layout) -> ! {
-    panic!(
-        "Failed to allocate size {} with alignment {}",
-        layout.size(),
-        layout.align()
-    );
-}
-
 fn iwram_data_end() -> usize {
     extern "C" {
         static __iwram_end: usize;
