@@ -20,8 +20,8 @@ jobs:
       run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi libelf-dev zip -y
     - name: Install Miri
       run: |
-        rustup component add --toolchain nightly miri
-        cargo miri setup
+          rustup toolchain install nightly --component miri
+          cargo miri setup
     - uses: actions/checkout@v3
     - name: Cache
       uses: actions/cache@v3
