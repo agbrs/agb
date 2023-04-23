@@ -87,6 +87,8 @@ for performant decimals.
 
 `agb-sound-converter` - a crate which converts wav files into a format supported by the game boy advance
 
+`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
+
 `agb` - the main library code
 
 `agb/examples` - basic examples often targeting 1 feature, you can run these using `just run-example <example-name>`
