@@ -41,6 +41,9 @@
     },
     {
       "path": "../examples/combo"
+		},
+		{
+			"path": "../agb-hashmap"
     }
   ]
 }

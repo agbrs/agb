@@ -19,6 +19,7 @@ name = "agb"
 version = "0.14.0"
 dependencies = [
  "agb_fixnum",
+ "agb_hashmap",
  "agb_image_converter",
  "agb_macros",
  "agb_sound_converter",
@@ -33,6 +34,13 @@ name = "agb_fixnum"
 version = "0.14.0"
 dependencies = [
  "agb_macros",
+]
+
+[[package]]
+name = "agb_hashmap"
+version = "0.14.0"
+dependencies = [
+ "rustc-hash",
 ]
 
 [[package]]
