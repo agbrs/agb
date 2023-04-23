@@ -342,7 +342,11 @@ where
     }
 
     /// Returns the key-value pair corresponding to the supplied key
-    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+    pub fn get_key_value<Q>(&self, key: &Q) -> Option<(&K, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let hash = self.hash(key);
 
         self.nodes
@@ -352,7 +356,21 @@ where
 
     /// Returns a reference to the value corresponding to the key. Returns [`None`] if there is
     /// no element in the map with the given key.
-    pub fn get(&self, key: &K) -> Option<&V> {
+    ///
+    /// # Example
+    /// ```
+    /// use agb_hashmap::HashMap;
+    ///
+    /// let mut map = HashMap::new();
+    /// map.insert("a".to_string(), "A");
+    /// assert_eq!(map.get("a"), Some(&"A"));
+    /// assert_eq!(map.get("b"), None);
+    /// ```
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         self.get_key_value(key).map(|(_, v)| v)
     }
 
