@@ -14,6 +14,7 @@ clippy:
 test:
     just _test-debug agb
     just _test-debug agb-fixnum
+    just _test-debug agb-hashmap
     just _test-debug-arm agb
     just _test-debug tools
 
