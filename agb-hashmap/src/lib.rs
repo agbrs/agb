@@ -20,6 +20,7 @@ extern crate alloc;
 use alloc::{alloc::Global, vec::Vec};
 use core::{
     alloc::Allocator,
+    borrow::Borrow,
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
     iter::FromIterator,
     mem::{self, MaybeUninit},
@@ -99,6 +100,38 @@ type HashType = u32;
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
 /// [`Hash`]: https://doc.rust-lang.org/core/hash/trait.Hash.html
+///
+/// # Example
+/// ```
+/// use agb_hashmap::HashMap;
+///
+/// // Type inference lets you omit the type signature (which would be HashMap<String, String> in this example)
+/// let mut game_reviews = HashMap::new();
+///
+/// // Review some games
+/// game_reviews.insert(
+///     "Pokemon Emerald".to_string(),
+///     "Best post-game battle experience of any generation.".to_string(),
+/// );
+/// game_reviews.insert(
+///     "Golden Sun".to_string(),
+///     "Some of the best music on the console".to_string(),
+/// );
+/// game_reviews.insert(
+///     "Super Dodge Ball Advance".to_string(),
+///     "Really great launch title".to_string(),
+/// );
+///
+/// // Check for a specific entry
+/// if !game_reviews.contains_key("Legend of Zelda: The Minish Cap") {
+///     println!("We've got {} reviews, but The Minish Cap ain't one", game_reviews.len());
+/// }
+///
+/// // Iterate over everything
+/// for (game, review) in &game_reviews {
+///     println!("{game}: \"{review}\"");
+/// }
+/// ```
 pub struct HashMap<K, V, ALLOCATOR: Allocator = Global> {
     nodes: NodeStorage<K, V, ALLOCATOR>,
 
@@ -299,7 +332,11 @@ where
     }
 
     /// Returns `true` if the map contains a value for the specified key.
-    pub fn contains_key(&self, k: &K) -> bool {
+    pub fn contains_key<Q>(&self, k: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let hash = self.hash(k);
         self.nodes.location(k, hash).is_some()
     }
@@ -346,7 +383,11 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR>
 where
     K: Hash,
 {
-    fn hash(&self, key: &K) -> HashType {
+    fn hash<Q>(&self, key: &Q) -> HashType
+    where
+        K: Borrow<Q>,
+        Q: Hash + ?Sized,
+    {
         let mut hasher = self.hasher.build_hasher();
         key.hash(&mut hasher);
         hasher.finish() as HashType
@@ -828,9 +869,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         }
     }
 
-    fn location(&self, key: &K, hash: HashType) -> Option<usize>
+    fn location<Q>(&self, key: &Q, hash: HashType) -> Option<usize>
     where
-        K: Eq,
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
     {
         for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
             let location = fast_mod(
@@ -840,7 +882,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
             let node = &self.nodes[location];
             if let Some(node_key_ref) = node.key_ref() {
-                if node_key_ref == key {
+                if node_key_ref.borrow() == key {
                     return Some(location);
                 }
             } else {
