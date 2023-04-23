@@ -10,7 +10,6 @@
     any(test, feature = "testing"),
     reexport_test_harness_main = "test_main"
 )]
-#![feature(alloc_error_handler)]
 #![feature(allocator_api)]
 #![feature(asm_const)]
 #![warn(clippy::all)]
