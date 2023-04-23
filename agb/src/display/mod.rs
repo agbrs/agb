@@ -92,6 +92,13 @@ impl ObjectDistribution {
         unsafe { initilise_oam() };
         OamManaged::new()
     }
+
+    /// The old name for [`get_managed`][ObjectDistribution::get_managed] kept around for easier migration.
+    /// This will be removed in a future release.
+    #[deprecated = "use get_managed to get the managed oam instead"]
+    pub fn get(&mut self) -> OamManaged<'_> {
+        self.get_managed()
+    }
 }
 
 #[non_exhaustive]
