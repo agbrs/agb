@@ -27,6 +27,7 @@ doctest-agb:
 check-docs:
     (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
     just _build_docs agb-fixnum
+    just _build_docs agb-hashmap
 
 _build_docs crate:
     (cd "{{crate}}" && cargo doc --no-deps)
