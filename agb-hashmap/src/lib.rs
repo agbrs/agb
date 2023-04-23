@@ -1133,6 +1133,7 @@ mod test {
         }
     }
 
+    #[cfg(not(miri))] // takes way too long to run under miri
     #[test]
     fn extreme_case() {
         use rand::SeedableRng;
