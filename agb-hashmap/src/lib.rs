@@ -1,6 +1,12 @@
-#![deny(missing_docs)]
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
+#![no_std]
+#![feature(allocator_api)]
+#![deny(clippy::all)]
+#![deny(missing_docs)]
+
+extern crate alloc;
+
 use alloc::{alloc::Global, vec::Vec};
 use core::{
     alloc::Allocator,
@@ -993,10 +999,9 @@ mod test {
     use core::cell::RefCell;
 
     use super::*;
-    use crate::{rng::RandomNumberGenerator, Gba};
 
-    #[test_case]
-    fn can_store_and_retrieve_8_elements(_gba: &mut Gba) {
+    #[test]
+    fn can_store_and_retrieve_8_elements() {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -1008,8 +1013,8 @@ mod test {
         }
     }
 
-    #[test_case]
-    fn can_get_the_length(_gba: &mut Gba) {
+    #[test]
+    fn can_get_the_length() {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -1019,8 +1024,8 @@ mod test {
         assert_eq!(map.len(), 4);
     }
 
-    #[test_case]
-    fn returns_none_if_element_does_not_exist(_gba: &mut Gba) {
+    #[test]
+    fn returns_none_if_element_does_not_exist() {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -1030,8 +1035,8 @@ mod test {
         assert_eq!(map.get(&12), None);
     }
 
-    #[test_case]
-    fn can_delete_entries(_gba: &mut Gba) {
+    #[test]
+    fn can_delete_entries() {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -1047,8 +1052,8 @@ mod test {
         assert_eq!(map.get(&7), Some(&1));
     }
 
-    #[test_case]
-    fn can_iterate_through_all_entries(_gba: &mut Gba) {
+    #[test]
+    fn can_iterate_through_all_entries() {
         let mut map = HashMap::new();
 
         for i in 0..8 {
@@ -1067,8 +1072,8 @@ mod test {
         assert_eq!(max_found, 7);
     }
 
-    #[test_case]
-    fn can_insert_more_than_initial_capacity(_gba: &mut Gba) {
+    #[test]
+    fn can_insert_more_than_initial_capacity() {
         let mut map = HashMap::new();
 
         for i in 0..65 {
@@ -1115,17 +1120,32 @@ mod test {
         }
     }
 
-    #[test_case]
-    fn extreme_case(_gba: &mut Gba) {
+    trait RngNextI32 {
+        fn next_i32(&mut self) -> i32;
+    }
+
+    impl<T> RngNextI32 for T
+    where
+        T: rand::RngCore,
+    {
+        fn next_i32(&mut self) -> i32 {
+            self.next_u32() as i32
+        }
+    }
+
+    #[test]
+    fn extreme_case() {
+        use rand::SeedableRng;
+
         let mut map = HashMap::new();
-        let mut rng = RandomNumberGenerator::new();
+        let mut rng = rand::rngs::SmallRng::seed_from_u64(20);
 
         let mut answers: [Option<i32>; 128] = [None; 128];
 
         for _ in 0..5_000 {
-            let command = rng.gen().rem_euclid(2);
-            let key = rng.gen().rem_euclid(answers.len() as i32);
-            let value = rng.gen();
+            let command = rng.next_i32().rem_euclid(2);
+            let key = rng.next_i32().rem_euclid(answers.len() as i32);
+            let value = rng.next_i32();
 
             match command {
                 0 => {
@@ -1212,8 +1232,8 @@ mod test {
         }
     }
 
-    #[test_case]
-    fn correctly_drops_on_remove_and_overall_drop(_gba: &mut Gba) {
+    #[test]
+    fn correctly_drops_on_remove_and_overall_drop() {
         let drop_registry = DropRegistry::new();
 
         let droppable1 = drop_registry.new_droppable();
@@ -1239,8 +1259,8 @@ mod test {
         drop_registry.assert_dropped_once(id2);
     }
 
-    #[test_case]
-    fn correctly_drop_on_override(_gba: &mut Gba) {
+    #[test]
+    fn correctly_drop_on_override() {
         let drop_registry = DropRegistry::new();
 
         let droppable1 = drop_registry.new_droppable();
@@ -1263,8 +1283,8 @@ mod test {
         drop_registry.assert_dropped_once(id2);
     }
 
-    #[test_case]
-    fn correctly_drops_key_on_override(_gba: &mut Gba) {
+    #[test]
+    fn correctly_drops_key_on_override() {
         let drop_registry = DropRegistry::new();
 
         let droppable1 = drop_registry.new_droppable();
@@ -1285,8 +1305,8 @@ mod test {
         drop_registry.assert_dropped_n_times(id1, 2);
     }
 
-    #[test_case]
-    fn test_retain(_gba: &mut Gba) {
+    #[test]
+    fn test_retain() {
         let mut map = HashMap::new();
 
         for i in 0..100 {
@@ -1301,8 +1321,8 @@ mod test {
         assert_eq!(map.iter().count(), 50); // force full iteration
     }
 
-    #[test_case]
-    fn test_size_hint_iter(_gba: &mut Gba) {
+    #[test]
+    fn test_size_hint_iter() {
         let mut map = HashMap::new();
 
         for i in 0..100 {
@@ -1317,8 +1337,8 @@ mod test {
         assert_eq!(iter.size_hint(), (99, Some(99)));
     }
 
-    #[test_case]
-    fn test_size_hint_into_iter(_gba: &mut Gba) {
+    #[test]
+    fn test_size_hint_into_iter() {
         let mut map = HashMap::new();
 
         for i in 0..100 {
@@ -1336,13 +1356,10 @@ mod test {
     // Following test cases copied from the rust source
     // https://github.com/rust-lang/rust/blob/master/library/std/src/collections/hash/map/tests.rs
     mod rust_std_tests {
-        use crate::{
-            hash_map::{Entry::*, HashMap},
-            Gba,
-        };
+        use crate::{Entry::*, HashMap};
 
-        #[test_case]
-        fn test_entry(_gba: &mut Gba) {
+        #[test]
+        fn test_entry() {
             let xs = [(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
 
             let mut map: HashMap<_, _> = xs.iter().copied().collect();
@@ -1391,8 +1408,8 @@ mod test {
             assert_eq!(map.len(), 6);
         }
 
-        #[test_case]
-        fn test_occupied_entry_key(_gba: &mut Gba) {
+        #[test]
+        fn test_occupied_entry_key() {
             let mut a = HashMap::new();
             let key = "hello there";
             let value = "value goes here";
@@ -1409,8 +1426,8 @@ mod test {
             assert_eq!(a[key], value);
         }
 
-        #[test_case]
-        fn test_vacant_entry_key(_gba: &mut Gba) {
+        #[test]
+        fn test_vacant_entry_key() {
             let mut a = HashMap::new();
             let key = "hello there";
             let value = "value goes here";
@@ -1427,116 +1444,9 @@ mod test {
             assert_eq!(a[key], value);
         }
 
-        #[test_case]
-        fn test_index(_gba: &mut Gba) {
+        #[test]
+        fn test_index() {
             let mut map = HashMap::new();
-
-            map.insert(1, 2);
-            map.insert(2, 1);
-            map.insert(3, 4);
-
-            assert_eq!(map[&2], 1);
-        }
-    }
-
-    mod rust_std_tests_custom_allocator {
-        use crate::{
-            hash_map::{Entry::*, HashMap},
-            Gba, InternalAllocator,
-        };
-
-        #[test_case]
-        fn test_entry(_gba: &mut Gba) {
-            let xs = [(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)];
-
-            let mut map = HashMap::new_in(InternalAllocator);
-            for (k, v) in xs {
-                map.insert(k, v);
-            }
-
-            // Existing key (insert)
-            match map.entry(1) {
-                Vacant(_) => unreachable!(),
-                Occupied(mut view) => {
-                    assert_eq!(view.get(), &10);
-                    assert_eq!(view.insert(100), 10);
-                }
-            }
-            assert_eq!(map.get(&1).unwrap(), &100);
-            assert_eq!(map.len(), 6);
-
-            // Existing key (update)
-            match map.entry(2) {
-                Vacant(_) => unreachable!(),
-                Occupied(mut view) => {
-                    let v = view.get_mut();
-                    let new_v = (*v) * 10;
-                    *v = new_v;
-                }
-            }
-            assert_eq!(map.get(&2).unwrap(), &200);
-            assert_eq!(map.len(), 6);
-
-            // Existing key (take)
-            match map.entry(3) {
-                Vacant(_) => unreachable!(),
-                Occupied(view) => {
-                    assert_eq!(view.remove(), 30);
-                }
-            }
-            assert_eq!(map.get(&3), None);
-            assert_eq!(map.len(), 5);
-
-            // Inexistent key (insert)
-            match map.entry(10) {
-                Occupied(_) => unreachable!(),
-                Vacant(view) => {
-                    assert_eq!(*view.insert(1000), 1000);
-                }
-            }
-            assert_eq!(map.get(&10).unwrap(), &1000);
-            assert_eq!(map.len(), 6);
-        }
-
-        #[test_case]
-        fn test_occupied_entry_key(_gba: &mut Gba) {
-            let mut a = HashMap::new_in(InternalAllocator);
-            let key = "hello there";
-            let value = "value goes here";
-            assert!(a.is_empty());
-            a.insert(key, value);
-            assert_eq!(a.len(), 1);
-            assert_eq!(a[key], value);
-
-            match a.entry(key) {
-                Vacant(_) => panic!(),
-                Occupied(e) => assert_eq!(key, *e.key()),
-            }
-            assert_eq!(a.len(), 1);
-            assert_eq!(a[key], value);
-        }
-
-        #[test_case]
-        fn test_vacant_entry_key(_gba: &mut Gba) {
-            let mut a = HashMap::new_in(InternalAllocator);
-            let key = "hello there";
-            let value = "value goes here";
-
-            assert!(a.is_empty());
-            match a.entry(key) {
-                Occupied(_) => panic!(),
-                Vacant(e) => {
-                    assert_eq!(key, *e.key());
-                    e.insert(value);
-                }
-            }
-            assert_eq!(a.len(), 1);
-            assert_eq!(a[key], value);
-        }
-
-        #[test_case]
-        fn test_index(_gba: &mut Gba) {
-            let mut map = HashMap::new_in(InternalAllocator);
 
             map.insert(1, 2);
             map.insert(2, 1);

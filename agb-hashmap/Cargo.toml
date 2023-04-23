@@ -1,0 +1,13 @@
+[package]
+name = "agb_hashmap"
+version = "0.14.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "A simple no_std hashmap implementation intended for use in the `agb` library"
+repository = "https://github.com/agbrs/agb"
+
+[dependencies]
+rustc-hash = { version = "1", default-features = false }
+
+[dev-dependencies]
+rand = { version = "0.8", default-features = false, features = ["small_rng"] }

@@ -152,7 +152,7 @@ pub mod mgba;
 #[doc(inline)]
 pub use agb_fixnum as fixnum;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
-pub mod hash_map;
+pub use agb_hashmap as hash_map;
 /// Simple random number generator
 pub mod rng;
 pub mod save;

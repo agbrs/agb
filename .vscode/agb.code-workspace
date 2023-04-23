@@ -38,6 +38,9 @@
 		},
 		{
 			"path": "../tools"
+		},
+		{
+			"path": "../agb-hashmap"
 		}
 	]
 }
