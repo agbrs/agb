@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Importing background tiles has been improved. You no longer need to use `include_gfx!` with the toml file. Instead, use `include_background_gfx`. See the documentation for usage.
+- The hashmap implementation is now it its own crate, `agb-hashmap`. There is no change in API, but you can now use this for interop between non-agb code and agb code
 
 ## [0.14.0] - 2023/04/11
 
