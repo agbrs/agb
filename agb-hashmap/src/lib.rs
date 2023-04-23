@@ -406,7 +406,21 @@ where
 
     /// Removes the given key from the map. Returns the current value if it existed, or [`None`]
     /// if it did not.
-    pub fn remove(&mut self, key: &K) -> Option<V> {
+    ///
+    /// # Example
+    /// ```
+    /// use agb_hashmap::HashMap;
+    ///
+    /// let mut map = HashMap::new();
+    /// map.insert(1, "a");
+    /// assert_eq!(map.remove(&1), Some("a"));
+    /// assert_eq!(map.remove(&1), None);
+    /// ```
+    pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let hash = self.hash(key);
 
         self.nodes
