@@ -3,7 +3,17 @@
 #![no_std]
 #![feature(allocator_api)]
 #![deny(clippy::all)]
+#![deny(clippy::must_use_candidate)]
 #![deny(missing_docs)]
+#![deny(clippy::trivially_copy_pass_by_ref)]
+#![deny(clippy::semicolon_if_nothing_returned)]
+#![deny(clippy::map_unwrap_or)]
+#![deny(clippy::needless_pass_by_value)]
+#![deny(clippy::redundant_closure_for_method_calls)]
+#![deny(clippy::cloned_instead_of_copied)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![deny(rustdoc::private_intra_doc_links)]
+#![deny(rustdoc::invalid_html_tags)]
 
 extern crate alloc;
 
@@ -1091,6 +1101,7 @@ mod test {
     }
 
     impl NoisyDrop {
+        #[cfg(not(miri))]
         fn new(i: i32) -> Self {
             Self { i, dropped: false }
         }
