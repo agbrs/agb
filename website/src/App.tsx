@@ -6,6 +6,7 @@ function App() {
   const [onGame, setOnGame] = useState(false);
   const [volume, setVolume] = useState(1.0);
   const [bindings, setBindings] = useState(DefaultBindingsSet());
+  const [paused, setPaused] = useState(false);
 
   return (
     <div>
@@ -15,6 +16,7 @@ function App() {
             gameUrl="/game.gba"
             volume={volume}
             controls={bindings.Actual}
+            paused={paused}
           />
           <input
             type="range"
@@ -29,7 +31,11 @@ function App() {
       <button onClick={() => setOnGame(!onGame)}>
         {onGame ? "End Game" : "Start Game"}
       </button>
-      <BindingsControl bindings={bindings} setBindings={setBindings} />
+      <BindingsControl
+        bindings={bindings}
+        setBindings={setBindings}
+        setPaused={setPaused}
+      />
     </div>
   );
 }

@@ -75,7 +75,8 @@ const toHumanName = (keyName: string) => {
 export const BindingsControl: FC<{
   bindings: Bindings;
   setBindings: (a: Bindings) => void;
-}> = ({ bindings, setBindings }) => {
+  setPaused: (pause: boolean) => void;
+}> = ({ bindings, setBindings, setPaused }) => {
   const [buttonToChange, setButtonToChange] = useState<GbaKey | null>(null);
 
   const setKey = (key: string) => {
@@ -91,13 +92,19 @@ export const BindingsControl: FC<{
 
     setButtonToChange(null);
     setBindings(nextBindings);
+    setPaused(false);
+  };
+
+  const onSelectButtonClick = (key: GbaKey) => {
+    setPaused(true);
+    setButtonToChange(key);
   };
 
   return (
-    <ButtonWrapper onKeyDown={(evt) => setKey(evt.key)}>
+    <ButtonWrapper onKeyUp={(evt) => setKey(evt.key)}>
       {BindingsOrder.map((x) => (
         <SelectButton
-          onClick={() => setButtonToChange(x)}
+          onClick={() => onSelectButtonClick(x)}
           key={x}
           selected={buttonToChange === x}
         >

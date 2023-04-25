@@ -8,6 +8,7 @@ interface MgbaProps {
   gameUrl: string;
   volume?: Number;
   controls: KeyBindings;
+  paused: boolean;
 }
 
 enum MgbaState {
@@ -18,7 +19,7 @@ enum MgbaState {
 
 const MGBA_ROM_DIRECTORY = "/data/games";
 
-export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls }) => {
+export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
   const canvas = useRef(null);
   const mgbaModule = useRef<Module>({});
 
@@ -91,6 +92,16 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls }) => {
     if (state !== MgbaState.Initialised) return;
     mgbaModule.current.setVolume(volume ?? 1.0);
   }, [state, volume]);
+
+  useEffect(() => {
+    if (state !== MgbaState.Initialised) return;
+
+    if (paused) {
+      mgbaModule.current.pauseGame();
+    } else {
+      mgbaModule.current.resumeGame();
+    }
+  }, [state, paused]);
 
   return (
     <>
