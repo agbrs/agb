@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2023/04/25
+
 ### Added
 - You can now import aseprite files directly (in addition to the already supported png and bmp files) when importing background tiles.
 - New additional unmanaged object API for interacting with a more straightforward manner with the underlying hardware.
