@@ -78,7 +78,7 @@ export const BindingsControl: FC<{
 }> = ({ bindings, setBindings }) => {
   const [buttonToChange, setButtonToChange] = useState<GbaKey | null>(null);
 
-  const setKey = (key: string, code: string) => {
+  const setKey = (key: string) => {
     if (buttonToChange === null) return;
 
     const nextBindings = {
@@ -87,14 +87,14 @@ export const BindingsControl: FC<{
     };
 
     nextBindings.Displayed[buttonToChange] = toHumanName(key).toUpperCase();
-    nextBindings.Actual[buttonToChange] = code;
+    nextBindings.Actual[buttonToChange] = key;
 
     setButtonToChange(null);
     setBindings(nextBindings);
   };
 
   return (
-    <ButtonWrapper onKeyDown={(evt) => setKey(evt.key, evt.code)}>
+    <ButtonWrapper onKeyDown={(evt) => setKey(evt.key)}>
       {BindingsOrder.map((x) => (
         <SelectButton
           onClick={() => setButtonToChange(x)}
