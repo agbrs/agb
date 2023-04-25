@@ -12,7 +12,7 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::display::object::ObjectController;
+use agb::display::object::OamManaged;
 use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
 use agb::display::Priority;
 use agb::interrupt::VBlank;
@@ -90,7 +90,7 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
-    obj: ObjectController<'a>,
+    obj: OamManaged<'a>,
     vblank: VBlank,
     star_background: StarBackground<'a>,
     vram: VRamManager,
@@ -104,7 +104,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
-    let gfx = gba.display.object.get();
+    let gfx = gba.display.object.get_managed();
     let vblank = agb::interrupt::VBlank::get();
 
     let (tiled, mut vram) = gba.display.video.tiled0();

@@ -40,6 +40,9 @@
 			"path": "../tools"
 		},
 		{
+			"path": "../examples/combo"
+		},
+		{
 			"path": "../agb-hashmap"
 		}
 	]

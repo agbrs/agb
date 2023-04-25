@@ -14,7 +14,7 @@ use alloc::{boxed::Box, vec::Vec};
 
 use agb::{
     display::{
-        object::{Graphics, Object, ObjectController, Sprite, Tag, TagMap},
+        object::{Graphics, OamManaged, Object, Sprite, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting,
             VRamManager,
@@ -164,9 +164,8 @@ struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    fn new(object_controller: &'a ObjectController, collision_mask: Rect<Number>) -> Self {
-        let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
-        let mut sprite = object_controller.object(s);
+    fn new(object_controller: &'a OamManaged, collision_mask: Rect<Number>) -> Self {
+        let mut sprite = object_controller.object_sprite(LONG_SWORD_IDLE.sprite(0));
         sprite.set_priority(Priority::P1);
         Entity {
             sprite,
@@ -523,7 +522,7 @@ struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    fn new(object_controller: &'a ObjectController<'a>) -> Player {
+    fn new(object_controller: &'a OamManaged<'_>) -> Player<'a> {
         let mut entity = Entity::new(object_controller, Rect::new((0, 1).into(), (5, 10).into()));
         let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
@@ -546,7 +545,7 @@ impl<'a> Player<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         buttons: &ButtonController,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -800,7 +799,7 @@ impl BatData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -933,7 +932,7 @@ impl SlimeData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -1062,7 +1061,7 @@ impl MiniFlameData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
@@ -1191,7 +1190,7 @@ impl EmuData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -1364,7 +1363,7 @@ impl EnemyData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         level: &Level,
@@ -1385,7 +1384,7 @@ struct Enemy<'a> {
 }
 
 impl<'a> Enemy<'a> {
-    fn new(object_controller: &'a ObjectController, enemy_data: EnemyData) -> Self {
+    fn new(object_controller: &'a OamManaged, enemy_data: EnemyData) -> Self {
         let mut entity = Entity::new(object_controller, enemy_data.collision_mask());
 
         let sprite = enemy_data.sprite();
@@ -1399,7 +1398,7 @@ impl<'a> Enemy<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         player: &Player,
         level: &Level,
         sfx: &mut sfx::Sfx,
@@ -1430,7 +1429,7 @@ impl ParticleData {
 
     fn update<'a>(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         entity: &mut Entity<'a>,
         player: &Player,
         _level: &Level,
@@ -1518,7 +1517,7 @@ struct Particle<'a> {
 
 impl<'a> Particle<'a> {
     fn new(
-        object_controller: &'a ObjectController,
+        object_controller: &'a OamManaged,
         particle_data: ParticleData,
         position: Vector2D<Number>,
     ) -> Self {
@@ -1534,7 +1533,7 @@ impl<'a> Particle<'a> {
 
     fn update(
         &mut self,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         player: &Player,
         level: &Level,
     ) -> UpdateInstruction {
@@ -1561,7 +1560,7 @@ impl<'a> BossState<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OamManaged,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
@@ -1596,7 +1595,7 @@ struct FollowingBoss<'a> {
 }
 
 impl<'a> FollowingBoss<'a> {
-    fn new(object_controller: &'a ObjectController, position: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a OamManaged, position: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (0, 0).into()));
         entity.position = position;
 
@@ -1608,7 +1607,7 @@ impl<'a> FollowingBoss<'a> {
             gone: false,
         }
     }
-    fn update(&mut self, controller: &'a ObjectController, player: &Player) {
+    fn update(&mut self, controller: &'a OamManaged, player: &Player) {
         let difference = player.entity.position - self.entity.position;
         self.timer += 1;
 
@@ -1677,7 +1676,7 @@ enum BossInstruction {
 }
 
 impl<'a> Boss<'a> {
-    fn new(object_controller: &'a ObjectController, screen_coords: Vector2D<Number>) -> Self {
+    fn new(object_controller: &'a OamManaged, screen_coords: Vector2D<Number>) -> Self {
         let mut entity = Entity::new(object_controller, Rect::new((0, 0).into(), (28, 28).into()));
         entity.position = screen_coords + (144, 136).into();
         Self {
@@ -1693,7 +1692,7 @@ impl<'a> Boss<'a> {
     fn update(
         &mut self,
         enemies: &mut Arena<Enemy<'a>>,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OamManaged,
         player: &Player,
         sfx: &mut sfx::Sfx,
     ) -> BossInstruction {
@@ -1797,7 +1796,7 @@ impl<'a> Boss<'a> {
         self.entity
             .commit_with_size(offset + shake, (32, 32).into());
     }
-    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a ObjectController) {
+    fn explode(&self, enemies: &mut Arena<Enemy<'a>>, object_controller: &'a OamManaged) {
         for _ in 0..(6 - self.health) {
             let x_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
             let y_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
@@ -1871,7 +1870,7 @@ impl<'a> Game<'a> {
 
     fn advance_frame(
         &mut self,
-        object_controller: &'a ObjectController,
+        object_controller: &'a OamManaged,
         vram: &mut VRamManager,
         sfx: &mut sfx::Sfx,
     ) -> GameStatus {
@@ -2083,7 +2082,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn load_enemies(&mut self, object_controller: &'a ObjectController) {
+    fn load_enemies(&mut self, object_controller: &'a OamManaged) {
         if self.slime_load < self.level.slime_spawns.len() {
             for (idx, slime_spawn) in self
                 .level
@@ -2153,7 +2152,7 @@ impl<'a> Game<'a> {
         vram.set_background_palettes(&modified_palettes);
     }
 
-    fn new(object: &'a ObjectController, level: Level<'a>, start_at_boss: bool) -> Self {
+    fn new(object: &'a OamManaged<'a>, level: Level<'a>, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
         let mut offset = (8, 8).into();
         if start_at_boss {
@@ -2196,7 +2195,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let (background, mut vram) = gba.display.video.tiled0();
     vram.set_background_palettes(background::PALETTES);
     let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
-    let object = gba.display.object.get();
+    let object = gba.display.object.get_managed();
 
     loop {
         let backdrop = InfiniteScrolledMap::new(

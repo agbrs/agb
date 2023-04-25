@@ -4,7 +4,11 @@ use bitflags::bitflags;
 use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
-use self::{blend::Blend, object::ObjectController, window::Windows};
+use self::{
+    blend::Blend,
+    object::{initilise_oam, OamManaged, OamUnmanaged, SpriteLoader},
+    window::Windows,
+};
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub mod bitmap3;
@@ -12,7 +16,6 @@ pub mod bitmap3;
 pub mod bitmap4;
 /// Test logo of agb.
 pub mod example_logo;
-/// Implements sprites.
 pub mod object;
 /// Palette type.
 pub mod palette16;
@@ -80,8 +83,21 @@ pub struct Display {
 pub struct ObjectDistribution;
 
 impl ObjectDistribution {
-    pub fn get(&mut self) -> ObjectController<'_> {
-        ObjectController::new()
+    pub fn get_unmanaged(&mut self) -> (OamUnmanaged<'_>, SpriteLoader) {
+        unsafe { initilise_oam() };
+        (OamUnmanaged::new(), SpriteLoader::new())
+    }
+
+    pub fn get_managed(&mut self) -> OamManaged<'_> {
+        unsafe { initilise_oam() };
+        OamManaged::new()
+    }
+
+    /// The old name for [`get_managed`][ObjectDistribution::get_managed] kept around for easier migration.
+    /// This will be removed in a future release.
+    #[deprecated = "use get_managed to get the managed oam instead"]
+    pub fn get(&mut self) -> OamManaged<'_> {
+        self.get_managed()
     }
 }
 
@@ -143,7 +159,7 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy)]
+#[derive(BitfieldSpecifier, Clone, Copy, Debug)]
 pub enum Priority {
     P0 = 0,
     P1 = 1,

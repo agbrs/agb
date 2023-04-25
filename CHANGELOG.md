@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - You can now import aseprite files directly (in addition to the already supported png and bmp files) when importing background tiles.
+- New additional unmanaged object API for interacting with a more straightforward manner with the underlying hardware.
 
 ### Changed
 - Importing background tiles has been improved. You no longer need to use `include_gfx!` with the toml file. Instead, use `include_background_gfx`. See the documentation for usage.
 - The hashmap implementation is now it its own crate, `agb-hashmap`. There is no change in API, but you can now use this for interop between non-agb code and agb code
+- Moved the existing object API to be the OamManaged API. The old names persist with deprecated notices on them.
 
 ## [0.14.0] - 2023/04/11
 

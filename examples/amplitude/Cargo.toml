@@ -1,0 +1,20 @@
+[package]
+name = "amplitude"
+version = "0.1.0"
+authors = [""]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+agb = { version = "0.14.0", path = "../../agb" }
+
+[profile.dev]
+opt-level = 2
+debug = true
+
+[profile.release]
+panic = "abort"
+lto = true
+debug = true
+codegen-units = 1

@@ -494,7 +494,7 @@ pub(crate) fn battle_screen(
 
     let obj = &agb.obj;
 
-    let mut select_box_obj = agb.obj.object(agb.obj.sprite(SELECT_BOX.sprite(0)));
+    let mut select_box_obj = agb.obj.object_sprite(SELECT_BOX.sprite(0));
     select_box_obj.show();
 
     let num_dice = player_dice.dice.len();

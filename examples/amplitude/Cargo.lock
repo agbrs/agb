@@ -86,6 +86,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "amplitude"
+version = "0.1.0"
+dependencies = [
+ "agb",
+]
+
+[[package]]
 name = "asefile"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,13 +334,6 @@ dependencies = [
  "crc32fast",
  "deflate",
  "miniz_oxide 0.3.7",
-]
-
-[[package]]
-name = "pong"
-version = "0.1.0"
-dependencies = [
- "agb",
 ]
 
 [[package]]

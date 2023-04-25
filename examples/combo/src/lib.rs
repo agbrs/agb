@@ -21,6 +21,7 @@ pub enum Game {
     TheHatChoosesTheWizard,
     ThePurpleNight,
     HyperspaceRoll,
+    Amplitude,
 }
 
 impl Game {
@@ -29,6 +30,7 @@ impl Game {
             Game::TheHatChoosesTheWizard => the_hat_chooses_the_wizard::main(gba),
             Game::ThePurpleNight => the_purple_night::main(gba),
             Game::HyperspaceRoll => hyperspace_roll::main(gba),
+            Game::Amplitude => amplitude::main(gba),
         }
     }
 
@@ -37,6 +39,7 @@ impl Game {
             0 => Game::TheHatChoosesTheWizard,
             1 => Game::ThePurpleNight,
             2 => Game::HyperspaceRoll,
+            3 => Game::Amplitude,
             _ => unreachable!("game out of index in an unreachable manner"),
         }
     }
@@ -46,7 +49,8 @@ include_background_gfx!(
     games, "121105",
     hat => "gfx/hat.png",
     purple => "gfx/purple.png",
-    hyperspace => "gfx/hyperspace.png"
+    hyperspace => "gfx/hyperspace.png",
+    amplitude => "gfx/amplitude.png"
 );
 
 fn get_game(gba: &mut agb::Gba) -> Game {
@@ -58,13 +62,15 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let hat = TileSet::new(games::hat.tiles, TileFormat::FourBpp);
     let purple = TileSet::new(games::purple.tiles, TileFormat::FourBpp);
     let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::FourBpp);
+    let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::FourBpp);
 
-    let tiles = [hat, purple, hyperspace];
+    let tiles = [hat, purple, hyperspace, amplitude];
 
     let palette_assignments = &[
         games::hat.palette_assignments,
         games::purple.palette_assignments,
         games::hyperspace.palette_assignments,
+        games::amplitude.palette_assignments,
     ];
 
     vram.set_background_palettes(games::PALETTES);
@@ -79,7 +85,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
             let y = pos.y.rem_euclid(20);
             let x = pos.x.rem_euclid(30);
 
-            let game = (pos.x).rem_euclid(90) as usize / 30;
+            let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
             (
                 &tiles[game],

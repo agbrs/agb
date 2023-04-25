@@ -3,7 +3,12 @@
 
 extern crate alloc;
 
-use agb::display::object::{Graphics, ObjectController, Sprite, TagMap};
+use agb::display::{
+    affine::AffineMatrix,
+    object::{self, Graphics, OamManaged, Sprite, TagMap},
+};
+use agb::fixnum::num;
+use agb_fixnum::Num;
 use alloc::vec::Vec;
 
 const GRAPHICS: &Graphics = agb::include_aseprite!(
@@ -15,14 +20,20 @@ const GRAPHICS: &Graphics = agb::include_aseprite!(
 const SPRITES: &[Sprite] = GRAPHICS.sprites();
 const TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &ObjectController) {
+fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
+    let mut rotation: Num<i32, 16> = num!(0.);
+
+    let rotation_matrix = AffineMatrix::from_rotation(rotation);
+    let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
+
     for y in 0..9 {
         for x in 0..14 {
-            let mut obj = gfx.object(gfx.sprite(&SPRITES[0]));
-            obj.show();
+            let mut obj = gfx.object_sprite(&SPRITES[0]);
+            obj.set_affine_matrix(matrix.clone());
+            obj.show_affine(object::AffineMode::Affine);
             obj.set_position((x * 16 + 8, y * 16 + 8).into());
             objs.push(obj);
         }
@@ -41,6 +52,15 @@ fn all_sprites(gfx: &ObjectController) {
             break;
         }
 
+        rotation += rotation_speed;
+        let rotation_matrix = AffineMatrix::from_rotation(rotation);
+
+        let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
+
+        for obj in objs.iter_mut() {
+            obj.set_affine_matrix(matrix.clone());
+        }
+
         count += 1;
 
         if count % 5 == 0 {
@@ -50,12 +70,12 @@ fn all_sprites(gfx: &ObjectController) {
                 let this_image = (image + i) % SPRITES.len();
                 obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
             }
-            gfx.commit();
         }
+        gfx.commit();
     }
 }
 
-fn all_tags(gfx: &ObjectController) {
+fn all_tags(gfx: &OamManaged) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -65,7 +85,7 @@ fn all_tags(gfx: &ObjectController) {
         let sprite = v.sprite(0);
         let (size_x, size_y) = sprite.size().to_width_height();
         let (size_x, size_y) = (size_x as i32, size_y as i32);
-        let mut obj = gfx.object(gfx.sprite(sprite));
+        let mut obj = gfx.object_sprite(sprite);
         obj.show();
         obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
         objs.push((obj, v));
@@ -99,12 +119,11 @@ fn all_tags(gfx: &ObjectController) {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let gfx = gba.display.object.get();
+    let gfx = gba.display.object.get_managed();
 
     loop {
         all_tags(&gfx);
-        gfx.commit();
-        all_sprites(&gfx);
-        gfx.commit();
+        all_sprites(&gfx, num!(0.));
+        all_sprites(&gfx, num!(0.01));
     }
 }

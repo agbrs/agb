@@ -8,7 +8,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, Object, ObjectController, Tag, TagMap},
+        object::{Graphics, OamManaged, Object, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
@@ -124,12 +124,11 @@ pub struct Entity<'a> {
 }
 
 impl<'a> Entity<'a> {
-    pub fn new(object: &'a ObjectController, collision_mask: Vector2D<u16>) -> Self {
-        let dummy_sprite = object.sprite(WALKING.sprite(0));
-        let mut sprite = object.object(dummy_sprite);
-        sprite.set_priority(Priority::P1);
+    pub fn new(object: &'a OamManaged, collision_mask: Vector2D<u16>) -> Self {
+        let mut dummy_object = object.object_sprite(WALKING.sprite(0));
+        dummy_object.set_priority(Priority::P1);
         Entity {
-            sprite,
+            sprite: dummy_object,
             collision_mask,
             position: (0, 0).into(),
             velocity: (0, 0).into(),
@@ -348,7 +347,7 @@ fn ping_pong(i: i32, n: i32) -> i32 {
 }
 
 impl<'a> Player<'a> {
-    fn new(controller: &'a ObjectController, start_position: Vector2D<FixedNumberType>) -> Self {
+    fn new(controller: &'a OamManaged, start_position: Vector2D<FixedNumberType>) -> Self {
         let mut wizard = Entity::new(controller, (6_u16, 14_u16).into());
         let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
 
@@ -382,7 +381,7 @@ impl<'a> Player<'a> {
     fn update_frame(
         &mut self,
         input: &ButtonController,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
         timer: i32,
         level: &Level,
         enemies: &[enemies::Enemy],
@@ -616,7 +615,7 @@ enum UpdateState {
 impl<'a, 'b> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
-        object_control: &'a ObjectController,
+        object_control: &'a OamManaged,
         background: &'a mut InfiniteScrolledMap<'b>,
         foreground: &'a mut InfiniteScrolledMap<'b>,
         input: ButtonController,
@@ -677,7 +676,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self, controller: &'a ObjectController) -> bool {
+    fn dead_update(&mut self, controller: &'a OamManaged) -> bool {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
@@ -696,7 +695,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         &mut self,
         sfx_player: &mut SfxPlayer,
         vram: &mut VRamManager,
-        controller: &'a ObjectController,
+        controller: &'a OamManaged,
     ) -> UpdateState {
         self.timer += 1;
         self.input.update();
@@ -828,7 +827,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
         vram.set_background_palettes(tile_sheet::PALETTES);
 
-        let object = agb.display.object.get();
+        let object = agb.display.object.get_managed();
 
         let vblank = agb::interrupt::VBlank::get();
         let mut current_level = 0;

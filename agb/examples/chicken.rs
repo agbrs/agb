@@ -4,7 +4,7 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{Object, ObjectController, Size, Sprite},
+        object::{OamManaged, Object, Size, Sprite},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
     background.show();
     background.commit(&mut vram);
 
-    let object = gba.display.object.get();
+    let object = gba.display.object.get_managed();
 
     let sprite = object.sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
@@ -143,9 +143,9 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 }
 
-fn update_chicken_object<'a>(
-    chicken: &'_ mut Character<'a>,
-    object: &'a ObjectController,
+fn update_chicken_object(
+    chicken: &'_ mut Character<'_>,
+    gfx: &OamManaged,
     state: State,
     frame_count: u32,
 ) {
@@ -157,20 +157,18 @@ fn update_chicken_object<'a>(
     match state {
         State::Ground => {
             if chicken.velocity.x.abs() > 1 << 4 {
-                chicken.object.set_sprite(
-                    object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]),
-                );
-            } else {
                 chicken
                     .object
-                    .set_sprite(object.sprite(&CHICKEN_SPRITES[0]));
+                    .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]));
+            } else {
+                chicken.object.set_sprite(gfx.sprite(&CHICKEN_SPRITES[0]));
             }
         }
         State::Upwards => {}
         State::Flapping => {
             chicken
                 .object
-                .set_sprite(object.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
+                .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
         }
     }
 

@@ -356,6 +356,15 @@ impl AffineMatrixObject {
             y: 0.into(),
         }
     }
+
+    pub(crate) fn components(self) -> [u16; 4] {
+        [
+            self.a.to_raw() as u16,
+            self.b.to_raw() as u16,
+            self.c.to_raw() as u16,
+            self.d.to_raw() as u16,
+        ]
+    }
 }
 
 impl From<AffineMatrixObject> for AffineMatrix {
