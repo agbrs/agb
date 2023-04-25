@@ -63,7 +63,7 @@ fn draw_number(
     oam: &mut OamIterator,
     direction: DrawDirection,
     sprite_cache: &SpriteCache,
-) {
+) -> Option<()> {
     let mut digits = Vec::new();
     if number == 0 {
         digits.push(0);
@@ -84,12 +84,12 @@ fn draw_number(
         let mut obj = ObjectUnmanaged::new(sprite_cache.numbers[digit as usize].clone());
         obj.show().set_position(current_position);
 
-        if let Some(slot) = oam.next() {
-            slot.set(&obj);
-        }
+        oam.next()?.set(&obj);
 
         current_position -= (4, 0).into();
     }
+
+    Some(())
 }
 
 impl SpriteCache {
@@ -259,27 +259,25 @@ impl Game {
         }
     }
 
-    fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) {
+    fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) -> Option<()> {
         for saw in self.saws.iter() {
-            if let Some(slot) = oam.next() {
-                slot.set(&saw.object);
-            }
+            oam.next()?.set(&saw.object);
         }
 
         for circle in self.circles.iter() {
-            if let Some(slot) = oam.next() {
-                let mut object = ObjectUnmanaged::new(match circle.colour {
-                    Colour::Red => sprite_cache.red.clone(),
-                    Colour::Blue => sprite_cache.blue.clone(),
-                });
+            let mut object = ObjectUnmanaged::new(match circle.colour {
+                Colour::Red => sprite_cache.red.clone(),
+                Colour::Blue => sprite_cache.blue.clone(),
+            });
 
-                object
-                    .show()
-                    .set_position(circle.position.floor() - (4, 4).into());
+            object
+                .show()
+                .set_position(circle.position.floor() - (4, 4).into());
 
-                slot.set(&object);
-            }
+            oam.next()?.set(&object);
         }
+
+        Some(())
     }
 }
 
