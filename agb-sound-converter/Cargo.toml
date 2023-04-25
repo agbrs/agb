@@ -7,14 +7,6 @@ license = "MPL-2.0"
 description = "Library for converting wavs for use on the Game Boy Advance"
 repository = "https://github.com/agbrs/agb"
 
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-lto = true
-debug = true
-
 [lib]
 proc-macro = true
 
@@ -23,3 +15,13 @@ hound = "3.5"
 syn = "2"
 proc-macro2 = "1"
 quote = "1"
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
+codegen-units = 1

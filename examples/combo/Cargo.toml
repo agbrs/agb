@@ -11,13 +11,12 @@ the-purple-night = { path = "../the-purple-night" }
 the-hat-chooses-the-wizard = { path = "../the-hat-chooses-the-wizard" }
 hyperspace-roll = { path = "../hyperspace-roll" }
 
-
 [profile.dev]
-opt-level = 2
+opt-level = 3
 debug = true
 
 [profile.release]
-panic = "abort"
-lto = true
+opt-level = 3
+lto = "fat"
 debug = true
 codegen-units = 1

@@ -15,8 +15,11 @@ quote = "1.0.10"
 tiled = { version = "0.9.4", default-features = false }
 
 [profile.dev]
-opt-level = 2
+opt-level = 3
+debug = true
 
 [profile.release]
-panic = "abort"
-lto = true
+opt-level = 3
+lto = "fat"
+debug = true
+codegen-units = 1
