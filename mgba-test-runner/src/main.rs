@@ -9,16 +9,19 @@ use image::GenericImage;
 use io::Write;
 use regex::Regex;
 use runner::VideoBuffer;
+use std::cell::Cell;
 use std::io;
 use std::path::Path;
+use std::rc::Rc;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum Status {
     Running,
     Failed,
     Success,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Timing {
     None,
     WaitFor(i32),
@@ -28,77 +31,81 @@ enum Timing {
 const TEST_RUNNER_TAG: u16 = 785;
 
 fn test_file(file_to_run: &str) -> Status {
-    let mut finished = Status::Running;
+    let finished = Rc::new(Cell::new(Status::Running));
     let debug_reader_mutex = Regex::new(r"(?s)^\[(.*)\] GBA Debug: (.*)$").unwrap();
     let tagged_cycles_reader = Regex::new(r"Cycles: (\d*) Tag: (\d*)").unwrap();
 
     let mut mgba = runner::MGBA::new(file_to_run).unwrap();
-    let video_buffer = mgba.get_video_buffer();
-    let mut number_of_cycles = Timing::None;
 
-    mgba.set_logger(|message| {
-        if let Some(captures) = debug_reader_mutex.captures(message) {
-            let log_level = &captures[1];
-            let out = &captures[2];
+    {
+        let finished = finished.clone();
+        let video_buffer = mgba.get_video_buffer();
+        let number_of_cycles = Cell::new(Timing::None);
 
-            if out.starts_with("image:") {
-                let image_path = out.strip_prefix("image:").unwrap();
-                match check_image_match(image_path, &video_buffer) {
-                    Err(e) => {
-                        println!("[failed]");
-                        println!("{}", e);
-                        finished = Status::Failed;
+        mgba.set_logger(move |message| {
+            if let Some(captures) = debug_reader_mutex.captures(message) {
+                let log_level = &captures[1];
+                let out = &captures[2];
+
+                if out.starts_with("image:") {
+                    let image_path = out.strip_prefix("image:").unwrap();
+                    match check_image_match(image_path, &video_buffer) {
+                        Err(e) => {
+                            println!("[failed]");
+                            println!("{}", e);
+                            finished.set(Status::Failed);
+                        }
+                        Ok(_) => {}
                     }
-                    Ok(_) => {}
-                }
-            } else if out.ends_with("...") {
-                print!("{}", out);
-                io::stdout().flush().expect("can't flush stdout");
-            } else if out.starts_with("Cycles: ") {
-                if let Some(captures) = tagged_cycles_reader.captures(out) {
-                    let num_cycles: i32 = captures[1].parse().unwrap();
-                    let tag: u16 = captures[2].parse().unwrap();
+                } else if out.ends_with("...") {
+                    print!("{}", out);
+                    io::stdout().flush().expect("can't flush stdout");
+                } else if out.starts_with("Cycles: ") {
+                    if let Some(captures) = tagged_cycles_reader.captures(out) {
+                        let num_cycles: i32 = captures[1].parse().unwrap();
+                        let tag: u16 = captures[2].parse().unwrap();
 
-                    if tag == TEST_RUNNER_TAG {
-                        number_of_cycles = match number_of_cycles {
-                            Timing::WaitFor(n) => Timing::Difference(num_cycles - n),
-                            Timing::None => Timing::WaitFor(num_cycles),
-                            Timing::Difference(_) => Timing::WaitFor(num_cycles),
-                        };
+                        if tag == TEST_RUNNER_TAG {
+                            number_of_cycles.set(match number_of_cycles.get() {
+                                Timing::WaitFor(n) => Timing::Difference(num_cycles - n),
+                                Timing::None => Timing::WaitFor(num_cycles),
+                                Timing::Difference(_) => Timing::WaitFor(num_cycles),
+                            });
+                        }
                     }
-                }
-            } else if out == "[ok]" {
-                if let Timing::Difference(cycles) = number_of_cycles {
-                    println!(
-                        "[ok: {} c ≈ {} s]",
-                        cycles,
-                        ((cycles as f64 / (16.78 * 1_000_000.0)) * 100.0).round() / 100.0
-                    );
+                } else if out == "[ok]" {
+                    if let Timing::Difference(cycles) = number_of_cycles.get() {
+                        println!(
+                            "[ok: {} c ≈ {} s]",
+                            cycles,
+                            ((cycles as f64 / (16.78 * 1_000_000.0)) * 100.0).round() / 100.0
+                        );
+                    } else {
+                        println!("{}", out);
+                    }
                 } else {
                     println!("{}", out);
                 }
-            } else {
-                println!("{}", out);
-            }
 
-            if log_level == "FATAL" {
-                finished = Status::Failed;
-            }
+                if log_level == "FATAL" {
+                    finished.set(Status::Failed);
+                }
 
-            if out == "Tests finished successfully" {
-                finished = Status::Success;
+                if out == "Tests finished successfully" {
+                    finished.set(Status::Success);
+                }
             }
-        }
-    });
+        });
+    }
 
     loop {
         mgba.advance_frame();
-        if finished != Status::Running {
+        if finished.get() != Status::Running {
             break;
         }
     }
 
-    return finished;
+    return finished.get();
 }
 
 fn main() -> Result<(), Error> {
