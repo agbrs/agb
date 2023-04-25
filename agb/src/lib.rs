@@ -360,6 +360,14 @@ pub mod test_runner {
     }
 }
 
+#[inline(never)]
+pub(crate) fn program_counter_before_interrupt() -> u32 {
+    extern "C" {
+        static mut agb_rs__program_counter: u32;
+    }
+    unsafe { agb_rs__program_counter }
+}
+
 #[cfg(test)]
 mod test {
     use super::Gba;
@@ -443,12 +451,4 @@ mod test {
             assert_eq!(c, u32::MAX, "expected content to be {}", u32::MAX);
         }
     }
-}
-
-#[inline(never)]
-pub(crate) fn program_counter_before_interrupt() -> u32 {
-    extern "C" {
-        static mut agb_rs__program_counter: u32;
-    }
-    unsafe { agb_rs__program_counter }
 }
