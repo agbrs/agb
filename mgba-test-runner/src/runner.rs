@@ -3,6 +3,7 @@ use crate::bindings;
 use std::ffi::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::marker::PhantomData;
 use std::os::raw::c_char;
 
 #[allow(
@@ -12,8 +13,9 @@ use std::os::raw::c_char;
     non_snake_case
 )]
 
-pub struct MGBA {
+pub struct MGBA<'a> {
     mgba: *mut bindings::MGBA,
+    _phantom: PhantomData<&'a ()>,
 }
 
 pub struct VideoBuffer {
@@ -34,14 +36,17 @@ impl VideoBuffer {
     }
 }
 
-impl MGBA {
+impl<'a> MGBA<'a> {
     pub fn new(filename: &str) -> Result<Self, anyhow::Error> {
         let c_str = CString::new(filename).expect("should be able to make cstring from filename");
         let mgba = unsafe { bindings::new_runner(c_str.as_ptr() as *mut c_char) };
         if mgba.is_null() {
             Err(anyhow::anyhow!("could not create core"))
         } else {
-            Ok(MGBA { mgba })
+            Ok(MGBA {
+                mgba,
+                _phantom: PhantomData,
+            })
         }
     }
 
@@ -57,7 +62,7 @@ impl MGBA {
     pub fn advance_frame(&mut self) {
         unsafe { bindings::advance_frame(self.mgba) }
     }
-    pub fn set_logger(&mut self, mut logger: impl FnMut(&str)) {
+    pub fn set_logger(&mut self, logger: impl Fn(&str) + 'a) {
         unsafe {
             let callback = generate_c_callback(move |message: *mut c_char| {
                 logger(
@@ -99,7 +104,7 @@ extern "C" fn drop_box<T>(data: *mut c_void) {
     }
 }
 
-impl Drop for MGBA {
+impl Drop for MGBA<'_> {
     fn drop(&mut self) {
         unsafe { bindings::free_runner(self.mgba) }
     }
