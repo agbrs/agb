@@ -10,6 +10,7 @@ agb = { version = "0.14.0", path = "../../agb" }
 the-purple-night = { path = "../the-purple-night" }
 the-hat-chooses-the-wizard = { path = "../the-hat-chooses-the-wizard" }
 hyperspace-roll = { path = "../hyperspace-roll" }
+amplitude = { path = "../amplitude" }
 
 
 [profile.dev]
