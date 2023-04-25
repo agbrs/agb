@@ -9,10 +9,10 @@ extern crate alloc;
 use agb::{
     display::{
         self,
-        affine::{self, AffineMatrix},
+        affine::AffineMatrix,
         object::{
             AffineMatrixInstance, AffineMode, Graphics, OamIterator, ObjectUnmanaged, Sprite,
-            SpriteLoader, SpriteVram, Tag, TagMap,
+            SpriteLoader, SpriteVram, Tag,
         },
         palette16::Palette16,
     },
@@ -124,7 +124,6 @@ struct Game {
     head_position: Vector2D<Number>,
     phase_time: Number,
     input: ButtonController,
-    energy: Number,
     frame_since_last_saw: i32,
     alive_frames: u32,
 }
@@ -150,7 +149,6 @@ impl Game {
         }
 
         Game {
-            energy: 100.into(),
             input: agb::input::ButtonController::new(),
             settings: finalised,
             circles,
@@ -362,7 +360,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
             );
             game.render(oam_frame, &sprite_cache);
 
-            if let GameState::Loss(score) = state {
+            if let GameState::Loss(_) = state {
                 for _ in 0..30 {
                     vblank.wait_for_vblank();
                 }
