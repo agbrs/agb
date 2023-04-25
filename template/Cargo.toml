@@ -10,11 +10,11 @@ edition = "2021"
 agb = "0.14.0"
 
 [profile.dev]
-opt-level = 2
+opt-level = 3
 debug = true
 
 [profile.release]
-panic = "abort"
-lto = true
+opt-level = 3
+lto = "fat"
 debug = true
 codegen-units = 1

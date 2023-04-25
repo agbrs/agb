@@ -7,16 +7,6 @@ description = "Library for Game Boy Advance Development"
 license = "MPL-2.0"
 repository = "https://github.com/agbrs/agb"
 
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
-codegen-units = 1
-
 [features]
 default = ["testing"]
 testing = []
@@ -35,3 +25,13 @@ rustc-hash =  { version = "1", default-features = false }
 [package.metadata.docs.rs]
 default-target = "thumbv6m-none-eabi"
 targets = []
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
+codegen-units = 1

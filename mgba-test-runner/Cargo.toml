@@ -4,11 +4,6 @@ version = "0.1.0"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[profile.release]
-debug = true
-
 [dependencies]
 regex = "1"
 anyhow = "1"
@@ -16,3 +11,13 @@ image = { version = "0.24", default-features = false, features = [ "png", "bmp" 
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
+codegen-units = 1

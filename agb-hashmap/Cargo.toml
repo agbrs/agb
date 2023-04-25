@@ -11,3 +11,13 @@ rustc-hash = { version = "1", default-features = false }
 
 [dev-dependencies]
 rand = { version = "0.8", default-features = false, features = ["small_rng"] }
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
+codegen-units = 1
