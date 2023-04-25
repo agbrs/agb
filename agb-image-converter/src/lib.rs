@@ -569,21 +569,6 @@ pub fn include_font(input: TokenStream) -> TokenStream {
     .into()
 }
 
-#[cfg(test)]
-mod tests {
-    use asefile::AnimationDirection;
-
-    #[test]
-    // These directions defined in agb and have these values. This is important
-    // when outputting code for agb. If more animation directions are added then
-    // we will have to support them there.
-    fn directions_to_agb() {
-        assert_eq!(AnimationDirection::Forward as usize, 0);
-        assert_eq!(AnimationDirection::Reverse as usize, 1);
-        assert_eq!(AnimationDirection::PingPong as usize, 2);
-    }
-}
-
 fn valid_sprite_size(width: u32, height: u32) -> bool {
     match (width, height) {
         (8, 8) => true,
@@ -599,5 +584,20 @@ fn valid_sprite_size(width: u32, height: u32) -> bool {
         (16, 32) => true,
         (32, 64) => true,
         (_, _) => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use asefile::AnimationDirection;
+
+    #[test]
+    // These directions defined in agb and have these values. This is important
+    // when outputting code for agb. If more animation directions are added then
+    // we will have to support them there.
+    fn directions_to_agb() {
+        assert_eq!(AnimationDirection::Forward as usize, 0);
+        assert_eq!(AnimationDirection::Reverse as usize, 1);
+        assert_eq!(AnimationDirection::PingPong as usize, 2);
     }
 }
