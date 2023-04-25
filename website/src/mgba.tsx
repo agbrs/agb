@@ -24,6 +24,7 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
   const mgbaModule = useRef<Module>({});
 
   const [state, setState] = useState(MgbaState.Uninitialised);
+  const [gameLoaded, setGameLoaded] = useState(false);
 
   useEffect(() => {
     if (state !== MgbaState.Initialised) return;
@@ -34,6 +35,7 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
       const gamePath = `${MGBA_ROM_DIRECTORY}/${gameUrl}`;
       mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
       mgbaModule.current.loadGame(gamePath);
+      setGameLoaded(true);
     })();
   }, [state, gameUrl]);
 
@@ -67,12 +69,12 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
         try {
           mgbaModule.current.quitGame();
           mgbaModule.current.quitMgba();
-        } catch {}
+        } catch { }
       };
   }, [state]);
 
   useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
+    if (!gameLoaded) return;
 
     const controlEntries = Object.entries(controls);
 
@@ -86,22 +88,22 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
 
       mgbaModule.current.bindKey(binding, key);
     }
-  }, [controls, state]);
+  }, [controls, gameLoaded]);
 
   useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
+    if (!gameLoaded) return;
     mgbaModule.current.setVolume(volume ?? 1.0);
-  }, [state, volume]);
+  }, [gameLoaded, volume]);
 
   useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
+    if (!gameLoaded) return;
 
     if (paused) {
       mgbaModule.current.pauseGame();
     } else {
       mgbaModule.current.resumeGame();
     }
-  }, [state, paused]);
+  }, [gameLoaded, paused]);
 
   return (
     <>
