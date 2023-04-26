@@ -35,7 +35,7 @@ impl Game {
     }
 
     fn from_index(index: i32) -> Game {
-        match index.rem_euclid(3) {
+        match index.rem_euclid(4) {
             0 => Game::TheHatChoosesTheWizard,
             1 => Game::ThePurpleNight,
             2 => Game::HyperspaceRoll,
