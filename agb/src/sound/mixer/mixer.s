@@ -1,5 +1,3 @@
-.include "src/asm_include.s"
-
 .section .iwram.buffer_size
     .global agb_rs__buffer_size
     .balign 4

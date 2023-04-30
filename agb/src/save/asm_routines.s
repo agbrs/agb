@@ -1,5 +1,3 @@
-.include "src/asm_include.s"
-
 @
 @ char WramReadByte(const char* offset);
 @

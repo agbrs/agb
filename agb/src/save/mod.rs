@@ -90,15 +90,11 @@ use crate::sync::{Mutex, RawMutexGuard};
 use crate::timer::Timer;
 use core::ops::Range;
 
-use core::arch::global_asm;
-
 mod asm_utils;
 mod eeprom;
 mod flash;
 mod sram;
 mod utils;
-
-global_asm!(include_str!("asm_routines.s"));
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
