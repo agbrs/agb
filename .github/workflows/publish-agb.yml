@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install build-essential binutils-arm-none-eabi zip -y
+        run: sudo apt-get update && sudo apt-get install build-essential zip -y
       - name: Check out repository
         uses: actions/checkout@v3
         with:
