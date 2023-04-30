@@ -12,11 +12,6 @@ all the boiler plate files for you.
 You will need the following installed in order to build and run this project:
 
 * A recent version of `rustup`. See the [rust website](https://www.rust-lang.org/tools/install) for instructions for your operating system
-* `arm-none-eabi-binutils` for assembling and linking
-    * Windows: [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
-        Make sure you select "Add path to environment variable" during the install
-    * Debian and derivatives (e.g. Ubuntu, raspberry pi OS, linux mint): `sudo apt install binutils-arm-none-eabi`
-    * Arch linux and derivatives: `sudo pacman -S arm-none-eabi-binutils`
 
 You will also want to install an emulator. The best support in agb is with [mgba](https://mgba.io), with
 `println!` support via `agb::println!` but any emulator should work. You'll get the best experience if
