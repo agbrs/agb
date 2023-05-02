@@ -11,8 +11,6 @@
 ===============================================================================
 */
 
-.include "src/agbabi/macros.inc"
-
     .arm
 
     .section .iwram.__aeabi_memcpy, "ax", %progbits
