@@ -12,6 +12,7 @@ agb = { version = "0.15.0", path = "../../agb" }
 [profile.dev]
 opt-level = 2
 debug = true
+codegen-units = 1
 
 [profile.release]
 panic = "abort"
