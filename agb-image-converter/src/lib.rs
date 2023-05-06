@@ -432,8 +432,8 @@ fn palette_tile_data(
 
     let mut tile_data = Vec::new();
 
-    for image in images {
-        add_image_to_tile_data(&mut tile_data, image, optimiser, 0)
+    for (image_idx, image) in images.iter().enumerate() {
+        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);

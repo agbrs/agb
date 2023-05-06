@@ -138,23 +138,20 @@ impl Palette16Optimiser {
         while !unsatisfied_palettes.is_empty() {
             let palette = self.find_maximal_palette_for(&unsatisfied_palettes);
 
-            for test_palette in unsatisfied_palettes.clone() {
-                if test_palette.is_satisfied_by(&palette) {
-                    unsatisfied_palettes.remove(&test_palette);
-                }
-            }
-
-            for (i, overall_palette) in self.palettes.iter().enumerate() {
-                if overall_palette.is_satisfied_by(&palette) {
-                    assignments[i] = optimised_palettes.len();
-                }
-            }
+            unsatisfied_palettes.retain(|test_palette| !test_palette.is_satisfied_by(&palette));
 
             optimised_palettes.push(palette);
 
             if optimised_palettes.len() == MAX_COLOURS / MAX_COLOURS_PER_PALETTE {
                 panic!("Failed to find covering palettes");
             }
+        }
+
+        for (i, overall_palette) in self.palettes.iter().enumerate() {
+            assignments[i] = optimised_palettes
+                .iter()
+                .position(|palette| overall_palette.is_satisfied_by(palette))
+                .unwrap();
         }
 
         Palette16OptimisationResults {
