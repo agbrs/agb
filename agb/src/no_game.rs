@@ -87,10 +87,8 @@ fn letters() -> Vec<Vec<Vector2D<Num<i32, 8>>>> {
             (num!(3.), num!(1.)).into(),
             (num!(3.), num!(0.)).into(),
             (num!(1.5), num!(1.5)).into(),
-            (num!(0.5), num!(0.5)).into(),
-            (num!(2.5), num!(0.5)).into(),
-            (num!(1.), num!(1.)).into(),
-            (num!(2.), num!(1.)).into(),
+            (num!(0.75), num!(0.75)).into(),
+            (num!(2.25), num!(0.75)).into(),
         ],
         // E
         vec![
