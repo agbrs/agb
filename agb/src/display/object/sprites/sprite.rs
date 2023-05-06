@@ -94,6 +94,7 @@ macro_rules! align_bytes {
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
+        #[allow(unused_imports)]
         use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
         use $crate::align_bytes;
