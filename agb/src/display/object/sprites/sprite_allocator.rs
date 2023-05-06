@@ -1,6 +1,11 @@
-use core::ptr::NonNull;
+use core::{alloc::Allocator, ptr::NonNull};
 
-use alloc::rc::{Rc, Weak};
+use alloc::{
+    alloc::Global,
+    boxed::Box,
+    rc::{Rc, Weak},
+    vec::Vec,
+};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
@@ -285,34 +290,61 @@ impl Default for SpriteLoader {
 }
 
 /// Sprite data that can be used to create sprites in vram.
-pub struct DynamicSprite<'a> {
-    data: &'a [u8],
+pub struct DynamicSprite<A: Allocator = Global> {
+    data: Box<[u8], A>,
     size: Size,
 }
 
-impl DynamicSprite<'_> {
+impl DynamicSprite {
     #[must_use]
-    /// Creates a new dynamic sprite from underlying bytes. Note that despite
-    /// being an array of u8, this must be aligned to at least a 2 byte
-    /// boundary.
-    pub fn new(data: &[u8], size: Size) -> DynamicSprite {
-        let ptr = &data[0] as *const _ as usize;
-        if ptr % 2 != 0 {
-            panic!("data is not aligned to a 2 byte boundary");
-        }
-        if data.len() != size.number_of_tiles() * BYTES_PER_TILE_4BPP {
-            panic!(
-                "data is not of expected length, got {} expected {}",
-                data.len(),
-                size.number_of_tiles() * BYTES_PER_TILE_4BPP
-            );
-        }
+    /// Creates a new dynamic sprite.
+    pub fn new(size: Size) -> Self {
+        Self::new_in(size, Global)
+    }
+}
+
+impl<A: Allocator> DynamicSprite<A> {
+    #[must_use]
+    /// Creates a new dynamic sprite of a given size in a given allocator.
+    pub fn new_in(size: Size, allocator: A) -> Self {
+        let num_bytes = size.number_of_tiles() * BYTES_PER_TILE_4BPP;
+        let mut data = Vec::with_capacity_in(num_bytes, allocator);
+
+        data.resize(num_bytes, 0);
+
+        let data = data.into_boxed_slice();
+
         DynamicSprite { data, size }
+    }
+
+    /// Set the pixel of a sprite to a given paletted pixel. Panics if the
+    /// coordinate is out of range of the sprite or if the paletted pixel is
+    /// greater than 4 bits.
+    pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: usize) {
+        assert!(paletted_pixel < 0x10);
+
+        let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
+        assert!(x < sprite_pixel_x, "x too big for sprite size");
+        assert!(y < sprite_pixel_y, "y too big for sprite size");
+
+        let (sprite_tile_x, _) = self.size.to_tiles_width_height();
+
+        let (adjust_tile_x, adjust_tile_y) = (x / 8, y / 8);
+
+        let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
+
+        let byte_to_modify_in_tile = x / 2 + y * 4;
+        let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_4BPP + byte_to_modify_in_tile;
+        let mut byte = self.data[byte_to_modify];
+        let parity = (x & 0b1) * 4;
+
+        byte = (byte & !(0b1111 << parity)) | ((paletted_pixel as u8) << parity);
+        self.data[byte_to_modify] = byte;
     }
 
     /// Tries to copy the sprite to vram to be used to set object sprites.
     pub fn try_vram(&self, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
-        SpriteVram::new(self.data, self.size, palette)
+        SpriteVram::new(&self.data, self.size, palette)
     }
 
     #[must_use]

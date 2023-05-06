@@ -368,4 +368,11 @@ impl Size {
             Size::S32x64 => (32, 64),
         }
     }
+
+    #[must_use]
+    /// Returns the width and height of the size in pixels.
+    pub const fn to_tiles_width_height(self) -> (usize, usize) {
+        let wh = self.to_width_height();
+        (wh.0 / 8, wh.1 / 8)
+    }
 }
