@@ -145,7 +145,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 }
 
 pub fn no_game(mut gba: crate::Gba) -> ! {
-    let (mut oam, mut loader) = gba.display.object.get_unmanaged();
+    let (mut oam, _) = gba.display.object.get_unmanaged();
 
     let squares = generate_sprites();
 
