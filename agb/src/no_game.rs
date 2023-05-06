@@ -7,7 +7,6 @@ use alloc::vec::Vec;
 use crate::{
     display::{
         object::{OamIterator, ObjectUnmanaged, Sprite},
-        palette16::Palette16,
         HEIGHT, WIDTH,
     },
     include_aseprite,
