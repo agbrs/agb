@@ -15,13 +15,3 @@ hound = "3.5"
 syn = "2"
 proc-macro2 = "1"
 quote = "1"
-
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
-codegen-units = 1

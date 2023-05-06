@@ -17,13 +17,3 @@ proc-macro2 = "1"
 quote = "1"
 asefile = "0.3.5"
 fontdue = "0.7"
-
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
-codegen-units = 1
