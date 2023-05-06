@@ -14,7 +14,7 @@ use crate::{
     interrupt::VBlank,
 };
 
-const SQUARE: &Sprite = &include_aseprite!("gfx/square.aseprite").sprites()[0];
+const SQUARES: &[Sprite] = include_aseprite!("gfx/square.aseprite").sprites();
 
 fn letters() -> Vec<Vec<Vector2D<Num<i32, 8>>>> {
     vec![
@@ -136,7 +136,10 @@ impl<T: Renderable> Renderable for &[T] {
 pub fn no_game(mut gba: crate::Gba) -> ! {
     let (mut oam, mut loader) = gba.display.object.get_unmanaged();
 
-    let square = loader.get_vram_sprite(SQUARE);
+    let squares: Vec<_> = SQUARES
+        .iter()
+        .map(|sprite| loader.get_vram_sprite(sprite))
+        .collect();
 
     let mut letter_positons = Vec::new();
 
@@ -177,13 +180,14 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
     let mut time: Num<i32, 8> = num!(0.);
     let time_delta: Num<i32, 8> = num!(0.025);
 
-    let (_background, mut vram) = gba.display.video.tiled0();
+    // let (_background, mut vram) = gba.display.video.tiled0();
 
-    vram.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
+    // vram.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
     let vblank = VBlank::get();
 
     loop {
+        let mut rng = crate::rng::RandomNumberGenerator::new();
         time += time_delta;
         time %= 1;
         let letters: Vec<ObjectUnmanaged> = letter_positons
@@ -194,7 +198,8 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
                 *position + Vector2D::new(time.sin(), time.cos()) * 10
             })
             .map(|pos| {
-                let mut obj = ObjectUnmanaged::new(square.clone());
+                let mut obj =
+                    ObjectUnmanaged::new(squares[rng.gen() as usize % squares.len()].clone());
                 obj.show().set_position(pos.floor());
                 obj
             })
