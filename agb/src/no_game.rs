@@ -152,7 +152,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
     let square_positions = {
         let mut s = letters();
         for letter in s.iter_mut() {
-            letter.sort_by_key(|a| a.manhattan_distance());
+            letter.sort_by_key(|a| a.magnitude_squared());
         }
         s
     };
