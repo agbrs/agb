@@ -189,7 +189,6 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
     let vblank = VBlank::get();
 
     loop {
-        let mut rng = crate::rng::RandomNumberGenerator::new();
         time += time_delta;
         time %= 1;
         let letters: Vec<ObjectUnmanaged> = letter_positons
@@ -197,11 +196,10 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
             .enumerate()
             .map(|(idx, position)| {
                 let time = time + Num::<i32, 8>::new(idx as i32) / 128;
-                *position + Vector2D::new(time.sin(), time.cos()) * 10
+                (idx, *position + Vector2D::new(time.sin(), time.cos()) * 10)
             })
-            .map(|pos| {
-                let mut obj =
-                    ObjectUnmanaged::new(squares[rng.gen() as usize % squares.len()].clone());
+            .map(|(idx, pos)| {
+                let mut obj = ObjectUnmanaged::new(squares[idx % squares.len()].clone());
                 obj.show().set_position(pos.floor());
                 obj
             })
