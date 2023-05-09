@@ -570,7 +570,12 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
 
     /// Gets a reference to the value in the entry.
     pub fn get(&self) -> &V {
-        self.map.nodes.node_at(self.location).value_ref().unwrap()
+        unsafe {
+            self.map
+                .nodes
+                .node_at_unchecked(self.location)
+                .value_ref_unchecked()
+        }
     }
 
     /// Gets a mutable reference to the value in the entry.
@@ -580,11 +585,12 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
     ///
     /// [`into_mut`]: Self::into_mut
     pub fn get_mut(&mut self) -> &mut V {
-        self.map
-            .nodes
-            .node_at_mut(self.location)
-            .value_mut()
-            .unwrap()
+        unsafe {
+            self.map
+                .nodes
+                .node_at_unchecked_mut(self.location)
+                .value_mut_unchecked()
+        }
     }
 
     /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
@@ -594,19 +600,22 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
     ///
     /// [`get_mut`]: Self::get_mut
     pub fn into_mut(self) -> &'a mut V {
-        self.map
-            .nodes
-            .node_at_mut(self.location)
-            .value_mut()
-            .unwrap()
+        unsafe {
+            self.map
+                .nodes
+                .node_at_unchecked_mut(self.location)
+                .value_mut_unchecked()
+        }
     }
 
     /// Sets the value of the entry and returns the entry's old value.
     pub fn insert(&mut self, value: V) -> V {
-        self.map
-            .nodes
-            .node_at_mut(self.location)
-            .replace_value(value)
+        unsafe {
+            self.map
+                .nodes
+                .node_at_unchecked_mut(self.location)
+                .replace_value_unchecked(value)
+        }
     }
 
     /// Takes the value out of the entry and returns it.

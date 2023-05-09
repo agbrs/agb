@@ -36,18 +36,26 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn value_ref(&self) -> Option<&V> {
         if self.has_value() {
-            Some(unsafe { self.value.assume_init_ref() })
+            Some(unsafe { self.value_ref_unchecked() })
         } else {
             None
         }
     }
 
+    pub(crate) unsafe fn value_ref_unchecked(&self) -> &V {
+        self.value.assume_init_ref()
+    }
+
     pub(crate) fn value_mut(&mut self) -> Option<&mut V> {
         if self.has_value() {
-            Some(unsafe { self.value.assume_init_mut() })
+            Some(unsafe { self.value_mut_unchecked() })
         } else {
             None
         }
+    }
+
+    pub(crate) unsafe fn value_mut_unchecked(&mut self) -> &mut V {
+        self.value.assume_init_mut()
     }
 
     pub(crate) fn key_ref(&self) -> Option<&K> {
@@ -90,13 +98,9 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    pub(crate) fn replace_value(&mut self, value: V) -> V {
-        if self.has_value() {
-            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
-            unsafe { old_value.assume_init() }
-        } else {
-            panic!("Cannot replace an uninitialised node");
-        }
+    pub(crate) unsafe fn replace_value_unchecked(&mut self, value: V) -> V {
+        let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
+        old_value.assume_init()
     }
 
     pub(crate) fn replace(&mut self, key: K, value: V) -> (K, V) {

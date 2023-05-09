@@ -185,6 +185,14 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     pub(crate) fn node_at_mut(&mut self, at: usize) -> &mut Node<K, V> {
         &mut self.nodes[at]
     }
+
+    pub(crate) unsafe fn node_at_unchecked(&self, at: usize) -> &Node<K, V> {
+        self.nodes.get_unchecked(at)
+    }
+
+    pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
+        self.nodes.get_unchecked_mut(at)
+    }
 }
 
 const fn fast_mod(len: usize, hash: HashType) -> usize {
