@@ -146,12 +146,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
             );
 
             let node = &self.nodes[location];
-            if let Some(node_key_ref) = node.key_ref() {
-                if node_key_ref.borrow() == key {
-                    return Some(location);
-                }
-            } else {
-                return None;
+            let node_key_ref = node.key_ref()?;
+
+            if node_key_ref.borrow() == key {
+                return Some(location);
             }
         }
 
