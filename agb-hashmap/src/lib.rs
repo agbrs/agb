@@ -350,9 +350,12 @@ where
     {
         let hash = self.hash(key);
 
-        self.nodes
-            .location(key, hash)
-            .and_then(|location| self.nodes.node_at(location).key_value_ref())
+        let location = self.nodes.location(key, hash)?;
+        Some(unsafe {
+            self.nodes
+                .node_at_unchecked(location)
+                .key_value_ref_unchecked()
+        })
     }
 
     /// Returns a reference to the value corresponding to the key. Returns [`None`] if there is

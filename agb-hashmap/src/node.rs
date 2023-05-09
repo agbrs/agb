@@ -66,12 +66,8 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    pub(crate) fn key_value_ref(&self) -> Option<(&K, &V)> {
-        if self.has_value() {
-            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_ref()) })
-        } else {
-            None
-        }
+    pub(crate) unsafe fn key_value_ref_unchecked(&self) -> (&K, &V) {
+        (self.key.assume_init_ref(), self.value.assume_init_ref())
     }
 
     pub(crate) fn key_value_mut(&mut self) -> Option<(&K, &mut V)> {
