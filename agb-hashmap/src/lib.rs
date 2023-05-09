@@ -1190,6 +1190,8 @@ mod test {
     // Following test cases copied from the rust source
     // https://github.com/rust-lang/rust/blob/master/library/std/src/collections/hash/map/tests.rs
     mod rust_std_tests {
+        use alloc::format;
+
         use crate::{Entry::*, HashMap};
 
         #[test]
@@ -1287,6 +1289,38 @@ mod test {
             map.insert(3, 4);
 
             assert_eq!(map[&2], 1);
+        }
+
+        #[test]
+        fn test_eq() {
+            let mut m1 = HashMap::new();
+            m1.insert(1, 2);
+            m1.insert(2, 3);
+            m1.insert(3, 4);
+
+            let mut m2 = HashMap::new();
+            m2.insert(1, 2);
+            m2.insert(2, 3);
+
+            assert!(m1 != m2);
+
+            m2.insert(3, 4);
+
+            assert_eq!(m1, m2);
+        }
+
+        #[test]
+        fn test_show() {
+            let mut map = HashMap::new();
+            let empty: HashMap<i32, i32> = HashMap::new();
+
+            map.insert(1, 2);
+            map.insert(3, 4);
+
+            let map_str = format!("{map:?}");
+
+            assert!(map_str == "{1: 2, 3: 4}" || map_str == "{3: 4, 1: 2}");
+            assert_eq!(format!("{empty:?}"), "{}");
         }
     }
 }
