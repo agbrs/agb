@@ -4,6 +4,7 @@ use alloc::{alloc::Global, vec::Vec};
 
 use crate::{node::Node, number_before_resize, ClonableAllocator, HashType};
 
+#[derive(Clone)]
 pub(crate) struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
     nodes: Vec<Node<K, V>, ALLOCATOR>,
     max_distance_to_initial_bucket: i32,

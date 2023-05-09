@@ -144,3 +144,28 @@ impl<K, V> Default for Node<K, V> {
         Self::new()
     }
 }
+
+impl<K, V> Clone for Node<K, V>
+where
+    K: Clone,
+    V: Clone,
+{
+    fn clone(&self) -> Self {
+        if self.has_value() {
+            Self {
+                hash: self.hash,
+                distance_to_initial_bucket: self.distance_to_initial_bucket,
+                key: MaybeUninit::new(unsafe { self.key.assume_init_ref() }.clone()),
+                value: MaybeUninit::new(unsafe { self.value.assume_init_ref() }.clone()),
+            }
+        } else {
+            Self {
+                hash: self.hash,
+
+                distance_to_initial_bucket: self.distance_to_initial_bucket,
+                key: MaybeUninit::uninit(),
+                value: MaybeUninit::uninit(),
+            }
+        }
+    }
+}

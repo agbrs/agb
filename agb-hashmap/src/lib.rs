@@ -136,6 +136,7 @@ type HashType = u32;
 ///     println!("{game}: \"{review}\"");
 /// }
 /// ```
+#[derive(Clone)]
 pub struct HashMap<K, V, ALLOCATOR: Allocator = Global> {
     nodes: NodeStorage<K, V, ALLOCATOR>,
 
