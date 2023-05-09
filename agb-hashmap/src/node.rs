@@ -132,9 +132,11 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn decrement_distance(&mut self) {
         self.distance_to_initial_bucket -= 1;
-        if self.distance_to_initial_bucket < 0 {
-            panic!("Cannot decrement distance to below 0");
-        }
+
+        assert!(
+            self.distance_to_initial_bucket >= 0,
+            "Cannot decrement distance below 0"
+        );
     }
 
     pub(crate) fn distance(&self) -> i32 {

@@ -17,6 +17,11 @@
 #![deny(unreachable_pub)]
 #![deny(clippy::missing_safety_doc)]
 #![deny(clippy::undocumented_unsafe_blocks)]
+#![deny(clippy::manual_assert)]
+#![deny(clippy::default_trait_access)]
+#![deny(clippy::missing_panics_doc)]
+#![deny(clippy::doc_markdown)]
+#![deny(clippy::return_self_not_must_use)]
 
 extern crate alloc;
 
@@ -104,7 +109,7 @@ type HashType = u32;
 ///
 /// The API surface provided is incredibly similar to the
 /// [`std::collections::HashMap`](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
-/// implementation with fewer guarantees, and better optimised for the GameBoy Advance.
+/// implementation with fewer guarantees, and better optimised for the `GameBoy Advance`.
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
 /// [`Hash`]: https://doc.rust-lang.org/core/hash/trait.Hash.html
@@ -179,7 +184,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn with_size_in(size: usize, alloc: ALLOCATOR) -> Self {
         Self {
             nodes: NodeStorage::with_size_in(size, alloc),
-            hasher: Default::default(),
+            hasher: BuildHasherDefault::default(),
         }
     }
 
@@ -196,6 +201,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
     /// internal size may be larger as it must be a power of 2
+    ///
+    /// # Panics
+    ///
+    /// Panics if capacity is larger than 2^32 * .85
     #[must_use]
     pub fn with_capacity_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         for i in 0..32 {
@@ -511,7 +520,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, 
 /// An iterator over entries of a [`HashMap`]
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
-/// of the IntoIterator trait.
+/// of the `IntoIterator` trait.
 pub struct IterOwned<K, V, ALLOCATOR: Allocator = Global> {
     map: HashMap<K, V, ALLOCATOR>,
     at: usize,
@@ -548,7 +557,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
 /// An iterator over entries of a [`HashMap`]
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
-/// of the IntoIterator trait.
+/// of the `IntoIterator` trait.
 impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATOR> {
     type Item = (K, V);
     type IntoIter = IterOwned<K, V, ALLOCATOR>;
@@ -748,6 +757,7 @@ where
 
     /// Provides in-place mutable access to an occupied entry before any potential inserts
     /// into the map.
+    #[must_use]
     pub fn and_modify<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut V),
@@ -943,7 +953,7 @@ mod test {
         let mut max_found = -1;
         let mut num_found = 0;
 
-        for (_, value) in map.into_iter() {
+        for (_, value) in map {
             max_found = max_found.max(value);
             num_found += 1;
         }
@@ -993,9 +1003,7 @@ mod test {
 
     impl Drop for NoisyDrop {
         fn drop(&mut self) {
-            if self.dropped {
-                panic!("NoisyDropped dropped twice");
-            }
+            assert!(!self.dropped, "NoisyDropped dropped twice");
 
             self.dropped = true;
         }
@@ -1085,7 +1093,7 @@ mod test {
     impl DropRegistry {
         fn new() -> Self {
             Self {
-                are_dropped: Default::default(),
+                are_dropped: RefCell::default(),
             }
         }
 

@@ -19,7 +19,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
         let mut nodes = Vec::with_capacity_in(capacity, alloc);
         for _ in 0..capacity {
-            nodes.push(Default::default());
+            nodes.push(Node::default());
         }
 
         Self {
