@@ -787,6 +787,28 @@ where
     }
 }
 
+impl<K, V, ALLOCATOR: ClonableAllocator> PartialEq for HashMap<K, V, ALLOCATOR>
+where
+    K: Eq + Hash,
+    V: PartialEq,
+{
+    fn eq(&self, other: &HashMap<K, V, ALLOCATOR>) -> bool {
+        if self.len() != other.len() {
+            return false;
+        }
+
+        self.iter()
+            .all(|(key, value)| other.get(key).map_or(false, |v| *value == *v))
+    }
+}
+
+impl<K, V, ALLOCATOR: ClonableAllocator> Eq for HashMap<K, V, ALLOCATOR>
+where
+    K: Eq + Hash,
+    V: PartialEq,
+{
+}
+
 const fn number_before_resize(capacity: usize) -> usize {
     capacity * 85 / 100
 }
