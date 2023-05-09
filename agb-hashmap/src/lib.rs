@@ -14,6 +14,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(rustdoc::private_intra_doc_links)]
 #![deny(rustdoc::invalid_html_tags)]
+#![deny(unreachable_pub)]
 
 extern crate alloc;
 
@@ -1048,13 +1049,13 @@ mod test {
     }
 
     impl DropRegistry {
-        pub fn new() -> Self {
+        fn new() -> Self {
             Self {
                 are_dropped: Default::default(),
             }
         }
 
-        pub fn new_droppable(&self) -> Droppable<'_> {
+        fn new_droppable(&self) -> Droppable<'_> {
             self.are_dropped.borrow_mut().push(0);
             Droppable {
                 id: self.are_dropped.borrow().len() - 1,
@@ -1062,19 +1063,19 @@ mod test {
             }
         }
 
-        pub fn dropped(&self, id: usize) {
+        fn dropped(&self, id: usize) {
             self.are_dropped.borrow_mut()[id] += 1;
         }
 
-        pub fn assert_dropped_once(&self, id: usize) {
+        fn assert_dropped_once(&self, id: usize) {
             assert_eq!(self.are_dropped.borrow()[id], 1);
         }
 
-        pub fn assert_not_dropped(&self, id: usize) {
+        fn assert_not_dropped(&self, id: usize) {
             assert_eq!(self.are_dropped.borrow()[id], 0);
         }
 
-        pub fn assert_dropped_n_times(&self, id: usize, num_drops: i32) {
+        fn assert_dropped_n_times(&self, id: usize, num_drops: i32) {
             assert_eq!(self.are_dropped.borrow()[id], num_drops);
         }
     }
