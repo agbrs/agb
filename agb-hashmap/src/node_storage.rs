@@ -58,10 +58,9 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         let mut inserted_location = usize::MAX;
 
         loop {
-            let location = fast_mod(
-                self.backing_vec_size(),
-                new_node.hash() + new_node.distance() as HashType,
-            );
+            let location =
+                (new_node.hash() + new_node.distance()).fast_mod(self.backing_vec_size());
+
             let current_node = &mut self.nodes[location];
 
             if current_node.has_value() {
@@ -120,7 +119,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
         loop {
             let next_location =
-                fast_mod(self.backing_vec_size(), (current_location + 1) as HashType);
+                HashType::from(current_location + 1).fast_mod(self.backing_vec_size());
 
             // if the next node is empty, or the next location has 0 distance to initial bucket then
             // we can clear the current node
@@ -140,10 +139,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         Q: Eq + ?Sized,
     {
         for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
-            let location = fast_mod(
-                self.nodes.len(),
-                hash + distance_to_initial_bucket as HashType,
-            );
+            let location = (hash + distance_to_initial_bucket).fast_mod(self.nodes.len());
 
             let node = &self.nodes[location];
             let node_key_ref = node.key_ref()?;
@@ -191,9 +187,4 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
         self.nodes.get_unchecked_mut(at)
     }
-}
-
-const fn fast_mod(len: usize, hash: HashType) -> usize {
-    debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
-    (hash as usize) & (len - 1)
 }

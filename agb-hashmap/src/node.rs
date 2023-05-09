@@ -18,7 +18,7 @@ pub(crate) struct Node<K, V> {
 impl<K, V> Node<K, V> {
     fn new() -> Self {
         Self {
-            hash: 0,
+            hash: HashType::default(),
             distance_to_initial_bucket: -1,
             key: MaybeUninit::uninit(),
             value: MaybeUninit::uninit(),

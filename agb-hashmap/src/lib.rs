@@ -22,6 +22,7 @@
 #![deny(clippy::missing_panics_doc)]
 #![deny(clippy::doc_markdown)]
 #![deny(clippy::return_self_not_must_use)]
+#![deny(clippy::cast_possible_truncation)]
 
 extern crate alloc;
 
@@ -42,8 +43,6 @@ mod node_storage;
 
 use node::Node;
 use node_storage::NodeStorage;
-
-type HashType = u32;
 
 // # Robin Hood Hash Tables
 //
@@ -463,7 +462,7 @@ where
     {
         let mut hasher = self.hasher.build_hasher();
         key.hash(&mut hasher);
-        hasher.finish() as HashType
+        hasher.finish().into()
     }
 }
 
@@ -882,6 +881,40 @@ const fn number_before_resize(capacity: usize) -> usize {
     capacity * 85 / 100
 }
 
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HashType(u32);
+
+impl From<u64> for HashType {
+    fn from(value: u64) -> Self {
+        // we explicitly want to allow truncation
+        #[allow(clippy::cast_possible_truncation)]
+        Self(value as u32)
+    }
+}
+
+impl From<usize> for HashType {
+    fn from(value: usize) -> Self {
+        // we explicitly want to allow truncation
+        #[allow(clippy::cast_possible_truncation)]
+        Self(value as u32)
+    }
+}
+
+impl HashType {
+    pub(crate) fn fast_mod(self, len: usize) -> usize {
+        debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
+        (self.0 as usize) & (len - 1)
+    }
+}
+
+impl core::ops::Add<i32> for HashType {
+    type Output = HashType;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        Self(self.0.wrapping_add_signed(rhs))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use core::cell::RefCell;
@@ -1034,7 +1067,7 @@ mod test {
 
         for _ in 0..5_000 {
             let command = rng.next_i32().rem_euclid(2);
-            let key = rng.next_i32().rem_euclid(answers.len() as i32);
+            let key = rng.next_i32().rem_euclid(answers.len().try_into().unwrap());
             let value = rng.next_i32();
 
             match command {
@@ -1053,7 +1086,8 @@ mod test {
 
             for (i, answer) in answers.iter().enumerate() {
                 assert_eq!(
-                    map.get(&NoisyDrop::new(i as i32)).map(|nd| &nd.i),
+                    map.get(&NoisyDrop::new(i.try_into().unwrap()))
+                        .map(|nd| &nd.i),
                     answer.as_ref()
                 );
             }
