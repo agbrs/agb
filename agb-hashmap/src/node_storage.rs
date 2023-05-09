@@ -164,8 +164,15 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         new_node_storage
     }
 
-    pub(crate) fn replace_at_location(&mut self, location: usize, key: K, value: V) -> V {
-        self.nodes[location].replace(key, value).1
+    pub(crate) unsafe fn replace_at_location_unchecked(
+        &mut self,
+        location: usize,
+        key: K,
+        value: V,
+    ) -> V {
+        self.node_at_unchecked_mut(location)
+            .replace_unchecked(key, value)
+            .1
     }
 
     pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut Node<K, V>> {

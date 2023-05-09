@@ -314,7 +314,13 @@ where
         let hash = self.hash(&key);
 
         if let Some(location) = self.nodes.location(&key, hash) {
-            Some(self.nodes.replace_at_location(location, key, value))
+            Some(
+                // SAFETY: location is valid due to the above
+                unsafe {
+                    self.nodes
+                        .replace_at_location_unchecked(location, key, value)
+                },
+            )
         } else {
             if self.nodes.capacity() <= self.len() {
                 self.resize(self.nodes.backing_vec_size() * 2);
@@ -330,7 +336,11 @@ where
         let hash = self.hash(&key);
 
         let location = if let Some(location) = self.nodes.location(&key, hash) {
-            self.nodes.replace_at_location(location, key, value);
+            // SAFETY: location is valid due to the above
+            unsafe {
+                self.nodes
+                    .replace_at_location_unchecked(location, key, value);
+            }
             location
         } else {
             if self.nodes.capacity() <= self.len() {
@@ -340,7 +350,12 @@ where
             self.nodes.insert_new(key, value, hash)
         };
 
-        self.nodes.node_at_mut(location).value_mut().unwrap()
+        // SAFETY: location is always valid
+        unsafe {
+            self.nodes
+                .node_at_unchecked_mut(location)
+                .value_mut_unchecked()
+        }
     }
 
     /// Returns `true` if the map contains a value for the specified key.
