@@ -562,119 +562,133 @@ impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATO
     }
 }
 
-/// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
-pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
-    key: K,
-    map: &'a mut HashMap<K, V, ALLOCATOR>,
-    location: usize,
-}
+mod entries {
+    use core::{alloc::Allocator, hash::Hash};
 
-impl<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
-    /// # Safety
-    ///
-    /// You must call this with a valid location (one where the entry is defined)
-    unsafe fn new(key: K, map: &'a mut HashMap<K, V, ALLOCATOR>, location: usize) -> Self {
-        Self { key, map, location }
-    }
-}
+    use super::{ClonableAllocator, HashMap};
 
-impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
-    /// Gets a reference to the key in the entry.
-    pub fn key(&self) -> &K {
-        &self.key
+    /// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
+    pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
+        key: K,
+        map: &'a mut HashMap<K, V, ALLOCATOR>,
+        location: usize,
     }
 
-    /// Take the ownership of the key and value from the map.
-    pub fn remove_entry(self) -> (K, V) {
-        let old_value = self.map.nodes.remove_from_location(self.location);
-        (self.key, old_value)
-    }
+    impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
+        /// # Safety
+        ///
+        /// You must call this with a valid location (one where the entry is defined)
+        pub(crate) unsafe fn new(
+            key: K,
+            map: &'a mut HashMap<K, V, ALLOCATOR>,
+            location: usize,
+        ) -> Self {
+            Self { key, map, location }
+        }
 
-    /// Gets a reference to the value in the entry.
-    pub fn get(&self) -> &V {
-        // SAFETY: This can only be constructed with valid locations
-        unsafe {
-            self.map
-                .nodes
-                .node_at_unchecked(self.location)
-                .value_ref_unchecked()
+        /// Gets a reference to the key in the entry.
+        pub fn key(&self) -> &K {
+            &self.key
+        }
+
+        /// Take the ownership of the key and value from the map.
+        pub fn remove_entry(self) -> (K, V) {
+            let old_value = self.map.nodes.remove_from_location(self.location);
+            (self.key, old_value)
+        }
+
+        /// Gets a reference to the value in the entry.
+        pub fn get(&self) -> &V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked(self.location)
+                    .value_ref_unchecked()
+            }
+        }
+
+        /// Gets a mutable reference to the value in the entry.
+        ///
+        /// If you need a reference to the `OccupiedEntry` which may outlive the destruction
+        /// of the `Entry` value, see [`into_mut`].
+        ///
+        /// [`into_mut`]: Self::into_mut
+        pub fn get_mut(&mut self) -> &mut V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .value_mut_unchecked()
+            }
+        }
+
+        /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
+        /// a lifetime bound to the map itself.
+        ///
+        /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
+        ///
+        /// [`get_mut`]: Self::get_mut
+        pub fn into_mut(self) -> &'a mut V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .value_mut_unchecked()
+            }
+        }
+
+        /// Sets the value of the entry and returns the entry's old value.
+        pub fn insert(&mut self, value: V) -> V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .replace_value_unchecked(value)
+            }
+        }
+
+        /// Takes the value out of the entry and returns it.
+        pub fn remove(self) -> V {
+            self.map.nodes.remove_from_location(self.location)
         }
     }
 
-    /// Gets a mutable reference to the value in the entry.
-    ///
-    /// If you need a reference to the `OccupiedEntry` which may outlive the destruction
-    /// of the `Entry` value, see [`into_mut`].
-    ///
-    /// [`into_mut`]: Self::into_mut
-    pub fn get_mut(&mut self) -> &mut V {
-        // SAFETY: This can only be constructed with valid locations
-        unsafe {
-            self.map
-                .nodes
-                .node_at_unchecked_mut(self.location)
-                .value_mut_unchecked()
-        }
+    /// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
+    pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
+        key: K,
+        map: &'a mut HashMap<K, V, ALLOCATOR>,
     }
 
-    /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
-    /// a lifetime bound to the map itself.
-    ///
-    /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
-    ///
-    /// [`get_mut`]: Self::get_mut
-    pub fn into_mut(self) -> &'a mut V {
-        // SAFETY: This can only be constructed with valid locations
-        unsafe {
-            self.map
-                .nodes
-                .node_at_unchecked_mut(self.location)
-                .value_mut_unchecked()
+    impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
+        pub(crate) fn new(key: K, map: &'a mut HashMap<K, V, ALLOCATOR>) -> Self {
+            Self { key, map }
         }
-    }
 
-    /// Sets the value of the entry and returns the entry's old value.
-    pub fn insert(&mut self, value: V) -> V {
-        // SAFETY: This can only be constructed with valid locations
-        unsafe {
-            self.map
-                .nodes
-                .node_at_unchecked_mut(self.location)
-                .replace_value_unchecked(value)
+        /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
+        pub fn key(&self) -> &K {
+            &self.key
         }
-    }
 
-    /// Takes the value out of the entry and returns it.
-    pub fn remove(self) -> V {
-        self.map.nodes.remove_from_location(self.location)
+        /// Take ownership of the key
+        pub fn into_key(self) -> K {
+            self.key
+        }
+
+        /// Sets the value of the entry with the `VacantEntry`'s key and returns a mutable reference to it.
+        pub fn insert(self, value: V) -> &'a mut V
+        where
+            K: Hash + Eq,
+        {
+            self.map.insert_and_get(self.key, value)
+        }
     }
 }
 
-/// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
-pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
-    key: K,
-    map: &'a mut HashMap<K, V, ALLOCATOR>,
-}
-
-impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
-    /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
-    pub fn key(&self) -> &K {
-        &self.key
-    }
-
-    /// Take ownership of the key
-    pub fn into_key(self) -> K {
-        self.key
-    }
-
-    /// Sets the value of the entry with the `VacantEntry`'s key and returns a mutable reference to it.
-    pub fn insert(self, value: V) -> &'a mut V
-    where
-        K: Hash + Eq,
-    {
-        self.map.insert_and_get(self.key, value)
-    }
-}
+pub use entries::{OccupiedEntry, VacantEntry};
 
 /// A view into a single entry in a map, which may be vacant or occupied.
 ///
@@ -726,7 +740,7 @@ where
         match self {
             Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => {
-                let value = f(&e.key);
+                let value = f(e.key());
                 e.insert(value)
             }
         }
@@ -762,8 +776,8 @@ where
     /// Returns a reference to this entry's key.
     pub fn key(&self) -> &K {
         match self {
-            Entry::Occupied(e) => &e.key,
-            Entry::Vacant(e) => &e.key,
+            Entry::Occupied(e) => e.key(),
+            Entry::Vacant(e) => e.key(),
         }
     }
 }
@@ -783,7 +797,7 @@ where
                 unsafe { OccupiedEntry::new(key, self, location) },
             )
         } else {
-            Entry::Vacant(VacantEntry { key, map: self })
+            Entry::Vacant(VacantEntry::new(key, self))
         }
     }
 }
