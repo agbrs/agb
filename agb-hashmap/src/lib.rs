@@ -401,15 +401,12 @@ where
     {
         let hash = self.hash(key);
 
-        if let Some(location) = self.nodes.location(key, hash) {
-            Some(unsafe {
-                self.nodes
-                    .node_at_unchecked_mut(location)
-                    .value_mut_unchecked()
-            })
-        } else {
-            None
-        }
+        let location = self.nodes.location(key, hash)?;
+        Some(unsafe {
+            self.nodes
+                .node_at_unchecked_mut(location)
+                .value_mut_unchecked()
+        })
     }
 
     /// Removes the given key from the map. Returns the current value if it existed, or [`None`]
