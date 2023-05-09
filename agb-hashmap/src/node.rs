@@ -40,7 +40,10 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn value_mut(&mut self) -> Option<&mut V> {
         if self.has_value() {
-            Some(unsafe { self.value_mut_unchecked() })
+            Some(
+                // SAFETY: has a value
+                unsafe { self.value_mut_unchecked() },
+            )
         } else {
             None
         }
@@ -52,7 +55,10 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn key_ref(&self) -> Option<&K> {
         if self.distance_to_initial_bucket >= 0 {
-            Some(unsafe { self.key.assume_init_ref() })
+            Some(
+                // SAFETY: has a value
+                unsafe { self.key.assume_init_ref() },
+            )
         } else {
             None
         }
@@ -60,7 +66,10 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn key_value_ref(&self) -> Option<(&K, &V)> {
         if self.has_value() {
-            Some(unsafe { self.key_value_ref_unchecked() })
+            Some(
+                // SAFETY: has a value
+                unsafe { self.key_value_ref_unchecked() },
+            )
         } else {
             None
         }
@@ -72,7 +81,10 @@ impl<K, V> Node<K, V> {
 
     pub(crate) fn key_value_mut(&mut self) -> Option<(&K, &mut V)> {
         if self.has_value() {
-            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_mut()) })
+            Some(
+                // SAFETY: has a value
+                unsafe { (self.key.assume_init_ref(), self.value.assume_init_mut()) },
+            )
         } else {
             None
         }
@@ -88,7 +100,10 @@ impl<K, V> Node<K, V> {
             let value = mem::replace(&mut self.value, MaybeUninit::uninit());
             self.distance_to_initial_bucket = -1;
 
-            Some(unsafe { (key.assume_init(), value.assume_init(), self.hash) })
+            Some(
+                // SAFETY: has a value
+                unsafe { (key.assume_init(), value.assume_init(), self.hash) },
+            )
         } else {
             None
         }
@@ -104,6 +119,7 @@ impl<K, V> Node<K, V> {
             let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
             let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
 
+            // SAFETY: has a value
             unsafe { (old_key.assume_init(), old_value.assume_init()) }
         } else {
             panic!("Cannot replace an uninitialised node");
@@ -133,8 +149,11 @@ impl<K, V> Node<K, V> {
 impl<K, V> Drop for Node<K, V> {
     fn drop(&mut self) {
         if self.has_value() {
-            unsafe { ptr::drop_in_place(self.key.as_mut_ptr()) };
-            unsafe { ptr::drop_in_place(self.value.as_mut_ptr()) };
+            // SAFETY: has a value
+            unsafe {
+                ptr::drop_in_place(self.key.as_mut_ptr());
+                ptr::drop_in_place(self.value.as_mut_ptr());
+            }
         }
     }
 }
@@ -155,8 +174,14 @@ where
             Self {
                 hash: self.hash,
                 distance_to_initial_bucket: self.distance_to_initial_bucket,
-                key: MaybeUninit::new(unsafe { self.key.assume_init_ref() }.clone()),
-                value: MaybeUninit::new(unsafe { self.value.assume_init_ref() }.clone()),
+                key: MaybeUninit::new(
+                    // SAFETY: has a value
+                    unsafe { self.key.assume_init_ref() }.clone(),
+                ),
+                value: MaybeUninit::new(
+                    // SAFETY: has a value
+                    unsafe { self.value.assume_init_ref() }.clone(),
+                ),
             }
         } else {
             Self {

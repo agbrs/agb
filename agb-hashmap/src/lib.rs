@@ -15,6 +15,8 @@
 #![deny(rustdoc::private_intra_doc_links)]
 #![deny(rustdoc::invalid_html_tags)]
 #![deny(unreachable_pub)]
+#![deny(clippy::missing_safety_doc)]
+#![deny(clippy::undocumented_unsafe_blocks)]
 
 extern crate alloc;
 
@@ -352,11 +354,14 @@ where
         let hash = self.hash(key);
 
         let location = self.nodes.location(key, hash)?;
-        Some(unsafe {
-            self.nodes
-                .node_at_unchecked(location)
-                .key_value_ref_unchecked()
-        })
+        Some(
+            // SAFETY: we know that a node exists and has a value from the location call above
+            unsafe {
+                self.nodes
+                    .node_at_unchecked(location)
+                    .key_value_ref_unchecked()
+            },
+        )
     }
 
     /// Returns a reference to the value corresponding to the key. Returns [`None`] if there is
@@ -403,11 +408,14 @@ where
         let hash = self.hash(key);
 
         let location = self.nodes.location(key, hash)?;
-        Some(unsafe {
-            self.nodes
-                .node_at_unchecked_mut(location)
-                .value_mut_unchecked()
-        })
+        Some(
+            // SAFETY: we know that a node exists and has a value from the location call above
+            unsafe {
+                self.nodes
+                    .node_at_unchecked_mut(location)
+                    .value_mut_unchecked()
+            },
+        )
     }
 
     /// Removes the given key from the map. Returns the current value if it existed, or [`None`]
@@ -561,6 +569,15 @@ pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
     location: usize,
 }
 
+impl<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
+    /// # Safety
+    ///
+    /// You must call this with a valid location (one where the entry is defined)
+    unsafe fn new(key: K, map: &'a mut HashMap<K, V, ALLOCATOR>, location: usize) -> Self {
+        Self { key, map, location }
+    }
+}
+
 impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
     /// Gets a reference to the key in the entry.
     pub fn key(&self) -> &K {
@@ -575,6 +592,7 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
 
     /// Gets a reference to the value in the entry.
     pub fn get(&self) -> &V {
+        // SAFETY: This can only be constructed with valid locations
         unsafe {
             self.map
                 .nodes
@@ -590,6 +608,7 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
     ///
     /// [`into_mut`]: Self::into_mut
     pub fn get_mut(&mut self) -> &mut V {
+        // SAFETY: This can only be constructed with valid locations
         unsafe {
             self.map
                 .nodes
@@ -605,6 +624,7 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
     ///
     /// [`get_mut`]: Self::get_mut
     pub fn into_mut(self) -> &'a mut V {
+        // SAFETY: This can only be constructed with valid locations
         unsafe {
             self.map
                 .nodes
@@ -615,6 +635,7 @@ impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALL
 
     /// Sets the value of the entry and returns the entry's old value.
     pub fn insert(&mut self, value: V) -> V {
+        // SAFETY: This can only be constructed with valid locations
         unsafe {
             self.map
                 .nodes
@@ -757,11 +778,10 @@ where
         let location = self.nodes.location(&key, hash);
 
         if let Some(location) = location {
-            Entry::Occupied(OccupiedEntry {
-                key,
-                location,
-                map: self,
-            })
+            Entry::Occupied(
+                // SAFETY: location is valid by the call to location above
+                unsafe { OccupiedEntry::new(key, self, location) },
+            )
         } else {
             Entry::Vacant(VacantEntry { key, map: self })
         }
