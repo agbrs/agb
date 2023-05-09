@@ -34,14 +34,6 @@ impl<K, V> Node<K, V> {
         }
     }
 
-    pub(crate) fn value_ref(&self) -> Option<&V> {
-        if self.has_value() {
-            Some(unsafe { self.value_ref_unchecked() })
-        } else {
-            None
-        }
-    }
-
     pub(crate) unsafe fn value_ref_unchecked(&self) -> &V {
         self.value.assume_init_ref()
     }
@@ -61,6 +53,14 @@ impl<K, V> Node<K, V> {
     pub(crate) fn key_ref(&self) -> Option<&K> {
         if self.distance_to_initial_bucket >= 0 {
             Some(unsafe { self.key.assume_init_ref() })
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn key_value_ref(&self) -> Option<(&K, &V)> {
+        if self.has_value() {
+            Some(unsafe { self.key_value_ref_unchecked() })
         } else {
             None
         }
