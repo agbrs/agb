@@ -399,7 +399,11 @@ where
         let hash = self.hash(key);
 
         if let Some(location) = self.nodes.location(key, hash) {
-            self.nodes.node_at_mut(location).value_mut()
+            Some(unsafe {
+                self.nodes
+                    .node_at_unchecked_mut(location)
+                    .value_mut_unchecked()
+            })
         } else {
             None
         }
