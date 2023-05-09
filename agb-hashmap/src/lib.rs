@@ -21,6 +21,7 @@ use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
     borrow::Borrow,
+    fmt::Debug,
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
     iter::FromIterator,
     ops::Index,
@@ -807,6 +808,16 @@ where
     K: Eq + Hash,
     V: PartialEq,
 {
+}
+
+impl<K, V, ALLOCATOR: ClonableAllocator> Debug for HashMap<K, V, ALLOCATOR>
+where
+    K: Debug,
+    V: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_map().entries(self.iter()).finish()
+    }
 }
 
 const fn number_before_resize(capacity: usize) -> usize {
