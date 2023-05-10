@@ -142,6 +142,13 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
             let location = (hash + distance_to_initial_bucket).fast_mod(self.backing_vec_size());
 
             let node = &self.nodes[location];
+
+            // if we've seen a node which is further from home than what we'd expect to find, then
+            // our node cannot exist because it would've been inserted here.
+            if node.distance() < distance_to_initial_bucket {
+                return None;
+            }
+
             let node_key_ref = node.key_ref()?;
 
             if node_key_ref.borrow() == key {
