@@ -210,4 +210,11 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
         (ret, self.max_distance_to_initial_bucket as usize)
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.max_distance_to_initial_bucket = 0;
+        self.number_of_items = 0;
+
+        self.nodes.fill_with(Node::new);
+    }
 }

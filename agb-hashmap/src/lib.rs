@@ -254,8 +254,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// Removes all elements from the map
     pub fn clear(&mut self) {
-        self.nodes =
-            NodeStorage::with_size_in(self.nodes.backing_vec_size(), self.allocator().clone());
+        self.nodes.clear();
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order
