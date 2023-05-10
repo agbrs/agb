@@ -477,7 +477,12 @@ where
     {
         let mut hasher = self.hasher.build_hasher();
         key.hash(&mut hasher);
-        hasher.finish().into()
+        let result = hasher.finish();
+
+        // we want to allow truncation here since we're reducing 64 bits to 32
+        #[allow(clippy::cast_possible_truncation)]
+        let reduced = (result as u32) ^ ((result >> 32) as u32);
+        HashType::bit_mix(reduced)
     }
 }
 
@@ -899,14 +904,6 @@ const fn number_before_resize(capacity: usize) -> usize {
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HashType(u32);
 
-impl From<u64> for HashType {
-    fn from(value: u64) -> Self {
-        // we explicitly want to allow truncation
-        #[allow(clippy::cast_possible_truncation)]
-        Self(value as u32)
-    }
-}
-
 impl From<usize> for HashType {
     fn from(value: usize) -> Self {
         // we explicitly want to allow truncation
@@ -916,6 +913,16 @@ impl From<usize> for HashType {
 }
 
 impl HashType {
+    // 32 bit mix function from here: https://gist.github.com/badboy/6267743
+    fn bit_mix(key: u32) -> Self {
+        let key = !key.wrapping_add(key << 15);
+        let key = key ^ key.rotate_right(12);
+        let key = key.wrapping_add(key << 2);
+        let key = key ^ key.rotate_right(4);
+        let key = key.wrapping_add(key << 3).wrapping_add(key << 11);
+        Self(key ^ key.rotate_right(16))
+    }
+
     pub(crate) fn fast_mod(self, len: usize) -> usize {
         debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
         (self.0 as usize) & (len - 1)
