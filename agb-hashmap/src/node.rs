@@ -156,18 +156,12 @@ where
     V: Clone,
 {
     fn clone(&self) -> Self {
-        if self.has_value() {
+        if let Some((k, v)) = self.key_value_ref() {
             Self {
                 hash: self.hash,
                 distance_to_initial_bucket: self.distance_to_initial_bucket,
-                key: MaybeUninit::new(
-                    // SAFETY: has a value
-                    unsafe { self.key.assume_init_ref() }.clone(),
-                ),
-                value: MaybeUninit::new(
-                    // SAFETY: has a value
-                    unsafe { self.value.assume_init_ref() }.clone(),
-                ),
+                key: MaybeUninit::new(k.clone()),
+                value: MaybeUninit::new(v.clone()),
             }
         } else {
             Self {
