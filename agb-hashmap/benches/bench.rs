@@ -93,12 +93,12 @@ macro_rules! bench_insert {
 
 bench_suite!(
     bench_insert,
-    insert_agb_hashmap_serial,
-    insert_std_serial,
-    insert_agb_hashmap_highbits,
-    insert_std_highbits,
-    insert_agb_hashmap_random,
-    insert_std_random
+    agb_hashmap_insert_serial,
+    std_hashmap_insert_serial,
+    agb_hashmap_insert_highbits,
+    std_hashmap_insert_highbits,
+    agb_hashmap_insert_random,
+    std_hashmap_insert_random
 );
 
 macro_rules! bench_grow_insert {
@@ -118,12 +118,12 @@ macro_rules! bench_grow_insert {
 
 bench_suite!(
     bench_grow_insert,
-    grow_insert_agb_hashmap_serial,
-    grow_insert_std_serial,
-    grow_insert_agb_hashmap_highbits,
-    grow_insert_std_highbits,
-    grow_insert_agb_hashmap_random,
-    grow_insert_std_random
+    agb_hashmap_grow_insert_serial,
+    std_hashmap_grow_insert_serial,
+    agb_hashmap_grow_insert_highbits,
+    std_hashmap_grow_insert_highbits,
+    agb_hashmap_grow_insert_random,
+    std_hashmap_grow_insert_random
 );
 
 macro_rules! bench_insert_erase {
@@ -154,12 +154,12 @@ macro_rules! bench_insert_erase {
 
 bench_suite!(
     bench_insert_erase,
-    insert_erase_agb_hashmap_serial,
-    insert_erase_std_serial,
-    insert_erase_agb_hashmap_highbits,
-    insert_erase_std_highbits,
-    insert_erase_agb_hashmap_random,
-    insert_erase_std_random
+    agb_hashmap_insert_erase_serial,
+    std_hashmap_insert_erase_serial,
+    agb_hashmap_insert_erase_highbits,
+    std_hashmap_insert_erase_highbits,
+    agb_hashmap_insert_erase_random,
+    std_hashmap_insert_erase_random
 );
 
 macro_rules! bench_lookup {
@@ -183,12 +183,12 @@ macro_rules! bench_lookup {
 
 bench_suite!(
     bench_lookup,
-    lookup_agb_hashmap_serial,
-    lookup_std_serial,
-    lookup_agb_hashmap_highbits,
-    lookup_std_highbits,
-    lookup_agb_hashmap_random,
-    lookup_std_random
+    agb_hashmap_lookup_serial,
+    std_hashmap_lookup_serial,
+    agb_hashmap_lookup_highbits,
+    std_hashmap_lookup_highbits,
+    agb_hashmap_lookup_random,
+    std_hashmap_lookup_random
 );
 
 macro_rules! bench_lookup_fail {
@@ -212,12 +212,12 @@ macro_rules! bench_lookup_fail {
 
 bench_suite!(
     bench_lookup_fail,
-    lookup_fail_agb_hashmap_serial,
-    lookup_fail_std_serial,
-    lookup_fail_agb_hashmap_highbits,
-    lookup_fail_std_highbits,
-    lookup_fail_agb_hashmap_random,
-    lookup_fail_std_random
+    agb_hashmap_lookup_fail_serial,
+    std_hashmap_lookup_fail_serial,
+    agb_hashmap_lookup_fail_highbits,
+    std_hashmap_lookup_fail_highbits,
+    agb_hashmap_lookup_fail_random,
+    std_hashmap_lookup_fail_random
 );
 
 macro_rules! bench_iter {
@@ -240,12 +240,12 @@ macro_rules! bench_iter {
 
 bench_suite!(
     bench_iter,
-    iter_agb_hashmap_serial,
-    iter_std_serial,
-    iter_agb_hashmap_highbits,
-    iter_std_highbits,
-    iter_agb_hashmap_random,
-    iter_std_random
+    agb_hashmap_iter_serial,
+    std_hashmap_iter_serial,
+    agb_hashmap_iter_highbits,
+    std_hashmap_iter_highbits,
+    agb_hashmap_iter_random,
+    std_hashmap_iter_random
 );
 
 macro_rules! clone_bench {
