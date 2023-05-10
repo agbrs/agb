@@ -194,4 +194,20 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
         self.nodes.get_unchecked_mut(at)
     }
+
+    pub(crate) fn distance_histogram(&self) -> (Vec<usize>, usize) {
+        let mut ret = Vec::new();
+
+        for node in self.nodes.iter() {
+            let distance = node.distance();
+
+            if distance >= 0 {
+                let distance = distance as usize;
+                ret.resize(ret.len().max(distance + 1), 0);
+                ret[distance] += 1;
+            }
+        }
+
+        (ret, self.max_distance_to_initial_bucket as usize)
+    }
 }

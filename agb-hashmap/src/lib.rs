@@ -26,7 +26,7 @@
 
 extern crate alloc;
 
-use alloc::alloc::Global;
+use alloc::{alloc::Global, vec::Vec};
 use core::{
     alloc::Allocator,
     borrow::Borrow,
@@ -173,6 +173,12 @@ impl<K, V> HashMap<K, V> {
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self::with_capacity_in(capacity, Global)
+    }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub fn distance_histogram(&self) -> (Vec<usize>, usize) {
+        self.nodes.distance_histogram()
     }
 }
 
@@ -898,7 +904,7 @@ where
 }
 
 const fn number_before_resize(capacity: usize) -> usize {
-    capacity * 85 / 100
+    capacity * 60 / 100
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -915,12 +921,18 @@ impl From<usize> for HashType {
 impl HashType {
     // 32 bit mix function from here: https://gist.github.com/badboy/6267743
     fn bit_mix(key: u32) -> Self {
-        let key = !key.wrapping_add(key << 15);
-        let key = key ^ key.rotate_right(12);
-        let key = key.wrapping_add(key << 2);
-        let key = key ^ key.rotate_right(4);
-        let key = key.wrapping_add(key << 3).wrapping_add(key << 11);
-        Self(key ^ key.rotate_right(16))
+        use core::num::Wrapping;
+
+        let key = Wrapping(key);
+
+        let key = (key + Wrapping(0x7ed55d16u32)) + (key << 12);
+        let key = (key ^ Wrapping(0xc761c23c)) ^ (key >> 19);
+        let key = (key + Wrapping(0x165667b1)) + (key << 5);
+        let key = (key + Wrapping(0xd3a2646c)) ^ (key << 9);
+        let key = (key + Wrapping(0xfd7046c5)) + (key << 3);
+        let key = (key ^ Wrapping(0xb55a4f09)) ^ (key >> 16);
+
+        Self(key.0)
     }
 
     pub(crate) fn fast_mod(self, len: usize) -> usize {
@@ -1085,9 +1097,9 @@ mod test {
         let mut map = HashMap::new();
         let mut rng = rand::rngs::SmallRng::seed_from_u64(20);
 
-        let mut answers: [Option<i32>; 128] = [None; 128];
+        let mut answers: [Option<i32>; 512] = [None; 512];
 
-        for _ in 0..5_000 {
+        for _ in 0..15_000 {
             let command = rng.next_i32().rem_euclid(2);
             let key = rng.next_i32().rem_euclid(answers.len().try_into().unwrap());
             let value = rng.next_i32();
