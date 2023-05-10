@@ -16,9 +16,9 @@ pub(crate) struct Node<K, V> {
 }
 
 impl<K, V> Node<K, V> {
-    fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
-            hash: HashType::default(),
+            hash: HashType::new(),
             distance_to_initial_bucket: -1,
             key: MaybeUninit::uninit(),
             value: MaybeUninit::uninit(),
@@ -141,12 +141,6 @@ impl<K, V> Drop for Node<K, V> {
                 ptr::drop_in_place(self.value.as_mut_ptr());
             }
         }
-    }
-}
-
-impl<K, V> Default for Node<K, V> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

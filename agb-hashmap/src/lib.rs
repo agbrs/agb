@@ -907,7 +907,7 @@ const fn number_before_resize(capacity: usize) -> usize {
     capacity * 60 / 100
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HashType(u32);
 
 impl From<usize> for HashType {
@@ -919,13 +919,17 @@ impl From<usize> for HashType {
 }
 
 impl HashType {
+    pub(crate) const fn new() -> Self {
+        Self(0)
+    }
+
     // 32 bit mix function from here: https://gist.github.com/badboy/6267743
     fn bit_mix(key: u32) -> Self {
         use core::num::Wrapping;
 
         let key = Wrapping(key);
 
-        let key = (key + Wrapping(0x7ed55d16u32)) + (key << 12);
+        let key = (key + Wrapping(0x7ed55d16)) + (key << 12);
         let key = (key ^ Wrapping(0xc761c23c)) ^ (key >> 19);
         let key = (key + Wrapping(0x165667b1)) + (key << 5);
         let key = (key + Wrapping(0xd3a2646c)) ^ (key << 9);
