@@ -922,20 +922,15 @@ impl HashType {
         Self(0)
     }
 
-    // 32 bit mix function from here: https://gist.github.com/badboy/6267743
-    fn bit_mix(key: u32) -> Self {
-        use core::num::Wrapping;
+    // 32 bit mix function from here: https://github.com/skeeto/hash-prospector
+    fn bit_mix(mut key: u32) -> Self {
+        key ^= key >> 16;
+        key *= 0x7feb352d;
+        key ^= key >> 15;
+        key *= 0x846ca68b;
+        key ^= key >> 16;
 
-        let key = Wrapping(key);
-
-        let key = (key + Wrapping(0x7ed55d16)) + (key << 12);
-        let key = (key ^ Wrapping(0xc761c23c)) ^ (key >> 19);
-        let key = (key + Wrapping(0x165667b1)) + (key << 5);
-        let key = (key + Wrapping(0xd3a2646c)) ^ (key << 9);
-        let key = (key + Wrapping(0xfd7046c5)) + (key << 3);
-        let key = (key ^ Wrapping(0xb55a4f09)) ^ (key >> 16);
-
-        Self(key.0)
+        Self(key)
     }
 
     pub(crate) fn fast_mod(self, len: usize) -> usize {
