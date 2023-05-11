@@ -27,3 +27,12 @@ impl Palette16 {
         Layout::new::<Self>()
     }
 }
+
+#[macro_export]
+macro_rules! include_palette {
+    ($palette:literal) => {
+        $crate::include_colours_inner!($palette)
+    };
+}
+
+pub use include_palette;

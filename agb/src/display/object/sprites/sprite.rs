@@ -94,6 +94,7 @@ macro_rules! align_bytes {
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
+        #[allow(unused_imports)]
         use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
         use $crate::align_bytes;
@@ -366,5 +367,12 @@ impl Size {
             Size::S16x32 => (16, 32),
             Size::S32x64 => (32, 64),
         }
+    }
+
+    #[must_use]
+    /// Returns the width and height of the size in pixels.
+    pub const fn to_tiles_width_height(self) -> (usize, usize) {
+        let wh = self.to_width_height();
+        (wh.0 / 8, wh.1 / 8)
     }
 }

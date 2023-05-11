@@ -240,8 +240,35 @@ impl ToTokens for ByteString<'_> {
 }
 
 #[proc_macro]
+pub fn include_colours_inner(input: TokenStream) -> TokenStream {
+    let input_filename = parse_macro_input!(input as LitStr);
+    let input_filename = input_filename.value();
+
+    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+    let input_filename = Path::new(&root).join(input_filename);
+
+    let image = Image::load_from_file(Path::new(&input_filename));
+
+    let mut palette_data = Vec::with_capacity(image.width * image.height);
+    for y in 0..image.height {
+        for x in 0..image.width {
+            palette_data.push(image.colour(x, y).to_rgb15())
+        }
+    }
+
+    let filename = input_filename.to_string_lossy();
+
+    TokenStream::from(quote! {
+        {
+            const _: &[u8] = include_bytes!(#filename);
+            [#(#palette_data),*]
+        }
+    })
+}
+
+#[proc_macro]
 pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
-    let parser = Punctuated::<LitStr, syn::Token![,]>::parse_separated_nonempty;
+    let parser = Punctuated::<LitStr, syn::Token![,]>::parse_terminated;
     let parsed = match parser.parse(input) {
         Ok(e) => e,
         Err(e) => return e.to_compile_error().into(),
@@ -432,8 +459,8 @@ fn palette_tile_data(
 
     let mut tile_data = Vec::new();
 
-    for image in images {
-        add_image_to_tile_data(&mut tile_data, image, optimiser, 0)
+    for (image_idx, image) in images.iter().enumerate() {
+        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);

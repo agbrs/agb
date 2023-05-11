@@ -14,22 +14,10 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::{display, syscall};
-
 // The main function must take 1 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly. It will also handle creating the `Gba` struct for you.
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut bitmap = gba.display.video.bitmap3();
-
-    for x in 0..display::WIDTH {
-        let y = syscall::sqrt(x << 6);
-        let y = (display::HEIGHT - y).clamp(0, display::HEIGHT - 1);
-        bitmap.draw_point(x, y, 0x001F);
-    }
-
-    loop {
-        syscall::halt();
-    }
+    agb::no_game(gba);
 }

@@ -104,6 +104,9 @@ pub use agb_image_converter::include_aseprite_inner;
 #[doc(hidden)]
 pub use agb_image_converter::include_font as include_font_inner;
 
+#[doc(hidden)]
+pub use agb_image_converter::include_colours_inner;
+
 #[macro_export]
 macro_rules! include_font {
     ($font_path: literal, $font_size: literal) => {{
@@ -164,6 +167,11 @@ pub mod sync;
 pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
+
+mod no_game;
+
+/// Default game
+pub use no_game::no_game;
 
 pub(crate) mod arena;
 
