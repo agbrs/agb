@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New `include_palette` macro for including every colour in an image as a `u16` slice.
+
 ### Changed
-- Changed the default template game
+- Changed the default template game.
+- `DynamicSprite` has a new API which changes the constructor and adds a `set_pixel` method.
 
 ## [0.15.0] - 2023/04/25
 
