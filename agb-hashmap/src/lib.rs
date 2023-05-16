@@ -601,7 +601,7 @@ mod entries {
 
     use super::{ClonableAllocator, HashMap};
 
-    /// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
+    /// A view into an occupied entry in a `HashMap`. This is part of the [`crate::Entry`] enum.
     pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
         key: K,
         map: &'a mut HashMap<K, V, ALLOCATOR>,
@@ -691,7 +691,7 @@ mod entries {
         }
     }
 
-    /// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
+    /// A view into a vacant entry in a `HashMap`. It is part of the [`crate::Entry`] enum.
     pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
         key: K,
         map: &'a mut HashMap<K, V, ALLOCATOR>,
