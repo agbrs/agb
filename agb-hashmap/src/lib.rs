@@ -33,6 +33,7 @@ use core::{
     fmt::Debug,
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
     iter::FromIterator,
+    num::Wrapping,
     ops::Index,
 };
 
@@ -923,14 +924,15 @@ impl HashType {
     }
 
     // 32 bit mix function from here: https://github.com/skeeto/hash-prospector
-    fn bit_mix(mut key: u32) -> Self {
+    fn bit_mix(key: u32) -> Self {
+        let mut key = Wrapping(key);
         key ^= key >> 16;
         key *= 0x7feb352d;
         key ^= key >> 15;
         key *= 0x846ca68b;
         key ^= key >> 16;
 
-        Self(key)
+        Self(key.0)
     }
 
     pub(crate) fn fast_mod(self, len: usize) -> usize {
