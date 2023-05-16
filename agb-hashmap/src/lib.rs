@@ -14,6 +14,15 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(rustdoc::private_intra_doc_links)]
 #![deny(rustdoc::invalid_html_tags)]
+#![deny(unreachable_pub)]
+#![deny(clippy::missing_safety_doc)]
+#![deny(clippy::undocumented_unsafe_blocks)]
+#![deny(clippy::manual_assert)]
+#![deny(clippy::default_trait_access)]
+#![deny(clippy::missing_panics_doc)]
+#![deny(clippy::doc_markdown)]
+#![deny(clippy::return_self_not_must_use)]
+#![deny(clippy::cast_possible_truncation)]
 
 extern crate alloc;
 
@@ -21,16 +30,20 @@ use alloc::{alloc::Global, vec::Vec};
 use core::{
     alloc::Allocator,
     borrow::Borrow,
+    fmt::Debug,
     hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
     iter::FromIterator,
-    mem::{self, MaybeUninit},
+    num::Wrapping,
     ops::Index,
-    ptr,
 };
 
 use rustc_hash::FxHasher;
 
-type HashType = u32;
+mod node;
+mod node_storage;
+
+use node::Node;
+use node_storage::NodeStorage;
 
 // # Robin Hood Hash Tables
 //
@@ -96,7 +109,7 @@ type HashType = u32;
 ///
 /// The API surface provided is incredibly similar to the
 /// [`std::collections::HashMap`](https://doc.rust-lang.org/std/collections/struct.HashMap.html)
-/// implementation with fewer guarantees, and better optimised for the GameBoy Advance.
+/// implementation with fewer guarantees, and better optimised for the `GameBoy Advance`.
 ///
 /// [`Eq`]: https://doc.rust-lang.org/core/cmp/trait.Eq.html
 /// [`Hash`]: https://doc.rust-lang.org/core/hash/trait.Hash.html
@@ -132,6 +145,7 @@ type HashType = u32;
 ///     println!("{game}: \"{review}\"");
 /// }
 /// ```
+#[derive(Clone)]
 pub struct HashMap<K, V, ALLOCATOR: Allocator = Global> {
     nodes: NodeStorage<K, V, ALLOCATOR>,
 
@@ -161,6 +175,12 @@ impl<K, V> HashMap<K, V> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self::with_capacity_in(capacity, Global)
     }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub fn distance_histogram(&self) -> (Vec<usize>, usize) {
+        self.nodes.distance_histogram()
+    }
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
@@ -170,7 +190,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn with_size_in(size: usize, alloc: ALLOCATOR) -> Self {
         Self {
             nodes: NodeStorage::with_size_in(size, alloc),
-            hasher: Default::default(),
+            hasher: BuildHasherDefault::default(),
         }
     }
 
@@ -187,6 +207,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// Creates an empty `HashMap` which can hold at least `capacity` elements before resizing. The actual
     /// internal size may be larger as it must be a power of 2
+    ///
+    /// # Panics
+    ///
+    /// Panics if capacity is larger than 2^32 * .85
     #[must_use]
     pub fn with_capacity_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         for i in 0..32 {
@@ -231,8 +255,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// Removes all elements from the map
     pub fn clear(&mut self) {
-        self.nodes =
-            NodeStorage::with_size_in(self.nodes.backing_vec_size(), self.allocator().clone());
+        self.nodes.clear();
     }
 
     /// An iterator visiting all key-value pairs in an arbitrary order
@@ -246,7 +269,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
 
     /// An iterator visiting all key-value pairs in an arbitrary order, with mutable references to the values
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ K, &'_ mut V)> {
-        self.nodes.nodes.iter_mut().filter_map(Node::key_value_mut)
+        self.nodes.iter_mut().filter_map(Node::key_value_mut)
     }
 
     /// Retains only the elements specified by the predicate `f`.
@@ -282,11 +305,6 @@ impl<K, V> Default for HashMap<K, V> {
     }
 }
 
-const fn fast_mod(len: usize, hash: HashType) -> usize {
-    debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
-    (hash as usize) & (len - 1)
-}
-
 impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR>
 where
     K: Eq + Hash,
@@ -302,7 +320,13 @@ where
         let hash = self.hash(&key);
 
         if let Some(location) = self.nodes.location(&key, hash) {
-            Some(self.nodes.replace_at_location(location, key, value))
+            Some(
+                // SAFETY: location is valid due to the above
+                unsafe {
+                    self.nodes
+                        .replace_at_location_unchecked(location, key, value)
+                },
+            )
         } else {
             if self.nodes.capacity() <= self.len() {
                 self.resize(self.nodes.backing_vec_size() * 2);
@@ -318,7 +342,11 @@ where
         let hash = self.hash(&key);
 
         let location = if let Some(location) = self.nodes.location(&key, hash) {
-            self.nodes.replace_at_location(location, key, value);
+            // SAFETY: location is valid due to the above
+            unsafe {
+                self.nodes
+                    .replace_at_location_unchecked(location, key, value);
+            }
             location
         } else {
             if self.nodes.capacity() <= self.len() {
@@ -328,7 +356,12 @@ where
             self.nodes.insert_new(key, value, hash)
         };
 
-        self.nodes.nodes[location].value_mut().unwrap()
+        // SAFETY: location is always valid
+        unsafe {
+            self.nodes
+                .node_at_unchecked_mut(location)
+                .value_mut_unchecked()
+        }
     }
 
     /// Returns `true` if the map contains a value for the specified key.
@@ -349,9 +382,15 @@ where
     {
         let hash = self.hash(key);
 
-        self.nodes
-            .location(key, hash)
-            .and_then(|location| self.nodes.nodes[location].key_value_ref())
+        let location = self.nodes.location(key, hash)?;
+        Some(
+            // SAFETY: we know that a node exists and has a value from the location call above
+            unsafe {
+                self.nodes
+                    .node_at_unchecked(location)
+                    .key_value_ref_unchecked()
+            },
+        )
     }
 
     /// Returns a reference to the value corresponding to the key. Returns [`None`] if there is
@@ -397,11 +436,15 @@ where
     {
         let hash = self.hash(key);
 
-        if let Some(location) = self.nodes.location(key, hash) {
-            self.nodes.nodes[location].value_mut()
-        } else {
-            None
-        }
+        let location = self.nodes.location(key, hash)?;
+        Some(
+            // SAFETY: we know that a node exists and has a value from the location call above
+            unsafe {
+                self.nodes
+                    .node_at_unchecked_mut(location)
+                    .value_mut_unchecked()
+            },
+        )
     }
 
     /// Removes the given key from the map. Returns the current value if it existed, or [`None`]
@@ -440,7 +483,12 @@ where
     {
         let mut hasher = self.hasher.build_hasher();
         key.hash(&mut hasher);
-        hasher.finish() as HashType
+        let result = hasher.finish();
+
+        // we want to allow truncation here since we're reducing 64 bits to 32
+        #[allow(clippy::cast_possible_truncation)]
+        let reduced = (result as u32) ^ ((result >> 32) as u32);
+        HashType::bit_mix(reduced)
     }
 }
 
@@ -463,12 +511,12 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
                 return None;
             }
 
-            let node = &self.map.nodes.nodes[self.at];
+            let node = &self.map.nodes.node_at(self.at);
             self.at += 1;
 
-            if node.has_value() {
+            if let Some(key_value) = node.key_value_ref() {
                 self.num_found += 1;
-                return Some((node.key_ref().unwrap(), node.value_ref().unwrap()));
+                return Some(key_value);
             }
         }
     }
@@ -497,7 +545,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, 
 /// An iterator over entries of a [`HashMap`]
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
-/// of the IntoIterator trait.
+/// of the `IntoIterator` trait.
 pub struct IterOwned<K, V, ALLOCATOR: Allocator = Global> {
     map: HashMap<K, V, ALLOCATOR>,
     at: usize,
@@ -513,7 +561,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
                 return None;
             }
 
-            let maybe_kv = self.map.nodes.nodes[self.at].take_key_value();
+            let maybe_kv = self.map.nodes.node_at_mut(self.at).take_key_value();
             self.at += 1;
 
             if let Some((k, v, _)) = maybe_kv {
@@ -534,7 +582,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
 /// An iterator over entries of a [`HashMap`]
 ///
 /// This struct is created using the `into_iter()` method on [`HashMap`] as part of its implementation
-/// of the IntoIterator trait.
+/// of the `IntoIterator` trait.
 impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATOR> {
     type Item = (K, V);
     type IntoIter = IterOwned<K, V, ALLOCATOR>;
@@ -548,86 +596,133 @@ impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATO
     }
 }
 
-/// A view into an occupied entry in a `HashMap`. This is part of the [`Entry`] enum.
-pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
-    key: K,
-    map: &'a mut HashMap<K, V, ALLOCATOR>,
-    location: usize,
+mod entries {
+    use core::{alloc::Allocator, hash::Hash};
+
+    use super::{ClonableAllocator, HashMap};
+
+    /// A view into an occupied entry in a `HashMap`. This is part of the [`crate::Entry`] enum.
+    pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
+        key: K,
+        map: &'a mut HashMap<K, V, ALLOCATOR>,
+        location: usize,
+    }
+
+    impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
+        /// # Safety
+        ///
+        /// You must call this with a valid location (one where the entry is defined)
+        pub(crate) unsafe fn new(
+            key: K,
+            map: &'a mut HashMap<K, V, ALLOCATOR>,
+            location: usize,
+        ) -> Self {
+            Self { key, map, location }
+        }
+
+        /// Gets a reference to the key in the entry.
+        pub fn key(&self) -> &K {
+            &self.key
+        }
+
+        /// Take the ownership of the key and value from the map.
+        pub fn remove_entry(self) -> (K, V) {
+            let old_value = self.map.nodes.remove_from_location(self.location);
+            (self.key, old_value)
+        }
+
+        /// Gets a reference to the value in the entry.
+        pub fn get(&self) -> &V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked(self.location)
+                    .value_ref_unchecked()
+            }
+        }
+
+        /// Gets a mutable reference to the value in the entry.
+        ///
+        /// If you need a reference to the `OccupiedEntry` which may outlive the destruction
+        /// of the `Entry` value, see [`into_mut`].
+        ///
+        /// [`into_mut`]: Self::into_mut
+        pub fn get_mut(&mut self) -> &mut V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .value_mut_unchecked()
+            }
+        }
+
+        /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
+        /// a lifetime bound to the map itself.
+        ///
+        /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
+        ///
+        /// [`get_mut`]: Self::get_mut
+        pub fn into_mut(self) -> &'a mut V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .value_mut_unchecked()
+            }
+        }
+
+        /// Sets the value of the entry and returns the entry's old value.
+        pub fn insert(&mut self, value: V) -> V {
+            // SAFETY: This can only be constructed with valid locations
+            unsafe {
+                self.map
+                    .nodes
+                    .node_at_unchecked_mut(self.location)
+                    .replace_value_unchecked(value)
+            }
+        }
+
+        /// Takes the value out of the entry and returns it.
+        pub fn remove(self) -> V {
+            self.map.nodes.remove_from_location(self.location)
+        }
+    }
+
+    /// A view into a vacant entry in a `HashMap`. It is part of the [`crate::Entry`] enum.
+    pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
+        key: K,
+        map: &'a mut HashMap<K, V, ALLOCATOR>,
+    }
+
+    impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
+        pub(crate) fn new(key: K, map: &'a mut HashMap<K, V, ALLOCATOR>) -> Self {
+            Self { key, map }
+        }
+
+        /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
+        pub fn key(&self) -> &K {
+            &self.key
+        }
+
+        /// Take ownership of the key
+        pub fn into_key(self) -> K {
+            self.key
+        }
+
+        /// Sets the value of the entry with the `VacantEntry`'s key and returns a mutable reference to it.
+        pub fn insert(self, value: V) -> &'a mut V
+        where
+            K: Hash + Eq,
+        {
+            self.map.insert_and_get(self.key, value)
+        }
+    }
 }
 
-impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> OccupiedEntry<'a, K, V, ALLOCATOR> {
-    /// Gets a reference to the key in the entry.
-    pub fn key(&self) -> &K {
-        &self.key
-    }
-
-    /// Take the ownership of the key and value from the map.
-    pub fn remove_entry(self) -> (K, V) {
-        let old_value = self.map.nodes.remove_from_location(self.location);
-        (self.key, old_value)
-    }
-
-    /// Gets a reference to the value in the entry.
-    pub fn get(&self) -> &V {
-        self.map.nodes.nodes[self.location].value_ref().unwrap()
-    }
-
-    /// Gets a mutable reference to the value in the entry.
-    ///
-    /// If you need a reference to the `OccupiedEntry` which may outlive the destruction
-    /// of the `Entry` value, see [`into_mut`].
-    ///
-    /// [`into_mut`]: Self::into_mut
-    pub fn get_mut(&mut self) -> &mut V {
-        self.map.nodes.nodes[self.location].value_mut().unwrap()
-    }
-
-    /// Converts the `OccupiedEntry` into a mutable reference to the value in the entry with
-    /// a lifetime bound to the map itself.
-    ///
-    /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
-    ///
-    /// [`get_mut`]: Self::get_mut
-    pub fn into_mut(self) -> &'a mut V {
-        self.map.nodes.nodes[self.location].value_mut().unwrap()
-    }
-
-    /// Sets the value of the entry and returns the entry's old value.
-    pub fn insert(&mut self, value: V) -> V {
-        self.map.nodes.nodes[self.location].replace_value(value)
-    }
-
-    /// Takes the value out of the entry and returns it.
-    pub fn remove(self) -> V {
-        self.map.nodes.remove_from_location(self.location)
-    }
-}
-
-/// A view into a vacant entry in a `HashMap`. It is part of the [`Entry`] enum.
-pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
-    key: K,
-    map: &'a mut HashMap<K, V, ALLOCATOR>,
-}
-
-impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
-    /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
-    pub fn key(&self) -> &K {
-        &self.key
-    }
-
-    /// Take ownership of the key
-    pub fn into_key(self) -> K {
-        self.key
-    }
-
-    /// Sets the value of the entry with the `VacantEntry`'s key and returns a mutable reference to it.
-    pub fn insert(self, value: V) -> &'a mut V
-    where
-        K: Hash + Eq,
-    {
-        self.map.insert_and_get(self.key, value)
-    }
-}
+pub use entries::{OccupiedEntry, VacantEntry};
 
 /// A view into a single entry in a map, which may be vacant or occupied.
 ///
@@ -679,7 +774,7 @@ where
         match self {
             Entry::Occupied(e) => e.into_mut(),
             Entry::Vacant(e) => {
-                let value = f(&e.key);
+                let value = f(e.key());
                 e.insert(value)
             }
         }
@@ -687,6 +782,7 @@ where
 
     /// Provides in-place mutable access to an occupied entry before any potential inserts
     /// into the map.
+    #[must_use]
     pub fn and_modify<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut V),
@@ -715,8 +811,8 @@ where
     /// Returns a reference to this entry's key.
     pub fn key(&self) -> &K {
         match self {
-            Entry::Occupied(e) => &e.key,
-            Entry::Vacant(e) => &e.key,
+            Entry::Occupied(e) => e.key(),
+            Entry::Vacant(e) => e.key(),
         }
     }
 }
@@ -731,13 +827,12 @@ where
         let location = self.nodes.location(&key, hash);
 
         if let Some(location) = location {
-            Entry::Occupied(OccupiedEntry {
-                key,
-                location,
-                map: self,
-            })
+            Entry::Occupied(
+                // SAFETY: location is valid by the call to location above
+                unsafe { OccupiedEntry::new(key, self, location) },
+            )
         } else {
-            Entry::Vacant(VacantEntry { key, map: self })
+            Entry::Vacant(VacantEntry::new(key, self))
         }
     }
 }
@@ -776,319 +871,89 @@ where
     }
 }
 
+impl<K, V, ALLOCATOR: ClonableAllocator> PartialEq for HashMap<K, V, ALLOCATOR>
+where
+    K: Eq + Hash,
+    V: PartialEq,
+{
+    fn eq(&self, other: &HashMap<K, V, ALLOCATOR>) -> bool {
+        if self.len() != other.len() {
+            return false;
+        }
+
+        self.iter()
+            .all(|(key, value)| other.get(key).map_or(false, |v| *value == *v))
+    }
+}
+
+impl<K, V, ALLOCATOR: ClonableAllocator> Eq for HashMap<K, V, ALLOCATOR>
+where
+    K: Eq + Hash,
+    V: PartialEq,
+{
+}
+
+impl<K, V, ALLOCATOR: ClonableAllocator> Debug for HashMap<K, V, ALLOCATOR>
+where
+    K: Debug,
+    V: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_map().entries(self.iter()).finish()
+    }
+}
+
 const fn number_before_resize(capacity: usize) -> usize {
-    capacity * 85 / 100
+    capacity * 60 / 100
 }
 
-struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
-    nodes: Vec<Node<K, V>, ALLOCATOR>,
-    max_distance_to_initial_bucket: i32,
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HashType(u32);
 
-    number_of_items: usize,
-    max_number_before_resize: usize,
-}
-
-impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
-    fn with_size_in(capacity: usize, alloc: ALLOCATOR) -> Self {
-        assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
-
-        let mut nodes = Vec::with_capacity_in(capacity, alloc);
-        for _ in 0..capacity {
-            nodes.push(Default::default());
-        }
-
-        Self {
-            nodes,
-            max_distance_to_initial_bucket: 0,
-            number_of_items: 0,
-            max_number_before_resize: number_before_resize(capacity),
-        }
-    }
-
-    fn allocator(&self) -> &ALLOCATOR {
-        self.nodes.allocator()
-    }
-
-    fn capacity(&self) -> usize {
-        self.max_number_before_resize
-    }
-
-    fn backing_vec_size(&self) -> usize {
-        self.nodes.len()
-    }
-
-    fn len(&self) -> usize {
-        self.number_of_items
-    }
-
-    fn insert_new(&mut self, key: K, value: V, hash: HashType) -> usize {
-        debug_assert!(
-            self.capacity() > self.len(),
-            "Do not have space to insert into len {} with {}",
-            self.backing_vec_size(),
-            self.len()
-        );
-
-        let mut new_node = Node::new_with(key, value, hash);
-        let mut inserted_location = usize::MAX;
-
-        loop {
-            let location = fast_mod(
-                self.backing_vec_size(),
-                new_node.hash + new_node.distance() as HashType,
-            );
-            let current_node = &mut self.nodes[location];
-
-            if current_node.has_value() {
-                if current_node.distance() <= new_node.distance() {
-                    mem::swap(&mut new_node, current_node);
-
-                    if inserted_location == usize::MAX {
-                        inserted_location = location;
-                    }
-                }
-            } else {
-                self.nodes[location] = new_node;
-                if inserted_location == usize::MAX {
-                    inserted_location = location;
-                }
-                break;
-            }
-
-            new_node.increment_distance();
-            self.max_distance_to_initial_bucket =
-                new_node.distance().max(self.max_distance_to_initial_bucket);
-        }
-
-        self.number_of_items += 1;
-        inserted_location
-    }
-
-    fn retain<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&K, &mut V) -> bool,
-    {
-        let num_nodes = self.nodes.len();
-        let mut i = 0;
-
-        while i < num_nodes {
-            let node = &mut self.nodes[i];
-
-            if let Some((k, v)) = node.key_value_mut() {
-                if !f(k, v) {
-                    self.remove_from_location(i);
-
-                    // Need to continue before adding 1 to i because remove from location could
-                    // put the element which was next into the ith location in the nodes array,
-                    // so we need to check if that one needs removing too.
-                    continue;
-                }
-            }
-
-            i += 1;
-        }
-    }
-
-    fn remove_from_location(&mut self, location: usize) -> V {
-        let mut current_location = location;
-        self.number_of_items -= 1;
-
-        loop {
-            let next_location =
-                fast_mod(self.backing_vec_size(), (current_location + 1) as HashType);
-
-            // if the next node is empty, or the next location has 0 distance to initial bucket then
-            // we can clear the current node
-            if !self.nodes[next_location].has_value() || self.nodes[next_location].distance() == 0 {
-                return self.nodes[current_location].take_key_value().unwrap().1;
-            }
-
-            self.nodes.swap(current_location, next_location);
-            self.nodes[current_location].decrement_distance();
-            current_location = next_location;
-        }
-    }
-
-    fn location<Q>(&self, key: &Q, hash: HashType) -> Option<usize>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
-        for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
-            let location = fast_mod(
-                self.nodes.len(),
-                hash + distance_to_initial_bucket as HashType,
-            );
-
-            let node = &self.nodes[location];
-            if let Some(node_key_ref) = node.key_ref() {
-                if node_key_ref.borrow() == key {
-                    return Some(location);
-                }
-            } else {
-                return None;
-            }
-        }
-
-        None
-    }
-
-    fn resized_to(&mut self, new_size: usize) -> Self {
-        let mut new_node_storage = Self::with_size_in(new_size, self.allocator().clone());
-
-        for mut node in self.nodes.drain(..) {
-            if let Some((key, value, hash)) = node.take_key_value() {
-                new_node_storage.insert_new(key, value, hash);
-            }
-        }
-
-        new_node_storage
-    }
-
-    fn replace_at_location(&mut self, location: usize, key: K, value: V) -> V {
-        self.nodes[location].replace(key, value).1
+impl From<usize> for HashType {
+    fn from(value: usize) -> Self {
+        // we explicitly want to allow truncation
+        #[allow(clippy::cast_possible_truncation)]
+        Self(value as u32)
     }
 }
 
-struct Node<K, V> {
-    hash: HashType,
-
-    // distance_to_initial_bucket = -1 => key and value are uninit.
-    // distance_to_initial_bucket >= 0 => key and value are init
-    distance_to_initial_bucket: i32,
-    key: MaybeUninit<K>,
-    value: MaybeUninit<V>,
-}
-
-impl<K, V> Node<K, V> {
-    fn new() -> Self {
-        Self {
-            hash: 0,
-            distance_to_initial_bucket: -1,
-            key: MaybeUninit::uninit(),
-            value: MaybeUninit::uninit(),
-        }
+impl HashType {
+    pub(crate) const fn new() -> Self {
+        Self(0)
     }
 
-    fn new_with(key: K, value: V, hash: HashType) -> Self {
-        Self {
-            hash,
-            distance_to_initial_bucket: 0,
-            key: MaybeUninit::new(key),
-            value: MaybeUninit::new(value),
-        }
+    // 32 bit mix function from here: https://github.com/skeeto/hash-prospector
+    fn bit_mix(key: u32) -> Self {
+        let mut key = Wrapping(key);
+        key ^= key >> 16;
+        key *= 0x7feb352d;
+        key ^= key >> 15;
+        key *= 0x846ca68b;
+        key ^= key >> 16;
+
+        Self(key.0)
     }
 
-    fn value_ref(&self) -> Option<&V> {
-        if self.has_value() {
-            Some(unsafe { self.value.assume_init_ref() })
-        } else {
-            None
-        }
-    }
-
-    fn value_mut(&mut self) -> Option<&mut V> {
-        if self.has_value() {
-            Some(unsafe { self.value.assume_init_mut() })
-        } else {
-            None
-        }
-    }
-
-    fn key_ref(&self) -> Option<&K> {
-        if self.distance_to_initial_bucket >= 0 {
-            Some(unsafe { self.key.assume_init_ref() })
-        } else {
-            None
-        }
-    }
-
-    fn key_value_ref(&self) -> Option<(&K, &V)> {
-        if self.has_value() {
-            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_ref()) })
-        } else {
-            None
-        }
-    }
-
-    fn key_value_mut(&mut self) -> Option<(&K, &mut V)> {
-        if self.has_value() {
-            Some(unsafe { (self.key.assume_init_ref(), self.value.assume_init_mut()) })
-        } else {
-            None
-        }
-    }
-
-    fn has_value(&self) -> bool {
-        self.distance_to_initial_bucket >= 0
-    }
-
-    fn take_key_value(&mut self) -> Option<(K, V, HashType)> {
-        if self.has_value() {
-            let key = mem::replace(&mut self.key, MaybeUninit::uninit());
-            let value = mem::replace(&mut self.value, MaybeUninit::uninit());
-            self.distance_to_initial_bucket = -1;
-
-            Some(unsafe { (key.assume_init(), value.assume_init(), self.hash) })
-        } else {
-            None
-        }
-    }
-
-    fn replace_value(&mut self, value: V) -> V {
-        if self.has_value() {
-            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
-            unsafe { old_value.assume_init() }
-        } else {
-            panic!("Cannot replace an uninitialised node");
-        }
-    }
-
-    fn replace(&mut self, key: K, value: V) -> (K, V) {
-        if self.has_value() {
-            let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
-            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
-
-            unsafe { (old_key.assume_init(), old_value.assume_init()) }
-        } else {
-            panic!("Cannot replace an uninitialised node");
-        }
-    }
-
-    fn increment_distance(&mut self) {
-        self.distance_to_initial_bucket += 1;
-    }
-
-    fn decrement_distance(&mut self) {
-        self.distance_to_initial_bucket -= 1;
-        if self.distance_to_initial_bucket < 0 {
-            panic!("Cannot decrement distance to below 0");
-        }
-    }
-
-    fn distance(&self) -> i32 {
-        self.distance_to_initial_bucket
+    pub(crate) fn fast_mod(self, len: usize) -> usize {
+        debug_assert!(len.is_power_of_two(), "Length must be a power of 2");
+        (self.0 as usize) & (len - 1)
     }
 }
 
-impl<K, V> Drop for Node<K, V> {
-    fn drop(&mut self) {
-        if self.has_value() {
-            unsafe { ptr::drop_in_place(self.key.as_mut_ptr()) };
-            unsafe { ptr::drop_in_place(self.value.as_mut_ptr()) };
-        }
-    }
-}
+impl core::ops::Add<i32> for HashType {
+    type Output = HashType;
 
-impl<K, V> Default for Node<K, V> {
-    fn default() -> Self {
-        Self::new()
+    fn add(self, rhs: i32) -> Self::Output {
+        Self(self.0.wrapping_add_signed(rhs))
     }
 }
 
 #[cfg(test)]
 mod test {
     use core::cell::RefCell;
+
+    use alloc::vec::Vec;
 
     use super::*;
 
@@ -1155,7 +1020,7 @@ mod test {
         let mut max_found = -1;
         let mut num_found = 0;
 
-        for (_, value) in map.into_iter() {
+        for (_, value) in map {
             max_found = max_found.max(value);
             num_found += 1;
         }
@@ -1205,9 +1070,7 @@ mod test {
 
     impl Drop for NoisyDrop {
         fn drop(&mut self) {
-            if self.dropped {
-                panic!("NoisyDropped dropped twice");
-            }
+            assert!(!self.dropped, "NoisyDropped dropped twice");
 
             self.dropped = true;
         }
@@ -1234,11 +1097,11 @@ mod test {
         let mut map = HashMap::new();
         let mut rng = rand::rngs::SmallRng::seed_from_u64(20);
 
-        let mut answers: [Option<i32>; 128] = [None; 128];
+        let mut answers: [Option<i32>; 512] = [None; 512];
 
-        for _ in 0..5_000 {
+        for _ in 0..15_000 {
             let command = rng.next_i32().rem_euclid(2);
-            let key = rng.next_i32().rem_euclid(answers.len() as i32);
+            let key = rng.next_i32().rem_euclid(answers.len().try_into().unwrap());
             let value = rng.next_i32();
 
             match command {
@@ -1257,7 +1120,8 @@ mod test {
 
             for (i, answer) in answers.iter().enumerate() {
                 assert_eq!(
-                    map.get(&NoisyDrop::new(i as i32)).map(|nd| &nd.i),
+                    map.get(&NoisyDrop::new(i.try_into().unwrap()))
+                        .map(|nd| &nd.i),
                     answer.as_ref()
                 );
             }
@@ -1295,13 +1159,13 @@ mod test {
     }
 
     impl DropRegistry {
-        pub fn new() -> Self {
+        fn new() -> Self {
             Self {
-                are_dropped: Default::default(),
+                are_dropped: RefCell::default(),
             }
         }
 
-        pub fn new_droppable(&self) -> Droppable<'_> {
+        fn new_droppable(&self) -> Droppable<'_> {
             self.are_dropped.borrow_mut().push(0);
             Droppable {
                 id: self.are_dropped.borrow().len() - 1,
@@ -1309,19 +1173,19 @@ mod test {
             }
         }
 
-        pub fn dropped(&self, id: usize) {
+        fn dropped(&self, id: usize) {
             self.are_dropped.borrow_mut()[id] += 1;
         }
 
-        pub fn assert_dropped_once(&self, id: usize) {
+        fn assert_dropped_once(&self, id: usize) {
             assert_eq!(self.are_dropped.borrow()[id], 1);
         }
 
-        pub fn assert_not_dropped(&self, id: usize) {
+        fn assert_not_dropped(&self, id: usize) {
             assert_eq!(self.are_dropped.borrow()[id], 0);
         }
 
-        pub fn assert_dropped_n_times(&self, id: usize, num_drops: i32) {
+        fn assert_dropped_n_times(&self, id: usize, num_drops: i32) {
             assert_eq!(self.are_dropped.borrow()[id], num_drops);
         }
     }
@@ -1450,6 +1314,8 @@ mod test {
     // Following test cases copied from the rust source
     // https://github.com/rust-lang/rust/blob/master/library/std/src/collections/hash/map/tests.rs
     mod rust_std_tests {
+        use alloc::format;
+
         use crate::{Entry::*, HashMap};
 
         #[test]
@@ -1547,6 +1413,38 @@ mod test {
             map.insert(3, 4);
 
             assert_eq!(map[&2], 1);
+        }
+
+        #[test]
+        fn test_eq() {
+            let mut m1 = HashMap::new();
+            m1.insert(1, 2);
+            m1.insert(2, 3);
+            m1.insert(3, 4);
+
+            let mut m2 = HashMap::new();
+            m2.insert(1, 2);
+            m2.insert(2, 3);
+
+            assert!(m1 != m2);
+
+            m2.insert(3, 4);
+
+            assert_eq!(m1, m2);
+        }
+
+        #[test]
+        fn test_show() {
+            let mut map = HashMap::new();
+            let empty: HashMap<i32, i32> = HashMap::new();
+
+            map.insert(1, 2);
+            map.insert(3, 4);
+
+            let map_str = format!("{map:?}");
+
+            assert!(map_str == "{1: 2, 3: 4}" || map_str == "{3: 4, 1: 2}");
+            assert_eq!(format!("{empty:?}"), "{}");
         }
     }
 }
