@@ -1,7 +1,8 @@
 use crate::memory_mapped::MemoryMapped;
+
+use bilge::prelude::*;
 use bitflags::bitflags;
 
-use modular_bitfield::BitfieldSpecifier;
 use video::Video;
 
 use self::{
@@ -159,7 +160,8 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy, Debug)]
+#[bitsize(2)]
+#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Priority {
     P0 = 0,
     P1 = 1,

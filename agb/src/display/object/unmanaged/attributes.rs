@@ -1,4 +1,4 @@
-use modular_bitfield::BitfieldSpecifier;
+use bilge::prelude::*;
 
 use crate::display::Priority;
 
@@ -17,7 +17,14 @@ pub struct Attributes {
 impl Default for Attributes {
     fn default() -> Self {
         Self {
-            a0: ObjectAttribute0::from_bytes([0, 0b10]),
+            a0: ObjectAttribute0::new(
+                0,
+                ObjectMode::Normal,
+                GraphicsMode::Normal,
+                false,
+                ColourMode::Four,
+                u2::new(1),
+            ),
             a1s: Default::default(),
             a1a: Default::default(),
             a2: Default::default(),
@@ -37,20 +44,12 @@ pub enum AffineMode {
 impl Attributes {
     pub fn write(self, ptr: *mut u16) {
         let mode = self.a0.object_mode();
-        unsafe {
-            let attrs = core::mem::transmute::<_, [u16; 3]>(match mode {
-                ObjectMode::Normal => [
-                    self.a0.into_bytes(),
-                    self.a1s.into_bytes(),
-                    self.a2.into_bytes(),
-                ],
-                _ => [
-                    self.a0.into_bytes(),
-                    self.a1a.into_bytes(),
-                    self.a2.into_bytes(),
-                ],
-            });
+        let attrs = match mode {
+            ObjectMode::Normal => [self.a0.into(), self.a1s.into(), self.a2.into()],
+            _ => [self.a0.into(), self.a1a.into(), self.a2.into()],
+        };
 
+        unsafe {
             ptr.add(0).write_volatile(attrs[0]);
             ptr.add(1).write_volatile(attrs[1]);
             ptr.add(2).write_volatile(attrs[2]);
@@ -89,8 +88,8 @@ impl Attributes {
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.a1a.set_x(x.rem_euclid(1 << 9));
-        self.a1s.set_x(x.rem_euclid(1 << 9));
+        self.a1a.set_x(u9::new(x.rem_euclid(1 << 9)));
+        self.a1s.set_x(u9::new(x.rem_euclid(1 << 9)));
 
         self
     }
@@ -114,28 +113,29 @@ impl Attributes {
     }
 
     pub fn set_palette(&mut self, palette_id: u16) -> &mut Self {
-        self.a2.set_palette_bank(palette_id as u8);
+        self.a2.set_palette_bank(u4::new(palette_id as u8));
 
         self
     }
 
     pub fn set_affine_matrix(&mut self, affine_matrix_id: u16) -> &mut Self {
-        self.a1a.set_affine_index(affine_matrix_id as u8);
+        self.a1a.set_affine_index(u5::new(affine_matrix_id as u8));
 
         self
     }
 
     pub fn set_sprite(&mut self, sprite_id: u16, shape: u16, size: u16) -> &mut Self {
-        self.a2.set_tile_index(sprite_id);
-        self.a1a.set_size(size as u8);
-        self.a1s.set_size(size as u8);
-        self.a0.set_shape(shape as u8);
+        self.a2.set_tile_index(u10::new(sprite_id));
+        self.a1a.set_size(u2::new(size as u8));
+        self.a1s.set_size(u2::new(size as u8));
+        self.a0.set_shape(u2::new(shape as u8));
 
         self
     }
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy, Debug, PartialEq, Eq)]
+#[bitsize(2)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
 enum ObjectMode {
     Normal,
     Affine,
@@ -143,15 +143,16 @@ enum ObjectMode {
     AffineDouble,
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy, Debug, PartialEq, Eq)]
-#[bits = 2]
+#[bitsize(2)]
+#[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq)]
 enum GraphicsMode {
     Normal,
     AlphaBlending,
     Window,
 }
 
-#[derive(BitfieldSpecifier, Clone, Copy, Debug, PartialEq, Eq)]
+#[bitsize(1)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
 enum ColourMode {
     Four,
     Eight,
@@ -162,49 +163,44 @@ enum ColourMode {
 #[allow(clippy::all)]
 #[allow(clippy::map_unwrap_or)]
 mod attributes {
-    use modular_bitfield::{
-        bitfield,
-        specifiers::{B10, B2, B3, B4, B5, B8, B9},
-    };
-
     use crate::display::Priority;
 
     use super::*;
-    #[bitfield]
-    #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+
+    #[bitsize(16)]
+    #[derive(TryFromBits, Clone, Copy, PartialEq, Eq, DebugBits, Default)]
     pub(super) struct ObjectAttribute0 {
-        pub y: B8,
+        pub y: u8,
         pub object_mode: ObjectMode,
         pub graphics_mode: GraphicsMode,
         pub mosaic: bool,
         pub colour_mode: ColourMode,
-        pub shape: B2,
+        pub shape: u2,
     }
 
-    #[bitfield]
-    #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+    #[bitsize(16)]
+    #[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits, Default)]
     pub(super) struct ObjectAttribute1Standard {
-        pub x: B9,
-        #[skip]
-        __: B3,
+        pub x: u9,
+        __: u3,
         pub horizontal_flip: bool,
         pub vertical_flip: bool,
-        pub size: B2,
+        pub size: u2,
     }
 
-    #[bitfield]
-    #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+    #[bitsize(16)]
+    #[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits, Default)]
     pub(super) struct ObjectAttribute1Affine {
-        pub x: B9,
-        pub affine_index: B5,
-        pub size: B2,
+        pub x: u9,
+        pub affine_index: u5,
+        pub size: u2,
     }
 
-    #[bitfield]
-    #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+    #[bitsize(16)]
+    #[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits, Default)]
     pub(super) struct ObjectAttribute2 {
-        pub tile_index: B10,
+        pub tile_index: u10,
         pub priority: Priority,
-        pub palette_bank: B4,
+        pub palette_bank: u4,
     }
 }
