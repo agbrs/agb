@@ -31,7 +31,9 @@ agb_thumb_func agb_rs__WramVerifyBuf
     @ Returns from the function successfully
     movs r0, #1
 0:  @ Jumps to here return the function unsuccessfully, because r0 contains 0 at this point
-    pop {r4-r5, pc}
+    pop {r4-r5}
+    pop {r1}
+    bx r1
 agb_thumb_end agb_rs__WramVerifyBuf
 
 
