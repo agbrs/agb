@@ -17,7 +17,7 @@
 .macro agb_thumb_func functionName:req
 .section .iwram.\functionName, "ax", %progbits
 .thumb
-.align 2
+.align 1
 .global \functionName
 .type \functionName, %function
 .func \functionName
