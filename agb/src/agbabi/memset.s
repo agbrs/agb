@@ -16,9 +16,9 @@
 */
 
     .arm
-    .align 2
 
     .section .iwram.__aeabi_memset, "ax", %progbits
+    .align 2
     .global __aeabi_memclr
 __aeabi_memclr:
     mov     r2, #0
@@ -109,6 +109,7 @@ __agbabi_wordset4:
     bx      lr
 
     .section .iwram.memset, "ax", %progbits
+    .align 2
     .global memset
 memset:
     mov     r3, r1

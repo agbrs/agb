@@ -14,9 +14,9 @@
 .include "src/agbabi/macros.inc"
 
     .arm
-    .align 2
 
     .section .iwram.__aeabi_memcpy, "ax", %progbits
+    .align 2
     .global __agbabi_memcpy
 __agbabi_memcpy:
     .global __aeabi_memcpy
@@ -115,6 +115,7 @@ __agbabi_memcpy1:
     bx      lr
 
     .section .iwram.memcpy, "ax", %progbits
+    .align 2
     .global memcpy
 memcpy:
     push    {r0, lr}
