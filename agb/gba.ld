@@ -15,8 +15,6 @@ MEMORY {
 
 __text_start = ORIGIN(rom);
 
-INPUT (agb.a)
-
 SECTIONS {
     . = __text_start;
 

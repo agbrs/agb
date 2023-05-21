@@ -15,6 +15,7 @@ amplitude = { path = "../amplitude" }
 [profile.dev]
 opt-level = 3
 debug = true
+codegen-units = 1
 
 [profile.release]
 opt-level = 3

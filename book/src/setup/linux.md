@@ -9,21 +9,14 @@ Firstly, ensure that you have **rustup** installed which you can do by following
 
 If you have already installed rustup, you can update it with `rustup update`.
 
-# 2. arm-none-eabi
-
-To assemble the small amount of assembly in agb and to do the final linking, you'll need to install the `arm-none-eabi` binutils.
-
-* On Debian and derivatives (like Ubuntu): `sudo apt install binutils-arm-none-eabi`
-* On Arch Linux and derivatives: `pacman -S arm-none-eabi-binutils`
-
-# 3. git
+# 2. git
 
 The source code for the game is hosted on github, so you will need to install git.
 
 * On Debian and derivatives (like Ubuntu): `sudo apt install git`
 * On Arch Linux and derivatives: `pacman -S git`
 
-# 4. gbafix
+# 3. gbafix
 
 In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'agb-gbafix'.
 Agb's implementation can be installed very easily using `cargo install agb-gbafix`.

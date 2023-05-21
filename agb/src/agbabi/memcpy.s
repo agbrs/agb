@@ -11,8 +11,6 @@
 ===============================================================================
 */
 
-.include "src/agbabi/macros.inc"
-
     .arm
 
     .section .iwram.__aeabi_memcpy, "ax", %progbits
@@ -32,14 +30,14 @@ __aeabi_memcpy:
     joaobapt_test r3
 
     // Copy byte head to align
-    ldrmib  r3, [r1], #1
-    strmib  r3, [r0], #1
+    ldrbmi  r3, [r1], #1
+    strbmi  r3, [r0], #1
     submi   r2, r2, #1
     // r0, r1 are now half aligned
 
     // Copy half head to align
-    ldrcsh  r3, [r1], #2
-    strcsh  r3, [r0], #2
+    ldrhcs  r3, [r1], #2
+    strhcs  r3, [r0], #2
     subcs   r2, r2, #2
     // r0, r1 are now word aligned
 
@@ -51,13 +49,13 @@ __aeabi_memcpy4:
     blt     .Lcopy_words
 
     // Word aligned, 32-byte copy
-    push    {r4-r10}
+    push    {{r4-r10}}
 .Lloop_32:
     subs    r2, r2, #32
-    ldmgeia r1!, {r3-r10}
-    stmgeia r0!, {r3-r10}
+    ldmiage r1!, {{r3-r10}}
+    stmiage r0!, {{r3-r10}}
     bgt     .Lloop_32
-    pop     {r4-r10}
+    pop     {{r4-r10}}
     bxeq    lr
 
     // < 32 bytes remaining to be copied
@@ -77,40 +75,40 @@ __aeabi_memcpy4:
     // This test still works when r2 is negative
     joaobapt_test r2
     // Copy half
-    ldrcsh  r3, [r1], #2
-    strcsh  r3, [r0], #2
+    ldrhcs  r3, [r1], #2
+    strhcs  r3, [r0], #2
     // Copy byte
-    ldrmib  r3, [r1]
-    strmib  r3, [r0]
+    ldrbmi  r3, [r1]
+    strbmi  r3, [r0]
     bx      lr
 
 .Lcopy_halves:
     // Copy byte head to align
     tst     r0, #1
-    ldrneb  r3, [r1], #1
-    strneb  r3, [r0], #1
+    ldrbne  r3, [r1], #1
+    strbne  r3, [r0], #1
     subne   r2, r2, #1
     // r0, r1 are now half aligned
 
     .global __agbabi_memcpy2
 __agbabi_memcpy2:
     subs    r2, r2, #2
-    ldrgeh  r3, [r1], #2
-    strgeh  r3, [r0], #2
+    ldrhge  r3, [r1], #2
+    strhge  r3, [r0], #2
     bgt     __agbabi_memcpy2
     bxeq    lr
 
     // Copy byte tail
     adds    r2, r2, #1
-    ldreqb  r3, [r1]
-    streqb  r3, [r0]
+    ldrbeq  r3, [r1]
+    strbeq  r3, [r0]
     bx      lr
 
     .global __agbabi_memcpy1
 __agbabi_memcpy1:
     subs    r2, r2, #1
-    ldrgeb  r3, [r1], #1
-    strgeb  r3, [r0], #1
+    ldrbge  r3, [r1], #1
+    strbge  r3, [r0], #1
     bgt     __agbabi_memcpy1
     bx      lr
 
@@ -118,7 +116,7 @@ __agbabi_memcpy1:
     .align 2
     .global memcpy
 memcpy:
-    push    {r0, lr}
+    push    {{r0, lr}}
     bl      __aeabi_memcpy
-    pop     {r0, lr}
+    pop     {{r0, lr}}
     bx      lr

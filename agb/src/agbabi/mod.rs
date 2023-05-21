@@ -1,3 +1,9 @@
+use core::arch::global_asm;
+
+global_asm!(include_str!("macros.inc"));
+global_asm!(include_str!("memcpy.s"));
+global_asm!(include_str!("memset.s"));
+
 #[cfg(test)]
 mod test {
     mod memset {

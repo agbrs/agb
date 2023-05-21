@@ -1,5 +1,3 @@
-.include "src/asm_include.s"
-
 .section .iwram.buffer_size
     .global agb_rs__buffer_size
     .balign 4
@@ -15,7 +13,7 @@ agb_arm_func agb_rs__mixer_add
     @ stack position 1 - amount to modify the right channel by (u16 fixnum with 4 bits)
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {r4-r8}
+    push {{r4-r8}}
 
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
 
@@ -46,7 +44,7 @@ modifications_fallback:
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {r4-r8}
+    pop {{r4-r8}}
     bx lr
 
 same_modification:
@@ -88,7 +86,7 @@ same_modification:
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {r4-r8}
+    pop {{r4-r8}}
     bx lr
 
 agb_arm_end agb_rs__mixer_add
@@ -100,7 +98,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ r2 - volume to play the sound at
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {r4-r9}
+    push {{r4-r9}}
 
     mov r9, r2
     ldr r5, =0x00000FFF
@@ -140,7 +138,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {r4-r9}
+    pop {{r4-r9}}
     bx lr
 
 agb_arm_end agb_rs__mixer_add_stereo
@@ -150,7 +148,7 @@ agb_arm_func agb_rs__mixer_collapse
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
 
-    push {r4-r11}
+    push {{r4-r11}}
 
 CONST_0   .req r7
 CONST_FF  .req r8
@@ -228,6 +226,6 @@ SWAP_SIGN .req r11
     subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
-    pop {r4-r11}
+    pop {{r4-r11}}
     bx lr
 agb_arm_end agb_rs__mixer_collapse

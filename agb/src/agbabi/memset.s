@@ -40,9 +40,9 @@ __aeabi_memset:
     // JoaoBapt carry & sign bit test
     movs    r1, r1, lsl #31
     // Set byte and half
-    strmib  r2, [r0], #1
-    strcsb  r2, [r0], #1
-    strcsb  r2, [r0]
+    strbmi  r2, [r0], #1
+    strbcs  r2, [r0], #1
+    strbcs  r2, [r0]
     bx      lr
 
 .LskipShortHead:
@@ -50,9 +50,9 @@ __aeabi_memset:
     // JoaoBapt carry & sign bit test
     movs    r3, r3, lsl #31
     // Set half and byte head
-    strmib  r2, [r0], #1
+    strbmi  r2, [r0], #1
     submi   r1, r1, #1
-    strcsh  r2, [r0], #2
+    strhcs  r2, [r0], #2
     subcs   r1, r1, #2
     b       __agbabi_wordset4
 
@@ -79,7 +79,7 @@ __agbabi_wordset4:
     beq     .Lskip32
     lsl     r3, r12, #5
     sub     r1, r1, r3
-    push    {r4-r9}
+    push    {{r4-r9}}
     mov     r3, r2
     mov     r4, r2
     mov     r5, r2
@@ -88,10 +88,10 @@ __agbabi_wordset4:
     mov     r8, r2
     mov     r9, r2
 .LsetWords8:
-    stmia   r0!, {r2-r9}
+    stmia   r0!, {{r2-r9}}
     subs    r12, r12, #1
     bne     .LsetWords8
-    pop     {r4-r9}
+    pop     {{r4-r9}}
 .Lskip32:
 
     // Set words
@@ -104,8 +104,8 @@ __agbabi_wordset4:
     // Set half and byte tail
     // JoaoBapt carry & sign bit test
     movs    r3, r1, lsl #31
-    strcsh  r2, [r0], #2
-    strmib  r2, [r0]
+    strhcs  r2, [r0], #2
+    strbmi  r2, [r0]
     bx      lr
 
     .section .iwram.memset, "ax", %progbits
@@ -115,7 +115,7 @@ memset:
     mov     r3, r1
     mov     r1, r2
     mov     r2, r3
-    push    {r0, lr}
+    push    {{r0, lr}}
     bl      __aeabi_memset
-    pop     {r0, lr}
+    pop     {{r0, lr}}
     bx      lr

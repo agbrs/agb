@@ -14,8 +14,6 @@ MEMORY {
 
 __text_start = ORIGIN(ewram);
 
-INPUT (agb.a)
-
 SECTIONS {
     . = __text_start;
 

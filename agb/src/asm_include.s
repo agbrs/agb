@@ -4,14 +4,14 @@
 .align 2
 .global \functionName
 .type \functionName, %function
-.func \functionName
+@ .func \functionName
 \functionName:
 .endm
 
 .macro agb_arm_end functionName:req
 .pool
 .size \functionName,.-\functionName
-.endfunc
+@ .endfunc
 .endm
 
 .macro agb_thumb_func functionName:req
@@ -20,12 +20,12 @@
 .align 1
 .global \functionName
 .type \functionName, %function
-.func \functionName
+@ .func \functionName
 \functionName:
 .endm
 
 .macro agb_thumb_end functionName:req
 .pool
 .size \functionName,.-\functionName
-.endfunc
+@ .endfunc
 .endm

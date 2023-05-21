@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Changed the default template game.
 - `DynamicSprite` has a new API which changes the constructor and adds a `set_pixel` method.
+- You no longer need to install arm-none-eabi-binutils. In order to write games using `agb`, you now only need to install rust nightly.
 
 ## [0.15.0] - 2023/04/25
 
@@ -21,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Importing background tiles has been improved. You no longer need to use `include_gfx!` with the toml file. Instead, use `include_background_gfx`. See the documentation for usage.
-- The hashmap implementation is now it its own crate, `agb-hashmap`. There is no change in API, but you can now use this for interop between non-agb code and agb code
+- The hashmap implementation is now it its own crate, `agb-hashmap`. There is no change in API, but you can now use this for interop between non-agb code and agb code.
 - Moved the existing object API to be the OamManaged API. The old names persist with deprecated notices on them.
 
 ## [0.14.0] - 2023/04/11
