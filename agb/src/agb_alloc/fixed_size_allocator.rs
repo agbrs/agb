@@ -16,7 +16,7 @@ impl Block {
     }
 }
 
-pub struct FixedSizeAllocatorInner<const SIZE: usize> {
+struct FixedSizeAllocatorInner<const SIZE: usize> {
     inner: BumpAllocatorInner,
     first_free_block: Option<SendNonNull<Block>>,
 }
