@@ -9,13 +9,3 @@ toml_edit = "0.19"
 glob = "0.3"
 chrono = "0.4"
 dependency-graph = "0.1.5"
-
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
-codegen-units = 1

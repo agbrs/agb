@@ -34,4 +34,3 @@ debug = true
 opt-level = 3
 lto = "fat"
 debug = true
-codegen-units = 1

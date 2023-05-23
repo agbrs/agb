@@ -8,13 +8,3 @@ repository = "https://github.com/agbrs/agb"
 
 [dependencies]
 agb_macros = { version = "0.15.0", path = "../agb-macros" }
-
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
-codegen-units = 1

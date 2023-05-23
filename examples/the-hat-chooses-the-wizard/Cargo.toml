@@ -16,10 +16,8 @@ serde_json = "1.0"
 [profile.dev]
 opt-level = 3
 debug = true
-codegen-units = 1
 
 [profile.release]
 opt-level = 3
 lto = "fat"
 debug = true
-codegen-units = 1
