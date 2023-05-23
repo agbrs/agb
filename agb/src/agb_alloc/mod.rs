@@ -4,6 +4,9 @@ use core::ptr::NonNull;
 
 pub(crate) mod block_allocator;
 pub(crate) mod bump_allocator;
+mod fixed_size_allocator;
+
+pub(crate) use fixed_size_allocator::FixedSizeAllocator;
 
 use block_allocator::BlockAllocator;
 
