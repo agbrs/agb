@@ -1,4 +1,4 @@
-use core::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, cell::UnsafeCell, ptr::NonNull};
 
 use super::{
     bump_allocator::{BumpAllocatorInner, StartEnd},
@@ -16,13 +16,13 @@ impl Block {
     }
 }
 
-pub(crate) struct FixedSizeAllocator<const SIZE: usize> {
+pub struct FixedSizeAllocatorInner<const SIZE: usize> {
     inner: BumpAllocatorInner,
     first_free_block: Option<SendNonNull<Block>>,
 }
 
-impl<const SIZE: usize> FixedSizeAllocator<SIZE> {
-    pub(crate) fn alloc(&mut self) -> Option<NonNull<[u8; SIZE]>> {
+impl<const SIZE: usize> FixedSizeAllocatorInner<SIZE> {
+    fn alloc(&mut self) -> Option<NonNull<[u8; SIZE]>> {
         if let Some(free_block) = self.first_free_block {
             let block = free_block.0.as_ptr();
             self.first_free_block = unsafe { (*block).next };
@@ -34,17 +34,47 @@ impl<const SIZE: usize> FixedSizeAllocator<SIZE> {
         self.inner.alloc(layout).map(core::ptr::NonNull::cast)
     }
 
-    pub(crate) unsafe fn dealloc(&mut self, ptr: *mut [u8; SIZE]) {
+    unsafe fn dealloc(&mut self, ptr: *mut [u8; SIZE]) {
         let block: *mut Block = ptr.cast();
 
         unsafe { (*block).next = self.first_free_block };
         self.first_free_block = NonNull::new(block).map(SendNonNull);
     }
 
-    pub(crate) fn new(start_end: StartEnd) -> Self {
-        FixedSizeAllocator {
+    const fn new(start_end: StartEnd) -> Self {
+        FixedSizeAllocatorInner {
             inner: BumpAllocatorInner::new(start_end),
             first_free_block: None,
         }
+    }
+}
+
+pub(crate) struct FixedSizeAllocator<const SIZE: usize> {
+    inner: UnsafeCell<FixedSizeAllocatorInner<SIZE>>,
+}
+
+impl<const SIZE: usize> FixedSizeAllocator<SIZE> {
+    pub(crate) const unsafe fn new(start: StartEnd) -> Self {
+        Self {
+            inner: UnsafeCell::new(FixedSizeAllocatorInner::new(start)),
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn with_inner<F, T>(&self, f: F) -> T
+    where
+        F: Fn(&mut FixedSizeAllocatorInner<SIZE>) -> T,
+    {
+        let inner = &mut *self.inner.get();
+
+        f(inner)
+    }
+
+    pub unsafe fn alloc(&self) -> Option<NonNull<[u8; SIZE]>> {
+        self.with_inner(FixedSizeAllocatorInner::alloc)
+    }
+
+    pub unsafe fn dealloc(&self, ptr: *mut [u8; SIZE]) {
+        self.with_inner(|inner| inner.dealloc(ptr));
     }
 }
