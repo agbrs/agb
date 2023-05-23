@@ -34,7 +34,7 @@ impl<const SIZE: usize> FixedSizeAllocator<SIZE> {
         self.inner.alloc(layout).map(core::ptr::NonNull::cast)
     }
 
-    pub(crate) fn dealloc(&mut self, ptr: *mut [u8; SIZE]) {
+    pub(crate) unsafe fn dealloc(&mut self, ptr: *mut [u8; SIZE]) {
         let block: *mut Block = ptr.cast();
 
         unsafe { (*block).next = self.first_free_block };
