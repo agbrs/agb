@@ -7,7 +7,7 @@ use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
     dma::dma_copy16,
-    hash_map::HashMap,
+    hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
 };
 
@@ -291,10 +291,10 @@ impl VRamManager {
     pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
         let reference = self
             .tile_set_to_vram
-            .get(&TileInTileSetReference::new(tile_set, tile));
+            .entry(TileInTileSetReference::new(tile_set, tile));
 
-        if let Some(reference) = reference {
-            let tile_index = Self::index_from_reference(*reference, tile_set.format);
+        if let Entry::Occupied(reference) = reference {
+            let tile_index = Self::index_from_reference(*reference.get(), tile_set.format);
             let key = tile_index.refcount_key();
             self.reference_counts[key].increment_reference_count();
             return tile_index;
@@ -305,14 +305,12 @@ impl VRamManager {
                 .unwrap()
                 .cast();
         let tile_reference = TileReference(new_reference);
+        reference.or_insert(tile_reference);
 
         self.copy_tile_to_location(tile_set, tile, tile_reference);
 
         let index = Self::index_from_reference(tile_reference, tile_set.format);
         let key = index.refcount_key();
-
-        self.tile_set_to_vram
-            .insert(TileInTileSetReference::new(tile_set, tile), tile_reference);
 
         self.reference_counts
             .resize(self.reference_counts.len().max(key + 1), Default::default());
