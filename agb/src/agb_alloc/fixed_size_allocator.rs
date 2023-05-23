@@ -53,6 +53,8 @@ pub(crate) struct FixedSizeAllocator<const SIZE: usize> {
     inner: UnsafeCell<FixedSizeAllocatorInner<SIZE>>,
 }
 
+unsafe impl<const SIZE: usize> Sync for FixedSizeAllocator<SIZE> {}
+
 impl<const SIZE: usize> FixedSizeAllocator<SIZE> {
     pub(crate) const unsafe fn new(start: StartEnd) -> Self {
         Self {
