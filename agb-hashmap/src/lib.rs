@@ -339,6 +339,10 @@ where
     }
 
     unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
+        if self.nodes.capacity() <= self.len() {
+            self.resize(self.nodes.backing_vec_size() * 2);
+        }
+
         let location = self.nodes.insert_new(key, value, hash);
 
         // SAFETY: location is always valid
