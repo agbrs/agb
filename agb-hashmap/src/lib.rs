@@ -338,23 +338,8 @@ where
         }
     }
 
-    fn insert_and_get(&mut self, key: K, value: V) -> &'_ mut V {
-        let hash = self.hash(&key);
-
-        let location = if let Some(location) = self.nodes.location(&key, hash) {
-            // SAFETY: location is valid due to the above
-            unsafe {
-                self.nodes
-                    .replace_at_location_unchecked(location, key, value);
-            }
-            location
-        } else {
-            if self.nodes.capacity() <= self.len() {
-                self.resize(self.nodes.backing_vec_size() * 2);
-            }
-
-            self.nodes.insert_new(key, value, hash)
-        };
+    unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
+        let location = self.nodes.insert_new(key, value, hash);
 
         // SAFETY: location is always valid
         unsafe {
@@ -599,7 +584,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATO
 mod entries {
     use core::{alloc::Allocator, hash::Hash};
 
-    use super::{ClonableAllocator, HashMap};
+    use super::{ClonableAllocator, HashMap, HashType};
 
     /// A view into an occupied entry in a `HashMap`. This is part of the [`crate::Entry`] enum.
     pub struct OccupiedEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
@@ -695,11 +680,16 @@ mod entries {
     pub struct VacantEntry<'a, K: 'a, V: 'a, ALLOCATOR: Allocator> {
         key: K,
         map: &'a mut HashMap<K, V, ALLOCATOR>,
+        hash: HashType,
     }
 
     impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
-        pub(crate) fn new(key: K, map: &'a mut HashMap<K, V, ALLOCATOR>) -> Self {
-            Self { key, map }
+        pub(crate) unsafe fn new(
+            key: K,
+            hash: HashType,
+            map: &'a mut HashMap<K, V, ALLOCATOR>,
+        ) -> Self {
+            Self { key, map, hash }
         }
 
         /// Gets a reference to the key that would be used when inserting a value through `VacantEntry`
@@ -717,7 +707,8 @@ mod entries {
         where
             K: Hash + Eq,
         {
-            self.map.insert_and_get(self.key, value)
+            // SAFETY: by construction, this doesn't already exist in the hashmap and we were given the hash and key
+            unsafe { self.map.insert_new_and_get(self.key, value, self.hash) }
         }
     }
 }
@@ -832,7 +823,10 @@ where
                 unsafe { OccupiedEntry::new(key, self, location) },
             )
         } else {
-            Entry::Vacant(VacantEntry::new(key, self))
+            Entry::Vacant(
+                // SAFETY: item doesn't exist yet and the hash is correct here
+                unsafe { VacantEntry::new(key, hash, self) },
+            )
         }
     }
 }
