@@ -17,7 +17,6 @@ tiled = { version = "0.9.4", default-features = false }
 [profile.dev]
 opt-level = 3
 debug = true
-codegen-units = 1
 
 [profile.release]
 opt-level = 3

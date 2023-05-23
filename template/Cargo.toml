@@ -12,7 +12,6 @@ agb = "0.15.0"
 [profile.dev]
 opt-level = 3
 debug = true
-codegen-units = 1
 
 [profile.release]
 opt-level = 3

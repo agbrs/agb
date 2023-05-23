@@ -10,7 +10,6 @@ agb = { version = "0.15.0", path = "../../agb" }
 [profile.dev]
 opt-level = 3
 debug = true
-codegen-units = 1
 
 [profile.release]
 opt-level = 3
