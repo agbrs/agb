@@ -416,6 +416,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     #[doc(hidden)]
+    #[inline(always)]
     /// Called by the [num!] macro in order to create a fixed point number
     pub fn new_from_parts(num: (i32, i32)) -> Self {
         Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
