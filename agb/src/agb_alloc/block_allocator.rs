@@ -6,7 +6,6 @@
 use core::alloc::{Allocator, GlobalAlloc, Layout};
 
 use core::cell::UnsafeCell;
-use core::convert::TryInto;
 use core::ptr::NonNull;
 
 use super::bump_allocator::{BumpAllocatorInner, StartEnd};
