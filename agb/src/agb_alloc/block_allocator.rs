@@ -6,7 +6,6 @@
 use core::alloc::{Allocator, GlobalAlloc, Layout};
 
 use core::cell::UnsafeCell;
-use core::convert::TryInto;
 use core::ptr::NonNull;
 
 use super::bump_allocator::{BumpAllocatorInner, StartEnd};
@@ -133,29 +132,25 @@ impl BlockAllocatorInner {
     }
 
     /// Merges blocks together to create a normalised list
-    unsafe fn normalise(&mut self) {
-        let mut list_ptr = &mut self.state.first_free_block;
-
-        while let Some(mut current) = list_ptr {
-            if let Some(next_elem) = current.as_mut().next {
-                let difference = next_elem
+    unsafe fn normalise(&mut self, point_to_normalise: *mut Block) {
+        unsafe fn normalise_block(block_to_normalise: &mut Block) {
+            if let Some(next_block) = block_to_normalise.next {
+                let difference = next_block
                     .as_ptr()
                     .cast::<u8>()
-                    .offset_from(current.as_ptr().cast::<u8>());
-                let usize_difference: usize = difference
-                    .try_into()
-                    .expect("distances in alloc'd blocks must be positive");
-
-                if usize_difference == current.as_mut().size {
-                    let current = current.as_mut();
-                    let next = next_elem.as_ref();
-
-                    current.size += next.size;
-                    current.next = next.next;
-                    continue;
+                    .offset_from((block_to_normalise as *mut Block).cast::<u8>());
+                if difference == block_to_normalise.size as isize {
+                    let next = next_block.as_ref();
+                    block_to_normalise.next = next.next;
+                    block_to_normalise.size += next.size;
+                    normalise_block(block_to_normalise);
                 }
             }
-            list_ptr = &mut current.as_mut().next;
+        }
+
+        normalise_block(&mut *point_to_normalise);
+        if let Some(mut next_block) = (*point_to_normalise).next {
+            normalise_block(next_block.as_mut());
         }
     }
 
@@ -279,8 +274,10 @@ impl BlockAllocatorInner {
     }
 
     pub unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        self.dealloc_no_normalise(ptr, layout);
-        self.normalise();
+        let point_to_normalise = self.dealloc_no_normalise(ptr, layout);
+        if let Some(block_to_normalise) = *point_to_normalise {
+            self.normalise(block_to_normalise.as_ptr());
+        }
     }
 
     /// Returns a reference to the pointer to the next block
@@ -305,11 +302,16 @@ impl BlockAllocatorInner {
         }
     }
 
-    pub unsafe fn dealloc_no_normalise(&mut self, ptr: *mut u8, layout: Layout) {
+    pub unsafe fn dealloc_no_normalise(
+        &mut self,
+        ptr: *mut u8,
+        layout: Layout,
+    ) -> *mut Option<SendNonNull<Block>> {
         let new_layout = Block::either_layout(layout).pad_to_align();
 
         // note that this is a reference to a pointer
         let mut list_ptr = &mut self.state.first_free_block;
+        let mut list_ptr_prev: *mut Option<SendNonNull<Block>> = list_ptr;
 
         // This searches the free list until it finds a block further along
         // than the block that is being freed. The newly freed block is then
@@ -327,6 +329,7 @@ impl BlockAllocatorInner {
                         *list_ptr = NonNull::new(ptr.cast()).map(SendNonNull);
                         break;
                     }
+                    list_ptr_prev = list_ptr;
                     list_ptr = &mut current_block.as_mut().next;
                 }
                 None => {
@@ -341,6 +344,8 @@ impl BlockAllocatorInner {
                 }
             }
         }
+
+        list_ptr_prev
     }
 }
 
