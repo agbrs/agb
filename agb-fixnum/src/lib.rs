@@ -536,26 +536,55 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
         //
         // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
         // So we have to add 1 to the integral bit, and take 1 - fractional bit
-        if fractional != I::zero() && integral < I::zero() {
+        let sign = if fractional != I::zero() && integral < I::zero() {
             integral = integral + I::one();
-            if integral == I::zero() {
-                // If the number is in the range (-1, 0), then we just bumped `integral` from -1 to 0,
-                // so we need to compensate for the missing negative sign.
+            fractional = (I::one() << N) - fractional;
+            -1
+        } else {
+            1
+        };
+
+        if let Some(precision) = f.precision() {
+            let precision_multiplier = I::from_as_i32(10_i32.pow(precision as u32));
+
+            let fractional_as_integer = fractional * precision_multiplier * I::ten();
+            let mut fractional_as_integer = fractional_as_integer >> N;
+
+            if fractional_as_integer % I::ten() >= I::from_as_i32(5) {
+                fractional_as_integer = fractional_as_integer + I::ten();
+            }
+
+            let mut fraction_to_write = fractional_as_integer / I::ten();
+
+            if fraction_to_write >= precision_multiplier {
+                integral = integral + I::from_as_i32(sign);
+                fraction_to_write = fraction_to_write - precision_multiplier;
+            }
+
+            if sign == -1 && integral == I::zero() && fraction_to_write != I::zero() {
                 write!(f, "-")?;
             }
-            fractional = (I::one() << N) - fractional;
-        }
 
-        write!(f, "{integral}")?;
+            write!(f, "{integral}")?;
 
-        if fractional != I::zero() {
-            write!(f, ".")?;
-        }
+            if precision != 0 {
+                write!(f, ".{:#0width$}", fraction_to_write, width = precision)?;
+            }
+        } else {
+            if sign == -1 && integral == I::zero() {
+                write!(f, "-")?;
+            }
+            write!(f, "{integral}")?;
 
-        while fractional & mask != I::zero() {
-            fractional = fractional * I::ten();
-            write!(f, "{}", (fractional & !mask) >> N)?;
-            fractional = fractional & mask;
+            if fractional != I::zero() {
+                write!(f, ".")?;
+            }
+
+            while fractional & mask != I::zero() {
+                fractional = fractional * I::ten();
+                write!(f, "{}", (fractional & !mask) >> N)?;
+                fractional = fractional & mask;
+            }
         }
 
         Ok(())
@@ -1064,6 +1093,35 @@ mod tests {
         assert_eq!(format!("{b}"), "1.25");
         assert_eq!(format!("{c}"), "-1.25");
         assert_eq!(format!("{d}"), "-0.25");
+    }
+
+    #[test]
+    fn formats_precision_correctly() {
+        macro_rules! num_ {
+            ($n: literal) => {{
+                let a: Num<i32, 20> = num!($n);
+                a
+            }};
+        }
+
+        assert_eq!(format!("{:.2}", num_!(1.2345678)), "1.23");
+        assert_eq!(format!("{:.2}", num_!(1.237)), "1.24");
+        assert_eq!(format!("{:.2}", num_!(-1.237)), "-1.24");
+
+        assert_eq!(format!("{:.2}", num_!(1.5)), "1.50");
+        assert_eq!(format!("{:.2}", num_!(1.05)), "1.05");
+
+        assert_eq!(format!("{:.2}", num_!(3.999)), "4.00");
+        assert_eq!(format!("{:.2}", num_!(-3.999)), "-4.00");
+
+        assert_eq!(format!("{:.2}", num_!(-0.999)), "-1.00");
+        assert_eq!(format!("{:.2}", num_!(0.999)), "1.00");
+
+        assert_eq!(format!("{:.2}", num_!(0.001)), "0.00");
+        assert_eq!(format!("{:.2}", num_!(-0.001)), "0.00");
+
+        assert_eq!(format!("{:.0}", num_!(-0.001)), "0");
+        assert_eq!(format!("{:.0}", num_!(-0.001)), "0");
     }
 
     #[test]
