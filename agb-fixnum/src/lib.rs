@@ -133,7 +133,6 @@ fixed_width_unsigned_integer_impl!(i16, i32);
 fixed_width_unsigned_integer_impl!(u16, u32);
 fixed_width_unsigned_integer_impl!(i32, i64);
 fixed_width_unsigned_integer_impl!(u32, u64);
-fixed_width_unsigned_integer_impl!(usize, u64);
 
 fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);

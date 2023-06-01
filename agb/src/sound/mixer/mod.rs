@@ -224,10 +224,10 @@ impl Frequency {
 /// ```
 pub struct SoundChannel {
     data: &'static [u8],
-    pos: Num<usize, 8>,
+    pos: Num<u32, 8>,
     should_loop: bool,
 
-    playback_speed: Num<usize, 8>,
+    playback_speed: Num<u32, 8>,
     volume: Num<i16, 4>, // between 0 and 1
 
     panning: Num<i16, 4>, // between -1 and 1
@@ -336,7 +336,7 @@ impl SoundChannel {
     /// Note that this only works for mono sounds. Stereo sounds will not change
     /// how fast they play.
     #[inline(always)]
-    pub fn playback(&mut self, playback_speed: impl Into<Num<usize, 8>>) -> &mut Self {
+    pub fn playback(&mut self, playback_speed: impl Into<Num<u32, 8>>) -> &mut Self {
         self.playback_speed = playback_speed.into();
         self
     }
@@ -392,13 +392,13 @@ impl SoundChannel {
     /// Gets how far along the sound has played.
     #[inline]
     #[must_use]
-    pub fn pos(&self) -> Num<usize, 8> {
+    pub fn pos(&self) -> Num<u32, 8> {
         self.pos
     }
 
     /// Sets the playback position
     #[inline]
-    pub fn set_pos(&mut self, pos: impl Into<Num<usize, 8>>) -> &mut Self {
+    pub fn set_pos(&mut self, pos: impl Into<Num<u32, 8>>) -> &mut Self {
         self.pos = pos.into();
         self
     }
