@@ -45,8 +45,14 @@ fn roll_dice_scaled(number_of_dice: u32, bits_per_dice: u32, width: u32) -> i32 
 
     let dice_around_zero = dice - current_mean;
 
-
-    dice_around_zero * width as i32 / current_width
+    fn divide_nearest(numerator: i32, denominator: i32) -> i32 {
+        if (numerator < 0) ^ (denominator < 0) {
+            (numerator - denominator / 2) / denominator
+        } else {
+            (numerator + denominator / 2) / denominator
+        }
+    }
+    divide_nearest(dice_around_zero * width as i32, current_width)
 }
 
 fn default_roll(width: u32) -> i32 {
