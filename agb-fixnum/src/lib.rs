@@ -1095,8 +1095,9 @@ mod tests {
         assert_eq!(format!("{d}"), "-0.25");
     }
 
-    #[test]
-    fn formats_precision_correctly() {
+    mod precision {
+        use super::*;
+
         macro_rules! num_ {
             ($n: literal) => {{
                 let a: Num<i32, 20> = num!($n);
@@ -1104,24 +1105,39 @@ mod tests {
             }};
         }
 
-        assert_eq!(format!("{:.2}", num_!(1.2345678)), "1.23");
-        assert_eq!(format!("{:.2}", num_!(1.237)), "1.24");
-        assert_eq!(format!("{:.2}", num_!(-1.237)), "-1.24");
+        macro_rules! test_precision {
+            ($TestName: ident, $Number: literal, $Expected: literal) => {
+                test_precision! { $TestName, $Number, $Expected, 2 }
+            };
+            ($TestName: ident, $Number: literal, $Expected: literal, $Digits: literal) => {
+                #[test]
+                fn $TestName() {
+                    assert_eq!(
+                        format!("{:.width$}", num_!($Number), width = $Digits),
+                        $Expected
+                    );
+                }
+            };
+        }
 
-        assert_eq!(format!("{:.2}", num_!(1.5)), "1.50");
-        assert_eq!(format!("{:.2}", num_!(1.05)), "1.05");
+        test_precision!(positive_down, 1.2345678, "1.23");
+        test_precision!(positive_round_up, 1.237, "1.24");
+        test_precision!(negative_round_down, -1.237, "-1.24");
 
-        assert_eq!(format!("{:.2}", num_!(3.999)), "4.00");
-        assert_eq!(format!("{:.2}", num_!(-3.999)), "-4.00");
+        test_precision!(trailing_zero, 1.5, "1.50");
+        test_precision!(leading_zero, 1.05, "1.05");
 
-        assert_eq!(format!("{:.2}", num_!(-0.999)), "-1.00");
-        assert_eq!(format!("{:.2}", num_!(0.999)), "1.00");
+        test_precision!(positive_round_to_next_integer, 3.999, "4.00");
+        test_precision!(negative_round_to_next_integer, -3.999, "-4.00");
 
-        assert_eq!(format!("{:.2}", num_!(0.001)), "0.00");
-        assert_eq!(format!("{:.2}", num_!(-0.001)), "0.00");
+        test_precision!(negative_round_to_1, -0.999, "-1.00");
+        test_precision!(positive_round_to_1, 0.999, "1.00");
 
-        assert_eq!(format!("{:.0}", num_!(-0.001)), "0");
-        assert_eq!(format!("{:.0}", num_!(-0.001)), "0");
+        test_precision!(positive_round_to_zero, 0.001, "0.00");
+        test_precision!(negative_round_to_zero, -0.001, "0.00");
+
+        test_precision!(zero_precision_negative, -0.001, "0", 0);
+        test_precision!(zero_precision_positive, 0.001, "0", 0);
     }
 
     #[test]
