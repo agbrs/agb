@@ -198,18 +198,24 @@ impl<'a> FractionDisplay<'a> {
 
         for i in 0..digits {
             let mut left_digit = obj.object_sprite(SMALL_SPRITES.number(0));
-            left_digit.set_position(pos + (i as i32 * 4, 0).into());
+            left_digit
+                .set_position(pos + (i as i32 * 4, 0).into())
+                .show();
 
             sprites.push(left_digit);
 
             let mut right_digit = obj.object_sprite(SMALL_SPRITES.number(0));
-            right_digit.set_position(pos + (i as i32 * 4 + digits as i32 * 4 + 7, 0).into());
+            right_digit
+                .set_position(pos + (i as i32 * 4 + digits as i32 * 4 + 7, 0).into())
+                .show();
 
             sprites.push(right_digit);
         }
 
         let mut slash = obj.object_sprite(SMALL_SPRITES.slash());
-        slash.set_position(pos + (digits as i32 * 4 + 1, 0).into());
+        slash
+            .set_position(pos + (digits as i32 * 4 + 1, 0).into())
+            .show();
         sprites.push(slash);
 
         Self {
