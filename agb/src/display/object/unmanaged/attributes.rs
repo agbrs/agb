@@ -19,11 +19,11 @@ impl Default for Attributes {
         Self {
             a0: ObjectAttribute0::new(
                 0,
-                ObjectMode::Normal,
+                ObjectMode::Disabled,
                 GraphicsMode::Normal,
                 false,
                 ColourMode::Four,
-                u2::new(1),
+                u2::new(0),
             ),
             a1s: Default::default(),
             a1a: Default::default(),
