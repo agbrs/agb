@@ -85,12 +85,6 @@ impl BlockAllocator {
         self.with_inner(|inner| inner.dealloc(ptr, layout));
     }
 
-    pub unsafe fn dealloc_no_normalise(&self, ptr: *mut u8, layout: Layout) {
-        self.with_inner(|inner| {
-            inner.dealloc_no_normalise(ptr, layout);
-        });
-    }
-
     pub unsafe fn grow(
         &self,
         ptr: *mut u8,
