@@ -91,6 +91,7 @@ pub fn generate_upgrades(level: u32, call: &mut dyn FnMut()) -> Vec<Face> {
         }
 
         if attempts > 100 {
+            attempts = 0;
             upgrades.clear();
         }
     }
