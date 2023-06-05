@@ -175,7 +175,7 @@ pub(crate) fn customise_screen(
 
     agb.sfx.frame();
 
-    let mut upgrades = crate::level_generation::generate_upgrades(level);
+    let mut upgrades = crate::level_generation::generate_upgrades(level, &mut || agb.sfx.frame());
     let mut _upgrade_objects = create_upgrade_objects(&agb.obj, &upgrades);
 
     let mut input = agb::input::ButtonController::new();

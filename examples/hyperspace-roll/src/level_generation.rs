@@ -92,7 +92,7 @@ fn generate_cooldown(current_level: u32) -> u32 {
     rng::gen().rem_euclid((5 * 60 - current_level as i32 * 10).max(1)) as u32 + 2 * 60
 }
 
-pub fn generate_upgrades(level: u32) -> Vec<Face> {
+pub fn generate_upgrades(level: u32, call: &mut dyn FnMut()) -> Vec<Face> {
     let mut upgrade_values = HashMap::new();
 
     upgrade_values.insert(Face::Shoot, 5);
@@ -128,6 +128,8 @@ pub fn generate_upgrades(level: u32) -> Vec<Face> {
     let mut attempts = 0;
 
     while upgrades.len() != 3 {
+        call();
+
         attempts += 1;
         let next = potential_upgrades[rng::gen() as usize % potential_upgrades.len()];
         let number_of_malfunctions = upgrades
@@ -144,6 +146,7 @@ pub fn generate_upgrades(level: u32) -> Vec<Face> {
         }
 
         if attempts > 100 {
+            attempts = 0;
             upgrades.clear();
         }
     }

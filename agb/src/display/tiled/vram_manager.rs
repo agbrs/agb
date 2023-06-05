@@ -342,7 +342,7 @@ impl VRamManager {
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
-                TILE_ALLOCATOR.dealloc_no_normalise(
+                TILE_ALLOCATOR.dealloc(
                     tile_reference.0.cast().as_ptr(),
                     layout_of(tile_index.format()),
                 );
