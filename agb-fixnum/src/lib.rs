@@ -79,6 +79,8 @@ pub trait FixedWidthUnsignedInteger:
     fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
+    /// Returns (a * b) >> N
+    fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
 }
 
 /// Trait for an integer that includes negation
@@ -89,7 +91,7 @@ pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self
 }
 
 macro_rules! fixed_width_unsigned_integer_impl {
-    ($T: ty) => {
+    ($T: ty, $Upcast: ty) => {
         impl FixedWidthUnsignedInteger for $T {
             #[inline(always)]
             fn zero() -> Self {
@@ -107,6 +109,10 @@ macro_rules! fixed_width_unsigned_integer_impl {
             fn from_as_i32(v: i32) -> Self {
                 v as $T
             }
+            #[inline(always)]
+            fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+                (((a as $Upcast) * (b as $Upcast)) >> n) as $T
+            }
         }
     };
 }
@@ -122,12 +128,11 @@ macro_rules! fixed_width_signed_integer_impl {
     };
 }
 
-fixed_width_unsigned_integer_impl!(u8);
-fixed_width_unsigned_integer_impl!(i16);
-fixed_width_unsigned_integer_impl!(u16);
-fixed_width_unsigned_integer_impl!(i32);
-fixed_width_unsigned_integer_impl!(u32);
-fixed_width_unsigned_integer_impl!(usize);
+fixed_width_unsigned_integer_impl!(u8, u32);
+fixed_width_unsigned_integer_impl!(i16, i32);
+fixed_width_unsigned_integer_impl!(u16, u32);
+fixed_width_unsigned_integer_impl!(i32, i64);
+fixed_width_unsigned_integer_impl!(u32, u64);
 
 fixed_width_signed_integer_impl!(i16);
 fixed_width_signed_integer_impl!(i32);
@@ -204,9 +209,7 @@ where
 {
     type Output = Self;
     fn mul(self, rhs: Num<I, N>) -> Self::Output {
-        Num(((self.floor() * rhs.floor()) << N)
-            + (self.floor() * rhs.frac() + rhs.floor() * self.frac())
-            + ((self.frac() * rhs.frac()) >> N))
+        Num(I::upcast_multiply(self.0, rhs.0, N))
     }
 }
 

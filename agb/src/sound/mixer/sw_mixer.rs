@@ -24,7 +24,7 @@ extern "C" {
     fn agb_rs__mixer_add(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
-        playback_speed: Num<usize, 8>,
+        playback_speed: Num<u32, 8>,
         left_amount: Num<i16, 4>,
         right_amount: Num<i16, 4>,
     );
@@ -415,8 +415,8 @@ impl MixerBuffer {
                 channel.playback_speed
             };
 
-            if (channel.pos + playback_speed * self.frequency.buffer_size()).floor()
-                >= channel.data.len()
+            if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
+                >= channel.data.len() as u32
             {
                 // TODO: This should probably play what's left rather than skip the last bit
                 if channel.should_loop {
@@ -431,7 +431,7 @@ impl MixerBuffer {
                 if channel.is_stereo {
                     unsafe {
                         agb_rs__mixer_add_stereo(
-                            channel.data.as_ptr().add(channel.pos.floor()),
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
                             working_buffer.as_mut_ptr(),
                             channel.volume,
                         );
@@ -442,7 +442,7 @@ impl MixerBuffer {
 
                     unsafe {
                         agb_rs__mixer_add(
-                            channel.data.as_ptr().add(channel.pos.floor()),
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
                             working_buffer.as_mut_ptr(),
                             playback_speed,
                             left_amount,
@@ -452,7 +452,7 @@ impl MixerBuffer {
                 }
             }
 
-            channel.pos += playback_speed * self.frequency.buffer_size();
+            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
         }
 
         let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
