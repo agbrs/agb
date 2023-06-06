@@ -127,13 +127,9 @@ macro_rules! upcast_multiply_impl {
             let b_floor = b >> n;
             let b_frac = b & mask;
 
-            (a_floor.wrapping_mul(b_floor) << n)
-                .wrapping_add(
-                    a_floor
-                        .wrapping_mul(b_frac)
-                        .wrapping_add(b_floor.wrapping_mul(a_frac)),
-                )
-                .wrapping_add(a_frac.wrapping_mul(b_frac) >> n)
+            (a_floor.mul(b_floor) << n)
+                .add(a_floor.mul(b_frac).add(b_floor.mul(a_frac)))
+                .add(a_frac.mul(b_frac) >> n)
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -1399,14 +1395,15 @@ mod tests {
         );
     }
 
-    #[cfg(not(debug_assertions))]
     #[test]
     fn test_all_multiplies() {
         use super::*;
 
         for i in 0..u32::MAX {
             let fix_num: Num<_, 7> = Num::from_raw(i);
-            let upcasted = ((i as u64 * i as u64) >> 7) as u32;
+            let Ok(upcasted) = ((i as u64 * i as u64) >> 7).try_into() else {
+                break;
+            };
 
             assert_eq!((fix_num * fix_num).to_raw(), upcasted);
         }
