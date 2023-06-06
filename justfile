@@ -20,6 +20,7 @@ test:
 
 test-release:
     just _test-release agb
+    just _test-release agb-fixnum
     just _test-release-arm agb
 
 doctest-agb:
