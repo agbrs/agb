@@ -8,3 +8,7 @@ repository = "https://github.com/agbrs/agb"
 
 [dependencies]
 agb_macros = { version = "0.15.0", path = "../agb-macros" }
+
+
+[dev-dependencies]
+rand = "0.8.5"

@@ -91,7 +91,7 @@ pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self
 }
 
 macro_rules! fixed_width_unsigned_integer_impl {
-    ($T: ty, $Upcast: ident) => {
+    ($T: ident, $Upcast: ident) => {
         impl FixedWidthUnsignedInteger for $T {
             #[inline(always)]
             fn zero() -> Self {
@@ -116,7 +116,7 @@ macro_rules! fixed_width_unsigned_integer_impl {
 }
 
 macro_rules! upcast_multiply_impl {
-    ($T: ty, optimised_64_bit) => {
+    ($T: ident, optimised_64_bit) => {
         #[inline(always)]
         fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
             let mask = (Self::one() << n).wrapping_sub(1);
@@ -127,9 +127,15 @@ macro_rules! upcast_multiply_impl {
             let b_floor = b >> n;
             let b_frac = b & mask;
 
-            (a_floor.mul(b_floor) << n)
-                .add(a_floor.mul(b_frac).add(b_floor.mul(a_frac)))
-                .add(a_frac.mul(b_frac) >> n)
+            // maintain correct overflow behaviour
+            // this checks that we are not losing precision when shifting the integer part up
+            debug_assert!(a_floor * b_floor < (1 << (core::mem::size_of::<$T>() * 8 - n)));
+
+            check_i32_overflow!($T, a_floor, b_floor, n);
+
+            ((a_floor * b_floor) << n)
+                + (a_floor * b_frac + b_floor * a_frac)
+                + ((a_frac * b_frac) >> n)
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -138,6 +144,13 @@ macro_rules! upcast_multiply_impl {
             (((a as $Upcast) * (b as $Upcast)) >> n) as $T
         }
     };
+}
+
+macro_rules! check_i32_overflow {
+    (i32, $A: ident, $B: ident, $N: ident) => {
+        debug_assert!($A * $B > !(1 << (core::mem::size_of::<i32>() * 8 - $N)));
+    };
+    ($T: ty, $A: ident, $B: ident, $N: ident) => {};
 }
 
 macro_rules! fixed_width_signed_integer_impl {
@@ -1395,17 +1408,55 @@ mod tests {
         );
     }
 
+    #[cfg(debug_assertions)]
     #[test]
-    fn test_all_multiplies() {
+    fn test_multiply_overflow_behaviour_u32() {
         use super::*;
+        use rand::RngCore;
+        extern crate std;
 
-        for i in 0..u32::MAX {
-            let fix_num: Num<_, 7> = Num::from_raw(i);
-            let Ok(upcasted) = ((i as u64 * i as u64) >> 7).try_into() else {
-                break;
-            };
+        let mut rng = rand::thread_rng();
 
-            assert_eq!((fix_num * fix_num).to_raw(), upcasted);
-        }
+        core::iter::repeat(()).take(10_000).for_each(|()| {
+            const N: usize = 12;
+
+            let a = rng.next_u32();
+            let b = rng.next_u32();
+
+            let fix_num: Num<_, N> = Num::from_raw(a);
+            let fix_num_b: Num<_, N> = Num::from_raw(b);
+            let upcasted: Option<Num<u32, N>> =
+                ((a as u64 * b as u64) >> N).try_into().ok().map(Num);
+
+            let multply = std::panic::catch_unwind(|| fix_num * fix_num_b).ok();
+
+            assert_eq!(multply, upcasted, "{fix_num} and {fix_num_b} fail");
+        })
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn test_multiply_overflow_behaviour_i32() {
+        use super::*;
+        use rand::RngCore;
+        extern crate std;
+
+        let mut rng = rand::thread_rng();
+
+        core::iter::repeat(()).take(10_000).for_each(|()| {
+            const N: usize = 12;
+
+            let a = rng.next_u32() as i32;
+            let b = rng.next_u32() as i32;
+
+            let fix_num: Num<_, N> = Num::from_raw(a);
+            let fix_num_b: Num<_, N> = Num::from_raw(b);
+            let upcasted: Option<Num<i32, N>> =
+                ((a as i64 * b as i64) >> N).try_into().ok().map(Num);
+
+            let multply = std::panic::catch_unwind(|| fix_num * fix_num_b).ok();
+
+            assert_eq!(multply, upcasted, "{fix_num} and {fix_num_b} fail");
+        })
     }
 }
