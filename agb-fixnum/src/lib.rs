@@ -129,9 +129,8 @@ macro_rules! upcast_multiply_impl {
 
             // maintain correct overflow behaviour
             // this checks that we are not losing precision when shifting the integer part up
-            debug_assert!(a_floor * b_floor < (1 << (core::mem::size_of::<$T>() * 8 - n)));
-
             check_i32_overflow!($T, a_floor, b_floor, n);
+            debug_assert!(a_floor * b_floor < (1 << (core::mem::size_of::<$T>() * 8 - n)));
 
             ((a_floor * b_floor) << n)
                 + (a_floor * b_frac + b_floor * a_frac)
@@ -148,7 +147,8 @@ macro_rules! upcast_multiply_impl {
 
 macro_rules! check_i32_overflow {
     (i32, $A: ident, $B: ident, $N: ident) => {
-        debug_assert!($A * $B > !(1 << (core::mem::size_of::<i32>() * 8 - $N)));
+        debug_assert!($A * $B > !(1 << (core::mem::size_of::<i32>() * 8 - $N - 1)));
+        debug_assert!($A * $B < (1 << (core::mem::size_of::<i32>() * 8 - $N - 1)));
     };
     ($T: ty, $A: ident, $B: ident, $N: ident) => {};
 }
