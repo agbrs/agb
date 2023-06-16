@@ -190,7 +190,7 @@ SWAP_SIGN .req r11
 @ So (-1 logical >> 24) gives 11111111 and (1 logical >> 24) gives 00000000 so register is clamped between these two values.
 .macro clamp_s8 reg:req
     subs TEMP, CONST_0, \reg, asr #8
-    andne \reg, CONST_FF, TEMP, lsr #24
+    movne \reg, TEMP, lsr #24
 .endm
 
 .macro load_sample left_reg:req right_reg:req
