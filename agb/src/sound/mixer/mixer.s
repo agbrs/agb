@@ -100,7 +100,6 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
     push {{r4-r9}}
 
-    mov r9, r2
     ldr r5, =0x00000FFF
 
     ldr r8, =agb_rs__buffer_size
@@ -130,7 +129,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
-    mla r4, r6, r9, r4     @ r4 += r6 * r9 (calculating both the left and right samples together)
+    mla r4, r6, r2, r4     @ r4 += r6 * r2 (calculating both the left and right samples together)
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endr
