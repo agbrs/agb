@@ -153,16 +153,14 @@ agb_arm_func agb_rs__mixer_collapse
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
 
-    push {{r4-r11}}
+    push {{r4-r11,lr}}
 
 CONST_0   .req r7
-CONST_FF  .req r8
-CONST_127 .req r9
+CONST_127 .req r8
 TEMP      .req r10
 SWAP_SIGN .req r11
 
     ldr CONST_0, =0
-    ldr CONST_FF, =0xff
     ldr CONST_127, =127
     ldr SWAP_SIGN, =0x80808080
 
@@ -176,7 +174,7 @@ SWAP_SIGN .req r11
 @ The register should be 127 bigger then what you actually want, and we'll correct for that later. Hence the
 @ add instructions in `load_sample`.
 @
-@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively,
+@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively, -x = !x + 1 => !x = -x-1
 @ and we want to clamp the value between them.
 @
 @ The first instruction calculates `-((sample + 128) >> 8)`. If sample is between -128 and 127, then
@@ -194,9 +192,6 @@ SWAP_SIGN .req r11
 .endm
 
 .macro load_sample left_reg:req right_reg:req
-    @ left_reg = *r1; r1++
-    ldr \left_reg, [r1], #4
-
     mov \right_reg, \left_reg, lsl #16                 @ push the sample 16 bits first
     add \right_reg, CONST_127, \right_reg, asr #20     @ move right sample back to being the correct value
     add \left_reg, CONST_127, \left_reg, asr #20       @ now we only have the left sample
@@ -207,19 +202,21 @@ SWAP_SIGN .req r11
 
 1:
 .rept 4
+    ldmia r1!, {{r3,r5,r6,r9}}
+
     load_sample r3, r12
 
-    load_sample r5, r6
+    load_sample r5, lr
     orr r3, r3, r5, lsl #8
-    orr r12, r12, r6, lsl #8
+    orr r12, r12, lr, lsl #8
 
-    load_sample r5, r6
-    orr r3, r3, r5, lsl #16
-    orr r12, r12, r6, lsl #16
+    load_sample r6, lr
+    orr r3, r3, r6, lsl #16
+    orr r12, r12, lr, lsl #16
 
-    load_sample r5, r6
-    orr r3, r3, r5, lsl #24
-    orr r12, r12, r6, lsl #24
+    load_sample r9, lr
+    orr r3, r3, r9, lsl #24
+    orr r12, r12, lr, lsl #24
 
     eor r3, r3, SWAP_SIGN
     eor r12, r12, SWAP_SIGN
@@ -231,6 +228,6 @@ SWAP_SIGN .req r11
     subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
-    pop {{r4-r11}}
+    pop {{r4-r11,lr}}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
