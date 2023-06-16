@@ -98,17 +98,15 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ r2 - volume to play the sound at
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {{r4-r9}}
+    push {{r4-r12}}
 
     ldr r5, =0x00000FFF
 
     ldr r8, =agb_rs__buffer_size
     ldr r8, [r8]
-1:
-.rept 4
-    ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
-    ldr r4, [r1]             @ read the current value
+.macro add_stereo_sample sample_reg:req
+    ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
     @ This is slightly convoluted, but is mainly done for performance reasons. It is better
     @ to hit ROM just once and then do 3 really simple instructions then do 2 ldrsbs however annoying
@@ -129,7 +127,14 @@ agb_arm_func agb_rs__mixer_add_stereo
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
-    mla r4, r6, r2, r4     @ r4 += r6 * r2 (calculating both the left and right samples together)
+    mla \sample_reg, r6, r2, \sample_reg     @ r4 += r6 * r2 (calculating both the left and right samples together)
+.endm
+
+1:
+.rept 4
+    ldr r4, [r1]             @ read the current value
+
+    add_stereo_sample r4
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endr
@@ -137,7 +142,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {{r4-r9}}
+    pop {{r4-r12}}
     bx lr
 
 agb_arm_end agb_rs__mixer_add_stereo
