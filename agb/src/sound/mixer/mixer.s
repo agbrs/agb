@@ -131,13 +131,14 @@ agb_arm_func agb_rs__mixer_add_stereo
 .endm
 
 1:
-.rept 4
-    ldr r4, [r1]             @ read the current value
+    ldmia r1, {{r9-r12}}       @ read the current values
 
-    add_stereo_sample r4
+    add_stereo_sample r9
+    add_stereo_sample r10
+    add_stereo_sample r11
+    add_stereo_sample r12
 
-    str r4, [r1], #4         @ store the new value, and increment the pointer
-.endr
+    stmia r1!, {{r9-r12}}         @ store the new value, and increment the pointer
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
