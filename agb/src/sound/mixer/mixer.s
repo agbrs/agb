@@ -98,7 +98,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ r2 - volume to play the sound at
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {{r4-r12}}
+    push {{r4-r11}}
 
     ldr r5, =0x00000FFF
 
@@ -143,7 +143,7 @@ agb_arm_func agb_rs__mixer_add_stereo
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {{r4-r12}}
+    pop {{r4-r11}}
     bx lr
 
 agb_arm_end agb_rs__mixer_add_stereo
