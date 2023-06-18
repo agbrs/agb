@@ -157,12 +157,12 @@ agb_arm_func agb_rs__mixer_collapse
     push {{r4-r11,lr}}
 
 CONST_0   .req r7
-CONST_127 .req r8
+CONST_128 .req r8
 TEMP      .req r10
 SWAP_SIGN .req r11
 
     ldr CONST_0, =0
-    ldr CONST_127, =127
+    ldr CONST_128, =128
     ldr SWAP_SIGN, =0x80808080
 
     mov r4, r2
@@ -192,8 +192,8 @@ SWAP_SIGN .req r11
 
 .macro load_sample left_reg:req right_reg:req
     mov \right_reg, \left_reg, lsl #16                 @ push the sample 16 bits first
-    add \right_reg, CONST_127, \right_reg, asr #20     @ move right sample back to being the correct value
-    add \left_reg, CONST_127, \left_reg, asr #20       @ now we only have the left sample
+    add \right_reg, CONST_128, \right_reg, asr #20     @ move right sample back to being the correct value
+    add \left_reg, CONST_128, \left_reg, asr #20       @ now we only have the left sample
 
     clamp_s8 \left_reg                                 @ clamp the audio to 8 bit values
     clamp_s8 \right_reg
