@@ -35,7 +35,11 @@ extern "C" {
         volume: Num<i16, 4>,
     );
 
-    fn agb_rs__mixer_collapse(sound_buffer: *mut i8, input_buffer: *const Num<i16, 4>);
+    fn agb_rs__mixer_collapse(
+        sound_buffer: *mut i8,
+        input_buffer: *const Num<i16, 4>,
+        num_samples: usize,
+    );
 }
 
 /// The main software mixer struct.
@@ -458,7 +462,11 @@ impl MixerBuffer {
         let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
 
         unsafe {
-            agb_rs__mixer_collapse(write_buffer, working_buffer.as_ptr());
+            agb_rs__mixer_collapse(
+                write_buffer,
+                working_buffer.as_ptr(),
+                self.frequency.buffer_size(),
+            );
         }
     }
 }

@@ -152,6 +152,7 @@ agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
+    @ r2 = loop counter
 
     push {{r4-r11,lr}}
 
@@ -164,8 +165,6 @@ SWAP_SIGN .req r11
     ldr CONST_127, =127
     ldr SWAP_SIGN, =0x80808080
 
-    ldr r2, =agb_rs__buffer_size @ loop counter
-    ldr r2, [r2]
     mov r4, r2
 
 @ The idea for this solution came from pimpmobile:
