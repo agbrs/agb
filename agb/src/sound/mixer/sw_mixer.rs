@@ -480,54 +480,64 @@ mod test {
 
     #[test_case]
     fn collapse_should_correctly_reduce_size_of_input(_: &mut crate::Gba) {
-        let input: &[Num<i16, 4>] = &[
-            num!(10.0),
-            num!(10.0),
-            num!(5.0),
-            num!(5.0),
-            num!(-10.0),
-            num!(-10.5),
-            num!(-5.9),
-            num!(-5.2),
-            num!(0.0),
-            num!(1.1),
-            num!(2.2),
-            num!(3.3),
-            num!(155.4),
-            num!(-230.5),
-            num!(400.6),
-            num!(-700.7),
-            num!(10.0),
-            num!(10.0),
-            num!(5.0),
-            num!(5.0),
-            num!(-10.0),
-            num!(-10.5),
-            num!(-5.9),
-            num!(-5.2),
-            num!(0.0),
-            num!(1.1),
-            num!(2.2),
-            num!(3.3),
-            num!(155.4),
-            num!(-230.5),
-            num!(400.6),
-            num!(-700.7),
-        ];
+        #[repr(align(4))]
+        struct AlignedNumbers<const N: usize>([Num<i16, 4>; N]);
 
-        let mut output_buffer = vec![0i8; input.len()];
+        let input = &AlignedNumbers([
+            num!(10.0),
+            num!(10.0),
+            num!(5.0),
+            num!(5.0),
+            num!(-10.0),
+            num!(-10.5),
+            num!(-5.9),
+            num!(-5.2),
+            num!(0.0),
+            num!(1.1),
+            num!(2.2),
+            num!(3.3),
+            num!(155.4),
+            num!(-230.5),
+            num!(400.6),
+            num!(-700.7),
+            num!(10.0),
+            num!(10.0),
+            num!(5.0),
+            num!(5.0),
+            num!(-10.0),
+            num!(-10.5),
+            num!(-5.9),
+            num!(-5.2),
+            num!(0.0),
+            num!(1.1),
+            num!(2.2),
+            num!(3.3),
+            num!(155.4),
+            num!(-230.5),
+            num!(400.6),
+            num!(-700.7),
+        ]);
+
+        let input = &input.0;
+
+        let mut output_buffer = vec![0i32; input.len() / 4];
 
         unsafe {
-            agb_rs__mixer_collapse(output_buffer.as_mut_ptr(), input.as_ptr(), input.len() / 2);
+            agb_rs__mixer_collapse(
+                output_buffer.as_mut_ptr().cast(),
+                input.as_ptr(),
+                input.len() / 2,
+            );
         }
 
         // output will be unzipped, so input is LRLRLRLRLRLRLR... and output is LLLLLLRRRRRR
-        assert_eq!(
-            output_buffer,
-            &[
+        assert!(output_buffer
+            .iter()
+            .flat_map(|x| x.to_le_bytes())
+            .map(|x| x as i8)
+            .eq([
                 10, 5, -10, -6, 0, 2, 127, 127, 10, 5, -10, -6, 0, 2, 127, 127, 10, 5, -11, -6, 1,
                 3, -128, -128, 10, 5, -11, -6, 1, 3, -128, -128
-            ]
-        );
+            ]));
     }
 }
