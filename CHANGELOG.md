@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the default template game.
 - `DynamicSprite` has a new API which changes the constructor and adds a `set_pixel` method.
 - You no longer need to install arm-none-eabi-binutils. In order to write games using `agb`, you now only need to install rust nightly.
+- 10% performance improvement with the software mixer.
 
 ## [0.15.0] - 2023/04/25
 

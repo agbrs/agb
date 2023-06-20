@@ -98,18 +98,15 @@ agb_arm_func agb_rs__mixer_add_stereo
     @ r2 - volume to play the sound at
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {{r4-r9}}
+    push {{r4-r11}}
 
-    mov r9, r2
     ldr r5, =0x00000FFF
 
     ldr r8, =agb_rs__buffer_size
     ldr r8, [r8]
-1:
-.rept 4
-    ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
-    ldr r4, [r1]             @ read the current value
+.macro add_stereo_sample sample_reg:req
+    ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
     @ This is slightly convoluted, but is mainly done for performance reasons. It is better
     @ to hit ROM just once and then do 3 really simple instructions then do 2 ldrsbs however annoying
@@ -130,15 +127,23 @@ agb_arm_func agb_rs__mixer_add_stereo
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
-    mla r4, r6, r9, r4     @ r4 += r6 * r9 (calculating both the left and right samples together)
+    mla \sample_reg, r6, r2, \sample_reg     @ r4 += r6 * r2 (calculating both the left and right samples together)
+.endm
 
-    str r4, [r1], #4         @ store the new value, and increment the pointer
-.endr
+1:
+    ldmia r1, {{r9-r12}}       @ read the current values
+
+    add_stereo_sample r9
+    add_stereo_sample r10
+    add_stereo_sample r11
+    add_stereo_sample r12
+
+    stmia r1!, {{r9-r12}}         @ store the new value, and increment the pointer
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
-    pop {{r4-r9}}
+    pop {{r4-r11}}
     bx lr
 
 agb_arm_end agb_rs__mixer_add_stereo
@@ -147,22 +152,19 @@ agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
     @ r0 = target buffer (i8)
     @ r1 = input buffer (i16) of fixnums with 4 bits of precision (read in sets of i16 in an i32)
+    @ r2 = loop counter
 
-    push {{r4-r11}}
+    push {{r4-r11,lr}}
 
 CONST_0   .req r7
-CONST_FF  .req r8
-CONST_127 .req r9
+CONST_128 .req r8
 TEMP      .req r10
 SWAP_SIGN .req r11
 
     ldr CONST_0, =0
-    ldr CONST_FF, =0xff
-    ldr CONST_127, =127
+    ldr CONST_128, =128
     ldr SWAP_SIGN, =0x80808080
 
-    ldr r2, =agb_rs__buffer_size @ loop counter
-    ldr r2, [r2]
     mov r4, r2
 
 @ The idea for this solution came from pimpmobile:
@@ -171,7 +173,7 @@ SWAP_SIGN .req r11
 @ The register should be 127 bigger then what you actually want, and we'll correct for that later. Hence the
 @ add instructions in `load_sample`.
 @
-@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively,
+@ The idea behind this is in the bit patters of -128 and 127 which are 10000000 and 01111111 respectively, -x = !x + 1 => !x = -x-1
 @ and we want to clamp the value between them.
 @
 @ The first instruction calculates `-((sample + 128) >> 8)`. If sample is between -128 and 127, then
@@ -185,16 +187,13 @@ SWAP_SIGN .req r11
 @ So (-1 logical >> 24) gives 11111111 and (1 logical >> 24) gives 00000000 so register is clamped between these two values.
 .macro clamp_s8 reg:req
     subs TEMP, CONST_0, \reg, asr #8
-    andne \reg, CONST_FF, TEMP, lsr #24
+    movne \reg, TEMP, lsr #24
 .endm
 
 .macro load_sample left_reg:req right_reg:req
-    @ left_reg = *r1; r1++
-    ldr \left_reg, [r1], #4
-
     mov \right_reg, \left_reg, lsl #16                 @ push the sample 16 bits first
-    add \right_reg, CONST_127, \right_reg, asr #20     @ move right sample back to being the correct value
-    add \left_reg, CONST_127, \left_reg, asr #20       @ now we only have the left sample
+    add \right_reg, CONST_128, \right_reg, asr #20     @ move right sample back to being the correct value
+    add \left_reg, CONST_128, \left_reg, asr #20       @ now we only have the left sample
 
     clamp_s8 \left_reg                                 @ clamp the audio to 8 bit values
     clamp_s8 \right_reg
@@ -202,19 +201,21 @@ SWAP_SIGN .req r11
 
 1:
 .rept 4
+    ldmia r1!, {{r3,r5,r6,r9}}
+
     load_sample r3, r12
 
-    load_sample r5, r6
+    load_sample r5, lr
     orr r3, r3, r5, lsl #8
-    orr r12, r12, r6, lsl #8
+    orr r12, r12, lr, lsl #8
 
-    load_sample r5, r6
-    orr r3, r3, r5, lsl #16
-    orr r12, r12, r6, lsl #16
+    load_sample r6, lr
+    orr r3, r3, r6, lsl #16
+    orr r12, r12, lr, lsl #16
 
-    load_sample r5, r6
-    orr r3, r3, r5, lsl #24
-    orr r12, r12, r6, lsl #24
+    load_sample r9, lr
+    orr r3, r3, r9, lsl #24
+    orr r12, r12, lr, lsl #24
 
     eor r3, r3, SWAP_SIGN
     eor r12, r12, SWAP_SIGN
@@ -226,6 +227,6 @@ SWAP_SIGN .req r11
     subs r2, r2, #16      @ r2 -= 16
     bne 1b               @ loop if not 0
 
-    pop {{r4-r11}}
+    pop {{r4-r11,lr}}
     bx lr
 agb_arm_end agb_rs__mixer_collapse
