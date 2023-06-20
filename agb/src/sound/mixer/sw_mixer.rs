@@ -531,13 +531,16 @@ mod test {
         }
 
         // output will be unzipped, so input is LRLRLRLRLRLRLR... and output is LLLLLLRRRRRR
-        assert!(output_buffer
-            .iter()
-            .flat_map(|x| x.to_le_bytes())
-            .map(|x| x as i8)
-            .eq([
+        assert_eq!(
+            output_buffer
+                .iter()
+                .flat_map(|x| x.to_le_bytes())
+                .map(|x| x as i8)
+                .collect::<alloc::vec::Vec<_>>(),
+            &[
                 10, 5, -10, -6, 0, 2, 127, 127, 10, 5, -10, -6, 0, 2, 127, 127, 10, 5, -11, -6, 1,
                 3, -128, -128, 10, 5, -11, -6, 1, 3, -128, -128
-            ]));
+            ]
+        );
     }
 }
