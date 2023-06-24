@@ -7,6 +7,7 @@ use agb::{
     display::{
         example_logo,
         tiled::{RegularBackgroundSize, TileFormat},
+        video::Tiled0Vram,
     },
     fixnum::FixedNum,
     interrupt::{free, Interrupt},
@@ -25,7 +26,7 @@ static BACK: Mutex<RefCell<BackCosines>> = Mutex::new(RefCell::new(BackCosines {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
 
     let mut background = gfx.background(
         agb::display::Priority::P0,
@@ -33,7 +34,7 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    example_logo::display_logo(&mut background, &mut vram);
+    example_logo::display_logo(&mut background, vram);
 
     let _a = unsafe {
         agb::interrupt::add_interrupt_handler(Interrupt::HBlank, |key: CriticalSection| {

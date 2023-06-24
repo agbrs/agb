@@ -13,6 +13,7 @@ use agb::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
         },
+        video::Tiled0Vram,
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
@@ -780,7 +781,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 }
 
 pub fn main(mut agb: agb::Gba) -> ! {
-    let (tiled, mut vram) = agb.display.video.tiled0();
+    let (tiled, vram) = &mut *agb.display.video.get::<Tiled0Vram>();
     vram.set_background_palettes(tile_sheet::PALETTES);
     let mut splash_screen = tiled.background(
         Priority::P0,
@@ -798,7 +799,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
     for y in 0..32u16 {
         for x in 0..32u16 {
             world_display.set_tile(
-                &mut vram,
+                vram,
                 (x, y).into(),
                 &tileset,
                 TileSetting::from_raw(level_display::BLANK),
@@ -811,18 +812,18 @@ pub fn main(mut agb: agb::Gba) -> ! {
     mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
-    world_display.commit(&mut vram);
+    world_display.commit(vram);
     world_display.show();
 
     splash_screen::show_splash_screen(
         splash_screen::SplashScreen::Start,
         &mut sfx,
         &mut splash_screen,
-        &mut vram,
+        vram,
     );
 
     loop {
-        world_display.commit(&mut vram);
+        world_display.commit(vram);
         world_display.show();
 
         vram.set_background_palettes(tile_sheet::PALETTES);
@@ -845,10 +846,10 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 current_level / 8 + 1,
                 current_level % 8 + 1,
                 &tileset,
-                &mut vram,
+                vram,
             );
 
-            world_display.commit(&mut vram);
+            world_display.commit(vram);
             world_display.show();
 
             sfx.frame();
@@ -902,12 +903,12 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 agb::input::ButtonController::new(),
             );
 
-            while level.background.init_background(&mut vram) != PartialUpdateStatus::Done {
+            while level.background.init_background(vram) != PartialUpdateStatus::Done {
                 sfx.frame();
                 vblank.wait_for_vblank();
             }
 
-            while level.background.init_foreground(&mut vram) != PartialUpdateStatus::Done {
+            while level.background.init_foreground(vram) != PartialUpdateStatus::Done {
                 sfx.frame();
                 vblank.wait_for_vblank();
             }
@@ -924,7 +925,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             world_display.hide();
 
             loop {
-                match level.update_frame(&mut sfx, &mut vram, &object) {
+                match level.update_frame(&mut sfx, vram, &object) {
                     UpdateState::Normal => {}
                     UpdateState::Dead => {
                         level.dead_start();
@@ -947,7 +948,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             }
 
             level.hide_backgrounds();
-            level.clear_backgrounds(&mut vram);
+            level.clear_backgrounds(vram);
         }
 
         object.commit();
@@ -956,7 +957,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             splash_screen::SplashScreen::End,
             &mut sfx,
             &mut splash_screen,
-            &mut vram,
+            vram,
         );
     }
 }

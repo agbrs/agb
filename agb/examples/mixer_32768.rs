@@ -6,6 +6,7 @@ use agb::{
         tiled::{
             RegularBackgroundSize, RegularMap, TileFormat, TileSetting, TiledMap, VRamManager,
         },
+        video::Tiled0Vram,
         Font, Priority,
     },
     include_font, include_wav,
@@ -24,23 +25,23 @@ const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
     let mut bg = gfx.background(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    init_background(&mut bg, &mut vram);
+    init_background(&mut bg, vram);
 
     let mut title_renderer = FONT.render_text((0u16, 3u16).into());
-    let mut writer = title_renderer.writer(1, 0, &mut bg, &mut vram);
+    let mut writer = title_renderer.writer(1, 0, &mut bg, vram);
 
     writeln!(&mut writer, "Crazy Glue by Josh Woodward").unwrap();
 
     writer.commit();
 
-    bg.commit(&mut vram);
+    bg.commit(vram);
     bg.show();
 
     let timer_controller = gba.timers.timers();
@@ -62,7 +63,7 @@ fn main(mut gba: Gba) -> ! {
     let mut stats_renderer = FONT.render_text((0u16, 6u16).into());
     loop {
         vblank_provider.wait_for_vblank();
-        bg.commit(&mut vram);
+        bg.commit(vram);
 
         let before_mixing_cycles_high = timer2.value();
         let before_mixing_cycles_low = timer.value();
@@ -83,9 +84,9 @@ fn main(mut gba: Gba) -> ! {
 
             let percent = (total_cycles * 100) / 280896;
 
-            stats_renderer.clear(&mut vram);
+            stats_renderer.clear(vram);
 
-            let mut writer = stats_renderer.writer(1, 0, &mut bg, &mut vram);
+            let mut writer = stats_renderer.writer(1, 0, &mut bg, vram);
             writeln!(&mut writer, "{total_cycles} cycles").unwrap();
             writeln!(&mut writer, "{percent} percent").unwrap();
 

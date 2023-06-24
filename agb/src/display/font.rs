@@ -253,12 +253,15 @@ impl<'a, 'b> TextRenderer<'b> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::tiled::{TileFormat, TiledMap};
+    use crate::display::{
+        tiled::{TileFormat, TiledMap},
+        video::Tiled0Vram,
+    };
     const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {
-        let (gfx, mut vram) = gba.display.video.tiled0();
+        let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
 
         let mut bg = gfx.background(
             crate::display::Priority::P0,
@@ -276,7 +279,7 @@ mod tests {
         for y in 0..20u16 {
             for x in 0..30u16 {
                 bg.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background_tile.tile_set(),
                     TileSetting::from_raw(background_tile.tile_index()),
@@ -290,26 +293,26 @@ mod tests {
 
         // Test twice to ensure that clearing works
         for _ in 0..2 {
-            let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(1, 2, &mut bg, vram);
             write!(&mut writer, "Hello, ").unwrap();
             writer.commit();
 
             // Test changing color
-            let mut writer = renderer.writer(4, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(4, 2, &mut bg, vram);
             writeln!(&mut writer, "World!").unwrap();
             writer.commit();
-            bg.commit(&mut vram);
+            bg.commit(vram);
             bg.show();
 
             // Test writing with same renderer after showing background
-            let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(1, 2, &mut bg, vram);
             writeln!(&mut writer, "This is a font rendering example").unwrap();
             writer.commit();
-            bg.commit(&mut vram);
+            bg.commit(vram);
             bg.show();
 
             crate::test_runner::assert_image_output("examples/font/font-test-output.png");
-            renderer.clear(&mut vram);
+            renderer.clear(vram);
         }
     }
 }

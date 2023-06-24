@@ -1,11 +1,11 @@
 #![no_std]
 #![no_main]
 
-use agb::display;
+use agb::display::{self, bitmap4::Bitmap4};
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut bitmap = gba.display.video.bitmap4();
+    let mut bitmap = gba.display.video.get::<Bitmap4>();
     let vblank = agb::interrupt::VBlank::get();
 
     bitmap.set_palette_entry(1, 0x001F);

@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use agb::display;
+use agb::display::{self, bitmap3::Bitmap3, bitmap4::Bitmap4};
 
 struct Vector2D {
     x: i32,
@@ -14,8 +14,8 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut input = agb::input::ButtonController::new();
 
     loop {
-        bitmap3_mode(&mut gba.display.video.bitmap3(), &vblank, &mut input);
-        bitmap4_mode(&mut gba.display.video.bitmap4(), &vblank, &mut input);
+        bitmap3_mode(&mut gba.display.video.get::<Bitmap3>(), &vblank, &mut input);
+        bitmap4_mode(&mut gba.display.video.get::<Bitmap4>(), &vblank, &mut input);
     }
 }
 
@@ -47,7 +47,7 @@ fn bitmap3_mode(
 }
 
 fn bitmap4_mode(
-    bitmap: &mut display::bitmap4::Bitmap4,
+    bitmap: &mut Bitmap4,
     vblank: &agb::interrupt::VBlank,
     input: &mut agb::input::ButtonController,
 ) {

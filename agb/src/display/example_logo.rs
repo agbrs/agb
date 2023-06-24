@@ -24,13 +24,13 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
 
 #[cfg(test)]
 mod tests {
-    use crate::display::{tiled::RegularBackgroundSize, Priority};
+    use crate::display::{tiled::RegularBackgroundSize, video::Tiled0Vram, Priority};
 
     use super::*;
 
     #[test_case]
     fn logo_display(gba: &mut crate::Gba) {
-        let (gfx, mut vram) = gba.display.video.tiled0();
+        let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
 
         let mut map = gfx.background(
             Priority::P0,
@@ -38,11 +38,11 @@ mod tests {
             TileFormat::FourBpp,
         );
 
-        display_logo(&mut map, &mut vram);
+        display_logo(&mut map, vram);
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
 
-        map.clear(&mut vram);
+        map.clear(vram);
         vram.gc();
     }
 }

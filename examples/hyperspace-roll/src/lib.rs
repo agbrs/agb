@@ -14,6 +14,7 @@
 
 use agb::display::object::OamManaged;
 use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
+use agb::display::video::Tiled0Vram;
 use agb::display::Priority;
 use agb::interrupt::VBlank;
 use agb::{display, sound::mixer::Frequency};
@@ -93,7 +94,7 @@ struct Agb<'a> {
     obj: OamManaged<'a>,
     vblank: VBlank,
     star_background: StarBackground<'a>,
-    vram: VRamManager,
+    vram: &'a mut VRamManager,
     sfx: Sfx<'a>,
 }
 
@@ -107,7 +108,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get_managed();
     let vblank = agb::interrupt::VBlank::get();
 
-    let (tiled, mut vram) = gba.display.video.tiled0();
+    let (tiled, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
     let mut background0 = tiled.background(
         Priority::P0,
         display::tiled::RegularBackgroundSize::Background64x32,
@@ -141,8 +142,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
         ],
     };
 
-    let mut star_background = StarBackground::new(&mut background0, &mut background1, &mut vram);
-    star_background.commit(&mut vram);
+    let mut star_background = StarBackground::new(&mut background0, &mut background1, vram);
+    star_background.commit(vram);
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
@@ -167,7 +168,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.sfx.title_screen();
 
         {
-            show_title_screen(&mut help_background, &mut agb.vram, &mut agb.sfx);
+            show_title_screen(&mut help_background, agb.vram, &mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
             score_display.set_value(Some(save::load_high_score()), &agb.obj);
             agb.obj.commit();
@@ -188,11 +189,11 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.obj.commit();
 
         help_background.hide();
-        help_background.clear(&mut agb.vram);
-        help_background.commit(&mut agb.vram);
+        help_background.clear(agb.vram);
+        help_background.commit(agb.vram);
         agb.sfx.frame();
 
-        background::load_palettes(&mut agb.vram);
+        background::load_palettes(agb.vram);
         agb.star_background.show();
 
         loop {

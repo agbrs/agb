@@ -10,7 +10,7 @@ struct Vector2D {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut bitmap = gba.display.video.bitmap3();
+    let mut bitmap = gba.display.video.get::<display::bitmap3::Bitmap3>();
     let vblank = agb::interrupt::VBlank::get();
 
     let mut input = agb::input::ButtonController::new();

@@ -5,6 +5,7 @@ use agb::{
     display::{
         affine::AffineMatrixBackground,
         tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
+        video::Tiled2Vram,
         Priority,
     },
     fixnum::{num, Num},
@@ -15,7 +16,7 @@ include_background_gfx!(affine_tiles, water_tiles => 256 "examples/water_tiles.p
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled2();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled2Vram>();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = TileSet::new(affine_tiles::water_tiles.tiles, TileFormat::EightBpp);
@@ -26,11 +27,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
     for y in 0..32u16 {
         for x in 0..32u16 {
-            bg.set_tile(&mut vram, (x, y).into(), &tileset, 1);
+            bg.set_tile(vram, (x, y).into(), &tileset, 1);
         }
     }
 
-    bg.commit(&mut vram);
+    bg.commit(vram);
     bg.show();
 
     let mut rotation = num!(0.);
@@ -61,6 +62,6 @@ fn main(mut gba: agb::Gba) -> ! {
         bg.set_transform(transformation);
 
         vblank.wait_for_vblank();
-        bg.commit(&mut vram);
+        bg.commit(vram);
     }
 }

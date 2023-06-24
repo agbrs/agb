@@ -123,7 +123,7 @@ impl BlendDist {
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            video: Video,
+            video: Video(),
             object: ObjectDistribution,
             window: WindowDist,
             blend: BlendDist,

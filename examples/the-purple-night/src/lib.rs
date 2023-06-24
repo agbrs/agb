@@ -19,6 +19,7 @@ use agb::{
             InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting,
             VRamManager,
         },
+        video::Tiled0Vram,
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{num, FixedNum, Rect, Vector2D},
@@ -2192,7 +2193,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let mut start_at_boss = false;
 
-    let (background, mut vram) = gba.display.video.tiled0();
+    let (background, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
     vram.set_background_palettes(background::PALETTES);
     let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
     let object = gba.display.object.get_managed();
@@ -2260,18 +2261,18 @@ fn game_with_level(gba: &mut agb::Gba) {
 
         let mut game = Game::new(
             &object,
-            Level::load_level(backdrop, foreground, clouds, start_pos, &mut vram, &mut sfx),
+            Level::load_level(backdrop, foreground, clouds, start_pos, vram, &mut sfx),
             start_at_boss,
         );
 
         start_at_boss = loop {
             sfx.frame();
             vblank.wait_for_vblank();
-            game.level.background.commit(&mut vram);
-            game.level.foreground.commit(&mut vram);
-            game.level.clouds.commit(&mut vram);
+            game.level.background.commit(vram);
+            game.level.foreground.commit(vram);
+            game.level.clouds.commit(vram);
             object.commit();
-            match game.advance_frame(&object, &mut vram, &mut sfx) {
+            match game.advance_frame(&object, vram, &mut sfx) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
                     break false;
@@ -2284,7 +2285,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             let _ = rng::gen(); // advance RNG to make it less predictable between runs
         };
 
-        game.clear(&mut vram);
+        game.clear(vram);
     }
 }
 

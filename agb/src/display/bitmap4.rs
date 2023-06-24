@@ -3,8 +3,8 @@ use core::marker::PhantomData;
 use crate::memory_mapped::{MemoryMapped1DArray, MemoryMapped2DArray};
 
 use super::{
-    set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, DISPLAY_CONTROL,
-    HEIGHT, WIDTH,
+    set_graphics_mode, set_graphics_settings, video::DisplayImplementation, DisplayMode,
+    GraphicsSettings, DISPLAY_CONTROL, HEIGHT, WIDTH,
 };
 
 const BITMAP_PAGE_FRONT_MODE_4: MemoryMapped2DArray<
@@ -27,19 +27,17 @@ pub enum Page {
 }
 
 #[non_exhaustive]
-pub struct Bitmap4<'gba> {
-    phantom: PhantomData<&'gba ()>,
-}
+pub struct Bitmap4();
 
-impl Bitmap4<'_> {
-    pub(crate) unsafe fn new() -> Self {
+impl DisplayImplementation for Bitmap4 {
+    unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Bitmap4);
         set_graphics_settings(GraphicsSettings::LAYER_BG2);
-        Bitmap4 {
-            phantom: PhantomData,
-        }
+        Bitmap4()
     }
+}
 
+impl Bitmap4 {
     /// Draws point on specified page at (x, y) coordinates with colour index
     /// whose colour is specified in the background palette. Panics if (x, y) is
     /// out of the bounds of the screen.

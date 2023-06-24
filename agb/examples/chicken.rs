@@ -7,6 +7,7 @@ use agb::{
         object::{OamManaged, Object, Size, Sprite},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
+        video::Tiled0Vram,
         HEIGHT, WIDTH,
     },
     input::Button,
@@ -48,7 +49,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .unwrap()
     };
 
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
@@ -64,7 +65,7 @@ fn main(mut gba: agb::Gba) -> ! {
     for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
         background.set_tile(
-            &mut vram,
+            vram,
             (i % 32, i / 32).into(),
             &tileset,
             TileSetting::from_raw(tile),
@@ -72,7 +73,7 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     background.show();
-    background.commit(&mut vram);
+    background.commit(vram);
 
     let object = gba.display.object.get_managed();
 

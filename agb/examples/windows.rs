@@ -3,6 +3,7 @@
 
 use agb::display::blend::{BlendMode, Layer};
 use agb::display::tiled::TileFormat;
+use agb::display::video::Tiled0Vram;
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
 use agb::display::{HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
@@ -16,7 +17,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
 
     let mut map = gfx.background(
         agb::display::Priority::P0,
@@ -36,7 +37,7 @@ fn main(mut gba: agb::Gba) -> ! {
         .set_background_enable(map.background(), true)
         .set_blend_enable(true);
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map, vram);
 
     let mut blend = gba.display.blend.get();
 

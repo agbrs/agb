@@ -8,13 +8,12 @@ use crate::{
     display::{set_graphics_mode, tiled::AFFINE_BG_ID_OFFSET, DisplayMode, Priority},
 };
 
-pub struct Tiled2<'gba> {
+pub struct Tiled2 {
     affine: RefCell<Bitarray<1>>,
     screenblocks: RefCell<Bitarray<1>>,
-    phantom: PhantomData<&'gba ()>,
 }
 
-impl Tiled2<'_> {
+impl Tiled2 {
     pub(crate) unsafe fn new() -> Self {
         set_graphics_mode(DisplayMode::Tiled2);
 
@@ -26,7 +25,6 @@ impl Tiled2<'_> {
         Self {
             affine,
             screenblocks: Default::default(),
-            phantom: PhantomData,
         }
     }
 
@@ -39,13 +37,13 @@ impl Tiled2<'_> {
     }
 }
 
-impl TiledMode for Tiled2<'_> {
+impl TiledMode for Tiled2 {
     fn screenblocks(&self) -> &RefCell<Bitarray<1>> {
         &self.screenblocks
     }
 }
 
-impl CreatableAffineTiledMode for Tiled2<'_> {
+impl CreatableAffineTiledMode for Tiled2 {
     const AFFINE_BACKGROUNDS: usize = 2;
 
     fn affine(&self) -> &RefCell<Bitarray<1>> {

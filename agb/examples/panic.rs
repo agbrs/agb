@@ -1,11 +1,11 @@
 #![no_std]
 #![no_main]
 
-use agb::display;
+use agb::display::{self, bitmap3::Bitmap3};
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut bitmap = gba.display.video.bitmap3();
+    let mut bitmap = gba.display.video.get::<Bitmap3>();
     let mut input = agb::input::ButtonController::new();
 
     loop {

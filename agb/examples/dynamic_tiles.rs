@@ -4,12 +4,13 @@
 use agb::display::{
     palette16::Palette16,
     tiled::{RegularBackgroundSize, TileFormat, TileSetting, TiledMap},
+    video::Tiled0Vram,
     Priority,
 };
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (gfx, vram) = &mut *gba.display.video.get::<Tiled0Vram>();
     let vblank = agb::interrupt::VBlank::get();
 
     vram.set_background_palettes(&[Palette16::new([
@@ -39,7 +40,7 @@ fn main(mut gba: agb::Gba) -> ! {
             }
 
             bg.set_tile(
-                &mut vram,
+                vram,
                 (x as u16, y as u16).into(),
                 &dynamic_tile.tile_set(),
                 TileSetting::from_raw(dynamic_tile.tile_index()),
@@ -49,7 +50,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    bg.commit(&mut vram);
+    bg.commit(vram);
     bg.show();
 
     loop {
