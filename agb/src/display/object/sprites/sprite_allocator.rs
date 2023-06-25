@@ -345,6 +345,13 @@ impl<A: Allocator> DynamicSprite<A> {
         self.data[byte_to_modify] = byte;
     }
 
+    /// Wipes the sprite
+    pub fn clear(&mut self, paletted_pixel: usize) {
+        assert!(paletted_pixel < 0x10);
+        let reset = (paletted_pixel | paletted_pixel << 4) as u8;
+        self.data.fill(reset);
+    }
+
     /// Tries to copy the sprite to vram to be used to set object sprites.
     pub fn try_vram(&self, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
         SpriteVram::new(&self.data, self.size, palette)

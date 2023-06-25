@@ -82,6 +82,12 @@ impl WorkingLetter {
             x_offset: 0,
         }
     }
+
+    fn reset(&mut self) {
+        self.x_position = 0;
+        self.x_offset = 0;
+        self.dynamic.clear(0);
+    }
 }
 
 pub struct Configuration {
@@ -177,15 +183,18 @@ impl WordRender<'_> {
     }
 
     fn finalise_letter(&mut self) {
-        let mut final_letter = WorkingLetter::new(self.config.sprite_size);
-        core::mem::swap(&mut final_letter, &mut self.working.letter);
-
-        let sprite = final_letter.dynamic.to_vram(self.config.palette.clone());
+        let sprite = self
+            .working
+            .letter
+            .dynamic
+            .to_vram(self.config.palette.clone());
         self.working.meta.letters.push(LetterGroup {
             sprite,
             offset: self.working.word_offset,
         });
-        self.working.word_offset += final_letter.x_position;
+        self.working.word_offset += self.working.letter.x_position;
+
+        self.working.letter.reset();
     }
 
     fn render_char(&mut self, c: char) {
