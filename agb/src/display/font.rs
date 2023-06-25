@@ -10,12 +10,12 @@ use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
 /// Does not support any unicode features.
 /// For usage see the `text_render.rs` example
 pub struct FontLetter {
-    width: u8,
-    height: u8,
-    data: &'static [u8],
-    xmin: i8,
-    ymin: i8,
-    advance_width: u8,
+    pub(crate) width: u8,
+    pub(crate) height: u8,
+    pub(crate) data: &'static [u8],
+    pub(crate) xmin: i8,
+    pub(crate) ymin: i8,
+    pub(crate) advance_width: u8,
 }
 
 impl FontLetter {
@@ -37,6 +37,13 @@ impl FontLetter {
             advance_width,
         }
     }
+
+    pub(crate) const fn bit_absolute(&self, x: usize, y: usize) -> bool {
+        let position = x + y * self.width as usize;
+        let byte = self.data[position / 8];
+        let bit = position % 8;
+        ((byte >> bit) & 1) != 0
+    }
 }
 
 pub struct Font {
@@ -55,8 +62,12 @@ impl Font {
         }
     }
 
-    fn letter(&self, letter: char) -> &'static FontLetter {
+    pub(crate) fn letter(&self, letter: char) -> &'static FontLetter {
         &self.letters[letter as usize]
+    }
+
+    pub(crate) fn ascent(&self) -> i32 {
+        self.ascent
     }
 }
 

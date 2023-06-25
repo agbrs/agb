@@ -9,6 +9,7 @@
 //! harder to integrate into your games depending on how they are architectured.
 
 mod affine;
+pub mod font;
 mod managed;
 mod sprites;
 mod unmanaged;

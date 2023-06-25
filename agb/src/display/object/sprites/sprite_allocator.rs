@@ -333,7 +333,10 @@ impl<A: Allocator> DynamicSprite<A> {
 
         let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
 
-        let byte_to_modify_in_tile = x / 2 + y * 4;
+        let (x_in_tile, y_in_tile) = (x % 8, y % 8);
+
+        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 4;
+
         let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_4BPP + byte_to_modify_in_tile;
         let mut byte = self.data[byte_to_modify];
         let parity = (x & 0b1) * 4;
