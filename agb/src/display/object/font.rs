@@ -1,6 +1,6 @@
-use core::fmt::Write;
+use core::{cell::Cell, fmt::Write, num::NonZeroUsize};
 
-use agb_fixnum::Vector2D;
+use agb_fixnum::{Rect, Vector2D};
 use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::display::{object::ObjectUnmanaged, Font};
@@ -19,81 +19,208 @@ enum WhiteSpace {
     NewLine,
 }
 
-enum TextElement {
-    LetterGroup(LetterGroup),
+enum TextElementReference<'text> {
+    Word(Word<'text>),
     WhiteSpace(WhiteSpace),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+struct Word<'letters> {
+    letters: &'letters [LetterGroup],
+    width: Cell<Option<NonZeroUsize>>,
+}
 
-    #[test_case]
-    fn check_size_of_text_element_is_expected(_: &mut crate::Gba) {
-        assert_eq!(
-            core::mem::size_of::<TextElement>(),
-            core::mem::size_of::<LetterGroup>()
-        );
+impl<'letters> Word<'letters> {
+    fn new(letters: &'letters [LetterGroup]) -> Self {
+        Self {
+            letters,
+            width: Cell::new(None),
+        }
     }
 }
 
-pub struct TextBlock {
-    elements: Vec<TextElement>,
-    cache: CachedRender,
-}
+impl Word<'_> {
+    fn width(&self) -> usize {
+        match self.width.get() {
+            Some(width) => width.get(),
+            None => {
+                let width = self.letters.iter().fold(0, |acc, letter| {
+                    acc + (letter.width as i32 + letter.left as i32)
+                });
+                let width = width as usize;
 
-pub struct CachedRender {
-    objects: Vec<ObjectUnmanaged>,
-    up_to: usize,
-    head_position: Vector2D<i32>,
-    origin: Vector2D<i32>,
-}
-
-impl TextBlock {
-    fn reset_cache(&mut self, position: Vector2D<i32>) {
-        self.cache.objects.clear();
-        self.cache.up_to = 0;
-        self.cache.head_position = position;
-        self.cache.origin = position;
-    }
-
-    fn generate_cache(&mut self, up_to: usize) {
-        let mut head_position = self.cache.head_position;
-
-        for element in self.elements.iter().take(up_to).skip(self.cache.up_to) {
-            match element {
-                TextElement::LetterGroup(group) => {
-                    let mut object = ObjectUnmanaged::new(group.sprite.clone());
-                    object.show();
-                    head_position.x += group.left as i32;
-                    object.set_position(head_position);
-                    head_position.x += group.width as i32;
-                    self.cache.objects.push(object);
-                }
-                TextElement::WhiteSpace(white) => match white {
-                    WhiteSpace::Space => head_position.x += 10,
-                    WhiteSpace::NewLine => {
-                        head_position.x = self.cache.origin.x;
-                        head_position.y += 15;
-                    }
-                },
+                self.width.set(NonZeroUsize::new(width));
+                width
             }
         }
+    }
+}
 
-        self.cache.head_position = head_position;
-        self.cache.up_to = up_to.min(self.elements.len());
+#[derive(Clone, Copy)]
+struct WordLength(u8);
+
+#[derive(Clone, Copy)]
+enum Element {
+    Word(u8),
+    NewLine,
+    Space,
+}
+const NEW_LINE: u8 = 0xFF;
+const SPACE: u8 = 0xFE;
+impl WordLength {
+    fn parse(self) -> Element {
+        if self.0 == NEW_LINE {
+            Element::NewLine
+        } else if self.0 == SPACE {
+            Element::Space
+        } else {
+            Element::Word(self.0)
+        }
     }
 
-    fn draw(&mut self, oam: &mut OamIterator, position: Vector2D<i32>, up_to: usize) {
-        if position != self.cache.origin {
-            self.reset_cache(position);
+    fn from_element(e: Element) -> Self {
+        WordLength(match e {
+            Element::Word(len) => len,
+            Element::NewLine => NEW_LINE,
+            Element::Space => SPACE,
+        })
+    }
+}
+
+struct Letters(Vec<LetterGroup>);
+struct Words {
+    letters: Letters,
+    word_lengths: Vec<WordLength>,
+}
+
+struct WordRenderCache {
+    objects: Vec<ObjectUnmanaged>,
+    state: WordRenderCacheState,
+    poison_condition: WordRenderPoisonCondition,
+}
+
+struct WordRenderPoisonCondition {
+    area: Rect<i32>,
+}
+
+struct WordRenderCacheState {
+    depth_in_word_iterator: usize,
+    depth_in_word: usize,
+    depth_in_elements: usize,
+    head_position: Vector2D<i32>,
+}
+
+impl WordRenderCache {
+    fn new() -> Self {
+        WordRenderCache {
+            objects: Vec::new(),
+            state: WordRenderCacheState {
+                depth_in_word_iterator: 0,
+                depth_in_word: 0,
+                depth_in_elements: 0,
+                head_position: (0, 0).into(),
+            },
+            poison_condition: WordRenderPoisonCondition {
+                area: Rect::new((0, 0).into(), (0, 0).into()),
+            },
+        }
+    }
+
+    fn reset_state(&mut self, position: Rect<i32>) {
+        self.state = WordRenderCacheState {
+            depth_in_elements: 0,
+            depth_in_word: 0,
+            depth_in_word_iterator: 0,
+            head_position: position.position,
+        };
+
+        self.poison_condition = WordRenderPoisonCondition { area: position };
+    }
+
+    fn generate_cache(&mut self, words: &Words, desired_element_count: usize) {
+        let position = self.poison_condition.area;
+        if self.state.depth_in_elements >= desired_element_count {
+            return;
         }
 
-        self.generate_cache(up_to);
+        'outer: for elem in words.iter_words().skip(self.state.depth_in_word_iterator) {
+            match elem {
+                TextElementReference::Word(word) => {
+                    let prospective_x = self.state.head_position.x + word.width() as i32;
 
-        for (obj, slot) in self.cache.objects.iter().zip(oam) {
-            slot.set(obj);
+                    if self.state.depth_in_word == 0
+                        && prospective_x > position.position.x + position.size.x
+                    {
+                        self.state.head_position.x = position.position.x;
+                        self.state.head_position.y += 15;
+                    }
+
+                    for letter in word.letters.iter().skip(self.state.depth_in_word) {
+                        self.state.head_position.x += letter.left as i32;
+                        let mut object = ObjectUnmanaged::new(letter.sprite.clone());
+                        object.show();
+                        object.set_position(self.state.head_position);
+
+                        self.objects.push(object);
+
+                        self.state.head_position.x += letter.width as i32;
+
+                        self.state.depth_in_elements += 1;
+                        self.state.depth_in_word += 1;
+                        if self.state.depth_in_elements >= desired_element_count {
+                            break 'outer;
+                        }
+                    }
+
+                    self.state.depth_in_word = 0;
+                }
+                TextElementReference::WhiteSpace(space) => {
+                    match space {
+                        WhiteSpace::Space => self.state.head_position.x += 10,
+                        WhiteSpace::NewLine => {
+                            self.state.head_position.x = position.position.x;
+                            self.state.head_position.y += 15;
+                        }
+                    }
+                    self.state.depth_in_elements += 1;
+                }
+            }
+            self.state.depth_in_word_iterator += 1;
+            if self.state.depth_in_elements >= desired_element_count {
+                break 'outer;
+            }
         }
+    }
+
+    fn update(&mut self, words: &Words, desired_element_count: usize, position: Rect<i32>) {
+        if self.poison_condition.area != position {
+            self.reset_state(position);
+        }
+
+        self.generate_cache(words, desired_element_count);
+    }
+
+    fn commit(&self, oam: &mut OamIterator) {
+        for (object, slot) in self.objects.iter().zip(oam) {
+            slot.set(object);
+        }
+    }
+}
+
+impl Words {
+    fn iter_words(&self) -> impl Iterator<Item = TextElementReference> {
+        let mut letters_idx: usize = 0;
+
+        self.word_lengths.iter().map(move |x| match x.parse() {
+            Element::Word(length) => {
+                let idx = letters_idx;
+                let end_idx = idx + length as usize;
+                letters_idx = end_idx;
+
+                TextElementReference::Word(Word::new(&self.letters.0[idx..end_idx]))
+            }
+            Element::NewLine => TextElementReference::WhiteSpace(WhiteSpace::NewLine),
+            Element::Space => TextElementReference::WhiteSpace(WhiteSpace::Space),
+        })
     }
 }
 
@@ -138,8 +265,11 @@ impl Configuration {
 
 pub struct BufferedWordRender<'font> {
     word_render: WordRender<'font>,
-    block: TextBlock,
+    block: Words,
+    current_word_length: usize,
+    number_of_elements: usize,
     buffered_chars: VecDeque<char>,
+    cache: WordRenderCache,
 }
 
 impl Write for BufferedWordRender<'_> {
@@ -157,16 +287,14 @@ impl<'font> BufferedWordRender<'font> {
     pub fn new(font: &'font Font, config: Configuration) -> Self {
         BufferedWordRender {
             word_render: WordRender::new(font, config),
-            block: TextBlock {
-                elements: Vec::new(),
-                cache: CachedRender {
-                    objects: Vec::new(),
-                    up_to: 0,
-                    head_position: (0, 0).into(),
-                    origin: (0, 0).into(),
-                },
+            block: Words {
+                letters: Letters(Vec::new()),
+                word_lengths: Vec::new(),
             },
+            current_word_length: 0,
+            number_of_elements: 0,
             buffered_chars: VecDeque::new(),
+            cache: WordRenderCache::new(),
         }
     }
 }
@@ -176,43 +304,51 @@ impl BufferedWordRender<'_> {
         if let Some(char) = self.buffered_chars.pop_front() {
             if char == '\n' {
                 if let Some(group) = self.word_render.finalise_letter() {
-                    self.block.elements.push(TextElement::LetterGroup(group));
+                    self.block.letters.0.push(group);
+                    self.current_word_length += 1;
                 }
                 self.block
-                    .elements
-                    .push(TextElement::WhiteSpace(WhiteSpace::NewLine));
+                    .word_lengths
+                    .push(WordLength::from_element(Element::Word(
+                        self.current_word_length as u8,
+                    )));
+                self.block
+                    .word_lengths
+                    .push(WordLength::from_element(Element::NewLine));
+                self.number_of_elements += self.current_word_length + 1;
+                self.current_word_length = 0;
             } else if char == ' ' {
                 if let Some(group) = self.word_render.finalise_letter() {
-                    self.block.elements.push(TextElement::LetterGroup(group));
+                    self.block.letters.0.push(group);
+                    self.current_word_length += 1;
                 }
                 self.block
-                    .elements
-                    .push(TextElement::WhiteSpace(WhiteSpace::Space));
+                    .word_lengths
+                    .push(WordLength::from_element(Element::Word(
+                        self.current_word_length as u8,
+                    )));
+                self.block
+                    .word_lengths
+                    .push(WordLength::from_element(Element::Space));
+                self.number_of_elements += self.current_word_length + 1;
+                self.current_word_length = 0;
             } else if let Some(group) = self.word_render.render_char(char) {
-                self.block.elements.push(TextElement::LetterGroup(group));
+                self.block.letters.0.push(group);
+                self.current_word_length += 1;
             }
         }
     }
 
-    pub fn draw_partial(
-        &mut self,
-        oam: &mut OamIterator,
-        position: Vector2D<i32>,
-        num_groups: usize,
-    ) {
-        while self.block.elements.len() < num_groups && !self.buffered_chars.is_empty() {
+    pub fn update(&mut self, position: Rect<i32>, number_of_elements: usize) {
+        while !self.buffered_chars.is_empty() && self.number_of_elements < number_of_elements {
             self.process();
         }
 
-        self.block.draw(oam, position, num_groups);
+        self.cache.update(&self.block, number_of_elements, position);
     }
 
-    pub fn draw(&mut self, oam: &mut OamIterator, position: Vector2D<i32>) {
-        while !self.buffered_chars.is_empty() {
-            self.process();
-        }
-
-        self.block.draw(oam, position, usize::MAX);
+    pub fn commit(&self, oam: &mut OamIterator) {
+        self.cache.commit(oam);
     }
 }
 
