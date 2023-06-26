@@ -9,60 +9,91 @@ use super::{DynamicSprite, OamIterator, PaletteVram, Size, SpriteVram};
 
 struct LetterGroup {
     sprite: SpriteVram,
-    /// x offset from the *start* of the *word*
-    offset: i32,
+    // the width of the letter group
+    width: u16,
+    left: i16,
 }
 
-struct Word {
-    start_index: usize,
-    end_index: usize,
-    size: i32,
+enum WhiteSpace {
+    Space,
+    NewLine,
 }
 
-impl Word {
-    fn number_of_letter_groups(&self) -> usize {
-        self.end_index - self.start_index
+enum TextElement {
+    LetterGroup(LetterGroup),
+    WhiteSpace(WhiteSpace),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_case]
+    fn check_size_of_text_element_is_expected(_: &mut crate::Gba) {
+        assert_eq!(
+            core::mem::size_of::<TextElement>(),
+            core::mem::size_of::<LetterGroup>()
+        );
     }
 }
 
-pub struct MetaWords {
-    letters: Vec<LetterGroup>,
-    words: Vec<Word>,
+pub struct TextBlock {
+    elements: Vec<TextElement>,
+    cache: CachedRender,
 }
 
-impl MetaWords {
-    const fn new_empty() -> Self {
-        Self {
-            letters: Vec::new(),
-            words: Vec::new(),
-        }
+pub struct CachedRender {
+    objects: Vec<ObjectUnmanaged>,
+    up_to: usize,
+    head_position: Vector2D<i32>,
+    origin: Vector2D<i32>,
+}
+
+impl TextBlock {
+    fn reset_cache(&mut self, position: Vector2D<i32>) {
+        self.cache.objects.clear();
+        self.cache.up_to = 0;
+        self.cache.head_position = position;
+        self.cache.origin = position;
     }
 
-    fn word_iter(&self) -> impl Iterator<Item = (i32, &[LetterGroup])> {
-        self.words
-            .iter()
-            .map(|x| (x.size, &self.letters[x.start_index..x.end_index]))
-    }
+    fn generate_cache(&mut self, up_to: usize) {
+        let mut head_position = self.cache.head_position;
 
-    pub fn draw(&self, oam: &mut OamIterator) {
-        fn inner_draw(mw: &MetaWords, oam: &mut OamIterator) -> Option<()> {
-            let mut word_offset = 0;
-
-            for (size, word) in mw.word_iter() {
-                for letter_group in word.iter() {
-                    let mut object = ObjectUnmanaged::new(letter_group.sprite.clone());
-                    object.set_position((word_offset + letter_group.offset, 0).into());
+        for element in self.elements.iter().take(up_to).skip(self.cache.up_to) {
+            match element {
+                TextElement::LetterGroup(group) => {
+                    let mut object = ObjectUnmanaged::new(group.sprite.clone());
                     object.show();
-                    oam.next()?.set(&object);
+                    head_position.x += group.left as i32;
+                    object.set_position(head_position);
+                    head_position.x += group.width as i32;
+                    self.cache.objects.push(object);
                 }
-
-                word_offset += size + 10;
+                TextElement::WhiteSpace(white) => match white {
+                    WhiteSpace::Space => head_position.x += 10,
+                    WhiteSpace::NewLine => {
+                        head_position.x = self.cache.origin.x;
+                        head_position.y += 15;
+                    }
+                },
             }
-
-            Some(())
         }
 
-        let _ = inner_draw(self, oam);
+        self.cache.head_position = head_position;
+        self.cache.up_to = up_to.min(self.elements.len());
+    }
+
+    fn draw(&mut self, oam: &mut OamIterator, position: Vector2D<i32>, up_to: usize) {
+        if position != self.cache.origin {
+            self.reset_cache(position);
+        }
+
+        self.generate_cache(up_to);
+
+        for (obj, slot) in self.cache.objects.iter().zip(oam) {
+            slot.set(obj);
+        }
     }
 }
 
@@ -71,7 +102,7 @@ struct WorkingLetter {
     // the x offset of the current letter with respect to the start of the current letter group
     x_position: i32,
     // where to render the letter from x_min to x_max
-    x_offset: usize,
+    x_offset: i32,
 }
 
 impl WorkingLetter {
@@ -105,118 +136,159 @@ impl Configuration {
     }
 }
 
-pub struct WordRender<'font> {
-    font: &'font Font,
-    working: Working,
-    finalised_metas: VecDeque<MetaWords>,
-    config: Configuration,
+pub struct BufferedWordRender<'font> {
+    word_render: WordRender<'font>,
+    block: TextBlock,
+    buffered_chars: VecDeque<char>,
 }
 
-struct Working {
-    letter: WorkingLetter,
-    meta: MetaWords,
-    word_offset: i32,
-}
-
-impl<'font> Write for WordRender<'font> {
+impl Write for BufferedWordRender<'_> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        for c in s.chars() {
-            self.write_char(c);
+        for char in s.chars() {
+            self.buffered_chars.push_back(char);
         }
 
         Ok(())
     }
 }
 
-impl<'font> WordRender<'font> {
+impl<'font> BufferedWordRender<'font> {
     #[must_use]
     pub fn new(font: &'font Font, config: Configuration) -> Self {
+        BufferedWordRender {
+            word_render: WordRender::new(font, config),
+            block: TextBlock {
+                elements: Vec::new(),
+                cache: CachedRender {
+                    objects: Vec::new(),
+                    up_to: 0,
+                    head_position: (0, 0).into(),
+                    origin: (0, 0).into(),
+                },
+            },
+            buffered_chars: VecDeque::new(),
+        }
+    }
+}
+
+impl BufferedWordRender<'_> {
+    pub fn process(&mut self) {
+        if let Some(char) = self.buffered_chars.pop_front() {
+            if char == '\n' {
+                if let Some(group) = self.word_render.finalise_letter() {
+                    self.block.elements.push(TextElement::LetterGroup(group));
+                }
+                self.block
+                    .elements
+                    .push(TextElement::WhiteSpace(WhiteSpace::NewLine));
+            } else if char == ' ' {
+                if let Some(group) = self.word_render.finalise_letter() {
+                    self.block.elements.push(TextElement::LetterGroup(group));
+                }
+                self.block
+                    .elements
+                    .push(TextElement::WhiteSpace(WhiteSpace::Space));
+            } else if let Some(group) = self.word_render.render_char(char) {
+                self.block.elements.push(TextElement::LetterGroup(group));
+            }
+        }
+    }
+
+    pub fn draw_partial(
+        &mut self,
+        oam: &mut OamIterator,
+        position: Vector2D<i32>,
+        num_groups: usize,
+    ) {
+        while self.block.elements.len() < num_groups && !self.buffered_chars.is_empty() {
+            self.process();
+        }
+
+        self.block.draw(oam, position, num_groups);
+    }
+
+    pub fn draw(&mut self, oam: &mut OamIterator, position: Vector2D<i32>) {
+        while !self.buffered_chars.is_empty() {
+            self.process();
+        }
+
+        self.block.draw(oam, position, usize::MAX);
+    }
+}
+
+struct WordRender<'font> {
+    font: &'font Font,
+    working: Working,
+    config: Configuration,
+}
+
+struct Working {
+    letter: WorkingLetter,
+}
+
+impl<'font> WordRender<'font> {
+    #[must_use]
+    fn new(font: &'font Font, config: Configuration) -> Self {
         WordRender {
             font,
             working: Working {
                 letter: WorkingLetter::new(config.sprite_size),
-                meta: MetaWords::new_empty(),
-                word_offset: 0,
             },
-            finalised_metas: VecDeque::new(),
             config,
         }
     }
 }
 
 impl WordRender<'_> {
-    pub fn get_line(&mut self) -> Option<MetaWords> {
-        self.finalised_metas.pop_front()
-    }
-
-    fn write_char(&mut self, c: char) {
-        if c == '\n' {
-            self.finalise_line();
-        } else if c == ' ' {
-            self.finalise_word();
-        } else {
-            self.render_char(c);
+    #[must_use]
+    fn finalise_letter(&mut self) -> Option<LetterGroup> {
+        if self.working.letter.x_offset == 0 {
+            return None;
         }
-    }
 
-    fn finalise_line(&mut self) {
-        self.finalise_word();
-
-        let mut final_meta = MetaWords::new_empty();
-        core::mem::swap(&mut self.working.meta, &mut final_meta);
-        self.finalised_metas.push_back(final_meta);
-    }
-
-    fn finalise_word(&mut self) {
-        self.finalise_letter();
-
-        let start_index = self.working.meta.words.last().map_or(0, |x| x.end_index);
-        let end_index = self.working.meta.letters.len();
-        let word = Word {
-            start_index,
-            end_index,
-            size: self.working.word_offset,
-        };
-
-        self.working.meta.words.push(word);
-        self.working.word_offset = 0;
-    }
-
-    fn finalise_letter(&mut self) {
         let sprite = self
             .working
             .letter
             .dynamic
             .to_vram(self.config.palette.clone());
-        self.working.meta.letters.push(LetterGroup {
+        let group = LetterGroup {
             sprite,
-            offset: self.working.word_offset,
-        });
-        self.working.word_offset += self.working.letter.x_position;
-
+            width: self.working.letter.x_offset as u16,
+            left: self.working.letter.x_position as i16,
+        };
         self.working.letter.reset();
+
+        Some(group)
     }
 
-    fn render_char(&mut self, c: char) {
+    #[must_use]
+    fn render_char(&mut self, c: char) -> Option<LetterGroup> {
         let font_letter = self.font.letter(c);
 
         // uses more than the sprite can hold
-        if self.working.letter.x_offset + font_letter.width as usize
-            > self.config.sprite_size.to_width_height().0
+        let group = if self.working.letter.x_offset + font_letter.width as i32
+            > self.config.sprite_size.to_width_height().0 as i32
         {
-            self.finalise_letter();
+            self.finalise_letter()
+        } else {
+            None
+        };
+
+        if self.working.letter.x_offset == 0 {
+            self.working.letter.x_position = font_letter.xmin as i32;
+        } else {
+            self.working.letter.x_offset += font_letter.xmin as i32;
         }
 
-        self.working.letter.x_position += font_letter.xmin as i32;
-
-        let y_position = self.font.ascent() - font_letter.height as i32 - font_letter.ymin as i32;
+        let y_position =
+            self.font.ascent() - font_letter.height as i32 - font_letter.ymin as i32 + 4;
 
         for y in 0..font_letter.height as usize {
             for x in 0..font_letter.width as usize {
                 let rendered = font_letter.bit_absolute(x, y);
                 if rendered {
                     self.working.letter.dynamic.set_pixel(
-                        x + self.working.letter.x_offset,
+                        x + self.working.letter.x_offset as usize,
                         (y_position + y as i32) as usize,
                         1,
                     );
@@ -224,7 +296,8 @@ impl WordRender<'_> {
             }
         }
 
-        self.working.letter.x_position += font_letter.advance_width as i32;
-        self.working.letter.x_offset += font_letter.advance_width as usize;
+        self.working.letter.x_offset += font_letter.advance_width as i32;
+
+        group
     }
 }
