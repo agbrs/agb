@@ -35,6 +35,12 @@ extern "C" {
         volume: Num<i16, 4>,
     );
 
+    fn agb_rs__mixer_add_stereo_first(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        volume: Num<i16, 4>,
+    );
+
     fn agb_rs__mixer_collapse(
         sound_buffer: *mut i8,
         input_buffer: *const Num<i16, 4>,
@@ -406,7 +412,7 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        working_buffer.fill(0.into());
+        // working_buffer.fill(0.into());
 
         for channel in channels {
             if channel.is_done {
