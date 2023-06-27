@@ -29,7 +29,21 @@ extern "C" {
         right_amount: Num<i16, 4>,
     );
 
+    fn agb_rs__mixer_add_first(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        playback_speed: Num<u32, 8>,
+        left_amount: Num<i16, 4>,
+        right_amount: Num<i16, 4>,
+    );
+
     fn agb_rs__mixer_add_stereo(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        volume: Num<i16, 4>,
+    );
+
+    fn agb_rs__mixer_add_stereo_first(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
@@ -406,31 +420,64 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        working_buffer.fill(0.into());
-
-        for channel in channels {
-            if channel.is_done {
-                continue;
-            }
-
-            let playback_speed = if channel.is_stereo {
-                2.into()
-            } else {
-                channel.playback_speed
-            };
-
-            if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
-                >= channel.data.len() as u32
-            {
-                // TODO: This should probably play what's left rather than skip the last bit
-                if channel.should_loop {
-                    channel.pos = 0.into();
+        let mut channels = channels
+            .filter(|channel| !channel.is_done)
+            .filter_map(|channel| {
+                let playback_speed = if channel.is_stereo {
+                    2.into()
                 } else {
-                    channel.is_done = true;
-                    continue;
+                    channel.playback_speed
+                };
+
+                if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
+                    >= channel.data.len() as u32
+                {
+                    // TODO: This should probably play what's left rather than skip the last bit
+                    if channel.should_loop {
+                        channel.pos = 0.into();
+                    } else {
+                        channel.is_done = true;
+                        return None;
+                    }
                 }
+
+                Some((channel, playback_speed))
+            });
+
+        if let Some((channel, playback_speed)) = channels.next() {
+            if channel.volume != 0.into() {
+                if channel.is_stereo {
+                    unsafe {
+                        agb_rs__mixer_add_stereo_first(
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
+                            working_buffer.as_mut_ptr(),
+                            channel.volume,
+                        );
+                    }
+                } else {
+                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
+                    unsafe {
+                        agb_rs__mixer_add_first(
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
+                            working_buffer.as_mut_ptr(),
+                            playback_speed,
+                            left_amount,
+                            right_amount,
+                        );
+                    }
+                }
+            } else {
+                working_buffer.fill(0.into());
             }
 
+            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
+        } else {
+            working_buffer.fill(0.into());
+        }
+
+        for (channel, playback_speed) in channels {
             if channel.volume != 0.into() {
                 if channel.is_stereo {
                     unsafe {

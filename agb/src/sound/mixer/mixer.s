@@ -4,7 +4,8 @@
 agb_rs__buffer_size:
     .word 0
 
-agb_arm_func agb_rs__mixer_add
+.macro mixer_add fn_name:req is_first:req
+agb_arm_func \fn_name
     @ Arguments
     @ r0 - pointer to the data to be copied (u8 array)
     @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
@@ -18,9 +19,9 @@ agb_arm_func agb_rs__mixer_add
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
 
     cmp r7, r3               @ check if left and right channel need the same modifications
-    beq same_modification
+    beq 3f @ same modification
 
-modifications_fallback:
+4:  @ modification fallback
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0                   @ current index we're reading from
@@ -34,9 +35,12 @@ modifications_fallback:
     ldrsb r6, [r4]           @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
 
+.ifc \is_first,true
+    mul r4, r6, r7           @ r4 = r6 * r7 (calculating both the left and right samples together)
+.else
     ldr r4, [r1]             @ read the current value
-
     mla r4, r6, r7, r4       @ r4 += r6 * r7 (calculating both the left and right samples together)
+.endif
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endr
@@ -47,13 +51,13 @@ modifications_fallback:
     pop {{r4-r8}}
     bx lr
 
-same_modification:
+3: @ same modification
     @ check to see if this is a perfect power of 2
     @ r5 is a scratch register, r7 = r3 = amount to modify
     sub r5, r7, #1
     ands r5, r5, r7
 
-    bne modifications_fallback @ not 0 means we need to do the full modification
+    bne 4b @ not 0 means we need to do the full modification, jump to modification fallback
 
     @ count leading zeros of r7 into r3
     mov r3, #0
@@ -74,11 +78,16 @@ same_modification:
     ldrsb r6, [r4]            @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
 
-    ldr r4, [r1]             @ read the current value
 
     lsl r6, r6, #16
     orr r6, r6, lsr #16
+
+.ifc \is_first,true
+    mov r4, r6, lsl r3       @ r4 = r6 << r3
+.else
+    ldr r4, [r1]             @ read the current value
     add r4, r4, r6, lsl r3   @ r4 += r6 << r3 (calculating both the left and right samples together)
+.endif
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endr
@@ -89,9 +98,14 @@ same_modification:
     pop {{r4-r8}}
     bx lr
 
-agb_arm_end agb_rs__mixer_add
+agb_arm_end \fn_name
+.endm
 
-agb_arm_func agb_rs__mixer_add_stereo
+mixer_add agb_rs__mixer_add false
+mixer_add agb_rs__mixer_add_first true
+
+.macro stereo_add_fn fn_name:req is_first:req
+agb_arm_func \fn_name
     @ Arguments
     @ r0 - pointer to the data to be copied (u8 array)
     @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
@@ -127,16 +141,24 @@ agb_arm_func agb_rs__mixer_add_stereo
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
     orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
+.ifc \is_first,true
+    mul \sample_reg, r6, r2
+.else
     mla \sample_reg, r6, r2, \sample_reg     @ r4 += r6 * r2 (calculating both the left and right samples together)
+.endif
 .endm
 
 1:
+.ifc \is_first,true
+.else
     ldmia r1, {{r9-r12}}       @ read the current values
+.endif
 
     add_stereo_sample r9
     add_stereo_sample r10
     add_stereo_sample r11
     add_stereo_sample r12
+.purgem add_stereo_sample
 
     stmia r1!, {{r9-r12}}         @ store the new value, and increment the pointer
 
@@ -146,7 +168,11 @@ agb_arm_func agb_rs__mixer_add_stereo
     pop {{r4-r11}}
     bx lr
 
-agb_arm_end agb_rs__mixer_add_stereo
+agb_arm_end \fn_name
+.endm
+
+stereo_add_fn agb_rs__mixer_add_stereo false
+stereo_add_fn agb_rs__mixer_add_stereo_first true
 
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:
