@@ -422,11 +422,7 @@ impl MixerBuffer {
     ) {
         working_buffer.fill(0.into());
 
-        for channel in channels {
-            if channel.is_done {
-                continue;
-            }
-
+        for channel in channels.filter(|channel| !channel.is_done) {
             let playback_speed = if channel.is_stereo {
                 2.into()
             } else {
