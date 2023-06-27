@@ -18,9 +18,9 @@ agb_arm_func agb_rs__mixer_add
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
 
     cmp r7, r3               @ check if left and right channel need the same modifications
-    beq same_modification
+    beq .Lsame_modification
 
-modifications_fallback:
+.Lmodifications_fallback:
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0                   @ current index we're reading from
@@ -47,13 +47,13 @@ modifications_fallback:
     pop {{r4-r8}}
     bx lr
 
-same_modification:
+.Lsame_modification:
     @ check to see if this is a perfect power of 2
     @ r5 is a scratch register, r7 = r3 = amount to modify
     sub r5, r7, #1
     ands r5, r5, r7
 
-    bne modifications_fallback @ not 0 means we need to do the full modification
+    bne .Lmodifications_fallback @ not 0 means we need to do the full modification
 
     @ count leading zeros of r7 into r3
     mov r3, #0
