@@ -35,7 +35,7 @@ agb_arm_func \fn_name
     ldrsb r6, [r4]           @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
 
-.ifc is_first,true
+.ifc \is_first,true
     mul r4, r6, r7           @ r4 = r6 * r7 (calculating both the left and right samples together)
 .else
     ldr r4, [r1]             @ read the current value
@@ -82,7 +82,7 @@ agb_arm_func \fn_name
     lsl r6, r6, #16
     orr r6, r6, lsr #16
 
-.ifc is_first,true
+.ifc \is_first,true
     mov r4, r6, lsl r3       @ r4 = r6 << r3
 .else
     ldr r4, [r1]             @ read the current value

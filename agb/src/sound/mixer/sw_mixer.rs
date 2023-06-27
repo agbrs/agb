@@ -420,9 +420,7 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        working_buffer.fill(0.into());
-
-        let channels = channels
+        let mut channels = channels
             .filter(|channel| !channel.is_done)
             .filter_map(|channel| {
                 let playback_speed = if channel.is_stereo {
@@ -445,6 +443,39 @@ impl MixerBuffer {
 
                 Some((channel, playback_speed))
             });
+
+        if let Some((channel, playback_speed)) = channels.next() {
+            if channel.volume != 0.into() {
+                if channel.is_stereo {
+                    unsafe {
+                        agb_rs__mixer_add_stereo_first(
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
+                            working_buffer.as_mut_ptr(),
+                            channel.volume,
+                        );
+                    }
+                } else {
+                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
+                    unsafe {
+                        agb_rs__mixer_add_first(
+                            channel.data.as_ptr().add(channel.pos.floor() as usize),
+                            working_buffer.as_mut_ptr(),
+                            playback_speed,
+                            left_amount,
+                            right_amount,
+                        );
+                    }
+                }
+            } else {
+                working_buffer.fill(0.into());
+            }
+
+            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
+        } else {
+            working_buffer.fill(0.into());
+        }
 
         for (channel, playback_speed) in channels {
             if channel.volume != 0.into() {
