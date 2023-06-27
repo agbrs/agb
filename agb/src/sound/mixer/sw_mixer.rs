@@ -422,25 +422,31 @@ impl MixerBuffer {
     ) {
         working_buffer.fill(0.into());
 
-        for channel in channels.filter(|channel| !channel.is_done) {
-            let playback_speed = if channel.is_stereo {
-                2.into()
-            } else {
-                channel.playback_speed
-            };
+        for (channel, playback_speed) in
+            channels
+                .filter(|channel| !channel.is_done)
+                .filter_map(|channel| {
+                    let playback_speed = if channel.is_stereo {
+                        2.into()
+                    } else {
+                        channel.playback_speed
+                    };
 
-            if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
-                >= channel.data.len() as u32
-            {
-                // TODO: This should probably play what's left rather than skip the last bit
-                if channel.should_loop {
-                    channel.pos = 0.into();
-                } else {
-                    channel.is_done = true;
-                    continue;
-                }
-            }
+                    if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
+                        >= channel.data.len() as u32
+                    {
+                        // TODO: This should probably play what's left rather than skip the last bit
+                        if channel.should_loop {
+                            channel.pos = 0.into();
+                        } else {
+                            channel.is_done = true;
+                            return None;
+                        }
+                    }
 
+                    Some((channel, playback_speed))
+                })
+        {
             if channel.volume != 0.into() {
                 if channel.is_stereo {
                     unsafe {
