@@ -17,7 +17,7 @@ use agb_fixnum::Rect;
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+const FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
@@ -32,12 +32,14 @@ fn main(mut gba: agb::Gba) -> ! {
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
-        let config = Configuration::new(Size::S16x16, palette);
+        let config = Configuration::new(Size::S16x8, palette);
 
         let mut wr = BufferedWordRender::new(&FONT, config);
         let _ = writeln!(
             wr,
-            "Hello there!\nI spent this weekend writing this text system! Is it any good?\n\nOh, by the way, you can press A to restart!"
+            "{}",
+            "counts for three shoot dice for damage calculation\nmalfunctions all dice after use"
+                .to_ascii_uppercase()
         );
 
         let vblank = agb::interrupt::VBlank::get();
@@ -59,7 +61,10 @@ fn main(mut gba: agb::Gba) -> ! {
             wr.commit(oam);
 
             let start = timer.value();
-            wr.update(Rect::new((0, 0).into(), (WIDTH, 100).into()), num_letters);
+            wr.update(
+                Rect::new((WIDTH / 8, 0).into(), (80, 100).into()),
+                num_letters,
+            );
             wr.process();
             let end = timer.value();
 
@@ -67,13 +72,22 @@ fn main(mut gba: agb::Gba) -> ! {
 
             frame += 1;
 
-            if frame % 4 == 0 {
-                num_letters += 1;
-            }
+            // if frame % 2 == 0 {
+            num_letters += 1;
+            // }
 
             if input.is_just_pressed(Button::A) {
                 break;
             }
         }
+        let start = timer.value();
+        drop(wr);
+        let oam = unmanaged.iter();
+        drop(oam);
+        let end = timer.value();
+        agb::println!(
+            "Drop took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
     }
 }

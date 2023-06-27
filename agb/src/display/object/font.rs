@@ -151,7 +151,7 @@ impl WordRenderCache {
                         && prospective_x > position.position.x + position.size.x
                     {
                         self.state.head_position.x = position.position.x;
-                        self.state.head_position.y += 15;
+                        self.state.head_position.y += 9;
                     }
 
                     for letter in word.letters.iter().skip(self.state.depth_in_word) {
@@ -175,10 +175,10 @@ impl WordRenderCache {
                 }
                 TextElementReference::WhiteSpace(space) => {
                     match space {
-                        WhiteSpace::Space => self.state.head_position.x += 10,
+                        WhiteSpace::Space => self.state.head_position.x += 2,
                         WhiteSpace::NewLine => {
                             self.state.head_position.x = position.position.x;
-                            self.state.head_position.y += 15;
+                            self.state.head_position.y += 14;
                         }
                     }
                     self.state.depth_in_elements += 1;
@@ -244,7 +244,6 @@ impl WorkingLetter {
     fn reset(&mut self) {
         self.x_position = 0;
         self.x_offset = 0;
-        self.dynamic.clear(0);
     }
 }
 
@@ -382,11 +381,10 @@ impl WordRender<'_> {
             return None;
         }
 
-        let sprite = self
-            .working
-            .letter
-            .dynamic
-            .to_vram(self.config.palette.clone());
+        let mut new_sprite = DynamicSprite::new(self.config.sprite_size);
+        core::mem::swap(&mut self.working.letter.dynamic, &mut new_sprite);
+        let sprite = new_sprite.to_vram(self.config.palette.clone());
+
         let group = LetterGroup {
             sprite,
             width: self.working.letter.x_offset as u16,
@@ -416,8 +414,7 @@ impl WordRender<'_> {
             self.working.letter.x_offset += font_letter.xmin as i32;
         }
 
-        let y_position =
-            self.font.ascent() - font_letter.height as i32 - font_letter.ymin as i32 + 4;
+        let y_position = self.font.ascent() - font_letter.height as i32 - font_letter.ymin as i32;
 
         for y in 0..font_letter.height as usize {
             for x in 0..font_letter.width as usize {
