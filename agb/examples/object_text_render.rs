@@ -4,7 +4,7 @@
 use agb::{
     display::{
         object::{
-            font::{BufferedWordRender, Configuration},
+            font::{BufferedRender, TextAlignment},
             PaletteVram, Size,
         },
         palette16::Palette16,
@@ -14,6 +14,9 @@ use agb::{
     input::Button,
 };
 use agb_fixnum::Rect;
+
+extern crate alloc;
+use alloc::vec::Vec;
 
 use core::fmt::Write;
 
@@ -32,9 +35,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
-        let config = Configuration::new(Size::S16x8, palette);
-
-        let mut wr = BufferedWordRender::new(&FONT, config);
+        let mut wr = BufferedRender::new(&FONT, Size::S16x8, palette);
         let _ = writeln!(
             wr,
             "{}",
@@ -54,21 +55,39 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut num_letters = 0;
         let mut frame = 0;
 
+        let mut alignment = TextAlignment::Left;
+
+        let mut text = Vec::new();
+
         loop {
             vblank.wait_for_vblank();
             input.update();
             let oam = &mut unmanaged.iter();
-            wr.commit(oam);
+            for (letter, slot) in text.iter().zip(oam) {
+                slot.set(letter);
+            }
 
             let start = timer.value();
-            wr.update(
-                Rect::new((WIDTH / 8, 0).into(), (80, 100).into()),
-                num_letters,
-            );
             wr.process();
+            text = wr.layout(
+                Rect::new((WIDTH / 8, 0).into(), (80, 100).into()),
+                alignment,
+                num_letters,
+                2,
+            );
             let end = timer.value();
 
             agb::println!("Took {} cycles", 256 * (end.wrapping_sub(start) as u32));
+
+            if input.is_just_pressed(Button::LEFT) {
+                alignment = TextAlignment::Left;
+            }
+            if input.is_just_pressed(Button::RIGHT) {
+                alignment = TextAlignment::Right;
+            }
+            if input.is_just_pressed(Button::UP | Button::DOWN) {
+                alignment = TextAlignment::Center;
+            }
 
             frame += 1;
 
