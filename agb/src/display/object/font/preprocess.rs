@@ -1,3 +1,5 @@
+use core::num::NonZeroU8;
+
 use alloc::vec::Vec;
 
 use crate::display::Font;
@@ -6,50 +8,53 @@ use super::WhiteSpace;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PreprocessedElement {
-    Word(u8),
+    Word(Word),
     WhiteSpace(WhiteSpace),
 }
 
+#[test_case]
+fn check_size_of_preprocessed_element_is_correct(_: &mut crate::Gba) {
+    assert_eq!(
+        core::mem::size_of::<PreprocessedElement>(),
+        core::mem::size_of::<Word>()
+    );
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(align(4))]
+pub(crate) struct Word {
+    pixels: u8,
+    number_of_sprites: NonZeroU8,
+    index: u16,
+}
+
+impl Word {
+    pub fn pixels(self) -> i32 {
+        self.pixels.into()
+    }
+    pub fn number_of_sprites(self) -> usize {
+        self.number_of_sprites.get().into()
+    }
+    pub fn sprite_index(self) -> usize {
+        self.index.into()
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
-struct PreprocessedElementStored(u8);
-
-impl core::fmt::Debug for PreprocessedElementStored {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_tuple("PreprocessedElementStored")
-            .field(&self.parse())
-            .finish()
-    }
-}
-
-impl PreprocessedElementStored {
-    fn parse(self) -> PreprocessedElement {
-        match self.0 {
-            255 => PreprocessedElement::WhiteSpace(WhiteSpace::NewLine),
-            254 => PreprocessedElement::WhiteSpace(WhiteSpace::Space),
-            length => PreprocessedElement::Word(length),
-        }
-    }
-
-    fn from_element(x: PreprocessedElement) -> Self {
-        match x {
-            PreprocessedElement::Word(length) => PreprocessedElementStored(length),
-            PreprocessedElement::WhiteSpace(space) => PreprocessedElementStored(match space {
-                WhiteSpace::NewLine => 255,
-                WhiteSpace::Space => 254,
-            }),
-        }
-    }
-}
+pub(crate) struct PreprocessedElementStored(u8);
 
 #[derive(Default, Debug)]
 pub(crate) struct Preprocessed {
-    widths: Vec<PreprocessedElementStored>,
+    widths: Vec<PreprocessedElement>,
     preprocessor: Preprocessor,
 }
 
 #[derive(Debug, Default)]
 struct Preprocessor {
     current_word_width: i32,
+    number_of_sprites: usize,
+    width_in_sprite: i32,
+    total_number_of_sprites: usize,
 }
 
 impl Preprocessor {
@@ -57,27 +62,44 @@ impl Preprocessor {
         &mut self,
         font: &Font,
         character: char,
-        widths: &mut Vec<PreprocessedElementStored>,
+        sprite_width: i32,
+        widths: &mut Vec<PreprocessedElement>,
     ) {
         match character {
             space @ (' ' | '\n') => {
                 if self.current_word_width != 0 {
-                    widths.push(PreprocessedElementStored::from_element(
-                        PreprocessedElement::Word(
-                            self.current_word_width
-                                .try_into()
-                                .expect("word should be small and positive"),
-                        ),
-                    ));
+                    self.number_of_sprites += 1;
+                    self.total_number_of_sprites += 1;
+                    widths.push(PreprocessedElement::Word(Word {
+                        pixels: self.current_word_width.try_into().expect("word too wide"),
+                        number_of_sprites: NonZeroU8::new(
+                            self.number_of_sprites.try_into().expect("word too wide"),
+                        )
+                        .unwrap(),
+                        index: (self.total_number_of_sprites - self.number_of_sprites)
+                            .try_into()
+                            .expect("out of range"),
+                    }));
                     self.current_word_width = 0;
+                    self.number_of_sprites = 0;
+                    self.width_in_sprite = 0;
                 }
-                widths.push(PreprocessedElementStored::from_element(
-                    PreprocessedElement::WhiteSpace(WhiteSpace::from_char(space)),
-                ));
+                widths.push(PreprocessedElement::WhiteSpace(WhiteSpace::from_char(
+                    space,
+                )));
             }
             letter => {
                 let letter = font.letter(letter);
                 self.current_word_width += letter.advance_width as i32 + letter.xmin as i32;
+                if self.width_in_sprite + letter.width as i32 > sprite_width {
+                    self.number_of_sprites += 1;
+                    self.total_number_of_sprites += 1;
+                    self.width_in_sprite = 0;
+                }
+                if self.width_in_sprite != 0 {
+                    self.width_in_sprite += letter.xmin as i32;
+                }
+                self.width_in_sprite += letter.advance_width as i32;
             }
         }
     }
@@ -86,7 +108,7 @@ impl Preprocessor {
 pub(crate) struct Lines<'preprocess> {
     minimum_space_width: i32,
     layout_width: i32,
-    data: &'preprocess [PreprocessedElementStored],
+    data: &'preprocess [PreprocessedElement],
     current_start_idx: usize,
 }
 
@@ -131,11 +153,11 @@ impl<'pre> Iterator for Lines<'pre> {
         let mut number_of_words = 0;
 
         while let Some(next) = self.data.get(self.current_start_idx + line_idx_length) {
-            match next.parse() {
-                PreprocessedElement::Word(pixels) => {
+            match next {
+                PreprocessedElement::Word(word) => {
                     let additional_space_width =
                         additional_space_count as i32 * self.minimum_space_width;
-                    let width = pixels as i32;
+                    let width = word.pixels();
                     if width + current_line_width + additional_space_width > self.layout_width {
                         break;
                     }
@@ -173,12 +195,9 @@ impl Preprocessed {
         Default::default()
     }
 
-    pub(crate) fn get(&self, idx: usize) -> PreprocessedElement {
-        self.widths[idx].parse()
-    }
-
-    pub(crate) fn add_character(&mut self, font: &Font, c: char) {
-        self.preprocessor.add_character(font, c, &mut self.widths);
+    pub(crate) fn add_character(&mut self, font: &Font, c: char, sprite_width: i32) {
+        self.preprocessor
+            .add_character(font, c, sprite_width, &mut self.widths);
     }
 
     pub(crate) fn lines(&self, layout_width: i32, minimum_space_width: i32) -> Lines<'_> {
@@ -190,17 +209,17 @@ impl Preprocessed {
         }
     }
 
-    fn lines_element(
+    pub(crate) fn lines_element(
         &self,
         layout_width: i32,
         minimum_space_width: i32,
-    ) -> impl Iterator<Item = &[PreprocessedElementStored]> {
+    ) -> impl Iterator<Item = (Line, &[PreprocessedElement])> {
         let mut idx = 0;
         self.lines(layout_width, minimum_space_width).map(move |x| {
             let length = x.number_of_text_elements;
             let d = &self.widths[idx..(idx + length)];
             idx += length;
-            d
+            (x, d)
         })
     }
 }

@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{DynamicSprite, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{DynamicSprite, OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -48,11 +48,15 @@ pub struct BufferedRender<'font> {
     font: &'font Font,
 }
 
+#[derive(Debug)]
+struct Word {
+    index: usize,
+    length: usize,
+}
+
 #[derive(Debug, Default)]
 struct Letters {
     letters: Vec<LetterGroup>,
-    word_lengths: Vec<u8>,
-    current_word_length: usize,
     number_of_groups: usize,
 }
 
@@ -119,7 +123,8 @@ impl<'font> BufferedRender<'font> {
 
 impl BufferedRender<'_> {
     fn input_character(&mut self, character: char) {
-        self.preprocessor.add_character(self.font, character);
+        self.preprocessor
+            .add_character(self.font, character, self.char_render.sprite_width());
         self.buffered_chars.push_back(character);
     }
 
@@ -129,102 +134,164 @@ impl BufferedRender<'_> {
             ' ' | '\n' => {
                 if let Some(group) = self.char_render.finalise_letter() {
                     self.letters.letters.push(group);
-                    self.letters.current_word_length += 1;
                     self.letters.number_of_groups += 1;
                 }
-                if self.letters.current_word_length != 0 {
-                    self.letters.word_lengths.push(
-                        self.letters
-                            .current_word_length
-                            .try_into()
-                            .expect("word is too big"),
-                    );
-                }
-                self.letters.current_word_length = 0;
+
                 self.letters.number_of_groups += 1;
             }
             letter => {
                 if let Some(group) = self.char_render.render_char(self.font, letter) {
                     self.letters.letters.push(group);
-                    self.letters.current_word_length += 1;
                     self.letters.number_of_groups += 1;
                 }
             }
         }
     }
+}
 
-    #[must_use]
-    pub fn layout(
-        &mut self,
-        area: Rect<i32>,
-        alignment: TextAlignment,
-        number_of_groups: usize,
-        paragraph_spacing: i32,
-    ) -> Vec<ObjectUnmanaged> {
-        let mut objects = Vec::new();
+pub struct LayoutCache {
+    objects: Vec<ObjectUnmanaged>,
+    state: LayoutCacheState,
+    settings: LayoutSettings,
+}
 
-        while !self.buffered_chars.is_empty() && self.letters.number_of_groups <= number_of_groups {
-            self.process();
-        }
+impl LayoutCache {
+    fn update_cache(&mut self, number_of_groups: usize, render: &BufferedRender) {
+        let minimum_space_width = render.font.letter(' ').advance_width as i32;
 
-        let minimum_space_width = self.font.letter(' ').advance_width as i32;
+        let lines = render
+            .preprocessor
+            .lines_element(self.settings.area.size.x, minimum_space_width);
 
-        let lines = self.preprocessor.lines(area.size.x, minimum_space_width);
-        let mut head_position = area.position;
+        'outer: for (line, line_elements) in lines.skip(self.state.line_depth) {
+            let settings = self.settings.alignment.settings(
+                &line,
+                minimum_space_width,
+                self.settings.area.size,
+            );
 
-        let mut processed_depth = 0;
-        let mut group_depth = 0;
-        let mut word_depth = 0;
-        let mut rendered_groups = 0;
+            if self.state.line_element_depth == 0 {
+                self.state.head_position.x += settings.start_x;
+            }
 
-        'outer: for line in lines {
-            let settings = alignment.settings(&line, minimum_space_width, area.size);
-            head_position.x += settings.start_x;
-
-            for idx in 0..line.number_of_text_elements() {
-                let element = self.preprocessor.get(processed_depth + idx);
+            for element in line_elements.iter().skip(self.state.line_element_depth) {
                 match element {
-                    PreprocessedElement::Word(_) => {
-                        for _ in 0..self
-                            .letters
-                            .word_lengths
-                            .get(word_depth)
-                            .copied()
-                            .unwrap_or(u8::MAX)
+                    PreprocessedElement::Word(word) => {
+                        for letter in (word.sprite_index()
+                            ..(word.sprite_index() + word.number_of_sprites()))
+                            .skip(self.state.word_depth)
+                            .map(|x| &render.letters.letters[x])
                         {
-                            let letter_group = &self.letters.letters[group_depth];
-                            let mut object = ObjectUnmanaged::new(letter_group.sprite.clone());
-                            head_position.x += letter_group.left as i32;
-                            object.set_position(head_position);
-                            head_position.x += letter_group.width as i32;
+                            let mut object = ObjectUnmanaged::new(letter.sprite.clone());
+                            self.state.head_position.x += letter.left as i32;
+                            object.set_position(self.state.head_position);
+                            self.state.head_position.x += letter.width as i32;
                             object.show();
-                            objects.push(object);
-                            group_depth += 1;
-                            rendered_groups += 1;
-                            if rendered_groups >= number_of_groups {
+                            self.objects.push(object);
+                            self.state.rendered_groups += 1;
+                            self.state.word_depth += 1;
+                            if self.state.rendered_groups >= number_of_groups {
                                 break 'outer;
                             }
                         }
-                        word_depth += 1;
+
+                        self.state.word_depth = 0;
+                        self.state.line_element_depth += 1;
                     }
                     PreprocessedElement::WhiteSpace(space_type) => {
-                        if space_type == WhiteSpace::NewLine {
-                            head_position.y += paragraph_spacing;
+                        if *space_type == WhiteSpace::NewLine {
+                            self.state.head_position.y += self.settings.paragraph_spacing;
                         }
-                        head_position.x += settings.space_width;
-                        rendered_groups += 1;
-                        if rendered_groups >= number_of_groups {
+                        self.state.head_position.x += settings.space_width;
+                        self.state.rendered_groups += 1;
+                        self.state.line_element_depth += 1;
+                        if self.state.rendered_groups >= number_of_groups {
                             break 'outer;
                         }
                     }
                 }
             }
 
-            processed_depth += line.number_of_text_elements();
-            head_position.x = area.position.x;
-            head_position.y += 9;
+            self.state.head_position.y += render.font.line_height();
+            self.state.head_position.x = self.settings.area.position.x;
+
+            self.state.line_element_depth = 0;
+            self.state.line_depth += 1;
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        r: &mut BufferedRender<'_>,
+        area: Rect<i32>,
+        alignment: TextAlignment,
+        paragraph_spacing: i32,
+        number_of_groups: usize,
+    ) {
+        while !r.buffered_chars.is_empty() && r.letters.number_of_groups <= number_of_groups {
+            r.process();
         }
 
-        objects
+        let settings = LayoutSettings {
+            area,
+            alignment,
+            paragraph_spacing,
+        };
+        if settings != self.settings {
+            self.reset(settings);
+        }
+
+        self.update_cache(number_of_groups, r);
     }
+
+    pub fn commit(&self, oam: &mut OamIterator) {
+        for (object, slot) in self.objects.iter().zip(oam) {
+            slot.set(object);
+        }
+    }
+
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            objects: Vec::new(),
+            state: Default::default(),
+            settings: LayoutSettings {
+                area: Rect::new((0, 0).into(), (0, 0).into()),
+                alignment: TextAlignment::Right,
+                paragraph_spacing: -100,
+            },
+        }
+    }
+
+    fn reset(&mut self, settings: LayoutSettings) {
+        self.objects.clear();
+        self.state = LayoutCacheState {
+            head_position: settings.area.position,
+            processed_depth: 0,
+            group_depth: 0,
+            word_depth: 0,
+            rendered_groups: 0,
+            line_depth: 0,
+            line_element_depth: 0,
+        };
+        self.settings = settings;
+    }
+}
+
+#[derive(PartialEq, Eq)]
+struct LayoutSettings {
+    area: Rect<i32>,
+    alignment: TextAlignment,
+    paragraph_spacing: i32,
+}
+
+#[derive(Default)]
+struct LayoutCacheState {
+    head_position: Vector2D<i32>,
+    processed_depth: usize,
+    group_depth: usize,
+    word_depth: usize,
+    rendered_groups: usize,
+    line_depth: usize,
+    line_element_depth: usize,
 }

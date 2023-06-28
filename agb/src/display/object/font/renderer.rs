@@ -50,6 +50,10 @@ pub(crate) struct WordRender {
 }
 
 impl WordRender {
+    pub(crate) fn sprite_width(&self) -> i32 {
+        self.config.sprite_size.to_width_height().0 as i32
+    }
+
     #[must_use]
     pub(crate) fn new(config: Configuration) -> Self {
         WordRender {

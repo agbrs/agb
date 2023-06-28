@@ -69,6 +69,10 @@ impl Font {
     pub(crate) fn ascent(&self) -> i32 {
         self.ascent
     }
+
+    pub(crate) fn line_height(&self) -> i32 {
+        self.line_height
+    }
 }
 
 impl Font {

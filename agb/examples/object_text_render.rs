@@ -4,7 +4,7 @@
 use agb::{
     display::{
         object::{
-            font::{BufferedRender, TextAlignment},
+            font::{BufferedRender, LayoutCache, TextAlignment},
             PaletteVram, Size,
         },
         palette16::Palette16,
@@ -53,27 +53,25 @@ fn main(mut gba: agb::Gba) -> ! {
         timer.set_divider(agb::timer::Divider::Divider256);
 
         let mut num_letters = 0;
-        let mut frame = 0;
 
         let mut alignment = TextAlignment::Left;
 
-        let mut text = Vec::new();
+        let mut cache = LayoutCache::new();
 
         loop {
             vblank.wait_for_vblank();
             input.update();
             let oam = &mut unmanaged.iter();
-            for (letter, slot) in text.iter().zip(oam) {
-                slot.set(letter);
-            }
+            cache.commit(oam);
 
             let start = timer.value();
             wr.process();
-            text = wr.layout(
-                Rect::new((WIDTH / 8, 0).into(), (80, 100).into()),
+            cache.update(
+                &mut wr,
+                Rect::new((WIDTH / 3, 0).into(), (WIDTH / 3, 100).into()),
                 alignment,
-                num_letters,
                 2,
+                num_letters,
             );
             let end = timer.value();
 
@@ -89,11 +87,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 alignment = TextAlignment::Center;
             }
 
-            frame += 1;
-
-            // if frame % 2 == 0 {
             num_letters += 1;
-            // }
 
             if input.is_just_pressed(Button::A) {
                 break;
