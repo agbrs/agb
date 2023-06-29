@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{DynamicSprite, OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -46,12 +46,6 @@ pub struct BufferedRender<'font> {
     buffered_chars: VecDeque<char>,
     letters: Letters,
     font: &'font Font,
-}
-
-#[derive(Debug)]
-struct Word {
-    index: usize,
-    length: usize,
 }
 
 #[derive(Debug, Default)]
@@ -267,8 +261,6 @@ impl LayoutCache {
         self.objects.clear();
         self.state = LayoutCacheState {
             head_position: settings.area.position,
-            processed_depth: 0,
-            group_depth: 0,
             word_depth: 0,
             rendered_groups: 0,
             line_depth: 0,
@@ -288,8 +280,6 @@ struct LayoutSettings {
 #[derive(Default)]
 struct LayoutCacheState {
     head_position: Vector2D<i32>,
-    processed_depth: usize,
-    group_depth: usize,
     word_depth: usize,
     rendered_groups: usize,
     line_depth: usize,
