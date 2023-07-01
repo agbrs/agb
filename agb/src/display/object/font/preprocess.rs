@@ -1,12 +1,12 @@
 use core::num::NonZeroU8;
 
-use alloc::vec::Vec;
+use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::display::Font;
 
 use super::WhiteSpace;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum PreprocessedElement {
     Word(Word),
     WhiteSpace(WhiteSpace),
@@ -40,12 +40,9 @@ impl Word {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) struct PreprocessedElementStored(u8);
-
 #[derive(Default, Debug)]
 pub(crate) struct Preprocessed {
-    widths: Vec<PreprocessedElement>,
+    widths: VecDeque<PreprocessedElement>,
     preprocessor: Preprocessor,
 }
 
@@ -63,14 +60,14 @@ impl Preprocessor {
         font: &Font,
         character: char,
         sprite_width: i32,
-        widths: &mut Vec<PreprocessedElement>,
+        widths: &mut VecDeque<PreprocessedElement>,
     ) {
         match character {
             space @ (' ' | '\n') => {
                 if self.current_word_width != 0 {
                     self.number_of_sprites += 1;
                     self.total_number_of_sprites += 1;
-                    widths.push(PreprocessedElement::Word(Word {
+                    widths.push_back(PreprocessedElement::Word(Word {
                         pixels: self.current_word_width.try_into().expect("word too wide"),
                         number_of_sprites: NonZeroU8::new(
                             self.number_of_sprites.try_into().expect("word too wide"),
@@ -84,7 +81,7 @@ impl Preprocessor {
                     self.number_of_sprites = 0;
                     self.width_in_sprite = 0;
                 }
-                widths.push(PreprocessedElement::WhiteSpace(WhiteSpace::from_char(
+                widths.push_back(PreprocessedElement::WhiteSpace(WhiteSpace::from_char(
                     space,
                 )));
             }
@@ -108,7 +105,7 @@ impl Preprocessor {
 pub(crate) struct Lines<'preprocess> {
     minimum_space_width: i32,
     layout_width: i32,
-    data: &'preprocess [PreprocessedElement],
+    data: &'preprocess VecDeque<PreprocessedElement>,
     current_start_idx: usize,
 }
 
@@ -117,6 +114,7 @@ pub(crate) struct Line {
     number_of_text_elements: usize,
     number_of_spaces: usize,
     number_of_words: usize,
+    number_of_letter_groups: usize,
 }
 
 impl Line {
@@ -136,6 +134,11 @@ impl Line {
     pub(crate) fn number_of_words(&self) -> usize {
         self.number_of_words
     }
+
+    #[inline(always)]
+    pub(crate) fn number_of_letter_groups(&self) -> usize {
+        self.number_of_letter_groups
+    }
 }
 
 impl<'pre> Iterator for Lines<'pre> {
@@ -151,6 +154,7 @@ impl<'pre> Iterator for Lines<'pre> {
         let mut additional_space_count = 0;
         let mut number_of_spaces = 0;
         let mut number_of_words = 0;
+        let mut number_of_letter_groups = 0;
 
         while let Some(next) = self.data.get(self.current_start_idx + line_idx_length) {
             match next {
@@ -161,6 +165,7 @@ impl<'pre> Iterator for Lines<'pre> {
                     if width + current_line_width + additional_space_width > self.layout_width {
                         break;
                     }
+                    number_of_letter_groups += word.number_of_sprites.get() as usize;
                     number_of_words += 1;
                     current_line_width += width + additional_space_width;
                     number_of_spaces += additional_space_count;
@@ -186,6 +191,7 @@ impl<'pre> Iterator for Lines<'pre> {
             number_of_text_elements: line_idx_length,
             number_of_spaces,
             number_of_words,
+            number_of_letter_groups,
         })
     }
 }
@@ -198,6 +204,13 @@ impl Preprocessed {
     pub(crate) fn add_character(&mut self, font: &Font, c: char, sprite_width: i32) {
         self.preprocessor
             .add_character(font, c, sprite_width, &mut self.widths);
+    }
+
+    pub(crate) fn pop(&mut self, line: &Line) {
+        let elements = line.number_of_text_elements();
+        for _ in 0..elements {
+            self.widths.pop_front();
+        }
     }
 
     pub(crate) fn lines(&self, layout_width: i32, minimum_space_width: i32) -> Lines<'_> {
@@ -213,11 +226,12 @@ impl Preprocessed {
         &self,
         layout_width: i32,
         minimum_space_width: i32,
-    ) -> impl Iterator<Item = (Line, &[PreprocessedElement])> {
+    ) -> impl Iterator<Item = (Line, impl Iterator<Item = PreprocessedElement> + '_)> {
         let mut idx = 0;
         self.lines(layout_width, minimum_space_width).map(move |x| {
             let length = x.number_of_text_elements;
-            let d = &self.widths[idx..(idx + length)];
+
+            let d = self.widths.range(idx..(idx + length)).copied();
             idx += length;
             (x, d)
         })

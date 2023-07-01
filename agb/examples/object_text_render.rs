@@ -4,7 +4,7 @@
 use agb::{
     display::{
         object::{
-            font::{BufferedRender, LayoutCache, TextAlignment},
+            font::{ObjectTextRender, TextAlignment},
             PaletteVram, Size,
         },
         palette16::Palette16,
@@ -35,7 +35,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
-        let mut wr = BufferedRender::new(&FONT, Size::S16x8, palette);
+        let mut wr = ObjectTextRender::new(&FONT, Size::S16x8, palette);
         let _ = writeln!(
             wr,
             "{}",
@@ -52,55 +52,30 @@ fn main(mut gba: agb::Gba) -> ! {
         timer.set_enabled(true);
         timer.set_divider(agb::timer::Divider::Divider256);
 
-        let mut num_letters = 0;
-
-        let mut alignment = TextAlignment::Left;
-
-        let mut cache = LayoutCache::new();
+        wr.set_alignment(TextAlignment::Left);
+        wr.set_size((WIDTH / 3, 20).into());
+        wr.set_paragraph_spacing(2);
+        wr.layout();
 
         loop {
             vblank.wait_for_vblank();
             input.update();
             let oam = &mut unmanaged.iter();
-            cache.commit(oam);
+            wr.commit(oam, (WIDTH / 3, 0).into());
 
             let start = timer.value();
-            wr.process();
-            cache.update(
-                &mut wr,
-                Rect::new((WIDTH / 3, 0).into(), (WIDTH / 3, 100).into()),
-                alignment,
-                2,
-                num_letters,
-            );
+            let line_done = !wr.next_letter_group();
+            if line_done && input.is_just_pressed(Button::A) {
+                wr.pop_line();
+            }
+            wr.layout();
             let end = timer.value();
 
-            agb::println!("Took {} cycles", 256 * (end.wrapping_sub(start) as u32));
-
-            if input.is_just_pressed(Button::LEFT) {
-                alignment = TextAlignment::Left;
-            }
-            if input.is_just_pressed(Button::RIGHT) {
-                alignment = TextAlignment::Right;
-            }
-            if input.is_just_pressed(Button::UP | Button::DOWN) {
-                alignment = TextAlignment::Center;
-            }
-
-            num_letters += 1;
-
-            if input.is_just_pressed(Button::A) {
-                break;
-            }
+            agb::println!(
+                "Took {} cycles, line done {}",
+                256 * (end.wrapping_sub(start) as u32),
+                line_done
+            );
         }
-        let start = timer.value();
-        drop(wr);
-        let oam = unmanaged.iter();
-        drop(oam);
-        let end = timer.value();
-        agb::println!(
-            "Drop took {} cycles",
-            256 * (end.wrapping_sub(start) as u32)
-        );
     }
 }
