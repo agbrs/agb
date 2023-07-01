@@ -52,7 +52,7 @@ fn main(mut gba: agb::Gba) -> ! {
         timer.set_enabled(true);
         timer.set_divider(agb::timer::Divider::Divider256);
 
-        wr.layout((WIDTH, 40).into(), TextAlignment::Left, 2);
+        wr.layout((WIDTH, 40).into(), TextAlignment::Justify, 2);
 
         let mut line_done = false;
         let mut frame = 0;

@@ -1,6 +1,6 @@
 use core::fmt::{Display, Write};
 
-use agb_fixnum::Vector2D;
+use agb_fixnum::{Num, Vector2D};
 use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::display::Font;
@@ -53,10 +53,11 @@ pub enum TextAlignment {
     Left,
     Right,
     Center,
+    Justify,
 }
 
 struct TextAlignmentSettings {
-    space_width: i32,
+    space_width: Num<i32, 10>,
     start_x: i32,
 }
 
@@ -64,17 +65,30 @@ impl TextAlignment {
     fn settings(self, line: &Line, minimum_space_width: i32, width: i32) -> TextAlignmentSettings {
         match self {
             TextAlignment::Left => TextAlignmentSettings {
-                space_width: minimum_space_width,
+                space_width: minimum_space_width.into(),
                 start_x: 0,
             },
             TextAlignment::Right => TextAlignmentSettings {
-                space_width: minimum_space_width,
+                space_width: minimum_space_width.into(),
                 start_x: width - line.width(),
             },
             TextAlignment::Center => TextAlignmentSettings {
-                space_width: minimum_space_width,
+                space_width: minimum_space_width.into(),
                 start_x: (width - line.width()) / 2,
             },
+            TextAlignment::Justify => {
+                let space_width = if line.number_of_spaces() != 0 {
+                    Num::new(
+                        width - line.width() + line.number_of_spaces() as i32 * minimum_space_width,
+                    ) / line.number_of_spaces() as i32
+                } else {
+                    minimum_space_width.into()
+                };
+                TextAlignmentSettings {
+                    space_width,
+                    start_x: 0,
+                }
+            }
         }
     }
 }
@@ -376,7 +390,7 @@ impl LayoutCache {
         let width = settings.area.x;
         let line_height = font.line_height();
 
-        let mut head_position: Vector2D<i32> = (0, -line_height).into();
+        let mut head_position: Vector2D<Num<i32, 10>> = (0, -line_height).into();
 
         preprocessed
             .lines_element(width, minimum_space_width)
@@ -386,7 +400,7 @@ impl LayoutCache {
                     .settings(&line, minimum_space_width, width);
 
                 head_position.y += line_height;
-                head_position.x = line_settings.start_x;
+                head_position.x = line_settings.start_x.into();
 
                 (
                     line,
@@ -394,7 +408,7 @@ impl LayoutCache {
                         PreprocessedElement::LetterGroup { width } => {
                             let this_position = head_position;
                             head_position.x += width as i32;
-                            Some(this_position)
+                            Some(this_position.floor())
                         }
                         PreprocessedElement::WhiteSpace(space) => {
                             match space {
