@@ -1,14 +1,10 @@
 use crate::display::{
-    object::{DynamicSprite, PaletteVram, Size},
+    object::{DynamicSprite, PaletteVram, Size, SpriteVram},
     Font,
 };
 
-use super::LetterGroup;
-
 struct WorkingLetter {
     dynamic: DynamicSprite,
-    // the x offset of the current letter with respect to the start of the current letter group
-    x_position: i32,
     // where to render the letter from x_min to x_max
     x_offset: i32,
 }
@@ -17,13 +13,11 @@ impl WorkingLetter {
     fn new(size: Size) -> Self {
         Self {
             dynamic: DynamicSprite::new(size),
-            x_position: 0,
             x_offset: 0,
         }
     }
 
     fn reset(&mut self) {
-        self.x_position = 0;
         self.x_offset = 0;
     }
 }
@@ -64,7 +58,7 @@ impl WordRender {
     }
 
     #[must_use]
-    pub(crate) fn finalise_letter(&mut self) -> Option<LetterGroup> {
+    pub(crate) fn finalise_letter(&mut self) -> Option<SpriteVram> {
         if self.working.x_offset == 0 {
             return None;
         }
@@ -72,19 +66,13 @@ impl WordRender {
         let mut new_sprite = DynamicSprite::new(self.config.sprite_size);
         core::mem::swap(&mut self.working.dynamic, &mut new_sprite);
         let sprite = new_sprite.to_vram(self.config.palette.clone());
-
-        let group = LetterGroup {
-            sprite,
-            width: self.working.x_offset as u16,
-            left: self.working.x_position as i16,
-        };
         self.working.reset();
 
-        Some(group)
+        Some(sprite)
     }
 
     #[must_use]
-    pub(crate) fn render_char(&mut self, font: &Font, c: char) -> Option<LetterGroup> {
+    pub(crate) fn render_char(&mut self, font: &Font, c: char) -> Option<SpriteVram> {
         let font_letter: &crate::display::FontLetter = font.letter(c);
 
         // uses more than the sprite can hold
@@ -96,9 +84,7 @@ impl WordRender {
             None
         };
 
-        if self.working.x_offset == 0 {
-            self.working.x_position = font_letter.xmin as i32;
-        } else {
+        if self.working.x_offset != 0 {
             self.working.x_offset += font_letter.xmin as i32;
         }
 

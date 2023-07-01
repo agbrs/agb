@@ -6,52 +6,47 @@ use crate::display::Font;
 
 use super::WhiteSpace;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct PreprocessedElementEncoded(u8);
+
+impl PreprocessedElementEncoded {
+    pub(crate) fn decode(self) -> PreprocessedElement {
+        match self.0 {
+            255 => PreprocessedElement::WhiteSpace(WhiteSpace::NewLine),
+            254 => PreprocessedElement::WhiteSpace(WhiteSpace::Space),
+            width => PreprocessedElement::LetterGroup { width },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+
 pub(crate) enum PreprocessedElement {
-    Word(Word),
+    LetterGroup { width: u8 },
     WhiteSpace(WhiteSpace),
 }
 
-#[test_case]
-fn check_size_of_preprocessed_element_is_correct(_: &mut crate::Gba) {
-    assert_eq!(
-        core::mem::size_of::<PreprocessedElement>(),
-        core::mem::size_of::<Word>()
-    );
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(align(4))]
-pub(crate) struct Word {
-    pixels: u8,
-    number_of_sprites: NonZeroU8,
-    index: u16,
-}
-
-impl Word {
-    pub fn pixels(self) -> i32 {
-        self.pixels.into()
-    }
-    pub fn number_of_sprites(self) -> usize {
-        self.number_of_sprites.get().into()
-    }
-    pub fn sprite_index(self) -> usize {
-        self.index.into()
+impl PreprocessedElement {
+    fn encode(self) -> PreprocessedElementEncoded {
+        PreprocessedElementEncoded(match self {
+            PreprocessedElement::LetterGroup { width } => width,
+            PreprocessedElement::WhiteSpace(space) => match space {
+                WhiteSpace::NewLine => 255,
+                WhiteSpace::Space => 254,
+            },
+        })
     }
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct Preprocessed {
-    widths: VecDeque<PreprocessedElement>,
+    widths: VecDeque<PreprocessedElementEncoded>,
     preprocessor: Preprocessor,
 }
 
 #[derive(Debug, Default)]
 struct Preprocessor {
-    current_word_width: i32,
-    number_of_sprites: usize,
     width_in_sprite: i32,
-    total_number_of_sprites: usize,
 }
 
 impl Preprocessor {
@@ -60,37 +55,32 @@ impl Preprocessor {
         font: &Font,
         character: char,
         sprite_width: i32,
-        widths: &mut VecDeque<PreprocessedElement>,
+        widths: &mut VecDeque<PreprocessedElementEncoded>,
     ) {
         match character {
             space @ (' ' | '\n') => {
-                if self.current_word_width != 0 {
-                    self.number_of_sprites += 1;
-                    self.total_number_of_sprites += 1;
-                    widths.push_back(PreprocessedElement::Word(Word {
-                        pixels: self.current_word_width.try_into().expect("word too wide"),
-                        number_of_sprites: NonZeroU8::new(
-                            self.number_of_sprites.try_into().expect("word too wide"),
-                        )
-                        .unwrap(),
-                        index: (self.total_number_of_sprites - self.number_of_sprites)
-                            .try_into()
-                            .expect("out of range"),
-                    }));
-                    self.current_word_width = 0;
-                    self.number_of_sprites = 0;
+                if self.width_in_sprite != 0 {
+                    widths.push_back(
+                        PreprocessedElement::LetterGroup {
+                            width: self.width_in_sprite as u8,
+                        }
+                        .encode(),
+                    );
                     self.width_in_sprite = 0;
                 }
-                widths.push_back(PreprocessedElement::WhiteSpace(WhiteSpace::from_char(
-                    space,
-                )));
+                widths.push_back(
+                    PreprocessedElement::WhiteSpace(WhiteSpace::from_char(space)).encode(),
+                );
             }
             letter => {
                 let letter = font.letter(letter);
-                self.current_word_width += letter.advance_width as i32 + letter.xmin as i32;
                 if self.width_in_sprite + letter.width as i32 > sprite_width {
-                    self.number_of_sprites += 1;
-                    self.total_number_of_sprites += 1;
+                    widths.push_back(
+                        PreprocessedElement::LetterGroup {
+                            width: self.width_in_sprite as u8,
+                        }
+                        .encode(),
+                    );
                     self.width_in_sprite = 0;
                 }
                 if self.width_in_sprite != 0 {
@@ -105,7 +95,7 @@ impl Preprocessor {
 pub(crate) struct Lines<'preprocess> {
     minimum_space_width: i32,
     layout_width: i32,
-    data: &'preprocess VecDeque<PreprocessedElement>,
+    data: &'preprocess VecDeque<PreprocessedElementEncoded>,
     current_start_idx: usize,
 }
 
@@ -150,35 +140,58 @@ impl<'pre> Iterator for Lines<'pre> {
         }
 
         let mut line_idx_length = 0;
-        let mut current_line_width = 0;
-        let mut additional_space_count = 0;
+        let mut current_line_width_pixels = 0;
+        let mut spaces_after_last_word_count = 0usize;
+        let mut start_of_current_word = usize::MAX;
+        let mut length_of_current_word_pixels = 0;
+        let mut length_of_current_word = 0;
         let mut number_of_spaces = 0;
         let mut number_of_words = 0;
         let mut number_of_letter_groups = 0;
 
         while let Some(next) = self.data.get(self.current_start_idx + line_idx_length) {
-            match next {
-                PreprocessedElement::Word(word) => {
-                    let additional_space_width =
-                        additional_space_count as i32 * self.minimum_space_width;
-                    let width = word.pixels();
-                    if width + current_line_width + additional_space_width > self.layout_width {
+            match next.decode() {
+                PreprocessedElement::LetterGroup { width } => {
+                    if start_of_current_word == usize::MAX {
+                        start_of_current_word = line_idx_length;
+                    }
+                    length_of_current_word_pixels += width as i32;
+                    length_of_current_word += 1;
+                    if current_line_width_pixels
+                        + length_of_current_word_pixels
+                        + spaces_after_last_word_count as i32 * self.minimum_space_width
+                        >= self.layout_width
+                    {
+                        line_idx_length = start_of_current_word;
                         break;
                     }
-                    number_of_letter_groups += word.number_of_sprites.get() as usize;
-                    number_of_words += 1;
-                    current_line_width += width + additional_space_width;
-                    number_of_spaces += additional_space_count;
                 }
-                PreprocessedElement::WhiteSpace(space) => match space {
-                    WhiteSpace::NewLine => {
-                        line_idx_length += 1;
-                        break;
+                PreprocessedElement::WhiteSpace(space) => {
+                    if start_of_current_word != usize::MAX {
+                        // flush word
+                        current_line_width_pixels += length_of_current_word_pixels
+                            + spaces_after_last_word_count as i32 * self.minimum_space_width;
+                        number_of_spaces += spaces_after_last_word_count;
+                        number_of_words += 1;
+                        number_of_letter_groups += length_of_current_word;
+
+                        // reset parser
+                        length_of_current_word_pixels = 0;
+                        length_of_current_word = 0;
+                        start_of_current_word = usize::MAX;
+                        spaces_after_last_word_count = 0;
                     }
-                    WhiteSpace::Space => {
-                        additional_space_count += 1;
+
+                    match space {
+                        WhiteSpace::NewLine => {
+                            line_idx_length += 1;
+                            break;
+                        }
+                        WhiteSpace::Space => {
+                            spaces_after_last_word_count += 1;
+                        }
                     }
-                },
+                }
             };
 
             line_idx_length += 1;
@@ -187,7 +200,7 @@ impl<'pre> Iterator for Lines<'pre> {
         self.current_start_idx += line_idx_length;
 
         Some(Line {
-            width: current_line_width,
+            width: current_line_width_pixels,
             number_of_text_elements: line_idx_length,
             number_of_spaces,
             number_of_words,
@@ -226,7 +239,7 @@ impl Preprocessed {
         &self,
         layout_width: i32,
         minimum_space_width: i32,
-    ) -> impl Iterator<Item = (Line, impl Iterator<Item = PreprocessedElement> + '_)> {
+    ) -> impl Iterator<Item = (Line, impl Iterator<Item = PreprocessedElementEncoded> + '_)> {
         let mut idx = 0;
         self.lines(layout_width, minimum_space_width).map(move |x| {
             let length = x.number_of_text_elements;

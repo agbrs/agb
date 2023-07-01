@@ -8,19 +8,17 @@ use agb::{
             PaletteVram, Size,
         },
         palette16::Palette16,
-        Font, WIDTH,
+        Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
 };
-use agb_fixnum::Rect;
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
+const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
@@ -35,12 +33,11 @@ fn main(mut gba: agb::Gba) -> ! {
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
-        let mut wr = ObjectTextRender::new(&FONT, Size::S16x8, palette);
+        let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
         let _ = writeln!(
             wr,
-            "{}",
-            "counts for three shoot dice for damage calculation\nmalfunctions all dice after use"
-                .to_ascii_uppercase()
+            "Woah! Hey there! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!"
+        
         );
 
         let vblank = agb::interrupt::VBlank::get();
@@ -52,24 +49,31 @@ fn main(mut gba: agb::Gba) -> ! {
         timer.set_enabled(true);
         timer.set_divider(agb::timer::Divider::Divider256);
 
-        wr.set_alignment(TextAlignment::Left);
-        wr.set_size((WIDTH / 3, 20).into());
-        wr.set_paragraph_spacing(2);
-        wr.layout();
+        wr.layout((WIDTH, 40).into(), TextAlignment::Left, 2);
+
+        let mut line_done = false;
+        let mut frame = 0;
 
         loop {
             vblank.wait_for_vblank();
             input.update();
             let oam = &mut unmanaged.iter();
-            wr.commit(oam, (WIDTH / 3, 0).into());
+            wr.commit(oam);
 
             let start = timer.value();
-            let line_done = !wr.next_letter_group();
-            if line_done && input.is_just_pressed(Button::A) {
+            if frame % 4 == 0 {
+                line_done = !wr.next_letter_group();
+            }
+            if line_done
+            && input.is_just_pressed(Button::A)
+            {
+                line_done = false;
                 wr.pop_line();
             }
-            wr.layout();
+            wr.update((0, HEIGHT - 40).into());
             let end = timer.value();
+
+            frame += 1;
 
             agb::println!(
                 "Took {} cycles, line done {}",

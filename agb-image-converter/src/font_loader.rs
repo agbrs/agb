@@ -25,9 +25,9 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     let line_metrics = font.horizontal_line_metrics(pixels_per_em).unwrap();
 
     let line_height = line_metrics.new_line_size as i32;
-    let ascent = line_metrics.ascent as i32;
+    let mut ascent = line_metrics.ascent as i32;
 
-    let font = (0..128)
+    let letters: Vec<_> = (0..128)
         .map(|i| font.rasterize(char::from_u32(i).unwrap(), pixels_per_em))
         .map(|(metrics, bitmap)| {
             let width = metrics.width;
@@ -56,25 +56,37 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
                 advance_width: metrics.advance_width,
             }
         })
-        .map(|letter_data| {
-            let data_raw = ByteString(&letter_data.rendered);
-            let height = letter_data.height as u8;
-            let width = letter_data.width as u8;
-            let xmin = letter_data.xmin as i8;
-            let ymin = letter_data.ymin as i8;
-            let advance_width = letter_data.advance_width.ceil() as u8;
+        .collect();
 
-            quote!(
-                display::FontLetter::new(
-                    #width,
-                    #height,
-                    #data_raw,
-                    #xmin,
-                    #ymin,
-                    #advance_width,
-                )
+    let maximum_above_line = letters
+        .iter()
+        .map(|x| (x.height as i32 + x.ymin))
+        .max()
+        .unwrap();
+
+    if (ascent - maximum_above_line) < 0 {
+        ascent = maximum_above_line;
+    }
+
+    let font = letters.iter().map(|letter_data| {
+        let data_raw = ByteString(&letter_data.rendered);
+        let height = letter_data.height as u8;
+        let width = letter_data.width as u8;
+        let xmin = letter_data.xmin as i8;
+        let ymin = letter_data.ymin as i8;
+        let advance_width = letter_data.advance_width.ceil() as u8;
+
+        quote!(
+            display::FontLetter::new(
+                #width,
+                #height,
+                #data_raw,
+                #xmin,
+                #ymin,
+                #advance_width,
             )
-        });
+        )
+    });
 
     quote![
         display::Font::new(&[#(#font),*], #line_height, #ascent)

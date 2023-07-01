@@ -1,9 +1,9 @@
 use core::fmt::Write;
 
-use agb_fixnum::{Rect, Vector2D};
+use agb_fixnum::Vector2D;
 use alloc::{collections::VecDeque, vec::Vec};
 
-use crate::display::{object::font::preprocess::Word, Font};
+use crate::display::Font;
 
 use self::{
     preprocess::{Line, Preprocessed, PreprocessedElement},
@@ -32,14 +32,6 @@ impl WhiteSpace {
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct LetterGroup {
-    sprite: SpriteVram,
-    // the width of the letter group
-    width: u16,
-    left: i16,
-}
-
 pub struct BufferedRender<'font> {
     char_render: WordRender,
     preprocessor: Preprocessed,
@@ -50,7 +42,7 @@ pub struct BufferedRender<'font> {
 
 #[derive(Debug, Default)]
 struct Letters {
-    letters: VecDeque<LetterGroup>,
+    letters: VecDeque<SpriteVram>,
     number_of_groups: usize,
 }
 
@@ -69,12 +61,7 @@ struct TextAlignmentSettings {
 }
 
 impl TextAlignment {
-    fn settings(
-        self,
-        line: &Line,
-        minimum_space_width: i32,
-        size: Vector2D<i32>,
-    ) -> TextAlignmentSettings {
+    fn settings(self, line: &Line, minimum_space_width: i32, width: i32) -> TextAlignmentSettings {
         match self {
             TextAlignment::Left => TextAlignmentSettings {
                 space_width: minimum_space_width,
@@ -82,11 +69,11 @@ impl TextAlignment {
             },
             TextAlignment::Right => TextAlignmentSettings {
                 space_width: minimum_space_width,
-                start_x: size.x - line.width(),
+                start_x: width - line.width(),
             },
             TextAlignment::Center => TextAlignmentSettings {
                 space_width: minimum_space_width,
-                start_x: (size.x - line.width()) / 2,
+                start_x: (width - line.width()) / 2,
             },
         }
     }
@@ -143,7 +130,7 @@ impl BufferedRender<'_> {
 pub struct ObjectTextRender<'font> {
     buffer: BufferedRender<'font>,
     layout: LayoutCache,
-    settings: LayoutSettings,
+    number_of_objects: usize,
 }
 
 impl<'font> ObjectTextRender<'font> {
@@ -151,8 +138,14 @@ impl<'font> ObjectTextRender<'font> {
     pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
-            layout: LayoutCache::new(),
-            settings: Default::default(),
+            number_of_objects: 0,
+            layout: LayoutCache {
+                positions: VecDeque::new(),
+                line_capacity: VecDeque::new(),
+                objects: Vec::new(),
+                objects_are_at_origin: (0, 0).into(),
+                area: (0, 0).into(),
+            },
         }
     }
 }
@@ -168,267 +161,222 @@ impl Write for ObjectTextRender<'_> {
 }
 
 impl ObjectTextRender<'_> {
-    /// Remove a line from the render and shift everything up one line.
-    /// A full complete line must be rendered for this to do anything, incomplete lines won't be popped. Returns whether a line could be popped.
-    pub fn pop_line(&mut self) -> bool {
-        let width = self.layout.settings.area.x;
-        let space = self.buffer.font.letter(' ').advance_width as i32;
-        let Some(line) = self.buffer.preprocessor.lines(width, space).next() else {
-            return false;
-        };
-
-        let number_of_elements = line.number_of_letter_groups();
-        if self.layout.state.line_depth >= 1 && self.layout.objects.len() >= number_of_elements {
-            for _ in 0..number_of_elements {
-                // self.buffer.letters.letters.pop_front();
-                self.layout.objects.pop_front();
-            }
-            self.buffer.preprocessor.pop(&line);
-
-            self.layout.state.head_offset.y -= self.buffer.font.line_height();
-            for obj in self.layout.objects.iter_mut() {
-                obj.offset.y -= self.buffer.font.line_height() as i16;
-                let object_offset = obj.offset.change_base();
-                obj.object
-                    .set_position(self.layout.position + object_offset);
-            }
-
-            self.layout.state.line_depth -= 1;
-
-            true
-        } else {
-            false
-        }
-    }
-
-    /// On next update, the next unit of letters will be rendered. Returns whether the next element could be added.
-    /// Can only be called once per layout.
-    pub fn next_letter_group(&mut self) -> bool {
-        self.layout.next_letter_group(&self.buffer)
-    }
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamIterator, position: Vector2D<i32>) {
-        self.layout.commit(oam, position);
-    }
-    /// Updates the internal state based on the chosen render settings. Best
-    /// effort is made to reuse previous layouts, but a full rerender may be
-    /// required if certain settings are changed.
-    pub fn layout(&mut self) {
-        self.layout.update(
-            &mut self.buffer,
-            self.settings.area,
-            self.settings.alignment,
-            self.settings.paragraph_spacing,
-        );
-    }
-    /// Causes a change to the area that text is rendered. This will cause a relayout.
-    pub fn set_size(&mut self, size: Vector2D<i32>) {
-        self.settings.area = size;
-    }
-    /// Causes a change to the text alignment. This will cause a relayout.
-    pub fn set_alignment(&mut self, alignment: TextAlignment) {
-        self.settings.alignment = alignment;
-    }
-    /// Sets the paragraph spacing. This will cause a relayout.
-    pub fn set_paragraph_spacing(&mut self, paragraph_spacing: i32) {
-        self.settings.paragraph_spacing = paragraph_spacing;
-    }
-}
-
-struct LayoutObject {
-    object: ObjectUnmanaged,
-    offset: Vector2D<i16>,
-}
-
-struct LayoutCache {
-    objects: VecDeque<LayoutObject>,
-    state: LayoutCacheState,
-    settings: LayoutSettings,
-    desired_number_of_groups: usize,
-    position: Vector2D<i32>,
-}
-
-impl LayoutCache {
-    fn next_letter_group(&mut self, buffer: &BufferedRender) -> bool {
-        let width = self.settings.area.x;
-        let space = buffer.font.letter(' ').advance_width as i32;
-        let line_height = buffer.font.line_height();
-
-        if self.state.head_offset.y + line_height > self.settings.area.y {
-            return false;
-        }
-
-        if let Some((_line, mut line_elements)) = buffer
-            .preprocessor
-            .lines_element(width, space)
-            .nth(self.state.line_depth)
-        {
-            match line_elements.nth(self.state.line_element_depth) {
-                Some(PreprocessedElement::Word(_)) => {
-                    self.desired_number_of_groups += 1;
-                }
-                Some(PreprocessedElement::WhiteSpace(WhiteSpace::Space)) => {
-                    self.desired_number_of_groups += 1;
-                }
-                Some(PreprocessedElement::WhiteSpace(WhiteSpace::NewLine)) => {
-                    self.desired_number_of_groups += 1;
-                }
-                None => {
-                    if self.state.head_offset.y + line_height * 2 > self.settings.area.y {
-                        return false;
-                    }
-                    self.desired_number_of_groups += 1;
-                }
-            }
-        }
-
-        true
-    }
-
-    fn update_cache(&mut self, render: &BufferedRender) {
-        if self.state.rendered_groups >= self.desired_number_of_groups {
-            return;
-        }
-
-        let minimum_space_width = render.font.letter(' ').advance_width as i32;
-
-        let lines = render
-            .preprocessor
-            .lines_element(self.settings.area.x, minimum_space_width);
-
-        'outer: for (line, line_elements) in lines.skip(self.state.line_depth) {
-            let settings =
-                self.settings
-                    .alignment
-                    .settings(&line, minimum_space_width, self.settings.area);
-
-            if self.state.line_element_depth == 0 {
-                self.state.head_offset.x += settings.start_x;
-            }
-
-            for element in line_elements.skip(self.state.line_element_depth) {
-                match element {
-                    PreprocessedElement::Word(word) => {
-                        for letter in (word.sprite_index()
-                            ..(word.sprite_index() + word.number_of_sprites()))
-                            .skip(self.state.word_depth)
-                            .map(|x| &render.letters.letters[x])
-                        {
-                            let mut object = ObjectUnmanaged::new(letter.sprite.clone());
-                            self.state.head_offset.x += letter.left as i32;
-                            object
-                                .set_position(self.state.head_offset + self.position)
-                                .show();
-
-                            let layout_object = LayoutObject {
-                                object,
-                                offset: (
-                                    self.state.head_offset.x as i16,
-                                    self.state.head_offset.y as i16,
-                                )
-                                    .into(),
-                            };
-                            self.state.head_offset.x += letter.width as i32;
-                            self.objects.push_back(layout_object);
-                            self.state.rendered_groups += 1;
-                            self.state.word_depth += 1;
-                            if self.state.rendered_groups >= self.desired_number_of_groups {
-                                break 'outer;
-                            }
-                        }
-
-                        self.state.word_depth = 0;
-                        self.state.line_element_depth += 1;
-                    }
-                    PreprocessedElement::WhiteSpace(space_type) => {
-                        if space_type == WhiteSpace::NewLine {
-                            self.state.head_offset.y += self.settings.paragraph_spacing;
-                        }
-                        self.state.head_offset.x += settings.space_width;
-                        self.state.rendered_groups += 1;
-                        self.state.line_element_depth += 1;
-                        if self.state.rendered_groups >= self.desired_number_of_groups {
-                            break 'outer;
-                        }
-                    }
-                }
-            }
-
-            self.state.head_offset.y += render.font.line_height();
-            self.state.head_offset.x = 0;
-
-            self.state.line_element_depth = 0;
-            self.state.line_depth += 1;
+    pub fn commit(&mut self, oam: &mut OamIterator) {
+        for (object, slot) in self.layout.objects.iter().zip(oam) {
+            slot.set(object);
         }
     }
 
-    fn update(
+    /// Force a relayout, must be called after writing.
+    pub fn layout(
         &mut self,
-        r: &mut BufferedRender<'_>,
         area: Vector2D<i32>,
         alignment: TextAlignment,
         paragraph_spacing: i32,
     ) {
-        r.process();
-
-        while !r.buffered_chars.is_empty()
-            && r.letters.number_of_groups <= self.desired_number_of_groups
-        {
-            r.process();
-        }
-
-        let settings = LayoutSettings {
-            area,
-            alignment,
-            paragraph_spacing,
-        };
-        if settings != self.settings {
-            self.reset(settings);
-        }
-
-        self.update_cache(r);
-    }
-
-    fn commit(&mut self, oam: &mut OamIterator, position: Vector2D<i32>) {
-        if self.position != position {
-            for (object, slot) in self.objects.iter_mut().zip(oam) {
-                let object_offset = object.offset.change_base();
-                object.object.set_position(position + object_offset);
-                slot.set(&object.object);
-            }
-            self.position = position;
-        } else {
-            for (object, slot) in self.objects.iter().zip(oam) {
-                slot.set(&object.object);
-            }
-        }
-    }
-
-    #[must_use]
-    fn new() -> Self {
-        Self {
-            objects: VecDeque::new(),
-            state: Default::default(),
-            settings: LayoutSettings {
-                area: (0, 0).into(),
-                alignment: TextAlignment::Right,
-                paragraph_spacing: -100,
+        self.layout.create_positions(
+            self.buffer.font,
+            &self.buffer.preprocessor,
+            &LayoutSettings {
+                area,
+                alignment,
+                paragraph_spacing,
             },
-            desired_number_of_groups: 0,
-            position: (0, 0).into(),
+        );
+    }
+
+    /// Removes one complete line.
+    pub fn pop_line(&mut self) -> bool {
+        let width = self.layout.area.x;
+        let space = self.buffer.font.letter(' ').advance_width as i32;
+        let line_height = self.buffer.font.line_height();
+        if let Some(line) = self.buffer.preprocessor.lines(width, space).next() {
+            // there is a line
+            if self.layout.objects.len() >= line.number_of_letter_groups() {
+                // we have enough rendered letter groups to count
+                self.number_of_objects -= line.number_of_letter_groups();
+                for _ in 0..line.number_of_letter_groups() {
+                    self.buffer.letters.letters.pop_front();
+                    self.layout.positions.pop_front();
+                }
+                self.layout.line_capacity.pop_front();
+                self.layout.objects.clear();
+                self.buffer.preprocessor.pop(&line);
+                for position in self.layout.positions.iter_mut() {
+                    position.y -= line_height as i16;
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn update(&mut self, position: Vector2D<i32>) {
+        if !self.buffer.buffered_chars.is_empty()
+            && self.buffer.letters.letters.len() <= self.number_of_objects + 5
+        {
+            self.buffer.process();
+        }
+
+        self.layout.update_objects_to_display_at_position(
+            position,
+            self.buffer.letters.letters.iter(),
+            self.number_of_objects,
+        );
+    }
+
+    pub fn next_letter_group(&mut self) -> bool {
+        if !self.can_render_another_element() {
+            return false;
+        }
+        self.number_of_objects += 1;
+        self.at_least_n_letter_groups(self.number_of_objects);
+
+        true
+    }
+
+    fn can_render_another_element(&self) -> bool {
+        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
+
+        let max_number_of_objects = self
+            .layout
+            .line_capacity
+            .iter()
+            .take(max_number_of_lines)
+            .sum::<usize>();
+
+        max_number_of_objects > self.number_of_objects
+    }
+
+    pub fn next_line(&mut self) -> bool {
+        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
+
+        // find current line
+
+        for (start, end) in self
+            .layout
+            .line_capacity
+            .iter()
+            .scan(0, |count, line_size| {
+                let start = *count;
+                *count += line_size;
+                Some((start, *count))
+            })
+            .take(max_number_of_lines)
+        {
+            if self.number_of_objects >= start && self.number_of_objects < end {
+                self.number_of_objects = end;
+                self.at_least_n_letter_groups(end);
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn at_least_n_letter_groups(&mut self, n: usize) {
+        while !self.buffer.buffered_chars.is_empty() && self.buffer.letters.letters.len() <= n {
+            self.buffer.process();
+        }
+    }
+}
+
+struct LayoutCache {
+    positions: VecDeque<Vector2D<i16>>,
+    line_capacity: VecDeque<usize>,
+    objects: Vec<ObjectUnmanaged>,
+    objects_are_at_origin: Vector2D<i32>,
+    area: Vector2D<i32>,
+}
+
+impl LayoutCache {
+    fn update_objects_to_display_at_position<'a>(
+        &mut self,
+        position: Vector2D<i32>,
+        letters: impl Iterator<Item = &'a SpriteVram>,
+        number_of_objects: usize,
+    ) {
+        let already_done = if position == self.objects_are_at_origin {
+            self.objects.len()
+        } else {
+            self.objects.clear();
+            0
+        };
+        self.objects.extend(
+            self.positions
+                .iter()
+                .zip(letters)
+                .take(number_of_objects)
+                .skip(already_done)
+                .map(|(offset, letter)| {
+                    let position = offset.change_base() + position;
+                    let mut object = ObjectUnmanaged::new(letter.clone());
+                    object.show().set_position(position);
+                    object
+                }),
+        );
+        self.objects.truncate(number_of_objects);
+        self.objects_are_at_origin = position;
+    }
+
+    fn create_positions(
+        &mut self,
+        font: &Font,
+        preprocessed: &Preprocessed,
+        settings: &LayoutSettings,
+    ) {
+        self.area = settings.area;
+        self.line_capacity.clear();
+        self.positions.clear();
+        for (line, line_positions) in Self::create_layout(font, preprocessed, settings) {
+            self.line_capacity.push_back(line.number_of_letter_groups());
+            self.positions
+                .extend(line_positions.map(|x| Vector2D::new(x.x as i16, x.y as i16)));
         }
     }
 
-    fn reset(&mut self, settings: LayoutSettings) {
-        self.objects.clear();
-        self.state = LayoutCacheState {
-            head_offset: (0, 0).into(),
-            word_depth: 0,
-            rendered_groups: 0,
-            line_depth: 0,
-            line_element_depth: 0,
-        };
-        self.settings = settings;
+    fn create_layout<'a>(
+        font: &Font,
+        preprocessed: &'a Preprocessed,
+        settings: &'a LayoutSettings,
+    ) -> impl Iterator<Item = (Line, impl Iterator<Item = Vector2D<i32>> + 'a)> + 'a {
+        let minimum_space_width = font.letter(' ').advance_width as i32;
+        let width = settings.area.x;
+        let line_height = font.line_height();
+
+        let mut head_position: Vector2D<i32> = (0, -line_height).into();
+
+        preprocessed
+            .lines_element(width, minimum_space_width)
+            .map(move |(line, line_elements)| {
+                let line_settings = settings
+                    .alignment
+                    .settings(&line, minimum_space_width, width);
+
+                head_position.y += line_height;
+                head_position.x = line_settings.start_x;
+
+                (
+                    line,
+                    line_elements.filter_map(move |element| match element.decode() {
+                        PreprocessedElement::LetterGroup { width } => {
+                            let this_position = head_position;
+                            head_position.x += width as i32;
+                            Some(this_position)
+                        }
+                        PreprocessedElement::WhiteSpace(space) => {
+                            match space {
+                                WhiteSpace::NewLine => {
+                                    head_position.y += settings.paragraph_spacing;
+                                }
+                                WhiteSpace::Space => head_position.x += line_settings.space_width,
+                            }
+                            None
+                        }
+                    }),
+                )
+            })
     }
 }
 
@@ -437,13 +385,4 @@ struct LayoutSettings {
     area: Vector2D<i32>,
     alignment: TextAlignment,
     paragraph_spacing: i32,
-}
-
-#[derive(Default)]
-struct LayoutCacheState {
-    head_offset: Vector2D<i32>,
-    word_depth: usize,
-    rendered_groups: usize,
-    line_depth: usize,
-    line_element_depth: usize,
 }
