@@ -3,6 +3,8 @@ use crate::display::{
     Font,
 };
 
+use super::ChangeColour;
+
 struct WorkingLetter {
     dynamic: DynamicSprite,
     // where to render the letter from x_min to x_max
@@ -73,6 +75,11 @@ impl WordRender {
 
     #[must_use]
     pub(crate) fn render_char(&mut self, font: &Font, c: char) -> Option<SpriteVram> {
+        if let Some(next_colour) = ChangeColour::try_from_char(c) {
+            self.colour = next_colour.0 as usize;
+            return None;
+        }
+
         let font_letter: &crate::display::FontLetter = font.letter(c);
 
         // uses more than the sprite can hold

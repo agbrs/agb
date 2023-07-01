@@ -1,4 +1,4 @@
-use core::fmt::Write;
+use core::fmt::{Display, Write};
 
 use agb_fixnum::Vector2D;
 use alloc::{collections::VecDeque, vec::Vec};
@@ -95,6 +95,37 @@ impl<'font> BufferedRender<'font> {
 
 fn is_private_use(c: char) -> bool {
     ('\u{E000}'..'\u{F8FF}').contains(&c)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ChangeColour(u8);
+
+impl ChangeColour {
+    #[must_use]
+    pub fn new(colour: u32) -> Self {
+        assert!(colour < 16, "paletted colour must be valid (0..=15)");
+
+        Self(colour as u8)
+    }
+
+    fn try_from_char(c: char) -> Option<Self> {
+        let c = c as u32;
+        if c >= 0xE000 && c < 0xE000 + 16 {
+            Some(ChangeColour::new(c - 0xE000))
+        } else {
+            None
+        }
+    }
+
+    fn to_char(self) -> char {
+        char::from_u32(self.0 as u32 + 0xE000).unwrap()
+    }
+}
+
+impl Display for ChangeColour {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_char(self.to_char())
+    }
 }
 
 impl BufferedRender<'_> {

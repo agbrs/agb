@@ -1,6 +1,4 @@
-use core::num::NonZeroU8;
-
-use alloc::{collections::VecDeque, vec::Vec};
+use alloc::collections::VecDeque;
 
 use crate::display::Font;
 

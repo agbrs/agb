@@ -4,7 +4,7 @@
 use agb::{
     display::{
         object::{
-            font::{ObjectTextRender, TextAlignment},
+            font::{ChangeColour, ObjectTextRender, TextAlignment},
             PaletteVram, Size,
         },
         palette16::Palette16,
@@ -30,14 +30,17 @@ fn main(mut gba: agb::Gba) -> ! {
     loop {
         let mut palette = [0x0; 16];
         palette[1] = 0xFF_FF;
+        palette[2] = 0x00_FF;
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
         let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
+        let player_name = "You";
         let _ = writeln!(
             wr,
-            "Woah! Hey there! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!"
-        
+            "Woah!{change2} {player_name}! {change1}Hey there! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+            change2 = ChangeColour::new(2),
+            change1 = ChangeColour::new(1),
         );
 
         let vblank = agb::interrupt::VBlank::get();
@@ -64,9 +67,7 @@ fn main(mut gba: agb::Gba) -> ! {
             if frame % 4 == 0 {
                 line_done = !wr.next_letter_group();
             }
-            if line_done
-            && input.is_just_pressed(Button::A)
-            {
+            if line_done && input.is_just_pressed(Button::A) {
                 line_done = false;
                 wr.pop_line();
             }
