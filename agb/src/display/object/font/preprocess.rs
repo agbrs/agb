@@ -101,7 +101,6 @@ pub(crate) struct Line {
     width: i32,
     number_of_text_elements: usize,
     number_of_spaces: usize,
-    number_of_words: usize,
     number_of_letter_groups: usize,
 }
 
@@ -118,11 +117,6 @@ impl Line {
     pub(crate) fn number_of_spaces(&self) -> usize {
         self.number_of_spaces
     }
-    #[inline(always)]
-    pub(crate) fn number_of_words(&self) -> usize {
-        self.number_of_words
-    }
-
     #[inline(always)]
     pub(crate) fn number_of_letter_groups(&self) -> usize {
         self.number_of_letter_groups
@@ -144,7 +138,6 @@ impl<'pre> Iterator for Lines<'pre> {
         let mut length_of_current_word_pixels = 0;
         let mut length_of_current_word = 0;
         let mut number_of_spaces = 0;
-        let mut number_of_words = 0;
         let mut number_of_letter_groups = 0;
 
         while let Some(next) = self.data.get(self.current_start_idx + line_idx_length) {
@@ -170,7 +163,6 @@ impl<'pre> Iterator for Lines<'pre> {
                         current_line_width_pixels += length_of_current_word_pixels
                             + spaces_after_last_word_count as i32 * self.minimum_space_width;
                         number_of_spaces += spaces_after_last_word_count;
-                        number_of_words += 1;
                         number_of_letter_groups += length_of_current_word;
 
                         // reset parser
@@ -201,7 +193,6 @@ impl<'pre> Iterator for Lines<'pre> {
             width: current_line_width_pixels,
             number_of_text_elements: line_idx_length,
             number_of_spaces,
-            number_of_words,
             number_of_letter_groups,
         })
     }

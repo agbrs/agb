@@ -3,10 +3,7 @@
 
 use agb::{
     display::{
-        object::{
-            font::{ChangeColour, ObjectTextRender, TextAlignment},
-            PaletteVram, Size,
-        },
+        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
