@@ -181,7 +181,9 @@ impl BufferedRender<'_> {
     }
 
     fn process(&mut self) {
-        let Some(c) = self.buffered_chars.pop_front() else { return };
+        let Some(c) = self.buffered_chars.pop_front() else {
+            return;
+        };
         match c {
             ' ' | '\n' => {
                 if let Some(group) = self.char_render.finalise_letter() {
