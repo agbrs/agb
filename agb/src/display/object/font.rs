@@ -32,7 +32,7 @@ impl WhiteSpace {
     }
 }
 
-pub struct BufferedRender<'font> {
+struct BufferedRender<'font> {
     char_render: WordRender,
     preprocessor: Preprocessed,
     buffered_chars: VecDeque<char>,
@@ -48,11 +48,16 @@ struct Letters {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
+/// The text alignment of the layout
 pub enum TextAlignment {
     #[default]
+    /// Left aligned, the left edge of the text lines up
     Left,
+    /// Right aligned, the right edge of the text lines up
     Right,
+    /// Center aligned, the center of the text lines up
     Center,
+    /// Justified, both the left and right edges line up with space width adapted to make it so.
     Justify,
 }
 
@@ -112,19 +117,43 @@ fn is_private_use(c: char) -> bool {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Changes the palette to use to draw characters.
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::display::object::{ObjectTextRender, PaletteVram, ChangeColour, Size};
+/// use agb::display::palette16::Palette16;
+/// use agb::display::Font;
+///
+/// use core::fmt::Write;
+///
+/// const EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
+///
+/// # fn foo() {
+/// let mut palette = [0x0; 16];
+/// palette[1] = 0xFF_FF;
+/// palette[2] = 0x00_FF;
+/// let palette = Palette16::new(palette);
+/// let palette = PaletteVram::new(&palette).unwrap();
+/// let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
+///
+/// let _ = writeln!(writer, "Hello, {}World{}!", ChangeColour::new(2), ChangeColour::new(1));
+/// # }
+/// ```
 pub struct ChangeColour(u8);
 
 impl ChangeColour {
     #[must_use]
-    pub fn new(colour: u32) -> Self {
+    /// Creates the colour changer. Colour is a palette index and must be in the range 0..16.
+    pub fn new(colour: usize) -> Self {
         assert!(colour < 16, "paletted colour must be valid (0..=15)");
 
         Self(colour as u8)
     }
 
     fn try_from_char(c: char) -> Option<Self> {
-        let c = c as u32;
-        if c >= 0xE000 && c < 0xE000 + 16 {
+        let c = c as u32 as usize;
+        if (0xE000..0xE000 + 16).contains(&c) {
             Some(ChangeColour::new(c - 0xE000))
         } else {
             None
@@ -172,6 +201,43 @@ impl BufferedRender<'_> {
     }
 }
 
+/// The object text renderer. Uses objects to render and layout text. It's use is non trivial.
+/// Changes the palette to use to draw characters.
+/// ```rust,no_run
+/// #![no_std]
+/// #![no_main]
+/// use agb::display::object::{ObjectTextRender, PaletteVram, TextAlignment, Size};
+/// use agb::display::palette16::Palette16;
+/// use agb::display::{Font, WIDTH};
+///
+/// use core::fmt::Write;
+///
+/// const EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
+///
+/// #[agb::entry]
+/// fn main(gba: &mut agb::Gba) -> ! {
+///     let (mut unmanaged, _) = gba.display.object.get_unmanaged();
+///     let vblank = agb::interrupt::VBlank::get();
+///
+///     let mut palette = [0x0; 16];
+///     palette[1] = 0xFF_FF;
+///     let palette = Palette16::new(palette);
+///     let palette = PaletteVram::new(&palette).unwrap();
+///
+///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
+///
+///     let _ = writeln!(writer, "Hello, World!");
+///     writer.layout((WIDTH, 40).into(), TextAlignment::Left, 2);
+///
+///     loop {
+///         writer.next_letter_group();
+///         writer.update((0, 0).into());
+///         vblank.wait_for_vblank();
+///         let oam = &mut unmanaged.iter();
+///         writer.commit(oam);
+///     }
+/// }
+/// ```
 pub struct ObjectTextRender<'font> {
     buffer: BufferedRender<'font>,
     layout: LayoutCache,
@@ -180,6 +246,9 @@ pub struct ObjectTextRender<'font> {
 
 impl<'font> ObjectTextRender<'font> {
     #[must_use]
+    /// Creates a new text renderer with a given font, sprite size, and palette.
+    /// You must ensure that the sprite size can accomodate the letters from the
+    /// font otherwise it will panic at render time.
     pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
@@ -231,7 +300,7 @@ impl ObjectTextRender<'_> {
         );
     }
 
-    /// Removes one complete line.
+    /// Removes one complete line. Returns whether a line could be removed. You must call [`update`] after this
     pub fn pop_line(&mut self) -> bool {
         let width = self.layout.area.x;
         let space = self.buffer.font.letter(' ').advance_width as i32;
@@ -257,6 +326,9 @@ impl ObjectTextRender<'_> {
         false
     }
 
+    /// Updates the internal state of the number of letters to write and popped
+    /// line. Should be called in the same frame as and after
+    /// [`next_letter_group`], [`next_line`], and [`pop_line`].
     pub fn update(&mut self, position: Vector2D<i32>) {
         if !self.buffer.buffered_chars.is_empty()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
@@ -271,6 +343,8 @@ impl ObjectTextRender<'_> {
         );
     }
 
+    /// Causes the next letter group to be shown on the next update. Returns
+    /// whether another letter could be added in the space given.
     pub fn next_letter_group(&mut self) -> bool {
         if !self.can_render_another_element() {
             return false;
@@ -294,6 +368,8 @@ impl ObjectTextRender<'_> {
         max_number_of_objects > self.number_of_objects
     }
 
+    /// Causes the next line to be shown on the next update. Returns
+    /// whether another line could be added in the space given.
     pub fn next_line(&mut self) -> bool {
         let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
 
