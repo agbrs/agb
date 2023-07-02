@@ -302,7 +302,7 @@ impl ObjectTextRender<'_> {
         );
     }
 
-    /// Removes one complete line. Returns whether a line could be removed. You must call [`update`] after this
+    /// Removes one complete line. Returns whether a line could be removed. You must call [`update`][ObjectTextRender::update] after this
     pub fn pop_line(&mut self) -> bool {
         let width = self.layout.area.x;
         let space = self.buffer.font.letter(' ').advance_width as i32;
@@ -330,7 +330,7 @@ impl ObjectTextRender<'_> {
 
     /// Updates the internal state of the number of letters to write and popped
     /// line. Should be called in the same frame as and after
-    /// [`next_letter_group`], [`next_line`], and [`pop_line`].
+    /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
     pub fn update(&mut self, position: Vector2D<i32>) {
         if !self.buffer.buffered_chars.is_empty()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
