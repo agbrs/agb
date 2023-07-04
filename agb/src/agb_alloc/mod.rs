@@ -1,4 +1,3 @@
-use core::alloc::{Allocator, Layout};
 use core::ops::{Deref, DerefMut};
 use core::ptr::NonNull;
 
@@ -45,17 +44,22 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
 
 macro_rules! impl_zst_allocator {
     ($name_of_struct: ty, $name_of_static: ident) => {
-        unsafe impl Allocator for $name_of_struct {
-            fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+        unsafe impl core::alloc::Allocator for $name_of_struct {
+            fn allocate(
+                &self,
+                layout: core::alloc::Layout,
+            ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
                 $name_of_static.allocate(layout)
             }
 
-            unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+            unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
                 $name_of_static.deallocate(ptr, layout)
             }
         }
     };
 }
+
+pub(crate) use impl_zst_allocator;
 
 /// This is the allocator for the External Working Ram. This is currently
 /// equivalent to the Global Allocator (where things are allocated if no allocator is provided). This implements the allocator trait, so

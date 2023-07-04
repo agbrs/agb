@@ -1,14 +1,12 @@
 use core::{alloc::Allocator, ptr::NonNull};
 
 use alloc::{
-    alloc::Global,
     boxed::Box,
     rc::{Rc, Weak},
-    vec::Vec,
 };
 
 use crate::{
-    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
+    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
     display::palette16::Palette16,
     hash_map::HashMap,
 };
@@ -18,8 +16,8 @@ use super::{
     BYTES_PER_TILE_4BPP,
 };
 
-const PALETTE_SPRITE: usize = 0x0500_0200;
-const TILE_SPRITE: usize = 0x06010000;
+pub const PALETTE_SPRITE: usize = 0x0500_0200;
+pub const TILE_SPRITE: usize = 0x06010000;
 
 static SPRITE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
@@ -28,12 +26,20 @@ static SPRITE_ALLOCATOR: BlockAllocator = unsafe {
     })
 };
 
+pub struct SpriteAllocator;
+
+impl_zst_allocator!(SpriteAllocator, SPRITE_ALLOCATOR);
+
 static PALETTE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
         start: || PALETTE_SPRITE,
         end: || PALETTE_SPRITE + 0x200,
     })
 };
+
+pub struct PaletteAllocator;
+
+impl_zst_allocator!(PaletteAllocator, PALETTE_ALLOCATOR);
 
 /// The Sprite Id is a thin wrapper around the pointer to the sprite in
 /// rom and is therefore a unique identifier to a sprite
@@ -162,13 +168,21 @@ impl SpriteVram {
                 .as_ptr()
                 .copy_from_nonoverlapping(data.as_ptr(), data.len());
         }
-        Ok(SpriteVram {
+        Ok(unsafe { Self::from_location_size(allocated, size, palette) })
+    }
+
+    unsafe fn from_location_size(
+        data: NonNull<u8>,
+        size: Size,
+        palette: PaletteVram,
+    ) -> SpriteVram {
+        SpriteVram {
             data: Rc::new(SpriteVramData {
-                location: Location::from_sprite_ptr(allocated),
+                location: Location::from_sprite_ptr(data),
                 size,
                 palette,
             }),
-        })
+        }
     }
 
     pub(crate) fn location(&self) -> u16 {
@@ -290,31 +304,54 @@ impl Default for SpriteLoader {
 }
 
 /// Sprite data that can be used to create sprites in vram.
-pub struct DynamicSprite<A: Allocator = Global> {
-    data: Box<[u8], A>,
+pub struct DynamicSprite {
+    data: Box<[u16], SpriteAllocator>,
     size: Size,
 }
 
-impl DynamicSprite {
-    #[must_use]
-    /// Creates a new dynamic sprite.
-    pub fn new(size: Size) -> Self {
-        Self::new_in(size, Global)
+impl Clone for DynamicSprite {
+    fn clone(&self) -> Self {
+        let allocation = SpriteAllocator
+            .allocate(self.size.layout())
+            .expect("cannot allocate dynamic sprite");
+
+        let allocation = core::ptr::slice_from_raw_parts_mut(
+            allocation.as_ptr() as *mut _,
+            allocation.len() / 2,
+        );
+
+        let mut data = unsafe { Box::from_raw_in(allocation, SpriteAllocator) };
+
+        data.clone_from_slice(&self.data);
+
+        Self {
+            data,
+            size: self.size,
+        }
     }
 }
 
-impl<A: Allocator> DynamicSprite<A> {
+impl DynamicSprite {
+    /// Creates a new dynamic sprite of a given size
+    pub fn try_new(size: Size) -> Result<Self, LoaderError> {
+        let allocation = SpriteAllocator
+            .allocate_zeroed(size.layout())
+            .map_err(|_| LoaderError::SpriteFull)?;
+
+        let allocation = core::ptr::slice_from_raw_parts_mut(
+            allocation.as_ptr() as *mut _,
+            allocation.len() / 2,
+        );
+
+        let data = unsafe { Box::from_raw_in(allocation, SpriteAllocator) };
+
+        Ok(DynamicSprite { data, size })
+    }
+
     #[must_use]
-    /// Creates a new dynamic sprite of a given size in a given allocator.
-    pub fn new_in(size: Size, allocator: A) -> Self {
-        let num_bytes = size.number_of_tiles() * BYTES_PER_TILE_4BPP;
-        let mut data = Vec::with_capacity_in(num_bytes, allocator);
-
-        data.resize(num_bytes, 0);
-
-        let data = data.into_boxed_slice();
-
-        DynamicSprite { data, size }
+    /// Creates a new dynamic sprite of a given size
+    pub fn new(size: Size) -> Self {
+        Self::try_new(size).expect("couldn't allocate dynamic sprite")
     }
 
     /// Set the pixel of a sprite to a given paletted pixel. Panics if the
@@ -333,24 +370,36 @@ impl<A: Allocator> DynamicSprite<A> {
 
         let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
 
-        let byte_to_modify_in_tile = x / 2 + y * 4;
-        let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_4BPP + byte_to_modify_in_tile;
-        let mut byte = self.data[byte_to_modify];
-        let parity = (x & 0b1) * 4;
+        let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        byte = (byte & !(0b1111 << parity)) | ((paletted_pixel as u8) << parity);
-        self.data[byte_to_modify] = byte;
+        let half_word_to_modify_in_tile = x_in_tile / 4 + y_in_tile * 2;
+
+        let half_word_to_modify =
+            tile_number_to_modify * BYTES_PER_TILE_4BPP / 2 + half_word_to_modify_in_tile;
+        let mut half_word = self.data[half_word_to_modify];
+
+        let nibble_to_modify = (x % 4) * 4;
+
+        half_word = (half_word & !(0b1111 << nibble_to_modify))
+            | ((paletted_pixel as u16) << nibble_to_modify);
+        self.data[half_word_to_modify] = half_word;
     }
 
-    /// Tries to copy the sprite to vram to be used to set object sprites.
-    pub fn try_vram(&self, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
-        SpriteVram::new(&self.data, self.size, palette)
+    /// Wipes the sprite
+    pub fn clear(&mut self, paletted_pixel: usize) {
+        assert!(paletted_pixel < 0x10);
+        let reset =
+            (paletted_pixel | paletted_pixel << 4 | paletted_pixel << 8 | paletted_pixel << 12)
+                as u16;
+        self.data.fill(reset);
     }
 
     #[must_use]
     /// Tries to copy the sprite to vram to be used to set object sprites.
     /// Panics if it cannot be allocated.
-    pub fn to_vram(&self, palette: PaletteVram) -> SpriteVram {
-        self.try_vram(palette).expect("cannot create sprite")
+    pub fn to_vram(self, palette: PaletteVram) -> SpriteVram {
+        let data = unsafe { NonNull::new_unchecked(Box::leak(self.data).as_mut_ptr()) };
+
+        unsafe { SpriteVram::from_location_size(data.cast(), self.size, palette) }
     }
 }

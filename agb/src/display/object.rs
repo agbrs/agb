@@ -9,6 +9,7 @@
 //! harder to integrate into your games depending on how they are architectured.
 
 mod affine;
+mod font;
 mod managed;
 mod sprites;
 mod unmanaged;
@@ -21,6 +22,8 @@ pub use sprites::{
 pub use affine::AffineMatrixInstance;
 pub use managed::{OamManaged, Object};
 pub use unmanaged::{AffineMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged};
+
+pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 
 use super::DISPLAY_CONTROL;
 

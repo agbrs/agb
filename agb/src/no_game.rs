@@ -129,13 +129,10 @@ fn generate_sprites() -> Box<[SpriteVram]> {
         .collect();
 
     // generate sprites
-    let mut sprite = DynamicSprite::new(Size::S8x8);
+
     for (palette, colour) in (0..PALETTE.len()).map(|x| (x / 15, x % 15)) {
-        for y in 0..8 {
-            for x in 0..8 {
-                sprite.set_pixel(x, y, colour + 1);
-            }
-        }
+        let mut sprite = DynamicSprite::new(Size::S8x8);
+        sprite.clear(colour + 1);
         sprites.push(sprite.to_vram(palettes[palette].clone()));
     }
 

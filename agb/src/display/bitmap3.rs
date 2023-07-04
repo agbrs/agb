@@ -30,4 +30,19 @@ impl Bitmap3<'_> {
         let y = y.try_into().unwrap();
         BITMAP_MODE_3.set(x, y, colour);
     }
+
+    #[must_use]
+    pub fn read_point(&self, x: i32, y: i32) -> u16 {
+        let x = x.try_into().unwrap();
+        let y = y.try_into().unwrap();
+        BITMAP_MODE_3.get(x, y)
+    }
+
+    pub fn clear(&mut self, colour: u16) {
+        for y in 0..(HEIGHT as usize) {
+            for x in 0..(WIDTH as usize) {
+                BITMAP_MODE_3.set(x, y, colour);
+            }
+        }
+    }
 }

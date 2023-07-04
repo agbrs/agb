@@ -101,7 +101,6 @@ impl OamSlot<'_> {
     /// By writing these as two separate functions, one inlined and one not, the
     /// compiler doesn't have to copy around the slot structure while still
     /// keeping move semantics. This is slightly faster in benchmarks.
-    #[inline(never)]
     fn set_inner(&self, object: &ObjectUnmanaged) {
         let mut attributes = object.attributes;
         // SAFETY: This function is not reentrant and we currently hold a mutable borrow of the [UnmanagedOAM].
