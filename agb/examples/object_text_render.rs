@@ -89,11 +89,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
             frame += 1;
 
-            // agb::println!(
-            //     "Took {} cycles, line done {}",
-            //     256 * (end.wrapping_sub(start) as u32),
-            //     line_done
-            // );
+            agb::println!(
+                "Took {} cycles, line done {}",
+                256 * (end.wrapping_sub(start) as u32),
+                line_done
+            );
         }
     }
 }
