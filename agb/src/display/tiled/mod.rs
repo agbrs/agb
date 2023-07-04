@@ -189,7 +189,7 @@ impl TileSetting {
     }
 }
 
-pub(self) fn find_screenblock_gap(screenblocks: &Bitarray<1>, gap: usize) -> usize {
+ fn find_screenblock_gap(screenblocks: &Bitarray<1>, gap: usize) -> usize {
     let mut candidate = 0;
 
     'outer: while candidate < 16 - gap {

@@ -110,7 +110,7 @@ impl OamSlot<'_> {
         if let Some(affine_matrix) = &object.affine_matrix {
             Self::handle_affine(&mut attributes, frame_data, affine_matrix);
         }
-        attributes.write(unsafe { (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(self.slot * 4) });
+        attributes.write(unsafe { OBJECT_ATTRIBUTE_MEMORY.add(self.slot * 4) });
 
         frame_data.this_frame_sprites.push(object.sprite.clone());
     }
@@ -160,7 +160,7 @@ impl Drop for OamIterator<'_> {
 
         for idx in number_writen..*last_frame_written {
             unsafe {
-                let ptr = (OBJECT_ATTRIBUTE_MEMORY as *mut u16).add(idx * 4);
+                let ptr = OBJECT_ATTRIBUTE_MEMORY.add(idx * 4);
                 ptr.write_volatile(0b10 << 8);
             }
         }
