@@ -31,7 +31,15 @@ fn main(mut gba: agb::Gba) -> ! {
         let palette = Palette16::new(palette);
         let palette = PaletteVram::new(&palette).unwrap();
 
+        let timer = gba.timers.timers();
+        let mut timer: agb::timer::Timer = timer.timer2;
+
+        timer.set_enabled(true);
+        timer.set_divider(agb::timer::Divider::Divider256);
+
         let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
+        let start = timer.value();
+
         let player_name = "You";
         let _ = writeln!(
             wr,
@@ -39,17 +47,25 @@ fn main(mut gba: agb::Gba) -> ! {
             change2 = ChangeColour::new(2),
             change1 = ChangeColour::new(1),
         );
+        let end = timer.value();
+
+        agb::println!(
+            "Write took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
 
         let vblank = agb::interrupt::VBlank::get();
         let mut input = agb::input::ButtonController::new();
 
-        let timer = gba.timers.timers();
-        let mut timer: agb::timer::Timer = timer.timer2;
-
-        timer.set_enabled(true);
-        timer.set_divider(agb::timer::Divider::Divider256);
+        let start = timer.value();
 
         wr.layout((WIDTH, 40).into(), TextAlignment::Justify, 2);
+        let end = timer.value();
+
+        agb::println!(
+            "Layout took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
 
         let mut line_done = false;
         let mut frame = 0;
@@ -73,11 +89,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
             frame += 1;
 
-            agb::println!(
-                "Took {} cycles, line done {}",
-                256 * (end.wrapping_sub(start) as u32),
-                line_done
-            );
+            // agb::println!(
+            //     "Took {} cycles, line done {}",
+            //     256 * (end.wrapping_sub(start) as u32),
+            //     line_done
+            // );
         }
     }
 }
