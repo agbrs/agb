@@ -101,7 +101,7 @@ export const BindingsControl: FC<{
   };
 
   return (
-    <ButtonWrapper onKeyUp={(evt) => setKey(evt.key)}>
+    <ButtonWrapper onKeyUp={(evt: React.KeyboardEvent) => setKey(evt.key)}>
       {BindingsOrder.map((x) => (
         <SelectButton
           onClick={() => onSelectButtonClick(x)}
