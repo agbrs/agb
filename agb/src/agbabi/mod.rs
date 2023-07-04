@@ -154,7 +154,7 @@ mod test {
 
         #[test_case]
         fn test_all_of_memcpy(_gba: &mut Gba) {
-            let mut input = vec![0u8; 100];
+            let mut input = [0u8; 100];
             let mut output = vec![0u8; 100];
 
             for size in 0..80 {
