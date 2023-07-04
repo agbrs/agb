@@ -13,7 +13,7 @@ unsafe impl<T> Send for SendNonNull<T> {}
 
 impl<T> Clone for SendNonNull<T> {
     fn clone(&self) -> Self {
-        SendNonNull(self.0)
+        *self
     }
 }
 impl<T> Copy for SendNonNull<T> {}

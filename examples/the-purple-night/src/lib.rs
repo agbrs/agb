@@ -1002,7 +1002,7 @@ impl SlimeData {
                     entity.sprite.set_sprite(sprite);
 
                     entity.velocity.x = match frame {
-                        2 | 3 | 4 => (Number::new(1) / 5) * Number::new(*direction as i32),
+                        2..=4 => (Number::new(1) / 5) * Number::new(*direction as i32),
                         _ => 0.into(),
                     };
 
