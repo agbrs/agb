@@ -93,8 +93,6 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
           ? "Return"
           : value.toLowerCase().replace("arrow", "").replace("key", "");
 
-      console.log(`Key: ${key} will be ${binding}`);
-
       mgbaModule.current.bindKey(binding, key);
     }
   }, [controls, gameLoaded]);
