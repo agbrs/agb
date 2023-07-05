@@ -78,7 +78,7 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
         try {
           mgbaModule.current.quitGame();
           mgbaModule.current.quitMgba();
-        } catch { }
+        } catch {}
       };
   }, [state]);
 
@@ -114,33 +114,5 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
     }
   }, [gameLoaded, paused]);
 
-  return (
-    <>
-      <MgbaCanvas ref={canvas} />
-      <button
-        onClick={() => {
-          if (state !== MgbaState.Initialised) return;
-          mgbaModule.current.saveState(0);
-        }}
-      >
-        Save State
-      </button>
-      <button
-        onClick={() => {
-          if (state !== MgbaState.Initialised) return;
-          mgbaModule.current.loadState(0);
-        }}
-      >
-        Load State
-      </button>
-      <button
-        onClick={() => {
-          if (state !== MgbaState.Initialised) return;
-          mgbaModule.current.quickReload();
-        }}
-      >
-        Restart
-      </button>
-    </>
-  );
+  return <MgbaCanvas ref={canvas} />;
 };

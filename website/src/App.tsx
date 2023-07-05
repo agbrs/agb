@@ -1,35 +1,97 @@
 import React, { useState } from "react";
 import { Mgba } from "./mgba";
-import { BindingsControl, DefaultBindingsSet } from "./bindings";
+import { BindingsControl, DefaultBindingsSet, Bindings } from "./bindings";
+import { styled } from "styled-components";
+import { useOnKeyUp } from "./useOnKeyUp.hook";
+
+const BindingsDialog = styled.dialog`
+  border-radius: 5px;
+  margin-top: 20px;
+`;
+
+const VolumeLabel = styled.label`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+`;
+
+const CloseButton = styled.button`
+  width: 100%;
+  margin-top: 20px;
+`;
 
 function App() {
   const [volume, setVolume] = useState(1.0);
   const [bindings, setBindings] = useState(DefaultBindingsSet());
   const [paused, setPaused] = useState(false);
 
+  const [showBindings, setShowBindings] = useState(false);
+
+  useOnKeyUp("Escape", () => {
+    setShowBindings(!showBindings);
+  });
+
   return (
     <div>
+      {showBindings && (
+        <BindingsWindow
+          bindings={bindings}
+          setBindings={setBindings}
+          setPaused={setPaused}
+          volume={volume}
+          setVolume={setVolume}
+          hide={() => setShowBindings(false)}
+        />
+      )}
       <Mgba
         gameUrl="/game.gba"
         volume={volume}
         controls={bindings.Actual}
         paused={paused}
       />
-      <input
-        type="range"
-        value={volume}
-        min="0"
-        max="1"
-        step="0.05"
-        onChange={(e) => setVolume(Number(e.target.value))}
-      ></input>
+    </div>
+  );
+}
 
+function BindingsWindow({
+  bindings,
+  setBindings,
+  setPaused,
+  volume,
+  setVolume,
+  hide,
+}: {
+  bindings: Bindings;
+  setBindings: (b: Bindings) => void;
+  setPaused: (paused: boolean) => void;
+  volume: number;
+  setVolume: (v: number) => void;
+  hide: () => void;
+}) {
+  return (
+    <BindingsDialog open onClose={hide}>
+      <VolumeLabel>
+        Volume:
+        <input
+          type="range"
+          value={volume}
+          min="0"
+          max="1"
+          step="0.05"
+          onChange={(e) => {
+            console.log("e.target.value", e.target.value);
+            console.log("volume", volume);
+            setVolume(Number(e.target.value));
+          }}
+        />
+      </VolumeLabel>
       <BindingsControl
         bindings={bindings}
         setBindings={setBindings}
         setPaused={setPaused}
       />
-    </div>
+      <CloseButton onClick={hide}>Close</CloseButton>
+    </BindingsDialog>
   );
 }
 

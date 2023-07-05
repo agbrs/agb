@@ -63,7 +63,7 @@ export type KeyBindings = {
   [key in GbaKey]: string;
 };
 
-interface Bindings {
+export interface Bindings {
   Displayed: KeyBindings;
   Actual: KeyBindings;
 }
