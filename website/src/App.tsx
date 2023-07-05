@@ -85,7 +85,7 @@ function App() {
       {isPlaying ? (
         <Mgba
           ref={mgbaRef}
-          gameUrl="/game.gba"
+          gameUrl="./game.gba"
           volume={volume}
           controls={bindings.Actual}
           paused={paused}

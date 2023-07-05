@@ -73,7 +73,7 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
           canvas: canvas.current,
           locateFile: (file: string) => {
             if (file === "mgba.wasm") {
-              return "/vendor/mgba.wasm";
+              return "./vendor/mgba.wasm";
             }
             return file;
           },
