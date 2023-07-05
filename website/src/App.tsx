@@ -4,6 +4,7 @@ import { BindingsControl, DefaultBindingsSet, Bindings } from "./bindings";
 import { styled } from "styled-components";
 import { useOnKeyUp } from "./useOnKeyUp.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
+import { useAvoidItchIoScrolling } from "./useAvoidItchIoScrolling";
 
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
@@ -46,6 +47,8 @@ function App() {
   useOnKeyUp("Escape", () => {
     setShowBindings(!showBindings);
   });
+
+  useAvoidItchIoScrolling();
 
   return (
     <AppContainer>
