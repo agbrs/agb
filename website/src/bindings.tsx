@@ -57,6 +57,7 @@ const SelectButton = styled.button<SelectButtonProps>`
 
 const ButtonWrapper = styled.div`
   display: grid;
+  margin-top: 10px;
 `;
 
 export type KeyBindings = {

@@ -15,7 +15,6 @@ const BindingsDialog = styled.dialog`
 const VolumeLabel = styled.label`
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
 `;
 
 const ActionButton = styled.button`
@@ -121,6 +120,8 @@ function BindingsWindow({
         Volume:
         <Slider value={volume} onChange={(e) => setVolume(e)} />
       </VolumeLabel>
+      <ActionButton onClick={() => setVolume(0)}>Mute</ActionButton>
+
       <BindingsControl
         bindings={bindings}
         setBindings={setBindings}
