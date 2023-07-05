@@ -1,6 +1,7 @@
 import { FC, useEffect, useRef, useState } from "react";
 import mGBA from "./vendor/mgba";
 import { KeyBindings } from "./bindings";
+import { styled } from "styled-components";
 
 type Module = any;
 
@@ -18,6 +19,14 @@ enum MgbaState {
 }
 
 const MGBA_ROM_DIRECTORY = "/data/games";
+
+const MgbaCanvas = styled.canvas`
+  image-rendering: pixelated;
+  aspect-ratio: 240 / 160;
+  width: 100%;
+  object-fit: contain;
+  max-height: 100%;
+`;
 
 export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
   const canvas = useRef(null);
@@ -107,7 +116,7 @@ export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
 
   return (
     <>
-      <canvas ref={canvas}></canvas>
+      <MgbaCanvas ref={canvas} />
       <button
         onClick={() => {
           if (state !== MgbaState.Initialised) return;
