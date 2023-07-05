@@ -1,36 +1,28 @@
-import { useRef, useLayoutEffect, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-export const useLocalStorage = <T>(currentValue: T, appName: string): T => {
-  const initialValue = useRef<T>();
-
-  const isFirstRun = !initialValue.current;
-
-  useLayoutEffect(() => {
-    if (!initialValue.current) {
-      try {
-        const storageValue = localStorage.getItem(appName);
-        if (storageValue) {
-          initialValue.current = JSON.parse(storageValue);
-        } else {
-          initialValue.current = currentValue;
-        }
-      } catch {
-        initialValue.current = currentValue;
+export const useLocalStorage = <T>(
+  defaultValue: T,
+  appName: string
+): [T, (newValue: T) => void] => {
+  const [value, setValue] = useState(() => {
+    try {
+      const storageValue = localStorage.getItem(appName);
+      if (storageValue) {
+        return JSON.parse(storageValue);
+      } else {
+        return defaultValue;
       }
+    } catch {
+      return defaultValue;
     }
+  });
+
+  const setStoredValue = useCallback((newValue: T) => {
+    setValue(newValue);
+    try {
+      localStorage.setItem(appName, JSON.stringify(newValue));
+    } catch {}
   }, []);
 
-  useEffect(() => {
-    try {
-      if (initialValue.current && currentValue) {
-        localStorage.setItem(appName, JSON.stringify(currentValue));
-      }
-    } catch {}
-  }, [currentValue]);
-
-  if (isFirstRun) {
-    return initialValue.current ?? currentValue;
-  } else {
-    return currentValue;
-  }
+  return [value, setStoredValue];
 };

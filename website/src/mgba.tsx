@@ -1,4 +1,11 @@
-import { FC, useEffect, useRef, useState } from "react";
+import {
+  FC,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import mGBA from "./vendor/mgba";
 import { KeyBindings } from "./bindings";
 import { styled } from "styled-components";
@@ -28,89 +35,101 @@ const MgbaCanvas = styled.canvas`
   max-height: 100%;
 `;
 
-export const Mgba: FC<MgbaProps> = ({ gameUrl, volume, controls, paused }) => {
-  const canvas = useRef(null);
-  const mgbaModule = useRef<Module>({});
+export interface MgbaHandle {
+  restart: () => void;
+}
 
-  const [state, setState] = useState(MgbaState.Uninitialised);
-  const [gameLoaded, setGameLoaded] = useState(false);
+export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
+  ({ gameUrl, volume, controls, paused }, ref) => {
+    const canvas = useRef(null);
+    const mgbaModule = useRef<Module>({});
 
-  useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
-    (async () => {
-      const game = await fetch(gameUrl);
-      const gameData = await game.arrayBuffer();
+    const [state, setState] = useState(MgbaState.Uninitialised);
+    const [gameLoaded, setGameLoaded] = useState(false);
 
-      const gamePath = `${MGBA_ROM_DIRECTORY}/${gameUrl}`;
-      mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
-      mgbaModule.current.loadGame(gamePath);
-      setGameLoaded(true);
-    })();
-  }, [state, gameUrl]);
+    useEffect(() => {
+      if (state !== MgbaState.Initialised) return;
+      (async () => {
+        const game = await fetch(gameUrl);
+        const gameData = await game.arrayBuffer();
 
-  // init mgba
-  useEffect(() => {
-    (async () => {
-      if (canvas === null) return;
-      if (state !== MgbaState.Uninitialised) return;
+        const gamePath = `${MGBA_ROM_DIRECTORY}/${gameUrl}`;
+        mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
+        mgbaModule.current.loadGame(gamePath);
+        setGameLoaded(true);
+      })();
+    }, [state, gameUrl]);
 
-      setState(MgbaState.Initialising);
+    // init mgba
+    useEffect(() => {
+      (async () => {
+        if (canvas === null) return;
+        if (state !== MgbaState.Uninitialised) return;
 
-      mgbaModule.current = {
-        canvas: canvas.current,
-        locateFile: (file: string) => {
-          if (file === "mgba.wasm") {
-            return "/vendor/mgba.wasm";
-          }
-          return file;
-        },
+        setState(MgbaState.Initialising);
+
+        mgbaModule.current = {
+          canvas: canvas.current,
+          locateFile: (file: string) => {
+            if (file === "mgba.wasm") {
+              return "/vendor/mgba.wasm";
+            }
+            return file;
+          },
+        };
+
+        mGBA(mgbaModule.current).then((module: Module) => {
+          mgbaModule.current = module;
+          module.FSInit();
+          setState(MgbaState.Initialised);
+        });
+      })();
+
+      if (state === MgbaState.Initialised)
+        return () => {
+          try {
+            mgbaModule.current.quitGame();
+            mgbaModule.current.quitMgba();
+          } catch {}
+        };
+    }, [state]);
+
+    useEffect(() => {
+      if (!gameLoaded) return;
+
+      const controlEntries = Object.entries(controls);
+
+      for (const [key, value] of controlEntries) {
+        const binding =
+          value === "Enter"
+            ? "Return"
+            : value.toLowerCase().replace("arrow", "").replace("key", "");
+
+        mgbaModule.current.bindKey(binding, key);
+      }
+    }, [controls, gameLoaded]);
+
+    useEffect(() => {
+      if (!gameLoaded) return;
+      mgbaModule.current.setVolume(volume ?? 1.0);
+    }, [gameLoaded, volume]);
+
+    useEffect(() => {
+      if (!gameLoaded) return;
+
+      if (paused) {
+        mgbaModule.current.pauseGame();
+      } else {
+        mgbaModule.current.resumeGame();
+      }
+    }, [gameLoaded, paused]);
+
+    useImperativeHandle(ref, () => {
+      return {
+        restart: () => mgbaModule.current.quickReload(),
       };
+    });
 
-      mGBA(mgbaModule.current).then((module: Module) => {
-        mgbaModule.current = module;
-        module.FSInit();
-        setState(MgbaState.Initialised);
-      });
-    })();
-
-    if (state === MgbaState.Initialised)
-      return () => {
-        try {
-          mgbaModule.current.quitGame();
-          mgbaModule.current.quitMgba();
-        } catch {}
-      };
-  }, [state]);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
-
-    const controlEntries = Object.entries(controls);
-
-    for (const [key, value] of controlEntries) {
-      const binding =
-        value === "Enter"
-          ? "Return"
-          : value.toLowerCase().replace("arrow", "").replace("key", "");
-
-      mgbaModule.current.bindKey(binding, key);
-    }
-  }, [controls, gameLoaded]);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
-    mgbaModule.current.setVolume(volume ?? 1.0);
-  }, [gameLoaded, volume]);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
-
-    if (paused) {
-      mgbaModule.current.pauseGame();
-    } else {
-      mgbaModule.current.resumeGame();
-    }
-  }, [gameLoaded, paused]);
-
-  return <MgbaCanvas ref={canvas} />;
-};
+    return <MgbaCanvas ref={canvas} />;
+  }
+);

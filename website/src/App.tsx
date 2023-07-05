@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Mgba } from "./mgba";
+import { useRef, useState } from "react";
+import { Mgba, MgbaHandle } from "./mgba";
 import { BindingsControl, DefaultBindingsSet, Bindings } from "./bindings";
 import { styled } from "styled-components";
 import { useOnKeyUp } from "./useOnKeyUp.hook";
@@ -16,23 +16,27 @@ const VolumeLabel = styled.label`
   margin-bottom: 20px;
 `;
 
-const CloseButton = styled.button`
+const ActionButton = styled.button`
   width: 100%;
   margin-top: 20px;
 `;
 
 function App() {
-  const [volumeState, setVolume] = useState(1.0);
-  const [bindingsState, setBindings] = useState(DefaultBindingsSet());
-
-  const { volume, bindings } = useLocalStorage(
-    { volume: volumeState, bindings: bindingsState },
+  const [{ volume, bindings }, setState] = useLocalStorage(
+    { volume: 1.0, bindings: DefaultBindingsSet() },
     "agbrswebplayer"
   );
+
+  const setVolume = (newVolume: number) =>
+    setState({ volume: newVolume, bindings });
+  const setBindings = (newBindings: Bindings) =>
+    setState({ volume, bindings: newBindings });
 
   const [paused, setPaused] = useState(false);
 
   const [showBindings, setShowBindings] = useState(false);
+
+  const mgbaRef = useRef<MgbaHandle>(null);
 
   useOnKeyUp("Escape", () => {
     setShowBindings(!showBindings);
@@ -48,9 +52,11 @@ function App() {
           volume={volume}
           setVolume={setVolume}
           hide={() => setShowBindings(false)}
+          restart={() => mgbaRef.current?.restart()}
         />
       )}
       <Mgba
+        ref={mgbaRef}
         gameUrl="/game.gba"
         volume={volume}
         controls={bindings.Actual}
@@ -67,6 +73,7 @@ function BindingsWindow({
   volume,
   setVolume,
   hide,
+  restart,
 }: {
   bindings: Bindings;
   setBindings: (b: Bindings) => void;
@@ -74,6 +81,7 @@ function BindingsWindow({
   volume: number;
   setVolume: (v: number) => void;
   hide: () => void;
+  restart: () => void;
 }) {
   return (
     <BindingsDialog open onClose={hide}>
@@ -97,7 +105,8 @@ function BindingsWindow({
         setBindings={setBindings}
         setPaused={setPaused}
       />
-      <CloseButton onClick={hide}>Close</CloseButton>
+      <ActionButton onClick={restart}>Restart</ActionButton>
+      <ActionButton onClick={hide}>Close</ActionButton>
     </BindingsDialog>
   );
 }
