@@ -21,6 +21,11 @@ const ActionButton = styled.button`
   margin-top: 20px;
 `;
 
+const AppContainer = styled.main`
+  height: calc(100vh - 20px);
+  padding: 10px;
+`;
+
 function App() {
   const [{ volume, bindings }, setState] = useLocalStorage(
     { volume: 1.0, bindings: DefaultBindingsSet() },
@@ -43,7 +48,7 @@ function App() {
   });
 
   return (
-    <div>
+    <AppContainer>
       {showBindings && (
         <BindingsWindow
           bindings={bindings}
@@ -62,7 +67,7 @@ function App() {
         controls={bindings.Actual}
         paused={paused}
       />
-    </div>
+    </AppContainer>
   );
 }
 
