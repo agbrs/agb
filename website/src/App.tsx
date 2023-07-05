@@ -5,6 +5,7 @@ import { styled } from "styled-components";
 import { useOnKeyUp } from "./useOnKeyUp.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
 import { useAvoidItchIoScrolling } from "./useAvoidItchIoScrolling";
+import { Slider } from "./Slider";
 
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
@@ -118,14 +119,7 @@ function BindingsWindow({
     <BindingsDialog open onClose={hide}>
       <VolumeLabel>
         Volume:
-        <input
-          type="range"
-          value={volume}
-          min="0"
-          max="1"
-          step="0.05"
-          onChange={(e) => setVolume(Number(e.target.value))}
-        />
+        <Slider value={volume} onChange={(e) => setVolume(e)} />
       </VolumeLabel>
       <BindingsControl
         bindings={bindings}
