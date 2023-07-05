@@ -25,8 +25,7 @@ const ActionButton = styled.button`
 `;
 
 const AppContainer = styled.main`
-  height: calc(100vh - 20px);
-  padding: 10px;
+  height: 100vh;
   display: flex;
 `;
 
@@ -69,7 +68,7 @@ function App() {
 
   useAvoidItchIoScrolling();
 
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   return (
     <AppContainer>

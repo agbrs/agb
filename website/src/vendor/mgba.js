@@ -5431,7 +5431,7 @@ var mGBA = (function () {
                   Module["canvas"].requestPointerLock
                 ) {
                   Module["canvas"].requestPointerLock();
-                  ev.preventDefault();
+                  // ev.preventDefault();
                 }
               },
               false
@@ -8952,7 +8952,7 @@ var mGBA = (function () {
         stringToUTF8(nodeName, focusEvent + 0, 128);
         stringToUTF8(id, focusEvent + 128, 128);
         if (dynCall_iiii(callbackfunc, eventTypeId, focusEvent, userData))
-          e.preventDefault();
+          /*e.preventDefault()*/;
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -9133,7 +9133,7 @@ var mGBA = (function () {
         var gamepadEvent = JSEvents.gamepadEvent;
         __fillGamepadEventData(gamepadEvent, e["gamepad"]);
         if (dynCall_iiii(callbackfunc, eventTypeId, gamepadEvent, userData))
-          e.preventDefault();
+          /*e.preventDefault()*/;
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -9208,7 +9208,7 @@ var mGBA = (function () {
         HEAP32[(keyEventData + 156) >> 2] = e.keyCode;
         HEAP32[(keyEventData + 160) >> 2] = e.which;
         if (dynCall_iiii(callbackfunc, eventTypeId, keyEventData, userData))
-          e.preventDefault();
+          /*e.preventDefault()*/;
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -9334,7 +9334,7 @@ var mGBA = (function () {
         if (
           dynCall_iiii(callbackfunc, eventTypeId, JSEvents.mouseEvent, userData)
         )
-          e.preventDefault();
+          /*e.preventDefault()*/;
       };
       var eventHandler = {
         target: target,
