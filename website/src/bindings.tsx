@@ -3,16 +3,16 @@ import styled from "styled-components";
 
 const DefaultBindings = (): KeyBindings => {
   return {
-    A: "KeyZ",
-    B: "KeyX",
-    L: "KeyA",
-    R: "KeyS",
-    Start: "Enter",
-    Select: "ShiftLeft",
-    Up: "ArrowUp",
-    Down: "ArrowDown",
-    Left: "ArrowLeft",
-    Right: "ArrowRight",
+    A: "Z",
+    B: "X",
+    L: "A",
+    R: "S",
+    Start: "ENTER",
+    Select: "SHIFT",
+    Up: "UP",
+    Down: "DOWN",
+    Left: "LEFT",
+    Right: "RIGHT",
   };
 };
 
