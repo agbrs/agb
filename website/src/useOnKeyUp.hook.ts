@@ -13,5 +13,5 @@ export const useOnKeyUp = (targetKey: string, callback: () => void) => {
     return () => {
       window.removeEventListener("keyup", downHandler);
     };
-  }, []);
+  }, [callback, targetKey]);
 };
