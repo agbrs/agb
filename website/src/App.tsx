@@ -25,6 +25,23 @@ const ActionButton = styled.button`
 const AppContainer = styled.main`
   height: calc(100vh - 20px);
   padding: 10px;
+  display: flex;
+`;
+
+const StartButtonWrapper = styled.button`
+  margin: auto;
+  font-size: 5em;
+  padding: 1em;
+  text-transform: uppercase;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 0.5em;
+
+  &:hover {
+    background-color: #222;
+    cursor: pointer;
+  }
 `;
 
 function App() {
@@ -50,6 +67,8 @@ function App() {
 
   useAvoidItchIoScrolling();
 
+  const [isPlaying, setIsPlaying] = useState(false);
+
   return (
     <AppContainer>
       {showBindings && (
@@ -63,13 +82,17 @@ function App() {
           restart={() => mgbaRef.current?.restart()}
         />
       )}
-      <Mgba
-        ref={mgbaRef}
-        gameUrl="/game.gba"
-        volume={volume}
-        controls={bindings.Actual}
-        paused={paused}
-      />
+      {isPlaying ? (
+        <Mgba
+          ref={mgbaRef}
+          gameUrl="/game.gba"
+          volume={volume}
+          controls={bindings.Actual}
+          paused={paused}
+        />
+      ) : (
+        <StartButton onClick={() => setIsPlaying(true)} />
+      )}
     </AppContainer>
   );
 }
@@ -101,11 +124,7 @@ function BindingsWindow({
           min="0"
           max="1"
           step="0.05"
-          onChange={(e) => {
-            console.log("e.target.value", e.target.value);
-            console.log("volume", volume);
-            setVolume(Number(e.target.value));
-          }}
+          onChange={(e) => setVolume(Number(e.target.value))}
         />
       </VolumeLabel>
       <BindingsControl
@@ -116,6 +135,12 @@ function BindingsWindow({
       <ActionButton onClick={restart}>Restart</ActionButton>
       <ActionButton onClick={hide}>Close</ActionButton>
     </BindingsDialog>
+  );
+}
+
+function StartButton({ onClick }: { onClick: () => void }) {
+  return (
+    <StartButtonWrapper onClick={onClick}>Press to start</StartButtonWrapper>
   );
 }
 

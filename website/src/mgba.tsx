@@ -56,6 +56,8 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         const gamePath = `${MGBA_ROM_DIRECTORY}/${gameUrl}`;
         mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
         mgbaModule.current.loadGame(gamePath);
+        mgbaModule.current.setVolume(0.1); // for some reason you have to do this or you get no sound
+        console.log(mgbaModule.current.getVolume());
         setGameLoaded(true);
       })();
     }, [state, gameUrl]);
@@ -63,7 +65,7 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
     // init mgba
     useEffect(() => {
       (async () => {
-        if (canvas === null) return;
+        if (canvas.current === null) return;
         if (state !== MgbaState.Uninitialised) return;
 
         setState(MgbaState.Initialising);
@@ -111,7 +113,9 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
 
     useEffect(() => {
       if (!gameLoaded) return;
+      console.log("before", mgbaModule.current.getVolume());
       mgbaModule.current.setVolume(volume ?? 1.0);
+      console.log("after", mgbaModule.current.getVolume());
     }, [gameLoaded, volume]);
 
     useEffect(() => {
