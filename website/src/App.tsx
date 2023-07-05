@@ -3,6 +3,7 @@ import { Mgba } from "./mgba";
 import { BindingsControl, DefaultBindingsSet, Bindings } from "./bindings";
 import { styled } from "styled-components";
 import { useOnKeyUp } from "./useOnKeyUp.hook";
+import { useLocalStorage } from "./useLocalStorage.hook";
 
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
@@ -21,8 +22,14 @@ const CloseButton = styled.button`
 `;
 
 function App() {
-  const [volume, setVolume] = useState(1.0);
-  const [bindings, setBindings] = useState(DefaultBindingsSet());
+  const [volumeState, setVolume] = useState(1.0);
+  const [bindingsState, setBindings] = useState(DefaultBindingsSet());
+
+  const { volume, bindings } = useLocalStorage(
+    { volume: volumeState, bindings: bindingsState },
+    "agbrswebplayer"
+  );
+
   const [paused, setPaused] = useState(false);
 
   const [showBindings, setShowBindings] = useState(false);
