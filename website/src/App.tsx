@@ -10,7 +10,7 @@ import { Slider } from "./Slider";
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
   margin-top: 20px;
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: calc(100vh - 100px);
 `;
 
