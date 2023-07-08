@@ -47,7 +47,7 @@ pub(crate) fn generate_code(
     let (tile_data, assignments) = if let Some(assignment_offset) = assignment_offset {
         let mut tile_data = Vec::new();
 
-        add_image_to_tile_data(&mut tile_data, image, results, assignment_offset);
+        add_image_to_tile_data(&mut tile_data, image, results, assignment_offset, false);
 
         let tile_data = collapse_to_4bpp(&tile_data);
 
