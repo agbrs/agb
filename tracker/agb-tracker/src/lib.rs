@@ -5,6 +5,13 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
+#[cfg(feature = "xm")]
+pub use agb_xm::import_xm;
+
+pub use agb_tracker_interop as __private;
+
+pub use __private::Track;
+
 #[cfg(test)]
 mod tests {
     #[test_case]
