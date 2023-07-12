@@ -84,7 +84,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 sample.append(&mut sample.clone());
                 sample.append(&mut sample.clone());
                 sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
             }
 
             instruments_map.insert((instrument_index, sample_index), samples.len());
@@ -124,24 +123,46 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let volume = if slot.volume == 0 {
-                    64.0
-                } else {
-                    slot.volume as f64
-                } / 64.0;
+                let (mut volume, panning) = match slot.volume {
+                    0x10..=0x50 => (Some((slot.volume - 0x10) as f64 / 64.0), None),
+                    0xC0..=0xCF => (
+                        None,
+                        Some(Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64),
+                    ),
+                    _ => (None, Some(0.into())),
+                };
+
+                if slot.effect_type == 0xC {
+                    volume = Some(slot.effect_parameter as f64 / 255.0);
+                }
 
                 if sample == 0 {
-                    // TODO should take into account previous sample played on this channel
-                    pattern_data.push(agb_tracker_interop::PatternSlot {
-                        volume: Num::new(0),
-                        speed: if matches!(slot.note, Note::KeyOff) {
-                            0.into()
-                        } else {
-                            note_to_speed(slot.note, 0.0, 0)
-                        },
-                        panning: Num::new(0),
-                        sample: 0,
-                    })
+                    if slot.volume == 0 && slot.effect_type == 0 {
+                        pattern_data.push(agb_tracker_interop::PatternSlot {
+                            volume: 0.into(),
+                            speed: 0.into(),
+                            panning: 0.into(),
+                            sample: agb_tracker_interop::SKIP_SLOT,
+                        });
+                    } else if matches!(slot.note, Note::KeyOff) || volume == Some(0.0) {
+                        pattern_data.push(agb_tracker_interop::PatternSlot {
+                            volume: 0.into(),
+                            speed: 0.into(),
+                            panning: 0.into(),
+                            sample: agb_tracker_interop::STOP_CHANNEL,
+                        });
+                    } else {
+                        let volume: Num<i16, 4> =
+                            Num::from_raw((volume.unwrap_or(0.into()) * (1 << 4) as f64) as i16);
+                        let panning = panning.unwrap_or(0.into());
+
+                        pattern_data.push(agb_tracker_interop::PatternSlot {
+                            volume,
+                            speed: 0.into(),
+                            panning,
+                            sample: 0,
+                        });
+                    }
                 } else {
                     let sample_played = &samples[sample - 1];
 
@@ -149,16 +170,17 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         slot.note,
                         sample_played.fine_tune,
                         sample_played.relative_note,
+                        module.frequency_type,
                     );
-                    let panning = Num::new(0);
 
-                    let overall_volume = volume * sample_played.volume;
-                    let volume = Num::from_raw((overall_volume * (1 << 4) as f64) as i16);
+                    let overall_volume = volume.unwrap_or(1.into()) * sample_played.volume;
+                    let volume: Num<i16, 4> =
+                        Num::from_raw((overall_volume * (1 << 4) as f64) as i16);
 
                     pattern_data.push(agb_tracker_interop::PatternSlot {
                         volume,
                         speed,
-                        panning,
+                        panning: panning.unwrap_or(0.into()),
                         sample,
                     });
                 }
@@ -198,17 +220,49 @@ pub fn parse_module(module: &Module) -> TokenStream {
     quote!(#interop)
 }
 
-fn note_to_frequency(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
-    let real_note = (note as usize as f64) + (relative_note as f64);
-    let period = 10.0 * 12.0 * 16.0 * 4.0 - (real_note as f64) * 16.0 * 4.0 - fine_tune / 2.0;
-    8363.0 * 2.0f64.powf((6.0 * 12.0 * 16.0 * 4.0 - period) / (12.0 * 16.0 * 4.0))
-}
-
-fn note_to_speed(note: Note, fine_tune: f64, relative_note: i8) -> Num<u32, 8> {
-    let frequency = note_to_frequency(note, fine_tune, relative_note);
+fn note_to_speed(
+    note: Note,
+    fine_tune: f64,
+    relative_note: i8,
+    frequency_type: FrequencyType,
+) -> Num<u32, 8> {
+    let frequency = match frequency_type {
+        FrequencyType::LinearFrequencies => {
+            note_to_frequency_linear(note, fine_tune, relative_note)
+        }
+        FrequencyType::AmigaFrequencies => note_to_frequency_amega(note, fine_tune, relative_note),
+    };
 
     let gba_audio_frequency = 18157f64;
 
     let speed: f64 = frequency / gba_audio_frequency;
     Num::from_raw((speed * (1 << 8) as f64) as u32)
 }
+
+fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
+    let real_note = (note as usize as f64) + (relative_note as f64);
+    let period = 10.0 * 12.0 * 16.0 * 4.0 - (real_note as f64) * 16.0 * 4.0 - fine_tune / 2.0;
+    8363.0 * 2.0f64.powf((6.0 * 12.0 * 16.0 * 4.0 - period) / (12.0 * 16.0 * 4.0))
+}
+
+fn note_to_frequency_amega(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
+    let note = (note as usize) + relative_note as usize;
+    let pos = (note % 12) * 8 + (fine_tune / 16.0) as usize;
+    let frac = (fine_tune / 16.0) - (fine_tune / 16.0).floor();
+
+    let period = ((AMEGA_FREQUENCIES[pos] as f64 * (1.0 - frac))
+        + AMEGA_FREQUENCIES[pos + 1] as f64 * frac)
+        * 32.0 // docs say 16 here, but for some reason I need 32 :/
+        / (1 << ((note as i64) / 12)) as f64;
+
+    8363.0 * 1712.0 / period
+}
+
+const AMEGA_FREQUENCIES: &[u32] = &[
+    907, 900, 894, 887, 881, 875, 868, 862, 856, 850, 844, 838, 832, 826, 820, 814, 808, 802, 796,
+    791, 785, 779, 774, 768, 762, 757, 752, 746, 741, 736, 730, 725, 720, 715, 709, 704, 699, 694,
+    689, 684, 678, 675, 670, 665, 660, 655, 651, 646, 640, 636, 632, 628, 623, 619, 614, 610, 604,
+    601, 597, 592, 588, 584, 580, 575, 570, 567, 563, 559, 555, 551, 547, 543, 538, 535, 532, 528,
+    524, 520, 516, 513, 508, 505, 502, 498, 494, 491, 487, 484, 480, 477, 474, 470, 467, 463, 460,
+    457,
+];

@@ -57,13 +57,30 @@ impl Tracker {
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
         for (channel_id, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
-            if pattern_slot.sample == 0 {
-                if pattern_slot.speed == 0.into() {
-                    if let Some(channel) = channel_id
-                        .take()
-                        .and_then(|channel_id| mixer.channel(&channel_id))
-                    {
-                        channel.stop();
+            if pattern_slot.sample == agb_tracker_interop::SKIP_SLOT {
+                // completely skip
+            } else if pattern_slot.sample == agb_tracker_interop::STOP_CHANNEL {
+                if let Some(channel) = channel_id
+                    .take()
+                    .and_then(|channel_id| mixer.channel(&channel_id))
+                {
+                    channel.stop();
+                }
+            } else if pattern_slot.sample == 0 {
+                if let Some(channel) = channel_id
+                    .as_ref()
+                    .and_then(|channel_id| mixer.channel(channel_id))
+                {
+                    if pattern_slot.volume != 0.into() {
+                        channel.volume(pattern_slot.volume);
+                    }
+
+                    if pattern_slot.panning != 0.into() {
+                        channel.panning(pattern_slot.panning);
+                    }
+
+                    if pattern_slot.speed != 0.into() {
+                        channel.playback(pattern_slot.speed);
                     }
                 }
             } else {

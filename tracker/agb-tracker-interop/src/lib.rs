@@ -33,6 +33,9 @@ pub struct PatternSlot {
     pub sample: usize,
 }
 
+pub const SKIP_SLOT: usize = 277;
+pub const STOP_CHANNEL: usize = 278;
+
 #[cfg(feature = "quote")]
 impl<'a> quote::ToTokens for Track<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {

@@ -5,7 +5,7 @@ use agb::sound::mixer::Frequency;
 use agb::Gba;
 use agb_tracker::{import_xm, Track, Tracker};
 
-const AJOJ: Track = import_xm!("examples/db_toffe.xm");
+const DB_TOFFE: Track = import_xm!("examples/db_toffe.xm");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
@@ -14,7 +14,7 @@ fn main(mut gba: Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     mixer.enable();
 
-    let mut tracker = Tracker::new(&AJOJ);
+    let mut tracker = Tracker::new(&DB_TOFFE);
 
     loop {
         tracker.step(&mut mixer);
