@@ -52,14 +52,12 @@ impl<'a> quote::ToTokens for Track<'a> {
 
         tokens.append_all(quote! {
             {
-                use agb_tracker_interop::*;
-
-                const SAMPLES: &[Sample<'static>] = &[#(#samples),*];
-                const PATTERN_DATA: &[PatternSlot] = &[#(#pattern_data),*];
-                const PATTERNS: &[Pattern] = &[#(#patterns),*];
+                const SAMPLES: &[agb_tracker::__private::agb_tracker_interop::Sample<'static>] = &[#(#samples),*];
+                const PATTERN_DATA: &[agb_tracker::__private::agb_tracker_interop::PatternSlot] = &[#(#pattern_data),*];
+                const PATTERNS: &[agb_tracker::__private::agb_tracker_interop::Pattern] = &[#(#patterns),*];
                 const PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
 
-                Track {
+                agb_tracker::Track {
                     samples: SAMPLES,
                     pattern_data: PATTERN_DATA,
                     patterns: PATTERNS,
@@ -95,13 +93,11 @@ impl<'a> quote::ToTokens for Sample<'a> {
 
         tokens.append_all(quote! {
             {
-                use agb_tracker_interop::*;
-
                 #[repr(align(4))]
                 struct AlignmentWrapper<const N: usize>([u8; N]);
 
                 const SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
-                agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop }
+                agb_tracker::__private::agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop }
             }
         });
     }
@@ -124,16 +120,11 @@ impl quote::ToTokens for PatternSlot {
         let panning = panning.to_raw();
 
         tokens.append_all(quote! {
-            {
-                use agb_tracker::__private::*;
-                use agb::fixnum::Num;
-
-                PatternSlot {
-                    volume: Num::from_raw(#volume),
-                    speed: Num::from_raw(#speed),
-                    panning: Num::from_raw(#panning),
-                    sample: #sample,
-                }
+            agb_tracker::__private::agb_tracker_interop::PatternSlot {
+                volume: agb_tracker::__private::Num::from_raw(#volume),
+                speed: agb_tracker::__private::Num::from_raw(#speed),
+                panning: agb_tracker::__private::Num::from_raw(#panning),
+                sample: #sample,
             }
         });
     }
@@ -150,13 +141,9 @@ impl quote::ToTokens for Pattern {
         } = self;
 
         tokens.append_all(quote! {
-            {
-                use agb_tracker_interop::*;
-
-                Pattern {
-                    length: #length,
-                    start_position: #start_position,
-                }
+            agb_tracker::__private::agb_tracker_interop::Pattern {
+                length: #length,
+                start_position: #start_position,
             }
         })
     }

@@ -14,9 +14,12 @@ use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 #[cfg(feature = "xm")]
 pub use agb_xm::import_xm;
 
-pub use agb_tracker_interop as __private;
+pub mod __private {
+    pub use agb::fixnum::Num;
+    pub use agb_tracker_interop;
+}
 
-pub use __private::Track;
+pub use agb_tracker_interop::Track;
 
 pub struct Tracker {
     track: &'static Track<'static>,
