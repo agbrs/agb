@@ -7,16 +7,21 @@ pub struct Track<'a> {
     pub samples: &'a [Sample<'a>],
     pub pattern_data: &'a [PatternSlot],
     pub patterns: &'a [Pattern],
+
+    pub frames_per_step: u16,
 }
 
 #[derive(Debug)]
 pub struct Sample<'a> {
     pub data: &'a [u8],
+    pub should_loop: bool,
 }
 
 #[derive(Debug)]
 pub struct Pattern {
     pub num_channels: usize,
+    pub length: usize,
+    pub start_position: usize,
 }
 
 #[derive(Debug)]
@@ -32,9 +37,12 @@ impl<'a> quote::ToTokens for Track<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
-        let samples = self.samples;
-        let pattern_data = self.pattern_data;
-        let patterns = self.patterns;
+        let Track {
+            samples,
+            pattern_data,
+            patterns,
+            frames_per_step,
+        } = self;
 
         tokens.append_all(quote! {
             {
@@ -48,9 +56,22 @@ impl<'a> quote::ToTokens for Track<'a> {
                     samples: SAMPLES,
                     pattern_data: PATTERN_DATA,
                     patterns: PATTERNS,
+
+                    frames_per_step: #frames_per_step,
                 }
             }
         })
+    }
+}
+
+#[cfg(feature = "quote")]
+struct ByteString<'a>(&'a [u8]);
+#[cfg(feature = "quote")]
+impl quote::ToTokens for ByteString<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::TokenStreamExt;
+
+        tokens.append(proc_macro2::Literal::byte_string(self.0));
     }
 }
 
@@ -59,14 +80,19 @@ impl<'a> quote::ToTokens for Sample<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
-        let self_as_u8s = self.data.iter().map(|i| *i as u8);
+        let self_as_u8s: Vec<_> = self.data.iter().map(|i| *i as u8).collect();
+        let samples = ByteString(&self_as_u8s);
+        let should_loop = self.should_loop;
 
         tokens.append_all(quote! {
             {
                 use agb_tracker_interop::*;
 
-                const SAMPLE_DATA: &[u8] = &[#(#self_as_u8s),*];
-                agb_tracker_interop::Sample { data: SAMPLE_DATA }
+                #[repr(align(4))]
+                struct AlignmentWrapper<const N: usize>([u8; N]);
+
+                const SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
+                agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop }
             }
         });
     }
@@ -109,7 +135,11 @@ impl quote::ToTokens for Pattern {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
-        let num_channels = self.num_channels;
+        let Pattern {
+            num_channels,
+            length,
+            start_position,
+        } = self;
 
         tokens.append_all(quote! {
             {
@@ -117,6 +147,8 @@ impl quote::ToTokens for Pattern {
 
                 Pattern {
                     num_channels: #num_channels,
+                    length: #length,
+                    start_position: #start_position,
                 }
             }
         })

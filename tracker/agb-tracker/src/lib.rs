@@ -5,6 +5,12 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
+extern crate alloc;
+
+use alloc::{vec, vec::Vec};
+
+use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
+
 #[cfg(feature = "xm")]
 pub use agb_xm::import_xm;
 
@@ -12,11 +18,86 @@ pub use agb_tracker_interop as __private;
 
 pub use __private::Track;
 
-#[cfg(test)]
-mod tests {
-    #[test_case]
-    fn it_works(_gba: &mut agb::Gba) {
-        assert_eq!(1, 1);
+pub struct Tracker {
+    track: &'static Track<'static>,
+    channels: Vec<Option<ChannelId>>,
+
+    step: u16,
+    current_row: usize,
+    current_pattern: usize,
+}
+
+impl Tracker {
+    pub fn new(track: &'static Track<'static>) -> Self {
+        agb::println!("{}", track.frames_per_step);
+
+        Self {
+            track,
+            channels: vec![],
+
+            step: 0,
+            current_row: 0,
+            current_pattern: 0,
+        }
+    }
+
+    pub fn step(&mut self, mixer: &mut Mixer) {
+        if self.step != 0 {
+            self.increment_step();
+            return; // TODO: volume / pitch slides
+        }
+
+        let current_pattern = &self.track.patterns[self.current_pattern];
+
+        let channels_to_play = current_pattern.num_channels;
+        self.channels.resize_with(channels_to_play, || None);
+
+        let pattern_data_pos = current_pattern.start_position + self.current_row * channels_to_play;
+        let pattern_slots =
+            &self.track.pattern_data[pattern_data_pos..pattern_data_pos + channels_to_play];
+
+        for (channel_id, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
+            if pattern_slot.sample == 0 {
+                // do nothing
+            } else {
+                if let Some(channel) = channel_id
+                    .take()
+                    .and_then(|channel_id| mixer.channel(&channel_id))
+                {
+                    channel.stop();
+                }
+
+                let sample = &self.track.samples[pattern_slot.sample - 1];
+                let mut new_channel = SoundChannel::new(sample.data);
+                new_channel
+                    .panning(pattern_slot.panning)
+                    .volume(pattern_slot.volume)
+                    .playback(pattern_slot.speed);
+
+                if sample.should_loop {
+                    new_channel.should_loop();
+                }
+
+                *channel_id = mixer.play_sound(new_channel);
+            }
+        }
+
+        self.increment_step();
+    }
+
+    fn increment_step(&mut self) {
+        self.step += 1;
+
+        if self.step == self.track.frames_per_step * 2 {
+            self.current_row += 1;
+
+            if self.current_row > self.track.patterns[self.current_pattern].length {
+                self.current_pattern += 1;
+                self.current_row = 0;
+            }
+
+            self.step = 0;
+        }
     }
 }
 
