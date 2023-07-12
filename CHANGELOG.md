@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - You no longer need to install arm-none-eabi-binutils. In order to write games using `agb`, you now only need to install rust nightly.
 - 10% performance improvement with the software mixer.
 
+### Fixed
+
+- Compile error if you tried to import a larger sprite which uses more than 15 colours between frames.
+
 ## [0.15.0] - 2023/04/25
 
 ### Added
