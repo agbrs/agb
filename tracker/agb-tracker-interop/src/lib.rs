@@ -8,6 +8,7 @@ pub struct Track<'a> {
     pub pattern_data: &'a [PatternSlot],
     pub patterns: &'a [Pattern],
 
+    pub num_channels: usize,
     pub frames_per_step: u16,
 }
 
@@ -19,7 +20,6 @@ pub struct Sample<'a> {
 
 #[derive(Debug)]
 pub struct Pattern {
-    pub num_channels: usize,
     pub length: usize,
     pub start_position: usize,
 }
@@ -42,6 +42,7 @@ impl<'a> quote::ToTokens for Track<'a> {
             pattern_data,
             patterns,
             frames_per_step,
+            num_channels,
         } = self;
 
         tokens.append_all(quote! {
@@ -58,6 +59,7 @@ impl<'a> quote::ToTokens for Track<'a> {
                     patterns: PATTERNS,
 
                     frames_per_step: #frames_per_step,
+                    num_channels: #num_channels,
                 }
             }
         })
@@ -136,7 +138,6 @@ impl quote::ToTokens for Pattern {
         use quote::{quote, TokenStreamExt};
 
         let Pattern {
-            num_channels,
             length,
             start_position,
         } = self;
@@ -146,7 +147,6 @@ impl quote::ToTokens for Pattern {
                 use agb_tracker_interop::*;
 
                 Pattern {
-                    num_channels: #num_channels,
                     length: #length,
                     start_position: #start_position,
                 }

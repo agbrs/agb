@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 
@@ -29,11 +29,12 @@ pub struct Tracker {
 
 impl Tracker {
     pub fn new(track: &'static Track<'static>) -> Self {
-        agb::println!("{}", track.frames_per_step);
+        let mut channels = Vec::new();
+        channels.resize_with(track.num_channels, || None);
 
         Self {
             track,
-            channels: vec![],
+            channels,
 
             step: 0,
             current_row: 0,
@@ -49,16 +50,21 @@ impl Tracker {
 
         let current_pattern = &self.track.patterns[self.current_pattern];
 
-        let channels_to_play = current_pattern.num_channels;
-        self.channels.resize_with(channels_to_play, || None);
-
-        let pattern_data_pos = current_pattern.start_position + self.current_row * channels_to_play;
+        let pattern_data_pos =
+            current_pattern.start_position + self.current_row * self.track.num_channels;
         let pattern_slots =
-            &self.track.pattern_data[pattern_data_pos..pattern_data_pos + channels_to_play];
+            &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
         for (channel_id, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
             if pattern_slot.sample == 0 {
-                // do nothing
+                if pattern_slot.speed == 0.into() {
+                    if let Some(channel) = channel_id
+                        .take()
+                        .and_then(|channel_id| mixer.channel(&channel_id))
+                    {
+                        channel.stop();
+                    }
+                }
             } else {
                 if let Some(channel) = channel_id
                     .take()

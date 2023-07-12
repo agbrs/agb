@@ -99,7 +99,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let mut pattern_data = vec![];
 
     for pattern in &module.pattern {
-        let mut num_channels = 0;
         let start_pos = pattern_data.len();
 
         for row in pattern.iter() {
@@ -122,19 +121,21 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let volume = Num::new(
-                    if slot.volume == 0 {
-                        64
-                    } else {
-                        slot.volume as i16
-                    } / 64,
-                );
+                let volume = Num::new(if slot.volume == 0 {
+                    64
+                } else {
+                    slot.volume as i16
+                }) / 64;
 
                 if sample == 0 {
                     // TODO should take into account previous sample played on this channel
                     pattern_data.push(agb_tracker_interop::PatternSlot {
                         volume: Num::new(0),
-                        speed: Num::new(0),
+                        speed: if matches!(slot.note, Note::KeyOff) {
+                            0.into()
+                        } else {
+                            note_to_speed(slot.note, 0.0, 0)
+                        },
                         panning: Num::new(0),
                         sample: 0,
                     })
@@ -156,12 +157,9 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     });
                 }
             }
-
-            num_channels = row.len();
         }
 
         patterns.push(agb_tracker_interop::Pattern {
-            num_channels,
             length: pattern.len(),
             start_position: start_pos,
         });
@@ -175,15 +173,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
         })
         .collect();
 
-    let frames_per_step =
-        ((60.0 * 60.0) / module.default_bpm as f64 / module.default_tempo as f64) as u16;
-
     let interop = agb_tracker_interop::Track {
         samples: &samples,
         pattern_data: &pattern_data,
         patterns: &patterns,
+        num_channels: module.get_num_channels(),
 
-        frames_per_step,
+        frames_per_step: 2, // TODO calculate this correctly
     };
 
     quote!(#interop)

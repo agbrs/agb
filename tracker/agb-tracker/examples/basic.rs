@@ -5,7 +5,7 @@ use agb::sound::mixer::Frequency;
 use agb::Gba;
 use agb_tracker::{import_xm, Track, Tracker};
 
-const AJOJ: Track = import_xm!("examples/ajoj.xm");
+const AJOJ: Track = import_xm!("examples/db_toffe.xm");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
