@@ -53,6 +53,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         should_loop: bool,
         fine_tune: f64,
         relative_note: i8,
+        volume: f64,
     }
 
     let mut samples = vec![];
@@ -64,6 +65,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             let should_loop = !matches!(sample.flags, LoopType::No);
             let fine_tune = sample.finetune as f64;
             let relative_note = sample.relative_note;
+            let volume = sample.volume as f64;
 
             let mut sample = match &sample.data {
                 SampleDataType::Depth8(depth8) => {
@@ -91,6 +93,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 should_loop,
                 fine_tune,
                 relative_note,
+                volume,
             });
         }
     }
@@ -121,11 +124,11 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let volume = Num::new(if slot.volume == 0 {
-                    64
+                let volume = if slot.volume == 0 {
+                    64.0
                 } else {
-                    slot.volume as i16
-                }) / 64;
+                    slot.volume as f64
+                } / 64.0;
 
                 if sample == 0 {
                     // TODO should take into account previous sample played on this channel
@@ -148,6 +151,9 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         sample_played.relative_note,
                     );
                     let panning = Num::new(0);
+
+                    let overall_volume = volume * sample_played.volume;
+                    let volume = Num::from_raw((overall_volume * (1 << 4) as f64) as i16);
 
                     pattern_data.push(agb_tracker_interop::PatternSlot {
                         volume,
@@ -173,13 +179,20 @@ pub fn parse_module(module: &Module) -> TokenStream {
         })
         .collect();
 
+    let patterns_to_play = module
+        .pattern_order
+        .iter()
+        .map(|order| *order as usize)
+        .collect::<Vec<_>>();
+
     let interop = agb_tracker_interop::Track {
         samples: &samples,
         pattern_data: &pattern_data,
         patterns: &patterns,
         num_channels: module.get_num_channels(),
+        patterns_to_play: &patterns_to_play,
 
-        frames_per_step: 2, // TODO calculate this correctly
+        frames_per_step: 4, // TODO calculate this correctly
     };
 
     quote!(#interop)

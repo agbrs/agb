@@ -7,6 +7,7 @@ pub struct Track<'a> {
     pub samples: &'a [Sample<'a>],
     pub pattern_data: &'a [PatternSlot],
     pub patterns: &'a [Pattern],
+    pub patterns_to_play: &'a [usize],
 
     pub num_channels: usize,
     pub frames_per_step: u16,
@@ -43,6 +44,7 @@ impl<'a> quote::ToTokens for Track<'a> {
             patterns,
             frames_per_step,
             num_channels,
+            patterns_to_play,
         } = self;
 
         tokens.append_all(quote! {
@@ -52,11 +54,13 @@ impl<'a> quote::ToTokens for Track<'a> {
                 const SAMPLES: &[Sample<'static>] = &[#(#samples),*];
                 const PATTERN_DATA: &[PatternSlot] = &[#(#pattern_data),*];
                 const PATTERNS: &[Pattern] = &[#(#patterns),*];
+                const PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
 
                 Track {
                     samples: SAMPLES,
                     pattern_data: PATTERN_DATA,
                     patterns: PATTERNS,
+                    patterns_to_play: PATTERNS_TO_PLAY,
 
                     frames_per_step: #frames_per_step,
                     num_channels: #num_channels,

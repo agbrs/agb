@@ -48,7 +48,8 @@ impl Tracker {
             return; // TODO: volume / pitch slides
         }
 
-        let current_pattern = &self.track.patterns[self.current_pattern];
+        let pattern_to_play = self.track.patterns_to_play[self.current_pattern];
+        let current_pattern = &self.track.patterns[pattern_to_play];
 
         let pattern_data_pos =
             current_pattern.start_position + self.current_row * self.track.num_channels;
@@ -94,12 +95,18 @@ impl Tracker {
     fn increment_step(&mut self) {
         self.step += 1;
 
-        if self.step == self.track.frames_per_step * 2 {
+        if self.step == self.track.frames_per_step {
             self.current_row += 1;
 
-            if self.current_row > self.track.patterns[self.current_pattern].length {
+            if self.current_row
+                >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
+            {
                 self.current_pattern += 1;
                 self.current_row = 0;
+
+                if self.current_pattern >= self.track.patterns_to_play.len() {
+                    self.current_pattern = 0;
+                }
             }
 
             self.step = 0;
