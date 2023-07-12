@@ -9,3 +9,4 @@ repository = "https://github.com/agbrs/agb"
 [dependencies]
 agb_xm = { version = "0.15.0", path = "../agb-xm" }
 agb = { version = "0.15.0", path = "../agb" }
+agb_tracker_interop = { version = "0.15.0", path = "../agb-tracker-interop", default-features = false }
