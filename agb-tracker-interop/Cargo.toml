@@ -8,7 +8,8 @@ repository = "https://github.com/agbrs/agb"
 
 [features]
 default = ["quote"]
-quote = ["dep:quote"]
+quote = ["dep:quote", "std"]
+std = []
 
 [dependencies]
-quote = "1"
+quote = { version = "1", optional = true }
