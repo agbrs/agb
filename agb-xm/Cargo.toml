@@ -1,0 +1,13 @@
+[package]
+name = "agb_xm"
+version = "0.15.0"
+authors = ["Gwilym Kuiper <gw@ilym.me>"]
+edition = "2021"
+license = "MPL-2.0"
+description = "Library for converting XM tracker files for use with agb-tracker on the Game Boy Advance"
+repository = "https://github.com/agbrs/agb"
+
+[lib]
+proc-macro = true
+
+[dependencies]
