@@ -123,7 +123,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let (mut volume, panning) = match slot.volume {
+                let (mut volume, mut panning) = match slot.volume {
                     0x10..=0x50 => (Some((slot.volume - 0x10) as f64 / 64.0), None),
                     0xC0..=0xCF => (
                         None,
@@ -134,6 +134,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
                 if slot.effect_type == 0xC {
                     volume = Some(slot.effect_parameter as f64 / 255.0);
+                }
+
+                if slot.effect_type == 0x8 {
+                    panning = Some(Num::new(slot.effect_parameter as i16 - 128) / 128);
                 }
 
                 if sample == 0 {
