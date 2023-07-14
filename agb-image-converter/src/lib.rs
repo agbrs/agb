@@ -183,6 +183,7 @@ fn include_gfx_from_config(
                     &mut optimiser,
                     &image,
                     tile_size,
+                    tile_size,
                     config.transparent_colour(),
                 );
 
@@ -305,7 +306,13 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
             );
 
             let image = Image::load_from_dyn_image(frame);
-            add_to_optimiser(&mut optimiser, &image, 8, Some(transparent_colour));
+            add_to_optimiser(
+                &mut optimiser,
+                &image,
+                width as usize,
+                height as usize,
+                Some(transparent_colour),
+            );
             images.push(image);
         }
     }
@@ -413,19 +420,20 @@ fn convert_image(
 fn add_to_optimiser(
     palette_optimiser: &mut palette16::Palette16Optimiser,
     image: &Image,
-    tile_size: usize,
+    tile_width: usize,
+    tile_height: usize,
     transparent_colour: Option<Colour>,
 ) {
-    let tiles_x = image.width / tile_size;
-    let tiles_y = image.height / tile_size;
+    let tiles_x = image.width / tile_width;
+    let tiles_y = image.height / tile_height;
 
     for y in 0..tiles_y {
         for x in 0..tiles_x {
             let mut palette = palette16::Palette16::new();
 
-            for j in 0..tile_size {
-                for i in 0..tile_size {
-                    let colour = image.colour(x * tile_size + i, y * tile_size + j);
+            for j in 0..tile_height {
+                for i in 0..tile_width {
+                    let colour = image.colour(x * tile_width + i, y * tile_height + j);
 
                     palette.add_colour(match (colour.is_transparent(), transparent_colour) {
                         (true, Some(transparent_colour)) => transparent_colour,
@@ -460,7 +468,7 @@ fn palette_tile_data(
     let mut tile_data = Vec::new();
 
     for (image_idx, image) in images.iter().enumerate() {
-        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx)
+        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx, true)
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -482,6 +490,7 @@ fn add_image_to_tile_data(
     image: &Image,
     optimiser: &Palette16OptimisationResults,
     assignment_offset: usize,
+    is_sprite: bool,
 ) {
     let tile_size = 8;
     let tiles_x = image.width / tile_size;
@@ -489,7 +498,13 @@ fn add_image_to_tile_data(
 
     for y in 0..tiles_y {
         for x in 0..tiles_x {
-            let palette_index = optimiser.assignments[y * tiles_x + x + assignment_offset];
+            let assignment = if is_sprite {
+                assignment_offset
+            } else {
+                y * tiles_x + x + assignment_offset
+            };
+
+            let palette_index = optimiser.assignments[assignment];
             let palette = &optimiser.optimised_palettes[palette_index];
 
             for inner_y in 0..tile_size / 8 {
