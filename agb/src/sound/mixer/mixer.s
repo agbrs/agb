@@ -12,6 +12,7 @@ agb_arm_func \fn_name
     push {{r4-r8}}
 
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
+    ldr r8, [sp, #24]        @ load the buffer size into r8
 
     cmp r7, r3               @ check if left and right channel need the same modifications
     beq 3f @ same modification
@@ -20,7 +21,6 @@ agb_arm_func \fn_name
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, [sp, #24]
 
 1:
 .rept 4
@@ -62,7 +62,6 @@ agb_arm_func \fn_name
     sub r3, r3, #1
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, [sp, #24]           @ the number of steps we have left
 
 1:
 .rept 4
