@@ -27,6 +27,7 @@ extern "C" {
         playback_speed: Num<u32, 8>,
         left_amount: Num<i16, 4>,
         right_amount: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_add_first(
@@ -35,18 +36,21 @@ extern "C" {
         playback_speed: Num<u32, 8>,
         left_amount: Num<i16, 4>,
         right_amount: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_add_stereo(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_add_stereo_first(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_collapse(
@@ -163,8 +167,6 @@ impl Mixer<'_> {
                 buffer_pointer_for_interrupt_handler.swap(cs);
             })
         };
-
-        set_asm_buffer_size(frequency);
 
         let mut working_buffer =
             Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
@@ -322,16 +324,6 @@ impl Mixer<'_> {
     }
 }
 
-fn set_asm_buffer_size(frequency: Frequency) {
-    extern "C" {
-        static mut agb_rs__buffer_size: usize;
-    }
-
-    unsafe {
-        agb_rs__buffer_size = frequency.buffer_size();
-    }
-}
-
 struct SoundBuffer(Box<[i8], InternalAllocator>);
 
 impl SoundBuffer {
@@ -452,6 +444,7 @@ impl MixerBuffer {
                             channel.data.as_ptr().add(channel.pos.floor() as usize),
                             working_buffer.as_mut_ptr(),
                             channel.volume,
+                            self.frequency.buffer_size(),
                         );
                     }
                 } else {
@@ -465,6 +458,7 @@ impl MixerBuffer {
                             playback_speed,
                             left_amount,
                             right_amount,
+                            self.frequency.buffer_size(),
                         );
                     }
                 }
@@ -485,6 +479,7 @@ impl MixerBuffer {
                             channel.data.as_ptr().add(channel.pos.floor() as usize),
                             working_buffer.as_mut_ptr(),
                             channel.volume,
+                            self.frequency.buffer_size(),
                         );
                     }
                 } else {
@@ -498,6 +493,7 @@ impl MixerBuffer {
                             playback_speed,
                             left_amount,
                             right_amount,
+                            self.frequency.buffer_size(),
                         );
                     }
                 }

@@ -1,9 +1,3 @@
-.section .iwram.buffer_size
-    .global agb_rs__buffer_size
-    .balign 4
-agb_rs__buffer_size:
-    .word 0
-
 .macro mixer_add fn_name:req is_first:req
 agb_arm_func \fn_name
     @ Arguments
@@ -12,8 +6,9 @@ agb_arm_func \fn_name
     @ r2 - playback speed (usize fixnum with 8 bits)
     @ r3 - amount to modify the left channel by (u16 fixnum with 4 bits)
     @ stack position 1 - amount to modify the right channel by (u16 fixnum with 4 bits)
+    @ stack position 2 - the buffer_size (usize)
     @
-    @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
+    @ The sound buffer must be buffer_size * 2 in size
     push {{r4-r8}}
 
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
@@ -25,9 +20,7 @@ agb_arm_func \fn_name
     orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, =agb_rs__buffer_size @ the number of steps left
-    ldr r8, [r8]
-
+    ldr r8, [sp, #24]
 
 1:
 .rept 4
@@ -69,8 +62,7 @@ agb_arm_func \fn_name
     sub r3, r3, #1
 
     mov r5, #0                   @ current index we're reading from
-    ldr r8, =agb_rs__buffer_size @ the number of steps left
-    ldr r8, [r8]
+    ldr r8, [sp, #24]           @ the number of steps we have left
 
 1:
 .rept 4
@@ -110,14 +102,14 @@ agb_arm_func \fn_name
     @ r0 - pointer to the data to be copied (u8 array)
     @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
     @ r2 - volume to play the sound at
+    @ r3 - the buffer size
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
     push {{r4-r11}}
 
     ldr r5, =0x00000FFF
 
-    ldr r8, =agb_rs__buffer_size
-    ldr r8, [r8]
+    mov r8, r3
 
 .macro add_stereo_sample sample_reg:req
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
