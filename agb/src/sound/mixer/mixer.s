@@ -43,6 +43,18 @@ agb_arm_func \fn_name
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endm
+
+@ handle the non-multiple of 4 buffer size case
+    and r3, r8, #3
+1:
+    subs r3, r3, #1
+    bmi 1f
+
+    add_one_sample
+    subs r8, r8, #1
+    beq 2f
+    b 1b
+
 1:
 .rept 4
     add_one_sample
@@ -51,6 +63,7 @@ agb_arm_func \fn_name
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
+2:
     pop {{r4-r8}}
     bx lr
 
@@ -90,6 +103,18 @@ agb_arm_func \fn_name
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
 .endm
+
+@ handle the non-multiple of 4 buffer size case
+    and r7, r8, #3
+1:
+    subs r7, r7, #1
+    bmi 1f
+
+    add_one_sample_same_modification
+    subs r8, r8, #1
+    beq 2f
+    b 1b
+
 1:
 .rept 4
     add_one_sample_same_modification
@@ -99,6 +124,7 @@ agb_arm_func \fn_name
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
+2:
     pop {{r4-r8}}
     bx lr
 
