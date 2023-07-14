@@ -12,7 +12,14 @@ agb_arm_func \fn_name
     push {{r4-r8}}
 
     ldr r7, [sp, #20]        @ load the right channel modification amount into r7
-    ldr r8, [sp, #24]        @ load the buffer size into r8
+    ldr r8, [sp, #24]       @ load the buffer size into r8
+    
+    movs r8, r8             @ check that the buffer size isn't 0
+    bne 1f
+
+    pop {{r4-r8}}
+    bx lr
+1:
 
     cmp r7, r3               @ check if left and right channel need the same modifications
     beq 3f @ same modification
@@ -22,8 +29,7 @@ agb_arm_func \fn_name
 
     mov r5, #0                   @ current index we're reading from
 
-1:
-.rept 4
+.macro add_one_sample
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]           @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
@@ -36,8 +42,12 @@ agb_arm_func \fn_name
 .endif
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
+.endm
+1:
+.rept 4
+    add_one_sample
 .endr
-
+.purgem add_one_sample
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
@@ -63,12 +73,10 @@ agb_arm_func \fn_name
 
     mov r5, #0                   @ current index we're reading from
 
-1:
-.rept 4
+.macro add_one_sample_same_modification
     add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
     ldrsb r6, [r4]            @ load the current sound sample to r6
     add r5, r5, r2           @ calculate the position to read the next sample from
-
 
     lsl r6, r6, #16
     orr r6, r6, lsr #16
@@ -81,7 +89,12 @@ agb_arm_func \fn_name
 .endif
 
     str r4, [r1], #4         @ store the new value, and increment the pointer
+.endm
+1:
+.rept 4
+    add_one_sample_same_modification
 .endr
+.purgem add_one_sample_same_modification
 
     subs r8, r8, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
