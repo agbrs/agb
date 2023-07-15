@@ -412,64 +412,30 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
+        working_buffer.fill(0.into());
+
         let mut channels = channels
             .filter(|channel| !channel.is_done)
             .filter_map(|channel| {
                 let playback_speed = if channel.is_stereo {
+                    if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
+                        >= channel.data.len() as u32
+                    {
+                        if channel.should_loop {
+                            channel.pos = 0.into();
+                        } else {
+                            channel.is_done = true;
+                            return None;
+                        }
+                    }
+
                     2.into()
                 } else {
                     channel.playback_speed
                 };
 
-                if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
-                    >= channel.data.len() as u32
-                {
-                    // TODO: This should probably play what's left rather than skip the last bit
-                    if channel.should_loop {
-                        channel.pos = 0.into();
-                    } else {
-                        channel.is_done = true;
-                        return None;
-                    }
-                }
-
                 Some((channel, playback_speed))
             });
-
-        if let Some((channel, playback_speed)) = channels.next() {
-            if channel.volume != 0.into() {
-                if channel.is_stereo {
-                    unsafe {
-                        agb_rs__mixer_add_stereo_first(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            channel.volume,
-                            self.frequency.buffer_size(),
-                        );
-                    }
-                } else {
-                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
-
-                    unsafe {
-                        agb_rs__mixer_add_first(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            playback_speed,
-                            left_amount,
-                            right_amount,
-                            self.frequency.buffer_size(),
-                        );
-                    }
-                }
-            } else {
-                working_buffer.fill(0.into());
-            }
-
-            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
-        } else {
-            working_buffer.fill(0.into());
-        }
 
         for (channel, playback_speed) in channels {
             if channel.volume != 0.into() {
@@ -486,15 +452,24 @@ impl MixerBuffer {
                     let right_amount = ((channel.panning + 1) / 2) * channel.volume;
                     let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
-                    unsafe {
-                        agb_rs__mixer_add(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            playback_speed,
-                            left_amount,
-                            right_amount,
-                            self.frequency.buffer_size(),
-                        );
+                    let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
+
+                    'outer: for i in 0..self.frequency.buffer_size() {
+                        while channel.pos >= channel_len {
+                            if channel.should_loop {
+                                channel.pos -= channel_len;
+                            } else {
+                                channel.is_done = true;
+                                break 'outer;
+                            }
+                        }
+
+                        let value = channel.data[channel.pos.floor() as usize] as i8 as i16;
+
+                        working_buffer[2 * i] += left_amount * value;
+                        working_buffer[2 * i + 1] += right_amount * value;
+
+                        channel.pos += playback_speed;
                     }
                 }
             }

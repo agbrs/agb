@@ -67,7 +67,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             let relative_note = sample.relative_note;
             let volume = sample.volume as f64;
 
-            let mut sample = match &sample.data {
+            let sample = match &sample.data {
                 SampleDataType::Depth8(depth8) => {
                     depth8.iter().map(|value| *value as u8).collect::<Vec<_>>()
                 }
@@ -76,15 +76,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     .map(|sample| (sample >> 8) as i8 as u8)
                     .collect::<Vec<_>>(),
             };
-
-            if should_loop {
-                sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
-                sample.append(&mut sample.clone());
-            }
 
             instruments_map.insert((instrument_index, sample_index), samples.len());
             samples.push(SampleData {
