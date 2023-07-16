@@ -29,14 +29,24 @@ pub struct Pattern {
 
 #[derive(Debug)]
 pub struct PatternSlot {
-    pub volume: Num<i16, 4>,
     pub speed: Num<u32, 8>,
-    pub panning: Num<i16, 4>,
     pub sample: usize,
+    pub effect1: PatternEffect,
+    pub effect2: PatternEffect,
 }
 
-pub const SKIP_SLOT: usize = 277;
-pub const STOP_CHANNEL: usize = 278;
+#[derive(Debug, Default)]
+pub enum PatternEffect {
+    /// Don't play an effect
+    #[default]
+    None,
+    /// Stops playing the current note
+    Stop,
+    /// Plays an arpeggiation of three notes in one row, cycling betwen the current note, current note + first speed, current note + second speed
+    Arpeggio(Num<u16, 8>, Num<u16, 8>),
+    Panning(Num<i16, 4>),
+    Volume(Num<i16, 4>),
+}
 
 #[cfg(feature = "quote")]
 impl<'a> quote::ToTokens for Track<'a> {
@@ -116,22 +126,20 @@ impl quote::ToTokens for PatternSlot {
         use quote::{quote, TokenStreamExt};
 
         let PatternSlot {
-            volume,
             speed,
-            panning,
             sample,
+            effect1,
+            effect2,
         } = &self;
 
-        let volume = volume.to_raw();
         let speed = speed.to_raw();
-        let panning = panning.to_raw();
 
         tokens.append_all(quote! {
             agb_tracker::__private::agb_tracker_interop::PatternSlot {
-                volume: agb_tracker::__private::Num::from_raw(#volume),
                 speed: agb_tracker::__private::Num::from_raw(#speed),
-                panning: agb_tracker::__private::Num::from_raw(#panning),
                 sample: #sample,
+                effect1: #effect1,
+                effect2: #effect2,
             }
         });
     }
@@ -153,5 +161,34 @@ impl quote::ToTokens for Pattern {
                 start_position: #start_position,
             }
         })
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for PatternEffect {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::{quote, TokenStreamExt};
+
+        let type_bit = match self {
+            PatternEffect::None => quote! { None },
+            PatternEffect::Stop => quote! { Stop },
+            PatternEffect::Arpeggio(first, second) => {
+                let first = first.to_raw();
+                let second = second.to_raw();
+                quote! { Arpeggio(agb_tracker::__private::Num::from_raw(#first), agb_tracker::__private::Num::from_raw(#second)) }
+            }
+            PatternEffect::Panning(panning) => {
+                let panning = panning.to_raw();
+                quote! { Panning(agb_tracker::__private::Num::from_raw(#panning))}
+            }
+            PatternEffect::Volume(volume) => {
+                let volume = volume.to_raw();
+                quote! { Volume(agb_tracker::__private::Num::from_raw(#volume))}
+            }
+        };
+
+        tokens.append_all(quote! {
+            agb_tracker::__private::agb_tracker_interop::PatternEffect::#type_bit
+        });
     }
 }

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, error::Error, fs, path::Path};
 
+use agb_tracker_interop::PatternEffect;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 
@@ -53,7 +54,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
         should_loop: bool,
         fine_tune: f64,
         relative_note: i8,
-        volume: f64,
         restart_point: u32,
     }
 
@@ -66,7 +66,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
             let should_loop = !matches!(sample.flags, LoopType::No);
             let fine_tune = sample.finetune as f64;
             let relative_note = sample.relative_note;
-            let volume = sample.volume as f64;
             let restart_point = sample.loop_start;
             let sample_len = if sample.loop_length > 0 {
                 (sample.loop_length + sample.loop_start) as usize
@@ -93,7 +92,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 should_loop,
                 fine_tune,
                 relative_note,
-                volume,
                 restart_point,
             });
         }
@@ -125,50 +123,35 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let (mut volume, mut panning) = match slot.volume {
-                    0x10..=0x50 => (Some((slot.volume - 0x10) as f64 / 64.0), None),
-                    0xC0..=0xCF => (
-                        None,
-                        Some(Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64),
+                let mut effect1 = match slot.volume {
+                    0x10..=0x50 => {
+                        PatternEffect::Volume(Num::new((slot.volume - 0x10) as i16) / 64)
+                    }
+                    0xC0..=0xCF => PatternEffect::Panning(
+                        Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
                     ),
-                    _ => (None, Some(0.into())),
+                    _ => PatternEffect::None,
                 };
 
-                if slot.effect_type == 0xC {
-                    volume = Some(slot.effect_parameter as f64 / 255.0);
-                }
+                let effect2 = match slot.effect_type {
+                    0x8 => {
+                        PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
+                    }
+                    0xC => PatternEffect::Volume(Num::new(slot.effect_parameter as i16) / 255),
+                    _ => PatternEffect::None,
+                };
 
-                if slot.effect_type == 0x8 {
-                    panning = Some(Num::new(slot.effect_parameter as i16 - 128) / 128);
+                if matches!(slot.note, Note::KeyOff) {
+                    effect1 = PatternEffect::Stop;
                 }
 
                 if sample == 0 {
-                    if slot.volume == 0 && slot.effect_type == 0 {
-                        pattern_data.push(agb_tracker_interop::PatternSlot {
-                            volume: 0.into(),
-                            speed: 0.into(),
-                            panning: 0.into(),
-                            sample: agb_tracker_interop::SKIP_SLOT,
-                        });
-                    } else if matches!(slot.note, Note::KeyOff) || volume == Some(0.0) {
-                        pattern_data.push(agb_tracker_interop::PatternSlot {
-                            volume: 0.into(),
-                            speed: 0.into(),
-                            panning: 0.into(),
-                            sample: agb_tracker_interop::STOP_CHANNEL,
-                        });
-                    } else {
-                        let volume: Num<i16, 4> =
-                            Num::from_raw((volume.unwrap_or(0.into()) * (1 << 4) as f64) as i16);
-                        let panning = panning.unwrap_or(0.into());
-
-                        pattern_data.push(agb_tracker_interop::PatternSlot {
-                            volume,
-                            speed: 0.into(),
-                            panning,
-                            sample: 0,
-                        });
-                    }
+                    pattern_data.push(agb_tracker_interop::PatternSlot {
+                        speed: 0.into(),
+                        sample: 0,
+                        effect1,
+                        effect2,
+                    });
                 } else {
                     let sample_played = &samples[sample - 1];
 
@@ -179,15 +162,11 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         module.frequency_type,
                     );
 
-                    let overall_volume = volume.unwrap_or(1.into()) * sample_played.volume;
-                    let volume: Num<i16, 4> =
-                        Num::from_raw((overall_volume * (1 << 4) as f64) as i16);
-
                     pattern_data.push(agb_tracker_interop::PatternSlot {
-                        volume,
                         speed,
-                        panning: panning.unwrap_or(0.into()),
                         sample,
+                        effect1,
+                        effect2,
                     });
                 }
             }
