@@ -414,10 +414,9 @@ impl MixerBuffer {
     ) {
         working_buffer.fill(0.into());
 
-        let channels = channels
-            .filter(|channel| !channel.is_done)
-            .filter_map(|channel| {
-                let playback_speed = if channel.is_stereo {
+        for channel in channels.filter(|channel| !channel.is_done) {
+            if channel.volume != 0.into() {
+                if channel.is_stereo {
                     if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
                         >= channel.data.len() as u32
                     {
@@ -425,21 +424,10 @@ impl MixerBuffer {
                             channel.pos = 0.into();
                         } else {
                             channel.is_done = true;
-                            return None;
+                            continue;
                         }
                     }
 
-                    2.into()
-                } else {
-                    channel.playback_speed
-                };
-
-                Some((channel, playback_speed))
-            });
-
-        for (channel, playback_speed) in channels {
-            if channel.volume != 0.into() {
-                if channel.is_stereo {
                     unsafe {
                         agb_rs__mixer_add_stereo(
                             channel.data.as_ptr().add(channel.pos.floor() as usize),
@@ -455,6 +443,22 @@ impl MixerBuffer {
                     let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
                     let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
+                    let mut playback_speed = channel.playback_speed;
+
+                    while playback_speed >= channel_len {
+                        playback_speed -= channel_len;
+                    }
+
+                    // SAFETY: always aligned correctly by construction
+                    let working_buffer_i32: &mut [i32] = unsafe {
+                        core::slice::from_raw_parts_mut(
+                            working_buffer.as_mut_ptr().cast(),
+                            working_buffer.len() / 2,
+                        )
+                    };
+
+                    let mul_amount = ((left_amount.to_raw() as i32) << 16)
+                        | (right_amount.to_raw() as i32 & 0x0000ffff);
 
                     'outer: for i in 0..self.frequency.buffer_size() {
                         if channel.pos >= channel_len {
@@ -466,11 +470,13 @@ impl MixerBuffer {
                             }
                         }
 
-                        let value = channel.data[channel.pos.floor() as usize] as i8 as i16;
+                        // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
+                        let value =
+                            unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) }
+                                as i8 as i32;
 
-                        working_buffer[2 * i] += right_amount * value;
-                        working_buffer[2 * i + 1] += left_amount * value;
-
+                        // SAFETY: working buffer length = self.frequency.buffer_size()
+                        unsafe { *working_buffer_i32.get_unchecked_mut(i) += value * mul_amount };
                         channel.pos += playback_speed;
                     }
                 }
