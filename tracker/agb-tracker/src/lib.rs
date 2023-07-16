@@ -9,7 +9,10 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
+use agb::{
+    fixnum::Num,
+    sound::mixer::{ChannelId, Mixer, SoundChannel},
+};
 
 #[cfg(feature = "xm")]
 pub use agb_xm::import_xm;
@@ -25,7 +28,9 @@ pub struct Tracker {
     track: &'static Track<'static>,
     channels: Vec<Option<ChannelId>>,
 
-    step: u16,
+    frame: Num<u16, 8>,
+    tick: u16,
+
     current_row: usize,
     current_pattern: usize,
 }
@@ -39,14 +44,16 @@ impl Tracker {
             track,
             channels,
 
-            step: 0,
+            frame: 0.into(),
+            tick: 0,
+
             current_row: 0,
             current_pattern: 0,
         }
     }
 
     pub fn step(&mut self, mixer: &mut Mixer) {
-        if self.step != 0 {
+        if self.tick != 0 {
             self.increment_step();
             return; // TODO: volume / pitch slides
         }
@@ -113,9 +120,14 @@ impl Tracker {
     }
 
     fn increment_step(&mut self) {
-        self.step += 1;
+        self.frame += 1;
 
-        if self.step == self.track.frames_per_step {
+        if self.frame >= self.track.frames_per_tick {
+            self.tick += 1;
+            self.frame -= self.track.frames_per_tick;
+        }
+
+        if self.tick == self.track.ticks_per_step {
             self.current_row += 1;
 
             if self.current_row
@@ -129,7 +141,7 @@ impl Tracker {
                 }
             }
 
-            self.step = 0;
+            self.tick = 0;
         }
     }
 }

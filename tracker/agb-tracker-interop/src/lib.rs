@@ -10,7 +10,8 @@ pub struct Track<'a> {
     pub patterns_to_play: &'a [usize],
 
     pub num_channels: usize,
-    pub frames_per_step: u16,
+    pub frames_per_tick: Num<u16, 8>,
+    pub ticks_per_step: u16,
 }
 
 #[derive(Debug)]
@@ -45,10 +46,13 @@ impl<'a> quote::ToTokens for Track<'a> {
             samples,
             pattern_data,
             patterns,
-            frames_per_step,
+            frames_per_tick,
             num_channels,
             patterns_to_play,
+            ticks_per_step,
         } = self;
+
+        let frames_per_tick = frames_per_tick.to_raw();
 
         tokens.append_all(quote! {
             {
@@ -63,8 +67,9 @@ impl<'a> quote::ToTokens for Track<'a> {
                     patterns: PATTERNS,
                     patterns_to_play: PATTERNS_TO_PLAY,
 
-                    frames_per_step: #frames_per_step,
+                    frames_per_tick: agb_tracker::__private::Num::from_raw(#frames_per_tick),
                     num_channels: #num_channels,
+                    ticks_per_step: #ticks_per_step,
                 }
             }
         })
