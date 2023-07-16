@@ -414,7 +414,7 @@ impl MixerBuffer {
     ) {
         working_buffer.fill(0.into());
 
-        let mut channels = channels
+        let channels = channels
             .filter(|channel| !channel.is_done)
             .filter_map(|channel| {
                 let playback_speed = if channel.is_stereo {
@@ -448,6 +448,8 @@ impl MixerBuffer {
                             self.frequency.buffer_size(),
                         );
                     }
+
+                    channel.pos += 2 * self.frequency.buffer_size() as u32;
                 } else {
                     let right_amount = ((channel.panning + 1) / 2) * channel.volume;
                     let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
@@ -455,7 +457,7 @@ impl MixerBuffer {
                     let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
 
                     'outer: for i in 0..self.frequency.buffer_size() {
-                        while channel.pos >= channel_len {
+                        if channel.pos >= channel_len {
                             if channel.should_loop {
                                 channel.pos -= channel_len;
                             } else {
@@ -466,15 +468,13 @@ impl MixerBuffer {
 
                         let value = channel.data[channel.pos.floor() as usize] as i8 as i16;
 
-                        working_buffer[2 * i] += left_amount * value;
-                        working_buffer[2 * i + 1] += right_amount * value;
+                        working_buffer[2 * i] += right_amount * value;
+                        working_buffer[2 * i + 1] += left_amount * value;
 
                         channel.pos += playback_speed;
                     }
                 }
             }
-
-            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
         }
 
         let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
