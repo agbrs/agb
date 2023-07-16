@@ -79,54 +79,6 @@ impl Tracker {
 
             channel.apply_effect(mixer, &pattern_slot.effect1, self.tick, pattern_slot.speed);
             channel.apply_effect(mixer, &pattern_slot.effect2, self.tick, pattern_slot.speed);
-            // if pattern_slot.sample == agb_tracker_interop::SKIP_SLOT {
-            //     // completely skip
-            // } else if pattern_slot.sample == agb_tracker_interop::STOP_CHANNEL {
-            //     if let Some(channel) = channel_id
-            //         .take()
-            //         .and_then(|channel_id| mixer.channel(&channel_id))
-            //     {
-            //         channel.stop();
-            //     }
-            // } else if pattern_slot.sample == 0 {
-            //     if let Some(channel) = channel_id
-            //         .as_ref()
-            //         .and_then(|channel_id| mixer.channel(channel_id))
-            //     {
-            //         if pattern_slot.volume != 0.into() {
-            //             channel.volume(pattern_slot.volume);
-            //         }
-
-            //         if pattern_slot.panning != 0.into() {
-            //             channel.panning(pattern_slot.panning);
-            //         }
-
-            //         if pattern_slot.speed != 0.into() {
-            //             channel.playback(pattern_slot.speed);
-            //         }
-            //     }
-            // } else {
-            //     if let Some(channel) = channel_id
-            //         .take()
-            //         .and_then(|channel_id| mixer.channel(&channel_id))
-            //     {
-            //         channel.stop();
-            //     }
-
-            //     let sample = &self.track.samples[pattern_slot.sample - 1];
-            //     let mut new_channel = SoundChannel::new(sample.data);
-            //     new_channel
-            //         .panning(pattern_slot.panning)
-            //         .volume(pattern_slot.volume)
-            //         .playback(pattern_slot.speed)
-            //         .restart_point(sample.restart_point);
-
-            //     if sample.should_loop {
-            //         new_channel.should_loop();
-            //     }
-
-            //     *channel_id = mixer.play_sound(new_channel);
-            // }
         }
 
         self.increment_step();
