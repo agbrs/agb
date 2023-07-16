@@ -31,6 +31,7 @@ pub struct Tracker {
 
     frame: Num<u16, 8>,
     tick: u16,
+    first: bool,
 
     current_row: usize,
     current_pattern: usize,
@@ -38,18 +39,23 @@ pub struct Tracker {
 
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
+    base_speed: Num<u32, 8>,
 }
 
 impl Tracker {
     pub fn new(track: &'static Track<'static>) -> Self {
         let mut channels = Vec::new();
-        channels.resize_with(track.num_channels, || TrackerChannel { channel_id: None });
+        channels.resize_with(track.num_channels, || TrackerChannel {
+            channel_id: None,
+            base_speed: 0.into(),
+        });
 
         Self {
             track,
             channels,
 
             frame: 0.into(),
+            first: true,
             tick: 0,
 
             current_row: 0,
@@ -58,9 +64,8 @@ impl Tracker {
     }
 
     pub fn step(&mut self, mixer: &mut Mixer) {
-        if self.tick != 0 {
-            self.increment_step();
-            return; // TODO: volume / pitch slides
+        if !self.increment_frame() {
+            return;
         }
 
         let pattern_to_play = self.track.patterns_to_play[self.current_pattern];
@@ -72,7 +77,7 @@ impl Tracker {
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
         for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
-            if pattern_slot.sample != 0 {
+            if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample - 1];
                 channel.play_sound(mixer, sample);
             }
@@ -84,31 +89,42 @@ impl Tracker {
         self.increment_step();
     }
 
-    fn increment_step(&mut self) {
+    fn increment_frame(&mut self) -> bool {
+        if self.first {
+            self.first = false;
+            return true;
+        }
+
         self.frame += 1;
 
         if self.frame >= self.track.frames_per_tick {
             self.tick += 1;
             self.frame -= self.track.frames_per_tick;
-        }
 
-        if self.tick == self.track.ticks_per_step {
-            self.current_row += 1;
+            if self.tick == self.track.ticks_per_step {
+                self.current_row += 1;
 
-            if self.current_row
-                >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
-            {
-                self.current_pattern += 1;
-                self.current_row = 0;
+                if self.current_row
+                    >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
+                {
+                    self.current_pattern += 1;
+                    self.current_row = 0;
 
-                if self.current_pattern >= self.track.patterns_to_play.len() {
-                    self.current_pattern = 0;
+                    if self.current_pattern >= self.track.patterns_to_play.len() {
+                        self.current_pattern = 0;
+                    }
                 }
+
+                self.tick = 0;
             }
 
-            self.tick = 0;
+            true
+        } else {
+            false
         }
     }
+
+    fn increment_step(&mut self) {}
 }
 
 impl TrackerChannel {
@@ -143,6 +159,7 @@ impl TrackerChannel {
         {
             if speed != 0.into() {
                 channel.playback(speed);
+                self.base_speed = speed;
             }
 
             match effect {
@@ -150,7 +167,17 @@ impl TrackerChannel {
                 PatternEffect::Stop => {
                     channel.stop();
                 }
-                PatternEffect::Arpeggio(_, _) => todo!(),
+                PatternEffect::Arpeggio(first, second) => {
+                    let first: Num<u32, 8> = first.change_base();
+                    let second: Num<u32, 8> = second.change_base();
+
+                    match tick % 3 {
+                        0 => channel.playback(self.base_speed),
+                        1 => channel.playback(self.base_speed + first),
+                        2 => channel.playback(self.base_speed + second),
+                        _ => unreachable!(),
+                    };
+                }
                 PatternEffect::Panning(panning) => {
                     channel.panning(*panning);
                 }
