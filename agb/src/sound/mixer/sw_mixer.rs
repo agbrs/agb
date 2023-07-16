@@ -1,5 +1,6 @@
 use core::cell::RefCell;
 use core::marker::PhantomData;
+use core::ops::ControlFlow;
 use core::pin::Pin;
 
 use alloc::boxed::Box;
@@ -417,68 +418,9 @@ impl MixerBuffer {
         for channel in channels.filter(|channel| !channel.is_done) {
             if channel.volume != 0.into() {
                 if channel.is_stereo {
-                    if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
-                        >= channel.data.len() as u32
-                    {
-                        if channel.should_loop {
-                            channel.pos = 0.into();
-                        } else {
-                            channel.is_done = true;
-                            continue;
-                        }
-                    }
-
-                    unsafe {
-                        agb_rs__mixer_add_stereo(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            channel.volume,
-                            self.frequency.buffer_size(),
-                        );
-                    }
-
-                    channel.pos += 2 * self.frequency.buffer_size() as u32;
+                    self.write_stereo(channel, working_buffer);
                 } else {
-                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
-
-                    let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
-                    let mut playback_speed = channel.playback_speed;
-
-                    while playback_speed >= channel_len {
-                        playback_speed -= channel_len;
-                    }
-
-                    // SAFETY: always aligned correctly by construction
-                    let working_buffer_i32: &mut [i32] = unsafe {
-                        core::slice::from_raw_parts_mut(
-                            working_buffer.as_mut_ptr().cast(),
-                            working_buffer.len() / 2,
-                        )
-                    };
-
-                    let mul_amount = ((left_amount.to_raw() as i32) << 16)
-                        | (right_amount.to_raw() as i32 & 0x0000ffff);
-
-                    'outer: for i in 0..self.frequency.buffer_size() {
-                        if channel.pos >= channel_len {
-                            if channel.should_loop {
-                                channel.pos -= channel_len;
-                            } else {
-                                channel.is_done = true;
-                                break 'outer;
-                            }
-                        }
-
-                        // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
-                        let value =
-                            unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) }
-                                as i8 as i32;
-
-                        // SAFETY: working buffer length = self.frequency.buffer_size()
-                        unsafe { *working_buffer_i32.get_unchecked_mut(i) += value * mul_amount };
-                        channel.pos += playback_speed;
-                    }
+                    self.write_mono(channel, working_buffer);
                 }
             }
         }
@@ -491,6 +433,71 @@ impl MixerBuffer {
                 working_buffer.as_ptr(),
                 self.frequency.buffer_size(),
             );
+        }
+    }
+
+    fn write_stereo(&self, channel: &mut SoundChannel, working_buffer: &mut [Num<i16, 4>]) {
+        if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
+            >= channel.data.len() as u32
+        {
+            if channel.should_loop {
+                channel.pos = 0.into();
+            } else {
+                channel.is_done = true;
+                return;
+            }
+        }
+        unsafe {
+            agb_rs__mixer_add_stereo(
+                channel.data.as_ptr().add(channel.pos.floor() as usize),
+                working_buffer.as_mut_ptr(),
+                channel.volume,
+                self.frequency.buffer_size(),
+            );
+        }
+
+        channel.pos += 2 * self.frequency.buffer_size() as u32;
+    }
+
+    fn write_mono(&self, channel: &mut SoundChannel, working_buffer: &mut [Num<i16, 4>]) {
+        let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+        let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
+        let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
+        let mut playback_speed = channel.playback_speed;
+
+        while playback_speed >= channel_len {
+            playback_speed -= channel_len;
+        }
+
+        // SAFETY: always aligned correctly by construction
+        let working_buffer_i32: &mut [i32] = unsafe {
+            core::slice::from_raw_parts_mut(
+                working_buffer.as_mut_ptr().cast(),
+                working_buffer.len() / 2,
+            )
+        };
+
+        let mul_amount =
+            ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
+
+        'outer: for i in 0..self.frequency.buffer_size() {
+            if channel.pos >= channel_len {
+                if channel.should_loop {
+                    channel.pos -= channel_len;
+                } else {
+                    channel.is_done = true;
+                    break 'outer;
+                }
+            }
+
+            // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
+            let value =
+                unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) } as i8 as i32;
+
+            // SAFETY: working buffer length = self.frequency.buffer_size()
+            unsafe { *working_buffer_i32.get_unchecked_mut(i) += value * mul_amount };
+            channel.pos += playback_speed;
         }
     }
 }
