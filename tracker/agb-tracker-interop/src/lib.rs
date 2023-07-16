@@ -46,6 +46,7 @@ pub enum PatternEffect {
     Arpeggio(Num<u16, 8>, Num<u16, 8>),
     Panning(Num<i16, 4>),
     Volume(Num<i16, 4>),
+    VolumeSlide(Num<i16, 4>),
 }
 
 #[cfg(feature = "quote")]
@@ -184,6 +185,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::Volume(volume) => {
                 let volume = volume.to_raw();
                 quote! { Volume(agb_tracker::__private::Num::from_raw(#volume))}
+            }
+            PatternEffect::VolumeSlide(amount) => {
+                let amount = amount.to_raw();
+                quote! { VolumeSlide(agb_tracker::__private::Num::from_raw(#amount))}
             }
         };
 

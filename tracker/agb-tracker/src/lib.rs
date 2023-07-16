@@ -40,6 +40,7 @@ pub struct Tracker {
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
     base_speed: Num<u32, 8>,
+    volume: Num<i16, 4>,
 }
 
 impl Tracker {
@@ -48,6 +49,7 @@ impl Tracker {
         channels.resize_with(track.num_channels, || TrackerChannel {
             channel_id: None,
             base_speed: 0.into(),
+            volume: 0.into(),
         });
 
         Self {
@@ -183,6 +185,14 @@ impl TrackerChannel {
                 }
                 PatternEffect::Volume(volume) => {
                     channel.volume(*volume);
+                    self.volume = *volume;
+                }
+                PatternEffect::VolumeSlide(amount) => {
+                    self.volume += *amount;
+                    if self.volume < 0.into() {
+                        self.volume = 0.into();
+                    }
+                    channel.volume(self.volume);
                 }
             }
         }

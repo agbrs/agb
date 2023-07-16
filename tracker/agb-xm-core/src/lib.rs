@@ -188,6 +188,16 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
                     }
+                    0xA => {
+                        let first = slot.effect_parameter >> 4;
+                        let second = slot.effect_parameter & 0xF;
+
+                        if first == 0 {
+                            PatternEffect::VolumeSlide(-Num::new(second as i16) / 16)
+                        } else {
+                            PatternEffect::VolumeSlide(Num::new(first as i16) / 16)
+                        }
+                    }
                     0xC => PatternEffect::Volume(Num::new(slot.effect_parameter as i16) / 255),
                     _ => PatternEffect::None,
                 };
