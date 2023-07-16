@@ -481,13 +481,13 @@ impl MixerBuffer {
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
 
-        'outer: for i in 0..self.frequency.buffer_size() {
+        for i in 0..self.frequency.buffer_size() {
             if channel.pos >= channel_len {
                 if channel.should_loop {
                     channel.pos -= channel_len;
                 } else {
                     channel.is_done = true;
-                    break 'outer;
+                    break;
                 }
             }
 
