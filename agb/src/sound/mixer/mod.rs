@@ -226,6 +226,7 @@ pub struct SoundChannel {
     data: &'static [u8],
     pos: Num<u32, 8>,
     should_loop: bool,
+    restart_point: Num<u32, 8>,
 
     playback_speed: Num<u32, 8>,
     volume: Num<i16, 4>, // between 0 and 1
@@ -276,6 +277,7 @@ impl SoundChannel {
             priority: SoundPriority::Low,
             volume: 1.into(),
             is_stereo: false,
+            restart_point: 0.into(),
         }
     }
 
@@ -319,6 +321,7 @@ impl SoundChannel {
             priority: SoundPriority::High,
             volume: 1.into(),
             is_stereo: false,
+            restart_point: 0.into(),
         }
     }
 
@@ -327,6 +330,20 @@ impl SoundChannel {
     #[inline(always)]
     pub fn should_loop(&mut self) -> &mut Self {
         self.should_loop = true;
+        self
+    }
+
+    /// Sets the point at which the sample should restart once it loops. Does nothing
+    /// unless you also call [`should_loop()`].
+    ///
+    /// Useful if your song has an introduction or similar.
+    #[inline(always)]
+    pub fn restart_point(&mut self, restart_point: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.restart_point = restart_point.into();
+        assert!(
+            self.restart_point.floor() as usize <= self.data.len(),
+            "restart point must be shorter than the length of the sample"
+        );
         self
     }
 

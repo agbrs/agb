@@ -441,7 +441,7 @@ impl MixerBuffer {
             >= channel.data.len() as u32
         {
             if channel.should_loop {
-                channel.pos = 0.into();
+                channel.pos = channel.restart_point * 2;
             } else {
                 channel.is_done = true;
                 return;
@@ -466,7 +466,7 @@ impl MixerBuffer {
         let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
         let mut playback_speed = channel.playback_speed;
 
-        while playback_speed >= channel_len {
+        while playback_speed >= channel_len - channel.restart_point {
             playback_speed -= channel_len;
         }
 
@@ -484,7 +484,7 @@ impl MixerBuffer {
         for i in 0..self.frequency.buffer_size() {
             if channel.pos >= channel_len {
                 if channel.should_loop {
-                    channel.pos -= channel_len;
+                    channel.pos -= channel_len + channel.restart_point;
                 } else {
                     channel.is_done = true;
                     break;
