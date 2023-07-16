@@ -484,7 +484,7 @@ impl MixerBuffer {
         for i in 0..self.frequency.buffer_size() {
             if channel.pos >= channel_len {
                 if channel.should_loop {
-                    channel.pos -= channel_len + channel.restart_point;
+                    channel.pos -= channel_len - channel.restart_point;
                 } else {
                     channel.is_done = true;
                     break;

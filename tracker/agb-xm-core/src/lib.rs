@@ -54,6 +54,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         fine_tune: f64,
         relative_note: i8,
         volume: f64,
+        restart_point: u32,
     }
 
     let mut samples = vec![];
@@ -66,14 +67,23 @@ pub fn parse_module(module: &Module) -> TokenStream {
             let fine_tune = sample.finetune as f64;
             let relative_note = sample.relative_note;
             let volume = sample.volume as f64;
+            let restart_point = sample.loop_start;
+            let sample_len = if sample.loop_length > 0 {
+                (sample.loop_length + sample.loop_start) as usize
+            } else {
+                usize::MAX
+            };
 
             let sample = match &sample.data {
-                SampleDataType::Depth8(depth8) => {
-                    depth8.iter().map(|value| *value as u8).collect::<Vec<_>>()
-                }
+                SampleDataType::Depth8(depth8) => depth8
+                    .iter()
+                    .map(|value| *value as u8)
+                    .take(sample_len)
+                    .collect::<Vec<_>>(),
                 SampleDataType::Depth16(depth16) => depth16
                     .iter()
                     .map(|sample| (sample >> 8) as i8 as u8)
+                    .take(sample_len)
                     .collect::<Vec<_>>(),
             };
 
@@ -84,6 +94,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 fine_tune,
                 relative_note,
                 volume,
+                restart_point,
             });
         }
     }
@@ -193,6 +204,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         .map(|sample| agb_tracker_interop::Sample {
             data: &sample.data,
             should_loop: sample.should_loop,
+            restart_point: sample.restart_point,
         })
         .collect();
 

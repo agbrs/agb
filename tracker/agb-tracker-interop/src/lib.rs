@@ -18,6 +18,7 @@ pub struct Track<'a> {
 pub struct Sample<'a> {
     pub data: &'a [u8],
     pub should_loop: bool,
+    pub restart_point: u32,
 }
 
 #[derive(Debug)]
@@ -95,6 +96,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
         let self_as_u8s: Vec<_> = self.data.iter().map(|i| *i as u8).collect();
         let samples = ByteString(&self_as_u8s);
         let should_loop = self.should_loop;
+        let restart_point = self.restart_point;
 
         tokens.append_all(quote! {
             {
@@ -102,7 +104,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
                 struct AlignmentWrapper<const N: usize>([u8; N]);
 
                 const SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
-                agb_tracker::__private::agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop }
+                agb_tracker::__private::agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop, restart_point: #restart_point }
             }
         });
     }

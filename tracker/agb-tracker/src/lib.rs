@@ -106,7 +106,8 @@ impl Tracker {
                 new_channel
                     .panning(pattern_slot.panning)
                     .volume(pattern_slot.volume)
-                    .playback(pattern_slot.speed);
+                    .playback(pattern_slot.speed)
+                    .restart_point(sample.restart_point);
 
                 if sample.should_loop {
                     new_channel.should_loop();
