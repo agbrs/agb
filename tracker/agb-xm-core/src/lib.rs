@@ -229,8 +229,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     );
 
                     pattern_data.push(agb_tracker_interop::PatternSlot {
-                        speed,
-                        sample,
+                        speed: speed.try_change_base().unwrap(),
+                        sample: sample as u16,
                         effect1,
                         effect2,
                     });

@@ -80,12 +80,22 @@ impl Tracker {
 
         for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
             if pattern_slot.sample != 0 && self.tick == 0 {
-                let sample = &self.track.samples[pattern_slot.sample - 1];
+                let sample = &self.track.samples[pattern_slot.sample as usize - 1];
                 channel.play_sound(mixer, sample);
             }
 
-            channel.apply_effect(mixer, &pattern_slot.effect1, self.tick, pattern_slot.speed);
-            channel.apply_effect(mixer, &pattern_slot.effect2, self.tick, pattern_slot.speed);
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect1,
+                self.tick,
+                pattern_slot.speed.change_base(),
+            );
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect2,
+                self.tick,
+                pattern_slot.speed.change_base(),
+            );
         }
 
         self.increment_step();

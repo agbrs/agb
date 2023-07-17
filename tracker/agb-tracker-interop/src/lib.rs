@@ -29,8 +29,8 @@ pub struct Pattern {
 
 #[derive(Debug)]
 pub struct PatternSlot {
-    pub speed: Num<u32, 8>,
-    pub sample: usize,
+    pub speed: Num<u16, 8>,
+    pub sample: u16,
     pub effect1: PatternEffect,
     pub effect2: PatternEffect,
 }
