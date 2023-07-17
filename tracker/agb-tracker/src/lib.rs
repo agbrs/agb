@@ -196,11 +196,13 @@ impl TrackerChannel {
                     self.volume = *volume;
                 }
                 PatternEffect::VolumeSlide(amount) => {
-                    self.volume += *amount;
-                    if self.volume < 0.into() {
-                        self.volume = 0.into();
+                    if tick != 0 {
+                        self.volume += *amount;
+                        if self.volume < 0.into() {
+                            self.volume = 0.into();
+                        }
+                        channel.volume(self.volume);
                     }
-                    channel.volume(self.volume);
                 }
             }
         }
