@@ -170,13 +170,10 @@ impl TrackerChannel {
                     channel.stop();
                 }
                 PatternEffect::Arpeggio(first, second) => {
-                    let first: Num<u32, 8> = first.change_base();
-                    let second: Num<u32, 8> = second.change_base();
-
                     match tick % 3 {
                         0 => channel.playback(self.base_speed),
-                        1 => channel.playback(self.base_speed + first),
-                        2 => channel.playback(self.base_speed + second),
+                        1 => channel.playback(self.base_speed + first.change_base()),
+                        2 => channel.playback(self.base_speed + second.change_base()),
                         _ => unreachable!(),
                     };
                 }

@@ -104,7 +104,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         let start_pos = pattern_data.len();
 
         for row in pattern.iter() {
-            let mut notes = vec![None; module.get_num_channels()];
+            let mut note_and_sample = vec![None; module.get_num_channels()];
 
             for (i, slot) in row.iter().enumerate() {
                 let channel_number = i % module.get_num_channels();
@@ -139,33 +139,42 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
                 if matches!(slot.note, Note::KeyOff) {
                     effect1 = PatternEffect::Stop;
-                    notes[channel_number] = None;
-                } else {
-                    notes[channel_number] = Some(slot.note);
+                    note_and_sample[channel_number] = None;
+                } else if !matches!(slot.note, Note::None) {
+                    if sample != 0 {
+                        note_and_sample[channel_number] = Some((slot.note, &samples[sample - 1]));
+                    } else if let Some((note, _)) = &mut note_and_sample[channel_number] {
+                        *note = slot.note;
+                    }
                 }
 
                 let effect2 = match slot.effect_type {
                     0x0 => {
                         if slot.effect_parameter == 0 {
                             PatternEffect::None
-                        } else if let Some(note) = notes[channel_number] {
+                        } else if let Some((note, sample)) = note_and_sample[channel_number] {
                             let first_arpeggio = slot.effect_parameter >> 4;
                             let second_arpeggio = slot.effect_parameter & 0xF;
 
-                            let note_speed = note_to_speed(note, 0.0, 0, module.frequency_type);
+                            let note_speed = note_to_speed(
+                                note,
+                                sample.fine_tune,
+                                sample.relative_note,
+                                module.frequency_type,
+                            );
 
-                            let note = note as u8;
-                            let first_arpeggio: Note = (note + first_arpeggio)
-                                .try_into()
-                                .expect("Note out of bounds");
-                            let second_arpeggio: Note = (note + second_arpeggio)
-                                .try_into()
-                                .expect("Note out of bounds");
-
-                            let first_arpeggio_speed =
-                                note_to_speed(first_arpeggio, 0.0, 0, module.frequency_type);
-                            let second_arpeggio_speed =
-                                note_to_speed(second_arpeggio, 0.0, 0, module.frequency_type);
+                            let first_arpeggio_speed = note_to_speed(
+                                note,
+                                sample.fine_tune,
+                                sample.relative_note + first_arpeggio as i8,
+                                module.frequency_type,
+                            );
+                            let second_arpeggio_speed = note_to_speed(
+                                note,
+                                sample.fine_tune,
+                                sample.relative_note + second_arpeggio as i8,
+                                module.frequency_type,
+                            );
 
                             let first_arpeggio_difference = first_arpeggio_speed - note_speed;
                             let second_arpeggio_difference = second_arpeggio_speed - note_speed;
