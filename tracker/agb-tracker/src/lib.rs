@@ -144,7 +144,8 @@ impl TrackerChannel {
                 .restart_point(sample.restart_point);
         }
 
-        self.channel_id = mixer.play_sound(new_channel)
+        self.channel_id = mixer.play_sound(new_channel);
+        self.volume = 1.into();
     }
 
     fn apply_effect(
