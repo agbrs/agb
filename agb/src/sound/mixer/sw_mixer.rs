@@ -496,7 +496,10 @@ impl MixerBuffer {
                 unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) } as i8 as i32;
 
             // SAFETY: working buffer length = self.frequency.buffer_size()
-            unsafe { *working_buffer_i32.get_unchecked_mut(i) += value * mul_amount };
+            unsafe {
+                let value_ref = working_buffer_i32.get_unchecked_mut(i);
+                *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
+            };
             channel.pos += playback_speed;
         }
     }
