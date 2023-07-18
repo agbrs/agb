@@ -55,6 +55,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         fine_tune: f64,
         relative_note: i8,
         restart_point: u32,
+        volume: Num<i16, 4>,
     }
 
     let mut samples = vec![];
@@ -72,6 +73,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
             } else {
                 usize::MAX
             };
+
+            let volume = Num::from_raw((sample.volume * (1 << 4) as f32) as i16);
 
             let sample = match &sample.data {
                 SampleDataType::Depth8(depth8) => depth8
@@ -93,6 +96,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 fine_tune,
                 relative_note,
                 restart_point,
+                volume,
             });
         }
     }
@@ -127,50 +131,62 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                 };
 
-                let mut effect1 = match slot.volume {
-                    0x10..=0x50 => {
-                        PatternEffect::Volume(Num::new((slot.volume - 0x10) as i16) / 64)
-                    }
-                    0xC0..=0xCF => PatternEffect::Panning(
-                        Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
-                    ),
-                    _ => PatternEffect::None,
-                };
+                let mut effect1 = PatternEffect::None;
 
-                if matches!(slot.note, Note::KeyOff) {
+                let maybe_note_and_sample = if matches!(slot.note, Note::KeyOff) {
                     effect1 = PatternEffect::Stop;
                     note_and_sample[channel_number] = None;
+                    &None
                 } else if !matches!(slot.note, Note::None) {
                     if sample != 0 {
                         note_and_sample[channel_number] = Some((slot.note, &samples[sample - 1]));
                     } else if let Some((note, _)) = &mut note_and_sample[channel_number] {
                         *note = slot.note;
                     }
+
+                    &note_and_sample[channel_number]
+                } else {
+                    &note_and_sample[channel_number]
+                };
+
+                if matches!(effect1, PatternEffect::None) {
+                    effect1 = match slot.volume {
+                        0x10..=0x50 => PatternEffect::Volume(
+                            (Num::new((slot.volume - 0x10) as i16) / 64)
+                                * maybe_note_and_sample
+                                    .map(|note_and_sample| note_and_sample.1.volume)
+                                    .unwrap_or(1.into()),
+                        ),
+                        0xC0..=0xCF => PatternEffect::Panning(
+                            Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
+                        ),
+                        _ => PatternEffect::None,
+                    };
                 }
 
                 let effect2 = match slot.effect_type {
                     0x0 => {
                         if slot.effect_parameter == 0 {
                             PatternEffect::None
-                        } else if let Some((note, sample)) = note_and_sample[channel_number] {
+                        } else if let Some((note, sample)) = maybe_note_and_sample {
                             let first_arpeggio = slot.effect_parameter >> 4;
                             let second_arpeggio = slot.effect_parameter & 0xF;
 
                             let note_speed = note_to_speed(
-                                note,
+                                *note,
                                 sample.fine_tune,
                                 sample.relative_note,
                                 module.frequency_type,
                             );
 
                             let first_arpeggio_speed = note_to_speed(
-                                note,
+                                *note,
                                 sample.fine_tune,
                                 sample.relative_note + first_arpeggio as i8,
                                 module.frequency_type,
                             );
                             let second_arpeggio_speed = note_to_speed(
-                                note,
+                                *note,
                                 sample.fine_tune,
                                 sample.relative_note + second_arpeggio as i8,
                                 module.frequency_type,
@@ -207,7 +223,15 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::VolumeSlide(Num::new(first as i16) / 16)
                         }
                     }
-                    0xC => PatternEffect::Volume(Num::new(slot.effect_parameter as i16) / 255),
+                    0xC => {
+                        if let Some((_, sample)) = maybe_note_and_sample {
+                            PatternEffect::Volume(
+                                (Num::new(slot.effect_parameter as i16) / 255) * sample.volume,
+                            )
+                        } else {
+                            PatternEffect::None
+                        }
+                    }
                     _ => PatternEffect::None,
                 };
 
@@ -250,6 +274,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             data: &sample.data,
             should_loop: sample.should_loop,
             restart_point: sample.restart_point,
+            volume: sample.volume,
         })
         .collect();
 

@@ -148,6 +148,8 @@ impl TrackerChannel {
 
         let mut new_channel = SoundChannel::new(sample.data);
 
+        new_channel.volume(sample.volume);
+
         if sample.should_loop {
             new_channel
                 .should_loop()

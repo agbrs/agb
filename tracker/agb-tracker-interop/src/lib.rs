@@ -19,6 +19,7 @@ pub struct Sample<'a> {
     pub data: &'a [u8],
     pub should_loop: bool,
     pub restart_point: u32,
+    pub volume: Num<i16, 4>,
 }
 
 #[derive(Debug)]
@@ -104,10 +105,16 @@ impl<'a> quote::ToTokens for Sample<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
-        let self_as_u8s: Vec<_> = self.data.iter().map(|i| *i as u8).collect();
+        let Sample {
+            data,
+            should_loop,
+            restart_point,
+            volume,
+        } = self;
+
+        let self_as_u8s: Vec<_> = data.iter().map(|i| *i as u8).collect();
         let samples = ByteString(&self_as_u8s);
-        let should_loop = self.should_loop;
-        let restart_point = self.restart_point;
+        let volume = volume.to_raw();
 
         tokens.append_all(quote! {
             {
@@ -115,7 +122,12 @@ impl<'a> quote::ToTokens for Sample<'a> {
                 struct AlignmentWrapper<const N: usize>([u8; N]);
 
                 const SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
-                agb_tracker::__private::agb_tracker_interop::Sample { data: SAMPLE_DATA, should_loop: #should_loop, restart_point: #restart_point }
+                agb_tracker::__private::agb_tracker_interop::Sample {
+                    data: SAMPLE_DATA,
+                    should_loop: #should_loop,
+                    restart_point: #restart_point,
+                    volume: agb_tracker::__private::Num::from_raw(#volume),
+                }
             }
         });
     }
