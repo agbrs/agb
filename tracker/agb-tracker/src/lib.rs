@@ -29,8 +29,8 @@ pub struct Tracker {
     track: &'static Track<'static>,
     channels: Vec<TrackerChannel>,
 
-    frame: Num<u16, 8>,
-    tick: u16,
+    frame: Num<u32, 8>,
+    tick: u32,
     first: bool,
 
     current_row: usize,
@@ -164,7 +164,7 @@ impl TrackerChannel {
         &mut self,
         mixer: &mut Mixer<'_>,
         effect: &PatternEffect,
-        tick: u16,
+        tick: u32,
         speed: Num<u32, 8>,
     ) {
         if let Some(channel) = self

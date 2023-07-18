@@ -10,8 +10,8 @@ pub struct Track<'a> {
     pub patterns_to_play: &'a [usize],
 
     pub num_channels: usize,
-    pub frames_per_tick: Num<u16, 8>,
-    pub ticks_per_step: u16,
+    pub frames_per_tick: Num<u32, 8>,
+    pub ticks_per_step: u32,
 }
 
 #[derive(Debug)]

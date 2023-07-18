@@ -272,7 +272,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         .collect::<Vec<_>>();
 
     // Number 150 here deduced experimentally
-    let frames_per_tick = Num::<u16, 8>::new(150) / module.default_bpm;
+    let frames_per_tick = Num::<u32, 8>::new(150) / module.default_bpm as u32;
     let ticks_per_step = module.default_tempo;
 
     let interop = agb_tracker_interop::Track {
@@ -283,7 +283,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         patterns_to_play: &patterns_to_play,
 
         frames_per_tick,
-        ticks_per_step,
+        ticks_per_step: ticks_per_step.into(),
     };
 
     quote!(#interop)
