@@ -1,6 +1,5 @@
 use core::cell::RefCell;
 use core::marker::PhantomData;
-use core::ops::ControlFlow;
 use core::pin::Pin;
 
 use alloc::boxed::Box;
@@ -22,32 +21,7 @@ use crate::{
 
 // Defined in mixer.s
 extern "C" {
-    fn agb_rs__mixer_add(
-        sound_data: *const u8,
-        sound_buffer: *mut Num<i16, 4>,
-        playback_speed: Num<u32, 8>,
-        left_amount: Num<i16, 4>,
-        right_amount: Num<i16, 4>,
-        buffer_size: usize,
-    );
-
-    fn agb_rs__mixer_add_first(
-        sound_data: *const u8,
-        sound_buffer: *mut Num<i16, 4>,
-        playback_speed: Num<u32, 8>,
-        left_amount: Num<i16, 4>,
-        right_amount: Num<i16, 4>,
-        buffer_size: usize,
-    );
-
     fn agb_rs__mixer_add_stereo(
-        sound_data: *const u8,
-        sound_buffer: *mut Num<i16, 4>,
-        volume: Num<i16, 4>,
-        buffer_size: usize,
-    );
-
-    fn agb_rs__mixer_add_stereo_first(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
