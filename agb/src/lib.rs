@@ -13,6 +13,7 @@
 #![feature(allocator_api)]
 #![feature(asm_const)]
 #![warn(clippy::all)]
+#![allow(clippy::needless_pass_by_ref_mut)]
 #![deny(clippy::must_use_candidate)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
 #![deny(clippy::semicolon_if_nothing_returned)]
