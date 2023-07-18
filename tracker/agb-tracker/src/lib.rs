@@ -177,6 +177,8 @@ impl TrackerChannel {
                 self.base_speed = speed;
             }
 
+            channel.playback(self.base_speed);
+
             match effect {
                 PatternEffect::None => {}
                 PatternEffect::Stop => {
@@ -185,8 +187,8 @@ impl TrackerChannel {
                 PatternEffect::Arpeggio(first, second) => {
                     match tick % 3 {
                         0 => channel.playback(self.base_speed),
-                        1 => channel.playback(self.base_speed + first.change_base()),
-                        2 => channel.playback(self.base_speed + second.change_base()),
+                        1 => channel.playback(first.change_base()),
+                        2 => channel.playback(second.change_base()),
                         _ => unreachable!(),
                     };
                 }

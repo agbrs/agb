@@ -172,13 +172,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             let first_arpeggio = slot.effect_parameter >> 4;
                             let second_arpeggio = slot.effect_parameter & 0xF;
 
-                            let note_speed = note_to_speed(
-                                *note,
-                                sample.fine_tune,
-                                sample.relative_note,
-                                module.frequency_type,
-                            );
-
                             let first_arpeggio_speed = note_to_speed(
                                 *note,
                                 sample.fine_tune,
@@ -192,19 +185,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                 module.frequency_type,
                             );
 
-                            let first_arpeggio_difference = first_arpeggio_speed - note_speed;
-                            let second_arpeggio_difference = second_arpeggio_speed - note_speed;
-
-                            let first_arpeggio_difference = first_arpeggio_difference
-                                .try_change_base()
-                                .expect("Arpeggio difference too large");
-                            let second_arpeggio_difference = second_arpeggio_difference
-                                .try_change_base()
-                                .expect("Arpeggio difference too large");
-
                             PatternEffect::Arpeggio(
-                                first_arpeggio_difference,
-                                second_arpeggio_difference,
+                                first_arpeggio_speed
+                                    .try_change_base()
+                                    .expect("Arpeggio size too large"),
+                                second_arpeggio_speed
+                                    .try_change_base()
+                                    .expect("Arpeggio size too large"),
                             )
                         } else {
                             PatternEffect::None
