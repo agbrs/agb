@@ -7,6 +7,8 @@
 
 extern crate alloc;
 
+use core::ops::Range;
+
 use agb::{
     display::{
         self,
@@ -33,6 +35,7 @@ struct Saw {
     rotation_speed: Number,
 }
 
+#[derive(Clone, Copy)]
 enum Colour {
     Red,
     Blue,
@@ -49,12 +52,48 @@ struct SpriteCache {
     blue: SpriteVram,
     red: SpriteVram,
     numbers: Box<[SpriteVram]>,
+    bars: [Box<[SpriteVram]>; 2],
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DrawDirection {
     Left,
     Right,
+}
+
+fn draw_bar(
+    position: Vector2D<i32>,
+    length: usize,
+    colour: Colour,
+    oam: &mut OamIterator,
+    sprite_cache: &SpriteCache,
+) -> Option<()> {
+    let length = length as i32;
+    let number_of_sprites = length / 8;
+    let size_of_last = length % 8;
+
+    let sprites = match colour {
+        Colour::Red => &sprite_cache.bars[0],
+        Colour::Blue => &sprite_cache.bars[1],
+    };
+
+    for sprite_idx in 0..number_of_sprites {
+        let mut object = ObjectUnmanaged::new(sprites[0].clone());
+        object
+            .show()
+            .set_position(position + (sprite_idx * 8, 0).into());
+        oam.next()?.set(&object);
+    }
+
+    if size_of_last != 0 {
+        let mut object = ObjectUnmanaged::new(sprites[8 - size_of_last as usize].clone());
+        object
+            .show()
+            .set_position(position + (number_of_sprites * 8, 0).into());
+        oam.next()?.set(&object);
+    }
+
+    Some(())
 }
 
 fn draw_number(
@@ -97,23 +136,38 @@ impl SpriteCache {
         const SPRITES: &Graphics = include_aseprite!(
             "gfx/circles.aseprite",
             "gfx/saw.aseprite",
-            "gfx/numbers.aseprite"
+            "gfx/numbers.aseprite",
+            "gfx/bar.aseprite"
         );
+
+        fn generate_sprites(
+            tag: &'static Tag,
+            range: Range<usize>,
+            loader: &mut SpriteLoader,
+        ) -> Box<[SpriteVram]> {
+            range
+                .map(|x| tag.sprite(x))
+                .map(|x| loader.get_vram_sprite(x))
+                .collect::<Vec<_>>()
+                .into_boxed_slice()
+        }
 
         const NUMBERS: &Tag = SPRITES.tags().get("numbers");
         const BLUE_CIRCLE: &Sprite = SPRITES.tags().get("Blue").sprite(0);
         const RED_CIRCLE: &Sprite = SPRITES.tags().get("Red").sprite(0);
         const SAW: &Sprite = SPRITES.tags().get("Saw").sprite(0);
+        const BAR_RED: &Tag = SPRITES.tags().get("Red Bar");
+        const BAR_BLUE: &Tag = SPRITES.tags().get("Blue Bar");
 
         Self {
             saw: loader.get_vram_sprite(SAW),
             blue: loader.get_vram_sprite(BLUE_CIRCLE),
             red: loader.get_vram_sprite(RED_CIRCLE),
-            numbers: (0..10)
-                .map(|x| NUMBERS.sprite(x))
-                .map(|x| loader.get_vram_sprite(x))
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
+            numbers: generate_sprites(NUMBERS, 0..10, loader),
+            bars: [
+                generate_sprites(BAR_RED, 0..8, loader),
+                generate_sprites(BAR_BLUE, 0..8, loader),
+            ],
         }
     }
 }
@@ -127,6 +181,7 @@ struct Game {
     input: ButtonController,
     frame_since_last_saw: i32,
     alive_frames: u32,
+    energy: Number,
 }
 
 enum GameState {
@@ -151,6 +206,7 @@ impl Game {
 
         Game {
             input: agb::input::ButtonController::new(),
+            energy: finalised.max_energy,
             settings: finalised,
             circles,
             saws: VecDeque::new(),
@@ -164,9 +220,14 @@ impl Game {
     fn frame(&mut self, sprite_cache: &SpriteCache) -> GameState {
         self.input.update();
 
-        let (height, colour) = if self.input.is_pressed(Button::A) {
+        let (height, colour) = if self.input.is_pressed(Button::A) && self.energy > 0.into() {
+            self.energy -= self.settings.energy_use_speed;
             (self.settings.wave_height_ability, Colour::Blue)
         } else {
+            if self.input.is_released(Button::A) {
+                self.energy += self.settings.energy_recover_speed;
+                self.energy = self.energy.min(self.settings.max_energy);
+            }
             (self.settings.wave_height_normal, Colour::Red)
         };
 
@@ -288,6 +349,9 @@ struct Settings {
     head_start_position: Vector2D<Number>,
     wave_height_normal: Number,
     wave_height_ability: Number,
+    max_energy: Number,
+    energy_use_speed: Number,
+    energy_recover_speed: Number,
 }
 
 impl Settings {
@@ -302,6 +366,9 @@ impl Settings {
             frames_between_saws: self.frames_between_saws,
             wave_height_ability: self.wave_height_ability,
             wave_height_normal: self.wave_height_normal,
+            max_energy: self.max_energy,
+            energy_recover_speed: self.energy_recover_speed,
+            energy_use_speed: self.energy_use_speed,
         }
     }
 }
@@ -313,6 +380,9 @@ struct FinalisedSettings {
     frames_between_saws: i32,
     speed: Number,
     number_of_circles: usize,
+    max_energy: Number,
+    energy_use_speed: Number,
+    energy_recover_speed: Number,
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
@@ -335,28 +405,42 @@ pub fn main(mut gba: agb::Gba) -> ! {
             head_start_position: (40, 100).into(),
             wave_height_normal: 20.into(),
             wave_height_ability: 5.into(),
+            max_energy: 128.into(),
+            energy_use_speed: num!(0.5),
+            energy_recover_speed: 0.into(),
         });
         loop {
             let state = game.frame(&sprite_cache);
             if game.alive_frames > max_score {
                 max_score = game.alive_frames;
             }
+            let max_bar_width = display::WIDTH - 2;
+            let bar_width_pixels = (game.energy * max_bar_width) / game.settings.max_energy;
+            let bar_width_pixels = (bar_width_pixels + num!(0.5)).floor().max(0) as usize;
             vblank.wait_for_vblank();
             let oam_frame = &mut unmanaged.iter();
             draw_number(
                 max_score,
-                (display::WIDTH - 4, 1).into(),
+                (display::WIDTH - 5, 2).into(),
                 oam_frame,
                 DrawDirection::Left,
                 &sprite_cache,
             );
             draw_number(
                 game.alive_frames,
-                (1, 1).into(),
+                (2, 2).into(),
                 oam_frame,
                 DrawDirection::Right,
                 &sprite_cache,
             );
+            draw_bar(
+                (1, 1).into(),
+                bar_width_pixels,
+                game.circles.back().unwrap().colour,
+                oam_frame,
+                &sprite_cache,
+            );
+
             game.render(oam_frame, &sprite_cache);
 
             if let GameState::Loss(_) = state {
