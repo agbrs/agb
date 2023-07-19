@@ -152,6 +152,19 @@ impl<'oam> Iterator for OamIterator<'oam> {
     }
 }
 
+impl OamIterator<'_> {
+    fn set_inner(&mut self, object: &ObjectUnmanaged) {
+        if let Some(slot) = self.next() {
+            slot.set(object);
+        }
+    }
+
+    /// Writes objects in the Renderable to slots in OAM.
+    pub fn set<R: OamDisplay>(&mut self, renderable: R) {
+        renderable.set_in(self);
+    }
+}
+
 impl Drop for OamIterator<'_> {
     fn drop(&mut self) {
         let number_writen = self.index;
@@ -369,6 +382,42 @@ mod tests {
 
             slot_b.set(&obj);
             slot_a.set(&obj);
+        }
+    }
+}
+
+/// Something (or multiple things) that can be written to oam slots
+pub trait OamDisplay {
+    /// Write it to oam slots.
+    fn set_in(self, oam: &mut OamIterator);
+}
+
+impl OamDisplay for ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) {
+        oam.set_inner(&self);
+    }
+}
+
+impl OamDisplay for &ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) {
+        oam.set_inner(self);
+    }
+}
+
+impl OamDisplay for &mut ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) {
+        oam.set_inner(self);
+    }
+}
+
+impl<T, O> OamDisplay for T
+where
+    T: IntoIterator<Item = O>,
+    O: OamDisplay,
+{
+    fn set_in(self, oam: &mut OamIterator) {
+        for object in self.into_iter() {
+            object.set_in(oam);
         }
     }
 }
