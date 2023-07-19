@@ -65,7 +65,8 @@ macro_rules! align_bytes {
             pub bytes: Bytes,
         }
 
-        const ALIGNED: &AlignedAs<$align_ty, [u8]> = &AlignedAs {
+        #[link_section = ".sprites.sprite_data"]
+        static ALIGNED: &AlignedAs<$align_ty, [u8]> = &AlignedAs {
             _align: [],
             bytes: *$data,
         };
