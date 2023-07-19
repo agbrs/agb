@@ -153,12 +153,12 @@ impl<'oam> Iterator for OamIterator<'oam> {
 }
 
 impl OamIterator<'_> {
-    fn set_inner(&mut self, object: &ObjectUnmanaged) -> bool {
+    fn set_inner(&mut self, object: &ObjectUnmanaged) -> OamDisplayResult {
         if let Some(slot) = self.next() {
             slot.set(object);
-            true
+            OamDisplayResult::Written
         } else {
-            false
+            OamDisplayResult::SomeNotWritten
         }
     }
 
@@ -392,23 +392,23 @@ mod tests {
 /// Something (or multiple things) that can be written to oam slots
 pub trait OamDisplay {
     /// Write it to oam slots, returns whether all the writes could succeed.
-    fn set_in(self, oam: &mut OamIterator) -> bool;
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult;
 }
 
 impl OamDisplay for ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) -> bool {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
         oam.set_inner(&self)
     }
 }
 
 impl OamDisplay for &ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) -> bool {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
         oam.set_inner(self)
     }
 }
 
 impl OamDisplay for &mut ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) -> bool {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
         oam.set_inner(self)
     }
 }
@@ -418,13 +418,21 @@ where
     T: IntoIterator<Item = O>,
     O: OamDisplay,
 {
-    fn set_in(self, oam: &mut OamIterator) -> bool {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
         for object in self.into_iter() {
-            if !object.set_in(oam) {
-                return false;
+            if matches!(object.set_in(oam), OamDisplayResult::SomeNotWritten) {
+                return OamDisplayResult::SomeNotWritten;
             }
         }
 
-        true
+        OamDisplayResult::Written
     }
+}
+
+/// The result of setting on the Oam
+pub enum OamDisplayResult {
+    /// All objects were written successfully
+    Written,
+    /// Some objects were not written
+    SomeNotWritten,
 }

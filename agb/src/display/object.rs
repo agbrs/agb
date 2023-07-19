@@ -21,7 +21,9 @@ pub use sprites::{
 
 pub use affine::AffineMatrixInstance;
 pub use managed::{OamManaged, Object};
-pub use unmanaged::{AffineMode, OamDisplay, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged};
+pub use unmanaged::{
+    AffineMode, OamDisplay, OamDisplayResult, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged,
+};
 
 pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 
