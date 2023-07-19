@@ -14,8 +14,8 @@ use agb::{
         self,
         affine::AffineMatrix,
         object::{
-            AffineMatrixInstance, AffineMode, Graphics, OamIterator, ObjectUnmanaged, Sprite,
-            SpriteLoader, SpriteVram, Tag,
+            AffineMatrixInstance, AffineMode, Graphics, OamDisplay, OamIterator, ObjectUnmanaged,
+            Sprite, SpriteLoader, SpriteVram, Tag,
         },
         palette16::Palette16,
     },
@@ -121,9 +121,7 @@ fn draw_number(
 
     for digit in digits {
         let mut obj = ObjectUnmanaged::new(sprite_cache.numbers[digit as usize].clone());
-        obj.show().set_position(current_position);
-
-        oam.next()?.set(&obj);
+        obj.show().set_position(current_position).set_in(oam);
 
         current_position -= (4, 0).into();
     }
@@ -321,9 +319,7 @@ impl Game {
     }
 
     fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) -> Option<()> {
-        for saw in self.saws.iter() {
-            oam.next()?.set(&saw.object);
-        }
+        self.saws.iter().map(|x| &x.object).set_in(oam);
 
         for circle in self.circles.iter() {
             let mut object = ObjectUnmanaged::new(match circle.colour {
@@ -333,9 +329,8 @@ impl Game {
 
             object
                 .show()
-                .set_position(circle.position.floor() - (4, 4).into());
-
-            oam.next()?.set(&object);
+                .set_position(circle.position.floor() - (4, 4).into())
+                .set_in(oam);
         }
 
         Some(())
