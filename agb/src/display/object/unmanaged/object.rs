@@ -153,9 +153,12 @@ impl<'oam> Iterator for OamIterator<'oam> {
 }
 
 impl OamIterator<'_> {
-    fn set_inner(&mut self, object: &ObjectUnmanaged) {
+    fn set_inner(&mut self, object: &ObjectUnmanaged) -> bool {
         if let Some(slot) = self.next() {
             slot.set(object);
+            true
+        } else {
+            false
         }
     }
 
@@ -388,25 +391,25 @@ mod tests {
 
 /// Something (or multiple things) that can be written to oam slots
 pub trait OamDisplay {
-    /// Write it to oam slots.
-    fn set_in(self, oam: &mut OamIterator);
+    /// Write it to oam slots, returns whether all the writes could succeed.
+    fn set_in(self, oam: &mut OamIterator) -> bool;
 }
 
 impl OamDisplay for ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) {
-        oam.set_inner(&self);
+    fn set_in(self, oam: &mut OamIterator) -> bool {
+        oam.set_inner(&self)
     }
 }
 
 impl OamDisplay for &ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) {
-        oam.set_inner(self);
+    fn set_in(self, oam: &mut OamIterator) -> bool {
+        oam.set_inner(self)
     }
 }
 
 impl OamDisplay for &mut ObjectUnmanaged {
-    fn set_in(self, oam: &mut OamIterator) {
-        oam.set_inner(self);
+    fn set_in(self, oam: &mut OamIterator) -> bool {
+        oam.set_inner(self)
     }
 }
 
@@ -415,9 +418,13 @@ where
     T: IntoIterator<Item = O>,
     O: OamDisplay,
 {
-    fn set_in(self, oam: &mut OamIterator) {
+    fn set_in(self, oam: &mut OamIterator) -> bool {
         for object in self.into_iter() {
-            object.set_in(oam);
+            if !object.set_in(oam) {
+                return false;
+            }
         }
+
+        true
     }
 }
