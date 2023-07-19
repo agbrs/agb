@@ -82,7 +82,7 @@ macro_rules! align_bytes {
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::{display::object::Graphics, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// static GRAPHICS: &Graphics = include_aseprite!(
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
@@ -140,12 +140,12 @@ impl Graphics {
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// static GRAPHICS: &Graphics = include_aseprite!(
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
 ///
-/// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+/// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
 /// ```
 /// This being the whole animation associated with the walk sequence of the emu.
 /// See [Tag] for details on how to use this.
@@ -246,8 +246,7 @@ impl Direction {
 
 /// A sequence of sprites from aseprite.
 pub struct Tag {
-    sprites: *const Sprite,
-    len: usize,
+    sprites: &'static [Sprite],
     direction: Direction,
 }
 
@@ -255,16 +254,13 @@ impl Tag {
     /// The individual sprites that make up the animation themselves.
     #[must_use]
     pub fn sprites(&self) -> &'static [Sprite] {
-        unsafe { slice::from_raw_parts(self.sprites, self.len) }
+        self.sprites
     }
 
     /// A single sprite referred to by index in the animation sequence.
     #[must_use]
     pub const fn sprite(&self, idx: usize) -> &'static Sprite {
-        if idx >= self.len {
-            panic!("out of bounds access to sprite");
-        }
-        unsafe { &*self.sprites.add(idx) }
+        &self.sprites[idx]
     }
 
     /// A sprite that follows the animation sequence. For instance, in aseprite
@@ -278,10 +274,10 @@ impl Tag {
     #[inline]
     #[must_use]
     pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
-        let len_sub_1 = self.len - 1;
+        let len_sub_1 = self.sprites.len() - 1;
         match self.direction {
-            Direction::Forward => self.sprite(idx % self.len),
-            Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
+            Direction::Forward => self.sprite(idx % self.sprites.len()),
+            Direction::Backward => self.sprite(len_sub_1 - (idx % self.sprites.len())),
             Direction::PingPong => self.sprite(
                 (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize)
                     .unsigned_abs(),
@@ -297,8 +293,7 @@ impl Tag {
         assert!(from <= to);
         assert!(to < sprites.len());
         Self {
-            sprites: &sprites[from] as *const Sprite,
-            len: to - from + 1,
+            sprites: sprites.split_at(from).1.split_at(to - from + 1).0,
             direction: Direction::from_usize(direction),
         }
     }
