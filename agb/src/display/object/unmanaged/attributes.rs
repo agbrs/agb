@@ -100,12 +100,6 @@ impl Attributes {
         self
     }
 
-    pub fn hide(&mut self) -> &mut Self {
-        self.a0.set_object_mode(ObjectMode::Disabled);
-
-        self
-    }
-
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         self.a0.set_y(y as u8);
 
