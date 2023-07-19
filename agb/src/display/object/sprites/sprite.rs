@@ -1,4 +1,4 @@
-use core::{alloc::Layout, slice};
+use core::alloc::Layout;
 
 use crate::display::palette16::Palette16;
 

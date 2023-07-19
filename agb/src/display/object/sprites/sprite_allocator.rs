@@ -1,9 +1,6 @@
 use core::{alloc::Allocator, ptr::NonNull};
 
-use alloc::{
-    boxed::Box,
-    rc::{Rc, Weak},
-};
+use alloc::{boxed::Box, rc::Rc};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
