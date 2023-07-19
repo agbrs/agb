@@ -61,7 +61,7 @@ impl Tracker {
             tick: 0,
 
             current_row: 0,
-            current_pattern: 31,
+            current_pattern: 0,
         }
     }
 
@@ -78,24 +78,18 @@ impl Tracker {
         let pattern_slots =
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
-        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots).skip(3) {
+        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
                 channel.play_sound(mixer, sample);
             }
 
-            channel.apply_effect(
-                mixer,
-                &pattern_slot.effect1,
-                self.tick,
-                pattern_slot.speed.change_base(),
-            );
-            channel.apply_effect(
-                mixer,
-                &pattern_slot.effect2,
-                self.tick,
-                pattern_slot.speed.change_base(),
-            );
+            if self.tick == 0 {
+                channel.set_speed(mixer, pattern_slot.speed.change_base());
+            }
+
+            channel.apply_effect(mixer, &pattern_slot.effect1, self.tick);
+            channel.apply_effect(mixer, &pattern_slot.effect2, self.tick);
         }
 
         self.increment_step();
@@ -160,25 +154,26 @@ impl TrackerChannel {
         self.volume = 1.into();
     }
 
-    fn apply_effect(
-        &mut self,
-        mixer: &mut Mixer<'_>,
-        effect: &PatternEffect,
-        tick: u32,
-        speed: Num<u32, 8>,
-    ) {
+    fn set_speed(&mut self, mixer: &mut Mixer<'_>, speed: Num<u32, 8>) {
         if let Some(channel) = self
             .channel_id
             .as_ref()
             .and_then(|channel_id| mixer.channel(&channel_id))
         {
             if speed != 0.into() {
-                channel.playback(speed);
                 self.base_speed = speed;
             }
 
             channel.playback(self.base_speed);
+        }
+    }
 
+    fn apply_effect(&mut self, mixer: &mut Mixer<'_>, effect: &PatternEffect, tick: u32) {
+        if let Some(channel) = self
+            .channel_id
+            .as_ref()
+            .and_then(|channel_id| mixer.channel(&channel_id))
+        {
             match effect {
                 PatternEffect::None => {}
                 PatternEffect::Stop => {
@@ -215,10 +210,13 @@ impl TrackerChannel {
                     }
                 }
                 PatternEffect::Portamento(amount) => {
-                    if tick != 0 {
-                        self.base_speed *= amount.change_base();
-                        channel.playback(self.base_speed);
+                    let mut new_speed = self.base_speed;
+
+                    for _ in 0..tick {
+                        new_speed *= amount.change_base();
                     }
+
+                    channel.playback(new_speed);
                 }
             }
         }
