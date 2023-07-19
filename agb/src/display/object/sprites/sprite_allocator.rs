@@ -199,40 +199,6 @@ impl SpriteVram {
 }
 
 impl SpriteLoader {
-    fn create_sprite_no_insert(
-        palette_map: &mut HashMap<PaletteId, Rc<PaletteVramData>>,
-        sprite: &'static Sprite,
-    ) -> Result<SpriteVram, LoaderError> {
-        let palette = Self::try_get_vram_palette_asoc(palette_map, sprite.palette)?;
-
-        let sprite = SpriteVram::new(sprite.data, sprite.size, palette)?;
-        Ok(sprite)
-    }
-
-    fn try_get_vram_palette_asoc(
-        palette_map: &mut HashMap<PaletteId, Rc<PaletteVramData>>,
-        palette: &'static Palette16,
-    ) -> Result<PaletteVram, LoaderError> {
-        let id = PaletteId::from_static_palette(palette);
-        Ok(match palette_map.entry(id) {
-            crate::hash_map::Entry::Occupied(entry) => PaletteVram {
-                data: entry.get().clone(),
-            },
-            crate::hash_map::Entry::Vacant(entry) => {
-                let pv = PaletteVram::new(palette)?;
-                entry.insert(pv.data.clone());
-                pv
-            }
-        })
-    }
-
-    // pub fn create_sprite_no_insert(
-    //     &mut self,
-    //     sprite: &'static Sprite,
-    // ) -> Result<SpriteVram, LoaderError> {
-
-    // }
-
     /// Attempts to get a sprite
     pub fn try_get_vram_sprite(
         &mut self,
@@ -248,11 +214,12 @@ impl SpriteLoader {
             });
         }
 
-        let sprite =
-            Self::create_sprite_no_insert(&mut self.static_palette_map, sprite).or_else(|_| {
-                self.garbage_collect();
-                Self::create_sprite_no_insert(&mut self.static_palette_map, sprite)
-            })?;
+        let palette = self.try_get_vram_palette(sprite.palette)?;
+
+        let sprite = SpriteVram::new(sprite.data, sprite.size, palette.clone()).or_else(|_| {
+            self.garbage_collect_sprites();
+            SpriteVram::new(sprite.data, sprite.size, palette)
+        })?;
         self.static_sprite_map.insert(id, sprite.data.clone());
         Ok(sprite)
     }
@@ -296,12 +263,16 @@ impl SpriteLoader {
         }
     }
 
+    fn garbage_collect_sprites(&mut self) {
+        self.static_sprite_map
+            .retain(|_, v| Rc::strong_count(v) != 1);
+    }
+
     /// Remove internal references to sprites that no longer exist in vram. If
     /// you neglect calling this, memory will leak over time in relation to the
     /// total number of different sprites used. It will not leak vram.
     pub fn garbage_collect(&mut self) {
-        self.static_sprite_map
-            .retain(|_, v| Rc::strong_count(v) != 1);
+        self.garbage_collect_sprites();
         self.static_palette_map
             .retain(|_, v| Rc::strong_count(v) != 1);
     }
