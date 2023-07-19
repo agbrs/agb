@@ -11,35 +11,15 @@ const DB_TOFFE: Track = import_xm!("examples/db_toffe.xm");
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let timer_controller = gba.timers.timers();
-    let mut timer = timer_controller.timer2;
-    let mut timer2 = timer_controller.timer3;
-    timer.set_enabled(true);
-    timer2.set_cascade(true).set_enabled(true);
-
     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     mixer.enable();
 
     let mut tracker = Tracker::new(&DB_TOFFE);
 
     loop {
-        let before_mixing_cycles_high = timer2.value();
-        let before_mixing_cycles_low = timer.value();
-
         tracker.step(&mut mixer);
-
         mixer.frame();
-        let after_mixing_cycles_low = timer.value();
-        let after_mixing_cycles_high = timer2.value();
 
         vblank_provider.wait_for_vblank();
-
-        let before_mixing_cycles =
-            ((before_mixing_cycles_high as u32) << 16) + before_mixing_cycles_low as u32;
-        let after_mixing_cycles =
-            ((after_mixing_cycles_high as u32) << 16) + after_mixing_cycles_low as u32;
-        let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles);
-
-        agb::println!("{total_cycles} cycles");
     }
 }
