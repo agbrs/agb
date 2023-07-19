@@ -67,7 +67,7 @@ fn draw_bar(
     colour: Colour,
     oam: &mut OamIterator,
     sprite_cache: &SpriteCache,
-) -> Option<()> {
+) {
     let length = length as i32;
     let number_of_sprites = length / 8;
     let size_of_last = length % 8;
@@ -82,7 +82,7 @@ fn draw_bar(
         object
             .show()
             .set_position(position + (sprite_idx * 8, 0).into());
-        oam.next()?.set(&object);
+        oam.set(&object);
     }
 
     if size_of_last != 0 {
@@ -90,10 +90,8 @@ fn draw_bar(
         object
             .show()
             .set_position(position + (number_of_sprites * 8, 0).into());
-        oam.next()?.set(&object);
+        oam.set(&object);
     }
-
-    Some(())
 }
 
 fn draw_number(
@@ -102,7 +100,7 @@ fn draw_number(
     oam: &mut OamIterator,
     direction: DrawDirection,
     sprite_cache: &SpriteCache,
-) -> Option<()> {
+) {
     let mut digits = Vec::new();
     if number == 0 {
         digits.push(0);
@@ -125,8 +123,6 @@ fn draw_number(
 
         current_position -= (4, 0).into();
     }
-
-    Some(())
 }
 
 impl SpriteCache {
@@ -318,7 +314,7 @@ impl Game {
         }
     }
 
-    fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) -> Option<()> {
+    fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) {
         self.saws.iter().map(|x| &x.object).set_in(oam);
 
         for circle in self.circles.iter() {
@@ -332,8 +328,6 @@ impl Game {
                 .set_position(circle.position.floor() - (4, 4).into())
                 .set_in(oam);
         }
-
-        Some(())
     }
 }
 
