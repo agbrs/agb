@@ -256,6 +256,7 @@ impl ObjectUnmanaged {
         self.attributes.is_visible()
     }
 
+    #[must_use]
     /// Display the sprite in Affine mode.
     pub fn show_affine(mut self, affine_mode: AffineMode) -> Self {
         assert!(
@@ -268,6 +269,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
     pub fn set_hflip(mut self, flip: bool) -> Self {
         self.attributes.set_hflip(flip);
@@ -275,6 +277,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
     pub fn set_vflip(mut self, flip: bool) -> Self {
         self.attributes.set_vflip(flip);
@@ -282,6 +285,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the priority of the object relative to the backgrounds priority.
     pub fn set_priority(mut self, priority: Priority) -> Self {
         self.attributes.set_priority(priority);
@@ -289,6 +293,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the x position of the object.
     pub fn set_x(mut self, x: u16) -> Self {
         self.attributes.set_x(x);
@@ -296,6 +301,7 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the y position of the object.
     pub fn set_y(mut self, y: u16) -> Self {
         self.attributes.set_y(y);
@@ -303,12 +309,14 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the position of the object.
     pub fn set_position(self, position: Vector2D<i32>) -> Self {
         self.set_y(position.y.rem_euclid(1 << 9) as u16)
             .set_x(position.x.rem_euclid(1 << 9) as u16)
     }
 
+    #[must_use]
     /// Sets the affine matrix. This only has an affect in Affine mode.
     pub fn set_affine_matrix(mut self, affine_matrix: AffineMatrixInstance) -> Self {
         let vram = affine_matrix.vram();
@@ -325,6 +333,7 @@ impl ObjectUnmanaged {
         self.attributes.set_palette(sprite.palette_location());
     }
 
+    #[must_use]
     /// Sets the current sprite for the object.
     pub fn set_sprite(mut self, sprite: SpriteVram) -> Self {
         self.set_sprite_attributes(&sprite);
