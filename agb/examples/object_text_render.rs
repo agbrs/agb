@@ -22,7 +22,7 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (mut unmanaged, _sprites) = gba.display.object.get_unmanaged();
+    let (mut unmanaged, _sprites) = gba.display.object.get();
 
     loop {
         let mut palette = [0x0; 16];

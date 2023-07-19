@@ -3,127 +3,113 @@
 
 extern crate alloc;
 
-use agb::display::{
-    affine::AffineMatrix,
-    object::{self, Graphics, OamManaged, Sprite, TagMap},
-};
 use agb::fixnum::num;
+use agb::input::Button;
+use agb::{
+    display::{
+        affine::AffineMatrix,
+        object::{
+            self, AffineMode, Graphics, OamUnmanaged, ObjectUnmanaged, Sprite, SpriteLoader, TagMap,
+        },
+    },
+    input::ButtonController,
+    interrupt::VBlank,
+};
 use agb_fixnum::Num;
 use alloc::vec::Vec;
 
-const GRAPHICS: &Graphics = agb::include_aseprite!(
+static GRAPHICS: &Graphics = agb::include_aseprite!(
     "examples/gfx/objects.aseprite",
     "examples/gfx/boss.aseprite",
     "examples/gfx/wide.aseprite",
     "examples/gfx/tall.aseprite"
 );
-const SPRITES: &[Sprite] = GRAPHICS.sprites();
-const TAG_MAP: &TagMap = GRAPHICS.tags();
+static SPRITES: &[Sprite] = GRAPHICS.sprites();
+static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
-    let mut input = agb::input::ButtonController::new();
-    let mut objs = Vec::new();
-
-    let mut rotation: Num<i32, 16> = num!(0.);
-
+fn all_sprites(
+    sprite_loader: &mut SpriteLoader,
+    rotation: Num<i32, 16>,
+    offset: usize,
+) -> Vec<ObjectUnmanaged> {
     let rotation_matrix = AffineMatrix::from_rotation(rotation);
     let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
 
-    for y in 0..9 {
-        for x in 0..14 {
-            let mut obj = gfx.object_sprite(&SPRITES[0]);
-            obj.set_affine_matrix(matrix.clone());
-            obj.show_affine(object::AffineMode::Affine);
-            obj.set_position((x * 16 + 8, y * 16 + 8).into());
-            objs.push(obj);
-        }
-    }
+    (0..(9 * 14))
+        .map(|idx| {
+            let x = idx % 14;
+            let y = idx / 14;
 
-    let mut count = 0;
-    let mut image = 0;
-
-    let vblank = agb::interrupt::VBlank::get();
-
-    loop {
-        vblank.wait_for_vblank();
-        input.update();
-
-        if input.is_just_pressed(agb::input::Button::A) {
-            break;
-        }
-
-        rotation += rotation_speed;
-        let rotation_matrix = AffineMatrix::from_rotation(rotation);
-
-        let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
-
-        for obj in objs.iter_mut() {
-            obj.set_affine_matrix(matrix.clone());
-        }
-
-        count += 1;
-
-        if count % 5 == 0 {
-            image += 1;
-            image %= SPRITES.len();
-            for (i, obj) in objs.iter_mut().enumerate() {
-                let this_image = (image + i) % SPRITES.len();
-                obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
-            }
-        }
-        gfx.commit();
-    }
+            (idx, x as i32, y as i32)
+        })
+        .map(move |(idx, x, y)| {
+            let sprite_vram =
+                sprite_loader.get_vram_sprite(&SPRITES[(idx + offset) % SPRITES.len()]);
+            ObjectUnmanaged::new(sprite_vram)
+                .set_affine_matrix(matrix.clone())
+                .show_affine(AffineMode::Affine)
+                .set_position((x * 16 + 8, y * 16 + 8).into())
+        })
+        .collect()
 }
 
-fn all_tags(gfx: &OamManaged) {
-    let mut input = agb::input::ButtonController::new();
-    let mut objs = Vec::new();
+fn all_tags(sprite_loader: &mut SpriteLoader, image: usize) -> Vec<ObjectUnmanaged> {
+    TAG_MAP
+        .values()
+        .enumerate()
+        .map(move |(i, v)| {
+            let x = (i % 7) as i32;
+            let y = (i / 7) as i32;
+            let sprite = v.animation_sprite(image);
+            let (size_x, size_y) = sprite.size().to_width_height();
+            let (size_x, size_y) = (size_x as i32, size_y as i32);
+            let sprite_vram = sprite_loader.get_vram_sprite(sprite);
+            ObjectUnmanaged::new(sprite_vram)
+                .set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into())
+        })
+        .collect()
+}
 
-    for (i, v) in TAG_MAP.values().enumerate() {
-        let x = (i % 7) as i32;
-        let y = (i / 7) as i32;
-        let sprite = v.sprite(0);
-        let (size_x, size_y) = sprite.size().to_width_height();
-        let (size_x, size_y) = (size_x as i32, size_y as i32);
-        let mut obj = gfx.object_sprite(sprite);
-        obj.show();
-        obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
-        objs.push((obj, v));
-    }
-
-    let mut count = 0;
-    let mut image = 0;
-
-    let vblank = agb::interrupt::VBlank::get();
+fn run_with_sprite_generating_fn<F>(
+    oam: &mut OamUnmanaged,
+    sprite_loader: &mut SpriteLoader,
+    mut f: F,
+) where
+    F: FnMut(&mut SpriteLoader) -> Vec<ObjectUnmanaged>,
+{
+    let mut button = ButtonController::new();
+    let vblank = VBlank::get();
 
     loop {
+        let sprites = f(sprite_loader);
         vblank.wait_for_vblank();
-
-        input.update();
-
-        if input.is_just_pressed(agb::input::Button::A) {
+        button.update();
+        if button.is_just_pressed(Button::A) {
             break;
         }
-
-        count += 1;
-
-        if count % 5 == 0 {
-            image += 1;
-            for (obj, tag) in objs.iter_mut() {
-                obj.set_sprite(gfx.sprite(tag.animation_sprite(image)));
-            }
-            gfx.commit();
-        }
+        oam.iter().set(sprites);
     }
 }
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let gfx = gba.display.object.get_managed();
+    let (mut oam_manager, mut sprite_loader) = gba.display.object.get();
 
     loop {
-        all_tags(&gfx);
-        all_sprites(&gfx, num!(0.));
-        all_sprites(&gfx, num!(0.01));
+        let mut count = 0;
+        run_with_sprite_generating_fn(&mut oam_manager, &mut sprite_loader, |sprite_loader| {
+            count += 1;
+            all_tags(sprite_loader, count / 5)
+        });
+        run_with_sprite_generating_fn(&mut oam_manager, &mut sprite_loader, |sprite_loader| {
+            count += 1;
+            all_sprites(sprite_loader, num!(0.), count / 5)
+        });
+        let mut rotation = num!(0.);
+        run_with_sprite_generating_fn(&mut oam_manager, &mut sprite_loader, |sprite_loader| {
+            count += 1;
+            rotation += num!(0.01);
+            all_sprites(sprite_loader, rotation, count / 5)
+        });
     }
 }
