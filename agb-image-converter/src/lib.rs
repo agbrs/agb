@@ -377,14 +377,17 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         #(#include_paths)*
 
 
+        #[link_section = ".sprites.palettes"]
         static PALETTES: &[Palette16] = &[
             #(#palette_data),*
         ];
 
+        #[link_section = ".sprites.sprites"]
         static SPRITES: &[Sprite] = &[
             #(#sprites),*
         ];
 
+        #[link_section = ".sprites.tags"]
         static TAGS: &TagMap = &TagMap::new(
             &[
                 #(#tags),*
