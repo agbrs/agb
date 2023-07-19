@@ -49,6 +49,7 @@ pub enum PatternEffect {
     Volume(Num<i16, 4>),
     VolumeSlide(Num<i16, 4>),
     NoteCut(u32),
+    Portamento(Num<u16, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -204,6 +205,10 @@ impl quote::ToTokens for PatternEffect {
                 quote! { VolumeSlide(agb_tracker::__private::Num::from_raw(#amount))}
             }
             PatternEffect::NoteCut(wait) => quote! { NoteCut(#wait) },
+            PatternEffect::Portamento(amount) => {
+                let amount = amount.to_raw();
+                quote! { Portamento(agb_tracker::__private::Num::from_raw(#amount))}
+            }
         };
 
         tokens.append_all(quote! {

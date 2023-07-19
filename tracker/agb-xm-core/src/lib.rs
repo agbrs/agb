@@ -197,6 +197,32 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::None
                         }
                     }
+                    0x1 => {
+                        let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                        let speed = note_to_speed(
+                            Note::C4,
+                            slot.effect_parameter as f64,
+                            0,
+                            module.frequency_type,
+                        );
+
+                        let portamento_amount = speed / c4_speed;
+
+                        PatternEffect::Portamento(portamento_amount.try_change_base().unwrap())
+                    }
+                    0x2 => {
+                        let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                        let speed = note_to_speed(
+                            Note::C4,
+                            -(slot.effect_parameter as f64),
+                            0,
+                            module.frequency_type,
+                        );
+
+                        let portamento_amount = speed / c4_speed;
+
+                        PatternEffect::Portamento(portamento_amount.try_change_base().unwrap())
+                    }
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
                     }

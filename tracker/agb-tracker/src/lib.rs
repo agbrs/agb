@@ -61,7 +61,7 @@ impl Tracker {
             tick: 0,
 
             current_row: 0,
-            current_pattern: 0,
+            current_pattern: 31,
         }
     }
 
@@ -78,7 +78,7 @@ impl Tracker {
         let pattern_slots =
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
-        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
+        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots).skip(3) {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
                 channel.play_sound(mixer, sample);
@@ -212,6 +212,12 @@ impl TrackerChannel {
                     if tick == *wait {
                         channel.volume(0);
                         self.volume = 0.into();
+                    }
+                }
+                PatternEffect::Portamento(amount) => {
+                    if tick != 0 {
+                        self.base_speed *= amount.change_base();
+                        channel.playback(self.base_speed);
                     }
                 }
             }
