@@ -219,6 +219,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::None
                         }
                     }
+                    0xE => match slot.effect_parameter >> 4 {
+                        0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
+                        _ => PatternEffect::None,
+                    },
                     _ => PatternEffect::None,
                 };
 
