@@ -244,6 +244,8 @@ impl ObjectUnmanaged {
         sprite.attributes.set_sprite(sprite_location, shape, size);
         sprite.attributes.set_palette(palette_location);
 
+        sprite.attributes.show();
+
         sprite
     }
 
@@ -254,15 +256,8 @@ impl ObjectUnmanaged {
         self.attributes.is_visible()
     }
 
-    /// Display the sprite in Normal mode.
-    pub fn show(&mut self) -> &mut Self {
-        self.attributes.show();
-
-        self
-    }
-
     /// Display the sprite in Affine mode.
-    pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
+    pub fn show_affine(mut self, affine_mode: AffineMode) -> Self {
         assert!(
             self.affine_matrix.is_some(),
             "affine matrix must be set before enabling affine matrix!"
@@ -274,77 +269,64 @@ impl ObjectUnmanaged {
     }
 
     /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
-    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
+    pub fn set_hflip(mut self, flip: bool) -> Self {
         self.attributes.set_hflip(flip);
 
         self
     }
 
     /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
-    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
+    pub fn set_vflip(mut self, flip: bool) -> Self {
         self.attributes.set_vflip(flip);
 
         self
     }
 
     /// Sets the priority of the object relative to the backgrounds priority.
-    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+    pub fn set_priority(mut self, priority: Priority) -> Self {
         self.attributes.set_priority(priority);
 
         self
     }
 
-    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
-    /// modes using [`show`][ObjectUnmanaged::show] and
-    /// [`show_affine`][ObjectUnmanaged::show_affine] respectively.
-    pub fn hide(&mut self) -> &mut Self {
-        self.attributes.hide();
-
-        self
-    }
-
     /// Sets the x position of the object.
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
+    pub fn set_x(mut self, x: u16) -> Self {
         self.attributes.set_x(x);
 
         self
     }
 
     /// Sets the y position of the object.
-    pub fn set_y(&mut self, y: u16) -> &mut Self {
+    pub fn set_y(mut self, y: u16) -> Self {
         self.attributes.set_y(y);
 
         self
     }
 
     /// Sets the position of the object.
-    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        self.set_y(position.y.rem_euclid(1 << 9) as u16);
-        self.set_x(position.x.rem_euclid(1 << 9) as u16);
-
-        self
+    pub fn set_position(self, position: Vector2D<i32>) -> Self {
+        self.set_y(position.y.rem_euclid(1 << 9) as u16)
+            .set_x(position.x.rem_euclid(1 << 9) as u16)
     }
 
     /// Sets the affine matrix. This only has an affect in Affine mode.
-    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
+    pub fn set_affine_matrix(mut self, affine_matrix: AffineMatrixInstance) -> Self {
         let vram = affine_matrix.vram();
         self.affine_matrix = Some(vram);
 
         self
     }
 
-    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
+    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) {
         let size = sprite.size();
         let (shape, size) = size.shape_size();
 
         self.attributes.set_sprite(sprite.location(), shape, size);
         self.attributes.set_palette(sprite.palette_location());
-
-        self
     }
 
     /// Sets the current sprite for the object.
-    pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
+    pub fn set_sprite(mut self, sprite: SpriteVram) -> Self {
         self.set_sprite_attributes(&sprite);
 
         self.sprite = sprite;
@@ -371,7 +353,7 @@ mod tests {
 
         const BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
-        let (mut gfx, mut loader) = gba.display.object.get_unmanaged();
+        let (mut gfx, mut loader) = gba.display.object.get();
 
         {
             let mut slotter = gfx.iter();
@@ -379,9 +361,7 @@ mod tests {
             let slot_a = slotter.next().unwrap();
             let slot_b = slotter.next().unwrap();
 
-            let mut obj = ObjectUnmanaged::new(loader.get_vram_sprite(BOSS.sprite(2)));
-
-            obj.show();
+            let obj = ObjectUnmanaged::new(loader.get_vram_sprite(BOSS.sprite(2)));
 
             slot_b.set(&obj);
             slot_a.set(&obj);

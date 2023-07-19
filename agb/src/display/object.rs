@@ -10,7 +10,6 @@
 
 mod affine;
 mod font;
-mod managed;
 mod sprites;
 mod unmanaged;
 
@@ -20,7 +19,6 @@ pub use sprites::{
 };
 
 pub use affine::AffineMatrixInstance;
-pub use managed::{OamManaged, Object};
 pub use unmanaged::{
     AffineMode, OamDisplay, OamDisplayResult, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged,
 };
@@ -30,11 +28,6 @@ pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 use super::DISPLAY_CONTROL;
 
 const OBJECT_ATTRIBUTE_MEMORY: *mut u16 = 0x0700_0000 as *mut u16;
-
-#[deprecated = "use OamManaged directly instead"]
-/// The old name for [`OamManaged`] kept around for easier migration.
-/// This will be removed in a future release.
-pub type ObjectController<'a> = OamManaged<'a>;
 
 pub(super) unsafe fn initilise_oam() {
     for i in 0..128 {

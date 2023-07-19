@@ -29,7 +29,7 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 type Number = Num<i32, 8>;
 
 struct Saw {
-    object: ObjectUnmanaged,
+    affine_matrix: AffineMatrixInstance,
     position: Vector2D<Number>,
     angle: Number,
     rotation_speed: Number,
@@ -77,20 +77,17 @@ fn draw_bar(
         Colour::Blue => &sprite_cache.bars[1],
     };
 
-    for sprite_idx in 0..number_of_sprites {
-        let mut object = ObjectUnmanaged::new(sprites[0].clone());
-        object
-            .show()
-            .set_position(position + (sprite_idx * 8, 0).into());
-        oam.set(&object);
-    }
+    (0..number_of_sprites)
+        .map(|sprite_idx| {
+            ObjectUnmanaged::new(sprites[0].clone())
+                .set_position(position + (sprite_idx * 8, 0).into())
+        })
+        .set_in(oam);
 
     if size_of_last != 0 {
-        let mut object = ObjectUnmanaged::new(sprites[8 - size_of_last as usize].clone());
-        object
-            .show()
-            .set_position(position + (number_of_sprites * 8, 0).into());
-        oam.set(&object);
+        ObjectUnmanaged::new(sprites[8 - size_of_last as usize].clone())
+            .set_position(position + (number_of_sprites * 8, 0).into())
+            .set_in(oam);
     }
 }
 
@@ -118,8 +115,9 @@ fn draw_number(
     };
 
     for digit in digits {
-        let mut obj = ObjectUnmanaged::new(sprite_cache.numbers[digit as usize].clone());
-        obj.show().set_position(current_position).set_in(oam);
+        ObjectUnmanaged::new(sprite_cache.numbers[digit as usize].clone())
+            .set_position(current_position)
+            .set_in(oam);
 
         current_position -= (4, 0).into();
     }
@@ -211,7 +209,7 @@ impl Game {
         }
     }
 
-    fn frame(&mut self, sprite_cache: &SpriteCache) -> GameState {
+    fn frame(&mut self) -> GameState {
         self.input.update();
 
         let (height, colour) = if self.input.is_pressed(Button::A) && self.energy > 0.into() {
@@ -259,13 +257,7 @@ impl Game {
 
             let angle_affine_matrix = AffineMatrix::from_rotation(saw.angle);
 
-            saw.object.set_affine_matrix(AffineMatrixInstance::new(
-                angle_affine_matrix.to_object_wrapping(),
-            ));
-            saw.object.show_affine(AffineMode::Affine);
-
-            saw.object
-                .set_position(saw.position.floor() - (16, 16).into());
+            saw.affine_matrix = AffineMatrixInstance::new(angle_affine_matrix.to_object_wrapping());
 
             if (saw.position - self.head_position).magnitude_squared()
                 < ((16 + 4) * (16 + 4)).into()
@@ -293,7 +285,9 @@ impl Game {
 
             let rotation_speed = rotation_magnitude * rotation_direction;
             let saw = Saw {
-                object: ObjectUnmanaged::new(sprite_cache.saw.clone()),
+                affine_matrix: AffineMatrixInstance::new(
+                    AffineMatrix::identity().to_object_wrapping(),
+                ),
                 position: (300, rng::gen().rem_euclid(display::HEIGHT)).into(),
                 angle: 0.into(),
                 rotation_speed,
@@ -315,19 +309,26 @@ impl Game {
     }
 
     fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) {
-        self.saws.iter().map(|x| &x.object).set_in(oam);
+        self.saws
+            .iter()
+            .map(|x| {
+                ObjectUnmanaged::new(sprite_cache.saw.clone())
+                    .set_affine_matrix(x.affine_matrix.clone())
+                    .set_position(x.position.floor() - (16, 16).into())
+                    .show_affine(AffineMode::Affine)
+            })
+            .set_in(oam);
 
-        for circle in self.circles.iter() {
-            let mut object = ObjectUnmanaged::new(match circle.colour {
-                Colour::Red => sprite_cache.red.clone(),
-                Colour::Blue => sprite_cache.blue.clone(),
-            });
-
-            object
-                .show()
+        self.circles
+            .iter()
+            .map(|circle| {
+                ObjectUnmanaged::new(match circle.colour {
+                    Colour::Red => sprite_cache.red.clone(),
+                    Colour::Blue => sprite_cache.blue.clone(),
+                })
                 .set_position(circle.position.floor() - (4, 4).into())
-                .set_in(oam);
-        }
+            })
+            .set_in(oam);
     }
 }
 
@@ -375,7 +376,7 @@ struct FinalisedSettings {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    let (mut unmanaged, mut sprites) = gba.display.object.get_unmanaged();
+    let (mut unmanaged, mut sprites) = gba.display.object.get();
     let sprite_cache = SpriteCache::new(&mut sprites);
 
     let (_background, mut vram) = gba.display.video.tiled0();
@@ -399,7 +400,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
             energy_recover_speed: 0.into(),
         });
         loop {
-            let state = game.frame(&sprite_cache);
+            let state = game.frame();
             if game.alive_frames > max_score {
                 max_score = game.alive_frames;
             }

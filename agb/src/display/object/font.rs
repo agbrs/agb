@@ -434,9 +434,7 @@ impl LayoutCache {
                 .skip(already_done)
                 .map(|(offset, letter)| {
                     let position = offset.change_base() + position;
-                    let mut object = ObjectUnmanaged::new(letter.clone());
-                    object.show().set_position(position);
-                    object
+                    ObjectUnmanaged::new(letter.clone()).set_position(position)
                 }),
         );
         self.objects.truncate(number_of_objects);
