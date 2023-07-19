@@ -48,7 +48,11 @@ struct SpriteId(usize);
 
 impl SpriteId {
     fn from_static_sprite(sprite: &'static Sprite) -> SpriteId {
-        SpriteId(sprite as *const _ as usize)
+        let location = sprite as *const _ as usize;
+        debug_assert!((0x0800_0000..).contains(&location));
+        debug_assert!((0x0800_0000..).contains(&(sprite.data.as_ptr() as usize)));
+
+        SpriteId(location)
     }
 }
 
