@@ -174,7 +174,6 @@ mod no_game;
 /// Default game
 pub use no_game::no_game;
 
-pub(crate) mod arena;
 mod global_asm;
 
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
