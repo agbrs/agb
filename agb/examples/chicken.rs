@@ -4,14 +4,14 @@
 use agb::{
     display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
-        object::{OamManaged, Object, Size, Sprite},
+        object::{OamDisplay, ObjectUnmanaged, Size, Sprite, SpriteLoader, SpriteVram},
         palette16::Palette16,
         tiled::RegularBackgroundSize,
         HEIGHT, WIDTH,
     },
     input::Button,
 };
-use core::convert::TryInto;
+use agb_fixnum::{num, Num, Vector2D};
 
 #[derive(PartialEq, Eq)]
 enum State {
@@ -20,15 +20,23 @@ enum State {
     Flapping,
 }
 
-struct Character<'a> {
-    object: Object<'a>,
-    position: Vector2D,
-    velocity: Vector2D,
+struct Character {
+    sprite: SpriteVram,
+    position: Vector2D<Num<i32, 8>>,
+    velocity: Vector2D<Num<i32, 8>>,
+    flipped: bool,
 }
 
-struct Vector2D {
-    x: i32,
-    y: i32,
+impl OamDisplay for &Character {
+    fn set_in(
+        self,
+        oam: &mut agb::display::object::OamIterator,
+    ) -> agb::display::object::OamDisplayResult {
+        ObjectUnmanaged::new(self.sprite.clone())
+            .set_position((self.position + (num!(0.5), num!(0.5)).into()).floor() - (4, 4).into())
+            .set_hflip(self.flipped)
+            .set_in(oam)
+    }
 }
 
 fn tile_is_collidable(tile: u16) -> bool {
@@ -36,11 +44,26 @@ fn tile_is_collidable(tile: u16) -> bool {
     masked == 0 || masked == 4
 }
 
+fn position_is_colliding(tiles: &[[u16; 32]; 32], position: Vector2D<Num<i32, 8>>) -> bool {
+    fn inner_check(tiles: &[[u16; 32]; 32], position: Vector2D<Num<i32, 8>>) -> Option<bool> {
+        let position = position.floor() / 8;
+        Some(tile_is_collidable(
+            *tiles.get(position.y as usize)?.get(position.x as usize)?,
+        ))
+    }
+
+    inner_check(tiles, position).unwrap_or(true)
+}
+
 fn frame_ranger(count: u32, start: u32, end: u32, delay: u32) -> usize {
     (((count / delay) % (end + 1 - start)) + start) as usize
 }
 
 #[agb::entry]
+fn entry(gba: agb::Gba) -> ! {
+    main(gba);
+}
+
 fn main(mut gba: agb::Gba) -> ! {
     let map_as_grid: &[[u16; 32]; 32] = unsafe {
         (&MAP_MAP as *const [u16; 1024] as *const [[u16; 32]; 32])
@@ -74,46 +97,39 @@ fn main(mut gba: agb::Gba) -> ! {
     background.show();
     background.commit(&mut vram);
 
-    let object = gba.display.object.get_managed();
+    let (mut oam, mut sprite_loader) = gba.display.object.get();
 
-    let sprite = object.sprite(&CHICKEN_SPRITES[0]);
+    let sprite = sprite_loader.get_vram_sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
-        object: object.object(sprite),
+        sprite,
         position: Vector2D {
-            x: (6 * 8) << 8,
-            y: ((7 * 8) - 4) << 8,
+            x: (6 * 8).into(),
+            y: ((7 * 8) - 4).into(),
         },
-        velocity: Vector2D { x: 0, y: 0 },
+        velocity: Vector2D {
+            x: 0.into(),
+            y: 0.into(),
+        },
+        flipped: false,
     };
 
-    chicken
-        .object
-        .set_x((chicken.position.x >> 8).try_into().unwrap());
-    chicken
-        .object
-        .set_y((chicken.position.y >> 8).try_into().unwrap());
-    chicken.object.show();
-
-    object.commit();
-
-    let acceleration = 1 << 4;
-    let gravity = 1 << 4;
+    let acceleration = num!(0.0625);
+    let gravity = num!(0.0625);
     let flapping_gravity = gravity / 3;
-    let jump_velocity = 1 << 9;
+    let jump_velocity = num!(2.);
     let mut frame_count = 0;
     let mut frames_off_ground = 0;
 
-    let terminal_velocity = (1 << 8) / 2;
+    let terminal_velocity = num!(0.5);
 
     loop {
-        vblank.wait_for_vblank();
         frame_count += 1;
 
         input.update();
 
         // Horizontal movement
-        chicken.velocity.x += (input.x_tri() as i32) * acceleration;
-        chicken.velocity.x = 61 * chicken.velocity.x / 64;
+        chicken.velocity.x += acceleration * (input.x_tri() as i32);
+        chicken.velocity.x = (chicken.velocity.x * 61) / 64;
 
         // Update position based on collision detection
         let state = handle_collision(
@@ -137,103 +153,89 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         restrict_to_screen(&mut chicken);
-        update_chicken_object(&mut chicken, &object, state, frame_count);
-
-        object.commit();
+        update_chicken_object(&mut chicken, &mut sprite_loader, state, frame_count);
+        vblank.wait_for_vblank();
+        chicken.set_in(&mut oam.iter());
     }
 }
 
 fn update_chicken_object(
-    chicken: &'_ mut Character<'_>,
-    gfx: &OamManaged,
+    chicken: &mut Character,
+    sprite_loader: &mut SpriteLoader,
     state: State,
     frame_count: u32,
 ) {
-    if chicken.velocity.x > 1 {
-        chicken.object.set_hflip(false);
-    } else if chicken.velocity.x < -1 {
-        chicken.object.set_hflip(true);
+    match chicken.velocity.x.to_raw().signum() {
+        1 => chicken.flipped = false,
+        -1 => chicken.flipped = true,
+        _ => {}
     }
+
     match state {
         State::Ground => {
-            if chicken.velocity.x.abs() > 1 << 4 {
-                chicken
-                    .object
-                    .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]));
+            if chicken.velocity.x.abs() > num!(0.0625) {
+                chicken.sprite = sprite_loader
+                    .get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]);
             } else {
-                chicken.object.set_sprite(gfx.sprite(&CHICKEN_SPRITES[0]));
+                chicken.sprite = sprite_loader.get_vram_sprite(&CHICKEN_SPRITES[0]);
             }
         }
         State::Upwards => {}
         State::Flapping => {
-            chicken
-                .object
-                .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
+            chicken.sprite =
+                sprite_loader.get_vram_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]);
         }
     }
-
-    let x: u16 = (chicken.position.x >> 8).try_into().unwrap();
-    let y: u16 = (chicken.position.y >> 8).try_into().unwrap();
-
-    chicken.object.set_x(x - 4);
-    chicken.object.set_y(y - 4);
 }
 
 fn restrict_to_screen(chicken: &mut Character) {
-    if chicken.position.x > (WIDTH - 8 + 4) << 8 {
-        chicken.velocity.x = 0;
-        chicken.position.x = (WIDTH - 8 + 4) << 8;
-    } else if chicken.position.x < 4 << 8 {
-        chicken.velocity.x = 0;
-        chicken.position.x = 4 << 8;
+    if chicken.position.x > (WIDTH - 8 + 4).into() {
+        chicken.velocity.x = 0.into();
+        chicken.position.x = (WIDTH - 8 + 4).into();
+    } else if chicken.position.x < 4.into() {
+        chicken.velocity.x = 0.into();
+        chicken.position.x = 4.into();
     }
-    if chicken.position.y > (HEIGHT - 8 + 4) << 8 {
-        chicken.velocity.y = 0;
-        chicken.position.y = (HEIGHT - 8 + 4) << 8;
-    } else if chicken.position.y < 4 << 8 {
-        chicken.velocity.y = 0;
-        chicken.position.y = 4 << 8;
+    if chicken.position.y > (HEIGHT - 8 + 4).into() {
+        chicken.velocity.y = 0.into();
+        chicken.position.y = (HEIGHT - 8 + 4).into();
+    } else if chicken.position.y < 4.into() {
+        chicken.velocity.y = 0.into();
+        chicken.position.y = 4.into();
     }
 }
 
 fn handle_collision(
     chicken: &mut Character,
     map_as_grid: &[[u16; 32]; 32],
-    gravity: i32,
-    flapping_gravity: i32,
-    terminal_velocity: i32,
+    gravity: Num<i32, 8>,
+    flapping_gravity: Num<i32, 8>,
+    terminal_velocity: Num<i32, 8>,
 ) -> State {
-    let mut new_chicken_x = chicken.position.x + chicken.velocity.x;
-    let mut new_chicken_y = chicken.position.y + chicken.velocity.y;
+    let mut new_chicken_positon = chicken.position + chicken.velocity;
 
-    let tile_x = ((new_chicken_x >> 8) / 8) as usize;
-    let tile_y = ((new_chicken_y >> 8) / 8) as usize;
-
-    let left = (((new_chicken_x >> 8) - 4) / 8) as usize;
-    let right = (((new_chicken_x >> 8) + 4) / 8) as usize;
-    let top = (((new_chicken_y >> 8) - 4) / 8) as usize;
-    let bottom = (((new_chicken_y >> 8) + 4) / 8) as usize;
-
-    if chicken.velocity.x < 0 && tile_is_collidable(map_as_grid[tile_y][left]) {
-        new_chicken_x = (((left + 1) * 8 + 4) << 8) as i32;
-        chicken.velocity.x = 0;
-    } else if chicken.velocity.x > 0 && tile_is_collidable(map_as_grid[tile_y][right]) {
-        new_chicken_x = ((right * 8 - 4) << 8) as i32;
-        chicken.velocity.x = 0;
+    if (chicken.velocity.x < 0.into()
+        && position_is_colliding(map_as_grid, new_chicken_positon - (4, 0).into()))
+        || (chicken.velocity.x > 0.into()
+            && position_is_colliding(map_as_grid, new_chicken_positon + (4, 0).into()))
+    {
+        new_chicken_positon.x = (new_chicken_positon.x.floor() / 8 * 8 + 4).into();
+        chicken.velocity.x = 0.into();
     }
 
-    if chicken.velocity.y < 0 && tile_is_collidable(map_as_grid[top][tile_x]) {
-        new_chicken_y = ((((top + 1) * 8 + 4) << 8) + 4) as i32;
-        chicken.velocity.y = 0;
-    } else if chicken.velocity.y > 0 && tile_is_collidable(map_as_grid[bottom][tile_x]) {
-        new_chicken_y = ((bottom * 8 - 4) << 8) as i32;
-        chicken.velocity.y = 0;
+    if (chicken.velocity.y < 0.into()
+        && position_is_colliding(map_as_grid, new_chicken_positon - (0, 4).into()))
+        || (chicken.velocity.y > 0.into()
+            && position_is_colliding(map_as_grid, new_chicken_positon + (0, 4).into()))
+    {
+        new_chicken_positon.y = (new_chicken_positon.y.floor() / 8 * 8 + 4).into();
+        chicken.velocity.y = 0.into();
     }
 
     let mut air_animation = State::Ground;
 
-    if !tile_is_collidable(map_as_grid[bottom][tile_x]) {
-        if chicken.velocity.y < 0 {
+    if !position_is_colliding(map_as_grid, new_chicken_positon + (0, 4).into()) {
+        if chicken.velocity.y < 0.into() {
             air_animation = State::Upwards;
             chicken.velocity.y += gravity;
         } else {
@@ -245,8 +247,7 @@ fn handle_collision(
         }
     }
 
-    chicken.position.x = new_chicken_x;
-    chicken.position.y = new_chicken_y;
+    chicken.position = new_chicken_positon;
 
     air_animation
 }
