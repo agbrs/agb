@@ -68,6 +68,7 @@ pub struct OamUnmanaged<'gba> {
 
 pub struct OamIterator<'oam> {
     index: usize,
+    position: Vector2D<i32>,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
@@ -77,6 +78,7 @@ pub struct OamIterator<'oam> {
 /// See [`OamIterator`] for potential pitfalls.
 pub struct OamSlot<'oam> {
     slot: usize,
+    position: Vector2D<i32>,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
@@ -109,6 +111,7 @@ impl OamSlot<'_> {
         if let Some(affine_matrix) = &object.affine_matrix {
             Self::handle_affine(&mut attributes, frame_data, affine_matrix);
         }
+        attributes.set_position(self.position + object.position);
         attributes.write(unsafe { OBJECT_ATTRIBUTE_MEMORY.add(self.slot * 4) });
 
         frame_data.this_frame_sprites.push(object.sprite.clone());
@@ -145,6 +148,7 @@ impl<'oam> Iterator for OamIterator<'oam> {
         } else {
             self.index += 1;
             Some(OamSlot {
+                position: self.position,
                 slot: idx,
                 frame_data: self.frame_data,
             })
@@ -199,6 +203,7 @@ impl OamUnmanaged<'_> {
         );
 
         OamIterator {
+            position: (0, 0).into(),
             index: 0,
             frame_data: &self.frame_data,
         }
@@ -225,6 +230,7 @@ pub struct ObjectUnmanaged {
     attributes: Attributes,
     sprite: SpriteVram,
     affine_matrix: Option<AffineMatrixVram>,
+    position: Vector2D<i32>,
 }
 
 impl ObjectUnmanaged {
@@ -239,6 +245,7 @@ impl ObjectUnmanaged {
             attributes: Attributes::default(),
             sprite,
             affine_matrix: None,
+            position: (0, 0).into(),
         };
 
         sprite.attributes.set_sprite(sprite_location, shape, size);
@@ -294,26 +301,11 @@ impl ObjectUnmanaged {
     }
 
     #[must_use]
-    /// Sets the x position of the object.
-    pub fn set_x(mut self, x: u16) -> Self {
-        self.attributes.set_x(x);
-
-        self
-    }
-
-    #[must_use]
-    /// Sets the y position of the object.
-    pub fn set_y(mut self, y: u16) -> Self {
-        self.attributes.set_y(y);
-
-        self
-    }
-
-    #[must_use]
     /// Sets the position of the object.
-    pub fn set_position(self, position: Vector2D<i32>) -> Self {
-        self.set_y(position.y.rem_euclid(1 << 9) as u16)
-            .set_x(position.x.rem_euclid(1 << 9) as u16)
+    pub fn set_position(mut self, position: Vector2D<i32>) -> Self {
+        self.position = position;
+
+        self
     }
 
     #[must_use]
@@ -382,6 +374,18 @@ mod tests {
 pub trait OamDisplay {
     /// Write it to oam slots, returns whether all the writes could succeed.
     fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult;
+
+    /// Write it to oam slots with a given offset.
+    fn set_at(self, oam: &mut OamIterator, position: Vector2D<i32>) -> OamDisplayResult
+    where
+        Self: Sized,
+    {
+        let initial_position = oam.position;
+        oam.position += position;
+        let result = self.set_in(oam);
+        oam.position = initial_position;
+        result
+    }
 }
 
 impl OamDisplay for ObjectUnmanaged {
