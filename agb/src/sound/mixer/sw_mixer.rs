@@ -433,6 +433,8 @@ impl MixerBuffer {
         channel.pos += 2 * self.frequency.buffer_size() as u32;
     }
 
+    #[link_section = ".iwram.write_mono"]
+    #[inline(never)]
     fn write_mono(&self, channel: &mut SoundChannel, working_buffer: &mut [Num<i16, 4>]) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
         let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
