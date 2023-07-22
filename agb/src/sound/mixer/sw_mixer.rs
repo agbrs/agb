@@ -28,6 +28,13 @@ extern "C" {
         buffer_size: usize,
     );
 
+    fn agb_rs__mixer_add_stereo_first(
+        sound_data: *const u8,
+        sound_buffer: *mut Num<i16, 4>,
+        volume: Num<i16, 4>,
+        buffer_size: usize,
+    );
+
     fn agb_rs__mixer_collapse(
         sound_buffer: *mut i8,
         input_buffer: *const Num<i16, 4>,
@@ -387,15 +394,24 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        working_buffer.fill(0.into());
+        let mut channels =
+            channels.filter(|channel| !channel.is_done && channel.volume != 0.into());
 
-        for channel in channels.filter(|channel| !channel.is_done) {
-            if channel.volume != 0.into() {
-                if channel.is_stereo {
-                    self.write_stereo(channel, working_buffer);
-                } else {
-                    self.write_mono(channel, working_buffer);
-                }
+        if let Some(channel) = channels.next() {
+            if channel.is_stereo {
+                self.write_stereo::<true>(channel, working_buffer);
+            } else {
+                self.write_mono::<true>(channel, working_buffer);
+            }
+        } else {
+            working_buffer.fill(0.into());
+        }
+
+        for channel in channels {
+            if channel.is_stereo {
+                self.write_stereo::<false>(channel, working_buffer);
+            } else {
+                self.write_mono::<false>(channel, working_buffer);
             }
         }
 
@@ -410,7 +426,11 @@ impl MixerBuffer {
         }
     }
 
-    fn write_stereo(&self, channel: &mut SoundChannel, working_buffer: &mut [Num<i16, 4>]) {
+    fn write_stereo<const IS_FIRST: bool>(
+        &self,
+        channel: &mut SoundChannel,
+        working_buffer: &mut [Num<i16, 4>],
+    ) {
         if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
             >= channel.data.len() as u32
         {
@@ -418,16 +438,28 @@ impl MixerBuffer {
                 channel.pos = channel.restart_point * 2;
             } else {
                 channel.is_done = true;
+                if IS_FIRST {
+                    working_buffer.fill(0.into());
+                }
                 return;
             }
         }
         unsafe {
-            agb_rs__mixer_add_stereo(
-                channel.data.as_ptr().add(channel.pos.floor() as usize),
-                working_buffer.as_mut_ptr(),
-                channel.volume,
-                self.frequency.buffer_size(),
-            );
+            if IS_FIRST {
+                agb_rs__mixer_add_stereo_first(
+                    channel.data.as_ptr().add(channel.pos.floor() as usize),
+                    working_buffer.as_mut_ptr(),
+                    channel.volume,
+                    self.frequency.buffer_size(),
+                );
+            } else {
+                agb_rs__mixer_add_stereo(
+                    channel.data.as_ptr().add(channel.pos.floor() as usize),
+                    working_buffer.as_mut_ptr(),
+                    channel.volume,
+                    self.frequency.buffer_size(),
+                );
+            }
         }
 
         channel.pos += 2 * self.frequency.buffer_size() as u32;
@@ -435,7 +467,11 @@ impl MixerBuffer {
 
     #[link_section = ".iwram.write_mono"]
     #[inline(never)]
-    fn write_mono(&self, channel: &mut SoundChannel, working_buffer: &mut [Num<i16, 4>]) {
+    fn write_mono<const IS_FIRST: bool>(
+        &self,
+        channel: &mut SoundChannel,
+        working_buffer: &mut [Num<i16, 4>],
+    ) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
         let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
@@ -463,6 +499,16 @@ impl MixerBuffer {
                     channel.pos -= channel_len - channel.restart_point;
                 } else {
                     channel.is_done = true;
+
+                    if IS_FIRST {
+                        for j in i..self.frequency.buffer_size() {
+                            // SAFETY: working buffer length = self.frequency.buffer_size()
+                            unsafe {
+                                *working_buffer_i32.get_unchecked_mut(j) = 0.into();
+                            }
+                        }
+                    }
+
                     break;
                 }
             }
@@ -472,10 +518,16 @@ impl MixerBuffer {
                 unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) } as i8 as i32;
 
             // SAFETY: working buffer length = self.frequency.buffer_size()
-            unsafe {
-                let value_ref = working_buffer_i32.get_unchecked_mut(i);
-                *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
-            };
+            if IS_FIRST {
+                unsafe {
+                    *working_buffer_i32.get_unchecked_mut(i) = value.wrapping_mul(mul_amount);
+                }
+            } else {
+                unsafe {
+                    let value_ref = working_buffer_i32.get_unchecked_mut(i);
+                    *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
+                };
+            }
             channel.pos += playback_speed;
         }
     }

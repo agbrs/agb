@@ -66,6 +66,7 @@ agb_arm_end \fn_name
 .endm
 
 stereo_add_fn agb_rs__mixer_add_stereo false
+stereo_add_fn agb_rs__mixer_add_stereo_first true
 
 @ TODO(GI): Might bring this back later
 @ stereo_add_fn agb_rs__mixer_add_stereo_first true
