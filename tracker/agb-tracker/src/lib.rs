@@ -4,6 +4,64 @@
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
+#![deny(missing_docs)]
+
+//! # agb_tracker
+//! `agb_tracker` is a library for playing tracker music on the Game Boy Advance (GBA)
+//! using the [`agb`](https://github.com/agbrs/agb) library.
+//!
+//! The default mechanism for playing background music using `agb` is to include a
+//! the entire music as a raw sound file. However, this can get very large (>8MB) for
+//! only a few minutes of music, taking up most of your limited ROM space.
+//!
+//! Using a tracker, you can store many minutes of music in only a few kB of ROM which makes
+//! the format much more space efficient at the cost of some CPU.
+//!
+//! This library uses about 20-30% of the GBA's CPU time per frame, for 4 channels but most of that is
+//! `agb`'s mixing. The main [`step`](Tracker::step()) function uses around 2000 cycles (<1%).
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! #![no_std]
+//! #![no_main]
+//!
+//! use agb::{Gba, sound::mixer::Frequency};
+//! use agb_tracker::{import_xm, Track, Tracker};
+//!
+//! const DB_TOFFE: Track = import_xm!("examples/db_toffe.xm");
+//!
+//! #[agb::entry]
+//! fn main(mut gba: Gba) -> ! {
+//!     let vblank_provider = agb::interrupt::VBlank::get();
+//!
+//!     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
+//!     mixer.enable();
+//!
+//!     let mut tracker = Tracker::new(&DB_TOFFE);
+//!
+//!     loop {
+//!         tracker.step(&mut mixer);
+//!         mixer.frame();
+//!
+//!         vblank_provider.wait_for_vblank();
+//!     }
+//! }
+//! ```
+//!
+//! Note that currently you have to select 18157Hz as the frequency for the mixer.
+//! This restriction will be lifted in a future version.
+//!
+//! # Concepts
+//!
+//! The main concept of the `agb_tracker` crate is to move as much of the work to build
+//! time as possible to make the actual playing as fast as we can. The passed tracker file
+//! gets parsed and converted into a simplified format which is then played while the game
+//! is running.
+//!
+//! In theory, the format the tracker file gets converted into is agnostic to the base format.
+//! Currently, only XM is implemented, however, more formats could be added in future depending
+//! on demand.
 
 extern crate alloc;
 
@@ -15,16 +73,20 @@ use agb::{
     sound::mixer::{ChannelId, Mixer, SoundChannel},
 };
 
+/// Import an XM file. Only available if you have the `xm` feature enabled (enabled by default).
 #[cfg(feature = "xm")]
 pub use agb_xm::import_xm;
 
+#[doc(hidden)]
 pub mod __private {
     pub use agb::fixnum::Num;
     pub use agb_tracker_interop;
 }
 
+/// A reference to a track. You should create this using one of the import macros.
 pub use agb_tracker_interop::Track;
 
+/// Stores the required state in order to play tracker music.
 pub struct Tracker {
     track: &'static Track<'static>,
     channels: Vec<TrackerChannel>,
@@ -44,6 +106,7 @@ struct TrackerChannel {
 }
 
 impl Tracker {
+    /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
     pub fn new(track: &'static Track<'static>) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, || TrackerChannel {
@@ -65,6 +128,8 @@ impl Tracker {
         }
     }
 
+    /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
+    /// See the [example](crate#example) for how to use the tracker.
     pub fn step(&mut self, mixer: &mut Mixer) {
         if !self.increment_frame() {
             return;
