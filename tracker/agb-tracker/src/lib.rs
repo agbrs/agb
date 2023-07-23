@@ -102,7 +102,7 @@ pub struct Tracker {
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
     base_speed: Num<u32, 8>,
-    volume: Num<i16, 4>,
+    volume: Num<i32, 8>,
 }
 
 impl Tracker {
@@ -143,7 +143,7 @@ impl Tracker {
         let pattern_slots =
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
-        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots).skip(3) {
+        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
                 channel.play_sound(mixer, sample);
@@ -210,7 +210,7 @@ impl TrackerChannel {
 
         let mut new_channel = SoundChannel::new(sample.data);
 
-        new_channel.volume(sample.volume);
+        new_channel.volume(sample.volume.change_base());
 
         if sample.should_loop {
             new_channel
@@ -219,7 +219,7 @@ impl TrackerChannel {
         }
 
         self.channel_id = mixer.play_sound(new_channel);
-        self.volume = sample.volume;
+        self.volume = sample.volume.change_base();
     }
 
     fn set_speed(&mut self, mixer: &mut Mixer<'_>, speed: Num<u32, 8>) {
@@ -259,19 +259,19 @@ impl TrackerChannel {
                     channel.panning(*panning);
                 }
                 PatternEffect::Volume(volume) => {
-                    channel.volume(*volume);
-                    self.volume = *volume;
+                    channel.volume(volume.change_base());
+                    self.volume = volume.change_base();
                 }
                 PatternEffect::VolumeSlide(amount) => {
                     if tick != 0 {
-                        self.volume = (self.volume + *amount).max(0.into());
-                        channel.volume(self.volume);
+                        self.volume = (self.volume + amount.change_base()).max(0.into());
+                        channel.volume(self.volume.try_change_base().unwrap());
                     }
                 }
                 PatternEffect::FineVolumeSlide(amount) => {
                     if tick == 0 {
-                        self.volume = (self.volume + *amount).max(0.into());
-                        channel.volume(self.volume);
+                        self.volume = (self.volume + amount.change_base()).max(0.into());
+                        channel.volume(self.volume.try_change_base().unwrap());
                     }
                 }
                 PatternEffect::NoteCut(wait) => {

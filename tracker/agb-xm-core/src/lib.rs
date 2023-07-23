@@ -55,7 +55,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         fine_tune: f64,
         relative_note: i8,
         restart_point: u32,
-        volume: Num<i16, 4>,
+        volume: Num<i16, 8>,
     }
 
     let mut samples = vec![];
@@ -76,7 +76,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 usize::MAX
             };
 
-            let volume = Num::from_raw((sample.volume * (1 << 4) as f32) as i16);
+            let volume = Num::from_raw((sample.volume * (1 << 8) as f32) as i16);
 
             let sample = match &sample.data {
                 SampleDataType::Depth8(depth8) => depth8
@@ -163,10 +163,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                     .unwrap_or(1.into()),
                         ),
                         0x80..=0x8F => PatternEffect::FineVolumeSlide(
-                            -Num::new((slot.volume - 0x80) as i16) / 16,
+                            -Num::new((slot.volume - 0x80) as i16) / 64,
                         ),
                         0x90..=0x9F => PatternEffect::FineVolumeSlide(
-                            Num::new((slot.volume - 0x90) as i16) / 16,
+                            Num::new((slot.volume - 0x90) as i16) / 64,
                         ),
                         0xC0..=0xCF => PatternEffect::Panning(
                             Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
@@ -299,10 +299,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                     0xE => match slot.effect_parameter >> 4 {
                         0xA => PatternEffect::FineVolumeSlide(
-                            Num::new((slot.effect_parameter & 0xf) as i16) / 16,
+                            Num::new((slot.effect_parameter & 0xf) as i16) / 64,
                         ),
                         0xB => PatternEffect::FineVolumeSlide(
-                            -Num::new((slot.effect_parameter & 0xf) as i16) / 16,
+                            -Num::new((slot.effect_parameter & 0xf) as i16) / 64,
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,

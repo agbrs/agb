@@ -19,7 +19,7 @@ pub struct Sample<'a> {
     pub data: &'a [u8],
     pub should_loop: bool,
     pub restart_point: u32,
-    pub volume: Num<i16, 4>,
+    pub volume: Num<i16, 8>,
 }
 
 #[derive(Debug)]
@@ -46,9 +46,9 @@ pub enum PatternEffect {
     /// Plays an arpeggiation of three notes in one row, cycling betwen the current note, current note + first speed, current note + second speed
     Arpeggio(Num<u16, 8>, Num<u16, 8>),
     Panning(Num<i16, 4>),
-    Volume(Num<i16, 4>),
-    VolumeSlide(Num<i16, 4>),
-    FineVolumeSlide(Num<i16, 4>),
+    Volume(Num<i16, 8>),
+    VolumeSlide(Num<i16, 8>),
+    FineVolumeSlide(Num<i16, 8>),
     NoteCut(u32),
     Portamento(Num<u16, 8>),
     /// Slide each tick the first amount to at most the second amount
