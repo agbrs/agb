@@ -106,14 +106,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let mut patterns = vec![];
     let mut pattern_data = vec![];
 
-    let mut effect_parameters = [0; u8::MAX as usize];
-
     for pattern in &module.pattern {
         let start_pos = pattern_data.len();
+        let mut effect_parameters: [u8; 255] = [0; u8::MAX as usize];
+        let mut tone_portamento_directions = vec![0.0; module.get_num_channels()];
+        let mut note_and_sample = vec![None; module.get_num_channels()];
 
         for row in pattern.iter() {
-            let mut note_and_sample = vec![None; module.get_num_channels()];
-
             for (i, slot) in row.iter().enumerate() {
                 let channel_number = i % module.get_num_channels();
 
@@ -162,6 +161,12 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                     .map(|note_and_sample| note_and_sample.1.volume)
                                     .unwrap_or(1.into()),
                         ),
+                        0x60..=0x6F => {
+                            PatternEffect::VolumeSlide(-Num::new((slot.volume - 0x60) as i16) / 64)
+                        }
+                        0x70..=0x7F => {
+                            PatternEffect::VolumeSlide(Num::new((slot.volume - 0x70) as i16) / 64)
+                        }
                         0x80..=0x8F => PatternEffect::FineVolumeSlide(
                             -Num::new((slot.volume - 0x80) as i16) / 64,
                         ),
@@ -169,7 +174,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             Num::new((slot.volume - 0x90) as i16) / 64,
                         ),
                         0xC0..=0xCF => PatternEffect::Panning(
-                            Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
+                            Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 8,
                         ),
                         _ => PatternEffect::None,
                     };
@@ -242,15 +247,27 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         PatternEffect::Portamento(portamento_amount.try_change_base().unwrap())
                     }
                     0x3 => {
-                        if let Some((previous_note, sample)) = previous_note_and_sample {
-                            // we want to pitch slide to at most the current note by the parameter amount
-                            let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                        if let (Some((note, sample)), Some((prev_note, _))) =
+                            (maybe_note_and_sample, previous_note_and_sample)
+                        {
+                            let target_speed = note_to_speed(
+                                *note,
+                                sample.fine_tune,
+                                sample.relative_note,
+                                module.frequency_type,
+                            );
 
-                            let direction = if (previous_note as usize) < slot.note as usize {
-                                -1.0
-                            } else {
-                                1.0
+                            let direction = match (prev_note as usize).cmp(&(*note as usize)) {
+                                std::cmp::Ordering::Less => 1.0,
+                                std::cmp::Ordering::Equal => {
+                                    tone_portamento_directions[channel_number]
+                                }
+                                std::cmp::Ordering::Greater => -1.0,
                             };
+
+                            tone_portamento_directions[channel_number] = direction;
+
+                            let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                             let speed = note_to_speed(
                                 Note::C4,
                                 effect_parameter as f64 * direction,
@@ -259,13 +276,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             );
 
                             let portamento_amount = speed / c4_speed;
-
-                            let target_speed = note_to_speed(
-                                slot.note,
-                                sample.fine_tune,
-                                sample.relative_note,
-                                module.frequency_type,
-                            );
 
                             PatternEffect::TonePortamento(
                                 portamento_amount.try_change_base().unwrap(),

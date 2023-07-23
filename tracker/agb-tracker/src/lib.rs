@@ -124,7 +124,7 @@ impl Tracker {
             tick: 0,
 
             current_row: 0,
-            current_pattern: 0x10,
+            current_pattern: 0,
         }
     }
 
