@@ -5,8 +5,10 @@ build: build-roms
 
 build-debug:
     just _build-debug agb
+    just _build-debug tracker/agb-tracker
 build-release:
     just _build-release agb
+    just _build-release tracker/agb-tracker
 clippy:
     just _all-crates _clippy
     just _clippy tools
@@ -22,7 +24,7 @@ test:
 test-release:
     just _test-release agb
     just _test-release agb-fixnum
-    just _test-debug tracker/agb-tracker
+    just _test-release tracker/agb-tracker
     just _test-release-arm agb
 
 doctest-agb:
