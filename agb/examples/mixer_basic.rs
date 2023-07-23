@@ -25,7 +25,7 @@ fn main(mut gba: Gba) -> ! {
 
         {
             if let Some(channel) = mixer.channel(&channel_id) {
-                let half: Num<i16, 4> = num!(0.5);
+                let half: Num<i16, 8> = num!(0.5);
                 let half_usize: Num<u32, 8> = num!(0.5);
                 match input.x_tri() {
                     Tri::Negative => channel.panning(-half),
