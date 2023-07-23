@@ -1,6 +1,7 @@
 [package]
 name = "agb_tracker_interop"
 version = "0.16.0"
+authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
 description = "Library for interop between tracker plugins and agb itself. Designed for use with the agb library for the Game Boy Advance."
