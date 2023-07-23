@@ -229,9 +229,9 @@ pub struct SoundChannel {
     restart_point: Num<u32, 8>,
 
     playback_speed: Num<u32, 8>,
-    volume: Num<i16, 4>, // between 0 and 1
+    volume: Num<i16, 8>, // between 0 and 1
 
-    panning: Num<i16, 4>, // between -1 and 1
+    panning: Num<i16, 8>, // between -1 and 1
     is_done: bool,
 
     is_stereo: bool,
@@ -366,7 +366,7 @@ impl SoundChannel {
     /// Defaults to 0 (meaning equal on left and right) and doesn't affect stereo
     /// sounds.
     #[inline(always)]
-    pub fn panning(&mut self, panning: impl Into<Num<i16, 4>>) -> &mut Self {
+    pub fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self {
         let panning = panning.into();
 
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
@@ -381,7 +381,7 @@ impl SoundChannel {
     ///
     /// Must be a value >= 0 and defaults to 1.
     #[inline(always)]
-    pub fn volume(&mut self, volume: impl Into<Num<i16, 4>>) -> &mut Self {
+    pub fn volume(&mut self, volume: impl Into<Num<i16, 8>>) -> &mut Self {
         let volume = volume.into();
 
         assert!(volume >= Num::new(0), "volume must be >= 0");

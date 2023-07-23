@@ -449,14 +449,14 @@ impl MixerBuffer {
                 agb_rs__mixer_add_stereo_first(
                     channel.data.as_ptr().add(channel.pos.floor() as usize),
                     working_buffer.as_mut_ptr(),
-                    channel.volume,
+                    channel.volume.change_base(),
                     self.frequency.buffer_size(),
                 );
             } else {
                 agb_rs__mixer_add_stereo(
                     channel.data.as_ptr().add(channel.pos.floor() as usize),
                     working_buffer.as_mut_ptr(),
-                    channel.volume,
+                    channel.volume.change_base(),
                     self.frequency.buffer_size(),
                 );
             }
@@ -474,6 +474,9 @@ impl MixerBuffer {
     ) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
         let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
+        let right_amount: Num<i16, 4> = right_amount.change_base();
+        let left_amount: Num<i16, 4> = left_amount.change_base();
 
         let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
         let mut playback_speed = channel.playback_speed;

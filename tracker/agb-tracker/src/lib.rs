@@ -256,7 +256,7 @@ impl TrackerChannel {
                     };
                 }
                 PatternEffect::Panning(panning) => {
-                    channel.panning(*panning);
+                    channel.panning(panning.change_base());
                 }
                 PatternEffect::Volume(volume) => {
                     channel.volume(volume.change_base());
