@@ -29,8 +29,8 @@ doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
 
 check-docs:
-    (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
-    (cd tracker/agb-tracker && cargo doc --target=thumbv6m-none-eabi --no-deps)
+    (cd agb && cargo doc --target=thumbv4t-none-eabi --no-deps)
+    (cd tracker/agb-tracker && cargo doc --target=thumbv4t-none-eabi --no-deps)
     just _build_docs agb-fixnum
     just _build_docs agb-hashmap
 

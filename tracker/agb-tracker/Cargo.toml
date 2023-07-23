@@ -23,3 +23,6 @@ debug = true
 opt-level = 3
 lto = "fat"
 debug = true
+
+[package.metadata.docs.rs]
+default-target = "thumbv4t-none-eabi"

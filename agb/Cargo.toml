@@ -23,8 +23,7 @@ bilge = "0.1"
 rustc-hash =  { version = "1", default-features = false }
 
 [package.metadata.docs.rs]
-default-target = "thumbv6m-none-eabi"
-targets = []
+default-target = "thumbv4t-none-eabi"
 
 [profile.dev]
 opt-level = 3

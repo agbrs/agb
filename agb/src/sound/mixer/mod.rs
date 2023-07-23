@@ -334,7 +334,7 @@ impl SoundChannel {
     }
 
     /// Sets the point at which the sample should restart once it loops. Does nothing
-    /// unless you also call [`should_loop()`].
+    /// unless you also call [`should_loop()`](SoundChannel::should_loop()).
     ///
     /// Useful if your song has an introduction or similar.
     #[inline(always)]
