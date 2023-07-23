@@ -106,6 +106,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let mut patterns = vec![];
     let mut pattern_data = vec![];
 
+    let mut effect_parameters = [0; u8::MAX as usize];
+
     for pattern in &module.pattern {
         let start_pos = pattern_data.len();
 
@@ -166,6 +168,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     };
                 }
 
+                let effect_parameter = if slot.effect_parameter != 0 {
+                    effect_parameters[slot.effect_type as usize] = slot.effect_parameter;
+                    slot.effect_parameter
+                } else {
+                    effect_parameters[slot.effect_type as usize]
+                };
+
                 let effect2 = match slot.effect_type {
                     0x0 => {
                         if slot.effect_parameter == 0 {
@@ -203,7 +212,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                         let speed = note_to_speed(
                             Note::C4,
-                            slot.effect_parameter as f64,
+                            effect_parameter as f64,
                             0,
                             module.frequency_type,
                         );
@@ -216,7 +225,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                         let speed = note_to_speed(
                             Note::C4,
-                            -(slot.effect_parameter as f64),
+                            -(effect_parameter as f64),
                             0,
                             module.frequency_type,
                         );
@@ -229,8 +238,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
                     }
                     0xA => {
-                        let first = slot.effect_parameter >> 4;
-                        let second = slot.effect_parameter & 0xF;
+                        let first = effect_parameter >> 4;
+                        let second = effect_parameter & 0xF;
 
                         if first == 0 {
                             PatternEffect::VolumeSlide(-Num::new(second as i16) / 16)
