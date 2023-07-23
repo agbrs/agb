@@ -137,6 +137,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
                 let mut effect1 = PatternEffect::None;
 
+                let previous_note_and_sample = note_and_sample[channel_number];
                 let maybe_note_and_sample = if matches!(slot.note, Note::KeyOff) {
                     effect1 = PatternEffect::Stop;
                     note_and_sample[channel_number] = None;
@@ -233,6 +234,40 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let portamento_amount = speed / c4_speed;
 
                         PatternEffect::Portamento(portamento_amount.try_change_base().unwrap())
+                    }
+                    0x3 => {
+                        if let Some((previous_note, sample)) = previous_note_and_sample {
+                            // we want to pitch slide to at most the current note by the parameter amount
+                            let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+
+                            let direction = if (previous_note as usize) < slot.note as usize {
+                                -1.0
+                            } else {
+                                1.0
+                            };
+                            let speed = note_to_speed(
+                                Note::C4,
+                                effect_parameter as f64 * direction,
+                                0,
+                                module.frequency_type,
+                            );
+
+                            let portamento_amount = speed / c4_speed;
+
+                            let target_speed = note_to_speed(
+                                slot.note,
+                                sample.fine_tune,
+                                sample.relative_note,
+                                module.frequency_type,
+                            );
+
+                            PatternEffect::TonePortamento(
+                                portamento_amount.try_change_base().unwrap(),
+                                target_speed.try_change_base().unwrap(),
+                            )
+                        } else {
+                            PatternEffect::None
+                        }
                     }
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
@@ -356,7 +391,9 @@ fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f6
 }
 
 fn note_to_frequency_amega(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
-    let note = (note as usize) + relative_note as usize;
+    let note = (note as usize)
+        .checked_add_signed(relative_note as isize)
+        .expect("Note gone negative");
     let pos = (note % 12) * 8 + (fine_tune / 16.0) as usize;
     let frac = (fine_tune / 16.0) - (fine_tune / 16.0).floor();
 

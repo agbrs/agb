@@ -124,7 +124,7 @@ impl Tracker {
             tick: 0,
 
             current_row: 0,
-            current_pattern: 2,
+            current_pattern: 6,
         }
     }
 
@@ -278,13 +278,19 @@ impl TrackerChannel {
                     }
                 }
                 PatternEffect::Portamento(amount) => {
-                    let mut new_speed = self.base_speed;
-
-                    for _ in 0..tick {
-                        new_speed *= amount.change_base();
+                    if tick != 0 {
+                        self.base_speed *= amount.change_base();
+                        channel.playback(self.base_speed);
                     }
-
-                    channel.playback(new_speed);
+                }
+                PatternEffect::TonePortamento(amount, target) => {
+                    if *amount < 1.into() {
+                        self.base_speed =
+                            (self.base_speed * amount.change_base()).max(target.change_base());
+                    } else {
+                        self.base_speed =
+                            (self.base_speed * amount.change_base()).min(target.change_base());
+                    }
                 }
             }
         }

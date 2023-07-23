@@ -50,6 +50,8 @@ pub enum PatternEffect {
     VolumeSlide(Num<i16, 4>),
     NoteCut(u32),
     Portamento(Num<u16, 8>),
+    /// Slide each tick the first amount to at most the second amount
+    TonePortamento(Num<u16, 8>, Num<u16, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -207,6 +209,11 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::Portamento(amount) => {
                 let amount = amount.to_raw();
                 quote! { Portamento(agb_tracker::__private::Num::from_raw(#amount))}
+            }
+            PatternEffect::TonePortamento(amount, target) => {
+                let amount = amount.to_raw();
+                let target = target.to_raw();
+                quote! { TonePortamento(agb_tracker::__private::Num::from_raw(#amount), agb_tracker::__private::Num::from_raw(#target))}
             }
         };
 
