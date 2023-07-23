@@ -3,6 +3,6 @@ use proc_macro_error::proc_macro_error;
 
 #[proc_macro_error]
 #[proc_macro]
-pub fn import_xm(args: TokenStream) -> TokenStream {
+pub fn include_xm(args: TokenStream) -> TokenStream {
     agb_xm_core::agb_xm_core(args.into()).into()
 }

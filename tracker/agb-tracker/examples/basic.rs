@@ -3,9 +3,9 @@
 
 use agb::sound::mixer::Frequency;
 use agb::Gba;
-use agb_tracker::{import_xm, Track, Tracker};
+use agb_tracker::{include_xm, Track, Tracker};
 
-const DB_TOFFE: Track = import_xm!("examples/db_toffe.xm");
+const DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {

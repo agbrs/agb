@@ -27,9 +27,9 @@
 //! #![no_main]
 //!
 //! use agb::{Gba, sound::mixer::Frequency};
-//! use agb_tracker::{import_xm, Track, Tracker};
+//! use agb_tracker::{include_xm, Track, Tracker};
 //!
-//! const DB_TOFFE: Track = import_xm!("examples/db_toffe.xm");
+//! const DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
 //!
 //! #[agb::entry]
 //! fn main(mut gba: Gba) -> ! {
@@ -75,7 +75,7 @@ use agb::{
 
 /// Import an XM file. Only available if you have the `xm` feature enabled (enabled by default).
 #[cfg(feature = "xm")]
-pub use agb_xm::import_xm;
+pub use agb_xm::include_xm;
 
 #[doc(hidden)]
 pub mod __private {
@@ -83,7 +83,7 @@ pub mod __private {
     pub use agb_tracker_interop;
 }
 
-/// A reference to a track. You should create this using one of the import macros.
+/// A reference to a track. You should create this using one of the include macros.
 pub use agb_tracker_interop::Track;
 
 /// Stores the required state in order to play tracker music.
