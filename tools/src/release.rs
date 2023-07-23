@@ -108,6 +108,7 @@ fn update_to_version(
         &[
             "agb-*/Cargo.toml",
             "agb/Cargo.toml",
+            "tracker/agb-*/Cargo.toml",
             "examples/*/Cargo.toml",
             "book/games/*/Cargo.toml",
             "template/Cargo.toml",
