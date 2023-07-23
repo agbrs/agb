@@ -48,6 +48,7 @@ pub enum PatternEffect {
     Panning(Num<i16, 4>),
     Volume(Num<i16, 4>),
     VolumeSlide(Num<i16, 4>),
+    FineVolumeSlide(Num<i16, 4>),
     NoteCut(u32),
     Portamento(Num<u16, 8>),
     /// Slide each tick the first amount to at most the second amount
@@ -204,6 +205,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::VolumeSlide(amount) => {
                 let amount = amount.to_raw();
                 quote! { VolumeSlide(agb_tracker::__private::Num::from_raw(#amount))}
+            }
+            PatternEffect::FineVolumeSlide(amount) => {
+                let amount = amount.to_raw();
+                quote! { FineVolumeSlide(agb_tracker::__private::Num::from_raw(#amount))}
             }
             PatternEffect::NoteCut(wait) => quote! { NoteCut(#wait) },
             PatternEffect::Portamento(amount) => {

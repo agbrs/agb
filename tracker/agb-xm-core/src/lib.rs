@@ -162,6 +162,12 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                     .map(|note_and_sample| note_and_sample.1.volume)
                                     .unwrap_or(1.into()),
                         ),
+                        0x80..=0x8F => PatternEffect::FineVolumeSlide(
+                            -Num::new((slot.volume - 0x80) as i16) / 16,
+                        ),
+                        0x90..=0x9F => PatternEffect::FineVolumeSlide(
+                            Num::new((slot.volume - 0x90) as i16) / 16,
+                        ),
                         0xC0..=0xCF => PatternEffect::Panning(
                             Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 64,
                         ),
@@ -292,6 +298,12 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         }
                     }
                     0xE => match slot.effect_parameter >> 4 {
+                        0xA => PatternEffect::FineVolumeSlide(
+                            Num::new((slot.effect_parameter & 0xf) as i16) / 16,
+                        ),
+                        0xB => PatternEffect::FineVolumeSlide(
+                            -Num::new((slot.effect_parameter & 0xf) as i16) / 16,
+                        ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
                     },
