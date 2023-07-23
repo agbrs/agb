@@ -14,7 +14,7 @@ use xmrs::{prelude::*, xm::xmmodule::XmModule};
 pub fn agb_xm_core(args: TokenStream) -> TokenStream {
     let input = match syn::parse::<LitStr>(args.into()) {
         Ok(input) => input,
-        Err(err) => return proc_macro2::TokenStream::from(err.to_compile_error()),
+        Err(err) => return err.to_compile_error(),
     };
 
     let filename = input.value();
@@ -61,7 +61,9 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let mut samples = vec![];
 
     for (instrument_index, instrument) in instruments.iter().enumerate() {
-        let InstrumentType::Default(ref instrument) = instrument.instr_type else { continue; };
+        let InstrumentType::Default(ref instrument) = instrument.instr_type else {
+            continue;
+        };
 
         for (sample_index, sample) in instrument.sample.iter().enumerate() {
             let should_loop = !matches!(sample.flags, LoopType::No);
@@ -340,7 +342,7 @@ fn note_to_speed(
 
 fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
     let real_note = (note as usize as f64) + (relative_note as f64);
-    let period = 10.0 * 12.0 * 16.0 * 4.0 - (real_note as f64) * 16.0 * 4.0 - fine_tune / 2.0;
+    let period = 10.0 * 12.0 * 16.0 * 4.0 - real_note * 16.0 * 4.0 - fine_tune / 2.0;
     8363.0 * 2.0f64.powf((6.0 * 12.0 * 16.0 * 4.0 - period) / (12.0 * 16.0 * 4.0))
 }
 

@@ -504,7 +504,7 @@ impl MixerBuffer {
                         for j in i..self.frequency.buffer_size() {
                             // SAFETY: working buffer length = self.frequency.buffer_size()
                             unsafe {
-                                *working_buffer_i32.get_unchecked_mut(j) = 0.into();
+                                *working_buffer_i32.get_unchecked_mut(j) = 0;
                             }
                         }
                     }

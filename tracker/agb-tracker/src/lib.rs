@@ -135,10 +135,13 @@ impl Tracker {
 
 impl TrackerChannel {
     fn play_sound(&mut self, mixer: &mut Mixer<'_>, sample: &Sample<'static>) {
-        self.channel_id
+        if let Some(channel) = self
+            .channel_id
             .take()
             .and_then(|channel_id| mixer.channel(&channel_id))
-            .map(|channel| channel.stop());
+        {
+            channel.stop();
+        }
 
         let mut new_channel = SoundChannel::new(sample.data);
 
@@ -158,7 +161,7 @@ impl TrackerChannel {
         if let Some(channel) = self
             .channel_id
             .as_ref()
-            .and_then(|channel_id| mixer.channel(&channel_id))
+            .and_then(|channel_id| mixer.channel(channel_id))
         {
             if speed != 0.into() {
                 self.base_speed = speed;
@@ -172,7 +175,7 @@ impl TrackerChannel {
         if let Some(channel) = self
             .channel_id
             .as_ref()
-            .and_then(|channel_id| mixer.channel(&channel_id))
+            .and_then(|channel_id| mixer.channel(channel_id))
         {
             match effect {
                 PatternEffect::None => {}

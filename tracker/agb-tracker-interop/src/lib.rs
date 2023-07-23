@@ -114,8 +114,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
             volume,
         } = self;
 
-        let self_as_u8s: Vec<_> = data.iter().map(|i| *i as u8).collect();
-        let samples = ByteString(&self_as_u8s);
+        let samples = ByteString(data);
         let volume = volume.to_raw();
 
         tokens.append_all(quote! {
