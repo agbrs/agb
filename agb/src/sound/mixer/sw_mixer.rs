@@ -419,9 +419,9 @@ impl MixerBuffer {
 
         if let Some(channel) = channels.next() {
             if channel.is_stereo {
-                self.write_stereo::<true>(channel, working_buffer);
+                self.write_stereo(channel, working_buffer, true);
             } else {
-                self.write_mono::<true>(channel, working_buffer);
+                self.write_mono(channel, working_buffer, true);
             }
         } else {
             working_buffer.fill(0.into());
@@ -429,9 +429,9 @@ impl MixerBuffer {
 
         for channel in channels {
             if channel.is_stereo {
-                self.write_stereo::<false>(channel, working_buffer);
+                self.write_stereo(channel, working_buffer, false);
             } else {
-                self.write_mono::<false>(channel, working_buffer);
+                self.write_mono(channel, working_buffer, false);
             }
         }
 
@@ -446,10 +446,11 @@ impl MixerBuffer {
         }
     }
 
-    fn write_stereo<const IS_FIRST: bool>(
+    fn write_stereo(
         &self,
         channel: &mut SoundChannel,
         working_buffer: &mut [Num<i16, 4>],
+        is_first: bool,
     ) {
         if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
             >= channel.data.len() as u32
@@ -458,14 +459,14 @@ impl MixerBuffer {
                 channel.pos = channel.restart_point * 2;
             } else {
                 channel.is_done = true;
-                if IS_FIRST {
+                if is_first {
                     working_buffer.fill(0.into());
                 }
                 return;
             }
         }
         unsafe {
-            if IS_FIRST {
+            if is_first {
                 agb_rs__mixer_add_stereo_first(
                     channel.data.as_ptr().add(channel.pos.floor() as usize),
                     working_buffer.as_mut_ptr(),
@@ -485,12 +486,11 @@ impl MixerBuffer {
         channel.pos += 2 * self.frequency.buffer_size() as u32;
     }
 
-    #[link_section = ".iwram.write_mono"]
-    #[inline(never)]
-    fn write_mono<const IS_FIRST: bool>(
+    fn write_mono(
         &self,
         channel: &mut SoundChannel,
         working_buffer: &mut [Num<i16, 4>],
+        is_first: bool,
     ) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
         let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
@@ -533,7 +533,7 @@ impl MixerBuffer {
             };
         }
 
-        match (IS_FIRST, channel.should_loop) {
+        match (is_first, channel.should_loop) {
             (true, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop_first),
             (false, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop),
             (true, false) => {
