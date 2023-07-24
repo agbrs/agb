@@ -11,12 +11,12 @@ agb_arm_func \fn_name
     @ Stack position 4 - the amount to multiply by
     @
     @ Returns the new channel position
-    push {{r4-r11,lr}}
+    push {{r4-r11}}
 
-    ldr r4, [sp, #(9*4)] @ load the channel length into r4
-    ldr r5, [sp, #(10*4)] @ load the current channel position into r5
-    ldr r6, [sp, #(11*4)] @ load the playback speed into r6
-    ldr r12, [sp, #(12*4)] @ load the amount to multiply by into r12
+    ldr r4, [sp, #(8*4)] @ load the channel length into r4
+    ldr r5, [sp, #(9*4)] @ load the current channel position into r5
+    ldr r6, [sp, #(10*4)] @ load the playback speed into r6
+    ldr r12, [sp, #(11*4)] @ load the amount to multiply by into r12
 
 @ The core loop
 1:
@@ -57,7 +57,6 @@ agb_arm_func \fn_name
     sub r2, r2, r7
     beq 5f
 
-4:
     mov r8, #0
 4:
     stmia r1!, {{r8}}
@@ -76,9 +75,8 @@ agb_arm_func \fn_name
 3:
 .endif
 
-
     mov r0, r5 @ return the playback position
-    pop {{r4-r11,lr}}
+    pop {{r4-r11}}
 
     bx lr
 agb_arm_end \fn_name
