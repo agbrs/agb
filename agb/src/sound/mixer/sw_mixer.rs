@@ -40,6 +40,28 @@ extern "C" {
         input_buffer: *const Num<i16, 4>,
         num_samples: usize,
     );
+
+    fn agb_rs__mixer_add_mono_loop_first(
+        sample_data: *const u8,
+        sample_buffer: *mut i32,
+        buffer_size: usize,
+        restart_amount: Num<u32, 8>,
+        channel_length: usize,
+        current_pos: Num<u32, 8>,
+        playback_speed: Num<u32, 8>,
+        mul_amount: i32,
+    ) -> Num<u32, 8>;
+
+    fn agb_rs__mixer_add_mono_loop(
+        sample_data: *const u8,
+        sample_buffer: *mut i32,
+        buffer_size: usize,
+        restart_amount: Num<u32, 8>,
+        channel_length: usize,
+        current_pos: Num<u32, 8>,
+        playback_speed: Num<u32, 8>,
+        mul_amount: i32,
+    ) -> Num<u32, 8>;
 }
 
 /// The main software mixer struct.
@@ -496,42 +518,57 @@ impl MixerBuffer {
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
 
-        for i in 0..self.frequency.buffer_size() {
-            if channel.pos >= channel_len {
-                if channel.should_loop {
-                    channel.pos -= channel_len - channel.restart_point;
-                } else {
+        if IS_FIRST && channel.should_loop {
+            channel.pos = unsafe {
+                agb_rs__mixer_add_mono_loop_first(
+                    channel.data.as_ptr(),
+                    working_buffer_i32.as_mut_ptr(),
+                    working_buffer_i32.len(),
+                    channel_len - channel.restart_point,
+                    channel.data.len(),
+                    channel.pos,
+                    channel.playback_speed,
+                    mul_amount,
+                )
+            };
+        } else if !IS_FIRST && channel.should_loop {
+            channel.pos = unsafe {
+                agb_rs__mixer_add_mono_loop(
+                    channel.data.as_ptr(),
+                    working_buffer_i32.as_mut_ptr(),
+                    working_buffer_i32.len(),
+                    channel_len - channel.restart_point,
+                    channel.data.len(),
+                    channel.pos,
+                    channel.playback_speed,
+                    mul_amount,
+                )
+            };
+        } else {
+            for i in 0..self.frequency.buffer_size() {
+                if channel.pos >= channel_len {
                     channel.is_done = true;
-
-                    if IS_FIRST {
-                        for j in i..self.frequency.buffer_size() {
-                            // SAFETY: working buffer length = self.frequency.buffer_size()
-                            unsafe {
-                                *working_buffer_i32.get_unchecked_mut(j) = 0;
-                            }
-                        }
-                    }
 
                     break;
                 }
-            }
 
-            // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
-            let value =
-                unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) } as i8 as i32;
+                // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
+                let value = unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) }
+                    as i8 as i32;
 
-            // SAFETY: working buffer length = self.frequency.buffer_size()
-            if IS_FIRST {
-                unsafe {
-                    *working_buffer_i32.get_unchecked_mut(i) = value.wrapping_mul(mul_amount);
+                // SAFETY: working buffer length = self.frequency.buffer_size()
+                if IS_FIRST {
+                    unsafe {
+                        *working_buffer_i32.get_unchecked_mut(i) = value.wrapping_mul(mul_amount);
+                    }
+                } else {
+                    unsafe {
+                        let value_ref = working_buffer_i32.get_unchecked_mut(i);
+                        *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
+                    };
                 }
-            } else {
-                unsafe {
-                    let value_ref = working_buffer_i32.get_unchecked_mut(i);
-                    *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
-                };
+                channel.pos += playback_speed;
             }
-            channel.pos += playback_speed;
         }
     }
 }
@@ -607,5 +644,35 @@ mod test {
                 3, -128, -128, 10, 5, -11, -6, 1, 3, -128, -128
             ]
         );
+    }
+
+    #[test_case]
+    fn mono_add_loop_first_should_work(_: &mut crate::Gba) {
+        let mut buffer = vec![0i32; 16];
+        let sample_data: [i8; 9] = [5, 10, 0, 100, -18, 55, 8, -120, 19];
+        let restart_amount = num!(9.0);
+        let current_pos = num!(0.0);
+        let playback_speed = num!(1.0);
+
+        let mul_amount = 10;
+
+        let result = unsafe {
+            agb_rs__mixer_add_mono_loop_first(
+                sample_data.as_ptr().cast(),
+                buffer.as_mut_ptr(),
+                buffer.len(),
+                restart_amount,
+                sample_data.len(),
+                current_pos,
+                playback_speed,
+                mul_amount,
+            )
+        };
+
+        assert_eq!(
+            buffer,
+            &[50, 100, 0, 1000, -180, 550, 80, -1200, 190, 50, 100, 0, 1000, -180, 550, 80]
+        );
+        assert_eq!(result, num!(7.0));
     }
 }

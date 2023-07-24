@@ -1,3 +1,59 @@
+.macro mono_add_fn_loop fn_name:req is_first:req
+agb_arm_func \fn_name
+    @ Arguments
+    @ r0 - pointer to the sample data from the beginning
+    @ r1 - pointer to the target sample buffer &[i32; BUFFER_SIZE]
+    @ r2 - BUFFER_SIZE - the length of the array in r1. Must be a multiple of 4
+    @ r3 - (length - restart point) (how much to rewind by)
+    @ Stack position 1 - channel length
+    @ Stack position 2 - current channel position
+    @ Stack position 3 - the playback speed
+    @ Stack position 4 - the amount to multiply by
+    @
+    @ Returns the new channel position
+    push {{r4-r11,lr}}
+
+    ldr r4, [sp, #(9*4)] @ load the channel length into r4
+    ldr r5, [sp, #(10*4)] @ load the current channel position into r5
+    ldr r6, [sp, #(11*4)] @ load the playback speed into r6
+    ldr r12, [sp, #(12*4)] @ load the amount to multiply by into r12
+
+@ The core loop
+1:
+.ifc \is_first,false
+    ldm r1, {{r7-r10}}
+.endif
+
+.irp reg, r7,r8,r9,r10
+    cmp r4, r5, lsr #8          @ check if we're overflowing
+    suble r5, r5, r3            @ if we are, subtract the overflow amount
+
+    mov r11, r5, lsr #8         @ calculate the next location to get a value from
+    ldrsb r11, [r0, r11]        @ load a single value
+.ifc \is_first,true              @ multiply the sample value, but only add if not the first call
+    mul \reg, r11, r12
+.else
+    mla \reg, r11, r12, \reg
+.endif
+
+    add r5, r5, r6              @ calculate the next sample read location
+.endr
+
+    stmia r1!, {{r7-r10}}
+
+    subs r2, r2, #4
+    bne 1b
+
+    mov r0, r5 @ return the playback position
+    pop {{r4-r11,lr}}
+
+    bx lr
+agb_arm_end \fn_name
+.endm
+
+mono_add_fn_loop agb_rs__mixer_add_mono_loop_first true
+mono_add_fn_loop agb_rs__mixer_add_mono_loop false
+
 .macro stereo_add_fn fn_name:req is_first:req
 agb_arm_func \fn_name
     @ Arguments
