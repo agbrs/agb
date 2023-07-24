@@ -1,4 +1,4 @@
-.macro mono_add_fn_loop fn_name:req is_first:req
+.macro mono_add_fn_loop fn_name:req is_first:req is_loop:req
 agb_arm_func \fn_name
     @ Arguments
     @ r0 - pointer to the sample data from the beginning
@@ -26,11 +26,15 @@ agb_arm_func \fn_name
 
 .irp reg, r7,r8,r9,r10
     cmp r4, r5, lsr #8          @ check if we're overflowing
+.ifc \is_loop,true
     suble r5, r5, r3            @ if we are, subtract the overflow amount
+.else
+    ble 2f                      @ if we are, zero the rest of the buffer
+.endif
 
     mov r11, r5, lsr #8         @ calculate the next location to get a value from
     ldrsb r11, [r0, r11]        @ load a single value
-.ifc \is_first,true              @ multiply the sample value, but only add if not the first call
+.ifc \is_first,true             @ multiply the sample value, but only add if not the first call
     mul \reg, r11, r12
 .else
     mla \reg, r11, r12, \reg
@@ -44,6 +48,35 @@ agb_arm_func \fn_name
     subs r2, r2, #4
     bne 1b
 
+.ifc \is_loop,false
+    b 3f
+
+2:
+.ifc \is_first,true             @ zero the rest of the buffer as this sample has ended
+    ands r7, r2, #3
+    sub r2, r2, r7
+    beq 5f
+
+4:
+    mov r8, #0
+4:
+    stmia r1!, {{r8}}
+    subs r7, r7, #1
+    bne 4b
+
+5:
+.irp reg, r7,r8,r9,r10
+    mov \reg, #0
+.endr
+5:
+    stmia r1!, {{r7-r10}}
+    subs r2, r2, #4
+    bne 5b
+.endif
+3:
+.endif
+
+
     mov r0, r5 @ return the playback position
     pop {{r4-r11,lr}}
 
@@ -51,8 +84,10 @@ agb_arm_func \fn_name
 agb_arm_end \fn_name
 .endm
 
-mono_add_fn_loop agb_rs__mixer_add_mono_loop_first true
-mono_add_fn_loop agb_rs__mixer_add_mono_loop false
+mono_add_fn_loop agb_rs__mixer_add_mono_loop_first true true
+mono_add_fn_loop agb_rs__mixer_add_mono_loop false true
+mono_add_fn_loop agb_rs__mixer_add_mono_first true false
+mono_add_fn_loop agb_rs__mixer_add_mono false false
 
 .macro stereo_add_fn fn_name:req is_first:req
 agb_arm_func \fn_name

@@ -19,6 +19,21 @@ use crate::{
     timer::Timer,
 };
 
+macro_rules! add_mono_fn {
+    ($name:ident) => {
+        fn $name(
+            sample_data: *const u8,
+            sample_buffer: *mut i32,
+            buffer_size: usize,
+            restart_amount: Num<u32, 8>,
+            channel_length: usize,
+            current_pos: Num<u32, 8>,
+            playback_speed: Num<u32, 8>,
+            mul_amount: i32,
+        ) -> Num<u32, 8>;
+    };
+}
+
 // Defined in mixer.s
 extern "C" {
     fn agb_rs__mixer_add_stereo(
@@ -41,27 +56,10 @@ extern "C" {
         num_samples: usize,
     );
 
-    fn agb_rs__mixer_add_mono_loop_first(
-        sample_data: *const u8,
-        sample_buffer: *mut i32,
-        buffer_size: usize,
-        restart_amount: Num<u32, 8>,
-        channel_length: usize,
-        current_pos: Num<u32, 8>,
-        playback_speed: Num<u32, 8>,
-        mul_amount: i32,
-    ) -> Num<u32, 8>;
-
-    fn agb_rs__mixer_add_mono_loop(
-        sample_data: *const u8,
-        sample_buffer: *mut i32,
-        buffer_size: usize,
-        restart_amount: Num<u32, 8>,
-        channel_length: usize,
-        current_pos: Num<u32, 8>,
-        playback_speed: Num<u32, 8>,
-        mul_amount: i32,
-    ) -> Num<u32, 8>;
+    add_mono_fn!(agb_rs__mixer_add_mono_loop_first);
+    add_mono_fn!(agb_rs__mixer_add_mono_loop);
+    add_mono_fn!(agb_rs__mixer_add_mono_first);
+    add_mono_fn!(agb_rs__mixer_add_mono);
 }
 
 /// The main software mixer struct.
@@ -518,56 +516,33 @@ impl MixerBuffer {
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
 
-        if IS_FIRST && channel.should_loop {
-            channel.pos = unsafe {
-                agb_rs__mixer_add_mono_loop_first(
-                    channel.data.as_ptr(),
-                    working_buffer_i32.as_mut_ptr(),
-                    working_buffer_i32.len(),
-                    channel_len - channel.restart_point,
-                    channel.data.len(),
-                    channel.pos,
-                    channel.playback_speed,
-                    mul_amount,
-                )
-            };
-        } else if !IS_FIRST && channel.should_loop {
-            channel.pos = unsafe {
-                agb_rs__mixer_add_mono_loop(
-                    channel.data.as_ptr(),
-                    working_buffer_i32.as_mut_ptr(),
-                    working_buffer_i32.len(),
-                    channel_len - channel.restart_point,
-                    channel.data.len(),
-                    channel.pos,
-                    channel.playback_speed,
-                    mul_amount,
-                )
-            };
-        } else {
-            for i in 0..self.frequency.buffer_size() {
-                if channel.pos >= channel_len {
-                    channel.is_done = true;
-
-                    break;
+        macro_rules! call_mono_fn {
+            ($fn_name:ident) => {
+                channel.pos = unsafe {
+                    $fn_name(
+                        channel.data.as_ptr(),
+                        working_buffer_i32.as_mut_ptr(),
+                        working_buffer_i32.len(),
+                        channel_len - channel.restart_point,
+                        channel.data.len(),
+                        channel.pos,
+                        channel.playback_speed,
+                        mul_amount,
+                    )
                 }
+            };
+        }
 
-                // SAFETY: channel.pos < channel_len by the above if statement and the fact we reduce the playback speed
-                let value = unsafe { *channel.data.get_unchecked(channel.pos.floor() as usize) }
-                    as i8 as i32;
-
-                // SAFETY: working buffer length = self.frequency.buffer_size()
-                if IS_FIRST {
-                    unsafe {
-                        *working_buffer_i32.get_unchecked_mut(i) = value.wrapping_mul(mul_amount);
-                    }
-                } else {
-                    unsafe {
-                        let value_ref = working_buffer_i32.get_unchecked_mut(i);
-                        *value_ref = value_ref.wrapping_add(value.wrapping_mul(mul_amount));
-                    };
-                }
-                channel.pos += playback_speed;
+        match (IS_FIRST, channel.should_loop) {
+            (true, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop_first),
+            (false, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop),
+            (true, false) => {
+                call_mono_fn!(agb_rs__mixer_add_mono_first);
+                channel.is_done = channel.pos > channel_len;
+            }
+            (false, false) => {
+                call_mono_fn!(agb_rs__mixer_add_mono);
+                channel.is_done = channel.pos > channel_len;
             }
         }
     }
