@@ -8,8 +8,6 @@ const BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
 const SELECT: &[u8] = include_wav!("sfx/select.wav");
 const PLACE: &[u8] = include_wav!("sfx/place.wav");
 
-const BANG: &[u8] = include_wav!("sfx/bang.wav");
-const SWORD_HIT: &[u8] = include_wav!("sfx/sword_hit.wav");
 const SLIME_DEATH: &[u8] = include_wav!("sfx/slime_death.wav");
 const SWORD_PICKUP: &[u8] = include_wav!("sfx/sword_pickup.wav");
 const WALL_HIT: &[u8] = include_wav!("sfx/wall_hit.wav");
@@ -51,7 +49,7 @@ impl<'a> Sfx<'a> {
     pub fn play_sound_effect(&mut self, effect: Option<SoundEffect>) {
         if let Some(effect) = effect {
             match effect {
-                SoundEffect::DoorFail | SoundEffect::WallHit => {
+                SoundEffect::WallHit => {
                     self.mixer.play_sound(SoundChannel::new(WALL_HIT));
                 }
                 SoundEffect::SlimeDie => {
@@ -62,12 +60,7 @@ impl<'a> Sfx<'a> {
                 SoundEffect::SwordPickup => {
                     self.mixer.play_sound(SoundChannel::new(SWORD_PICKUP));
                 }
-                SoundEffect::SwordKill => {
-                    self.mixer.play_sound(SoundChannel::new(SWORD_HIT));
-                }
-                SoundEffect::SwordFail => {
-                    self.mixer.play_sound(SoundChannel::new(BANG));
-                }
+                SoundEffect::SwordKill => {}
                 SoundEffect::KeyPickup => {}
                 SoundEffect::DoorOpen => {
                     self.mixer.play_sound(SoundChannel::new(DOOR_OPEN));
@@ -91,9 +84,7 @@ pub enum SoundEffect {
     SquidDie,
     SwordPickup,
     SwordKill,
-    SwordFail,
     KeyPickup,
-    DoorFail,
     DoorOpen,
     SwitchToggle,
     KeyDrop,
