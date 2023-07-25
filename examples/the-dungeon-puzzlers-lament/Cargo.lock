@@ -433,7 +433,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "the-dungeon-keepers-lament"
+name = "the-dungeon-puzzlers-lament"
 version = "0.1.0"
 dependencies = [
  "agb",

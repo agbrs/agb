@@ -6,5 +6,5 @@
 
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
-    the_dungeon_keepers_lament::entry(gba);
+    the_dungeon_puzzlers_lament::entry(gba);
 }
