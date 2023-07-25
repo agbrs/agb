@@ -127,12 +127,10 @@ pub struct Slime {
 
 impl Slime {
     fn new(start_pos: Vector2D<FixedNumberType>) -> Self {
-        let slime = Slime {
+        Slime {
             enemy_info: EnemyInfo::new(start_pos, (14u16, 14u16).into()),
             state: SlimeState::Idle,
-        };
-
-        slime
+        }
     }
 
     fn update(
@@ -245,12 +243,10 @@ pub struct Snail {
 
 impl Snail {
     fn new(start_pos: Vector2D<FixedNumberType>) -> Self {
-        let snail = Snail {
+        Snail {
             enemy_info: EnemyInfo::new(start_pos, (16u16, 16u16).into()),
             state: SnailState::Idle(0),
-        };
-
-        snail
+        }
     }
 
     pub fn collides_with(&self, position: Vector2D<FixedNumberType>) -> bool {

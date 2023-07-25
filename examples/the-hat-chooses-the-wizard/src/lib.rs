@@ -8,17 +8,14 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{
-            Graphics, OamDisplay, OamUnmanaged, ObjectUnmanaged, Sprite, SpriteLoader, SpriteVram,
-            Tag, TagMap,
-        },
+        object::{Graphics, OamDisplay, ObjectUnmanaged, Sprite, SpriteLoader, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
-    fixnum::{FixedNum, Rect, Vector2D},
+    fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
     sound::mixer::Frequency,
 };
