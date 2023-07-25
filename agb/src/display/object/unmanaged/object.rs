@@ -1,6 +1,6 @@
 use core::{cell::UnsafeCell, marker::PhantomData};
 
-use agb_fixnum::Vector2D;
+use agb_fixnum::{Rect, Vector2D};
 use alloc::vec::Vec;
 
 use crate::display::{
@@ -8,7 +8,7 @@ use crate::display::{
         affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance,
         OBJECT_ATTRIBUTE_MEMORY,
     },
-    Priority,
+    Priority, HEIGHT, WIDTH,
 };
 
 use super::attributes::{AffineMode, Attributes};
@@ -158,6 +158,15 @@ impl<'oam> Iterator for OamIterator<'oam> {
 
 impl OamIterator<'_> {
     fn set_inner(&mut self, object: &ObjectUnmanaged) -> OamDisplayResult {
+        let screen_area: Rect<i32> = Rect::new((0i32, 0i32).into(), (WIDTH, HEIGHT).into());
+        let sprite_size = object.sprite.size().to_width_height();
+        let sprite_size: Vector2D<i32> = (sprite_size.0 as i32, sprite_size.1 as i32).into();
+        let my_area = Rect::new(object.position + self.position, sprite_size);
+
+        if !screen_area.touches(my_area) {
+            return OamDisplayResult::Written;
+        }
+
         if let Some(slot) = self.next() {
             slot.set(object);
             OamDisplayResult::Written
