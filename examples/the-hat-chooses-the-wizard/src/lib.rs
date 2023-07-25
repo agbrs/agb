@@ -8,18 +8,21 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, OamManaged, Object, Tag, TagMap},
+        object::{
+            Graphics, OamDisplay, OamUnmanaged, ObjectUnmanaged, Sprite, SpriteLoader, SpriteVram,
+            Tag, TagMap,
+        },
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
             TileSetting, TiledMap, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
-    fixnum::{FixedNum, Vector2D},
+    fixnum::{FixedNum, Rect, Vector2D},
     input::{self, Button, ButtonController},
     sound::mixer::Frequency,
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use sfx::SfxPlayer;
 
 mod enemies;
@@ -103,36 +106,56 @@ mod map_tiles {
 
 agb::include_background_gfx!(tile_sheet, "2ce8f4", background => "gfx/tile_sheet.png");
 
-const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
-const TAG_MAP: &TagMap = GRAPHICS.tags();
+static GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
+static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-const WALKING: &Tag = TAG_MAP.get("Walking");
-const JUMPING: &Tag = TAG_MAP.get("Jumping");
-const FALLING: &Tag = TAG_MAP.get("Falling");
-const PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
-const HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
-const HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
-const HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
+static WALKING: &Tag = TAG_MAP.get("Walking");
+static JUMPING: &Tag = TAG_MAP.get("Jumping");
+static FALLING: &Tag = TAG_MAP.get("Falling");
+static PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
+static HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
+static HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
+static HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
 
 type FixedNumberType = FixedNum<10>;
 
-pub struct Entity<'a> {
-    sprite: Object<'a>,
+pub struct Entity {
+    sprite: Option<&'static Sprite>,
+    hflip: bool,
     position: Vector2D<FixedNumberType>,
     velocity: Vector2D<FixedNumberType>,
     collision_mask: Vector2D<u16>,
 }
 
-impl<'a> Entity<'a> {
-    pub fn new(object: &'a OamManaged, collision_mask: Vector2D<u16>) -> Self {
-        let mut dummy_object = object.object_sprite(WALKING.sprite(0));
-        dummy_object.set_priority(Priority::P1);
+impl Entity {
+    pub fn new(collision_mask: Vector2D<u16>) -> Self {
         Entity {
-            sprite: dummy_object,
+            sprite: None,
+            hflip: false,
             collision_mask,
             position: (0, 0).into(),
             velocity: (0, 0).into(),
         }
+    }
+
+    fn set_hflip(&mut self, hflip: bool) {
+        self.hflip = hflip;
+    }
+
+    fn set_sprite(&mut self, sprite: &'static Sprite) {
+        self.sprite = Some(sprite);
+    }
+
+    fn to_object(&self, sprite_loader: &mut SpriteLoader) -> Option<ObjectUnmanaged> {
+        let sprite = self.sprite?;
+        let sprite_size = sprite.size().to_width_height();
+        let sprite_size: Vector2D<i32> = (sprite_size.0 as i32, sprite_size.1 as i32).into();
+
+        Some(
+            ObjectUnmanaged::new(sprite_loader.get_vram_sprite(sprite))
+                .set_position(self.position.floor() - sprite_size / 2)
+                .set_hflip(self.hflip),
+        )
     }
 
     fn something_at_point<T: Fn(i32, i32) -> bool>(
@@ -254,16 +277,6 @@ impl<'a> Entity<'a> {
 
         unit_vector * low
     }
-
-    fn commit_position(&mut self, offset: Vector2D<FixedNumberType>) {
-        let position = (self.position - offset).floor();
-        self.sprite.set_position(position - (8, 8).into());
-        if position.x < -8 || position.x > WIDTH + 8 || position.y < -8 || position.y > HEIGHT + 8 {
-            self.sprite.hide();
-        } else {
-            self.sprite.show();
-        }
-    }
 }
 
 struct Map<'a, 'b> {
@@ -324,9 +337,9 @@ pub enum HatState {
     WizardTowards,
 }
 
-struct Player<'a> {
-    wizard: Entity<'a>,
-    hat: Entity<'a>,
+struct Player {
+    wizard: Entity,
+    hat: Entity,
     hat_state: HatState,
     hat_left_range: bool,
     hat_slow_counter: i32,
@@ -346,24 +359,14 @@ fn ping_pong(i: i32, n: i32) -> i32 {
     }
 }
 
-impl<'a> Player<'a> {
-    fn new(controller: &'a OamManaged, start_position: Vector2D<FixedNumberType>) -> Self {
-        let mut wizard = Entity::new(controller, (6_u16, 14_u16).into());
-        let mut hat = Entity::new(controller, (6_u16, 6_u16).into());
-
-        wizard
-            .sprite
-            .set_sprite(controller.sprite(HAT_SPIN_1.sprite(0)));
-        hat.sprite
-            .set_sprite(controller.sprite(HAT_SPIN_1.sprite(0)));
-
-        wizard.sprite.show();
-        hat.sprite.show();
-
-        hat.sprite.set_z(-1);
+impl Player {
+    fn new(start_position: Vector2D<FixedNumberType>) -> Self {
+        let mut wizard = Entity::new((6_u16, 14_u16).into());
+        let mut hat = Entity::new((6_u16, 6_u16).into());
 
         wizard.position = start_position;
         hat.position = start_position - (0, 10).into();
+        hat.set_sprite(HAT_SPIN_1.sprite(0));
 
         Player {
             wizard,
@@ -381,7 +384,6 @@ impl<'a> Player<'a> {
     fn update_frame(
         &mut self,
         input: &ButtonController,
-        controller: &'a OamManaged,
         timer: i32,
         level: &Level,
         enemies: &[enemies::Enemy],
@@ -460,9 +462,8 @@ impl<'a> Player<'a> {
                 self.wizard_frame = offset as u8;
 
                 let frame = WALKING.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.wizard.sprite.set_sprite(sprite);
+                self.wizard.set_sprite(frame);
             }
 
             if self.wizard.velocity.y < -FixedNumberType::new(1) / 16 {
@@ -470,9 +471,8 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 5;
 
                 let frame = JUMPING.animation_sprite(0);
-                let sprite = controller.sprite(frame);
 
-                self.wizard.sprite.set_sprite(sprite);
+                self.wizard.set_sprite(frame);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
                 // going down
                 let offset = if self.wizard.velocity.y * 2 > 3.into() {
@@ -485,9 +485,8 @@ impl<'a> Player<'a> {
                 self.wizard_frame = 0;
 
                 let frame = FALLING.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.wizard.sprite.set_sprite(sprite);
+                self.wizard.set_sprite(frame);
             }
 
             if input.x_tri() != agb::input::Tri::Zero {
@@ -509,16 +508,12 @@ impl<'a> Player<'a> {
 
         match self.facing {
             agb::input::Tri::Negative => {
-                self.wizard.sprite.set_hflip(true);
-                self.hat
-                    .sprite
-                    .set_sprite(controller.sprite(hat_base_tile.sprite(5)));
+                self.wizard.set_hflip(true);
+                self.hat.set_sprite(hat_base_tile.sprite(5));
             }
             agb::input::Tri::Positive => {
-                self.wizard.sprite.set_hflip(false);
-                self.hat
-                    .sprite
-                    .set_sprite(controller.sprite(hat_base_tile.sprite(0)));
+                self.wizard.set_hflip(false);
+                self.hat.set_sprite(hat_base_tile.sprite(0));
             }
             _ => {}
         }
@@ -543,9 +538,8 @@ impl<'a> Player<'a> {
 
                 let hat_sprite_offset = (timer / hat_sprite_divider) as usize;
 
-                self.hat.sprite.set_sprite(
-                    controller.sprite(hat_base_tile.animation_sprite(hat_sprite_offset)),
-                );
+                self.hat
+                    .set_sprite(hat_base_tile.animation_sprite(hat_sprite_offset));
 
                 if self.hat_slow_counter < 30 && self.hat.velocity.magnitude() < 2.into() {
                     self.hat.velocity = (0, 0).into();
@@ -576,9 +570,8 @@ impl<'a> Player<'a> {
                 self.hat.position = self.wizard.position - hat_resting_position;
             }
             HatState::WizardTowards => {
-                self.hat.sprite.set_sprite(
-                    controller.sprite(hat_base_tile.animation_sprite(timer as usize / 2)),
-                );
+                self.hat
+                    .set_sprite(hat_base_tile.animation_sprite(timer as usize / 2));
                 let distance_vector =
                     self.hat.position - self.wizard.position + hat_resting_position;
                 let distance = distance_vector.magnitude();
@@ -601,9 +594,9 @@ struct PlayingLevel<'a, 'b> {
     timer: i32,
     background: Map<'a, 'b>,
     input: ButtonController,
-    player: Player<'a>,
+    player: Player,
 
-    enemies: [enemies::Enemy<'a>; 16],
+    enemies: [enemies::Enemy; 16],
 }
 
 enum UpdateState {
@@ -615,20 +608,19 @@ enum UpdateState {
 impl<'a, 'b> PlayingLevel<'a, 'b> {
     fn open_level(
         level: &'a Level,
-        object_control: &'a OamManaged,
         background: &'a mut InfiniteScrolledMap<'b>,
         foreground: &'a mut InfiniteScrolledMap<'b>,
         input: ButtonController,
     ) -> Self {
-        let mut e: [enemies::Enemy<'a>; 16] = Default::default();
+        let mut e: [enemies::Enemy; 16] = Default::default();
         let mut enemy_count = 0;
         for &slime in level.slimes {
-            e[enemy_count] = enemies::Enemy::new_slime(object_control, slime.into());
+            e[enemy_count] = enemies::Enemy::new_slime(slime.into());
             enemy_count += 1;
         }
 
         for &snail in level.snails {
-            e[enemy_count] = enemies::Enemy::new_snail(object_control, snail.into());
+            e[enemy_count] = enemies::Enemy::new_snail(snail.into());
             enemy_count += 1;
         }
 
@@ -650,7 +642,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
                 level,
                 position: background_position,
             },
-            player: Player::new(object_control, start_pos),
+            player: Player::new(start_pos),
             input,
             enemies: e,
         }
@@ -673,30 +665,21 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 
     fn dead_start(&mut self) {
         self.player.wizard.velocity = (0, -1).into();
-        self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self, controller: &'a OamManaged) -> bool {
+    fn dead_update(&mut self) -> bool {
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
-        let sprite = controller.sprite(frame);
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;
-        self.player.wizard.sprite.set_sprite(sprite);
-
-        self.player.wizard.commit_position(self.background.position);
+        self.player.wizard.set_sprite(frame);
 
         self.player.wizard.position.y - self.background.position.y < (HEIGHT + 8).into()
     }
 
-    fn update_frame(
-        &mut self,
-        sfx_player: &mut SfxPlayer,
-        vram: &mut VRamManager,
-        controller: &'a OamManaged,
-    ) -> UpdateState {
+    fn update_frame(&mut self, sfx_player: &mut SfxPlayer, vram: &mut VRamManager) -> UpdateState {
         self.timer += 1;
         self.input.update();
 
@@ -704,7 +687,6 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 
         self.player.update_frame(
             &self.input,
-            controller,
             self.timer,
             self.background.level,
             &self.enemies,
@@ -713,7 +695,6 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 
         for enemy in self.enemies.iter_mut() {
             match enemy.update(
-                controller,
                 self.background.level,
                 self.player.wizard.position,
                 self.player.hat_state,
@@ -727,13 +708,6 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 
         self.background.position = self.get_next_map_position();
         self.background.commit_position(vram);
-
-        self.player.wizard.commit_position(self.background.position);
-        self.player.hat.commit_position(self.background.position);
-
-        for enemy in self.enemies.iter_mut() {
-            enemy.commit(self.background.position);
-        }
 
         player_dead |= self
             .player
@@ -750,6 +724,17 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         } else {
             UpdateState::Normal
         }
+    }
+
+    fn generate_objects(&self, sprite_loader: &mut SpriteLoader) -> Vec<ObjectUnmanaged> {
+        [
+            self.player.hat.to_object(sprite_loader),
+            self.player.wizard.to_object(sprite_loader),
+        ]
+        .into_iter()
+        .chain(self.enemies.iter().map(|x| x.to_object(sprite_loader)))
+        .flatten()
+        .collect()
     }
 
     fn get_next_map_position(&self) -> Vector2D<FixedNumberType> {
@@ -827,7 +812,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
         vram.set_background_palettes(tile_sheet::PALETTES);
 
-        let object = agb.display.object.get_managed();
+        let (mut oam, mut sprite_loader) = agb.display.object.get();
 
         let vblank = agb::interrupt::VBlank::get();
         let mut current_level = 0;
@@ -839,6 +824,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             sfx.frame();
             vblank.wait_for_vblank();
+            {
+                let _ = oam.iter();
+            }
 
             level_display::write_level(
                 &mut world_display,
@@ -896,7 +884,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             let mut level = PlayingLevel::open_level(
                 &map_tiles::LEVELS[current_level as usize],
-                &object,
                 &mut background,
                 &mut foreground,
                 agb::input::ButtonController::new(),
@@ -917,21 +904,21 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 vblank.wait_for_vblank();
             }
 
-            object.commit();
-
             level.show_backgrounds();
 
             world_display.hide();
 
             loop {
-                match level.update_frame(&mut sfx, &mut vram, &object) {
+                match level.update_frame(&mut sfx, &mut vram) {
                     UpdateState::Normal => {}
                     UpdateState::Dead => {
                         level.dead_start();
-                        while level.dead_update(&object) {
+                        while level.dead_update() {
                             sfx.frame();
                             vblank.wait_for_vblank();
-                            object.commit();
+                            level
+                                .generate_objects(&mut sprite_loader)
+                                .set_at(&mut oam.iter(), -level.background.position.floor());
                         }
                         break;
                     }
@@ -943,14 +930,14 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
                 sfx.frame();
                 vblank.wait_for_vblank();
-                object.commit();
+                level
+                    .generate_objects(&mut sprite_loader)
+                    .set_at(&mut oam.iter(), -level.background.position.floor());
             }
 
             level.hide_backgrounds();
             level.clear_backgrounds(&mut vram);
         }
-
-        object.commit();
 
         splash_screen::show_splash_screen(
             splash_screen::SplashScreen::End,
