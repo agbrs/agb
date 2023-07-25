@@ -16,11 +16,11 @@ without needing to have extensive knowledge of its low-level implementation.
 
 agb provides the following features:
 
-* Simple build process with minimal dependencies
-* Built in importing of sprites, backgrounds, music and sound effects
-* High performance audio mixer
-* Easy to use sprite and tiled background usage
-* A global allocator allowing for use of both `core` and `alloc`
+- Simple build process with minimal dependencies
+- Built in importing of sprites, backgrounds, music and sound effects
+- High performance audio mixer
+- Easy to use sprite and tiled background usage
+- A global allocator allowing for use of both `core` and `alloc`
 
 The documentation for the latest release can be found on
 [docs.rs](https://docs.rs/agb/latest/agb/).
@@ -41,29 +41,29 @@ is a great place to get help from the creators and contributors.
 
 Feel free to [create a new discussion in the Q&A category](https://github.com/agbrs/agb/discussions/new?category=Q-A) and we'll do our best to help!
 
-
 ## Contributing to agb itself
 
 In order to contribute to agb itself, you will need a few extra tools on top of what you would need
 to just write games for the Game Boy Advance using this library:
 
-* Recent rustup, see [the rust website](https://www.rust-lang.org/tools/install)
+- Recent rustup, see [the rust website](https://www.rust-lang.org/tools/install)
   for instructions for your operating system.
-    * You can update rustup with `rustup update`, or using your package manager
-      if you obtained rustup in this way.
-* libelf and cmake
-  * Debian and derivatives: `sudo apt install libelf-dev cmake`
-  * Arch Linux and derivatives: `pacman -S libelf cmake`
-* mgba-test-runner
-    * Run `cargo install --path mgba-test-runner` inside this directory
-* [The 'just' build tool](https://github.com/casey/just)
-    * Install with `cargo install just`
-* [mdbook](https://rust-lang.github.io/mdBook/index.html)
-    * Install with `cargo install mdbook`
-* [miri](https://github.com/rust-lang/miri)
-  * Some of the unsafe code is tested using miri, install with `rustup component add miri`
+  - You can update rustup with `rustup update`, or using your package manager
+    if you obtained rustup in this way.
+- libelf and cmake
+  - Debian and derivatives: `sudo apt install libelf-dev cmake`
+  - Arch Linux and derivatives: `pacman -S libelf cmake`
+- mgba-test-runner
+  - Run `cargo install --path mgba-test-runner` inside this directory
+- [The 'just' build tool](https://github.com/casey/just)
+  - Install with `cargo install just`
+- [mdbook](https://rust-lang.github.io/mdBook/index.html)
+  - Install with `cargo install mdbook`
+- [miri](https://github.com/rust-lang/miri)
+  - Some of the unsafe code is tested using miri, install with `rustup component add miri`
 
 With all of this installed, you should be able to run a full build of agb using by running
+
 ```sh
 just ci
 ```
@@ -87,6 +87,8 @@ for performant decimals.
 
 `agb/examples` - basic examples often targeting 1 feature, you can run these using `just run-example <example-name>`
 
+`tracker` - crates that make up the `agb-tracker` library which allows playing of tracker files
+
 `book` - the source for the tutorial and website
 
 `book/games` - games made as part of the tutorial
@@ -108,10 +110,10 @@ Once agb reaches version 1.0, we will transition to stronger semantic versioning
 
 agb would not be possible without the help from the following (non-exhaustive) list of projects:
 
-* The amazing work of the [rust-console](https://github.com/rust-console) for making this all possible in the first place
-* The [asefile](https://crates.io/crates/asefile) crate for loading aseprite files
-* [agbabi](https://github.com/felixjones/agbabi) for providing high performance alternatives to common methods
-* [mgba](https://mgba.io) for all the useful debugging / developer tools built in to the emulator
+- The amazing work of the [rust-console](https://github.com/rust-console) for making this all possible in the first place
+- The [asefile](https://crates.io/crates/asefile) crate for loading aseprite files
+- [agbabi](https://github.com/felixjones/agbabi) for providing high performance alternatives to common methods
+- [mgba](https://mgba.io) for all the useful debugging / developer tools built in to the emulator
 
 ## Licence
 
