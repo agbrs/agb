@@ -151,6 +151,7 @@ impl EntityMap {
 
                         let mut can_move = true;
                         let mut explicit_stay_put = false;
+                        let mut fake_out_effect = None;
 
                         for (other, resolution) in resolutions {
                             match resolution {
@@ -161,6 +162,10 @@ impl EntityMap {
                                 }
                                 MoveAttemptResolution::Kill => {
                                     hero_has_died |= self.kill_entity(other, &mut animations);
+                                    fake_out_effect = self
+                                        .map
+                                        .get(entity_key)
+                                        .and_then(|x| x.kill_sound_effect());
                                     can_move = false;
                                 }
                                 MoveAttemptResolution::Die => {
@@ -266,7 +271,9 @@ impl EntityMap {
                                         .get(entity_key)
                                         .and_then(|e| e.fake_out_wall_effect())
                                 } else {
-                                    self.map.get(entity_key).and_then(|e| e.fake_out_effect())
+                                    fake_out_effect.or_else(|| {
+                                        self.map.get(entity_key).and_then(|e| e.fake_out_effect())
+                                    })
                                 },
                             ));
                         }
@@ -579,7 +586,10 @@ impl Entity {
     }
 
     fn kill_sound_effect(&self) -> Option<SoundEffect> {
-        None
+        match self.holding() {
+            Some(EntityType::Item(Item::Sword)) => Some(SoundEffect::SwordKill),
+            _ => None,
+        }
     }
 
     fn change_effect(&self) -> Option<SoundEffect> {
