@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{ChangeColour, OamDisplay, ObjectTextRender, PaletteVram, Size, TextAlignment},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
             vblank.wait_for_vblank();
             input.update();
             let oam = &mut unmanaged.iter();
-            wr.commit(oam);
+            wr.set_at(oam, (0, HEIGHT - 40).into());
 
             let start = timer.value();
             if frame % 4 == 0 {
@@ -84,7 +84,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 line_done = false;
                 wr.pop_line();
             }
-            wr.update((0, HEIGHT - 40).into());
+            wr.update();
             let end = timer.value();
 
             frame += 1;

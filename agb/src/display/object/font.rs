@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{OamDisplay, OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -259,7 +259,6 @@ impl<'font> ObjectTextRender<'font> {
                 positions: VecDeque::new(),
                 line_capacity: VecDeque::new(),
                 objects: Vec::new(),
-                objects_are_at_origin: (0, 0).into(),
                 area: (0, 0).into(),
             },
         }
@@ -276,14 +275,13 @@ impl Write for ObjectTextRender<'_> {
     }
 }
 
-impl ObjectTextRender<'_> {
-    /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamIterator) {
-        for (object, slot) in self.layout.objects.iter().zip(oam) {
-            slot.set(object);
-        }
+impl<'a> OamDisplay for &ObjectTextRender<'a> {
+    fn set_in(self, oam: &mut OamIterator) -> super::OamDisplayResult {
+        self.layout.objects.iter().set_in(oam)
     }
+}
 
+impl ObjectTextRender<'_> {
     /// Force a relayout, must be called after writing.
     pub fn layout(
         &mut self,
@@ -331,7 +329,7 @@ impl ObjectTextRender<'_> {
     /// Updates the internal state of the number of letters to write and popped
     /// line. Should be called in the same frame as and after
     /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
-    pub fn update(&mut self, position: Vector2D<i32>) {
+    pub fn update(&mut self) {
         if !self.buffer.buffered_chars.is_empty()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
         {
@@ -339,7 +337,6 @@ impl ObjectTextRender<'_> {
         }
 
         self.layout.update_objects_to_display_at_position(
-            position,
             self.buffer.letters.letters.iter(),
             self.number_of_objects,
         );
@@ -409,23 +406,17 @@ struct LayoutCache {
     positions: VecDeque<Vector2D<i16>>,
     line_capacity: VecDeque<usize>,
     objects: Vec<ObjectUnmanaged>,
-    objects_are_at_origin: Vector2D<i32>,
     area: Vector2D<i32>,
 }
 
 impl LayoutCache {
     fn update_objects_to_display_at_position<'a>(
         &mut self,
-        position: Vector2D<i32>,
         letters: impl Iterator<Item = &'a SpriteVram>,
         number_of_objects: usize,
     ) {
-        let already_done = if position == self.objects_are_at_origin {
-            self.objects.len()
-        } else {
-            self.objects.clear();
-            0
-        };
+        let already_done = self.objects.len();
+
         self.objects.extend(
             self.positions
                 .iter()
@@ -433,12 +424,11 @@ impl LayoutCache {
                 .take(number_of_objects)
                 .skip(already_done)
                 .map(|(offset, letter)| {
-                    let position = offset.change_base() + position;
+                    let position = offset.change_base();
                     ObjectUnmanaged::new(letter.clone()).set_position(position)
                 }),
         );
         self.objects.truncate(number_of_objects);
-        self.objects_are_at_origin = position;
     }
 
     fn create_positions(
