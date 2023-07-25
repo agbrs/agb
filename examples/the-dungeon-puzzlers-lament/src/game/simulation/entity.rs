@@ -130,9 +130,6 @@ impl EntityMap {
                     if surface == MapElement::Wall {
                         let wall_resolution = resolve_wall_move(&entity.entity);
                         match wall_resolution {
-                            WallResolution::Die => {
-                                hero_has_died |= self.kill_entity(entity_key, &mut animations);
-                            }
                             WallResolution::StayPut => {
                                 animations.push(AnimationInstruction::FakeOutMove(
                                     entity_key,
@@ -316,7 +313,6 @@ enum OverlapResolution {
 }
 
 enum WallResolution {
-    Die,
     StayPut,
 }
 
@@ -340,7 +336,7 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
     }
 }
 
-fn resolve_wall_move(entity: &EntityType) -> WallResolution {
+fn resolve_wall_move(_entity: &EntityType) -> WallResolution {
     WallResolution::StayPut
 }
 
