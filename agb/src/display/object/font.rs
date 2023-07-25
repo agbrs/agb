@@ -214,11 +214,11 @@ impl BufferedRender<'_> {
 ///
 /// use core::fmt::Write;
 ///
-/// const EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
+/// static EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
 ///
 /// #[agb::entry]
 /// fn main(gba: &mut agb::Gba) -> ! {
-///     let (mut unmanaged, _) = gba.display.object.get_unmanaged();
+///     let (mut unmanaged, _) = gba.display.object.get();
 ///     let vblank = agb::interrupt::VBlank::get();
 ///
 ///     let mut palette = [0x0; 16];

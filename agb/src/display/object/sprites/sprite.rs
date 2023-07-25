@@ -203,12 +203,12 @@ impl TagMap {
     /// # #![no_std]
     /// # #![no_main]
     /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-    /// const GRAPHICS: &Graphics = include_aseprite!(
+    /// static GRAPHICS: &Graphics = include_aseprite!(
     ///     "examples/gfx/boss.aseprite",
     ///     "examples/gfx/objects.aseprite"
     /// );
     ///
-    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    /// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
     /// ```
     ///
     /// See [Tag] for more details.
