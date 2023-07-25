@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="6">
+ <properties>
+  <property name="DIRECTIONS" value="DDDRRRR"/>
+  <property name="ITEMS" value="SQUID_DOWN,DOOR_SWITCHED_OPEN,DOOR_SWITCHED,KEY"/>
+  <property name="NAME" value="I'm sorry squid"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,1,5,9,0,0,0,0,0,
+0,0,0,37,14,18,0,0,0,0,0,
+0,0,0,46,13,18,0,0,0,0,0,
+0,0,0,10,12,3221225500,6,6,9,0,0,
+0,0,0,37,15,13,14,14,47,0,0,
+0,0,0,46,12,2147483676,21,21,27,0,0,
+0,0,0,37,16,47,0,0,0,0,0,
+0,0,0,19,25,27,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="70.8948" y="41.3376">
+   <point/>
+  </object>
+  <object id="2" name="SWITCH" x="68.8392" y="123.819">
+   <point/>
+  </object>
+  <object id="3" name="SPIKES" x="102.757" y="89.6447">
+   <point/>
+  </object>
+  <object id="4" name="STAIRS" x="117.917" y="88.103">
+   <point/>
+  </object>
+  <object id="5" name="DOOR" x="85.7981" y="86.3043">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="7">
+ <properties>
+  <property name="DIRECTIONS" value="RDRDRDRRRDDDRR"/>
+  <property name="ITEMS" value="SWITCH,SWORD,DOOR,SLIME,SLIME"/>
+  <property name="NAME" value="The key is right there!"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,1,2,9,0,0,0,
+0,1,7,4,5,1073741852,16,3221225500,6,9,0,
+0,37,15,14,11,11,11,12,17,18,0,
+0,46,14,17,16,11,15,11,13,18,0,
+0,46,13,12,11,14,16,11,16,18,0,
+0,10,14,16,13,13,13,14,29,30,0,
+0,37,15,11,14,14,39,16,13,38,0,
+0,19,24,26,22,22,48,20,25,27,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="39.2614" y="90.2111">
+   <point/>
+  </object>
+  <object id="2" name="STAIRS" x="135.261" y="122.211">
+   <point/>
+  </object>
+  <object id="3" name="DOOR" x="119.261" y="122.211">
+   <point/>
+  </object>
+  <object id="4" name="KEY" x="103.261" y="74.2111">
+   <point/>
+  </object>
+  <object id="5" name="SQUID_DOWN" x="103.261" y="42.2111">
+   <point/>
+  </object>
+  <object id="6" name="DOOR_SWITCHED" x="103.261" y="58.2111">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

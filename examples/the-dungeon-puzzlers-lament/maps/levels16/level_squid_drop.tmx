@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="5">
+ <properties>
+  <property name="DIRECTIONS" value="DDDRRRRRRRRRRRRU"/>
+  <property name="ITEMS" value="SQUID_UP,SQUID_DOWN,SWITCH,SPIKES,DOOR,KEY"/>
+  <property name="NAME" value="We used to have treasure in there"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,1,4,8,3,2,3,9,0,
+0,0,0,46,11,12,14,16,14,38,0,
+0,0,0,46,15,17,13,13,15,3221225500,9,
+1,6,1073741873,1073741874,13,15,17,17,11,13,38,
+46,13,1073741864,1073741865,17,14,16,15,13,13,47,
+10,11,13,1073741863,11,16,15,14,17,11,18,
+46,17,13,14,11,17,14,11,12,16,47,
+37,15,2147483676,20,23,28,12,12,16,15,18,
+19,21,27,0,0,19,25,20,26,22,27,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="22.9531" y="73.3414">
+   <point/>
+  </object>
+  <object id="2" name="DOOR" x="22.9531" y="105.341">
+   <point/>
+  </object>
+  <object id="3" name="SWORD" x="86.9531" y="57.3414">
+   <point/>
+  </object>
+  <object id="4" name="STAIRS" x="118.953" y="89.3414">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

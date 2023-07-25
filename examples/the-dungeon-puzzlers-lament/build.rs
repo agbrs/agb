@@ -9,21 +9,25 @@ use std::{
 use proc_macro2::TokenStream;
 
 const LEVEL_NAMES: &[&str] = &[
-    "level1", "level2", "level3", "level4", "level5",
+    "level1",
+    "level2",
+    "level3",
+    "level4",
+    "level5",
     "level6",
-    // "level_switch",
-    // "level_spikes",
-    // "level_spikes2",
-    // "squid_force_button",
-    // "level_squid_intro",
-    // "level_squid2",
-    // "level_squid1",
-    // "level_squid_item",
-    // "level_squid_button",
-    // "level_squid_drop",
-    // "level_spikes3",
-    // "level_around",
-    // "level_squidprogramming",
+    "level_switch",
+    "level_spikes",
+    "level_spikes2",
+    "level_squid_force_button",
+    "level_squid_intro",
+    "level_squid2",
+    "level_squid1",
+    "level_squid_item",
+    "level_squid_button",
+    "level_squid_drop",
+    "level_spikes3",
+    "level_around",
+    "level_squidprogramming",
 ];
 
 fn main() {
@@ -312,24 +316,24 @@ fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
 
         match tile {
             Some(tile) => {
-                let vflip = tile.flip_h;
-                let hflip = tile.flip_v;
+                let vflip = tile.flip_v;
+                let hflip = tile.flip_h;
+
+                // calculate the actual tile ID based on the properties here
+                // since the tiles in tiled are 16x16, but we want to export to 8x8, we have to work this out carefully
 
                 let tile_tileset_x = tile.id() % 9;
                 let tile_tileset_y = tile.id() / 9;
 
-                let x_offset = if x % 2 == 0 && !hflip { 0 } else { 1 };
-                let y_offset = if y % 2 == 0 && !vflip { 0 } else { 1 };
-
-                // calculate the actual tile ID based on the properties here
-                // since the tiles in tiled are 16x16, but we want to export to 8x8, we have to work this out carefully
+                let x_offset = if (x % 2 == 0) ^ hflip { 0 } else { 1 };
+                let y_offset = if (y % 2 == 0) ^ vflip { 0 } else { 1 };
                 let gba_tile_id =
                     tile_tileset_x * 2 + x_offset + tile_tileset_y * 9 * 4 + y_offset * 9 * 2;
                 let gba_tile_id = gba_tile_id as u16;
 
                 let palette_id =
                     quote! { backgrounds::#background.palette_assignments[#gba_tile_id as usize] };
-                quote! { TileSetting::new(#gba_tile_id, #vflip, #hflip, #palette_id) }
+                quote! { TileSetting::new(#gba_tile_id, #hflip, #vflip, #palette_id) }
             }
             None => {
                 quote! { TileSetting::new(1023, false, false, 0) }
@@ -355,11 +359,11 @@ fn export_ui_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
         match tile {
             Some(tile) => {
                 let tile_id = tile.id() as u16;
-                let vflip = tile.flip_h;
-                let hflip = tile.flip_v;
+                let vflip = tile.flip_v;
+                let hflip = tile.flip_h;
                 let palette_id =
                     quote! { backgrounds::#background.palette_assignments[#tile_id as usize] };
-                quote! { TileSetting::new(#tile_id, #vflip, #hflip, #palette_id) }
+                quote! { TileSetting::new(#tile_id, #hflip, #vflip, #palette_id) }
             }
             None => {
                 quote! { TileSetting::new(1023, false, false, 0) }

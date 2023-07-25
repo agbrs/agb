@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="10">
+ <properties>
+  <property name="DIRECTIONS" value="RRRRRRRRRRRRRRR"/>
+  <property name="ITEMS" value="SWITCH,SWITCH,SWITCH,DOOR_SWITCHED,DOOR_SWITCHED_OPEN,SQUID_UP,SQUID_UP,SQUID_DOWN,SQUID_DOWN"/>
+  <property name="NAME" value="DO I HAVE TO DO EVERYTHING?"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,1,4,3221225492,7,2147483655,3,1073741844,1073741850,2147483649,0,
+0,37,2147483659,11,2147483659,2147483665,3221225486,3221225484,1073741839,3221225518,0,
+0,10,17,1073741836,11,1073741838,15,3221225485,3221225485,3221225509,0,
+0,37,14,14,15,12,12,3221225483,3221225486,2147483694,0,
+0,37,17,11,17,16,11,1073741836,1073741837,3221225509,0,
+0,46,15,17,13,12,16,2147483665,2147483662,1073741862,0,
+0,19,23,24,21,21,22,26,25,1073741833,0,
+1,1073741844,2147483651,1073741847,1073741846,1073741848,1073741847,7,3221225494,4,9,
+10,2147483664,1073741840,1073741837,1073741837,3221225486,1073741840,1073741836,12,16,18,
+19,2147483672,2147483673,1073741831,1073741832,1073741829,21,1073741826,22,22,27
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="STAIRS" x="151.602" y="138.188">
+   <point/>
+  </object>
+  <object id="2" name="HERO" x="22.019" y="137.682">
+   <point/>
+  </object>
+  <object id="3" name="SPIKES" x="118.7" y="140.213">
+   <point/>
+  </object>
+  <object id="4" name="SPIKES" x="103.008" y="142.744">
+   <point/>
+  </object>
+  <object id="5" name="DOOR_SWITCHED_OPEN" x="55.9333" y="139.2">
+   <point/>
+  </object>
+  <object id="6" name="SPIKES" x="39.9885" y="137.429">
+   <point/>
+  </object>
+  <object id="7" name="SPIKES_DOWN" x="71.625" y="141.984">
+   <point/>
+  </object>
+  <object id="8" name="DOOR_SWITCHED" x="88.8352" y="134.645">
+   <point/>
+  </object>
+  <object id="9" name="SPIKES_DOWN" x="135.404" y="141.984">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

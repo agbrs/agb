@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="3">
+ <properties>
+  <property name="DIRECTIONS" value="RULDRULDRULD"/>
+  <property name="ITEMS" value="DOOR,SWORD,SLIME,SQUID_UP"/>
+  <property name="NAME" value="Now they're just going in circles"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,1,7,4,7,5,2,2,2,9,
+0,0,46,11,11,17,13,12,14,16,18,
+1,6,1073741852,13,16,11,12,12,13,12,18,
+46,16,13,13,15,14,13,16,15,13,47,
+37,17,12,14,12,13,17,11,2147483676,26,27,
+19,28,11,13,14,11,16,16,18,0,0,
+0,37,16,12,13,17,17,15,18,0,0,
+0,19,28,16,15,17,15,11,47,0,0,
+0,0,46,12,15,12,16,2147483676,27,0,0,
+0,0,19,21,25,23,22,27,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="72.9779" y="76.2911">
+   <point/>
+  </object>
+  <object id="2" name="STAIRS" x="120.978" y="44.2911">
+   <point/>
+  </object>
+ </objectgroup>
+</map>
