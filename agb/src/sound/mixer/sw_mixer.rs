@@ -538,11 +538,11 @@ impl MixerBuffer {
             (false, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop),
             (true, false) => {
                 call_mono_fn!(agb_rs__mixer_add_mono_first);
-                channel.is_done = channel.pos > channel_len;
+                channel.is_done = channel.pos >= channel_len;
             }
             (false, false) => {
                 call_mono_fn!(agb_rs__mixer_add_mono);
-                channel.is_done = channel.pos > channel_len;
+                channel.is_done = channel.pos >= channel_len;
             }
         }
     }
