@@ -912,10 +912,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
                         level.dead_start();
                         while level.dead_update() {
                             sfx.frame();
+                            let objects = level.generate_objects(&mut sprite_loader);
                             vblank.wait_for_vblank();
-                            level
-                                .generate_objects(&mut sprite_loader)
-                                .set_at(&mut oam.iter(), -level.background.position.floor());
+                            objects.set_at(&mut oam.iter(), -level.background.position.floor());
                         }
                         break;
                     }
@@ -926,14 +925,17 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 }
 
                 sfx.frame();
+                let objects = level.generate_objects(&mut sprite_loader);
                 vblank.wait_for_vblank();
-                level
-                    .generate_objects(&mut sprite_loader)
-                    .set_at(&mut oam.iter(), -level.background.position.floor());
+                objects.set_at(&mut oam.iter(), -level.background.position.floor());
             }
 
             level.hide_backgrounds();
             level.clear_backgrounds(&mut vram);
+        }
+
+        {
+            let _ = oam.iter();
         }
 
         splash_screen::show_splash_screen(
