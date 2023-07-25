@@ -1,108 +1,91 @@
-.section .iwram.buffer_size
-    .global agb_rs__buffer_size
-    .balign 4
-agb_rs__buffer_size:
-    .word 0
-
-.macro mixer_add fn_name:req is_first:req
+.macro mono_add_fn_loop fn_name:req is_first:req is_loop:req
 agb_arm_func \fn_name
     @ Arguments
-    @ r0 - pointer to the data to be copied (u8 array)
-    @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
-    @ r2 - playback speed (usize fixnum with 8 bits)
-    @ r3 - amount to modify the left channel by (u16 fixnum with 4 bits)
-    @ stack position 1 - amount to modify the right channel by (u16 fixnum with 4 bits)
+    @ r0 - pointer to the sample data from the beginning
+    @ r1 - pointer to the target sample buffer &[i32; BUFFER_SIZE]
+    @ r2 - BUFFER_SIZE - the length of the array in r1. Must be a multiple of 4
+    @ r3 - (length - restart point) (how much to rewind by)
+    @ Stack position 1 - channel length
+    @ Stack position 2 - current channel position
+    @ Stack position 3 - the playback speed
+    @ Stack position 4 - the amount to multiply by
     @
-    @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
-    push {{r4-r8}}
+    @ Returns the new channel position
+    push {{r4-r11}}
 
-    ldr r7, [sp, #20]        @ load the right channel modification amount into r7
+    ldr r4, [sp, #(8*4)] @ load the channel length into r4
+    ldr r5, [sp, #(9*4)] @ load the current channel position into r5
+    ldr r6, [sp, #(10*4)] @ load the playback speed into r6
+    ldr r12, [sp, #(11*4)] @ load the amount to multiply by into r12
 
-    cmp r7, r3               @ check if left and right channel need the same modifications
-    beq 3f @ same modification
-
-4:  @ modification fallback
-    orr r7, r7, r3, lsl #16   @ r7 now is the left channel followed by the right channel modifications.
-
-    mov r5, #0                   @ current index we're reading from
-    ldr r8, =agb_rs__buffer_size @ the number of steps left
-    ldr r8, [r8]
-
-
+@ The core loop
 1:
-.rept 4
-    add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
-    ldrsb r6, [r4]           @ load the current sound sample to r6
-    add r5, r5, r2           @ calculate the position to read the next sample from
-
-.ifc \is_first,true
-    mul r4, r6, r7           @ r4 = r6 * r7 (calculating both the left and right samples together)
-.else
-    ldr r4, [r1]             @ read the current value
-    mla r4, r6, r7, r4       @ r4 += r6 * r7 (calculating both the left and right samples together)
+.ifc \is_first,false
+    ldm r1, {{r7-r10}}
 .endif
 
-    str r4, [r1], #4         @ store the new value, and increment the pointer
+.irp reg, r7,r8,r9,r10
+    cmp r4, r5, lsr #8          @ check if we're overflowing
+.ifc \is_loop,true
+    suble r5, r5, r3            @ if we are, subtract the overflow amount
+.else
+    ble 2f                      @ if we are, zero the rest of the buffer
+.endif
+
+    mov r11, r5, lsr #8         @ calculate the next location to get a value from
+    ldrsb r11, [r0, r11]        @ load a single value
+.ifc \is_first,true             @ multiply the sample value, but only add if not the first call
+    mul \reg, r11, r12
+.else
+    mla \reg, r11, r12, \reg
+.endif
+
+    add r5, r5, r6              @ calculate the next sample read location
 .endr
 
-    subs r8, r8, #4          @ loop counter
-    bne 1b                   @ jump back if we're done with the loop
+    stmia r1!, {{r7-r10}}
 
-    pop {{r4-r8}}
-    bx lr
-
-3: @ same modification
-    @ check to see if this is a perfect power of 2
-    @ r5 is a scratch register, r7 = r3 = amount to modify
-    sub r5, r7, #1
-    ands r5, r5, r7
-
-    bne 4b @ not 0 means we need to do the full modification, jump to modification fallback
-
-    @ count leading zeros of r7 into r3
-    mov r3, #0
-1:
-    add r3, r3, #1
-    lsrs r7, r7, #1
+    subs r2, r2, #4
     bne 1b
 
-    sub r3, r3, #1
+.ifc \is_loop,false
+    b 3f
 
-    mov r5, #0                   @ current index we're reading from
-    ldr r8, =agb_rs__buffer_size @ the number of steps left
-    ldr r8, [r8]
+2:
+.ifc \is_first,true             @ zero the rest of the buffer as this sample has ended
+    ands r7, r2, #3
+    sub r2, r2, r7
+    beq 5f
 
-1:
-.rept 4
-    add r4, r0, r5, asr #8    @ calculate the address of the next read from the sound buffer
-    ldrsb r6, [r4]            @ load the current sound sample to r6
-    add r5, r5, r2           @ calculate the position to read the next sample from
+    mov r8, #0
+4:
+    stmia r1!, {{r8}}
+    subs r7, r7, #1
+    bne 4b
 
-
-    lsl r6, r6, #16
-    orr r6, r6, lsr #16
-
-.ifc \is_first,true
-    mov r4, r6, lsl r3       @ r4 = r6 << r3
-.else
-    ldr r4, [r1]             @ read the current value
-    add r4, r4, r6, lsl r3   @ r4 += r6 << r3 (calculating both the left and right samples together)
+5:
+.irp reg, r7,r8,r9,r10
+    mov \reg, #0
+.endr
+5:
+    stmia r1!, {{r7-r10}}
+    subs r2, r2, #4
+    bne 5b
+.endif
+3:
 .endif
 
-    str r4, [r1], #4         @ store the new value, and increment the pointer
-.endr
+    mov r0, r5 @ return the playback position
+    pop {{r4-r11}}
 
-    subs r8, r8, #4          @ loop counter
-    bne 1b                   @ jump back if we're done with the loop
-
-    pop {{r4-r8}}
     bx lr
-
 agb_arm_end \fn_name
 .endm
 
-mixer_add agb_rs__mixer_add false
-mixer_add agb_rs__mixer_add_first true
+mono_add_fn_loop agb_rs__mixer_add_mono_loop_first true true
+mono_add_fn_loop agb_rs__mixer_add_mono_loop false true
+mono_add_fn_loop agb_rs__mixer_add_mono_first true false
+mono_add_fn_loop agb_rs__mixer_add_mono false false
 
 .macro stereo_add_fn fn_name:req is_first:req
 agb_arm_func \fn_name
@@ -110,14 +93,14 @@ agb_arm_func \fn_name
     @ r0 - pointer to the data to be copied (u8 array)
     @ r1 - pointer to the sound buffer (i16 array which will alternate left and right channels, 32-bit aligned)
     @ r2 - volume to play the sound at
+    @ r3 - the buffer size
     @
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
     push {{r4-r11}}
 
     ldr r5, =0x00000FFF
 
-    ldr r8, =agb_rs__buffer_size
-    ldr r8, [r8]
+    mov r8, r3
 
 .macro add_stereo_sample sample_reg:req
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
@@ -173,6 +156,9 @@ agb_arm_end \fn_name
 
 stereo_add_fn agb_rs__mixer_add_stereo false
 stereo_add_fn agb_rs__mixer_add_stereo_first true
+
+@ TODO(GI): Might bring this back later
+@ stereo_add_fn agb_rs__mixer_add_stereo_first true
 
 agb_arm_func agb_rs__mixer_collapse
     @ Arguments:

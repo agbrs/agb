@@ -78,7 +78,7 @@ unsafe fn transfer_align4_thumb<T: Copy>(mut dst: *mut T, mut src: *const T) {
     }
 }
 
-#[cfg_attr(not(doc), instruction_set(arm::a32))]
+#[instruction_set(arm::a32)]
 #[allow(unused_assignments)]
 unsafe fn transfer_align4_arm<T: Copy>(mut dst: *mut T, mut src: *const T) {
     let size = mem::size_of::<T>();
@@ -168,14 +168,14 @@ unsafe fn exchange<T>(dst: *mut T, src: *const T) -> T {
     }
 }
 
-#[cfg_attr(not(doc), instruction_set(arm::a32))]
+#[instruction_set(arm::a32)]
 unsafe fn exchange_align4_arm<T>(dst: *mut T, i: u32) -> u32 {
     let out;
     asm!("swp {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);
     out
 }
 
-#[cfg_attr(not(doc), instruction_set(arm::a32))]
+#[instruction_set(arm::a32)]
 unsafe fn exchange_align1_arm<T>(dst: *mut T, i: u8) -> u8 {
     let out;
     asm!("swpb {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);

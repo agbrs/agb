@@ -19,34 +19,35 @@ use crate::{
     timer::Timer,
 };
 
+macro_rules! add_mono_fn {
+    ($name:ident) => {
+        fn $name(
+            sample_data: *const u8,
+            sample_buffer: *mut i32,
+            buffer_size: usize,
+            restart_amount: Num<u32, 8>,
+            channel_length: usize,
+            current_pos: Num<u32, 8>,
+            playback_speed: Num<u32, 8>,
+            mul_amount: i32,
+        ) -> Num<u32, 8>;
+    };
+}
+
 // Defined in mixer.s
 extern "C" {
-    fn agb_rs__mixer_add(
-        sound_data: *const u8,
-        sound_buffer: *mut Num<i16, 4>,
-        playback_speed: Num<u32, 8>,
-        left_amount: Num<i16, 4>,
-        right_amount: Num<i16, 4>,
-    );
-
-    fn agb_rs__mixer_add_first(
-        sound_data: *const u8,
-        sound_buffer: *mut Num<i16, 4>,
-        playback_speed: Num<u32, 8>,
-        left_amount: Num<i16, 4>,
-        right_amount: Num<i16, 4>,
-    );
-
     fn agb_rs__mixer_add_stereo(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_add_stereo_first(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
         volume: Num<i16, 4>,
+        buffer_size: usize,
     );
 
     fn agb_rs__mixer_collapse(
@@ -54,6 +55,11 @@ extern "C" {
         input_buffer: *const Num<i16, 4>,
         num_samples: usize,
     );
+
+    add_mono_fn!(agb_rs__mixer_add_mono_loop_first);
+    add_mono_fn!(agb_rs__mixer_add_mono_loop);
+    add_mono_fn!(agb_rs__mixer_add_mono_first);
+    add_mono_fn!(agb_rs__mixer_add_mono);
 }
 
 /// The main software mixer struct.
@@ -163,8 +169,6 @@ impl Mixer<'_> {
                 buffer_pointer_for_interrupt_handler.swap(cs);
             })
         };
-
-        set_asm_buffer_size(frequency);
 
         let mut working_buffer =
             Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
@@ -322,16 +326,6 @@ impl Mixer<'_> {
     }
 }
 
-fn set_asm_buffer_size(frequency: Frequency) {
-    extern "C" {
-        static mut agb_rs__buffer_size: usize;
-    }
-
-    unsafe {
-        agb_rs__buffer_size = frequency.buffer_size();
-    }
-}
-
 struct SoundBuffer(Box<[i8], InternalAllocator>);
 
 impl SoundBuffer {
@@ -420,90 +414,25 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        let mut channels = channels
-            .filter(|channel| !channel.is_done)
-            .filter_map(|channel| {
-                let playback_speed = if channel.is_stereo {
-                    2.into()
-                } else {
-                    channel.playback_speed
-                };
+        let mut channels =
+            channels.filter(|channel| !channel.is_done && channel.volume != 0.into());
 
-                if (channel.pos + playback_speed * self.frequency.buffer_size() as u32).floor()
-                    >= channel.data.len() as u32
-                {
-                    // TODO: This should probably play what's left rather than skip the last bit
-                    if channel.should_loop {
-                        channel.pos = 0.into();
-                    } else {
-                        channel.is_done = true;
-                        return None;
-                    }
-                }
-
-                Some((channel, playback_speed))
-            });
-
-        if let Some((channel, playback_speed)) = channels.next() {
-            if channel.volume != 0.into() {
-                if channel.is_stereo {
-                    unsafe {
-                        agb_rs__mixer_add_stereo_first(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            channel.volume,
-                        );
-                    }
-                } else {
-                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
-
-                    unsafe {
-                        agb_rs__mixer_add_first(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            playback_speed,
-                            left_amount,
-                            right_amount,
-                        );
-                    }
-                }
+        if let Some(channel) = channels.next() {
+            if channel.is_stereo {
+                self.write_stereo(channel, working_buffer, true);
             } else {
-                working_buffer.fill(0.into());
+                self.write_mono(channel, working_buffer, true);
             }
-
-            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
         } else {
             working_buffer.fill(0.into());
         }
 
-        for (channel, playback_speed) in channels {
-            if channel.volume != 0.into() {
-                if channel.is_stereo {
-                    unsafe {
-                        agb_rs__mixer_add_stereo(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            channel.volume,
-                        );
-                    }
-                } else {
-                    let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-                    let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
-
-                    unsafe {
-                        agb_rs__mixer_add(
-                            channel.data.as_ptr().add(channel.pos.floor() as usize),
-                            working_buffer.as_mut_ptr(),
-                            playback_speed,
-                            left_amount,
-                            right_amount,
-                        );
-                    }
-                }
+        for channel in channels {
+            if channel.is_stereo {
+                self.write_stereo(channel, working_buffer, false);
+            } else {
+                self.write_mono(channel, working_buffer, false);
             }
-
-            channel.pos += playback_speed * self.frequency.buffer_size() as u32;
         }
 
         let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
@@ -514,6 +443,107 @@ impl MixerBuffer {
                 working_buffer.as_ptr(),
                 self.frequency.buffer_size(),
             );
+        }
+    }
+
+    fn write_stereo(
+        &self,
+        channel: &mut SoundChannel,
+        working_buffer: &mut [Num<i16, 4>],
+        is_first: bool,
+    ) {
+        if (channel.pos + 2 * self.frequency.buffer_size() as u32).floor()
+            >= channel.data.len() as u32
+        {
+            if channel.should_loop {
+                channel.pos = channel.restart_point * 2;
+            } else {
+                channel.is_done = true;
+                if is_first {
+                    working_buffer.fill(0.into());
+                }
+                return;
+            }
+        }
+        unsafe {
+            if is_first {
+                agb_rs__mixer_add_stereo_first(
+                    channel.data.as_ptr().add(channel.pos.floor() as usize),
+                    working_buffer.as_mut_ptr(),
+                    channel.volume.change_base(),
+                    self.frequency.buffer_size(),
+                );
+            } else {
+                agb_rs__mixer_add_stereo(
+                    channel.data.as_ptr().add(channel.pos.floor() as usize),
+                    working_buffer.as_mut_ptr(),
+                    channel.volume.change_base(),
+                    self.frequency.buffer_size(),
+                );
+            }
+        }
+
+        channel.pos += 2 * self.frequency.buffer_size() as u32;
+    }
+
+    fn write_mono(
+        &self,
+        channel: &mut SoundChannel,
+        working_buffer: &mut [Num<i16, 4>],
+        is_first: bool,
+    ) {
+        let right_amount = ((channel.panning + 1) / 2) * channel.volume;
+        let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
+
+        let right_amount: Num<i16, 4> = right_amount.change_base();
+        let left_amount: Num<i16, 4> = left_amount.change_base();
+
+        let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
+        let mut playback_speed = channel.playback_speed;
+
+        while playback_speed >= channel_len - channel.restart_point {
+            playback_speed -= channel_len;
+        }
+
+        // SAFETY: always aligned correctly by construction
+        let working_buffer_i32: &mut [i32] = unsafe {
+            core::slice::from_raw_parts_mut(
+                working_buffer.as_mut_ptr().cast(),
+                working_buffer.len() / 2,
+            )
+        };
+
+        let mul_amount =
+            ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
+
+        macro_rules! call_mono_fn {
+            ($fn_name:ident) => {
+                channel.pos = unsafe {
+                    $fn_name(
+                        channel.data.as_ptr(),
+                        working_buffer_i32.as_mut_ptr(),
+                        working_buffer_i32.len(),
+                        channel_len - channel.restart_point,
+                        channel.data.len(),
+                        channel.pos,
+                        channel.playback_speed,
+                        mul_amount,
+                    )
+                }
+            };
+        }
+
+        match (is_first, channel.should_loop) {
+            (true, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop_first),
+            (false, true) => call_mono_fn!(agb_rs__mixer_add_mono_loop),
+            (true, false) => {
+                call_mono_fn!(agb_rs__mixer_add_mono_first);
+                channel.is_done = channel.pos > channel_len;
+            }
+            (false, false) => {
+                call_mono_fn!(agb_rs__mixer_add_mono);
+                channel.is_done = channel.pos > channel_len;
+            }
         }
     }
 }
@@ -589,5 +619,35 @@ mod test {
                 3, -128, -128, 10, 5, -11, -6, 1, 3, -128, -128
             ]
         );
+    }
+
+    #[test_case]
+    fn mono_add_loop_first_should_work(_: &mut crate::Gba) {
+        let mut buffer = vec![0i32; 16];
+        let sample_data: [i8; 9] = [5, 10, 0, 100, -18, 55, 8, -120, 19];
+        let restart_amount = num!(9.0);
+        let current_pos = num!(0.0);
+        let playback_speed = num!(1.0);
+
+        let mul_amount = 10;
+
+        let result = unsafe {
+            agb_rs__mixer_add_mono_loop_first(
+                sample_data.as_ptr().cast(),
+                buffer.as_mut_ptr(),
+                buffer.len(),
+                restart_amount,
+                sample_data.len(),
+                current_pos,
+                playback_speed,
+                mul_amount,
+            )
+        };
+
+        assert_eq!(
+            buffer,
+            &[50, 100, 0, 1000, -180, 550, 80, -1200, 190, 50, 100, 0, 1000, -180, 550, 80]
+        );
+        assert_eq!(result, num!(7.0));
     }
 }

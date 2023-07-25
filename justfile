@@ -5,8 +5,10 @@ build: build-roms
 
 build-debug:
     just _build-debug agb
+    just _build-debug tracker/agb-tracker
 build-release:
     just _build-release agb
+    just _build-release tracker/agb-tracker
 clippy:
     just _all-crates _clippy
     just _clippy tools
@@ -15,19 +17,22 @@ test:
     just _test-debug agb
     just _test-debug agb-fixnum
     just _test-debug agb-hashmap
+    just _test-debug tracker/agb-tracker
     just _test-debug-arm agb
     just _test-debug tools
 
 test-release:
     just _test-release agb
     just _test-release agb-fixnum
+    just _test-release tracker/agb-tracker
     just _test-release-arm agb
 
 doctest-agb:
     (cd agb && cargo test --doc -Z doctest-xcompile)
 
 check-docs:
-    (cd agb && cargo doc --target=thumbv6m-none-eabi --no-deps)
+    (cd agb && cargo doc --target=thumbv4t-none-eabi --no-deps)
+    (cd tracker/agb-tracker && cargo doc --target=thumbv4t-none-eabi --no-deps)
     just _build_docs agb-fixnum
     just _build_docs agb-hashmap
 
@@ -120,7 +125,7 @@ gbafix *args:
     (cd agb-gbafix && cargo run --release -- {{args}})
 
 _all-crates target:
-    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml; do \
+    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml tracker/agb-*/Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done

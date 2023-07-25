@@ -3,7 +3,7 @@ use dependency_graph::DependencyGraph;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use toml_edit::Document;
 
@@ -22,6 +22,7 @@ pub enum Error {
 struct Package {
     name: String,
     dependencies: Vec<String>,
+    directory: PathBuf,
 }
 
 impl dependency_graph::Node for Package {
@@ -55,7 +56,11 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
 
     let mut in_progress: HashMap<_, RefCell<std::process::Child>> = HashMap::new();
 
-    let dependencies = build_dependency_graph(&root_directory)?;
+    let mut dependencies = build_dependency_graph(&root_directory)?;
+    let mut tracker_dependencies = build_dependency_graph(&root_directory.join("tracker"))?;
+
+    dependencies.append(&mut tracker_dependencies);
+
     let graph = DependencyGraph::from(&dependencies[..]);
 
     for package in graph {
@@ -76,7 +81,7 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
         let publish_cmd = Command::new("cargo")
             .arg("publish")
             .args(&dry_run)
-            .current_dir(root_directory.join(&package.name))
+            .current_dir(&package.directory)
             .spawn()
             .map_err(|_| Error::PublishCrate)?;
 
@@ -117,6 +122,7 @@ fn build_dependency_graph(root: &Path) -> Result<Vec<Package>, Error> {
         packages.push(Package {
             name: dir.file_name().to_string_lossy().to_string(),
             dependencies: get_agb_dependencies(&crate_path)?,
+            directory: crate_path,
         });
     }
 

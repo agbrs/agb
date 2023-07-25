@@ -226,11 +226,12 @@ pub struct SoundChannel {
     data: &'static [u8],
     pos: Num<u32, 8>,
     should_loop: bool,
+    restart_point: Num<u32, 8>,
 
     playback_speed: Num<u32, 8>,
-    volume: Num<i16, 4>, // between 0 and 1
+    volume: Num<i16, 8>, // between 0 and 1
 
-    panning: Num<i16, 4>, // between -1 and 1
+    panning: Num<i16, 8>, // between -1 and 1
     is_done: bool,
 
     is_stereo: bool,
@@ -276,6 +277,7 @@ impl SoundChannel {
             priority: SoundPriority::Low,
             volume: 1.into(),
             is_stereo: false,
+            restart_point: 0.into(),
         }
     }
 
@@ -319,6 +321,7 @@ impl SoundChannel {
             priority: SoundPriority::High,
             volume: 1.into(),
             is_stereo: false,
+            restart_point: 0.into(),
         }
     }
 
@@ -327,6 +330,20 @@ impl SoundChannel {
     #[inline(always)]
     pub fn should_loop(&mut self) -> &mut Self {
         self.should_loop = true;
+        self
+    }
+
+    /// Sets the point at which the sample should restart once it loops. Does nothing
+    /// unless you also call [`should_loop()`](SoundChannel::should_loop()).
+    ///
+    /// Useful if your song has an introduction or similar.
+    #[inline(always)]
+    pub fn restart_point(&mut self, restart_point: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.restart_point = restart_point.into();
+        assert!(
+            self.restart_point.floor() as usize <= self.data.len(),
+            "restart point must be shorter than the length of the sample"
+        );
         self
     }
 
@@ -349,7 +366,7 @@ impl SoundChannel {
     /// Defaults to 0 (meaning equal on left and right) and doesn't affect stereo
     /// sounds.
     #[inline(always)]
-    pub fn panning(&mut self, panning: impl Into<Num<i16, 4>>) -> &mut Self {
+    pub fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self {
         let panning = panning.into();
 
         debug_assert!(panning >= Num::new(-1), "panning value must be >= -1");
@@ -364,7 +381,7 @@ impl SoundChannel {
     ///
     /// Must be a value >= 0 and defaults to 1.
     #[inline(always)]
-    pub fn volume(&mut self, volume: impl Into<Num<i16, 4>>) -> &mut Self {
+    pub fn volume(&mut self, volume: impl Into<Num<i16, 8>>) -> &mut Self {
         let volume = volume.into();
 
         assert!(volume >= Num::new(0), "volume must be >= 0");

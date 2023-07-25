@@ -1,0 +1,18 @@
+[package]
+name = "agb_tracker_interop"
+version = "0.16.0"
+authors = ["Gwilym Inzani <gw@ilym.me>"]
+edition = "2021"
+license = "MPL-2.0"
+description = "Library for interop between tracker plugins and agb itself. Designed for use with the agb library for the Game Boy Advance."
+repository = "https://github.com/agbrs/agb"
+
+[features]
+default = ["quote"]
+quote = ["dep:quote", "dep:proc-macro2", "std"]
+std = []
+
+[dependencies]
+quote = { version = "1", optional = true }
+proc-macro2 = { version = "1", optional = true }
+agb_fixnum = { version = "0.16.0", path = "../../agb-fixnum" }

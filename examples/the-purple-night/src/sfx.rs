@@ -1,4 +1,4 @@
-use agb::fixnum::Num;
+use agb::fixnum::num;
 use agb::rng;
 use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 
@@ -98,8 +98,7 @@ impl<'a> Sfx<'a> {
 
     pub fn slime_boing(&mut self) {
         let mut channel = SoundChannel::new(SLIME_BOING);
-        let one: Num<i16, 4> = 1.into();
-        channel.volume(one / 4);
+        channel.volume(num!(0.25));
         self.mixer.play_sound(channel);
     }
 

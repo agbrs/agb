@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New tracker for playing XM files (see the `agb-tracker` crate).
+- You can now declare where looping sound channels should restart.
+
+### Changed
+
+- Sound channel panning and volume options are now `Num<i16, 8>` rather than `Num<i16, 4>` for improved precision and sound quality.
+
+### Fixed
+
+- Mono looping samples will now correctly play to the end if it doesn't perfectly align with a buffer boundry and short samples now also loop correctly.
+
 ## [0.16.0] - 2023/07/18
 
 ### Added
