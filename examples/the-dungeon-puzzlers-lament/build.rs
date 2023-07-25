@@ -40,7 +40,7 @@ fn main() {
 
     let levels = LEVEL_NAMES
         .iter()
-        .map(|level| load_level(&mut tile_loader, &format!("maps/levels16/{level}.tmx")))
+        .map(|level| load_level(&mut tile_loader, &format!("maps/levels/{level}.tmx")))
         .collect::<Vec<_>>();
     let levels_tiles = levels.iter().map(|level| &level.0);
     let levels_data = levels.iter().map(|level| &level.1);
