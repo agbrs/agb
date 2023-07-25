@@ -9,12 +9,8 @@ use std::{
 use proc_macro2::TokenStream;
 
 const LEVEL_NAMES: &[&str] = &[
-    "level1",
-    // "level2",
-    // "level3",
-    // "level4",
-    // "level5",
-    // "level6",
+    "level1", "level2", "level3", "level4", "level5",
+    "level6",
     // "level_switch",
     // "level_spikes",
     // "level_spikes2",

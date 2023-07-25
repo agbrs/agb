@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="5">
+ <properties>
+  <property name="DIRECTIONS" value="RRDURRRRR"/>
+  <property name="ITEMS" value="DOOR"/>
+  <property name="NAME" value="Keys open more than one door"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,1,5,3,5,5,5,9,0,0,
+0,0,10,17,12,12,16,11,47,0,0,
+0,0,19,28,14,2147483676,20,25,27,0,0,
+0,0,0,19,20,27,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="55.3188" y="74.784">
+   <point/>
+  </object>
+  <object id="2" name="KEY" x="71.3188" y="89.784">
+   <point/>
+  </object>
+  <object id="3" name="DOOR" x="100.944" y="75.284">
+   <point/>
+  </object>
+  <object id="4" name="STAIRS" x="118.194" y="74.409">
+   <point/>
+  </object>
+ </objectgroup>
+</map>
