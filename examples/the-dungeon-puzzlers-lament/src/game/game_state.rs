@@ -63,10 +63,6 @@ impl GameState {
         }
     }
 
-    pub fn level_text(&self) -> &str {
-        self.level.name
-    }
-
     pub fn create_simulation(&self, sfx: &mut Sfx, loader: &mut SpriteLoader) -> Simulation {
         Simulation::generate(
             self.item_states
