@@ -1,7 +1,7 @@
 [package]
 name = "agb_macros"
 version = "0.16.0"
-authors = ["Gwilym Kuiper <gw@ilym.me>"]
+authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
 description = "Macro for declaring the entry point for a game using the agb library"

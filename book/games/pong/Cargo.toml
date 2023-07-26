@@ -1,7 +1,7 @@
 [package]
 name = "pong"
 version = "0.1.0"
-authors = ["Gwilym Kuiper <gw@ilym.me>"]
+authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 
 [dependencies]
