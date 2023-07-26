@@ -60,7 +60,19 @@ impl GbaHeader {
     }
 }
 
-pub fn write_gba_file<W: Write>(input: &[u8], mut header: GbaHeader, output: &mut W) -> Result<()> {
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PaddingBehaviour {
+    Pad,
+    #[default]
+    DoNotPad,
+}
+
+pub fn write_gba_file<W: Write>(
+    input: &[u8],
+    mut header: GbaHeader,
+    padding_behaviour: PaddingBehaviour,
+    output: &mut W,
+) -> Result<()> {
     let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
 
     let section_headers = elf_file
@@ -111,7 +123,7 @@ pub fn write_gba_file<W: Write>(input: &[u8], mut header: GbaHeader, output: &mu
         bytes_written += data.len() as u64;
     }
 
-    if !bytes_written.is_power_of_two() {
+    if !bytes_written.is_power_of_two() && padding_behaviour == PaddingBehaviour::Pad {
         let required_padding = bytes_written.next_power_of_two() - bytes_written;
 
         for _ in 0..required_padding {

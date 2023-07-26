@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use agb_gbafix::{write_gba_file, GbaHeader};
+use agb_gbafix::{write_gba_file, GbaHeader, PaddingBehaviour};
 
 fn main() -> Result<()> {
     let matches = clap::Command::new("agb-gbafix")
@@ -18,7 +18,7 @@ fn main() -> Result<()> {
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
         .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 2 bytes"))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
-        .arg(arg!(-p --padding "Ignored for compatibility with gbafix"))
+        .arg(arg!(-p --padding "Pad the ROM to the next power of 2 in size"))
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("INPUT").unwrap();
@@ -70,10 +70,17 @@ fn main() -> Result<()> {
         }
     }
 
+    let pad = matches.get_flag("padding");
+    let pad = if pad {
+        PaddingBehaviour::Pad
+    } else {
+        PaddingBehaviour::DoNotPad
+    };
+
     let mut output = BufWriter::new(fs::File::create(output)?);
     let file_data = fs::read(input)?;
 
-    write_gba_file(file_data.as_slice(), header, &mut output)?;
+    write_gba_file(file_data.as_slice(), header, pad, &mut output)?;
 
     output.flush()?;
 
