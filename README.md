@@ -117,10 +117,7 @@ agb would not be possible without the help from the following (non-exhaustive) l
 
 ## Licence
 
-agb and all its subcrates (except agb-gbafix) are released under MPL version 2.0. See full licence
-text in the `LICENSE` file.
-
-agb-gbafix is released under GPL version 3.0. See the full licence in the agb-gbafix/LICENSE file
+agb and all its subcrates are released under MPL version 2.0. See full licence text in the `LICENSE` file.
 
 agb contains a subset of the code from [agbabi](https://github.com/felixjones/agbabi) which is released under a zlib style licence,
 details for which you can find under `agb/src/agbabi`.

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, Result};
 use clap::{arg, value_parser};
 
 use std::{
@@ -6,6 +6,8 @@ use std::{
     io::{BufWriter, Write},
     path::PathBuf,
 };
+
+use agb_gbafix::{write_gba_file, GbaHeader, PaddingBehaviour};
 
 fn main() -> Result<()> {
     let matches = clap::Command::new("agb-gbafix")
@@ -16,7 +18,7 @@ fn main() -> Result<()> {
         .arg(arg!(-c --gamecode <GAME_CODE> "Sets the game code, 4 bytes"))
         .arg(arg!(-m --makercode <MAKER_CODE> "Set the maker code, 2 bytes"))
         .arg(arg!(-r --gameversion <VERSION> "Set the version of the game, 0-255").value_parser(value_parser!(u8)))
-        .arg(arg!(-p --padding "Ignored for compatibility with gbafix"))
+        .arg(arg!(-p --padding "Pad the ROM to the next power of 2 in size"))
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("INPUT").unwrap();
@@ -25,7 +27,7 @@ fn main() -> Result<()> {
         None => input.with_extension("gba"),
     };
 
-    let mut header = gbafix::GBAHeader::default();
+    let mut header = GbaHeader::default();
 
     {
         let title = if let Some(title) = matches.get_one::<String>("title") {
@@ -39,7 +41,7 @@ fn main() -> Result<()> {
         };
 
         for (i, &c) in title.as_bytes().iter().enumerate().take(12) {
-            header.title[i] = c;
+            header.game_title[i] = c;
         }
     }
 
@@ -59,7 +61,7 @@ fn main() -> Result<()> {
     }
 
     if let Some(game_version) = matches.get_one::<u8>("gameversion") {
-        header.version = *game_version;
+        header.software_version = *game_version;
     }
 
     if let Some(game_code) = matches.get_one::<String>("gamecode") {
@@ -68,81 +70,19 @@ fn main() -> Result<()> {
         }
     }
 
+    let pad = matches.get_flag("padding");
+    let pad = if pad {
+        PaddingBehaviour::Pad
+    } else {
+        PaddingBehaviour::DoNotPad
+    };
+
     let mut output = BufWriter::new(fs::File::create(output)?);
     let file_data = fs::read(input)?;
 
-    write_gba_file(file_data.as_slice(), header, &mut output)?;
+    write_gba_file(file_data.as_slice(), header, pad, &mut output)?;
 
     output.flush()?;
-
-    Ok(())
-}
-
-fn write_gba_file<W: Write>(
-    input: &[u8],
-    mut header: gbafix::GBAHeader,
-    output: &mut W,
-) -> Result<()> {
-    let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
-
-    let section_headers = elf_file
-        .section_headers()
-        .ok_or_else(|| anyhow!("Failed to parse as elf file"))?;
-
-    let mut bytes_written = 0;
-    for section_header in section_headers.iter() {
-        const SHT_NOBITS: u32 = 8;
-        const SHT_NULL: u32 = 0;
-        const SHF_ALLOC: u64 = 2;
-
-        if (section_header.sh_type == SHT_NOBITS || section_header.sh_type == SHT_NULL)
-            || section_header.sh_flags & SHF_ALLOC == 0
-        {
-            continue;
-        }
-
-        let align = bytes_written % section_header.sh_addralign;
-        if align != 0 {
-            for _ in 0..(section_header.sh_addralign - align) {
-                output.write_all(&[0])?;
-                bytes_written += 1;
-            }
-        }
-
-        let (mut data, compression) = elf_file.section_data(&section_header)?;
-        if let Some(compression) = compression {
-            bail!("Cannot decompress elf content, but got compression header {compression:?}");
-        }
-
-        if bytes_written == 0 {
-            const GBA_HEADER_SIZE: usize = 192;
-
-            ensure!(
-                data.len() > GBA_HEADER_SIZE,
-                "first section must be at least as big as the gba header"
-            );
-
-            header.start_code = data[0..4].try_into().unwrap();
-            header.update_checksum();
-
-            let header_bytes = bytemuck::bytes_of(&header);
-            output.write_all(header_bytes)?;
-
-            data = &data[GBA_HEADER_SIZE..];
-            bytes_written += GBA_HEADER_SIZE as u64;
-        }
-
-        output.write_all(data)?;
-        bytes_written += data.len() as u64;
-    }
-
-    if !bytes_written.is_power_of_two() {
-        let required_padding = bytes_written.next_power_of_two() - bytes_written;
-
-        for _ in 0..required_padding {
-            output.write_all(&[0])?;
-        }
-    }
 
     Ok(())
 }
