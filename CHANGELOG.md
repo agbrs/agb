@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Sound channel panning and volume options are now `Num<i16, 8>` rather than `Num<i16, 4>` for improved precision and sound quality.
+- Due to dependency changes, agb-gbafix is now released under MPL rather than GPL.
 
 ### Fixed
 
