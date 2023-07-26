@@ -7,10 +7,8 @@ name = "agb-gbafix"
 version = "0.16.0"
 dependencies = [
  "anyhow",
- "bytemuck",
  "clap",
  "elf",
- "gbafix",
 ]
 
 [[package]]
@@ -73,12 +71,6 @@ name = "bitflags"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
-
-[[package]]
-name = "bytemuck"
-version = "1.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
 
 [[package]]
 name = "cc"
@@ -144,15 +136,6 @@ checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
 dependencies = [
  "cc",
  "libc",
-]
-
-[[package]]
-name = "gbafix"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7e47af9d5377b8b0def53d9916f6c28521f2e5b97c5fec137797417c26ab4b7"
-dependencies = [
- "bytemuck",
 ]
 
 [[package]]

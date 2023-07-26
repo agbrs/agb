@@ -9,8 +9,6 @@ repository = "https://github.com/agbrs/agb"
 
 [dependencies]
 elf = "0.7"
-gbafix = "1"
-bytemuck = "1"
 anyhow = "1"
 clap = "4"
 

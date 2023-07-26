@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use agb_gbafix::write_gba_file;
+use agb_gbafix::{write_gba_file, GbaHeader};
 
 fn main() -> Result<()> {
     let matches = clap::Command::new("agb-gbafix")
@@ -27,7 +27,7 @@ fn main() -> Result<()> {
         None => input.with_extension("gba"),
     };
 
-    let mut header = gbafix::GBAHeader::default();
+    let mut header = GbaHeader::default();
 
     {
         let title = if let Some(title) = matches.get_one::<String>("title") {
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
         };
 
         for (i, &c) in title.as_bytes().iter().enumerate().take(12) {
-            header.title[i] = c;
+            header.game_title[i] = c;
         }
     }
 
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
     }
 
     if let Some(game_version) = matches.get_one::<u8>("gameversion") {
-        header.version = *game_version;
+        header.software_version = *game_version;
     }
 
     if let Some(game_code) = matches.get_one::<String>("gamecode") {
