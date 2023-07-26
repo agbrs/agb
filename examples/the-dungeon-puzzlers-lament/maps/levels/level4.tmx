@@ -1,43 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="22" height="20" tilewidth="8" tileheight="8" infinite="0" nextlayerid="4" nextobjectid="4">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="4">
  <properties>
   <property name="DIRECTIONS" value="LLLLLLL"/>
   <property name="ITEMS" value="SWORD"/>
   <property name="NAME" value="You need a sword to kill slimes"/>
  </properties>
- <tileset firstgid="1" source="../level.tsx"/>
- <layer id="1" name="Tile Layer 1" width="22" height="20">
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,0,0,
-0,0,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,0,0,
-0,0,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,0,0,
-0,0,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,0,0,
-0,0,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,0,0,
-0,0,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,1,8,3,8,5,2,4,6,9,0,
+0,10,13,16,13,12,13,17,14,38,0,
+0,19,21,26,24,25,21,24,25,27,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="3" name="Object Layer 1">
-  <object id="1" name="HERO" x="136" y="72">
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="HERO" x="134.575" y="71.8102">
    <point/>
   </object>
-  <object id="2" name="SLIME" x="72" y="73.3333">
+  <object id="2" name="SLIME" x="70.5749" y="73.1435">
    <point/>
   </object>
-  <object id="3" name="STAIRS" x="41.6667" y="73.3333">
+  <object id="3" name="STAIRS" x="40.2416" y="73.1435">
    <point/>
   </object>
  </objectgroup>

@@ -18,7 +18,7 @@ const LEVEL_NAMES: &[&str] = &[
     "level_switch",
     "level_spikes",
     "level_spikes2",
-    "squid_force_button",
+    "level_squid_force_button",
     "level_squid_intro",
     "level_squid2",
     "level_squid1",
@@ -36,7 +36,7 @@ fn main() {
     let mut tile_loader = tiled::Loader::new();
 
     let ui_map = load_tmx(&mut tile_loader, "maps/UI.tmx");
-    let ui_tiles = export_tiles(&ui_map, quote!(ui));
+    let ui_tiles = export_ui_tiles(&ui_map, quote!(ui));
 
     let levels = LEVEL_NAMES
         .iter()
@@ -278,7 +278,7 @@ fn export_level(map: &tiled::Map) -> Level {
         let tile_y = id / 11;
 
         let is_wall = tiles
-            .get_tile(tile_x * 2, tile_y * 2)
+            .get_tile(tile_x, tile_y)
             .map(|tile| {
                 let tileset = tile.get_tileset();
                 let tile_data = &tileset.get_tile(tile.id()).unwrap();
@@ -305,6 +305,48 @@ fn export_level(map: &tiled::Map) -> Level {
 fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
     let map_tiles = map.get_layer(0).unwrap().as_tile_layer().unwrap();
 
+    let width = map_tiles.width().unwrap() * 2;
+    let height = map_tiles.height().unwrap() * 2;
+
+    let map_tiles = (0..(height * width)).map(|pos| {
+        let x = pos % width;
+        let y = pos / width;
+
+        let tile = map_tiles.get_tile(x as i32 / 2, y as i32 / 2);
+
+        match tile {
+            Some(tile) => {
+                let vflip = tile.flip_v;
+                let hflip = tile.flip_h;
+
+                // calculate the actual tile ID based on the properties here
+                // since the tiles in tiled are 16x16, but we want to export to 8x8, we have to work this out carefully
+
+                let tile_tileset_x = tile.id() % 9;
+                let tile_tileset_y = tile.id() / 9;
+
+                let x_offset = if (x % 2 == 0) ^ hflip { 0 } else { 1 };
+                let y_offset = if (y % 2 == 0) ^ vflip { 0 } else { 1 };
+                let gba_tile_id =
+                    tile_tileset_x * 2 + x_offset + tile_tileset_y * 9 * 4 + y_offset * 9 * 2;
+                let gba_tile_id = gba_tile_id as u16;
+
+                let palette_id =
+                    quote! { backgrounds::#background.palette_assignments[#gba_tile_id as usize] };
+                quote! { TileSetting::new(#gba_tile_id, #hflip, #vflip, #palette_id) }
+            }
+            None => {
+                quote! { TileSetting::new(1023, false, false, 0) }
+            }
+        }
+    });
+
+    quote! {&[#(#map_tiles),*]}
+}
+
+fn export_ui_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
+    let map_tiles = map.get_layer(0).unwrap().as_tile_layer().unwrap();
+
     let width = map_tiles.width().unwrap();
     let height = map_tiles.height().unwrap();
 
@@ -317,11 +359,11 @@ fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
         match tile {
             Some(tile) => {
                 let tile_id = tile.id() as u16;
-                let vflip = tile.flip_h;
-                let hflip = tile.flip_v;
+                let vflip = tile.flip_v;
+                let hflip = tile.flip_h;
                 let palette_id =
                     quote! { backgrounds::#background.palette_assignments[#tile_id as usize] };
-                quote! { TileSetting::new(#tile_id, #vflip, #hflip, #palette_id) }
+                quote! { TileSetting::new(#tile_id, #hflip, #vflip, #palette_id) }
             }
             None => {
                 quote! { TileSetting::new(1023, false, false, 0) }
