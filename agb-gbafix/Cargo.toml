@@ -3,7 +3,7 @@ name = "agb-gbafix"
 version = "0.16.0"
 edition = "2021"
 authors = ["Gwilym Inzani <email@gwilym.dev>"]
-license = "GPL-3.0"
+license = "MPL-2.0"
 description = "CLI utility to convert ELF file to valid GBA ROM"
 repository = "https://github.com/agbrs/agb"
 
