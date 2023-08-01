@@ -67,7 +67,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         for (sample_index, sample) in instrument.sample.iter().enumerate() {
             let should_loop = !matches!(sample.flags, LoopType::No);
-            let fine_tune = sample.finetune as f64;
+            let fine_tune = sample.finetune as f64 * 128.0;
             let relative_note = sample.relative_note;
             let restart_point = sample.loop_start;
             let sample_len = if sample.loop_length > 0 {
@@ -301,7 +301,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     0xC => {
                         if let Some((_, sample)) = maybe_note_and_sample {
                             PatternEffect::Volume(
-                                (Num::new(slot.effect_parameter as i16) / 255) * sample.volume,
+                                (Num::new(slot.effect_parameter as i16) / 64) * sample.volume,
                             )
                         } else {
                             PatternEffect::None

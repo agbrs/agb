@@ -276,7 +276,7 @@ impl TrackerChannel {
                 }
                 PatternEffect::NoteCut(wait) => {
                     if tick == *wait {
-                        channel.volume(0);
+                        channel.stop();
                         self.volume = 0.into();
                     }
                 }

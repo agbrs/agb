@@ -2,8 +2,10 @@ use agb::{
     include_wav,
     sound::mixer::{Mixer, SoundChannel},
 };
+use agb_tracker::{include_xm, Track, Tracker};
 
-const BGM: &[u8] = include_wav!("sfx/bgm.wav");
+const MUSIC: Track = include_xm!("sfx/theme.xm");
+
 const BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
 const SELECT: &[u8] = include_wav!("sfx/select.wav");
 const PLACE: &[u8] = include_wav!("sfx/place.wav");
@@ -17,20 +19,20 @@ const SWICTH_TOGGLES: &[&[u8]] = &[include_wav!("sfx/switch_toggle1.wav")];
 
 pub struct Sfx<'a> {
     mixer: &'a mut Mixer<'a>,
+    tracker: Tracker,
 }
 
 impl<'a> Sfx<'a> {
     pub fn new(mixer: &'a mut Mixer<'a>) -> Self {
-        let mut bgm_channel = SoundChannel::new_high_priority(BGM);
-        bgm_channel.stereo().should_loop();
-
-        mixer.play_sound(bgm_channel);
         mixer.enable();
 
-        Self { mixer }
+        let tracker = Tracker::new(&MUSIC);
+
+        Self { mixer, tracker }
     }
 
     pub fn frame(&mut self) {
+        self.tracker.step(self.mixer);
         self.mixer.frame();
     }
 
