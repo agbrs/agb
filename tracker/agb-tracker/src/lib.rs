@@ -101,7 +101,7 @@ pub struct Tracker {
 
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
-    base_speed: Num<u32, 8>,
+    base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
 }
 
@@ -182,7 +182,7 @@ impl Tracker {
                     self.current_row = 0;
 
                     if self.current_pattern >= self.track.patterns_to_play.len() {
-                        self.current_pattern = 0;
+                        self.current_pattern = self.track.repeat;
                     }
                 }
 
@@ -229,10 +229,10 @@ impl TrackerChannel {
             .and_then(|channel_id| mixer.channel(channel_id))
         {
             if speed != 0.into() {
-                self.base_speed = speed;
+                self.base_speed = speed.change_base();
             }
 
-            channel.playback(self.base_speed);
+            channel.playback(self.base_speed.change_base());
         }
     }
 
@@ -245,11 +245,11 @@ impl TrackerChannel {
             match effect {
                 PatternEffect::None => {}
                 PatternEffect::Stop => {
-                    channel.stop();
+                    channel.volume(0);
                 }
                 PatternEffect::Arpeggio(first, second) => {
                     match tick % 3 {
-                        0 => channel.playback(self.base_speed),
+                        0 => channel.playback(self.base_speed.change_base()),
                         1 => channel.playback(first.change_base()),
                         2 => channel.playback(second.change_base()),
                         _ => unreachable!(),
@@ -276,17 +276,18 @@ impl TrackerChannel {
                 }
                 PatternEffect::NoteCut(wait) => {
                     if tick == *wait {
-                        channel.stop();
-                        self.volume = 0.into();
+                        channel.volume(0);
                     }
                 }
                 PatternEffect::Portamento(amount) => {
                     if tick != 0 {
                         self.base_speed *= amount.change_base();
-                        channel.playback(self.base_speed);
+                        channel.playback(self.base_speed.change_base());
                     }
                 }
                 PatternEffect::TonePortamento(amount, target) => {
+                    channel.volume(self.volume.try_change_base().unwrap());
+
                     if *amount < 1.into() {
                         self.base_speed =
                             (self.base_speed * amount.change_base()).max(target.change_base());
@@ -294,6 +295,8 @@ impl TrackerChannel {
                         self.base_speed =
                             (self.base_speed * amount.change_base()).min(target.change_base());
                     }
+
+                    channel.playback(self.base_speed.change_base());
                 }
             }
         }

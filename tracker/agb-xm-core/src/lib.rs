@@ -109,7 +109,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
     for pattern in &module.pattern {
         let start_pos = pattern_data.len();
         let mut effect_parameters: [u8; 255] = [0; u8::MAX as usize];
-        let mut tone_portamento_directions = vec![0.0; module.get_num_channels()];
+        let mut tone_portamento_directions = vec![0; module.get_num_channels()];
         let mut note_and_sample = vec![None; module.get_num_channels()];
 
         for row in pattern.iter() {
@@ -139,8 +139,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 let previous_note_and_sample = note_and_sample[channel_number];
                 let maybe_note_and_sample = if matches!(slot.note, Note::KeyOff) {
                     effect1 = PatternEffect::Stop;
-                    note_and_sample[channel_number] = None;
-                    &None
+                    // note_and_sample[channel_number] = None;
+                    &note_and_sample[channel_number]
                 } else if !matches!(slot.note, Note::None) {
                     if sample != 0 {
                         note_and_sample[channel_number] = Some((slot.note, &samples[sample - 1]));
@@ -221,13 +221,15 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         }
                     }
                     0x1 => {
-                        let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
-                        let speed = note_to_speed(
+                        let c4_speed: Num<u32, 12> =
+                            note_to_speed(Note::C4, 0.0, 0, module.frequency_type).change_base();
+                        let speed: Num<u32, 12> = note_to_speed(
                             Note::C4,
-                            effect_parameter as f64,
+                            effect_parameter as f64 / 16.0,
                             0,
                             module.frequency_type,
-                        );
+                        )
+                        .change_base();
 
                         let portamento_amount = speed / c4_speed;
 
@@ -237,12 +239,12 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                         let speed = note_to_speed(
                             Note::C4,
-                            -(effect_parameter as f64),
+                            effect_parameter as f64,
                             0,
                             module.frequency_type,
                         );
 
-                        let portamento_amount = speed / c4_speed;
+                        let portamento_amount = c4_speed / speed;
 
                         PatternEffect::Portamento(portamento_amount.try_change_base().unwrap())
                     }
@@ -258,11 +260,11 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             );
 
                             let direction = match (prev_note as usize).cmp(&(*note as usize)) {
-                                std::cmp::Ordering::Less => 1.0,
+                                std::cmp::Ordering::Less => 1,
                                 std::cmp::Ordering::Equal => {
                                     tone_portamento_directions[channel_number]
                                 }
-                                std::cmp::Ordering::Greater => -1.0,
+                                std::cmp::Ordering::Greater => -1,
                             };
 
                             tone_portamento_directions[channel_number] = direction;
@@ -270,12 +272,23 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                             let speed = note_to_speed(
                                 Note::C4,
-                                effect_parameter as f64 * direction,
+                                effect_parameter as f64 * 8.0,
                                 0,
                                 module.frequency_type,
                             );
 
-                            let portamento_amount = speed / c4_speed;
+                            let portamento_amount = if direction > 0 {
+                                speed / c4_speed
+                            } else {
+                                c4_speed / speed
+                            };
+
+                            dbg!(
+                                speed,
+                                c4_speed,
+                                portamento_amount,
+                                effect_parameter as f64 * 0.752941176470588
+                            );
 
                             PatternEffect::TonePortamento(
                                 portamento_amount.try_change_base().unwrap(),
@@ -320,7 +333,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     _ => PatternEffect::None,
                 };
 
-                if sample == 0 {
+                if sample == 0
+                    || matches!(effect2, PatternEffect::TonePortamento(_, _))
+                    || matches!(effect1, PatternEffect::Stop)
+                {
                     pattern_data.push(agb_tracker_interop::PatternSlot {
                         speed: 0.into(),
                         sample: 0,
@@ -382,6 +398,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
+        repeat: module.restart_position as usize,
     };
 
     quote!(#interop)
@@ -392,7 +409,7 @@ fn note_to_speed(
     fine_tune: f64,
     relative_note: i8,
     frequency_type: FrequencyType,
-) -> Num<u32, 8> {
+) -> Num<u32, 12> {
     let frequency = match frequency_type {
         FrequencyType::LinearFrequencies => {
             note_to_frequency_linear(note, fine_tune, relative_note)
@@ -403,7 +420,7 @@ fn note_to_speed(
     let gba_audio_frequency = 18157f64;
 
     let speed: f64 = frequency / gba_audio_frequency;
-    Num::from_raw((speed * (1 << 8) as f64) as u32)
+    Num::from_raw((speed * (1 << 12) as f64) as u32)
 }
 
 fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f64 {

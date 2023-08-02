@@ -12,6 +12,7 @@ pub struct Track<'a> {
     pub num_channels: usize,
     pub frames_per_tick: Num<u32, 8>,
     pub ticks_per_step: u32,
+    pub repeat: usize,
 }
 
 #[derive(Debug)]
@@ -50,9 +51,9 @@ pub enum PatternEffect {
     VolumeSlide(Num<i16, 8>),
     FineVolumeSlide(Num<i16, 8>),
     NoteCut(u32),
-    Portamento(Num<u16, 8>),
+    Portamento(Num<u16, 12>),
     /// Slide each tick the first amount to at most the second amount
-    TonePortamento(Num<u16, 8>, Num<u16, 8>),
+    TonePortamento(Num<u16, 12>, Num<u16, 12>),
 }
 
 #[cfg(feature = "quote")]
@@ -68,6 +69,7 @@ impl<'a> quote::ToTokens for Track<'a> {
             num_channels,
             patterns_to_play,
             ticks_per_step,
+            repeat,
         } = self;
 
         let frames_per_tick = frames_per_tick.to_raw();
@@ -88,6 +90,7 @@ impl<'a> quote::ToTokens for Track<'a> {
                     frames_per_tick: agb_tracker::__private::Num::from_raw(#frames_per_tick),
                     num_channels: #num_channels,
                     ticks_per_step: #ticks_per_step,
+                    repeat: #repeat,
                 }
             }
         })

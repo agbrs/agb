@@ -4,7 +4,7 @@ use agb::{
 };
 use agb_tracker::{include_xm, Track, Tracker};
 
-const MUSIC: Track = include_xm!("sfx/theme.xm");
+const MUSIC: Track = include_xm!("sfx/gwilym-theme2.xm");
 
 const BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
 const SELECT: &[u8] = include_wav!("sfx/select.wav");
