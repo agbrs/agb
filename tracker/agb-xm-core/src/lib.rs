@@ -225,7 +225,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             note_to_speed(Note::C4, 0.0, 0, module.frequency_type).change_base();
                         let speed: Num<u32, 12> = note_to_speed(
                             Note::C4,
-                            effect_parameter as f64 / 16.0,
+                            effect_parameter as f64 * 8.0,
                             0,
                             module.frequency_type,
                         )
@@ -239,7 +239,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                         let speed = note_to_speed(
                             Note::C4,
-                            effect_parameter as f64,
+                            effect_parameter as f64 * 8.0,
                             0,
                             module.frequency_type,
                         );
