@@ -283,13 +283,6 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                 c4_speed / speed
                             };
 
-                            dbg!(
-                                speed,
-                                c4_speed,
-                                portamento_amount,
-                                effect_parameter as f64 * 0.752941176470588
-                            );
-
                             PatternEffect::TonePortamento(
                                 portamento_amount.try_change_base().unwrap(),
                                 target_speed.try_change_base().unwrap(),
