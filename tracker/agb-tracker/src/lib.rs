@@ -112,6 +112,7 @@ struct TrackerChannel {
 struct EnvelopeState {
     frame: usize,
     envelope_id: usize,
+    finished: bool,
 }
 
 #[derive(Clone)]
@@ -167,10 +168,16 @@ impl Tracker {
         let pattern_slots =
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
-        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
+        for (i, (channel, pattern_slot)) in self.channels.iter_mut().zip(pattern_slots).enumerate()
+        {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
                 channel.play_sound(mixer, sample);
+                self.envelopes[i] = sample.volume_envelope.map(|envelope_id| EnvelopeState {
+                    frame: 0,
+                    envelope_id,
+                    finished: false,
+                });
             }
 
             if self.tick == 0 {
@@ -182,12 +189,14 @@ impl Tracker {
                 &pattern_slot.effect1,
                 self.tick,
                 &mut self.global_settings,
+                &mut self.envelopes[i],
             );
             channel.apply_effect(
                 mixer,
                 &pattern_slot.effect2,
                 self.tick,
                 &mut self.global_settings,
+                &mut self.envelopes[i],
             );
         }
 
@@ -204,9 +213,11 @@ impl Tracker {
                 } else {
                     envelope_state.frame += 1;
 
-                    if let Some(sustain) = envelope.sustain {
-                        if envelope_state.frame >= sustain {
-                            envelope_state.frame = sustain;
+                    if !envelope_state.finished {
+                        if let Some(sustain) = envelope.sustain {
+                            if envelope_state.frame >= sustain {
+                                envelope_state.frame = sustain;
+                            }
                         }
                     }
 
@@ -304,6 +315,7 @@ impl TrackerChannel {
         effect: &PatternEffect,
         tick: u32,
         global_settings: &mut GlobalSettings,
+        envelope_state: &mut Option<EnvelopeState>,
     ) {
         if let Some(channel) = self
             .channel_id
@@ -314,6 +326,9 @@ impl TrackerChannel {
                 PatternEffect::None => {}
                 PatternEffect::Stop => {
                     channel.volume(0);
+                    if let Some(envelope_state) = envelope_state {
+                        envelope_state.finished = true;
+                    }
                 }
                 PatternEffect::Arpeggio(first, second) => {
                     match tick % 3 {
@@ -345,6 +360,10 @@ impl TrackerChannel {
                 PatternEffect::NoteCut(wait) => {
                     if tick == *wait {
                         channel.volume(0);
+
+                        if let Some(envelope_state) = envelope_state {
+                            envelope_state.finished = true;
+                        }
                     }
                 }
                 PatternEffect::Portamento(amount) => {

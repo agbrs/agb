@@ -490,21 +490,21 @@ struct EnvelopeData {
 
 impl From<&xmrs::envelope::Envelope> for EnvelopeData {
     fn from(e: &xmrs::envelope::Envelope) -> Self {
-        let mut amounts = vec![Num::new(e.point[0].value as i16) / 0xff];
+        let mut amounts = vec![];
 
         // it should be sampled at 50fps, but we're sampling at 60fps, so need to do a bit of cheating here.
-        for frame in 1..(e.point.last().unwrap().frame * 60 / 50) {
-            let xm_frame = (frame * 50 / 60).max(1);
+        for frame in 0..(e.point.last().unwrap().frame * 60 / 50) {
+            let xm_frame = frame * 50 / 60;
             let index = e
                 .point
                 .iter()
                 .rposition(|point| point.frame < xm_frame)
-                .unwrap();
+                .unwrap_or(0);
 
             let first_point = &e.point[index];
             let second_point = &e.point[index + 1];
 
-            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 255.0;
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
             let amount = Num::from_raw((amount * (1 << 8) as f32) as i16);
 
             amounts.push(amount);
