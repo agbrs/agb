@@ -5,6 +5,7 @@ use agb_fixnum::Num;
 #[derive(Debug)]
 pub struct Track<'a> {
     pub samples: &'a [Sample<'a>],
+    pub envelopes: &'a [Envelope<'a>],
     pub pattern_data: &'a [PatternSlot],
     pub patterns: &'a [Pattern],
     pub patterns_to_play: &'a [usize],
@@ -21,6 +22,7 @@ pub struct Sample<'a> {
     pub should_loop: bool,
     pub restart_point: u32,
     pub volume: Num<i16, 8>,
+    pub envelope: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -35,6 +37,14 @@ pub struct PatternSlot {
     pub sample: u16,
     pub effect1: PatternEffect,
     pub effect2: PatternEffect,
+}
+
+#[derive(Debug)]
+pub struct Envelope<'a> {
+    pub amount: &'a [Num<i16, 8>],
+    pub sustain: Option<u32>,
+    pub loop_start: Option<u32>,
+    pub loop_end: Option<u32>,
 }
 
 #[derive(Debug, Default)]
@@ -65,6 +75,7 @@ impl<'a> quote::ToTokens for Track<'a> {
 
         let Track {
             samples,
+            envelopes,
             pattern_data,
             patterns,
             frames_per_tick,
@@ -82,9 +93,11 @@ impl<'a> quote::ToTokens for Track<'a> {
                 const PATTERN_DATA: &[agb_tracker::__private::agb_tracker_interop::PatternSlot] = &[#(#pattern_data),*];
                 const PATTERNS: &[agb_tracker::__private::agb_tracker_interop::Pattern] = &[#(#patterns),*];
                 const PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
+                const ENVELOPES: &[agb_tracker::__private::agb_tracker_interop::Envelope<'static>] = &[#(#envelopes),*];
 
                 agb_tracker::Track {
                     samples: SAMPLES,
+                    envelopes: ENVELOPES,
                     pattern_data: PATTERN_DATA,
                     patterns: PATTERNS,
                     patterns_to_play: PATTERNS_TO_PLAY,
@@ -96,6 +109,49 @@ impl<'a> quote::ToTokens for Track<'a> {
                 }
             }
         })
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for Envelope<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::{quote, TokenStreamExt};
+
+        let Envelope {
+            amount,
+            sustain,
+            loop_start,
+            loop_end,
+        } = self;
+
+        let amount = amount.iter().map(|value| {
+            let value = value.to_raw();
+            quote! { agb_tracker::__private::agb_tracker_interop::Num::from_raw(#value) }
+        });
+
+        let sustain = match sustain {
+            Some(value) => quote!(Some(#value)),
+            None => quote!(None),
+        };
+        let loop_start = match loop_start {
+            Some(value) => quote!(Some(#value)),
+            None => quote!(None),
+        };
+        let loop_end = match loop_end {
+            Some(value) => quote!(Some(#value)),
+            None => quote!(None),
+        };
+
+        tokens.append_all(quote! {
+            const AMOUNTS: &[agb_tracker::__private::agb_tracker_interop::Num<i16, 8>] = &[#(#amount),*];
+
+            agb_tracker::__private::agb_tracker_interop::Envelope {
+                amount: AMOUNTS,
+                sustain: #sustain,
+                loop_start: #loop_start,
+                loop_end: #loop_end,
+            }
+        });
     }
 }
 
@@ -120,7 +176,13 @@ impl<'a> quote::ToTokens for Sample<'a> {
             should_loop,
             restart_point,
             volume,
+            envelope,
         } = self;
+
+        let envelope = match envelope {
+            Some(index) => quote!(Some(#index)),
+            None => quote!(None),
+        };
 
         let samples = ByteString(data);
         let volume = volume.to_raw();
@@ -136,6 +198,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
                     should_loop: #should_loop,
                     restart_point: #restart_point,
                     volume: agb_tracker::__private::Num::from_raw(#volume),
+                    envelope: #envelope,
                 }
             }
         });

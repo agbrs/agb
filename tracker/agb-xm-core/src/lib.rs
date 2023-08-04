@@ -377,6 +377,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             should_loop: sample.should_loop,
             restart_point: sample.restart_point,
             volume: sample.volume,
+            envelope: None,
         })
         .collect();
 
@@ -396,6 +397,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         patterns: &patterns,
         num_channels: module.get_num_channels(),
         patterns_to_play: &patterns_to_play,
+        envelopes: &[],
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
