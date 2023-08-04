@@ -124,7 +124,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     if let InstrumentType::Default(ref instrument) =
                         module.instrument[instrument_index].instr_type
                     {
-                        let sample_slot = instrument.sample_for_note[slot.note as usize] as usize;
+                        let sample_slot =
+                            instrument.sample_for_note[slot.note as usize - 1] as usize;
                         instruments_map
                             .get(&(instrument_index, sample_slot))
                             .map(|sample_idx| sample_idx + 1)
