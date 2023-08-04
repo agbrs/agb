@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fs, path::Path};
+use std::{collections::HashMap, env, error::Error, fs, path::Path};
 
 use agb_tracker_interop::PatternEffect;
 use proc_macro2::TokenStream;
@@ -9,7 +9,7 @@ use syn::LitStr;
 
 use agb_fixnum::Num;
 
-use xmrs::{prelude::*, xm::xmmodule::XmModule};
+use xmrs::{envelope, prelude::*, xm::xmmodule::XmModule};
 
 pub fn agb_xm_core(args: TokenStream) -> TokenStream {
     let input = match syn::parse::<LitStr>(args.into()) {
@@ -56,13 +56,23 @@ pub fn parse_module(module: &Module) -> TokenStream {
         relative_note: i8,
         restart_point: u32,
         volume: Num<i16, 8>,
+        envelope_id: Option<usize>,
     }
 
     let mut samples = vec![];
+    let mut envelopes: Vec<EnvelopeData> = vec![];
 
     for (instrument_index, instrument) in instruments.iter().enumerate() {
         let InstrumentType::Default(ref instrument) = instrument.instr_type else {
             continue;
+        };
+
+        let envelope = &instrument.volume_envelope;
+        let envelope_id = if envelope.enabled {
+            envelopes.push(envelope.as_ref().into());
+            Some(envelopes.len() - 1)
+        } else {
+            None
         };
 
         for (sample_index, sample) in instrument.sample.iter().enumerate() {
@@ -99,6 +109,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 relative_note,
                 restart_point,
                 volume,
+                envelope_id,
             });
         }
     }
@@ -377,7 +388,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             should_loop: sample.should_loop,
             restart_point: sample.restart_point,
             volume: sample.volume,
-            volume_envelope: None,
+            volume_envelope: sample.envelope_id,
         })
         .collect();
 
@@ -387,7 +398,16 @@ pub fn parse_module(module: &Module) -> TokenStream {
         .map(|order| *order as usize)
         .collect::<Vec<_>>();
 
-    // Number 150 here deduced experimentally
+    let envelopes = envelopes
+        .iter()
+        .map(|envelope| agb_tracker_interop::Envelope {
+            amount: &envelope.amounts,
+            sustain: envelope.sustain,
+            loop_start: envelope.loop_start,
+            loop_end: envelope.loop_end,
+        })
+        .collect::<Vec<_>>();
+
     let frames_per_tick = bpm_to_frames_per_tick(module.default_bpm as u32);
     let ticks_per_step = module.default_tempo;
 
@@ -397,7 +417,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         patterns: &patterns,
         num_channels: module.get_num_channels(),
         patterns_to_play: &patterns_to_play,
-        envelopes: &[],
+        envelopes: &envelopes,
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
@@ -408,6 +428,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 }
 
 fn bpm_to_frames_per_tick(bpm: u32) -> Num<u32, 8> {
+    // Number 150 here deduced experimentally
     Num::<u32, 8>::new(150) / bpm
 }
 
@@ -459,3 +480,16 @@ const AMEGA_FREQUENCIES: &[u32] = &[
     524, 520, 516, 513, 508, 505, 502, 498, 494, 491, 487, 484, 480, 477, 474, 470, 467, 463, 460,
     457,
 ];
+
+struct EnvelopeData {
+    amounts: Vec<Num<i16, 8>>,
+    sustain: Option<usize>,
+    loop_start: Option<usize>,
+    loop_end: Option<usize>,
+}
+
+impl From<&xmrs::envelope::Envelope> for EnvelopeData {
+    fn from(value: &xmrs::envelope::Envelope) -> Self {
+        todo!()
+    }
+}

@@ -42,9 +42,9 @@ pub struct PatternSlot {
 #[derive(Debug)]
 pub struct Envelope<'a> {
     pub amount: &'a [Num<i16, 8>],
-    pub sustain: Option<u32>,
-    pub loop_start: Option<u32>,
-    pub loop_end: Option<u32>,
+    pub sustain: Option<usize>,
+    pub loop_start: Option<usize>,
+    pub loop_end: Option<usize>,
 }
 
 #[derive(Debug, Default)]
