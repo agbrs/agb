@@ -90,6 +90,7 @@ pub use agb_tracker_interop::Track;
 pub struct Tracker {
     track: &'static Track<'static>,
     channels: Vec<TrackerChannel>,
+    envelopes: Vec<Option<EnvelopeState>>,
 
     frame: Num<u32, 8>,
     tick: u32,
@@ -101,10 +102,16 @@ pub struct Tracker {
     current_pattern: usize,
 }
 
+#[derive(Default)]
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
+}
+
+struct EnvelopeState {
+    frame: usize,
+    envelope_id: usize,
 }
 
 #[derive(Clone)]
@@ -118,11 +125,10 @@ impl Tracker {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
     pub fn new(track: &'static Track<'static>) -> Self {
         let mut channels = Vec::new();
-        channels.resize_with(track.num_channels, || TrackerChannel {
-            channel_id: None,
-            base_speed: 0.into(),
-            volume: 0.into(),
-        });
+        channels.resize_with(track.num_channels, Default::default);
+
+        let mut envelopes = Vec::new();
+        envelopes.resize_with(track.num_channels, || None);
 
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
@@ -132,6 +138,7 @@ impl Tracker {
         Self {
             track,
             channels,
+            envelopes,
 
             frame: 0.into(),
             first: true,
@@ -148,6 +155,7 @@ impl Tracker {
     /// See the [example](crate#example) for how to use the tracker.
     pub fn step(&mut self, mixer: &mut Mixer) {
         if !self.increment_frame() {
+            self.update_envelopes(mixer);
             return;
         }
 
@@ -183,7 +191,37 @@ impl Tracker {
             );
         }
 
-        self.increment_step();
+        self.update_envelopes(mixer);
+    }
+
+    fn update_envelopes(&mut self, mixer: &mut Mixer) {
+        for (channel, envelope_state_option) in self.channels.iter_mut().zip(&mut self.envelopes) {
+            if let Some(envelope_state) = envelope_state_option {
+                let envelope = &self.track.envelopes[envelope_state.envelope_id];
+
+                if !channel.update_volume_envelope(mixer, envelope_state.frame, envelope) {
+                    envelope_state_option.take();
+                } else {
+                    envelope_state.frame += 1;
+
+                    if let Some(sustain) = envelope.sustain {
+                        if envelope_state.frame >= sustain {
+                            envelope_state.frame = sustain;
+                        }
+                    }
+
+                    if let Some(loop_end) = envelope.loop_end {
+                        if envelope_state.frame >= loop_end {
+                            envelope_state.frame = envelope.loop_start.unwrap_or(0);
+                        }
+                    }
+
+                    if envelope_state.frame >= envelope.amount.len() {
+                        envelope_state_option.take();
+                    }
+                }
+            }
+        }
     }
 
     fn increment_frame(&mut self) -> bool {
@@ -220,8 +258,6 @@ impl Tracker {
             false
         }
     }
-
-    fn increment_step(&mut self) {}
 }
 
 impl TrackerChannel {
@@ -348,6 +384,31 @@ impl TrackerChannel {
                 }
             }
             _ => {}
+        }
+    }
+
+    #[must_use]
+    fn update_volume_envelope(
+        &self,
+        mixer: &mut Mixer<'_>,
+        frame: usize,
+        envelope: &agb_tracker_interop::Envelope<'_>,
+    ) -> bool {
+        if let Some(channel) = self
+            .channel_id
+            .as_ref()
+            .and_then(|channel_id| mixer.channel(channel_id))
+        {
+            let amount = envelope.amount[frame];
+
+            channel.volume(
+                (self.volume * amount.change_base())
+                    .try_change_base()
+                    .unwrap(),
+            );
+            true
+        } else {
+            false
         }
     }
 }

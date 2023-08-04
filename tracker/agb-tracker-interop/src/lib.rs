@@ -126,7 +126,7 @@ impl quote::ToTokens for Envelope<'_> {
 
         let amount = amount.iter().map(|value| {
             let value = value.to_raw();
-            quote! { agb_tracker::__private::agb_tracker_interop::Num::from_raw(#value) }
+            quote! { agb_tracker::__private::Num::from_raw(#value) }
         });
 
         let sustain = match sustain {
@@ -143,13 +143,15 @@ impl quote::ToTokens for Envelope<'_> {
         };
 
         tokens.append_all(quote! {
-            const AMOUNTS: &[agb_tracker::__private::agb_tracker_interop::Num<i16, 8>] = &[#(#amount),*];
+            {
+                const AMOUNTS: &[agb_tracker::__private::Num<i16, 8>] = &[#(#amount),*];
 
-            agb_tracker::__private::agb_tracker_interop::Envelope {
-                amount: AMOUNTS,
-                sustain: #sustain,
-                loop_start: #loop_start,
-                loop_end: #loop_end,
+                agb_tracker::__private::agb_tracker_interop::Envelope {
+                    amount: AMOUNTS,
+                    sustain: #sustain,
+                    loop_start: #loop_start,
+                    loop_end: #loop_end,
+                }
             }
         });
     }

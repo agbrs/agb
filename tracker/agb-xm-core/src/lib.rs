@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, error::Error, fs, path::Path};
+use std::{collections::HashMap, error::Error, fs, path::Path};
 
 use agb_tracker_interop::PatternEffect;
 use proc_macro2::TokenStream;
@@ -9,7 +9,7 @@ use syn::LitStr;
 
 use agb_fixnum::Num;
 
-use xmrs::{envelope, prelude::*, xm::xmmodule::XmModule};
+use xmrs::{prelude::*, xm::xmmodule::XmModule};
 
 pub fn agb_xm_core(args: TokenStream) -> TokenStream {
     let input = match syn::parse::<LitStr>(args.into()) {
@@ -489,7 +489,46 @@ struct EnvelopeData {
 }
 
 impl From<&xmrs::envelope::Envelope> for EnvelopeData {
-    fn from(value: &xmrs::envelope::Envelope) -> Self {
-        todo!()
+    fn from(e: &xmrs::envelope::Envelope) -> Self {
+        let mut amounts = vec![Num::new(e.point[0].value as i16) / 0xff];
+
+        // it should be sampled at 50fps, but we're sampling at 60fps, so need to do a bit of cheating here.
+        for frame in 1..(e.point.last().unwrap().frame * 60 / 50) {
+            let xm_frame = (frame * 50 / 60).max(1);
+            let index = e
+                .point
+                .iter()
+                .rposition(|point| point.frame < xm_frame)
+                .unwrap();
+
+            let first_point = &e.point[index];
+            let second_point = &e.point[index + 1];
+
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 255.0;
+            let amount = Num::from_raw((amount * (1 << 8) as f32) as i16);
+
+            amounts.push(amount);
+        }
+
+        let sustain = if e.sustain_enabled {
+            Some(e.point[e.sustain_point as usize].frame as usize * 60 / 50)
+        } else {
+            None
+        };
+        let (loop_start, loop_end) = if e.loop_enabled {
+            (
+                Some(e.point[e.loop_start_point as usize].frame as usize * 60 / 50),
+                Some(e.point[e.loop_end_point as usize].frame as usize * 60 / 50),
+            )
+        } else {
+            (None, None)
+        };
+
+        EnvelopeData {
+            amounts,
+            sustain,
+            loop_start,
+            loop_end,
+        }
     }
 }
