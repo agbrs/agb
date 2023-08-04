@@ -95,6 +95,8 @@ pub struct Tracker {
     tick: u32,
     first: bool,
 
+    global_settings: GlobalSettings,
+
     current_row: usize,
     current_pattern: usize,
 }
@@ -103,6 +105,13 @@ struct TrackerChannel {
     channel_id: Option<ChannelId>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
+}
+
+#[derive(Clone)]
+struct GlobalSettings {
+    ticks_per_step: u32,
+
+    frames_per_tick: Num<u32, 8>,
 }
 
 impl Tracker {
@@ -115,6 +124,11 @@ impl Tracker {
             volume: 0.into(),
         });
 
+        let global_settings = GlobalSettings {
+            ticks_per_step: track.ticks_per_step,
+            frames_per_tick: track.frames_per_tick,
+        };
+
         Self {
             track,
             channels,
@@ -123,8 +137,10 @@ impl Tracker {
             first: true,
             tick: 0,
 
-            current_row: 0,
+            global_settings,
+
             current_pattern: 0,
+            current_row: 0,
         }
     }
 
@@ -153,8 +169,18 @@ impl Tracker {
                 channel.set_speed(mixer, pattern_slot.speed.change_base());
             }
 
-            channel.apply_effect(mixer, &pattern_slot.effect1, self.tick);
-            channel.apply_effect(mixer, &pattern_slot.effect2, self.tick);
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect1,
+                self.tick,
+                &mut self.global_settings,
+            );
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect2,
+                self.tick,
+                &mut self.global_settings,
+            );
         }
 
         self.increment_step();
@@ -168,11 +194,11 @@ impl Tracker {
 
         self.frame += 1;
 
-        if self.frame >= self.track.frames_per_tick {
+        if self.frame >= self.global_settings.frames_per_tick {
             self.tick += 1;
-            self.frame -= self.track.frames_per_tick;
+            self.frame -= self.global_settings.frames_per_tick;
 
-            if self.tick == self.track.ticks_per_step {
+            if self.tick >= self.global_settings.ticks_per_step {
                 self.current_row += 1;
 
                 if self.current_row
@@ -236,7 +262,13 @@ impl TrackerChannel {
         }
     }
 
-    fn apply_effect(&mut self, mixer: &mut Mixer<'_>, effect: &PatternEffect, tick: u32) {
+    fn apply_effect(
+        &mut self,
+        mixer: &mut Mixer<'_>,
+        effect: &PatternEffect,
+        tick: u32,
+        global_settings: &mut GlobalSettings,
+    ) {
         if let Some(channel) = self
             .channel_id
             .as_ref()
@@ -298,7 +330,24 @@ impl TrackerChannel {
 
                     channel.playback(self.base_speed.change_base());
                 }
+                // These are global effects handled below
+                PatternEffect::SetTicksPerStep(_) | PatternEffect::SetFramesPerTick(_) => {}
             }
+        }
+
+        // Some effects have to happen regardless of if we're actually playing anything
+        match effect {
+            PatternEffect::SetTicksPerStep(amount) => {
+                if tick == 0 {
+                    global_settings.ticks_per_step = *amount;
+                }
+            }
+            PatternEffect::SetFramesPerTick(new_frames_per_tick) => {
+                if tick == 0 {
+                    global_settings.frames_per_tick = *new_frames_per_tick;
+                }
+            }
+            _ => {}
         }
     }
 }

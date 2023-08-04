@@ -54,6 +54,8 @@ pub enum PatternEffect {
     Portamento(Num<u16, 12>),
     /// Slide each tick the first amount to at most the second amount
     TonePortamento(Num<u16, 12>, Num<u16, 12>),
+    SetTicksPerStep(u32),
+    SetFramesPerTick(Num<u32, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -222,6 +224,13 @@ impl quote::ToTokens for PatternEffect {
                 let amount = amount.to_raw();
                 let target = target.to_raw();
                 quote! { TonePortamento(agb_tracker::__private::Num::from_raw(#amount), agb_tracker::__private::Num::from_raw(#target))}
+            }
+            PatternEffect::SetTicksPerStep(new_ticks) => {
+                quote! { SetTicksPerStep(#new_ticks) }
+            }
+            PatternEffect::SetFramesPerTick(new_frames_per_tick) => {
+                let amount = new_frames_per_tick.to_raw();
+                quote! { SetFramesPerTick(agb_tracker::__private::Num::from_raw(#amount)) }
             }
         };
 

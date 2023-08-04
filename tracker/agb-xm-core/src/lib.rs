@@ -323,6 +323,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
                     },
+                    0xF => {
+                        if slot.effect_parameter < 0x20 {
+                            PatternEffect::SetTicksPerStep(slot.effect_parameter as u32)
+                        } else {
+                            PatternEffect::None
+                        }
+                    }
                     _ => PatternEffect::None,
                 };
 
@@ -379,7 +386,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         .collect::<Vec<_>>();
 
     // Number 150 here deduced experimentally
-    let frames_per_tick = Num::<u32, 8>::new(150) / module.default_bpm as u32;
+    let frames_per_tick = bpm_to_frames_per_tick(module.default_bpm as u32);
     let ticks_per_step = module.default_tempo;
 
     let interop = agb_tracker_interop::Track {
@@ -395,6 +402,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
     };
 
     quote!(#interop)
+}
+
+fn bpm_to_frames_per_tick(bpm: u32) -> Num<u32, 8> {
+    Num::<u32, 8>::new(150) / bpm
 }
 
 fn note_to_speed(
