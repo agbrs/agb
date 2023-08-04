@@ -22,7 +22,7 @@ pub struct Sample<'a> {
     pub should_loop: bool,
     pub restart_point: u32,
     pub volume: Num<i16, 8>,
-    pub envelope: Option<usize>,
+    pub volume_envelope: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -176,10 +176,10 @@ impl<'a> quote::ToTokens for Sample<'a> {
             should_loop,
             restart_point,
             volume,
-            envelope,
+            volume_envelope,
         } = self;
 
-        let envelope = match envelope {
+        let volume_envelope = match volume_envelope {
             Some(index) => quote!(Some(#index)),
             None => quote!(None),
         };
@@ -198,7 +198,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
                     should_loop: #should_loop,
                     restart_point: #restart_point,
                     volume: agb_tracker::__private::Num::from_raw(#volume),
-                    envelope: #envelope,
+                    volume_envelope: #volume_envelope,
                 }
             }
         });
