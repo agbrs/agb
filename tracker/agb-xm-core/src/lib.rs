@@ -61,6 +61,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
     let mut samples = vec![];
     let mut envelopes: Vec<EnvelopeData> = vec![];
+    let mut existing_envelopes: HashMap<EnvelopeData, usize> = Default::default();
 
     for (instrument_index, instrument) in instruments.iter().enumerate() {
         let InstrumentType::Default(ref instrument) = instrument.instr_type else {
@@ -69,8 +70,15 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         let envelope = &instrument.volume_envelope;
         let envelope_id = if envelope.enabled {
-            envelopes.push(envelope.as_ref().into());
-            Some(envelopes.len() - 1)
+            let envelope: EnvelopeData = envelope.as_ref().into();
+            let id = existing_envelopes
+                .entry(envelope)
+                .or_insert_with_key(|envelope| {
+                    envelopes.push(envelope.clone());
+                    envelopes.len() - 1
+                });
+
+            Some(*id)
         } else {
             None
         };
@@ -180,10 +188,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::VolumeSlide(Num::new((slot.volume - 0x70) as i16) / 64)
                         }
                         0x80..=0x8F => PatternEffect::FineVolumeSlide(
-                            -Num::new((slot.volume - 0x80) as i16) / 64,
+                            -Num::new((slot.volume - 0x80) as i16) / 128,
                         ),
                         0x90..=0x9F => PatternEffect::FineVolumeSlide(
-                            Num::new((slot.volume - 0x90) as i16) / 64,
+                            Num::new((slot.volume - 0x90) as i16) / 128,
                         ),
                         0xC0..=0xCF => PatternEffect::Panning(
                             Num::new(slot.volume as i16 - (0xC0 + (0xCF - 0xC0) / 2)) / 8,
@@ -306,14 +314,14 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
                     }
-                    0xA => {
+                    0x5 | 0x6 | 0xA => {
                         let first = effect_parameter >> 4;
                         let second = effect_parameter & 0xF;
 
                         if first == 0 {
-                            PatternEffect::VolumeSlide(-Num::new(second as i16) / 16)
+                            PatternEffect::VolumeSlide(-Num::new(second as i16) / 64)
                         } else {
-                            PatternEffect::VolumeSlide(Num::new(first as i16) / 16)
+                            PatternEffect::VolumeSlide(Num::new(first as i16) / 64)
                         }
                     }
                     0xC => {
@@ -327,10 +335,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     }
                     0xE => match slot.effect_parameter >> 4 {
                         0xA => PatternEffect::FineVolumeSlide(
-                            Num::new((slot.effect_parameter & 0xf) as i16) / 64,
+                            Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
                         0xB => PatternEffect::FineVolumeSlide(
-                            -Num::new((slot.effect_parameter & 0xf) as i16) / 64,
+                            -Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
@@ -481,6 +489,7 @@ const AMEGA_FREQUENCIES: &[u32] = &[
     457,
 ];
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 struct EnvelopeData {
     amounts: Vec<Num<i16, 8>>,
     sustain: Option<usize>,
