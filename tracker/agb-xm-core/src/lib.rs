@@ -343,13 +343,13 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
                     },
-                    0xF => {
-                        if slot.effect_parameter < 0x20 {
-                            PatternEffect::SetTicksPerStep(slot.effect_parameter as u32)
-                        } else {
-                            PatternEffect::None
-                        }
-                    }
+                    0xF => match slot.effect_parameter {
+                        0 => PatternEffect::SetTicksPerStep(u32::MAX),
+                        1..=0x20 => PatternEffect::SetTicksPerStep(slot.effect_parameter as u32),
+                        0x21.. => PatternEffect::SetFramesPerTick(bpm_to_frames_per_tick(
+                            slot.effect_parameter as u32,
+                        )),
+                    },
                     _ => PatternEffect::None,
                 };
 
