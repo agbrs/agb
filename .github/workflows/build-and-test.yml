@@ -31,11 +31,11 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           ~/target
-          mgba-test-runner/target
+          emulator/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: install mgba-test-runner
-      run: cargo install --path mgba-test-runner --verbose
+      run: cargo install --path emulator/test-runner --verbose
     - name: Set CARGO_TARGET_DIR
       run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
     - uses: extractions/setup-just@v1

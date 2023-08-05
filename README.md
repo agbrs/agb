@@ -54,7 +54,7 @@ to just write games for the Game Boy Advance using this library:
   - Debian and derivatives: `sudo apt install libelf-dev cmake`
   - Arch Linux and derivatives: `pacman -S libelf cmake`
 - mgba-test-runner
-  - Run `cargo install --path mgba-test-runner` inside this directory
+  - Run `cargo install --path emulator/test-runner` inside this directory
 - [The 'just' build tool](https://github.com/casey/just)
   - Install with `cargo install just`
 - [mdbook](https://rust-lang.github.io/mdBook/index.html)
