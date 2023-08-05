@@ -28,8 +28,8 @@ fn is_running_in_mgba() -> bool {
 
 const NUMBER_OF_CYCLES: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x04FF_F800) };
 
-pub fn number_of_cycles_tagged(tag: u16) {
-    NUMBER_OF_CYCLES.set(tag);
+pub(crate) fn test_runner_measure_cycles() {
+    NUMBER_OF_CYCLES.set(0);
 }
 
 pub struct Mgba {

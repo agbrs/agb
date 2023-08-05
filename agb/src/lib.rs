@@ -289,9 +289,9 @@ pub mod test_runner {
                 mgba::DebugLevel::Info,
             )
             .unwrap();
-            mgba::number_of_cycles_tagged(785);
+            mgba::test_runner_measure_cycles();
             self(gba);
-            mgba::number_of_cycles_tagged(785);
+            mgba::test_runner_measure_cycles();
 
             assert!(
                 unsafe { agb_alloc::number_of_blocks() } < 2,
