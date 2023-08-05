@@ -1,7 +1,7 @@
 mod log;
 mod vfile;
 
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::atomic::{AtomicBool, Ordering}};
 
 pub use log::{Logger, LogLevel};
 pub use vfile::{file::FileBacked, memory::MemoryBacked, shared::Shared, MapFlag, VFile};
@@ -27,13 +27,18 @@ macro_rules! call_on_core {
     };
 }
 
+static GLOBAL_LOGGER_HAS_BEEN_INITIALISED: AtomicBool = AtomicBool::new(false);
+
 pub fn set_global_default_logger(logger: &'static Logger) {
+    GLOBAL_LOGGER_HAS_BEEN_INITIALISED.store(true, Ordering::SeqCst);
     unsafe { mgba_sys::mLogSetDefaultLogger(logger.to_mgba()) }
 }
 
 impl MCore {
     pub fn new() -> Option<Self> {
-        set_global_default_logger(&log::NO_LOGGER);
+        if !GLOBAL_LOGGER_HAS_BEEN_INITIALISED.load(Ordering::SeqCst) {
+            set_global_default_logger(&log::NO_LOGGER);
+        }
 
         let core = unsafe { mgba_sys::GBACoreCreate() };
         let core = NonNull::new(core)?;
