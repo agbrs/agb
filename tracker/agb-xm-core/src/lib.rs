@@ -147,8 +147,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     if let InstrumentType::Default(ref instrument) =
                         module.instrument[instrument_index].instr_type
                     {
-                        let sample_slot =
-                            instrument.sample_for_note[slot.note as usize - 1] as usize;
+                        let sample_slot = *instrument
+                            .sample_for_note
+                            .get(slot.note as usize)
+                            .unwrap_or(&0) as usize;
                         instruments_map
                             .get(&(instrument_index, sample_slot))
                             .map(|sample_idx| sample_idx + 1)
@@ -163,7 +165,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 let previous_note_and_sample = note_and_sample[channel_number];
                 let maybe_note_and_sample = if matches!(slot.note, Note::KeyOff) {
                     effect1 = PatternEffect::Stop;
-                    // note_and_sample[channel_number] = None;
+
                     &note_and_sample[channel_number]
                 } else if !matches!(slot.note, Note::None) {
                     if sample != 0 {
