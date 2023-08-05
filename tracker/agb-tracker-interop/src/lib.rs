@@ -66,6 +66,8 @@ pub enum PatternEffect {
     TonePortamento(Num<u16, 12>, Num<u16, 12>),
     SetTicksPerStep(u32),
     SetFramesPerTick(Num<u32, 8>),
+    SetGlobalVolume(Num<i32, 8>),
+    GlobalVolumeSlide(Num<i32, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -296,6 +298,14 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::SetFramesPerTick(new_frames_per_tick) => {
                 let amount = new_frames_per_tick.to_raw();
                 quote! { SetFramesPerTick(agb_tracker::__private::Num::from_raw(#amount)) }
+            }
+            PatternEffect::SetGlobalVolume(amount) => {
+                let amount = amount.to_raw();
+                quote! { SetGlobalVolume(agb_tracker::__private::Num::from_raw(#amount)) }
+            }
+            PatternEffect::GlobalVolumeSlide(amount) => {
+                let amount = amount.to_raw();
+                quote! { GlobalVolumeSlide(agb_tracker::__private::Num::from_raw(#amount)) }
             }
         };
 

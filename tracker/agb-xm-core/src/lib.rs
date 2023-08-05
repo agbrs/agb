@@ -350,6 +350,21 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             slot.effect_parameter as u32,
                         )),
                     },
+                    // G
+                    0x10 => PatternEffect::SetGlobalVolume(
+                        Num::new(slot.effect_parameter as i32) / 0x40,
+                    ),
+                    // H
+                    0x11 => {
+                        let first = effect_parameter >> 4;
+                        let second = effect_parameter & 0xF;
+
+                        if first == 0 {
+                            PatternEffect::GlobalVolumeSlide(-Num::new(second as i32) / 0x40)
+                        } else {
+                            PatternEffect::GlobalVolumeSlide(Num::new(first as i32) / 0x40)
+                        }
+                    }
                     _ => PatternEffect::None,
                 };
 

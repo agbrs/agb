@@ -120,6 +120,7 @@ struct GlobalSettings {
     ticks_per_step: u32,
 
     frames_per_tick: Num<u32, 8>,
+    volume: Num<i32, 8>,
 }
 
 impl Tracker {
@@ -134,6 +135,7 @@ impl Tracker {
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
             frames_per_tick: track.frames_per_tick,
+            volume: 1.into(),
         };
 
         Self {
@@ -172,7 +174,7 @@ impl Tracker {
         {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
-                channel.play_sound(mixer, sample);
+                channel.play_sound(mixer, sample, &self.global_settings);
                 self.envelopes[i] = sample.volume_envelope.map(|envelope_id| EnvelopeState {
                     frame: 0,
                     envelope_id,
@@ -208,7 +210,12 @@ impl Tracker {
             if let Some(envelope_state) = envelope_state_option {
                 let envelope = &self.track.envelopes[envelope_state.envelope_id];
 
-                if !channel.update_volume_envelope(mixer, envelope_state.frame, envelope) {
+                if !channel.update_volume_envelope(
+                    mixer,
+                    envelope_state.frame,
+                    envelope,
+                    &self.global_settings,
+                ) {
                     envelope_state_option.take();
                 } else {
                     envelope_state.frame += 1;
@@ -272,7 +279,12 @@ impl Tracker {
 }
 
 impl TrackerChannel {
-    fn play_sound(&mut self, mixer: &mut Mixer<'_>, sample: &Sample<'static>) {
+    fn play_sound(
+        &mut self,
+        mixer: &mut Mixer<'_>,
+        sample: &Sample<'static>,
+        global_settings: &GlobalSettings,
+    ) {
         if let Some(channel) = self
             .channel_id
             .take()
@@ -283,7 +295,11 @@ impl TrackerChannel {
 
         let mut new_channel = SoundChannel::new(sample.data);
 
-        new_channel.volume(sample.volume.change_base());
+        new_channel.volume(
+            (sample.volume.change_base() * global_settings.volume)
+                .try_change_base()
+                .unwrap(),
+        );
 
         if sample.should_loop {
             new_channel
@@ -342,19 +358,31 @@ impl TrackerChannel {
                     channel.panning(panning.change_base());
                 }
                 PatternEffect::Volume(volume) => {
-                    channel.volume(volume.change_base());
+                    channel.volume(
+                        (volume.change_base() * global_settings.volume)
+                            .try_change_base()
+                            .unwrap(),
+                    );
                     self.volume = volume.change_base();
                 }
                 PatternEffect::VolumeSlide(amount) => {
                     if tick != 0 {
                         self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(self.volume.try_change_base().unwrap());
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
                     }
                 }
                 PatternEffect::FineVolumeSlide(amount) => {
                     if tick == 0 {
                         self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(self.volume.try_change_base().unwrap());
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
                     }
                 }
                 PatternEffect::NoteCut(wait) => {
@@ -373,7 +401,11 @@ impl TrackerChannel {
                     }
                 }
                 PatternEffect::TonePortamento(amount, target) => {
-                    channel.volume(self.volume.try_change_base().unwrap());
+                    channel.volume(
+                        (self.volume * global_settings.volume)
+                            .try_change_base()
+                            .unwrap(),
+                    );
 
                     if tick != 0 {
                         if *amount < 1.into() {
@@ -388,21 +420,27 @@ impl TrackerChannel {
                     channel.playback(self.base_speed.change_base());
                 }
                 // These are global effects handled below
-                PatternEffect::SetTicksPerStep(_) | PatternEffect::SetFramesPerTick(_) => {}
+                PatternEffect::SetTicksPerStep(_)
+                | PatternEffect::SetFramesPerTick(_)
+                | PatternEffect::SetGlobalVolume(_)
+                | PatternEffect::GlobalVolumeSlide(_) => {}
             }
         }
 
         // Some effects have to happen regardless of if we're actually playing anything
         match effect {
             PatternEffect::SetTicksPerStep(amount) => {
-                if tick == 0 {
-                    global_settings.ticks_per_step = *amount;
-                }
+                global_settings.ticks_per_step = *amount;
             }
             PatternEffect::SetFramesPerTick(new_frames_per_tick) => {
-                if tick == 0 {
-                    global_settings.frames_per_tick = *new_frames_per_tick;
-                }
+                global_settings.frames_per_tick = *new_frames_per_tick;
+            }
+            PatternEffect::SetGlobalVolume(volume) => {
+                global_settings.volume = *volume;
+            }
+            PatternEffect::GlobalVolumeSlide(volume_delta) => {
+                global_settings.volume =
+                    (global_settings.volume + *volume_delta).clamp(0.into(), 1.into());
             }
             _ => {}
         }
@@ -414,6 +452,7 @@ impl TrackerChannel {
         mixer: &mut Mixer<'_>,
         frame: usize,
         envelope: &agb_tracker_interop::Envelope<'_>,
+        global_settings: &GlobalSettings,
     ) -> bool {
         if let Some(channel) = self
             .channel_id
@@ -423,7 +462,7 @@ impl TrackerChannel {
             let amount = envelope.amount[frame];
 
             channel.volume(
-                (self.volume * amount.change_base())
+                (self.volume * amount.change_base() * global_settings.volume)
                     .try_change_base()
                     .unwrap(),
             );
