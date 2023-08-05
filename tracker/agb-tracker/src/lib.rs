@@ -113,6 +113,7 @@ struct EnvelopeState {
     frame: usize,
     envelope_id: usize,
     finished: bool,
+    fadeout: Num<i32, 8>,
 }
 
 #[derive(Clone)]
@@ -179,6 +180,7 @@ impl Tracker {
                     frame: 0,
                     envelope_id,
                     finished: false,
+                    fadeout: sample.fadeout,
                 });
             }
 
@@ -212,7 +214,7 @@ impl Tracker {
 
                 if !channel.update_volume_envelope(
                     mixer,
-                    envelope_state.frame,
+                    envelope_state,
                     envelope,
                     &self.global_settings,
                 ) {
@@ -448,9 +450,9 @@ impl TrackerChannel {
 
     #[must_use]
     fn update_volume_envelope(
-        &self,
+        &mut self,
         mixer: &mut Mixer<'_>,
-        frame: usize,
+        envelope_state: &EnvelopeState,
         envelope: &agb_tracker_interop::Envelope<'_>,
         global_settings: &GlobalSettings,
     ) -> bool {
@@ -459,14 +461,19 @@ impl TrackerChannel {
             .as_ref()
             .and_then(|channel_id| mixer.channel(channel_id))
         {
-            let amount = envelope.amount[frame];
+            let amount = envelope.amount[envelope_state.frame];
+
+            if envelope_state.finished {
+                self.volume = (self.volume - envelope_state.fadeout).max(0.into());
+            }
 
             channel.volume(
                 (self.volume * amount.change_base() * global_settings.volume)
                     .try_change_base()
                     .unwrap(),
             );
-            true
+
+            self.volume != 0.into()
         } else {
             false
         }

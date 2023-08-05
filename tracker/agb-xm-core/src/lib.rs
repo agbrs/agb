@@ -57,6 +57,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
         restart_point: u32,
         volume: Num<i16, 8>,
         envelope_id: Option<usize>,
+        fadeout: Num<i32, 8>,
     }
 
     let mut samples = vec![];
@@ -109,6 +110,8 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     .collect::<Vec<_>>(),
             };
 
+            let fadeout = Num::from_raw((instrument.volume_fadeout * ((1 << 8) as f32)) as i32);
+
             instruments_map.insert((instrument_index, sample_index), samples.len());
             samples.push(SampleData {
                 data: sample,
@@ -118,6 +121,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 restart_point,
                 volume,
                 envelope_id,
+                fadeout,
             });
         }
     }
@@ -412,6 +416,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
             restart_point: sample.restart_point,
             volume: sample.volume,
             volume_envelope: sample.envelope_id,
+            fadeout: sample.fadeout,
         })
         .collect();
 

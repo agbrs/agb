@@ -23,6 +23,7 @@ pub struct Sample<'a> {
     pub restart_point: u32,
     pub volume: Num<i16, 8>,
     pub volume_envelope: Option<usize>,
+    pub fadeout: Num<i32, 8>,
 }
 
 #[derive(Debug)]
@@ -181,12 +182,14 @@ impl<'a> quote::ToTokens for Sample<'a> {
             restart_point,
             volume,
             volume_envelope,
+            fadeout,
         } = self;
 
         let volume_envelope = match volume_envelope {
             Some(index) => quote!(Some(#index)),
             None => quote!(None),
         };
+        let fadeout = fadeout.to_raw();
 
         let samples = ByteString(data);
         let volume = volume.to_raw();
@@ -203,6 +206,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
                     restart_point: #restart_point,
                     volume: agb_tracker::__private::Num::from_raw(#volume),
                     volume_envelope: #volume_envelope,
+                    fadeout: agb_tracker::__private::Num::from_raw(#fadeout),
                 }
             }
         });
