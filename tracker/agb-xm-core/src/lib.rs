@@ -469,7 +469,7 @@ fn note_to_frequency_amega(note: Note, fine_tune: f64, relative_note: i8) -> f64
     let note = (note as usize)
         .checked_add_signed(relative_note as isize)
         .expect("Note gone negative");
-    let pos = (note % 12) * 8 + (fine_tune / 16.0) as usize;
+    let pos = ((note % 12) * 8 + (fine_tune / 16.0) as usize).min(AMEGA_FREQUENCIES.len() - 2);
     let frac = (fine_tune / 16.0) - (fine_tune / 16.0).floor();
 
     let period = ((AMEGA_FREQUENCIES[pos] as f64 * (1.0 - frac))

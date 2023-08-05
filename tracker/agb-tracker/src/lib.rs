@@ -375,12 +375,14 @@ impl TrackerChannel {
                 PatternEffect::TonePortamento(amount, target) => {
                     channel.volume(self.volume.try_change_base().unwrap());
 
-                    if *amount < 1.into() {
-                        self.base_speed =
-                            (self.base_speed * amount.change_base()).max(target.change_base());
-                    } else {
-                        self.base_speed =
-                            (self.base_speed * amount.change_base()).min(target.change_base());
+                    if tick != 0 {
+                        if *amount < 1.into() {
+                            self.base_speed =
+                                (self.base_speed * amount.change_base()).max(target.change_base());
+                        } else {
+                            self.base_speed =
+                                (self.base_speed * amount.change_base()).min(target.change_base());
+                        }
                     }
 
                     channel.playback(self.base_speed.change_base());
