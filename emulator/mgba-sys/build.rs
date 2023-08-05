@@ -52,6 +52,7 @@ fn generate_bindings() -> MyError {
         .allowlist_function("mLogCategoryName")
         .generate_cstr(true)
         .derive_default(true)
+        .clang_arg("-I./mgba/include")
         .generate()?;
 
     let out_path = PathBuf::from(env::var("OUT_DIR")?);
