@@ -95,7 +95,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                 usize::MAX
             };
 
-            let volume = Num::from_raw((sample.volume * (1 << 8) as f32) as i16);
+            let volume = Num::from_f32(sample.volume);
 
             let sample = match &sample.data {
                 SampleDataType::Depth8(depth8) => depth8
@@ -110,7 +110,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                     .collect::<Vec<_>>(),
             };
 
-            let fadeout = Num::from_raw((instrument.volume_fadeout * ((1 << 8) as f32)) as i32);
+            let fadeout = Num::from_f32(instrument.volume_fadeout);
 
             instruments_map.insert((instrument_index, sample_index), samples.len());
             samples.push(SampleData {
@@ -477,8 +477,8 @@ fn note_to_speed(
 
     let gba_audio_frequency = 18157f64;
 
-    let speed: f64 = frequency / gba_audio_frequency;
-    Num::from_raw((speed * (1 << 12) as f64) as u32)
+    let speed = frequency / gba_audio_frequency;
+    Num::from_f64(speed)
 }
 
 fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
@@ -536,7 +536,7 @@ impl From<&xmrs::envelope::Envelope> for EnvelopeData {
             let second_point = &e.point[index + 1];
 
             let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
-            let amount = Num::from_raw((amount * (1 << 8) as f32) as i16);
+            let amount = Num::from_f32(amount);
 
             amounts.push(amount);
         }

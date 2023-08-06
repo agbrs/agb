@@ -376,6 +376,20 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         self.0
     }
 
+    /// Lossily transforms an f32 into a fixed point representation. This is not const
+    /// because you cannot currently do floating point operations in const contexts, so
+    /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
+    pub fn from_f32(input: f32) -> Self {
+        Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
+    }
+
+    /// Lossily transforms an f64 into a fixed point representation. This is not const
+    /// because you cannot currently do floating point operations in const contexts, so
+    /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
+    pub fn from_f64(input: f64) -> Self {
+        Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
+    }
+
     /// Truncates the fixed point number returning the integral part
     /// ```rust
     /// # use agb_fixnum::*;
