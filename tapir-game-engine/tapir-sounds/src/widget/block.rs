@@ -1,5 +1,11 @@
 use eframe::egui;
 
+// A block needs:
+// 1. A waveform
+// 2. Inputs
+// 3. Outputs
+// 4. Options
+
 pub struct Block {
     name: String,
     area: egui::Area,
