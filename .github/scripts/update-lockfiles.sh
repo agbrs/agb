@@ -16,5 +16,7 @@ if [ "$(git diff --cached --name-only)" == '' ]; then
     exit 0
 fi
 
-git -c user.name="GBA bot" -c user.email="gw@ilym.me" commit -m 'Update lockfiles'
-git push
+if [ "$1" == '--commit' ]; then
+    git -c user.name="GBA bot" -c user.email="gw@ilym.me" commit -m 'Update lockfiles'
+    git push
+fi

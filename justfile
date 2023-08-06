@@ -84,8 +84,8 @@ build-roms:
 build-book:
     (cd book && mdbook build)
 
-update-lockfiles:
-    bash .github/scripts/update-lockfiles.sh
+update-lockfiles *args:
+    bash .github/scripts/update-lockfiles.sh {{args}}
 
 update-linker-scripts:
     find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
