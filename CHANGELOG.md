@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New tracker for playing XM files (see the `agb-tracker` crate).
 - You can now declare where looping sound channels should restart.
+- Fixnums now have constructors from_f32 and from_f64. This is mainly useful if using agb-fixnum outside of the Game Boy Advance e.g. in build scripts or macros.
 
 ### Changed
 
