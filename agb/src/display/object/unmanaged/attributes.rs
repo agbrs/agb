@@ -135,25 +135,28 @@ impl Attributes {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum ObjectMode {
     Normal,
     Affine,
+    #[default]
     Disabled,
     AffineDouble,
 }
 
 #[bitsize(2)]
-#[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum GraphicsMode {
+    #[default]
     Normal,
     AlphaBlending,
     Window,
 }
 
 #[bitsize(1)]
-#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum ColourMode {
+    #[default]
     Four,
     Eight,
 }

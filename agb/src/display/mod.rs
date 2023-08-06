@@ -161,8 +161,9 @@ pub fn busy_wait_for_vblank() {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum Priority {
+    #[default]
     P0 = 0,
     P1 = 1,
     P2 = 2,
