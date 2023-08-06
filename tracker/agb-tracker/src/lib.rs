@@ -237,7 +237,7 @@ impl Tracker {
                     }
 
                     if envelope_state.frame >= envelope.amount.len() {
-                        envelope_state_option.take();
+                        envelope_state.frame = envelope.amount.len() - 1;
                     }
                 }
             }
