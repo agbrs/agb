@@ -161,10 +161,7 @@ enum ColourMode {
     Eight,
 }
 
-// this mod is not public, so the internal parts don't need documenting.
-#[allow(dead_code)]
-#[allow(clippy::all)]
-#[allow(clippy::map_unwrap_or)]
+#[allow(clippy::module_inception)]
 mod attributes {
     use crate::display::Priority;
 
