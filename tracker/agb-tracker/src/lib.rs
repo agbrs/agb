@@ -90,18 +90,37 @@ pub use agb_tracker_interop::Track;
 pub struct Tracker {
     track: &'static Track<'static>,
     channels: Vec<TrackerChannel>,
+    envelopes: Vec<Option<EnvelopeState>>,
 
     frame: Num<u32, 8>,
     tick: u32,
     first: bool,
 
+    global_settings: GlobalSettings,
+
     current_row: usize,
     current_pattern: usize,
 }
 
+#[derive(Default)]
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
-    base_speed: Num<u32, 8>,
+    base_speed: Num<u32, 16>,
+    volume: Num<i32, 8>,
+}
+
+struct EnvelopeState {
+    frame: usize,
+    envelope_id: usize,
+    finished: bool,
+    fadeout: Num<i32, 8>,
+}
+
+#[derive(Clone)]
+struct GlobalSettings {
+    ticks_per_step: u32,
+
+    frames_per_tick: Num<u32, 8>,
     volume: Num<i32, 8>,
 }
 
@@ -109,22 +128,30 @@ impl Tracker {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
     pub fn new(track: &'static Track<'static>) -> Self {
         let mut channels = Vec::new();
-        channels.resize_with(track.num_channels, || TrackerChannel {
-            channel_id: None,
-            base_speed: 0.into(),
-            volume: 0.into(),
-        });
+        channels.resize_with(track.num_channels, Default::default);
+
+        let mut envelopes = Vec::new();
+        envelopes.resize_with(track.num_channels, || None);
+
+        let global_settings = GlobalSettings {
+            ticks_per_step: track.ticks_per_step,
+            frames_per_tick: track.frames_per_tick,
+            volume: 1.into(),
+        };
 
         Self {
             track,
             channels,
+            envelopes,
 
             frame: 0.into(),
             first: true,
             tick: 0,
 
-            current_row: 0,
+            global_settings,
+
             current_pattern: 0,
+            current_row: 0,
         }
     }
 
@@ -132,6 +159,7 @@ impl Tracker {
     /// See the [example](crate#example) for how to use the tracker.
     pub fn step(&mut self, mixer: &mut Mixer) {
         if !self.increment_frame() {
+            self.update_envelopes(mixer);
             return;
         }
 
@@ -143,21 +171,77 @@ impl Tracker {
         let pattern_slots =
             &self.track.pattern_data[pattern_data_pos..pattern_data_pos + self.track.num_channels];
 
-        for (channel, pattern_slot) in self.channels.iter_mut().zip(pattern_slots) {
+        for (i, (channel, pattern_slot)) in self.channels.iter_mut().zip(pattern_slots).enumerate()
+        {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
-                channel.play_sound(mixer, sample);
+                channel.play_sound(mixer, sample, &self.global_settings);
+                self.envelopes[i] = sample.volume_envelope.map(|envelope_id| EnvelopeState {
+                    frame: 0,
+                    envelope_id,
+                    finished: false,
+                    fadeout: sample.fadeout,
+                });
             }
 
             if self.tick == 0 {
                 channel.set_speed(mixer, pattern_slot.speed.change_base());
             }
 
-            channel.apply_effect(mixer, &pattern_slot.effect1, self.tick);
-            channel.apply_effect(mixer, &pattern_slot.effect2, self.tick);
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect1,
+                self.tick,
+                &mut self.global_settings,
+                &mut self.envelopes[i],
+            );
+            channel.apply_effect(
+                mixer,
+                &pattern_slot.effect2,
+                self.tick,
+                &mut self.global_settings,
+                &mut self.envelopes[i],
+            );
         }
 
-        self.increment_step();
+        self.update_envelopes(mixer);
+    }
+
+    fn update_envelopes(&mut self, mixer: &mut Mixer) {
+        for (channel, envelope_state_option) in self.channels.iter_mut().zip(&mut self.envelopes) {
+            if let Some(envelope_state) = envelope_state_option {
+                let envelope = &self.track.envelopes[envelope_state.envelope_id];
+
+                if !channel.update_volume_envelope(
+                    mixer,
+                    envelope_state,
+                    envelope,
+                    &self.global_settings,
+                ) {
+                    envelope_state_option.take();
+                } else {
+                    envelope_state.frame += 1;
+
+                    if !envelope_state.finished {
+                        if let Some(sustain) = envelope.sustain {
+                            if envelope_state.frame >= sustain {
+                                envelope_state.frame = sustain;
+                            }
+                        }
+                    }
+
+                    if let Some(loop_end) = envelope.loop_end {
+                        if envelope_state.frame >= loop_end {
+                            envelope_state.frame = envelope.loop_start.unwrap_or(0);
+                        }
+                    }
+
+                    if envelope_state.frame >= envelope.amount.len() {
+                        envelope_state.frame = envelope.amount.len() - 1;
+                    }
+                }
+            }
+        }
     }
 
     fn increment_frame(&mut self) -> bool {
@@ -168,11 +252,11 @@ impl Tracker {
 
         self.frame += 1;
 
-        if self.frame >= self.track.frames_per_tick {
+        if self.frame >= self.global_settings.frames_per_tick {
             self.tick += 1;
-            self.frame -= self.track.frames_per_tick;
+            self.frame -= self.global_settings.frames_per_tick;
 
-            if self.tick == self.track.ticks_per_step {
+            if self.tick >= self.global_settings.ticks_per_step {
                 self.current_row += 1;
 
                 if self.current_row
@@ -182,7 +266,7 @@ impl Tracker {
                     self.current_row = 0;
 
                     if self.current_pattern >= self.track.patterns_to_play.len() {
-                        self.current_pattern = 0;
+                        self.current_pattern = self.track.repeat;
                     }
                 }
 
@@ -194,12 +278,15 @@ impl Tracker {
             false
         }
     }
-
-    fn increment_step(&mut self) {}
 }
 
 impl TrackerChannel {
-    fn play_sound(&mut self, mixer: &mut Mixer<'_>, sample: &Sample<'static>) {
+    fn play_sound(
+        &mut self,
+        mixer: &mut Mixer<'_>,
+        sample: &Sample<'static>,
+        global_settings: &GlobalSettings,
+    ) {
         if let Some(channel) = self
             .channel_id
             .take()
@@ -210,7 +297,11 @@ impl TrackerChannel {
 
         let mut new_channel = SoundChannel::new(sample.data);
 
-        new_channel.volume(sample.volume.change_base());
+        new_channel.volume(
+            (sample.volume.change_base() * global_settings.volume)
+                .try_change_base()
+                .unwrap(),
+        );
 
         if sample.should_loop {
             new_channel
@@ -229,14 +320,21 @@ impl TrackerChannel {
             .and_then(|channel_id| mixer.channel(channel_id))
         {
             if speed != 0.into() {
-                self.base_speed = speed;
+                self.base_speed = speed.change_base();
             }
 
-            channel.playback(self.base_speed);
+            channel.playback(self.base_speed.change_base());
         }
     }
 
-    fn apply_effect(&mut self, mixer: &mut Mixer<'_>, effect: &PatternEffect, tick: u32) {
+    fn apply_effect(
+        &mut self,
+        mixer: &mut Mixer<'_>,
+        effect: &PatternEffect,
+        tick: u32,
+        global_settings: &mut GlobalSettings,
+        envelope_state: &mut Option<EnvelopeState>,
+    ) {
         if let Some(channel) = self
             .channel_id
             .as_ref()
@@ -245,11 +343,14 @@ impl TrackerChannel {
             match effect {
                 PatternEffect::None => {}
                 PatternEffect::Stop => {
-                    channel.stop();
+                    channel.volume(0);
+                    if let Some(envelope_state) = envelope_state {
+                        envelope_state.finished = true;
+                    }
                 }
                 PatternEffect::Arpeggio(first, second) => {
                     match tick % 3 {
-                        0 => channel.playback(self.base_speed),
+                        0 => channel.playback(self.base_speed.change_base()),
                         1 => channel.playback(first.change_base()),
                         2 => channel.playback(second.change_base()),
                         _ => unreachable!(),
@@ -259,43 +360,122 @@ impl TrackerChannel {
                     channel.panning(panning.change_base());
                 }
                 PatternEffect::Volume(volume) => {
-                    channel.volume(volume.change_base());
+                    channel.volume(
+                        (volume.change_base() * global_settings.volume)
+                            .try_change_base()
+                            .unwrap(),
+                    );
                     self.volume = volume.change_base();
                 }
                 PatternEffect::VolumeSlide(amount) => {
                     if tick != 0 {
                         self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(self.volume.try_change_base().unwrap());
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
                     }
                 }
                 PatternEffect::FineVolumeSlide(amount) => {
                     if tick == 0 {
                         self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(self.volume.try_change_base().unwrap());
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
                     }
                 }
                 PatternEffect::NoteCut(wait) => {
                     if tick == *wait {
                         channel.volume(0);
-                        self.volume = 0.into();
+
+                        if let Some(envelope_state) = envelope_state {
+                            envelope_state.finished = true;
+                        }
                     }
                 }
                 PatternEffect::Portamento(amount) => {
                     if tick != 0 {
                         self.base_speed *= amount.change_base();
-                        channel.playback(self.base_speed);
+                        channel.playback(self.base_speed.change_base());
                     }
                 }
                 PatternEffect::TonePortamento(amount, target) => {
-                    if *amount < 1.into() {
-                        self.base_speed =
-                            (self.base_speed * amount.change_base()).max(target.change_base());
-                    } else {
-                        self.base_speed =
-                            (self.base_speed * amount.change_base()).min(target.change_base());
+                    channel.volume(
+                        (self.volume * global_settings.volume)
+                            .try_change_base()
+                            .unwrap(),
+                    );
+
+                    if tick != 0 {
+                        if *amount < 1.into() {
+                            self.base_speed =
+                                (self.base_speed * amount.change_base()).max(target.change_base());
+                        } else {
+                            self.base_speed =
+                                (self.base_speed * amount.change_base()).min(target.change_base());
+                        }
                     }
+
+                    channel.playback(self.base_speed.change_base());
                 }
+                // These are global effects handled below
+                PatternEffect::SetTicksPerStep(_)
+                | PatternEffect::SetFramesPerTick(_)
+                | PatternEffect::SetGlobalVolume(_)
+                | PatternEffect::GlobalVolumeSlide(_) => {}
             }
+        }
+
+        // Some effects have to happen regardless of if we're actually playing anything
+        match effect {
+            PatternEffect::SetTicksPerStep(amount) => {
+                global_settings.ticks_per_step = *amount;
+            }
+            PatternEffect::SetFramesPerTick(new_frames_per_tick) => {
+                global_settings.frames_per_tick = *new_frames_per_tick;
+            }
+            PatternEffect::SetGlobalVolume(volume) => {
+                global_settings.volume = *volume;
+            }
+            PatternEffect::GlobalVolumeSlide(volume_delta) => {
+                global_settings.volume =
+                    (global_settings.volume + *volume_delta).clamp(0.into(), 1.into());
+            }
+            _ => {}
+        }
+    }
+
+    #[must_use]
+    fn update_volume_envelope(
+        &mut self,
+        mixer: &mut Mixer<'_>,
+        envelope_state: &EnvelopeState,
+        envelope: &agb_tracker_interop::Envelope<'_>,
+        global_settings: &GlobalSettings,
+    ) -> bool {
+        if let Some(channel) = self
+            .channel_id
+            .as_ref()
+            .and_then(|channel_id| mixer.channel(channel_id))
+        {
+            let amount = envelope.amount[envelope_state.frame];
+
+            if envelope_state.finished {
+                self.volume = (self.volume - envelope_state.fadeout).max(0.into());
+            }
+
+            channel.volume(
+                (self.volume * amount.change_base() * global_settings.volume)
+                    .try_change_base()
+                    .unwrap(),
+            );
+
+            self.volume != 0.into()
+        } else {
+            false
         }
     }
 }
