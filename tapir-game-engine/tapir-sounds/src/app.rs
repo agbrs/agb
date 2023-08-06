@@ -47,7 +47,7 @@ impl eframe::App for TapirSoundApp {
                 });
             });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ctx, |_ui| {
             for block in &mut self.blocks {
                 block.show(ctx);
             }
