@@ -135,33 +135,33 @@ impl Attributes {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum ObjectMode {
     Normal,
     Affine,
+    #[default]
     Disabled,
     AffineDouble,
 }
 
 #[bitsize(2)]
-#[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum GraphicsMode {
+    #[default]
     Normal,
     AlphaBlending,
     Window,
 }
 
 #[bitsize(1)]
-#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
 enum ColourMode {
+    #[default]
     Four,
     Eight,
 }
 
-// this mod is not public, so the internal parts don't need documenting.
-#[allow(dead_code)]
-#[allow(clippy::all)]
-#[allow(clippy::map_unwrap_or)]
+#[allow(clippy::module_inception)]
 mod attributes {
     use crate::display::Priority;
 

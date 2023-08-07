@@ -151,7 +151,6 @@ unsafe fn set_graphics_settings(settings: GraphicsSettings) {
     DISPLAY_CONTROL.set(s);
 }
 
-#[allow(non_snake_case)]
 /// Waits until vblank using a busy wait loop, this should almost never be used.
 /// I only say almost because whilst I don't believe there to be a reason to use
 /// this I can't rule it out.
@@ -161,8 +160,9 @@ pub fn busy_wait_for_vblank() {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum Priority {
+    #[default]
     P0 = 0,
     P1 = 1,
     P2 = 2,

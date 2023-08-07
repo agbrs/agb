@@ -2,9 +2,9 @@ name: Update lockfiles
 
 on:
   push:
-    branches: [ 'renovate/*' ]
+    branches: ["renovate/*"]
   pull_request:
-    branches: [ 'renovate/*' ]
+    branches: ["renovate/*"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,10 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-    - name: Set CARGO_TARGET_DIR
-      run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
-    - name: Check out repository
-      uses: actions/checkout@v3
-    - uses: extractions/setup-just@v1
-    - name: Update lock files
-      run: just update-lockfiles
+      - name: Set CARGO_TARGET_DIR
+        run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - uses: extractions/setup-just@v1
+      - name: Update lock files
+        run: just update-lockfiles --commit
