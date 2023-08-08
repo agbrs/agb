@@ -13,7 +13,7 @@ pub enum MapFlag {
     Write,
 }
 
-pub trait VFile: Seek + Read + Write {
+trait VFileExtensions: VFile {
     fn readline(&mut self, buffer: &mut [u8]) -> Result<usize> {
         let mut byte = 0;
         while byte < buffer.len() - 1 {
@@ -92,6 +92,10 @@ pub trait VFile: Seek + Read + Write {
     }
 }
 
+pub trait VFile: Seek + Read + Write {}
+
+impl<T: VFile + ?Sized> VFileExtensions for T {}
+
 #[repr(C)]
 struct VFileInner<V: VFile> {
     vfile: mgba_sys::VFile,
@@ -116,6 +120,7 @@ impl<V: VFile> VFileAlloc<V> {
 
 mod vfile_extern {
     use std::io::SeekFrom;
+    use super::VFileExtensions;
 
     /// Safety: Must be part of a VFileInner
     pub unsafe fn create_vfile<V: super::VFile>() -> mgba_sys::VFile {
