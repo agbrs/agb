@@ -95,7 +95,7 @@ for performant decimals.
 
 `examples` - bigger examples of a complete game, made during game jams
 
-`mgba-test-runner` - a wrapper around the [mgba](https://mgba.io) emulator which allows us to write unit tests in rust
+`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes. Currently this does not accept contributions.
 
 `template` - the source for the [template repository](https://github.com/agbrs/template)
 
