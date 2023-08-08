@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 mgba = { path = "../mgba" }
-clap = { version = "4.3", features = ["derive"] }
-anyhow = "1.0"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
 image = { version = "0.24", default-features = false, features = [ "png", "bmp" ] }
 agb-gbafix = { path = "../../agb-gbafix" }
