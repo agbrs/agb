@@ -17,8 +17,15 @@ pub struct State {
 
 #[derive(Clone)]
 pub struct Block {
-    pub block_type: Box<dyn BlockType>,
-    pub id: Id,
+    block_type: Box<dyn BlockType>,
+    id: Id,
+}
+
+#[derive(Clone, Debug)]
+pub enum Input {
+    Toggle(bool),
+    Frequency(f64),
+    Amplitude(f64),
 }
 
 impl Block {
@@ -32,6 +39,18 @@ impl Block {
     pub fn name(&self) -> Cow<'static, str> {
         self.block_type.name()
     }
+
+    pub fn id(&self) -> Id {
+        self.id
+    }
+
+    pub fn inputs(&self) -> Vec<(Cow<'static, str>, Input)> {
+        self.block_type.inputs()
+    }
+
+    pub fn set_input(&mut self, name: &str, value: Input) {
+        self.block_type.set_input(name, value);
+    }
 }
 
 pub trait BlockClone {
@@ -40,6 +59,8 @@ pub trait BlockClone {
 
 pub trait BlockType: BlockClone {
     fn name(&self) -> Cow<'static, str>;
+    fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
+    fn set_input(&mut self, name: &str, value: Input);
 }
 
 impl Clone for Box<dyn BlockType> {
@@ -98,5 +119,28 @@ impl FundamentalShapeBlock {
 impl BlockType for FundamentalShapeBlock {
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed(self.fundamental_shape_type.to_string())
+    }
+
+    fn inputs(&self) -> Vec<(Cow<'static, str>, Input)> {
+        vec![
+            ("Frequency".into(), Input::Frequency(self.base_frequency)),
+            ("Amplitude".into(), Input::Amplitude(self.base_amplitude)),
+            ("Loop".into(), Input::Toggle(self.should_loop)),
+        ]
+    }
+
+    fn set_input(&mut self, name: &str, value: Input) {
+        match (name, value) {
+            ("Frequency", Input::Frequency(new_frequency)) => {
+                self.base_frequency = new_frequency;
+            }
+            ("Amplitude", Input::Amplitude(new_amplitude)) => {
+                self.base_amplitude = new_amplitude;
+            }
+            ("Loop", Input::Toggle(new_loop)) => {
+                self.should_loop = new_loop;
+            }
+            (name, value) => panic!("Invalid input {name} with value {value:?}"),
+        }
     }
 }
