@@ -1,16 +1,20 @@
 mod log;
 mod vfile;
 
-use std::{ptr::NonNull, sync::atomic::{AtomicBool, Ordering}};
+use std::{
+    cell::UnsafeCell,
+    ptr::NonNull,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
-pub use log::{Logger, LogLevel};
+pub use log::{LogLevel, Logger};
 pub use vfile::{file::FileBacked, memory::MemoryBacked, shared::Shared, MapFlag, VFile};
 
 use vfile::VFileAlloc;
 
 pub struct MCore {
     core: NonNull<mgba_sys::mCore>,
-    video_buffer: Box<[u32]>,
+    video_buffer: UnsafeCell<Box<[u32]>>,
 }
 
 impl Drop for MCore {
@@ -51,17 +55,18 @@ impl MCore {
 
         unsafe { call_on_core!(core=>desiredVideoDimensions(&mut width, &mut height)) };
 
-        let mut video_buffer = vec![
-            0;
-            (width * height * mgba_sys::BYTES_PER_PIXEL) as usize
-                / std::mem::size_of::<u32>()
-        ]
-        .into_boxed_slice();
+        let mut video_buffer = UnsafeCell::new(
+            vec![
+                0;
+                (width * height * mgba_sys::BYTES_PER_PIXEL) as usize / std::mem::size_of::<u32>()
+            ]
+            .into_boxed_slice(),
+        );
 
         unsafe {
             call_on_core!(
                 core=>setVideoBuffer(
-                    video_buffer.as_mut_ptr(),
+                    video_buffer.get_mut().as_mut_ptr(),
                     width as usize
                 )
             )
@@ -123,7 +128,9 @@ impl MCore {
     }
 
     pub fn video_buffer(&mut self) -> &[u32] {
-        self.video_buffer.as_ref()
+        // Safety: For the duration of this borrow, mgba can't be called into,
+        // so this reference can be taken.
+        unsafe { &*self.video_buffer.get() }
     }
 
     pub fn current_cycle(&mut self) -> u64 {
