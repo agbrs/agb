@@ -51,8 +51,8 @@ impl eframe::App for TapirSoundApp {
             });
 
         egui::CentralPanel::default().show(ctx, |_ui| {
-            for (i, block) in self.state.blocks.iter_mut().enumerate() {
-                widget::block(ctx, block, i);
+            for block in self.state.blocks.iter_mut() {
+                widget::block(ctx, block);
             }
         });
     }
