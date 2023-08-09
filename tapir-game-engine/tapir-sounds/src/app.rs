@@ -44,16 +44,12 @@ impl eframe::App for TapirSoundApp {
                 ui.separator();
 
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                    if ui.button("Sine").clicked() {
-                        self.state.blocks.push_back(state::Block::new(Box::new(
-                            state::FundamentalShapeBlock::new(state::FundamentalShapeType::Sine),
-                        )));
-                    }
-
-                    if ui.button("Square").clicked() {
-                        self.state.blocks.push_back(state::Block::new(Box::new(
-                            state::FundamentalShapeBlock::new(state::FundamentalShapeType::Square),
-                        )));
+                    for fundamental_shape_type in state::FundamentalShapeType::all() {
+                        if ui.button(fundamental_shape_type.name()).clicked() {
+                            self.state.blocks.push_back(state::Block::new(Box::new(
+                                state::FundamentalShapeBlock::new(fundamental_shape_type),
+                            )));
+                        }
                     }
                 });
             });

@@ -130,7 +130,11 @@ pub enum FundamentalShapeType {
 }
 
 impl FundamentalShapeType {
-    fn to_string(self) -> &'static str {
+    pub fn all() -> impl Iterator<Item = FundamentalShapeType> + 'static {
+        [Self::Sine, Self::Square, Self::Triangle, Self::Saw].into_iter()
+    }
+
+    pub fn name(self) -> &'static str {
         match self {
             Self::Sine => "Sine",
             Self::Square => "Square",
@@ -150,13 +154,21 @@ impl FundamentalShapeType {
                 }
             }
             Self::Triangle => {
-                if index < 0.5 {
-                    (index - 0.25) * 4.0
+                if index < 0.25 {
+                    index * 4.0
+                } else if index < 0.75 {
+                    (index - 0.5) * -4.0
                 } else {
-                    (0.25 - index) * 4.0
+                    (index - 0.75) * 4.0 - 1.0
                 }
             }
-            Self::Saw => (index - 0.5) * 2.0,
+            Self::Saw => {
+                if index < 0.5 {
+                    index * 2.0
+                } else {
+                    index * 2.0 - 2.0
+                }
+            }
         }
     }
 }
@@ -182,7 +194,7 @@ impl FundamentalShapeBlock {
 
 impl BlockType for FundamentalShapeBlock {
     fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed(self.fundamental_shape_type.to_string())
+        Cow::Borrowed(self.fundamental_shape_type.name())
     }
 
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)> {
