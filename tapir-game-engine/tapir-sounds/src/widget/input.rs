@@ -1,6 +1,9 @@
 use eframe::egui;
 
-use crate::state::{self, Input};
+use crate::{
+    state::{self, Input},
+    widget,
+};
 
 pub struct InputResponse {
     pub change: Option<state::Input>,
@@ -42,23 +45,12 @@ impl InputResponse {
     }
 }
 
-fn drop_point(
+fn droppable_input(
     ui: &mut egui::Ui,
     f: impl FnOnce(&mut egui::Ui) -> Option<state::Input>,
 ) -> InputResponse {
     ui.horizontal(|ui| {
-        let (rect, response) = ui.allocate_exact_size(
-            ui.spacing().interact_size,
-            egui::Sense::click_and_drag().union(egui::Sense::hover()),
-        );
-
-        if ui.is_rect_visible(rect) {
-            let visuals = ui.style().interact(&response);
-
-            let radius = rect.height() / 2.0;
-            ui.painter()
-                .circle(rect.center(), radius, visuals.bg_fill, visuals.fg_stroke);
-        }
+        let response = widget::drop_point(ui);
 
         InputResponse::with_drop(f(ui), response)
     })
@@ -66,7 +58,7 @@ fn drop_point(
 }
 
 fn drop_point_gap(ui: &mut egui::Ui) {
-    ui.add_space(ui.spacing().interact_size.x);
+    ui.add_space(ui.spacing().interact_size.x + ui.spacing().item_spacing.x);
 }
 
 pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputResponse {
@@ -84,7 +76,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
         state::Input::Frequency(frequency) => {
             let mut frequency = frequency;
 
-            drop_point(ui, |ui| {
+            droppable_input(ui, |ui| {
                 ui.label(name);
 
                 if ui
@@ -104,7 +96,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
         state::Input::Amplitude(amplitude) => {
             let mut amplitude = amplitude;
 
-            drop_point(ui, |ui| {
+            droppable_input(ui, |ui| {
                 ui.label(name);
                 if ui
                     .add(
@@ -123,7 +115,8 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
         state::Input::Periods(periods) => {
             let mut periods = periods;
 
-            drop_point(ui, |ui| {
+            ui.horizontal(|ui| {
+                drop_point_gap(ui);
                 ui.label(name);
 
                 if ui
@@ -135,11 +128,12 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
                     )
                     .changed()
                 {
-                    return Some(state::Input::Periods(periods));
+                    return InputResponse::changed(state::Input::Periods(periods));
                 }
 
-                None
+                InputResponse::unchanged()
             })
+            .inner
         }
     }
 }

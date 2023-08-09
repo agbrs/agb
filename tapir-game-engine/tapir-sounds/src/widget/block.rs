@@ -1,14 +1,75 @@
+use std::borrow::Cow;
+
 use eframe::egui;
 
 use crate::{state, widget};
 
-pub fn block(ctx: &egui::Context, block: &mut state::Block, display: Option<&Vec<f64>>) {
+pub struct BlockResponse {
+    pub alter_input: Vec<(Cow<'static, str>, state::Input)>,
+    pub output_pos: egui::Pos2,
+    pub input_poses: Vec<(Cow<'static, str>, egui::Pos2)>,
+
+    pub delete: bool,
+}
+
+pub fn block(
+    ctx: &egui::Context,
+    block: &state::Block,
+    display: Option<&Vec<f64>>,
+) -> BlockResponse {
     let id = egui::Id::new(block.id());
 
-    egui::Area::new(id).show(ctx, |ui| {
-        egui::Frame::popup(&ctx.style()).show(ui, |ui| {
-            ui.label(block.name());
+    let mut alter_input = vec![];
+    let mut input_poses = vec![];
 
+    let output_pos = egui::Area::new(id)
+        .show(ctx, |ui| {
+            egui::Frame::popup(&ctx.style())
+                .show(ui, |ui| {
+                    ui.label(block.name());
+
+                    let output_pos = output(ui, id, display);
+
+                    let inputs = block.inputs();
+
+                    ui.vertical(|ui| {
+                        for (input_name, input_value) in inputs {
+                            let response = widget::input(ui, &input_name, input_value);
+
+                            if let Some(change) = response.change {
+                                alter_input.push((input_name.clone(), change));
+                            }
+
+                            if let Some(pos) = response.drop_center {
+                                input_poses.push((input_name, pos));
+                            }
+                        }
+                    });
+
+                    output_pos.drag_center
+                })
+                .inner
+        })
+        .inner;
+
+    BlockResponse {
+        alter_input,
+        input_poses,
+        output_pos,
+        delete: false,
+    }
+}
+
+struct OutputResponse {
+    drag_center: egui::Pos2,
+    drag_start: bool,
+    dropped: bool,
+    hover: bool,
+}
+
+fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> OutputResponse {
+    let response = ui
+        .horizontal(|ui| {
             egui::widgets::plot::Plot::new(id.with("plot"))
                 .center_y_axis(true)
                 .include_y(1.2)
@@ -19,34 +80,19 @@ pub fn block(ctx: &egui::Context, block: &mut state::Block, display: Option<&Vec
                 .height(50.0)
                 .show(ui, |plot_ui| {
                     if let Some(display) = display {
-                        let line: egui::widgets::plot::PlotPoints = display
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| [i as f64, *v])
-                            .collect();
+                        let line = egui::widgets::plot::PlotPoints::from_ys_f64(display);
                         plot_ui.line(egui::widgets::plot::Line::new(line));
                     }
                 });
 
-            let inputs = block.inputs();
+            widget::drop_point(ui)
+        })
+        .inner;
 
-            ui.vertical(|ui| {
-                for (input_name, input_value) in inputs {
-                    let response = widget::input(ui, &input_name, input_value);
-
-                    if let Some(new_value) = response.change {
-                        block.set_input(&input_name, new_value);
-                    }
-
-                    if response.drag_start {
-                        println!("drag started {:?} {input_name}", block.id());
-                    }
-
-                    if response.dropped {
-                        println!("dropped {:?} {input_name}", block.id());
-                    }
-                }
-            })
-        });
-    });
+    OutputResponse {
+        drag_center: response.rect.center(),
+        drag_start: response.drag_started_by(egui::PointerButton::Primary),
+        dropped: response.drag_released_by(egui::PointerButton::Primary),
+        hover: response.hovered(),
+    }
 }

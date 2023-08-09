@@ -57,14 +57,28 @@ impl eframe::App for TapirSoundApp {
         egui::CentralPanel::default().show(ctx, |_ui| {
             let results = self.calculator.results();
 
-            for block in self.state.blocks.iter_mut() {
-                widget::block(
-                    ctx,
-                    block,
-                    results
-                        .as_ref()
-                        .and_then(|result| result.for_block(block.id())),
-                );
+            let responses = self
+                .state
+                .blocks
+                .iter()
+                .map(|block| {
+                    widget::block(
+                        ctx,
+                        block,
+                        results
+                            .as_ref()
+                            .and_then(|result| result.for_block(block.id())),
+                    )
+                })
+                .collect::<Vec<_>>();
+
+            for (i, response) in responses.iter().enumerate() {
+                if !response.alter_input.is_empty() {
+                    let block = self.state.blocks.get_mut(i).unwrap();
+                    for (alteration_name, alteration_value) in &response.alter_input {
+                        block.set_input(&alteration_name, alteration_value);
+                    }
+                }
             }
         });
 

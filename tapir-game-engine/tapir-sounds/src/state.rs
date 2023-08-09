@@ -78,7 +78,7 @@ impl Block {
         self.block_type.inputs()
     }
 
-    pub fn set_input(&mut self, name: &str, value: Input) {
+    pub fn set_input(&mut self, name: &str, value: &Input) {
         self.block_type.set_input(name, value);
         self.dirty = true;
     }
@@ -103,7 +103,7 @@ pub trait BlockClone {
 pub trait BlockType: BlockClone + Send + Sync {
     fn name(&self) -> Cow<'static, str>;
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
-    fn set_input(&mut self, name: &str, value: Input);
+    fn set_input(&mut self, name: &str, value: &Input);
     fn calculate(&self, global_frequency: f64) -> Vec<f64>;
 }
 
@@ -206,18 +206,18 @@ impl BlockType for FundamentalShapeBlock {
         ]
     }
 
-    fn set_input(&mut self, name: &str, value: Input) {
+    fn set_input(&mut self, name: &str, value: &Input) {
         match (name, value) {
             ("Frequency", Input::Frequency(new_frequency)) => {
-                if new_frequency != 0.0 {
-                    self.base_frequency = new_frequency;
+                if *new_frequency != 0.0 {
+                    self.base_frequency = *new_frequency;
                 }
             }
             ("Amplitude", Input::Amplitude(new_amplitude)) => {
-                self.base_amplitude = new_amplitude;
+                self.base_amplitude = *new_amplitude;
             }
             ("Periods", Input::Periods(new_periods)) => {
-                self.periods = new_periods;
+                self.periods = *new_periods;
             }
             (name, value) => panic!("Invalid input {name} with value {value:?}"),
         }
