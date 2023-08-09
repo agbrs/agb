@@ -59,8 +59,16 @@ impl eframe::App for TapirSoundApp {
             });
 
         egui::CentralPanel::default().show(ctx, |_ui| {
+            let results = self.calculator.results();
+
             for block in self.state.blocks.iter_mut() {
-                widget::block(ctx, block);
+                widget::block(
+                    ctx,
+                    block,
+                    results
+                        .as_ref()
+                        .and_then(|result| result.for_block(block.id())),
+                );
             }
         });
 

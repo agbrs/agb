@@ -196,7 +196,9 @@ impl BlockType for FundamentalShapeBlock {
     fn set_input(&mut self, name: &str, value: Input) {
         match (name, value) {
             ("Frequency", Input::Frequency(new_frequency)) => {
-                self.base_frequency = new_frequency;
+                if new_frequency != 0.0 {
+                    self.base_frequency = new_frequency;
+                }
             }
             ("Amplitude", Input::Amplitude(new_amplitude)) => {
                 self.base_amplitude = new_amplitude;

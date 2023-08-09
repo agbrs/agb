@@ -11,6 +11,12 @@ pub struct Calculation {
     results: Arc<HashMap<state::Id, Vec<f64>>>,
 }
 
+impl Calculation {
+    pub fn for_block(&self, block_id: state::Id) -> Option<&Vec<f64>> {
+        self.results.get(&block_id)
+    }
+}
+
 pub struct Calculator {
     previous_results: Arc<RwLock<Option<Calculation>>>,
     worker_thread: Option<JoinHandle<()>>,
