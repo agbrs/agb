@@ -4,6 +4,7 @@ use app::TapirSoundApp;
 use eframe::egui;
 
 mod app;
+mod state;
 mod widget;
 
 fn main() -> Result<(), eframe::Error> {

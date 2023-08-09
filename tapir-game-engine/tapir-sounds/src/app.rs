@@ -1,10 +1,11 @@
 use eframe::egui;
 
+use crate::state;
 use crate::widget;
 
 #[derive(Default)]
 pub struct TapirSoundApp {
-    blocks: Vec<widget::Block>,
+    state: state::State,
 }
 
 impl TapirSoundApp {
@@ -36,20 +37,22 @@ impl eframe::App for TapirSoundApp {
 
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     if ui.button("Sine").clicked() {
-                        self.blocks
-                            .push(widget::Block::new("sine", self.blocks.len()));
+                        self.state
+                            .blocks
+                            .push_back(state::Block::new("Sine".to_owned()));
                     }
 
                     if ui.button("Square").clicked() {
-                        self.blocks
-                            .push(widget::Block::new("square", self.blocks.len()));
+                        self.state
+                            .blocks
+                            .push_back(state::Block::new("Square".to_owned()));
                     }
                 });
             });
 
         egui::CentralPanel::default().show(ctx, |_ui| {
-            for block in &mut self.blocks {
-                block.show(ctx);
+            for (i, block) in self.state.blocks.iter_mut().enumerate() {
+                widget::block(ctx, block, i);
             }
         });
     }
