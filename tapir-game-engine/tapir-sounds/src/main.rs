@@ -4,6 +4,7 @@ use app::TapirSoundApp;
 use eframe::egui;
 
 mod app;
+mod calculate;
 mod state;
 mod widget;
 

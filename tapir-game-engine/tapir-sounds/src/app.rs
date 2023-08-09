@@ -1,11 +1,13 @@
 use eframe::egui;
 
+use crate::calculate;
 use crate::state;
 use crate::widget;
 
 #[derive(Default)]
 pub struct TapirSoundApp {
     state: state::State,
+    calculator: calculate::Calculator,
 }
 
 impl TapirSoundApp {
@@ -24,8 +26,14 @@ impl eframe::App for TapirSoundApp {
                     if ui.button("Quit").clicked() {
                         frame.close();
                     }
-                })
-            })
+                });
+            });
+        });
+
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            if self.calculator.is_calculating() {
+                ui.spinner();
+            }
         });
 
         egui::SidePanel::left("input_panel")
@@ -55,5 +63,9 @@ impl eframe::App for TapirSoundApp {
                 widget::block(ctx, block);
             }
         });
+
+        if self.state.is_dirty() && self.calculator.calculate(&self.state) {
+            self.state.clean();
+        }
     }
 }

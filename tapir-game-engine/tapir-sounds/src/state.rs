@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, f64::consts::PI};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Id(uuid::Uuid);
@@ -10,15 +10,43 @@ impl Id {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone)]
 pub struct State {
     pub blocks: im::Vector<Block>,
+
+    frequency: f64,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            blocks: Default::default(),
+            frequency: 18157.0,
+        }
+    }
+}
+
+impl State {
+    pub fn is_dirty(&self) -> bool {
+        self.blocks.iter().any(|block| block.is_dirty())
+    }
+
+    pub fn clean(&mut self) {
+        for block in self.blocks.iter_mut() {
+            block.clean();
+        }
+    }
+
+    pub fn frequency(&self) -> f64 {
+        self.frequency
+    }
 }
 
 #[derive(Clone)]
 pub struct Block {
     block_type: Box<dyn BlockType>,
     id: Id,
+    dirty: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +61,7 @@ impl Block {
         Self {
             block_type,
             id: Id::new(),
+            dirty: true,
         }
     }
 
@@ -50,6 +79,19 @@ impl Block {
 
     pub fn set_input(&mut self, name: &str, value: Input) {
         self.block_type.set_input(name, value);
+        self.dirty = true;
+    }
+
+    pub fn calculate(&self, global_frequency: f64) -> Vec<f64> {
+        self.block_type.calculate(global_frequency)
+    }
+
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
+    fn clean(&mut self) {
+        self.dirty = false;
     }
 }
 
@@ -57,10 +99,11 @@ pub trait BlockClone {
     fn clone_box(&self) -> Box<dyn BlockType>;
 }
 
-pub trait BlockType: BlockClone {
+pub trait BlockType: BlockClone + Send + Sync {
     fn name(&self) -> Cow<'static, str>;
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
     fn set_input(&mut self, name: &str, value: Input);
+    fn calculate(&self, global_frequency: f64) -> Vec<f64>;
 }
 
 impl Clone for Box<dyn BlockType> {
@@ -93,6 +136,27 @@ impl FundamentalShapeType {
             Self::Square => "Square",
             Self::Triangle => "Triangle",
             Self::Saw => "Saw",
+        }
+    }
+
+    fn value(self, index: f64) -> f64 {
+        match self {
+            Self::Sine => (index * PI * 2.0).sin(),
+            Self::Square => {
+                if index < 0.5 {
+                    -1.0
+                } else {
+                    1.0
+                }
+            }
+            Self::Triangle => {
+                if index < 0.5 {
+                    (index - 0.25) * 4.0
+                } else {
+                    (0.25 - index) * 4.0
+                }
+            }
+            Self::Saw => (index - 0.5) * 2.0,
         }
     }
 }
@@ -142,5 +206,20 @@ impl BlockType for FundamentalShapeBlock {
             }
             (name, value) => panic!("Invalid input {name} with value {value:?}"),
         }
+    }
+
+    fn calculate(&self, global_frequency: f64) -> Vec<f64> {
+        let length = (global_frequency / self.base_frequency).ceil() as usize;
+
+        let mut ret = Vec::with_capacity(length);
+        for i in 0..length {
+            ret.push(
+                self.fundamental_shape_type
+                    .value((i as f64) / (length as f64))
+                    * self.base_amplitude,
+            );
+        }
+
+        ret
     }
 }
