@@ -11,8 +11,8 @@ pub fn block(ctx: &egui::Context, block: &mut state::Block, display: Option<&Vec
 
             egui::widgets::plot::Plot::new(id.with("plot"))
                 .center_y_axis(true)
-                .include_y(1.0)
-                .include_y(-1.0)
+                .include_y(1.2)
+                .include_y(-1.2)
                 .auto_bounds_x()
                 .clamp_grid(true)
                 .width(200.0)

@@ -14,25 +14,45 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> Option<state
         state::Input::Frequency(frequency) => {
             let mut frequency = frequency;
 
-            if ui
-                .add(
-                    egui::DragValue::new(&mut frequency)
-                        .clamp_range(0..=10000)
-                        .suffix("Hz"),
-                )
-                .changed()
-            {
-                return Some(state::Input::Frequency(frequency));
-            }
+            return ui
+                .horizontal(|ui| {
+                    ui.label(name);
+
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut frequency)
+                                .clamp_range(0..=10000)
+                                .suffix("Hz"),
+                        )
+                        .changed()
+                    {
+                        return Some(state::Input::Frequency(frequency));
+                    }
+
+                    None
+                })
+                .inner;
         }
         state::Input::Amplitude(amplitude) => {
             let mut amplitude = amplitude;
-            if ui
-                .add(egui::DragValue::new(&mut amplitude).clamp_range(0..=1))
-                .changed()
-            {
-                return Some(state::Input::Amplitude(amplitude));
-            }
+
+            return ui
+                .horizontal(|ui| {
+                    ui.label(name);
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut amplitude)
+                                .clamp_range(-1..=1)
+                                .speed(0.005),
+                        )
+                        .changed()
+                    {
+                        return Some(state::Input::Amplitude(amplitude));
+                    }
+
+                    None
+                })
+                .inner;
         }
     }
 
