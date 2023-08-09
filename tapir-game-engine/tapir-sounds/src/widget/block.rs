@@ -32,8 +32,18 @@ pub fn block(ctx: &egui::Context, block: &mut state::Block, display: Option<&Vec
 
             ui.vertical(|ui| {
                 for (input_name, input_value) in inputs {
-                    if let Some(new_value) = widget::input(ui, &input_name, input_value) {
+                    let response = widget::input(ui, &input_name, input_value);
+
+                    if let Some(new_value) = response.change {
                         block.set_input(&input_name, new_value);
+                    }
+
+                    if response.drag_start {
+                        println!("drag started {:?} {input_name}", block.id());
+                    }
+
+                    if response.dropped {
+                        println!("dropped {:?} {input_name}", block.id());
                     }
                 }
             })
