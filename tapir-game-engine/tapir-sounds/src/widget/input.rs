@@ -54,6 +54,29 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> Option<state
                 })
                 .inner;
         }
+        state::Input::Periods(periods) => {
+            let mut periods = periods;
+
+            return ui
+                .horizontal(|ui| {
+                    ui.label(name);
+
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut periods)
+                                .clamp_range(0..=1000)
+                                .speed(0.025)
+                                .max_decimals(1),
+                        )
+                        .changed()
+                    {
+                        return Some(state::Input::Periods(periods));
+                    }
+
+                    None
+                })
+                .inner;
+        }
     }
 
     None

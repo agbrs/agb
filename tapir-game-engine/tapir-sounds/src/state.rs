@@ -54,6 +54,7 @@ pub enum Input {
     Toggle(bool),
     Frequency(f64),
     Amplitude(f64),
+    Periods(f64),
 }
 
 impl Block {
@@ -176,7 +177,7 @@ impl FundamentalShapeType {
 #[derive(Clone)]
 pub struct FundamentalShapeBlock {
     fundamental_shape_type: FundamentalShapeType,
-    should_loop: bool,
+    periods: f64,
     base_frequency: f64,
     base_amplitude: f64,
 }
@@ -185,7 +186,7 @@ impl FundamentalShapeBlock {
     pub fn new(fundamental_shape_type: FundamentalShapeType) -> Self {
         Self {
             fundamental_shape_type,
-            should_loop: false,
+            periods: 1.0,
             base_frequency: 256.0,
             base_amplitude: 0.5,
         }
@@ -201,7 +202,7 @@ impl BlockType for FundamentalShapeBlock {
         vec![
             ("Frequency".into(), Input::Frequency(self.base_frequency)),
             ("Amplitude".into(), Input::Amplitude(self.base_amplitude)),
-            ("Loop".into(), Input::Toggle(self.should_loop)),
+            ("Periods".into(), Input::Periods(self.periods)),
         ]
     }
 
@@ -215,21 +216,28 @@ impl BlockType for FundamentalShapeBlock {
             ("Amplitude", Input::Amplitude(new_amplitude)) => {
                 self.base_amplitude = new_amplitude;
             }
-            ("Loop", Input::Toggle(new_loop)) => {
-                self.should_loop = new_loop;
+            ("Periods", Input::Periods(new_periods)) => {
+                self.periods = new_periods;
             }
             (name, value) => panic!("Invalid input {name} with value {value:?}"),
         }
     }
 
     fn calculate(&self, global_frequency: f64) -> Vec<f64> {
-        let length = (global_frequency / self.base_frequency).ceil() as usize;
+        let periods = if self.periods == 0.0 {
+            1.0
+        } else {
+            self.periods
+        };
+
+        let period_length = (global_frequency / self.base_frequency).ceil();
+        let length = (period_length * periods) as usize;
 
         let mut ret = Vec::with_capacity(length);
         for i in 0..length {
             ret.push(
                 self.fundamental_shape_type
-                    .value((i as f64) / (length as f64))
+                    .value((i as f64 / period_length).fract())
                     * self.base_amplitude,
             );
         }
