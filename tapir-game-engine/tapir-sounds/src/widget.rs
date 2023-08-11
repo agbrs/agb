@@ -8,7 +8,7 @@ mod port;
 
 pub use block::block;
 pub use input::input;
-pub use port::port;
+pub use port::{port, PortDirection};
 
 impl From<state::Id> for egui::Id {
     fn from(val: state::Id) -> Self {

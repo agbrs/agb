@@ -30,13 +30,14 @@ pub fn block(
                 .show(ui, |ui| {
                     ui.label(block.name());
 
-                    let output_response = output(ui, id, display);
+                    let output_response = output(ui, block.id(), display);
 
                     let inputs = block.inputs();
 
                     ui.vertical(|ui| {
                         for (index, (input_name, input_value)) in inputs.iter().enumerate() {
-                            let response = widget::input(ui, input_name, input_value);
+                            let response =
+                                widget::input(ui, input_name, input_value, block.id(), index);
 
                             if let Some(change) = response.change {
                                 alter_input.push((index, change));
@@ -67,10 +68,10 @@ struct OutputResponse {
     selected_for_connection: bool,
 }
 
-fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> OutputResponse {
+fn output(ui: &mut egui::Ui, block_id: state::Id, display: Option<&Vec<f64>>) -> OutputResponse {
     let response = ui
         .horizontal(|ui| {
-            egui::widgets::plot::Plot::new(id.with("plot"))
+            egui::widgets::plot::Plot::new(egui::Id::new(block_id).with("plot"))
                 .center_y_axis(true)
                 .include_y(1.2)
                 .include_y(-1.2)
@@ -85,7 +86,7 @@ fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> Output
                     }
                 });
 
-            widget::port(ui)
+            widget::port(ui, block_id, 0, widget::PortDirection::Output)
         })
         .inner;
 

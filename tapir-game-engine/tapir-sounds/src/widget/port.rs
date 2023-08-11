@@ -1,6 +1,18 @@
 use eframe::egui;
 
-pub fn port(ui: &mut egui::Ui) -> egui::Response {
+use crate::state;
+
+pub enum PortDirection {
+    Input,
+    Output,
+}
+
+pub fn port(
+    ui: &mut egui::Ui,
+    block_id: state::Id,
+    index: usize,
+    direction: PortDirection,
+) -> egui::Response {
     let (rect, response) = ui.allocate_exact_size(ui.spacing().interact_size, egui::Sense::click());
 
     if ui.is_rect_visible(rect) {

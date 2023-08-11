@@ -39,10 +39,12 @@ impl InputResponse {
 
 fn droppable_input(
     ui: &mut egui::Ui,
+    block_id: state::Id,
+    index: usize,
     f: impl FnOnce(&mut egui::Ui) -> Option<state::Input>,
 ) -> InputResponse {
     ui.horizontal(|ui| {
-        let response = widget::port(ui);
+        let response = widget::port(ui, block_id, index, widget::PortDirection::Input);
 
         InputResponse::with_drop(f(ui), response)
     })
@@ -53,7 +55,13 @@ fn drop_point_gap(ui: &mut egui::Ui) {
     ui.add_space(ui.spacing().interact_size.x + ui.spacing().item_spacing.x);
 }
 
-pub fn input(ui: &mut egui::Ui, name: &str, input: &state::Input) -> InputResponse {
+pub fn input(
+    ui: &mut egui::Ui,
+    name: &str,
+    input: &state::Input,
+    block_id: state::Id,
+    index: usize,
+) -> InputResponse {
     match input {
         state::Input::Toggle(toggled) => {
             drop_point_gap(ui);
@@ -68,7 +76,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: &state::Input) -> InputRespon
         state::Input::Frequency(frequency) => {
             let mut frequency = *frequency;
 
-            droppable_input(ui, |ui| {
+            droppable_input(ui, block_id, index, |ui| {
                 ui.label(name);
 
                 if ui
@@ -88,7 +96,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: &state::Input) -> InputRespon
         state::Input::Amplitude(amplitude) => {
             let mut amplitude = *amplitude;
 
-            droppable_input(ui, |ui| {
+            droppable_input(ui, block_id, index, |ui| {
                 ui.label(name);
                 if ui
                     .add(
