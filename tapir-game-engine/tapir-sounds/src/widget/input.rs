@@ -5,48 +5,16 @@ use crate::{
     widget,
 };
 
-pub struct InputResponse {
-    pub change: Option<state::Input>,
-    pub selected_for_connection: bool,
-    pub drop_center: Option<egui::Pos2>,
-}
-
-impl InputResponse {
-    fn unchanged() -> Self {
-        Self {
-            change: None,
-            selected_for_connection: false,
-            drop_center: None,
-        }
-    }
-
-    fn changed(change: state::Input) -> Self {
-        Self {
-            change: Some(change),
-            selected_for_connection: false,
-            drop_center: None,
-        }
-    }
-
-    fn with_drop(change: Option<state::Input>, drop_point: egui::Response) -> Self {
-        Self {
-            change,
-            selected_for_connection: drop_point.clicked(),
-            drop_center: Some(drop_point.rect.center()),
-        }
-    }
-}
-
 fn droppable_input(
     ui: &mut egui::Ui,
     block_id: state::Id,
     index: usize,
     f: impl FnOnce(&mut egui::Ui) -> Option<state::Input>,
-) -> InputResponse {
+) -> Option<state::Input> {
     ui.horizontal(|ui| {
-        let response = widget::port(ui, block_id, index, widget::PortDirection::Input);
+        widget::port(ui, block_id, index, widget::PortDirection::Input);
 
-        InputResponse::with_drop(f(ui), response)
+        f(ui)
     })
     .inner
 }
@@ -61,17 +29,17 @@ pub fn input(
     input: &state::Input,
     block_id: state::Id,
     index: usize,
-) -> InputResponse {
+) -> Option<state::Input> {
     match input {
         state::Input::Toggle(toggled) => {
             drop_point_gap(ui);
             let mut toggled = *toggled;
 
             if ui.checkbox(&mut toggled, name).changed() {
-                return InputResponse::changed(Input::Toggle(toggled));
+                return Some(Input::Toggle(toggled));
             }
 
-            InputResponse::unchanged()
+            None
         }
         state::Input::Frequency(frequency) => {
             let mut frequency = *frequency;
@@ -128,10 +96,10 @@ pub fn input(
                     )
                     .changed()
                 {
-                    return InputResponse::changed(state::Input::Periods(periods));
+                    return Some(state::Input::Periods(periods));
                 }
 
-                InputResponse::unchanged()
+                None
             })
             .inner
         }
