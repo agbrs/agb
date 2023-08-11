@@ -85,7 +85,7 @@ fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> Output
                     }
                 });
 
-            widget::drop_point(ui)
+            widget::port(ui)
         })
         .inner;
 

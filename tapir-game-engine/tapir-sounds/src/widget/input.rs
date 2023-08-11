@@ -42,7 +42,7 @@ fn droppable_input(
     f: impl FnOnce(&mut egui::Ui) -> Option<state::Input>,
 ) -> InputResponse {
     ui.horizontal(|ui| {
-        let response = widget::drop_point(ui);
+        let response = widget::port(ui);
 
         InputResponse::with_drop(f(ui), response)
     })
