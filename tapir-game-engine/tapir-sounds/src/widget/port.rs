@@ -2,6 +2,7 @@ use eframe::egui;
 
 use crate::state;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum PortDirection {
     Input,
     Output,
@@ -24,6 +25,13 @@ pub fn port(
         ui.painter()
             .circle(rect.center(), radius, visuals.bg_fill, visuals.fg_stroke);
     }
+
+    let position = rect.center();
+    ui.ctx().data_mut(|data| {
+        let cable_state: &mut super::CableState = data.get_temp_mut_or_default(egui::Id::null());
+
+        cable_state.set_port_position(block_id, index, direction, position);
+    });
 
     response
 }
