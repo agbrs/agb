@@ -7,9 +7,7 @@ use crate::{
 
 pub struct InputResponse {
     pub change: Option<state::Input>,
-    pub dropped: bool,
-    pub drag_start: bool,
-    pub is_hovered: bool,
+    pub selected_for_connection: bool,
     pub drop_center: Option<egui::Pos2>,
 }
 
@@ -17,30 +15,24 @@ impl InputResponse {
     fn unchanged() -> Self {
         Self {
             change: None,
-            dropped: false,
-            drag_start: false,
+            selected_for_connection: false,
             drop_center: None,
-            is_hovered: false,
         }
     }
 
     fn changed(change: state::Input) -> Self {
         Self {
             change: Some(change),
-            dropped: false,
-            drag_start: false,
+            selected_for_connection: false,
             drop_center: None,
-            is_hovered: false,
         }
     }
 
     fn with_drop(change: Option<state::Input>, drop_point: egui::Response) -> Self {
         Self {
             change,
-            dropped: drop_point.drag_released_by(egui::PointerButton::Primary),
-            drag_start: drop_point.drag_started_by(egui::PointerButton::Primary),
+            selected_for_connection: drop_point.clicked(),
             drop_center: Some(drop_point.rect.center()),
-            is_hovered: drop_point.hovered(),
         }
     }
 }

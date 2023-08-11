@@ -6,8 +6,12 @@ use crate::{state, widget};
 
 pub struct BlockResponse {
     pub alter_input: Vec<(Cow<'static, str>, state::Input)>,
+
     pub output_pos: egui::Pos2,
     pub input_poses: Vec<(Cow<'static, str>, egui::Pos2)>,
+
+    pub output_for_connection: bool,
+    pub input_for_connection: Option<Cow<'static, str>>,
 
     pub delete: bool,
 }
@@ -22,13 +26,15 @@ pub fn block(
     let mut alter_input = vec![];
     let mut input_poses = vec![];
 
-    let output_pos = egui::Area::new(id)
+    let mut input_for_connection = None;
+
+    let output_response = egui::Area::new(id)
         .show(ctx, |ui| {
             egui::Frame::popup(&ctx.style())
                 .show(ui, |ui| {
                     ui.label(block.name());
 
-                    let output_pos = output(ui, id, display);
+                    let output_response = output(ui, id, display);
 
                     let inputs = block.inputs();
 
@@ -40,13 +46,17 @@ pub fn block(
                                 alter_input.push((input_name.clone(), change));
                             }
 
+                            if response.selected_for_connection {
+                                input_for_connection = Some(input_name.clone());
+                            }
+
                             if let Some(pos) = response.drop_center {
                                 input_poses.push((input_name, pos));
                             }
                         }
                     });
 
-                    output_pos.drag_center
+                    output_response
                 })
                 .inner
         })
@@ -55,16 +65,17 @@ pub fn block(
     BlockResponse {
         alter_input,
         input_poses,
-        output_pos,
+        output_pos: output_response.drag_center,
         delete: false,
+
+        input_for_connection,
+        output_for_connection: output_response.selected_for_connection,
     }
 }
 
 struct OutputResponse {
     drag_center: egui::Pos2,
-    drag_start: bool,
-    dropped: bool,
-    hover: bool,
+    selected_for_connection: bool,
 }
 
 fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> OutputResponse {
@@ -91,8 +102,6 @@ fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> Output
 
     OutputResponse {
         drag_center: response.rect.center(),
-        drag_start: response.drag_started_by(egui::PointerButton::Primary),
-        dropped: response.drag_released_by(egui::PointerButton::Primary),
-        hover: response.hovered(),
+        selected_for_connection: response.clicked(),
     }
 }

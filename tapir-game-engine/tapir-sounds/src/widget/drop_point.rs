@@ -1,10 +1,7 @@
 use eframe::egui;
 
 pub fn drop_point(ui: &mut egui::Ui) -> egui::Response {
-    let (rect, response) = ui.allocate_exact_size(
-        ui.spacing().interact_size,
-        egui::Sense::click_and_drag().union(egui::Sense::hover()),
-    );
+    let (rect, response) = ui.allocate_exact_size(ui.spacing().interact_size, egui::Sense::click());
 
     if ui.is_rect_visible(rect) {
         let visuals = ui
