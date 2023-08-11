@@ -5,10 +5,7 @@ use eframe::egui;
 use crate::{state, widget};
 
 pub struct BlockResponse {
-    pub alter_input: Vec<(Cow<'static, str>, state::Input)>,
-
-    pub output_pos: egui::Pos2,
-    pub input_poses: Vec<(Cow<'static, str>, egui::Pos2)>,
+    pub alter_input: Vec<(usize, state::Input)>,
 
     pub output_for_connection: bool,
     pub input_for_connection: Option<Cow<'static, str>>,
@@ -24,7 +21,6 @@ pub fn block(
     let id = egui::Id::new(block.id());
 
     let mut alter_input = vec![];
-    let mut input_poses = vec![];
 
     let mut input_for_connection = None;
 
@@ -39,19 +35,15 @@ pub fn block(
                     let inputs = block.inputs();
 
                     ui.vertical(|ui| {
-                        for (input_name, input_value) in inputs {
-                            let response = widget::input(ui, &input_name, input_value);
+                        for (index, (input_name, input_value)) in inputs.iter().enumerate() {
+                            let response = widget::input(ui, input_name, input_value);
 
                             if let Some(change) = response.change {
-                                alter_input.push((input_name.clone(), change));
+                                alter_input.push((index, change));
                             }
 
                             if response.selected_for_connection {
                                 input_for_connection = Some(input_name.clone());
-                            }
-
-                            if let Some(pos) = response.drop_center {
-                                input_poses.push((input_name, pos));
                             }
                         }
                     });
@@ -64,8 +56,6 @@ pub fn block(
 
     BlockResponse {
         alter_input,
-        input_poses,
-        output_pos: output_response.drag_center,
         delete: false,
 
         input_for_connection,
@@ -74,7 +64,6 @@ pub fn block(
 }
 
 struct OutputResponse {
-    drag_center: egui::Pos2,
     selected_for_connection: bool,
 }
 
@@ -101,7 +90,6 @@ fn output(ui: &mut egui::Ui, id: egui::Id, display: Option<&Vec<f64>>) -> Output
         .inner;
 
     OutputResponse {
-        drag_center: response.rect.center(),
         selected_for_connection: response.clicked(),
     }
 }

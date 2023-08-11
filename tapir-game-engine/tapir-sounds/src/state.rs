@@ -78,8 +78,8 @@ impl Block {
         self.block_type.inputs()
     }
 
-    pub fn set_input(&mut self, name: &str, value: &Input) {
-        self.block_type.set_input(name, value);
+    pub fn set_input(&mut self, index: usize, value: &Input) {
+        self.block_type.set_input(index, value);
         self.dirty = true;
     }
 
@@ -103,7 +103,7 @@ pub trait BlockClone {
 pub trait BlockType: BlockClone + Send + Sync {
     fn name(&self) -> Cow<'static, str>;
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
-    fn set_input(&mut self, name: &str, value: &Input);
+    fn set_input(&mut self, index: usize, value: &Input);
     fn calculate(&self, global_frequency: f64) -> Vec<f64>;
 }
 
@@ -206,17 +206,17 @@ impl BlockType for FundamentalShapeBlock {
         ]
     }
 
-    fn set_input(&mut self, name: &str, value: &Input) {
-        match (name, value) {
-            ("Frequency", Input::Frequency(new_frequency)) => {
+    fn set_input(&mut self, index: usize, value: &Input) {
+        match (index, value) {
+            (0, Input::Frequency(new_frequency)) => {
                 if *new_frequency != 0.0 {
                     self.base_frequency = *new_frequency;
                 }
             }
-            ("Amplitude", Input::Amplitude(new_amplitude)) => {
+            (1, Input::Amplitude(new_amplitude)) => {
                 self.base_amplitude = *new_amplitude;
             }
-            ("Periods", Input::Periods(new_periods)) => {
+            (2, Input::Periods(new_periods)) => {
                 self.periods = *new_periods;
             }
             (name, value) => panic!("Invalid input {name} with value {value:?}"),

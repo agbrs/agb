@@ -53,11 +53,11 @@ fn drop_point_gap(ui: &mut egui::Ui) {
     ui.add_space(ui.spacing().interact_size.x + ui.spacing().item_spacing.x);
 }
 
-pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputResponse {
+pub fn input(ui: &mut egui::Ui, name: &str, input: &state::Input) -> InputResponse {
     match input {
         state::Input::Toggle(toggled) => {
             drop_point_gap(ui);
-            let mut toggled = toggled;
+            let mut toggled = *toggled;
 
             if ui.checkbox(&mut toggled, name).changed() {
                 return InputResponse::changed(Input::Toggle(toggled));
@@ -66,7 +66,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
             InputResponse::unchanged()
         }
         state::Input::Frequency(frequency) => {
-            let mut frequency = frequency;
+            let mut frequency = *frequency;
 
             droppable_input(ui, |ui| {
                 ui.label(name);
@@ -86,7 +86,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
             })
         }
         state::Input::Amplitude(amplitude) => {
-            let mut amplitude = amplitude;
+            let mut amplitude = *amplitude;
 
             droppable_input(ui, |ui| {
                 ui.label(name);
@@ -105,7 +105,7 @@ pub fn input(ui: &mut egui::Ui, name: &str, input: state::Input) -> InputRespons
             })
         }
         state::Input::Periods(periods) => {
-            let mut periods = periods;
+            let mut periods = *periods;
 
             ui.horizontal(|ui| {
                 drop_point_gap(ui);

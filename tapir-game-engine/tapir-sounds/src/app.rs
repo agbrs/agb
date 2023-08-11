@@ -75,8 +75,8 @@ impl eframe::App for TapirSoundApp {
             for (i, response) in responses.iter().enumerate() {
                 if !response.alter_input.is_empty() {
                     let block = self.state.blocks.get_mut(i).unwrap();
-                    for (alteration_name, alteration_value) in &response.alter_input {
-                        block.set_input(&alteration_name, alteration_value);
+                    for (alteration_index, alteration_value) in &response.alter_input {
+                        block.set_input(*alteration_index, alteration_value);
                     }
                 }
             }
