@@ -14,27 +14,53 @@ impl Id {
 pub struct State {
     pub blocks: im::Vector<Block>,
 
+    connections: im::Vector<(Id, (Id, usize))>,
     frequency: f64,
+
+    dirty: bool,
 }
 
 impl Default for State {
     fn default() -> Self {
         Self {
             blocks: Default::default(),
+            connections: Default::default(),
             frequency: 18157.0,
+            dirty: false,
         }
     }
 }
 
 impl State {
     pub fn is_dirty(&self) -> bool {
-        self.blocks.iter().any(|block| block.is_dirty())
+        self.dirty || self.blocks.iter().any(|block| block.is_dirty())
+    }
+
+    pub fn add_connection(
+        &mut self,
+        (output_block, (input_block, input_block_index)): (Id, (Id, usize)),
+    ) {
+        // TODO(GI): Validate we don't make a loop
+        if output_block == input_block {
+            return;
+        }
+
+        self.connections
+            .push_back((output_block, (input_block, input_block_index)));
+
+        self.dirty = true;
+    }
+
+    pub fn connections(&self) -> im::Vector<(Id, (Id, usize))> {
+        self.connections.clone()
     }
 
     pub fn clean(&mut self) {
         for block in self.blocks.iter_mut() {
             block.clean();
         }
+
+        self.dirty = false;
     }
 
     pub fn frequency(&self) -> f64 {

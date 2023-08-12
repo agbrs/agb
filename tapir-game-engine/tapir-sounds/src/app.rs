@@ -1,5 +1,3 @@
-use std::iter;
-
 use eframe::egui;
 
 use crate::calculate;
@@ -83,9 +81,24 @@ impl eframe::App for TapirSoundApp {
                 }
             }
 
-            let cable_response = widget::cables(ui, iter::empty());
-            if let Some(new_connection) = cable_response.new_connection {
-                println!("{new_connection:?}");
+            let cable_response = widget::cables(
+                ui,
+                self.state.connections().iter().map(
+                    |(output_block_id, (input_block_id, index))| {
+                        (
+                            widget::PortId::new(*output_block_id, 0, widget::PortDirection::Output),
+                            widget::PortId::new(
+                                *input_block_id,
+                                *index,
+                                widget::PortDirection::Input,
+                            ),
+                        )
+                    },
+                ),
+            );
+            if let Some((output, input)) = cable_response.new_connection {
+                self.state
+                    .add_connection((output.block_id, (input.block_id, input.index)));
             }
         });
 
