@@ -45,21 +45,22 @@ impl CableState {
         self.inner.lock().unwrap().in_progress_cable = None;
     }
 
-    pub fn in_progress_cable_pos(&self) -> Option<egui::Pos2> {
+    pub fn in_progress_cable(&self) -> Option<(egui::Pos2, PortId)> {
         let inner = self.inner.lock().unwrap();
-        let in_progress_cable = &inner.in_progress_cable.as_ref();
+        let in_progress_cable = inner.in_progress_cable.as_ref()?;
 
-        in_progress_cable
-            .and_then(|port_id| inner.port_positions.get(port_id))
-            .copied()
+        let pos = inner.port_positions.get(in_progress_cable)?;
+
+        Some((*pos, in_progress_cable.clone()))
     }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PortId {
-    block_id: state::Id,
-    index: usize,
-    direction: super::PortDirection,
+    pub block_id: state::Id,
+    pub index: usize,
+    pub direction: super::PortDirection,
 }
 
 impl PortId {

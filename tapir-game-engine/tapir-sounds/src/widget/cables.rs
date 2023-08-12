@@ -22,14 +22,18 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
                     continue;
                 };
 
-                painter.line_segment([source_pos, target_pos], cable_stroke);
+                paint_cable_curve(painter, source_pos, target_pos, cable_stroke);
             }
 
-            if let Some(in_progress_cable_pos) =
-                widget::CableState::from_ctx(ui.ctx(), |state| state.in_progress_cable_pos())
+            if let Some((in_progress_cable_pos, in_progress_cable_id)) =
+                widget::CableState::from_ctx(ui.ctx(), |state| state.in_progress_cable())
             {
                 if let Some(cursor_pos) = ui.ctx().input(|i| i.pointer.interact_pos()) {
-                    painter.line_segment([in_progress_cable_pos, cursor_pos], cable_stroke);
+                    if in_progress_cable_id.direction == widget::PortDirection::Output {
+                        paint_cable_curve(painter, in_progress_cable_pos, cursor_pos, cable_stroke);
+                    } else {
+                        paint_cable_curve(painter, cursor_pos, in_progress_cable_pos, cable_stroke);
+                    }
                 }
             }
 
@@ -41,4 +45,25 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
             }
         },
     );
+}
+
+fn paint_cable_curve(
+    painter: &egui::Painter,
+    source_pos: egui::Pos2,
+    target_pos: egui::Pos2,
+    cable_stroke: egui::Stroke,
+) {
+    let curve = egui::epaint::CubicBezierShape::from_points_stroke(
+        [
+            source_pos,
+            source_pos + egui::vec2(50.0, 0.0),
+            target_pos - egui::vec2(50.0, 0.0),
+            target_pos,
+        ],
+        false,
+        egui::Color32::TRANSPARENT,
+        cable_stroke,
+    );
+
+    painter.add(curve);
 }
