@@ -1,6 +1,6 @@
 use std::{borrow::Cow, f64::consts::PI};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct Id(uuid::Uuid);
 
 impl Id {
@@ -40,8 +40,15 @@ impl State {
         &mut self,
         (output_block, (input_block, input_block_index)): (Id, (Id, usize)),
     ) {
-        // TODO(GI): Validate we don't make a loop
         if output_block == input_block {
+            return;
+        }
+
+        // check if adding this connection would produce a cycle
+        let mut graph = self.graph();
+        graph.add_edge(output_block, input_block, ());
+
+        if petgraph::algo::is_cyclic_directed(&graph) {
             return;
         }
 
@@ -72,6 +79,21 @@ impl State {
 
     pub fn frequency(&self) -> f64 {
         self.frequency
+    }
+
+    fn graph(&self) -> petgraph::graphmap::GraphMap<Id, (), petgraph::Directed> {
+        let mut graph =
+            petgraph::graphmap::GraphMap::with_capacity(self.blocks.len(), self.connections.len());
+
+        for node in &self.blocks {
+            graph.add_node(node.id);
+        }
+
+        for (output, (input, _)) in &self.connections {
+            graph.add_edge(*output, *input, ());
+        }
+
+        graph
     }
 }
 
