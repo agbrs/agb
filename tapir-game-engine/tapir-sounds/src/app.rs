@@ -1,3 +1,5 @@
+use std::iter;
+
 use eframe::egui;
 
 use crate::calculate;
@@ -54,7 +56,7 @@ impl eframe::App for TapirSoundApp {
                 });
             });
 
-        egui::CentralPanel::default().show(ctx, |_ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             let results = self.calculator.results();
 
             let responses = self
@@ -80,6 +82,8 @@ impl eframe::App for TapirSoundApp {
                     }
                 }
             }
+
+            widget::cables(ui, iter::empty());
         });
 
         if self.state.is_dirty() && self.calculator.calculate(&self.state) {

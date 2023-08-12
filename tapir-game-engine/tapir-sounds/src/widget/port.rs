@@ -27,10 +27,9 @@ pub fn port(
     }
 
     let position = rect.center();
-    ui.ctx().data_mut(|data| {
-        let cable_state: &mut super::CableState = data.get_temp_mut_or_default(egui::Id::null());
 
-        cable_state.set_port_position(block_id, index, direction, position);
+    super::CableState::from_ctx(ui.ctx(), |cable_state| {
+        cable_state.set_port_position(block_id, index, direction, position)
     });
 
     response

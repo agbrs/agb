@@ -13,6 +13,13 @@ pub struct CableState {
 }
 
 impl CableState {
+    pub fn from_ctx<F, T>(ctx: &egui::Context, f: F) -> T
+    where
+        F: FnOnce(&mut Self) -> T,
+    {
+        ctx.data_mut(|data| f(data.get_temp_mut_or_default::<Self>(egui::Id::null())))
+    }
+
     pub fn set_port_position(
         &mut self,
         block_id: state::Id,
@@ -30,27 +37,31 @@ impl CableState {
         );
     }
 
-    pub fn get_port_position(
-        &self,
-        block_id: state::Id,
-        index: usize,
-        direction: super::PortDirection,
-    ) -> Option<egui::Pos2> {
+    pub fn get_port_position(&self, port_id: &PortId) -> Option<egui::Pos2> {
         self.inner
             .lock()
             .unwrap()
             .port_positions
-            .get(&PortId {
-                block_id,
-                index,
-                direction,
-            })
+            .get(port_id)
+            .copied()
+    }
+
+    pub fn set_in_progress_cable(&mut self, port_id: &PortId) {
+        self.inner.lock().unwrap().in_progress_cable = Some(port_id.clone());
+    }
+
+    pub fn in_progress_cable_pos(&self) -> Option<egui::Pos2> {
+        let inner = self.inner.lock().unwrap();
+        let in_progress_cable = &inner.in_progress_cable.as_ref();
+
+        in_progress_cable
+            .and_then(|port_id| inner.port_positions.get(port_id))
             .copied()
     }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct PortId {
+pub struct PortId {
     block_id: state::Id,
     index: usize,
     direction: super::PortDirection,
@@ -59,4 +70,5 @@ struct PortId {
 #[derive(Debug, Default)]
 struct CableStateInner {
     port_positions: HashMap<PortId, egui::Pos2>,
+    in_progress_cable: Option<PortId>,
 }
