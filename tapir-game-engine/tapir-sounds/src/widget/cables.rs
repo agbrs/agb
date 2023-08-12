@@ -32,6 +32,13 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
                     painter.line_segment([in_progress_cable_pos, cursor_pos], cable_stroke);
                 }
             }
+
+            if ui
+                .ctx()
+                .input(|i| i.pointer.button_clicked(egui::PointerButton::Secondary))
+            {
+                widget::CableState::from_ctx(ui.ctx(), |state| state.clear_in_progress_cable());
+            }
         },
     );
 }

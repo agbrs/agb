@@ -41,6 +41,10 @@ impl CableState {
         self.inner.lock().unwrap().in_progress_cable = Some(port_id.clone());
     }
 
+    pub fn clear_in_progress_cable(&mut self) {
+        self.inner.lock().unwrap().in_progress_cable = None;
+    }
+
     pub fn in_progress_cable_pos(&self) -> Option<egui::Pos2> {
         let inner = self.inner.lock().unwrap();
         let in_progress_cable = &inner.in_progress_cable.as_ref();
