@@ -8,7 +8,7 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
         |ui| {
             let painter = ui.painter();
 
-            let cable_stroke = ui.style().visuals.window_stroke();
+            let cable_stroke = egui::Stroke::new(3.0, egui::Color32::BLUE);
 
             for (source, target) in cables {
                 let Some((source_pos, target_pos)) =
