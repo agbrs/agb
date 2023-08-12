@@ -38,7 +38,11 @@ impl CableState {
     }
 
     pub fn set_in_progress_cable(&mut self, port_id: &PortId) {
-        self.inner.lock().unwrap().in_progress_cable = Some(port_id.clone());
+        self.inner
+            .lock()
+            .unwrap()
+            .in_progress_cable
+            .get_or_insert(port_id.clone());
     }
 
     pub fn clear_in_progress_cable(&mut self) {

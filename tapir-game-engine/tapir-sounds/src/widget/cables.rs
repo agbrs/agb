@@ -3,14 +3,19 @@ use eframe::egui;
 use crate::widget;
 
 pub struct CableResponse {
-    pub new_connection: (widget::PortId, widget::PortId),
+    pub new_connection: Option<(widget::PortId, widget::PortId)>,
 }
 
-pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, widget::PortId)>) {
+pub fn cables(
+    ui: &mut egui::Ui,
+    cables: impl Iterator<Item = (widget::PortId, widget::PortId)>,
+) -> CableResponse {
     ui.with_layer_id(
         egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("cables")),
         |ui| {
             let painter = ui.painter();
+
+            let mut new_connection = None;
 
             let cable_stroke = egui::Stroke::new(3.0, egui::Color32::BLUE);
 
@@ -33,14 +38,34 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
                 widget::CableState::from_ctx(ui.ctx(), |state| state.in_progress_cable())
             {
                 if let Some(mut cursor_pos) = ui.ctx().input(|i| i.pointer.interact_pos()) {
-                    let (_closest_cable, position) =
+                    let (closest_cable, position) =
                         widget::CableState::from_ctx(ui.ctx(), |state| {
                             state.closest_port_at_pos(cursor_pos)
                         })
                         .unwrap();
 
-                    if position.distance_sq(cursor_pos) < 10.0f32.powi(2) {
+                    if closest_cable != in_progress_cable_id
+                        && in_progress_cable_id.direction != closest_cable.direction
+                        && position.distance_sq(cursor_pos) < 10.0f32.powi(2)
+                    {
                         cursor_pos = position;
+
+                        if ui
+                            .ctx()
+                            .input(|i| i.pointer.button_released(egui::PointerButton::Primary))
+                        {
+                            if in_progress_cable_id.direction == widget::PortDirection::Input {
+                                new_connection =
+                                    Some((closest_cable, in_progress_cable_id.clone()));
+                            } else {
+                                new_connection =
+                                    Some((in_progress_cable_id.clone(), closest_cable));
+                            }
+
+                            widget::CableState::from_ctx(ui.ctx(), |state| {
+                                state.clear_in_progress_cable()
+                            });
+                        }
                     }
 
                     if in_progress_cable_id.direction == widget::PortDirection::Output {
@@ -57,8 +82,11 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
             {
                 widget::CableState::from_ctx(ui.ctx(), |state| state.clear_in_progress_cable());
             }
+
+            CableResponse { new_connection }
         },
-    );
+    )
+    .inner
 }
 
 fn paint_cable_curve(

@@ -83,7 +83,10 @@ impl eframe::App for TapirSoundApp {
                 }
             }
 
-            widget::cables(ui, iter::empty());
+            let cable_response = widget::cables(ui, iter::empty());
+            if let Some(new_connection) = cable_response.new_connection {
+                println!("{new_connection:?}");
+            }
         });
 
         if self.state.is_dirty() && self.calculator.calculate(&self.state) {
