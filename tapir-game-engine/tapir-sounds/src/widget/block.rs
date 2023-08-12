@@ -5,6 +5,7 @@ use crate::{state, widget};
 pub struct BlockResponse {
     pub alter_input: Vec<(usize, state::Input)>,
     pub delete: bool,
+    pub selected: bool,
 }
 
 pub fn block(
@@ -16,7 +17,7 @@ pub fn block(
 
     let mut alter_input = vec![];
 
-    egui::Area::new(id).show(ctx, |ui| {
+    let response = egui::Area::new(id).show(ctx, |ui| {
         egui::Frame::popup(&ctx.style()).show(ui, |ui| {
             ui.label(block.name());
 
@@ -39,6 +40,7 @@ pub fn block(
     BlockResponse {
         alter_input,
         delete: false,
+        selected: response.response.double_clicked(),
     }
 }
 

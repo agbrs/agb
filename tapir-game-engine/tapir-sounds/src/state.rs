@@ -18,6 +18,8 @@ pub struct State {
     connections: im::HashMap<(Id, usize), Id>,
     frequency: f64,
 
+    selected_block: Option<Id>,
+
     dirty: bool,
 }
 
@@ -27,6 +29,7 @@ impl Default for State {
             blocks: Default::default(),
             connections: Default::default(),
             frequency: 18157.0,
+            selected_block: None,
             dirty: false,
         }
     }
@@ -113,6 +116,14 @@ impl State {
         }
 
         calculation
+    }
+
+    pub fn set_selected_block(&mut self, id: Id) {
+        self.selected_block = Some(id);
+    }
+
+    pub fn selected_block(&self) -> Option<Id> {
+        self.selected_block
     }
 
     fn graph(&self) -> petgraph::graphmap::GraphMap<Id, (), petgraph::Directed> {

@@ -83,6 +83,10 @@ impl eframe::App for TapirSoundApp {
                         block.set_input(*alteration_index, alteration_value);
                     }
                 }
+
+                if response.selected {
+                    self.state.set_selected_block(*id);
+                }
             }
 
             let cable_response = widget::cables(
