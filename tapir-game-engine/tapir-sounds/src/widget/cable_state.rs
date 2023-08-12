@@ -20,21 +20,12 @@ impl CableState {
         ctx.data_mut(|data| f(data.get_temp_mut_or_default::<Self>(egui::Id::null())))
     }
 
-    pub fn set_port_position(
-        &mut self,
-        block_id: state::Id,
-        index: usize,
-        direction: super::PortDirection,
-        position: egui::Pos2,
-    ) {
-        self.inner.lock().unwrap().port_positions.insert(
-            PortId {
-                block_id,
-                index,
-                direction,
-            },
-            position,
-        );
+    pub fn set_port_position(&mut self, port_id: &PortId, position: egui::Pos2) {
+        self.inner
+            .lock()
+            .unwrap()
+            .port_positions
+            .insert(port_id.clone(), position);
     }
 
     pub fn get_port_position(&self, port_id: &PortId) -> Option<egui::Pos2> {
@@ -65,6 +56,16 @@ pub struct PortId {
     block_id: state::Id,
     index: usize,
     direction: super::PortDirection,
+}
+
+impl PortId {
+    pub fn new(block_id: state::Id, index: usize, direction: super::PortDirection) -> Self {
+        Self {
+            block_id,
+            index,
+            direction,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
