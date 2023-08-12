@@ -11,6 +11,7 @@ pub struct BlockResponse {
 pub fn block(
     ctx: &egui::Context,
     block: &state::Block,
+    is_selected: bool,
     display: Option<&Vec<f64>>,
 ) -> BlockResponse {
     let id = egui::Id::new(block.id());
@@ -18,23 +19,30 @@ pub fn block(
     let mut alter_input = vec![];
 
     let response = egui::Area::new(id).show(ctx, |ui| {
-        egui::Frame::popup(&ctx.style()).show(ui, |ui| {
-            ui.label(block.name());
+        egui::Frame::popup(&ctx.style())
+            .fill(if is_selected {
+                egui::Color32::LIGHT_GREEN
+            } else {
+                ctx.style().visuals.faint_bg_color
+            })
+            .show(ui, |ui| {
+                ui.label(block.name());
 
-            output(ui, block.id(), display);
+                output(ui, block.id(), display);
 
-            let inputs = block.inputs();
+                let inputs = block.inputs();
 
-            ui.vertical(|ui| {
-                for (index, (input_name, input_value)) in inputs.iter().enumerate() {
-                    let response = widget::input(ui, input_name, input_value, block.id(), index);
+                ui.vertical(|ui| {
+                    for (index, (input_name, input_value)) in inputs.iter().enumerate() {
+                        let response =
+                            widget::input(ui, input_name, input_value, block.id(), index);
 
-                    if let Some(change) = response {
-                        alter_input.push((index, change));
+                        if let Some(change) = response {
+                            alter_input.push((index, change));
+                        }
                     }
-                }
+                });
             });
-        });
     });
 
     BlockResponse {

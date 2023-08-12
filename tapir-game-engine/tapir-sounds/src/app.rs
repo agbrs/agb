@@ -59,6 +59,8 @@ impl eframe::App for TapirSoundApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             let results = self.calculator.results();
 
+            let selected_block = self.state.selected_block();
+
             let responses = self
                 .state
                 .blocks()
@@ -68,6 +70,7 @@ impl eframe::App for TapirSoundApp {
                         widget::block(
                             ctx,
                             block,
+                            selected_block == Some(block.id()),
                             results
                                 .as_ref()
                                 .and_then(|result| result.for_block(block.id())),
