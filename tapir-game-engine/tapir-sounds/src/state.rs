@@ -45,8 +45,15 @@ impl State {
             return;
         }
 
-        self.connections
-            .push_back((output_block, (input_block, input_block_index)));
+        if let Some(index) = self
+            .connections
+            .index_of(&(output_block, (input_block, input_block_index)))
+        {
+            self.connections.remove(index);
+        } else {
+            self.connections
+                .push_back((output_block, (input_block, input_block_index)));
+        }
 
         self.dirty = true;
     }
