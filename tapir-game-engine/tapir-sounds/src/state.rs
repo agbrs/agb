@@ -269,6 +269,7 @@ pub struct FundamentalShapeBlock {
     periods: f64,
     base_frequency: f64,
     base_amplitude: f64,
+    offset: f64,
 }
 
 impl FundamentalShapeBlock {
@@ -278,6 +279,7 @@ impl FundamentalShapeBlock {
             periods: 1.0,
             base_frequency: 256.0,
             base_amplitude: 0.5,
+            offset: 0.0,
         }
     }
 }
@@ -292,6 +294,7 @@ impl BlockType for FundamentalShapeBlock {
             ("Frequency".into(), Input::Frequency(self.base_frequency)),
             ("Amplitude".into(), Input::Amplitude(self.base_amplitude)),
             ("Periods".into(), Input::Periods(self.periods)),
+            ("Offset".into(), Input::Periods(self.offset)),
         ]
     }
 
@@ -307,6 +310,9 @@ impl BlockType for FundamentalShapeBlock {
             }
             (2, Input::Periods(new_periods)) => {
                 self.periods = *new_periods;
+            }
+            (3, Input::Periods(new_offset)) => {
+                self.offset = new_offset.clamp(0.0, 1.0);
             }
             (name, value) => panic!("Invalid input {name} with value {value:?}"),
         }
@@ -342,7 +348,7 @@ impl BlockType for FundamentalShapeBlock {
 
             ret.push(
                 self.fundamental_shape_type
-                    .value((i as f64 / period_length_at_i).fract())
+                    .value((i as f64 / period_length_at_i).fract() + self.offset)
                     * amplitude_at_i,
             );
         }
