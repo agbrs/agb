@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use eframe::egui;
 
 use crate::calculate;
@@ -46,7 +48,7 @@ impl eframe::App for TapirSoundApp {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     for fundamental_shape_type in state::FundamentalShapeType::all() {
                         if ui.button(fundamental_shape_type.name()).clicked() {
-                            self.state.blocks.push_back(state::Block::new(Box::new(
+                            self.state.add_block(state::Block::new(Box::new(
                                 state::FundamentalShapeBlock::new(fundamental_shape_type),
                             )));
                         }
@@ -59,22 +61,24 @@ impl eframe::App for TapirSoundApp {
 
             let responses = self
                 .state
-                .blocks
-                .iter()
+                .blocks()
                 .map(|block| {
-                    widget::block(
-                        ctx,
-                        block,
-                        results
-                            .as_ref()
-                            .and_then(|result| result.for_block(block.id())),
+                    (
+                        block.id(),
+                        widget::block(
+                            ctx,
+                            block,
+                            results
+                                .as_ref()
+                                .and_then(|result| result.for_block(block.id())),
+                        ),
                     )
                 })
-                .collect::<Vec<_>>();
+                .collect::<HashMap<_, _>>();
 
-            for (i, response) in responses.iter().enumerate() {
+            for (id, response) in responses.iter() {
                 if !response.alter_input.is_empty() {
-                    let block = self.state.blocks.get_mut(i).unwrap();
+                    let block = self.state.get_block_mut(*id).unwrap();
                     for (alteration_index, alteration_value) in &response.alter_input {
                         block.set_input(*alteration_index, alteration_value);
                     }
@@ -83,18 +87,18 @@ impl eframe::App for TapirSoundApp {
 
             let cable_response = widget::cables(
                 ui,
-                self.state.connections().iter().map(
-                    |(output_block_id, (input_block_id, index))| {
+                self.state
+                    .connections()
+                    .map(|(output_block_id, (input_block_id, index))| {
                         (
-                            widget::PortId::new(*output_block_id, 0, widget::PortDirection::Output),
+                            widget::PortId::new(output_block_id, 0, widget::PortDirection::Output),
                             widget::PortId::new(
-                                *input_block_id,
-                                *index,
+                                input_block_id,
+                                index,
                                 widget::PortDirection::Input,
                             ),
                         )
-                    },
-                ),
+                    }),
             );
             if let Some((output, input)) = cable_response.new_connection {
                 self.state

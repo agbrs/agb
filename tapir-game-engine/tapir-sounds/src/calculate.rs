@@ -64,11 +64,7 @@ impl Calculator {
 }
 
 fn calculate(state: state::State) -> Calculation {
-    let mut results = HashMap::new();
-
-    for block in state.blocks.iter() {
-        results.insert(block.id(), block.calculate(state.frequency()));
-    }
+    let results = state.calculate();
 
     Calculation {
         results: Arc::new(results),

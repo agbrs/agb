@@ -1,4 +1,4 @@
-use std::{borrow::Cow, f64::consts::PI};
+use std::{borrow::Cow, collections::HashMap, f64::consts::PI};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct Id(uuid::Uuid);
@@ -12,9 +12,10 @@ impl Id {
 
 #[derive(Clone)]
 pub struct State {
-    pub blocks: im::Vector<Block>,
+    blocks: im::HashMap<Id, Block>,
 
-    connections: im::Vector<(Id, (Id, usize))>,
+    // Maps inputs to outputs to make lookup faster
+    connections: im::HashMap<(Id, usize), Id>,
     frequency: f64,
 
     dirty: bool,
@@ -33,7 +34,7 @@ impl Default for State {
 
 impl State {
     pub fn is_dirty(&self) -> bool {
-        self.dirty || self.blocks.iter().any(|block| block.is_dirty())
+        self.dirty || self.blocks.iter().any(|(_, block)| block.is_dirty())
     }
 
     pub fn add_connection(
@@ -52,44 +53,77 @@ impl State {
             return;
         }
 
-        if let Some(index) = self
-            .connections
-            .index_of(&(output_block, (input_block, input_block_index)))
-        {
-            self.connections.remove(index);
+        let input_key = (input_block, input_block_index);
+
+        if self.connections.get(&input_key) == Some(&output_block) {
+            self.connections.remove(&input_key);
         } else {
-            self.connections
-                .push_back((output_block, (input_block, input_block_index)));
+            self.connections.insert(input_key, output_block);
         }
 
         self.dirty = true;
     }
 
-    pub fn connections(&self) -> im::Vector<(Id, (Id, usize))> {
-        self.connections.clone()
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks.values()
+    }
+
+    pub fn get_block_mut(&mut self, id: Id) -> Option<&mut Block> {
+        self.blocks.get_mut(&id)
+    }
+
+    pub fn add_block(&mut self, block: Block) {
+        self.blocks.insert(block.id, block);
+    }
+
+    pub fn connections(&self) -> impl Iterator<Item = (Id, (Id, usize))> + '_ {
+        self.connections
+            .iter()
+            .map(|(input, output)| (*output, *input))
     }
 
     pub fn clean(&mut self) {
-        for block in self.blocks.iter_mut() {
+        for (_, block) in self.blocks.iter_mut() {
             block.clean();
         }
 
         self.dirty = false;
     }
 
-    pub fn frequency(&self) -> f64 {
-        self.frequency
+    pub fn calculate(&self) -> HashMap<Id, Vec<f64>> {
+        let mut calculation: HashMap<Id, Vec<f64>> = HashMap::with_capacity(self.blocks.len());
+
+        let sorted_blocks = petgraph::algo::toposort(&self.graph(), None)
+            .expect("There shouldn't be a cycle because we check on addition");
+
+        let sorted_blocks = sorted_blocks.iter().map(|id| self.blocks.get(id).unwrap());
+
+        for block in sorted_blocks {
+            let n_inputs = block.inputs().len();
+            let input_data = (0..n_inputs)
+                .map(|i| {
+                    self.connections
+                        .get(&(block.id, i))
+                        .and_then(|connection| calculation.get(connection))
+                        .map(|data| data.as_slice())
+                })
+                .collect::<Vec<_>>();
+
+            calculation.insert(block.id, block.calculate(self.frequency, &input_data));
+        }
+
+        calculation
     }
 
     fn graph(&self) -> petgraph::graphmap::GraphMap<Id, (), petgraph::Directed> {
         let mut graph =
             petgraph::graphmap::GraphMap::with_capacity(self.blocks.len(), self.connections.len());
 
-        for node in &self.blocks {
-            graph.add_node(node.id);
+        for id in self.blocks.keys() {
+            graph.add_node(*id);
         }
 
-        for (output, (input, _)) in &self.connections {
+        for ((input, _), output) in &self.connections {
             graph.add_edge(*output, *input, ());
         }
 
@@ -138,8 +172,8 @@ impl Block {
         self.dirty = true;
     }
 
-    pub fn calculate(&self, global_frequency: f64) -> Vec<f64> {
-        self.block_type.calculate(global_frequency)
+    pub fn calculate(&self, global_frequency: f64, inputs: &[Option<&[f64]>]) -> Vec<f64> {
+        self.block_type.calculate(global_frequency, inputs)
     }
 
     fn is_dirty(&self) -> bool {
@@ -159,7 +193,7 @@ pub trait BlockType: BlockClone + Send + Sync {
     fn name(&self) -> Cow<'static, str>;
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
     fn set_input(&mut self, index: usize, value: &Input);
-    fn calculate(&self, global_frequency: f64) -> Vec<f64>;
+    fn calculate(&self, global_frequency: f64, inputs: &[Option<&[f64]>]) -> Vec<f64>;
 }
 
 impl Clone for Box<dyn BlockType> {
@@ -278,7 +312,7 @@ impl BlockType for FundamentalShapeBlock {
         }
     }
 
-    fn calculate(&self, global_frequency: f64) -> Vec<f64> {
+    fn calculate(&self, global_frequency: f64, inputs: &[Option<&[f64]>]) -> Vec<f64> {
         let periods = if self.periods == 0.0 {
             1.0
         } else {
@@ -290,13 +324,33 @@ impl BlockType for FundamentalShapeBlock {
 
         let mut ret = Vec::with_capacity(length);
         for i in 0..length {
+            let frequency_at_i = self.base_frequency
+                * stretch_frequency_shift(
+                    inputs[0]
+                        .map(|frequency_input| frequency_input[i % frequency_input.len()])
+                        .unwrap_or(0.0),
+                )
+                .clamp(0.1, 10_000.0);
+
+            let amplitude_at_i = (self.base_amplitude
+                * inputs[1]
+                    .map(|amplitude_input| amplitude_input[i % amplitude_input.len()])
+                    .unwrap_or(1.0))
+            .clamp(-1.0, 1.0);
+
+            let period_length_at_i = global_frequency / frequency_at_i;
+
             ret.push(
                 self.fundamental_shape_type
-                    .value((i as f64 / period_length).fract())
-                    * self.base_amplitude,
+                    .value((i as f64 / period_length_at_i).fract())
+                    * amplitude_at_i,
             );
         }
 
         ret
     }
+}
+
+fn stretch_frequency_shift(input: f64) -> f64 {
+    1.0 / (1.0 - input)
 }
