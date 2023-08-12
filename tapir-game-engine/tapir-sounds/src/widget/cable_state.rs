@@ -53,6 +53,18 @@ impl CableState {
 
         Some((*pos, in_progress_cable.clone()))
     }
+
+    pub fn closest_port_at_pos(&self, pos: egui::Pos2) -> Option<(PortId, egui::Pos2)> {
+        let inner = self.inner.lock().unwrap();
+
+        let (port, pos) = inner.port_positions.iter().min_by(|a, b| {
+            a.1.distance_sq(pos)
+                .partial_cmp(&b.1.distance_sq(pos))
+                .expect("Distance is NaN")
+        })?;
+
+        Some((port.clone(), *pos))
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

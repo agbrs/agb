@@ -2,6 +2,10 @@ use eframe::egui;
 
 use crate::widget;
 
+pub struct CableResponse {
+    pub new_connection: (widget::PortId, widget::PortId),
+}
+
 pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, widget::PortId)>) {
     ui.with_layer_id(
         egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("cables")),
@@ -28,7 +32,17 @@ pub fn cables(ui: &mut egui::Ui, cables: impl Iterator<Item = (widget::PortId, w
             if let Some((in_progress_cable_pos, in_progress_cable_id)) =
                 widget::CableState::from_ctx(ui.ctx(), |state| state.in_progress_cable())
             {
-                if let Some(cursor_pos) = ui.ctx().input(|i| i.pointer.interact_pos()) {
+                if let Some(mut cursor_pos) = ui.ctx().input(|i| i.pointer.interact_pos()) {
+                    let (_closest_cable, position) =
+                        widget::CableState::from_ctx(ui.ctx(), |state| {
+                            state.closest_port_at_pos(cursor_pos)
+                        })
+                        .unwrap();
+
+                    if position.distance_sq(cursor_pos) < 10.0f32.powi(2) {
+                        cursor_pos = position;
+                    }
+
                     if in_progress_cable_id.direction == widget::PortDirection::Output {
                         paint_cable_curve(painter, in_progress_cable_pos, cursor_pos, cable_stroke);
                     } else {
