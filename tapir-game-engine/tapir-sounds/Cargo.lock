@@ -2229,6 +2229,7 @@ dependencies = [
  "arc-swap",
  "eframe",
  "env_logger",
+ "fastrand 2.0.0",
  "im",
  "petgraph",
  "tinyaudio",

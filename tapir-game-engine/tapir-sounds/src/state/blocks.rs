@@ -1,10 +1,14 @@
 use std::{borrow::Cow, collections::HashMap};
 
 mod fundamental_shape;
+mod noise;
 
 use crate::state;
 
-use self::fundamental_shape::{FundamentalShapeBlock, FundamentalShapeType};
+use self::{
+    fundamental_shape::{FundamentalShapeBlock, FundamentalShapeType},
+    noise::Noise,
+};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum BlockCategory {
@@ -37,6 +41,14 @@ impl BlockFactory {
                 Box::new(move || Box::new(FundamentalShapeBlock::new(fundamental_shape))),
             );
         }
+
+        creation_functions.insert(
+            BlockName {
+                category: BlockCategory::Fundamental,
+                name: "Noise".to_owned(),
+            },
+            Box::new(|| Box::<Noise>::default()),
+        );
 
         Self { creation_functions }
     }
