@@ -12,6 +12,8 @@ env_logger = "0.10"
 fastrand = "2.0"
 hound = "3.5"
 im = "15"
+midir = "0.9"
+midly = { version = "0.5", default-features = false, features = ["std"] }
 petgraph = "0.6"
 rfd = "0.11.4"
 ron = "0.8"
