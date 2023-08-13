@@ -22,6 +22,7 @@ pub struct TapirSoundApp {
     pan: egui::Vec2,
 
     file_path: Option<PathBuf>,
+    file_dirty: bool,
 
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 }
@@ -45,6 +46,7 @@ impl TapirSoundApp {
             last_updated_audio_id: None,
 
             file_path: file_path.clone(),
+            file_dirty: false,
         };
 
         if let Some(file_path) = file_path {
@@ -90,6 +92,7 @@ impl TapirSoundApp {
         {
             let path = path.with_extension("tapir_sound");
             save_load::save(&self.state, &path);
+            self.file_dirty = false;
             self.file_path = Some(path);
 
             self.file_path.clone()
@@ -101,6 +104,7 @@ impl TapirSoundApp {
     fn save(&mut self) {
         if let Some(path) = &self.file_path {
             save_load::save(&self.state, path);
+            self.file_dirty = false;
         } else {
             self.save_as();
         }
@@ -110,6 +114,7 @@ impl TapirSoundApp {
         self.state = save_load::load(filepath, &self.block_factory);
         let average_location = self.state.average_location();
         self.pan = -egui::vec2(average_location.0, average_location.1);
+        self.file_dirty = false;
     }
 
     fn open_as(&mut self) {
@@ -266,20 +271,27 @@ impl eframe::App for TapirSoundApp {
                     for (alteration_index, alteration_value) in &response.alter_input {
                         block.set_input(*alteration_index, alteration_value);
                     }
+
+                    self.file_dirty = true;
                 }
 
                 if response.selected {
                     self.state.set_selected_block(*id);
                     selected_changed = true;
+
+                    self.file_dirty = true;
                 }
 
                 if response.drag_delta.length_sq() > 0.0 {
                     let block = self.state.get_block_mut(*id).unwrap();
                     block.pos_delta((response.drag_delta.x, response.drag_delta.y));
+
+                    self.file_dirty = true;
                 }
 
                 if response.delete {
                     self.state.remove_block(*id);
+                    self.file_dirty = true;
                 }
             }
 
@@ -303,6 +315,8 @@ impl eframe::App for TapirSoundApp {
             if let Some((output, input)) = cable_response.new_connection {
                 self.state
                     .add_connection((output.block_id, (input.block_id, input.index)));
+
+                self.file_dirty = true;
             }
 
             if background_response.dragged() && ui.ctx().input(|i| i.pointer.middle_down()) {
@@ -337,6 +351,16 @@ impl eframe::App for TapirSoundApp {
         let results = self.calculator.results();
         if results.map(|result| result.id()) != self.last_updated_audio_id {
             self.update_audio();
+        }
+
+        if let Some(file_path) = self.file_path.as_ref().and_then(|fp| fp.file_name()) {
+            let display_str = file_path.to_string_lossy();
+            frame.set_window_title(&format!(
+                "Tapir sounds - {display_str}{}",
+                if self.file_dirty { "*" } else { "" }
+            ));
+        } else {
+            frame.set_window_title("Tapir sounds");
         }
     }
 }
