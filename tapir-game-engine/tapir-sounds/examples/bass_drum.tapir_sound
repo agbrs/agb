@@ -1,0 +1,102 @@
+(
+    blocks: [
+        (
+            id: "d829b555-8883-4f4f-b5f6-7256d10d785c",
+            name: (
+                category: Fundamental,
+                name: "Square",
+            ),
+            inputs: [
+                Frequency(1.0),
+                Amplitude(1.0),
+                Periods(0.5),
+                Periods(0.48),
+            ],
+            x: 331.38245,
+            y: 399.351,
+        ),
+        (
+            id: "86835bf1-e832-48bb-a820-567afced66e2",
+            name: (
+                category: Combine,
+                name: "Crossfade",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Amplitude(0.0),
+                Amplitude(1.0),
+            ],
+            x: 964.97925,
+            y: 455.20786,
+        ),
+        (
+            id: "b56696ab-2572-4605-8a43-9f105a1965ed",
+            name: (
+                category: Fundamental,
+                name: "Saw",
+            ),
+            inputs: [
+                Frequency(1.0),
+                Amplitude(-1.0),
+                Periods(0.5),
+                Periods(0.5),
+            ],
+            x: 1303.5566,
+            y: 432.25726,
+        ),
+        (
+            id: "c43c735c-9738-40a9-9ae0-0476971191ce",
+            name: (
+                category: Fundamental,
+                name: "Noise",
+            ),
+            inputs: [
+                Frequency(4.0),
+                Amplitude(0.5),
+                Periods(1.0),
+                Periods(0.0),
+            ],
+            x: 494.53485,
+            y: 644.76807,
+        ),
+        (
+            id: "eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d",
+            name: (
+                category: Fundamental,
+                name: "Sine",
+            ),
+            inputs: [
+                Frequency(100.0),
+                Amplitude(0.5),
+                Periods(50.0),
+                Periods(0.0),
+            ],
+            x: 656.15924,
+            y: 200.5617,
+        ),
+        (
+            id: "63f2aa82-9ec7-413d-b5f8-310fd0035935",
+            name: (
+                category: Fundamental,
+                name: "Triangle",
+            ),
+            inputs: [
+                Frequency(0.5),
+                Amplitude(0.57),
+                Periods(0.25),
+                Periods(0.5),
+            ],
+            x: 217.39722,
+            y: 155.37848,
+        ),
+    ],
+    connections: [
+        ("86835bf1-e832-48bb-a820-567afced66e2", "b56696ab-2572-4605-8a43-9f105a1965ed", 1),
+        ("eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d", "86835bf1-e832-48bb-a820-567afced66e2", 0),
+        ("d829b555-8883-4f4f-b5f6-7256d10d785c", "86835bf1-e832-48bb-a820-567afced66e2", 1),
+        ("63f2aa82-9ec7-413d-b5f8-310fd0035935", "eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d", 0),
+        ("c43c735c-9738-40a9-9ae0-0476971191ce", "86835bf1-e832-48bb-a820-567afced66e2", 2),
+    ],
+    frequency: 18157.0,
+    selected_block: Some("b56696ab-2572-4605-8a43-9f105a1965ed"),
+)
