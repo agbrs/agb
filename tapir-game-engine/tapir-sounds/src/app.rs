@@ -49,6 +49,11 @@ impl TapirSoundApp {
 
         let audio: Arc<audio::Audio> = Default::default();
         let device = Self::start_sound(audio.clone());
+        let mut toasts = egui_notify::Toasts::default();
+
+        toasts
+            .info("Double click a block to activate it. Press space to play.")
+            .set_duration(None);
 
         let file_path: Option<PathBuf> = file_path.map(|path| path.into());
 
@@ -62,7 +67,7 @@ impl TapirSoundApp {
             block_factory: state::BlockFactory::new(),
             pan: Default::default(),
             last_updated_audio_id: None,
-            toasts: Default::default(),
+            toasts,
 
             open_file_dialog: None,
             file_path: file_path.clone(),
@@ -116,7 +121,7 @@ impl TapirSoundApp {
         let file_path = self.file_path.clone();
 
         self.open_file_dialog
-            .get_or_insert_with(|| (Self::save_dialog(file_path), SaveState::SaveAs));
+            .get_or_insert_with(|| (Self::save_dialog(file_path, "Save As"), SaveState::SaveAs));
     }
 
     fn save(&mut self) {
@@ -153,7 +158,7 @@ impl TapirSoundApp {
 
         let filepath = self.file_path.as_ref().map(|fp| fp.with_extension("wav"));
         self.open_file_dialog
-            .get_or_insert_with(|| (Self::save_dialog(filepath), SaveState::Export));
+            .get_or_insert_with(|| (Self::save_dialog(filepath, "Export"), SaveState::Export));
     }
 
     fn export(&mut self, filepath: &Path) {
@@ -176,11 +181,12 @@ impl TapirSoundApp {
         ));
     }
 
-    fn save_dialog(path: Option<PathBuf>) -> egui_file::FileDialog {
+    fn save_dialog(path: Option<PathBuf>, title: &str) -> egui_file::FileDialog {
         let mut dialog = egui_file::FileDialog::save_file(
             path.clone()
                 .and_then(|path| path.parent().map(|parent| parent.to_owned())),
-        );
+        )
+        .title(title);
 
         if let Some(path) = path {
             if let Some(filename) = path.file_name() {
