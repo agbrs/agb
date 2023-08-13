@@ -149,4 +149,14 @@ impl State {
 
         graph
     }
+
+    pub fn average_location(&self) -> (f32, f32) {
+        let total_pos = self.blocks.values().fold((0.0, 0.0), |acc, curr| {
+            (acc.0 + curr.pos().0, acc.1 + curr.pos().1)
+        });
+
+        let count = self.blocks.len() as f32;
+
+        (total_pos.0 / count, total_pos.1 / count)
+    }
 }

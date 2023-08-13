@@ -41,13 +41,16 @@ impl TapirSoundApp {
             .map(|path| save_load::load(path, &block_factory))
             .unwrap_or_default();
 
+        let average_location = state.average_location();
+        let pan = -egui::vec2(average_location.0, average_location.1);
+
         Self {
             state,
             audio,
             _audio_device: device,
             calculator: Default::default(),
             block_factory,
-            pan: Default::default(),
+            pan,
             last_updated_audio_id: None,
 
             file_path,
@@ -112,6 +115,8 @@ impl eframe::App for TapirSoundApp {
                             .pick_file()
                         {
                             self.state = save_load::load(&filepath, &self.block_factory);
+                            let average_location = self.state.average_location();
+                            self.pan = -egui::vec2(average_location.0, average_location.1);
                         }
                     }
 
@@ -154,6 +159,8 @@ impl eframe::App for TapirSoundApp {
             self.audio.set_should_loop(should_loop);
         });
 
+        let pan = self.pan + ctx.available_rect().size() / 2.0;
+
         egui::SidePanel::left("input_panel")
             .resizable(false)
             .show(ctx, |ui| {
@@ -164,7 +171,7 @@ impl eframe::App for TapirSoundApp {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     for block_type in self.block_factory.available_blocks() {
                         if ui.button(&block_type.name).clicked() {
-                            let block_pos = ui.clip_rect().center() - self.pan;
+                            let block_pos = ui.clip_rect().center() - pan;
                             self.state.add_block(
                                 self.block_factory
                                     .make_block(block_type, (block_pos.x, block_pos.y)),
@@ -192,7 +199,7 @@ impl eframe::App for TapirSoundApp {
                     let block_pos = block.pos();
                     let mut child_ui = ui.child_ui_with_id_source(
                         egui::Rect::from_min_size(
-                            egui::pos2(block_pos.0, block_pos.1) + self.pan,
+                            egui::pos2(block_pos.0, block_pos.1) + pan,
                             Self::MAX_NODE_SIZE.into(),
                         ),
                         egui::Layout::default(),

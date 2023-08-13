@@ -109,7 +109,7 @@ impl Block {
         Self {
             block_type,
             x: pos.0,
-            y: pos.0,
+            y: pos.1,
             id,
             dirty: true,
         }
