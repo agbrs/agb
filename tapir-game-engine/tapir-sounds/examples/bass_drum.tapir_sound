@@ -97,4 +97,5 @@
     ],
     frequency: 18157.0,
     selected_block: Some("7e040c7f-6b9d-4272-a36d-860bb095a244"),
+    should_loop: false,
 )

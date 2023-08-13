@@ -26,6 +26,7 @@ pub struct State {
     selected_block: Option<Id>,
 
     dirty: bool,
+    should_loop: bool,
 }
 
 impl Default for State {
@@ -36,6 +37,7 @@ impl Default for State {
             frequency: 18157.0,
             selected_block: None,
             dirty: false,
+            should_loop: true,
         }
     }
 }
@@ -174,5 +176,13 @@ impl State {
             .retain(|(input_id, _), output_id| input_id != &id && output_id != &id);
 
         self.dirty = true;
+    }
+
+    pub fn should_loop(&self) -> bool {
+        self.should_loop
+    }
+
+    pub fn set_should_loop(&mut self, new_loop: bool) {
+        self.should_loop = new_loop;
     }
 }

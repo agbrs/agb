@@ -41,6 +41,7 @@ pub struct PersistedState {
     connections: Vec<(uuid::Uuid, uuid::Uuid, usize)>,
     frequency: f64,
     selected_block: Option<uuid::Uuid>,
+    should_loop: bool,
 }
 
 impl PersistedState {
@@ -59,6 +60,7 @@ impl PersistedState {
             connections,
             frequency: state.frequency,
             selected_block: state.selected_block().map(|id| id.0),
+            should_loop: state.should_loop(),
         }
     }
 
@@ -76,6 +78,8 @@ impl PersistedState {
         if let Some(selected_block) = self.selected_block {
             result.set_selected_block(super::Id(selected_block));
         }
+
+        result.set_should_loop(self.should_loop);
 
         result
     }

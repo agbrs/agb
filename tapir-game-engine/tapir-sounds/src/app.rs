@@ -171,6 +171,7 @@ impl TapirSoundApp {
         };
         let average_location = self.state.average_location();
         self.pan = -egui::vec2(average_location.0, average_location.1);
+        self.audio.set_should_loop(self.state.should_loop());
         self.file_dirty = false;
     }
 
@@ -440,9 +441,12 @@ impl eframe::App for TapirSoundApp {
 
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                let mut should_loop = self.audio.should_loop();
-                ui.checkbox(&mut should_loop, "Loop");
-                self.audio.set_should_loop(should_loop);
+                let mut should_loop = self.state.should_loop();
+                if ui.checkbox(&mut should_loop, "Loop").changed() {
+                    self.audio.set_should_loop(should_loop);
+                    self.state.set_should_loop(should_loop);
+                    self.file_dirty = true;
+                };
 
                 self.midi_combo_box(ui);
 
