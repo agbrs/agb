@@ -1,22 +1,61 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use eframe::egui;
 
+use crate::audio;
 use crate::calculate;
 use crate::state;
 use crate::widget;
 
-#[derive(Default)]
 pub struct TapirSoundApp {
     state: state::State,
     calculator: calculate::Calculator,
+    audio: Arc<audio::Audio>,
+
+    _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 }
 
 impl TapirSoundApp {
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_visuals(egui::Visuals::light());
 
-        Default::default()
+        let audio: Arc<audio::Audio> = Default::default();
+        let device = Self::start_sound(audio.clone());
+
+        Self {
+            state: Default::default(),
+            audio,
+            _audio_device: device,
+            calculator: Default::default(),
+        }
+    }
+
+    fn start_sound(audio: Arc<audio::Audio>) -> Box<dyn tinyaudio::BaseAudioOutputDevice> {
+        let params = tinyaudio::OutputDeviceParameters {
+            channels_count: 2,
+            sample_rate: 44100,
+            channel_sample_count: 441,
+        };
+
+        let mut pos = 0.0;
+        tinyaudio::run_output_device(params, move |data| {
+            pos = audio.play(data, params.channels_count, params.sample_rate as f64, pos);
+        })
+        .unwrap()
+    }
+
+    fn update_audio(&self) {
+        if let Some(selected) = self.state.selected_block().and_then(|id| {
+            self.calculator
+                .results()
+                .and_then(|result| result.for_block(id).cloned())
+        }) {
+            self.audio.set_buffer(selected, self.state.frequency());
+        } else {
+            self.audio
+                .set_buffer(Default::default(), self.state.frequency());
+        }
     }
 }
 
@@ -56,6 +95,8 @@ impl eframe::App for TapirSoundApp {
                 });
             });
 
+        let mut selected_changed = false;
+
         egui::CentralPanel::default().show(ctx, |ui| {
             let results = self.calculator.results();
 
@@ -89,6 +130,7 @@ impl eframe::App for TapirSoundApp {
 
                 if response.selected {
                     self.state.set_selected_block(*id);
+                    selected_changed = true;
                 }
             }
 
@@ -113,8 +155,13 @@ impl eframe::App for TapirSoundApp {
             }
         });
 
+        if selected_changed {
+            self.update_audio();
+        }
+
         if self.state.is_dirty() && self.calculator.calculate(&self.state) {
             self.state.clean();
+            self.update_audio();
         }
     }
 }

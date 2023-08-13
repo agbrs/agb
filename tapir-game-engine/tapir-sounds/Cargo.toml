@@ -6,8 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arc-swap = "1.6.0"
 eframe = "0.22"
 env_logger = "0.10"
 im = "15"
 petgraph = "0.6"
+tinyaudio = "0.1"
 uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }

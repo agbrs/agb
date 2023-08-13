@@ -17,7 +17,7 @@ pub fn cables(
 
             let mut new_connection = None;
 
-            let cable_stroke = egui::Stroke::new(3.0, egui::Color32::BLUE);
+            let cable_stroke = egui::Stroke::new(3.0, egui::Color32::from_rgb(0, 35, 149));
 
             for (source, target) in cables {
                 let Some((source_pos, target_pos)) =

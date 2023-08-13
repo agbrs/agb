@@ -40,6 +40,10 @@ impl State {
         self.dirty || self.blocks.iter().any(|(_, block)| block.is_dirty())
     }
 
+    pub fn frequency(&self) -> f64 {
+        self.frequency
+    }
+
     pub fn add_connection(
         &mut self,
         (output_block, (input_block, input_block_index)): (Id, (Id, usize)),
@@ -359,7 +363,7 @@ impl BlockType for FundamentalShapeBlock {
 
             ret.push(
                 self.fundamental_shape_type
-                    .value((i as f64 / period_length_at_i).fract() + self.offset)
+                    .value((i as f64 / period_length_at_i + self.offset).fract())
                     * amplitude_at_i,
             );
         }
