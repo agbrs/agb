@@ -1,0 +1,148 @@
+(
+    blocks: [
+        (
+            id: "24c91dcd-8925-4aff-8fbc-406d4eaa882b",
+            name: (
+                category: Combine,
+                name: "Crossfade",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Amplitude(0.0),
+                Amplitude(0.25),
+                Toggle(true),
+            ],
+            x: 1559.3502,
+            y: 1594.8632,
+        ),
+        (
+            id: "2faa130b-41b6-4499-a214-a807dec0c5a1",
+            name: (
+                category: Combine,
+                name: "Crossfade",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Amplitude(0.0),
+                Amplitude(1.0),
+                Toggle(false),
+            ],
+            x: 865.76587,
+            y: 1380.8132,
+        ),
+        (
+            id: "405ddf90-6693-4708-a060-3f64f1413542",
+            name: (
+                category: Fundamental,
+                name: "Saw",
+            ),
+            inputs: [
+                Frequency(256.0),
+                Amplitude(1.0),
+                Periods(1.0),
+                Periods(0.0),
+            ],
+            x: -17.988647,
+            y: 1226.7762,
+        ),
+        (
+            id: "5d300b9d-398e-46f5-af02-073fd396e997",
+            name: (
+                category: Alter,
+                name: "Band pass filter",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Periods(0.0),
+                Periods(0.1),
+            ],
+            x: 1217.6107,
+            y: 1443.6067,
+        ),
+        (
+            id: "8fbb0897-b5fa-4c45-8394-a7a73ea6faac",
+            name: (
+                category: Fundamental,
+                name: "Triangle",
+            ),
+            inputs: [
+                Frequency(256.0),
+                Amplitude(1.0),
+                Periods(1.0),
+                Periods(0.0),
+            ],
+            x: 549.13666,
+            y: 1228.3887,
+        ),
+        (
+            id: "98c6013c-9523-45a7-b49b-cbc8ea029710",
+            name: (
+                category: Fundamental,
+                name: "Noise",
+            ),
+            inputs: [
+                Periods(0.1),
+                Amplitude(0.5),
+                Periods(2.0),
+            ],
+            x: 504.77795,
+            y: 1590.3608,
+        ),
+        (
+            id: "c5b94827-4d86-40c7-ba86-1330e6cc157f",
+            name: (
+                category: Alter,
+                name: "Band pass filter",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Periods(0.0),
+                Periods(0.1),
+            ],
+            x: 1918.3646,
+            y: 1694.9817,
+        ),
+        (
+            id: "d252d5ae-664b-41d2-9ef6-ed6cbce1e9bb",
+            name: (
+                category: Fundamental,
+                name: "Saw",
+            ),
+            inputs: [
+                Frequency(256.0),
+                Amplitude(1.0),
+                Periods(1.0),
+                Periods(0.0),
+            ],
+            x: 265.51007,
+            y: 1227.5411,
+        ),
+        (
+            id: "f9bdd710-9613-4d2e-91b2-04e7de61a66a",
+            name: (
+                category: Fundamental,
+                name: "Square",
+            ),
+            inputs: [
+                Frequency(256.0),
+                Amplitude(1.0),
+                Periods(1.0),
+                Periods(0.0),
+            ],
+            x: 1166.7001,
+            y: 1784.4268,
+        ),
+    ],
+    connections: [
+        ("24c91dcd-8925-4aff-8fbc-406d4eaa882b", "c5b94827-4d86-40c7-ba86-1330e6cc157f", 0),
+        ("2faa130b-41b6-4499-a214-a807dec0c5a1", "5d300b9d-398e-46f5-af02-073fd396e997", 0),
+        ("405ddf90-6693-4708-a060-3f64f1413542", "d252d5ae-664b-41d2-9ef6-ed6cbce1e9bb", 1),
+        ("5d300b9d-398e-46f5-af02-073fd396e997", "24c91dcd-8925-4aff-8fbc-406d4eaa882b", 0),
+        ("8fbb0897-b5fa-4c45-8394-a7a73ea6faac", "2faa130b-41b6-4499-a214-a807dec0c5a1", 0),
+        ("98c6013c-9523-45a7-b49b-cbc8ea029710", "2faa130b-41b6-4499-a214-a807dec0c5a1", 2),
+        ("d252d5ae-664b-41d2-9ef6-ed6cbce1e9bb", "8fbb0897-b5fa-4c45-8394-a7a73ea6faac", 0),
+        ("f9bdd710-9613-4d2e-91b2-04e7de61a66a", "24c91dcd-8925-4aff-8fbc-406d4eaa882b", 2),
+    ],
+    frequency: 18157.0,
+    selected_block: Some("c5b94827-4d86-40c7-ba86-1330e6cc157f"),
+)
