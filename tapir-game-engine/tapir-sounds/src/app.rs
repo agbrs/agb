@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use eframe::egui;
 
@@ -53,7 +54,7 @@ impl TapirSoundApp {
 
         toasts
             .info("Double click a block to activate it. Press space to play.")
-            .set_duration(None);
+            .set_duration(Some(Duration::from_secs(5)));
 
         let file_path: Option<PathBuf> = file_path.map(|path| path.into());
 

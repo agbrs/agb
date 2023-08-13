@@ -172,5 +172,7 @@ impl State {
 
         self.connections
             .retain(|(input_id, _), output_id| input_id != &id && output_id != &id);
+
+        self.dirty = true;
     }
 }
