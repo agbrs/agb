@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -33,28 +34,26 @@ impl TapirSoundApp {
 
         let audio: Arc<audio::Audio> = Default::default();
         let device = Self::start_sound(audio.clone());
-        let block_factory = state::BlockFactory::new();
 
         let file_path: Option<PathBuf> = file_path.map(|path| path.into());
-        let state = file_path
-            .as_ref()
-            .map(|path| save_load::load(path, &block_factory))
-            .unwrap_or_default();
 
-        let average_location = state.average_location();
-        let pan = -egui::vec2(average_location.0, average_location.1);
-
-        Self {
-            state,
+        let mut app = Self {
+            state: Default::default(),
             audio,
             _audio_device: device,
             calculator: Default::default(),
-            block_factory,
-            pan,
+            block_factory: state::BlockFactory::new(),
+            pan: Default::default(),
             last_updated_audio_id: None,
 
-            file_path,
+            file_path: file_path.clone(),
+        };
+
+        if let Some(file_path) = file_path {
+            app.open(&file_path);
         }
+
+        app
     }
 
     fn start_sound(audio: Arc<audio::Audio>) -> Box<dyn tinyaudio::BaseAudioOutputDevice> {
@@ -96,6 +95,29 @@ impl TapirSoundApp {
             self.file_path = Some(path);
         }
     }
+
+    fn save(&mut self) {
+        if let Some(path) = &self.file_path {
+            save_load::save(&self.state, path);
+        } else {
+            self.save_as();
+        }
+    }
+
+    fn open(&mut self, filepath: &Path) {
+        self.state = save_load::load(filepath, &self.block_factory);
+        let average_location = self.state.average_location();
+        self.pan = -egui::vec2(average_location.0, average_location.1);
+    }
+
+    fn open_as(&mut self) {
+        if let Some(filepath) = rfd::FileDialog::new()
+            .add_filter("tapir sound", &["tapir_sound"])
+            .pick_file()
+        {
+            self.open(&filepath);
+        }
+    }
 }
 
 impl eframe::App for TapirSoundApp {
@@ -110,30 +132,15 @@ impl eframe::App for TapirSoundApp {
                     }
 
                     if ui.button("Open").clicked() {
-                        if let Some(filepath) = rfd::FileDialog::new()
-                            .add_filter("tapir sound", &["tapir_sound"])
-                            .pick_file()
-                        {
-                            self.state = save_load::load(&filepath, &self.block_factory);
-                            let average_location = self.state.average_location();
-                            self.pan = -egui::vec2(average_location.0, average_location.1);
-                        }
+                        self.open_as();
                     }
 
-                    if let Some(save_target) = &self.file_path {
+                    if self.file_path.is_some() {
                         if ui.button("Save").clicked() {
-                            save_load::save(&self.state, save_target);
-                        }
-
-                        if ui.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
-                            save_load::save(&self.state, save_target);
+                            self.save();
                         }
                     } else {
                         ui.add_enabled(false, egui::Button::new("Save"));
-
-                        if ui.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
-                            self.save_as();
-                        }
                     }
 
                     if ui.button("Save as...").clicked() {
@@ -277,6 +284,10 @@ impl eframe::App for TapirSoundApp {
 
         if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
             self.audio.toggle_playing();
+        }
+
+        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
+            self.save();
         }
 
         let results = self.calculator.results();
