@@ -11,6 +11,13 @@ use crate::save_load;
 use crate::state;
 use crate::widget;
 
+#[derive(Clone, Copy)]
+enum SaveState {
+    Open,
+    SaveAs,
+    Export,
+}
+
 pub struct TapirSoundApp {
     state: state::State,
     calculator: calculate::Calculator,
@@ -20,6 +27,7 @@ pub struct TapirSoundApp {
 
     pan: egui::Vec2,
 
+    open_file_dialog: Option<(egui_file::FileDialog, SaveState)>,
     file_path: Option<PathBuf>,
     file_dirty: bool,
 
@@ -51,6 +59,7 @@ impl TapirSoundApp {
             pan: Default::default(),
             last_updated_audio_id: None,
 
+            open_file_dialog: None,
             file_path: file_path.clone(),
             file_dirty: false,
 
@@ -98,20 +107,11 @@ impl TapirSoundApp {
         }
     }
 
-    fn save_as(&mut self) -> Option<PathBuf> {
-        if let Some(path) = rfd::FileDialog::new()
-            .add_filter("tapir sound", &["tapir_sound"])
-            .save_file()
-        {
-            let path = path.with_extension("tapir_sound");
-            save_load::save(&self.state, &path);
-            self.file_dirty = false;
-            self.file_path = Some(path);
+    fn save_as(&mut self) {
+        let file_path = self.file_path.clone();
 
-            self.file_path.clone()
-        } else {
-            None
-        }
+        self.open_file_dialog
+            .get_or_insert_with(|| (Self::save_dialog(file_path), SaveState::SaveAs));
     }
 
     fn save(&mut self) {
@@ -131,24 +131,23 @@ impl TapirSoundApp {
     }
 
     fn open_as(&mut self) {
-        if let Some(filepath) = rfd::FileDialog::new()
-            .add_filter("tapir sound", &["tapir_sound"])
-            .pick_file()
-        {
-            self.open(&filepath);
-        }
+        let file_path = self.file_path.clone();
+        self.open_file_dialog
+            .get_or_insert_with(|| (Self::open_dialog(file_path), SaveState::Open));
     }
 
-    fn export(&mut self) {
-        let Some(results) = self.calculator.results() else {
+    fn export_as(&mut self) {
+        if self.calculator.is_calculating() {
             return;
         };
 
-        let filepath = if let Some(filepath) = &self.file_path {
-            filepath.with_extension("wav")
-        } else if let Some(filepath) = self.save_as() {
-            filepath.with_extension("wav")
-        } else {
+        let filepath = self.file_path.as_ref().map(|fp| fp.with_extension("wav"));
+        self.open_file_dialog
+            .get_or_insert_with(|| (Self::save_dialog(filepath), SaveState::Export));
+    }
+
+    fn export(&self, filepath: &Path) {
+        let Some(results) = self.calculator.results() else {
             return;
         };
 
@@ -160,7 +159,40 @@ impl TapirSoundApp {
             return;
         };
 
-        save_load::export(&filepath, data, self.state.frequency());
+        save_load::export(filepath, data, self.state.frequency());
+    }
+
+    fn save_dialog(path: Option<PathBuf>) -> egui_file::FileDialog {
+        let mut dialog = egui_file::FileDialog::save_file(
+            path.clone()
+                .and_then(|path| path.parent().map(|parent| parent.to_owned())),
+        );
+
+        if let Some(path) = path {
+            if let Some(filename) = path.file_name() {
+                dialog = dialog.default_filename(filename.to_string_lossy());
+            }
+        }
+
+        dialog.open();
+
+        dialog
+    }
+
+    fn open_dialog(path: Option<PathBuf>) -> egui_file::FileDialog {
+        let mut dialog = egui_file::FileDialog::open_file(
+            path.clone()
+                .and_then(|path| path.parent().map(|parent| parent.to_owned())),
+        );
+
+        if let Some(path) = path {
+            if let Some(filename) = path.file_name() {
+                dialog = dialog.default_filename(filename.to_string_lossy());
+            }
+        }
+        dialog.open();
+
+        dialog
     }
 
     fn midi_combo_box(&mut self, ui: &mut egui::Ui) {
@@ -233,6 +265,50 @@ impl TapirSoundApp {
             }
         }
     }
+
+    fn file_dialog_handling(&mut self, ctx: &egui::Context) {
+        let save_action = if let Some((dialog, save_state)) = &mut self.open_file_dialog {
+            dialog.show(ctx);
+
+            if dialog.selected() {
+                Some((dialog.path().map(|path| path.to_owned()), *save_state))
+            } else if matches!(
+                dialog.state(),
+                egui_file::State::Closed | egui_file::State::Cancelled
+            ) {
+                Some((None, *save_state))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Need to do this to make the borrow checker happy
+        match save_action {
+            Some((Some(path), save_state)) => {
+                match save_state {
+                    SaveState::Open => {
+                        self.open(&path);
+                        self.file_path = Some(path);
+                    }
+                    SaveState::SaveAs => {
+                        self.file_path = Some(path.with_extension("tapir_sound"));
+                        self.save();
+                    }
+                    SaveState::Export => {
+                        self.export(&path.with_extension("wav"));
+                    }
+                }
+
+                self.open_file_dialog = None;
+            }
+            Some((None, _)) => {
+                self.open_file_dialog = None;
+            }
+            None => {}
+        }
+    }
 }
 
 impl eframe::App for TapirSoundApp {
@@ -244,15 +320,20 @@ impl eframe::App for TapirSoundApp {
                         || ui.input(|i| i.modifiers.command && i.key_down(egui::Key::N))
                     {
                         self.state = state::State::default();
+                        self.file_path = None;
+                        self.file_dirty = false;
+                        ui.close_menu();
                     }
 
                     if ui.button("Open").clicked() {
                         self.open_as();
+                        ui.close_menu();
                     }
 
                     if self.file_path.is_some() {
                         if ui.button("Save").clicked() {
                             self.save();
+                            ui.close_menu();
                         }
                     } else {
                         ui.add_enabled(false, egui::Button::new("Save"));
@@ -260,16 +341,19 @@ impl eframe::App for TapirSoundApp {
 
                     if ui.button("Save as...").clicked() {
                         self.save_as();
+                        ui.close_menu();
                     }
 
                     if ui.button("Export").clicked() {
-                        self.export();
+                        self.export_as();
+                        ui.close_menu();
                     }
 
                     ui.separator();
 
                     if ui.button("Quit").clicked() {
                         frame.close();
+                        ui.close_menu();
                     }
                 });
             });
@@ -429,7 +513,7 @@ impl eframe::App for TapirSoundApp {
         }
 
         if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::E)) {
-            self.export();
+            self.export_as();
         }
 
         if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::O)) {
@@ -450,5 +534,7 @@ impl eframe::App for TapirSoundApp {
         } else {
             frame.set_window_title("Tapir sounds");
         }
+
+        self.file_dialog_handling(ctx);
     }
 }
