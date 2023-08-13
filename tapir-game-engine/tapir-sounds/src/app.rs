@@ -277,6 +277,10 @@ impl eframe::App for TapirSoundApp {
                     let block = self.state.get_block_mut(*id).unwrap();
                     block.pos_delta((response.drag_delta.x, response.drag_delta.y));
                 }
+
+                if response.delete {
+                    self.state.remove_block(*id);
+                }
             }
 
             let mut cable_ui = ui.child_ui(ui.max_rect(), *ui.layout());

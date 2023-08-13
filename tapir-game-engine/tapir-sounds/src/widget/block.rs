@@ -17,8 +17,15 @@ pub fn block(
 ) -> BlockResponse {
     let mut alter_input = vec![];
 
+    let mut delete = false;
+
     let response = draggable_block(ui, block.id(), is_selected, |ui| {
-        ui.label(&block.name().name);
+        ui.horizontal(|ui| {
+            ui.label(&block.name().name);
+            if ui.button("Remove").clicked() {
+                delete = true;
+            }
+        });
 
         output(ui, block.id(), display);
 
@@ -37,7 +44,7 @@ pub fn block(
 
     BlockResponse {
         alter_input,
-        delete: false,
+        delete,
         selected: response.response.double_clicked(),
         drag_delta: response.response.drag_delta(),
     }

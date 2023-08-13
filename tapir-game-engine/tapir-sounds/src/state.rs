@@ -159,4 +159,13 @@ impl State {
 
         (total_pos.0 / count, total_pos.1 / count)
     }
+
+    pub fn remove_block(&mut self, id: Id) {
+        if self.blocks.remove(&id).is_none() {
+            return;
+        };
+
+        self.connections
+            .retain(|(input_id, _), output_id| input_id != &id && output_id != &id);
+    }
 }
