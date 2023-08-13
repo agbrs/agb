@@ -35,9 +35,9 @@ pub struct TapirSoundApp {
     file_dirty: bool,
 
     audio: Arc<audio::Audio>,
-    _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
+    _audio_device: Option<Box<dyn tinyaudio::BaseAudioOutputDevice>>,
 
-    midi_input_ports: midir::MidiInput,
+    midi_input_ports: Option<midir::MidiInput>,
     selected_midi_device: Option<midir::MidiInputPort>,
     midi_connection: Option<midir::MidiInputConnection<()>>,
 }
@@ -47,10 +47,19 @@ impl TapirSoundApp {
 
     pub(crate) fn new(cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
         catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::FRAPPE);
+        let mut toasts = egui_notify::Toasts::default();
 
         let audio: Arc<audio::Audio> = Default::default();
-        let device = Self::start_sound(audio.clone());
-        let mut toasts = egui_notify::Toasts::default();
+        let device = match Self::start_sound(audio.clone()) {
+            Err(e) => {
+                toasts
+                    .error(e.to_string())
+                    .set_closable(false)
+                    .set_duration(None);
+                None
+            }
+            Ok(device) => Some(device),
+        };
 
         toasts
             .info("Double click a block to activate it. Press space to play.")
@@ -58,9 +67,16 @@ impl TapirSoundApp {
 
         let file_path: Option<PathBuf> = file_path.map(|path| path.into());
 
-        let mut midi_input_ports =
-            midir::MidiInput::new("tapir sounds").expect("failed to create midi input");
-        midi_input_ports.ignore(midir::Ignore::None);
+        let midi_input_ports = match midir::MidiInput::new("tapir sounds") {
+            Ok(mut midi_input_ports) => {
+                midi_input_ports.ignore(midir::Ignore::None);
+                Some(midi_input_ports)
+            }
+            Err(e) => {
+                toasts.warning(format!("Failed to initialize midi, you will not be able to use midi input in this session {}", e));
+                None
+            }
+        };
 
         let mut app = Self {
             state: Default::default(),
@@ -89,7 +105,9 @@ impl TapirSoundApp {
         app
     }
 
-    fn start_sound(audio: Arc<audio::Audio>) -> Box<dyn tinyaudio::BaseAudioOutputDevice> {
+    fn start_sound(
+        audio: Arc<audio::Audio>,
+    ) -> anyhow::Result<Box<dyn tinyaudio::BaseAudioOutputDevice>> {
         let params = tinyaudio::OutputDeviceParameters {
             channels_count: 2,
             sample_rate: 44100,
@@ -99,7 +117,7 @@ impl TapirSoundApp {
         tinyaudio::run_output_device(params, move |data| {
             audio.play(data, params.channels_count, params.sample_rate as f64);
         })
-        .unwrap()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize tinyaudio: {e}"))
     }
 
     fn update_audio(&mut self) {
@@ -240,10 +258,15 @@ impl TapirSoundApp {
     }
 
     fn midi_combo_box(&mut self, ui: &mut egui::Ui) {
+        let Some(midi_input_ports) = &self.midi_input_ports else {
+            ui.label("Midi failed to initialize");
+            return;
+        };
+
         let mut display_name = self
             .selected_midi_device
             .as_ref()
-            .and_then(|port| self.midi_input_ports.port_name(port).ok())
+            .and_then(|port| midi_input_ports.port_name(port).ok())
             .unwrap_or("No midi input".to_owned())
             .to_string();
         display_name.truncate(25);
@@ -256,8 +279,8 @@ impl TapirSoundApp {
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut self.selected_midi_device, None, "No midi input");
 
-                for in_port in self.midi_input_ports.ports() {
-                    let Ok(port_name) = self.midi_input_ports.port_name(&in_port) else {
+                for in_port in midi_input_ports.ports() {
+                    let Ok(port_name) = midi_input_ports.port_name(&in_port) else {
                         continue;
                     };
 
@@ -267,7 +290,14 @@ impl TapirSoundApp {
 
         if self.selected_midi_device != original_selected_device {
             if let Some(in_port) = &self.selected_midi_device {
-                let midi_input = midir::MidiInput::new("Tapir sounds - midi input").unwrap();
+                let midi_input = match midir::MidiInput::new("Tapir sounds - midi input") {
+                    Ok(input) => input,
+                    Err(e) => {
+                        self.toasts
+                            .warning(format!("Failed to initialize midi device {}", e));
+                        return;
+                    }
+                };
                 let audio = self.audio.clone();
 
                 fn midi_to_speed(key: u8) -> f64 {
@@ -277,32 +307,37 @@ impl TapirSoundApp {
                 let mut current_note = 0u8;
 
                 self.midi_connection = Some(
-                    midi_input
-                        .connect(
-                            in_port,
-                            "tapir-sounds-in",
-                            move |_, message, _| {
-                                let event = midly::live::LiveEvent::parse(message).unwrap();
+                    match midi_input.connect(
+                        in_port,
+                        "tapir-sounds-in",
+                        move |_, message, _| {
+                            let event = midly::live::LiveEvent::parse(message).unwrap();
 
-                                if let midly::live::LiveEvent::Midi { message, .. } = event {
-                                    match message {
-                                        midly::MidiMessage::NoteOn { key, .. } => {
-                                            audio.play_at_speed(midi_to_speed(key.into()));
-                                            current_note = key.into();
-                                        }
-                                        midly::MidiMessage::NoteOff { key, .. } => {
-                                            let key: u8 = key.into();
-                                            if current_note == key {
-                                                audio.stop_playing();
-                                            }
-                                        }
-                                        _ => {}
+                            if let midly::live::LiveEvent::Midi { message, .. } = event {
+                                match message {
+                                    midly::MidiMessage::NoteOn { key, .. } => {
+                                        audio.play_at_speed(midi_to_speed(key.into()));
+                                        current_note = key.into();
                                     }
+                                    midly::MidiMessage::NoteOff { key, .. } => {
+                                        let key: u8 = key.into();
+                                        if current_note == key {
+                                            audio.stop_playing();
+                                        }
+                                    }
+                                    _ => {}
                                 }
-                            },
-                            (),
-                        )
-                        .expect("Failed to connect midi port"),
+                            }
+                        },
+                        (),
+                    ) {
+                        Ok(connection) => connection,
+                        Err(e) => {
+                            self.toasts
+                                .error(format!("Failed to create midi connection: {e}"));
+                            return;
+                        }
+                    },
                 );
             } else {
                 self.midi_connection = None;
