@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
+mod band_pass_filter;
 mod cross_fade;
 mod fade;
 mod fundamental_shape;
@@ -10,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::state;
 
 use self::{
+    band_pass_filter::BandPassFilter,
     cross_fade::CrossFade,
     fade::Fade,
     fundamental_shape::{FundamentalShapeBlock, FundamentalShapeType},
@@ -53,6 +55,10 @@ impl BlockFactory {
         creation_functions.insert(Noise::name(), Box::new(|| Box::<Noise>::default()));
         creation_functions.insert(CrossFade::name(), Box::new(|| Box::<CrossFade>::default()));
         creation_functions.insert(Fade::name(), Box::new(|| Box::<Fade>::default()));
+        creation_functions.insert(
+            BandPassFilter::name(),
+            Box::new(|| Box::<BandPassFilter>::default()),
+        );
 
         Self { creation_functions }
     }

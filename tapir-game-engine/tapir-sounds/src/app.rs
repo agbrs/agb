@@ -189,13 +189,15 @@ impl eframe::App for TapirSoundApp {
         });
 
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
-            if self.calculator.is_calculating() {
-                ui.spinner();
-            }
+            ui.horizontal(|ui| {
+                let mut should_loop = self.audio.should_loop();
+                ui.checkbox(&mut should_loop, "Loop");
+                self.audio.set_should_loop(should_loop);
 
-            let mut should_loop = self.audio.should_loop();
-            ui.checkbox(&mut should_loop, "Loop");
-            self.audio.set_should_loop(should_loop);
+                if self.calculator.is_calculating() {
+                    ui.spinner();
+                }
+            });
         });
 
         let pan = self.pan + ctx.available_rect().size() / 2.0;
