@@ -18,6 +18,7 @@ test:
     just _test-debug agb-fixnum
     just _test-debug agb-hashmap
     just _test-debug tracker/agb-tracker
+    just _test-debug tapir-game-engine/tapir-sounds
     just _test-debug-arm agb
     just _test-debug tools
 
@@ -126,7 +127,7 @@ gbafix *args:
     (cd agb-gbafix && cargo run --release -- {{args}})
 
 _all-crates target:
-    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml tracker/agb-*/Cargo.toml; do \
+    for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml tracker/agb-*/Cargo.toml tapir-game-engine/*/Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
