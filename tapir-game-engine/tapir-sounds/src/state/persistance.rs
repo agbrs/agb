@@ -25,7 +25,13 @@ impl PersistedBlock {
     }
 
     fn to_block(&self, block_factory: &super::BlockFactory) -> super::Block {
-        block_factory.make_block_with_id(&self.name, (self.x, self.y), super::Id(self.id))
+        let mut block =
+            block_factory.make_block_with_id(&self.name, (self.x, self.y), super::Id(self.id));
+        for (index, input) in self.inputs.iter().enumerate() {
+            block.set_input(index, input);
+        }
+
+        block
     }
 }
 
@@ -39,12 +45,18 @@ pub struct PersistedState {
 
 impl PersistedState {
     pub fn new_from_state(state: &super::State) -> Self {
+        let mut blocks: Vec<_> = state.blocks().map(PersistedBlock::new_from_block).collect();
+        blocks.sort_by(|a, b| a.id.cmp(&b.id)); // make the ordering consistent
+
+        let mut connections: Vec<_> = state
+            .connections()
+            .map(|(output, (input, index))| (output.0, input.0, index))
+            .collect();
+        connections.sort();
+
         Self {
-            blocks: state.blocks().map(PersistedBlock::new_from_block).collect(),
-            connections: state
-                .connections()
-                .map(|(output, (input, index))| (output.0, input.0, index))
-                .collect(),
+            blocks,
+            connections,
             frequency: state.frequency,
             selected_block: state.selected_block().map(|id| id.0),
         }

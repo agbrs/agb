@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use std::env;
+
 use app::TapirSoundApp;
 use eframe::egui;
 
@@ -16,9 +18,12 @@ fn main() -> Result<(), eframe::Error> {
         initial_window_size: Some(egui::vec2(1024.0, 768.0)),
         ..Default::default()
     };
+
+    let args: Vec<_> = env::args().collect();
+
     eframe::run_native(
         "Tapir Sounds",
         options,
-        Box::new(|cc| Box::new(TapirSoundApp::new(cc))),
+        Box::new(move |cc| Box::new(TapirSoundApp::new(cc, args.get(1).cloned()))),
     )
 }

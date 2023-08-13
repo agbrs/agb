@@ -28,22 +28,29 @@ pub struct TapirSoundApp {
 impl TapirSoundApp {
     pub const MAX_NODE_SIZE: [f32; 2] = [200.0, 200.0];
 
-    pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub(crate) fn new(cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
         cc.egui_ctx.set_visuals(egui::Visuals::light());
 
         let audio: Arc<audio::Audio> = Default::default();
         let device = Self::start_sound(audio.clone());
+        let block_factory = state::BlockFactory::new();
+
+        let file_path: Option<PathBuf> = file_path.map(|path| path.into());
+        let state = file_path
+            .as_ref()
+            .map(|path| save_load::load(path, &block_factory))
+            .unwrap_or_default();
 
         Self {
-            state: Default::default(),
+            state,
             audio,
             _audio_device: device,
             calculator: Default::default(),
-            block_factory: state::BlockFactory::new(),
+            block_factory,
             pan: Default::default(),
             last_updated_audio_id: None,
 
-            file_path: None,
+            file_path,
         }
     }
 
