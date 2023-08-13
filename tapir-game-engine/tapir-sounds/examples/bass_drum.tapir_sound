@@ -22,7 +22,7 @@
                 name: "Crossfade",
             ),
             inputs: [
-                Amplitude(1.0),
+                Amplitude(0.74),
                 Amplitude(0.0),
                 Amplitude(1.0),
             ],
@@ -41,8 +41,8 @@
                 Periods(0.5),
                 Periods(0.5),
             ],
-            x: 1401.8242,
-            y: 1401.8242,
+            x: 1430.5734,
+            y: 1414.0925,
         ),
         (
             id: "c43c735c-9738-40a9-9ae0-0476971191ce",
@@ -52,7 +52,7 @@
             ),
             inputs: [
                 Frequency(4.0),
-                Amplitude(0.5),
+                Amplitude(1.0),
                 Periods(1.0),
                 Periods(0.0),
             ],
@@ -67,12 +67,12 @@
             ),
             inputs: [
                 Frequency(1.0),
-                Amplitude(1.0),
+                Amplitude(0.995),
                 Periods(0.5),
                 Periods(0.48),
             ],
-            x: 746.71515,
-            y: 1389.3585,
+            x: 766.4709,
+            y: 1394.8008,
         ),
         (
             id: "eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d",
@@ -82,7 +82,7 @@
             ),
             inputs: [
                 Frequency(100.0),
-                Amplitude(0.5),
+                Amplitude(1.0),
                 Periods(50.0),
                 Periods(0.0),
             ],
