@@ -113,6 +113,10 @@ impl eframe::App for TapirSoundApp {
         let mut selected_changed = false;
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            // need to allocate this first so it gets lowest priority
+            let background_response =
+                ui.allocate_rect(ui.min_rect(), egui::Sense::click_and_drag());
+
             let results = self.calculator.results();
 
             let selected_block = self.state.selected_block();
@@ -183,6 +187,10 @@ impl eframe::App for TapirSoundApp {
             if let Some((output, input)) = cable_response.new_connection {
                 self.state
                     .add_connection((output.block_id, (input.block_id, input.index)));
+            }
+
+            if background_response.dragged() && ui.ctx().input(|i| i.pointer.middle_down()) {
+                self.pan += ui.ctx().input(|i| i.pointer.delta());
             }
         });
 
