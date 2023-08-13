@@ -6,14 +6,22 @@ use std::{
 
 use crate::state;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct CalculationId(state::Id);
+
 #[derive(Clone)]
 pub struct Calculation {
     results: Arc<HashMap<state::Id, Vec<f64>>>,
+    id: CalculationId,
 }
 
 impl Calculation {
     pub fn for_block(&self, block_id: state::Id) -> Option<&Vec<f64>> {
         self.results.get(&block_id)
+    }
+
+    pub fn id(&self) -> CalculationId {
+        self.id
     }
 }
 
@@ -68,5 +76,6 @@ fn calculate(state: state::State) -> Calculation {
 
     Calculation {
         results: Arc::new(results),
+        id: CalculationId(state::Id::new()),
     }
 }

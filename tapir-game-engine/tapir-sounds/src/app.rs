@@ -12,6 +12,7 @@ pub struct TapirSoundApp {
     state: state::State,
     calculator: calculate::Calculator,
     audio: Arc<audio::Audio>,
+    last_updated_audio_id: Option<calculate::CalculationId>,
 
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 }
@@ -28,6 +29,7 @@ impl TapirSoundApp {
             audio,
             _audio_device: device,
             calculator: Default::default(),
+            last_updated_audio_id: None,
         }
     }
 
@@ -44,12 +46,15 @@ impl TapirSoundApp {
         .unwrap()
     }
 
-    fn update_audio(&self) {
-        if let Some(selected) = self.state.selected_block().and_then(|id| {
-            self.calculator
-                .results()
-                .and_then(|result| result.for_block(id).cloned())
-        }) {
+    fn update_audio(&mut self) {
+        let results = self.calculator.results();
+        self.last_updated_audio_id = results.as_ref().map(|results| results.id());
+
+        if let Some(selected) = self
+            .state
+            .selected_block()
+            .and_then(|id| results.and_then(|result| result.for_block(id).cloned()))
+        {
             self.audio.set_buffer(selected, self.state.frequency());
         } else {
             self.audio
@@ -164,11 +169,15 @@ impl eframe::App for TapirSoundApp {
 
         if self.state.is_dirty() && self.calculator.calculate(&self.state) {
             self.state.clean();
-            self.update_audio();
         }
 
         if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
             self.audio.start_playing();
+        }
+
+        let results = self.calculator.results();
+        if results.map(|result| result.id()) != self.last_updated_audio_id {
+            self.update_audio();
         }
     }
 }
