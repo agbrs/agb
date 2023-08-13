@@ -16,6 +16,19 @@
             y: 1291.2684,
         ),
         (
+            id: "7e040c7f-6b9d-4272-a36d-860bb095a244",
+            name: (
+                category: Combine,
+                name: "Fade",
+            ),
+            inputs: [
+                Amplitude(1.0),
+                Periods(0.0),
+            ],
+            x: 1389.3649,
+            y: 1443.3134,
+        ),
+        (
             id: "86835bf1-e832-48bb-a820-567afced66e2",
             name: (
                 category: Combine,
@@ -28,21 +41,6 @@
             ],
             x: 1075.3932,
             y: 1348.1205,
-        ),
-        (
-            id: "b56696ab-2572-4605-8a43-9f105a1965ed",
-            name: (
-                category: Fundamental,
-                name: "Saw",
-            ),
-            inputs: [
-                Frequency(1.0),
-                Amplitude(-1.0),
-                Periods(0.5),
-                Periods(0.5),
-            ],
-            x: 1430.5734,
-            y: 1414.0925,
         ),
         (
             id: "c43c735c-9738-40a9-9ae0-0476971191ce",
@@ -92,11 +90,11 @@
     ],
     connections: [
         ("63f2aa82-9ec7-413d-b5f8-310fd0035935", "eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d", 0),
-        ("86835bf1-e832-48bb-a820-567afced66e2", "b56696ab-2572-4605-8a43-9f105a1965ed", 1),
+        ("86835bf1-e832-48bb-a820-567afced66e2", "7e040c7f-6b9d-4272-a36d-860bb095a244", 0),
         ("c43c735c-9738-40a9-9ae0-0476971191ce", "86835bf1-e832-48bb-a820-567afced66e2", 2),
         ("d829b555-8883-4f4f-b5f6-7256d10d785c", "86835bf1-e832-48bb-a820-567afced66e2", 1),
         ("eb37dac8-ddf5-48bb-ad9c-a0c54cb8993d", "86835bf1-e832-48bb-a820-567afced66e2", 0),
     ],
     frequency: 18157.0,
-    selected_block: Some("b56696ab-2572-4605-8a43-9f105a1965ed"),
+    selected_block: Some("7e040c7f-6b9d-4272-a36d-860bb095a244"),
 )
