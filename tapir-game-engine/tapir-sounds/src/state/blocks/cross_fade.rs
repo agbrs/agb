@@ -6,7 +6,7 @@ pub struct CrossFade {
 }
 
 impl CrossFade {
-    fn name() -> super::BlockName {
+    pub fn name() -> super::BlockName {
         super::BlockName {
             name: "Crossfade".to_owned(),
             category: super::BlockCategory::Combine,

@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
 mod cross_fade;
+mod fade;
 mod fundamental_shape;
 mod noise;
 
@@ -10,6 +11,7 @@ use crate::state;
 
 use self::{
     cross_fade::CrossFade,
+    fade::Fade,
     fundamental_shape::{FundamentalShapeBlock, FundamentalShapeType},
     noise::Noise,
 };
@@ -18,6 +20,7 @@ use self::{
 pub enum BlockCategory {
     Fundamental,
     Combine,
+    Alter,
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
@@ -47,21 +50,9 @@ impl BlockFactory {
             );
         }
 
-        creation_functions.insert(
-            BlockName {
-                category: BlockCategory::Fundamental,
-                name: "Noise".to_owned(),
-            },
-            Box::new(|| Box::<Noise>::default()),
-        );
-
-        creation_functions.insert(
-            BlockName {
-                category: BlockCategory::Combine,
-                name: "Crossfade".to_owned(),
-            },
-            Box::new(|| Box::<CrossFade>::default()),
-        );
+        creation_functions.insert(Noise::name(), Box::new(|| Box::<Noise>::default()));
+        creation_functions.insert(CrossFade::name(), Box::new(|| Box::<CrossFade>::default()));
+        creation_functions.insert(Fade::name(), Box::new(|| Box::<Fade>::default()));
 
         Self { creation_functions }
     }

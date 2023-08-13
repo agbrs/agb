@@ -11,7 +11,7 @@ pub struct Noise {
 }
 
 impl Noise {
-    fn name() -> BlockName {
+    pub fn name() -> BlockName {
         BlockName {
             category: super::BlockCategory::Fundamental,
             name: "Noise".to_owned(),
