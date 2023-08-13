@@ -121,7 +121,12 @@ impl State {
                 })
                 .collect::<Vec<_>>();
 
-            calculation.insert(block.id(), block.calculate(self.frequency, &input_data));
+            let mut block_result = block.calculate(self.frequency, &input_data);
+            if block_result.is_empty() {
+                block_result.push(0.0);
+            }
+
+            calculation.insert(block.id(), block_result);
         }
 
         calculation
