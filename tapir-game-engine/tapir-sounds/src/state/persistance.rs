@@ -24,7 +24,7 @@ impl PersistedBlock {
         }
     }
 
-    fn into_block(self, block_factory: &super::BlockFactory) -> super::Block {
+    fn to_block(&self, block_factory: &super::BlockFactory) -> super::Block {
         block_factory.make_block_with_id(&self.name, (self.x, self.y), super::Id(self.id))
     }
 }
@@ -50,15 +50,15 @@ impl PersistedState {
         }
     }
 
-    pub fn to_state(self, block_factory: &super::BlockFactory) -> super::State {
+    pub fn to_state(&self, block_factory: &super::BlockFactory) -> super::State {
         let mut result = super::State::default();
 
-        for block in self.blocks {
-            result.add_block(block.into_block(block_factory));
+        for block in &self.blocks {
+            result.add_block(block.to_block(block_factory));
         }
 
-        for (output_id, input_id, index) in self.connections {
-            result.add_connection((super::Id(output_id), (super::Id(input_id), index)));
+        for (output_id, input_id, index) in &self.connections {
+            result.add_connection((super::Id(*output_id), (super::Id(*input_id), *index)));
         }
 
         if let Some(selected_block) = self.selected_block {
