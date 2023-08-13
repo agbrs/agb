@@ -44,8 +44,9 @@ impl Audio {
         self.should_loop.store(new_value, Ordering::SeqCst);
     }
 
-    pub fn start_playing(&self) {
-        self.should_play.store(true, Ordering::SeqCst);
+    pub fn toggle_playing(&self) {
+        self.should_play
+            .store(!self.should_play.load(Ordering::SeqCst), Ordering::SeqCst);
         self.pos.store(0.0f64.to_bits(), Ordering::SeqCst);
     }
 

@@ -260,7 +260,7 @@ impl eframe::App for TapirSoundApp {
         }
 
         if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
-            self.audio.start_playing();
+            self.audio.toggle_playing();
         }
 
         let results = self.calculator.results();
