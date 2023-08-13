@@ -23,7 +23,7 @@ pub fn block(
             .fill(if is_selected {
                 egui::Color32::LIGHT_GREEN
             } else {
-                ctx.style().visuals.faint_bg_color
+                ctx.style().visuals.widgets.noninteractive.bg_fill
             })
             .show(ui, |ui| {
                 ui.label(block.name());
