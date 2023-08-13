@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use super::BlockType;
+use super::{BlockName, BlockType};
 
 #[derive(Clone)]
 pub struct Noise {
@@ -8,6 +8,15 @@ pub struct Noise {
     base_amplitude: f64,
     periods: f64,
     seed: f64,
+}
+
+impl Noise {
+    fn name() -> BlockName {
+        BlockName {
+            category: super::BlockCategory::Fundamental,
+            name: "Noise".to_owned(),
+        }
+    }
 }
 
 impl Default for Noise {
@@ -22,8 +31,8 @@ impl Default for Noise {
 }
 
 impl BlockType for Noise {
-    fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed("Noise")
+    fn name(&self) -> BlockName {
+        Self::name()
     }
 
     fn inputs(&self) -> Vec<(Cow<'static, str>, super::Input)> {

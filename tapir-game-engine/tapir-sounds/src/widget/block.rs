@@ -18,7 +18,7 @@ pub fn block(
     let mut alter_input = vec![];
 
     let response = draggable_block(ui, block.id(), is_selected, |ui| {
-        ui.label(block.name());
+        ui.label(&block.name().name);
 
         output(ui, block.id(), display);
 

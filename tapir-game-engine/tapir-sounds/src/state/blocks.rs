@@ -4,6 +4,8 @@ mod cross_fade;
 mod fundamental_shape;
 mod noise;
 
+use serde::{Deserialize, Serialize};
+
 use crate::state;
 
 use self::{
@@ -12,13 +14,13 @@ use self::{
     noise::Noise,
 };
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 pub enum BlockCategory {
     Fundamental,
     Combine,
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct BlockName {
     pub category: BlockCategory,
@@ -72,12 +74,16 @@ impl BlockFactory {
     }
 
     pub fn make_block(&self, name: &BlockName, pos: (f32, f32)) -> Block {
+        self.make_block_with_id(name, pos, state::Id::new())
+    }
+
+    pub fn make_block_with_id(&self, name: &BlockName, pos: (f32, f32), id: state::Id) -> Block {
         let block_type = self
             .creation_functions
             .get(name)
             .unwrap_or_else(|| panic!("Failed to make block with name {name:?}"));
 
-        Block::new(block_type(), pos)
+        Block::new_with_id(block_type(), pos, id)
     }
 }
 
@@ -90,7 +96,7 @@ pub struct Block {
     dirty: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Input {
     Toggle(bool),
     Frequency(f64),
@@ -100,16 +106,20 @@ pub enum Input {
 
 impl Block {
     pub fn new(block_type: Box<dyn BlockType>, pos: (f32, f32)) -> Self {
+        Self::new_with_id(block_type, pos, state::Id::new())
+    }
+
+    pub fn new_with_id(block_type: Box<dyn BlockType>, pos: (f32, f32), id: state::Id) -> Self {
         Self {
             block_type,
             x: pos.0,
-            y: pos.1,
-            id: state::Id::new(),
+            y: pos.0,
+            id,
             dirty: true,
         }
     }
 
-    pub fn name(&self) -> Cow<'static, str> {
+    pub fn name(&self) -> BlockName {
         self.block_type.name()
     }
 
@@ -154,7 +164,7 @@ pub trait BlockClone {
 }
 
 pub trait BlockType: BlockClone + Send + Sync {
-    fn name(&self) -> Cow<'static, str>;
+    fn name(&self) -> BlockName;
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)>;
     fn set_input(&mut self, index: usize, value: &Input);
     fn calculate(&self, global_frequency: f64, inputs: &[Option<&[f64]>]) -> Vec<f64>;

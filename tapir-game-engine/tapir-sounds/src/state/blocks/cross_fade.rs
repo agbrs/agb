@@ -5,6 +5,15 @@ pub struct CrossFade {
     right_amount: f64,
 }
 
+impl CrossFade {
+    fn name() -> super::BlockName {
+        super::BlockName {
+            name: "Crossfade".to_owned(),
+            category: super::BlockCategory::Combine,
+        }
+    }
+}
+
 impl Default for CrossFade {
     fn default() -> Self {
         Self {
@@ -16,8 +25,8 @@ impl Default for CrossFade {
 }
 
 impl super::BlockType for CrossFade {
-    fn name(&self) -> std::borrow::Cow<'static, str> {
-        "Cross fade".into()
+    fn name(&self) -> super::BlockName {
+        Self::name()
     }
 
     fn inputs(&self) -> Vec<(std::borrow::Cow<'static, str>, super::Input)> {

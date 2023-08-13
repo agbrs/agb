@@ -1,6 +1,6 @@
 use std::{borrow::Cow, f64::consts::PI};
 
-use super::{stretch_frequency_shift, BlockType, Input};
+use super::{stretch_frequency_shift, BlockName, BlockType, Input};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum FundamentalShapeType {
@@ -76,8 +76,11 @@ impl FundamentalShapeBlock {
 }
 
 impl BlockType for FundamentalShapeBlock {
-    fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed(self.fundamental_shape_type.name())
+    fn name(&self) -> BlockName {
+        BlockName {
+            category: super::BlockCategory::Fundamental,
+            name: self.fundamental_shape_type.name().to_owned(),
+        }
     }
 
     fn inputs(&self) -> Vec<(Cow<'static, str>, Input)> {
