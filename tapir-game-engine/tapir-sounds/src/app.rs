@@ -38,9 +38,8 @@ impl TapirSoundApp {
             channel_sample_count: 441,
         };
 
-        let mut pos = 0.0;
         tinyaudio::run_output_device(params, move |data| {
-            pos = audio.play(data, params.channels_count, params.sample_rate as f64, pos);
+            audio.play(data, params.channels_count, params.sample_rate as f64);
         })
         .unwrap()
     }
@@ -75,6 +74,10 @@ impl eframe::App for TapirSoundApp {
             if self.calculator.is_calculating() {
                 ui.spinner();
             }
+
+            let mut should_loop = self.audio.should_loop();
+            ui.checkbox(&mut should_loop, "Loop");
+            self.audio.set_should_loop(should_loop);
         });
 
         egui::SidePanel::left("input_panel")
@@ -162,6 +165,10 @@ impl eframe::App for TapirSoundApp {
         if self.state.is_dirty() && self.calculator.calculate(&self.state) {
             self.state.clean();
             self.update_audio();
+        }
+
+        if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
+            self.audio.start_playing();
         }
     }
 }
