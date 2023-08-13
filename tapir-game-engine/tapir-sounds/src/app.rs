@@ -127,7 +127,11 @@ impl TapirSoundApp {
 
     fn save(&mut self) {
         if let Some(path) = &self.file_path {
-            save_load::save(&self.state, path);
+            if let Err(e) = save_load::save(&self.state, path) {
+                self.toasts.error(e.to_string()).set_closable(true);
+                return;
+            }
+
             self.file_dirty = false;
 
             self.toasts.basic(format!(
@@ -140,7 +144,13 @@ impl TapirSoundApp {
     }
 
     fn open(&mut self, filepath: &Path) {
-        self.state = save_load::load(filepath, &self.block_factory);
+        self.state = match save_load::load(filepath, &self.block_factory) {
+            Ok(state) => state,
+            Err(e) => {
+                self.toasts.error(e.to_string()).set_closable(true);
+                return;
+            }
+        };
         let average_location = self.state.average_location();
         self.pan = -egui::vec2(average_location.0, average_location.1);
         self.file_dirty = false;
@@ -163,7 +173,13 @@ impl TapirSoundApp {
     }
 
     fn export(&mut self, filepath: &Path) {
+        if !self.state.blocks().any(|_| true) {
+            self.toasts.warning("Nothing to export");
+            return;
+        }
+
         let Some(results) = self.calculator.results() else {
+            self.toasts.warning("Did not export as still calculating");
             return;
         };
 
@@ -172,14 +188,21 @@ impl TapirSoundApp {
             .selected_block()
             .and_then(|id| results.for_block(id))
         else {
+            self.toasts.warning("Did not export as nothing is selected");
             return;
         };
 
-        save_load::export(filepath, data, self.state.frequency());
-        self.toasts.basic(format!(
-            "Exported to {}",
-            filepath.file_name().unwrap().to_string_lossy()
-        ));
+        match save_load::export(filepath, data, self.state.frequency()) {
+            Ok(()) => {
+                self.toasts.basic(format!(
+                    "Exported to {}",
+                    filepath.file_name().unwrap().to_string_lossy()
+                ));
+            }
+            Err(e) => {
+                self.toasts.error(e.to_string()).set_closable(true);
+            }
+        };
     }
 
     fn save_dialog(path: Option<PathBuf>, title: &str) -> egui_file::FileDialog {

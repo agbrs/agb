@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0"
 arc-swap = "1.6.0"
 catppuccin-egui = "3.0"
 eframe = "0.22"
