@@ -54,7 +54,7 @@ to just write games for the Game Boy Advance using this library:
   - Debian and derivatives: `sudo apt install libelf-dev cmake`
   - Arch Linux and derivatives: `pacman -S libelf cmake`
 - mgba-test-runner
-  - Run `cargo install --path mgba-test-runner` inside this directory
+  - Run `cargo install --path emulator/test-runner` inside this directory
 - [The 'just' build tool](https://github.com/casey/just)
   - Install with `cargo install just`
 - [mdbook](https://rust-lang.github.io/mdBook/index.html)
@@ -95,7 +95,7 @@ for performant decimals.
 
 `examples` - bigger examples of a complete game, made during game jams
 
-`mgba-test-runner` - a wrapper around the [mgba](https://mgba.io) emulator which allows us to write unit tests in rust
+`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes. Currently this does not accept contributions.
 
 `template` - the source for the [template repository](https://github.com/agbrs/template)
 

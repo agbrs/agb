@@ -1,0 +1,13 @@
+[package]
+name = "mgba-test-runner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mgba = { path = "../mgba" }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+image = { version = "0.24", default-features = false, features = [ "png", "bmp" ] }
+agb-gbafix = { path = "../../agb-gbafix" }

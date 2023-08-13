@@ -20,6 +20,7 @@ test:
     just _test-debug tracker/agb-tracker
     just _test-debug-arm agb
     just _test-debug tools
+    just _test-debug emulator
 
 test-release:
     just _test-release agb
