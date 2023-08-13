@@ -16,6 +16,8 @@ pub struct Audio {
     pos: AtomicU64,
     should_loop: AtomicBool,
     should_play: AtomicBool,
+
+    playback_speed: AtomicU64,
 }
 
 impl Default for Audio {
@@ -25,6 +27,8 @@ impl Default for Audio {
             pos: Default::default(),
             should_loop: AtomicBool::new(true),
             should_play: Default::default(),
+
+            playback_speed: AtomicU64::new(1.0f64.to_bits()),
         }
     }
 }
@@ -55,6 +59,7 @@ impl Audio {
     pub fn play(&self, data: &mut [f32], channel_count: usize, frequency: f64) {
         let original_pos = self.pos.load(Ordering::SeqCst);
         let mut pos = f64::from_bits(original_pos);
+        let playback_speed = f64::from_bits(self.playback_speed.load(Ordering::SeqCst));
 
         let should_loop = self.should_loop.load(Ordering::SeqCst);
 
@@ -78,7 +83,7 @@ impl Audio {
 
         for samples in data.chunks_exact_mut(channel_count) {
             let value = buffer_data.buffer[pos as usize];
-            pos += buffer_data.frequency / frequency;
+            pos += buffer_data.frequency / frequency * playback_speed;
 
             if pos >= buffer_len {
                 if should_loop {

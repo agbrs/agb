@@ -14,7 +14,6 @@ use crate::widget;
 pub struct TapirSoundApp {
     state: state::State,
     calculator: calculate::Calculator,
-    audio: Arc<audio::Audio>,
     last_updated_audio_id: Option<calculate::CalculationId>,
 
     block_factory: state::BlockFactory,
@@ -24,7 +23,12 @@ pub struct TapirSoundApp {
     file_path: Option<PathBuf>,
     file_dirty: bool,
 
+    audio: Arc<audio::Audio>,
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
+
+    midi_input_ports: midir::MidiInput,
+    selected_midi_device: Option<String>,
+    _midi_connection: Option<midir::MidiInputConnection<()>>,
 }
 
 impl TapirSoundApp {
@@ -36,10 +40,12 @@ impl TapirSoundApp {
 
         let file_path: Option<PathBuf> = file_path.map(|path| path.into());
 
+        let mut midi_input_ports =
+            midir::MidiInput::new("tapir sounds").expect("failed to create midi input");
+        midi_input_ports.ignore(midir::Ignore::None);
+
         let mut app = Self {
             state: Default::default(),
-            audio,
-            _audio_device: device,
             calculator: Default::default(),
             block_factory: state::BlockFactory::new(),
             pan: Default::default(),
@@ -47,6 +53,13 @@ impl TapirSoundApp {
 
             file_path: file_path.clone(),
             file_dirty: false,
+
+            audio,
+            _audio_device: device,
+
+            _midi_connection: None,
+            selected_midi_device: None,
+            midi_input_ports,
         };
 
         if let Some(file_path) = file_path {
@@ -149,6 +162,34 @@ impl TapirSoundApp {
 
         save_load::export(&filepath, data, self.state.frequency());
     }
+
+    fn midi_combo_box(&mut self, ui: &mut egui::Ui) {
+        let mut display_name = self
+            .selected_midi_device
+            .as_ref()
+            .unwrap_or(&"No midi input".to_owned())
+            .to_string();
+        display_name.truncate(25);
+
+        egui::ComboBox::from_id_source("midi input combobox")
+            .selected_text(display_name)
+            .width(200.0)
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.selected_midi_device, None, "No midi input");
+
+                for in_port in self.midi_input_ports.ports() {
+                    let Ok(port_name) = self.midi_input_ports.port_name(&in_port) else {
+                        continue;
+                    };
+
+                    ui.selectable_value(
+                        &mut self.selected_midi_device,
+                        Some(port_name.clone()),
+                        port_name,
+                    );
+                }
+            });
+    }
 }
 
 impl eframe::App for TapirSoundApp {
@@ -197,9 +238,13 @@ impl eframe::App for TapirSoundApp {
                 ui.checkbox(&mut should_loop, "Loop");
                 self.audio.set_should_loop(should_loop);
 
-                if self.calculator.is_calculating() {
-                    ui.spinner();
-                }
+                self.midi_combo_box(ui);
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if self.calculator.is_calculating() {
+                        ui.spinner();
+                    }
+                });
             });
         });
 
