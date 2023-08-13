@@ -25,6 +25,8 @@ pub struct TapirSoundApp {
 
     block_factory: state::BlockFactory,
 
+    toasts: egui_notify::Toasts,
+
     pan: egui::Vec2,
 
     open_file_dialog: Option<(egui_file::FileDialog, SaveState)>,
@@ -60,6 +62,7 @@ impl TapirSoundApp {
             block_factory: state::BlockFactory::new(),
             pan: Default::default(),
             last_updated_audio_id: None,
+            toasts: Default::default(),
 
             open_file_dialog: None,
             file_path: file_path.clone(),
@@ -120,6 +123,11 @@ impl TapirSoundApp {
         if let Some(path) = &self.file_path {
             save_load::save(&self.state, path);
             self.file_dirty = false;
+
+            self.toasts.basic(format!(
+                "Saved to {}",
+                path.file_name().unwrap().to_string_lossy()
+            ));
         } else {
             self.save_as();
         }
@@ -148,7 +156,7 @@ impl TapirSoundApp {
             .get_or_insert_with(|| (Self::save_dialog(filepath), SaveState::Export));
     }
 
-    fn export(&self, filepath: &Path) {
+    fn export(&mut self, filepath: &Path) {
         let Some(results) = self.calculator.results() else {
             return;
         };
@@ -162,6 +170,10 @@ impl TapirSoundApp {
         };
 
         save_load::export(filepath, data, self.state.frequency());
+        self.toasts.basic(format!(
+            "Exported to {}",
+            filepath.file_name().unwrap().to_string_lossy()
+        ));
     }
 
     fn save_dialog(path: Option<PathBuf>) -> egui_file::FileDialog {
@@ -510,15 +522,15 @@ impl eframe::App for TapirSoundApp {
             self.audio.toggle_playing();
         }
 
-        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
             self.save();
         }
 
-        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::E)) {
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::E)) {
             self.export_as();
         }
 
-        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::O)) {
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
             self.open_as();
         }
 
@@ -538,5 +550,6 @@ impl eframe::App for TapirSoundApp {
         }
 
         self.file_dialog_handling(ctx);
+        self.toasts.show(ctx);
     }
 }

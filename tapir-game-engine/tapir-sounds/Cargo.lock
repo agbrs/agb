@@ -861,6 +861,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-notify"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "893533ea1a372ba3036a27784db4d9c8d8466d8ff61e1c2fb0031d4f8e8dde72"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-winit"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2363,6 +2372,7 @@ dependencies = [
  "arc-swap",
  "catppuccin-egui",
  "eframe",
+ "egui-notify",
  "egui_file",
  "env_logger",
  "fastrand 2.0.0",
