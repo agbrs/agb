@@ -14,10 +14,14 @@ pub struct TapirSoundApp {
     audio: Arc<audio::Audio>,
     last_updated_audio_id: Option<calculate::CalculationId>,
 
+    pan: egui::Vec2,
+
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 }
 
 impl TapirSoundApp {
+    pub const MAX_NODE_SIZE: [f32; 2] = [200.0, 200.0];
+
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_visuals(egui::Visuals::light());
 
@@ -29,6 +33,7 @@ impl TapirSoundApp {
             audio,
             _audio_device: device,
             calculator: Default::default(),
+            pan: Default::default(),
             last_updated_audio_id: None,
         }
     }
@@ -114,17 +119,28 @@ impl eframe::App for TapirSoundApp {
                 .state
                 .blocks()
                 .map(|block| {
-                    (
-                        block.id(),
-                        widget::block(
-                            ctx,
-                            block,
-                            selected_block == Some(block.id()),
-                            results
-                                .as_ref()
-                                .and_then(|result| result.for_block(block.id())),
+                    let block_pos = block.pos();
+                    let mut child_ui = ui.child_ui_with_id_source(
+                        egui::Rect::from_min_size(
+                            egui::pos2(block_pos.0, block_pos.1) + self.pan,
+                            Self::MAX_NODE_SIZE.into(),
                         ),
-                    )
+                        egui::Layout::default(),
+                        block.id(),
+                    );
+
+                    child_ui.set_clip_rect(ui.max_rect());
+
+                    let block_response = widget::block(
+                        &mut child_ui,
+                        block,
+                        selected_block == Some(block.id()),
+                        results
+                            .as_ref()
+                            .and_then(|result| result.for_block(block.id())),
+                    );
+
+                    (block.id(), block_response)
                 })
                 .collect::<HashMap<_, _>>();
 
@@ -139,6 +155,11 @@ impl eframe::App for TapirSoundApp {
                 if response.selected {
                     self.state.set_selected_block(*id);
                     selected_changed = true;
+                }
+
+                if response.drag_delta.length_sq() > 0.0 {
+                    let block = self.state.get_block_mut(*id).unwrap();
+                    block.pos_delta((response.drag_delta.x, response.drag_delta.y));
                 }
             }
 

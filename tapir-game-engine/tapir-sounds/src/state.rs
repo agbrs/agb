@@ -150,6 +150,8 @@ impl State {
 pub struct Block {
     block_type: Box<dyn BlockType>,
     id: Id,
+    x: f32,
+    y: f32,
     dirty: bool,
 }
 
@@ -165,6 +167,8 @@ impl Block {
     pub fn new(block_type: Box<dyn BlockType>) -> Self {
         Self {
             block_type,
+            x: 0.0,
+            y: 0.0,
             id: Id::new(),
             dirty: true,
         }
@@ -189,6 +193,16 @@ impl Block {
 
     pub fn calculate(&self, global_frequency: f64, inputs: &[Option<&[f64]>]) -> Vec<f64> {
         self.block_type.calculate(global_frequency, inputs)
+    }
+
+    pub fn pos(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+
+    pub fn pos_delta(&mut self, delta: (f32, f32)) {
+        self.x += delta.0;
+        self.y += delta.1;
+        // doesn't set dirty because it doesn't change the output
     }
 
     fn is_dirty(&self) -> bool {
