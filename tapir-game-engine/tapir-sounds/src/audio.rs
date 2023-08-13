@@ -56,6 +56,16 @@ impl Audio {
         }
     }
 
+    pub fn play_at_speed(&self, speed: f64) {
+        self.pos.store(0.0f64.to_bits(), Ordering::SeqCst);
+        self.playback_speed.store(speed.to_bits(), Ordering::SeqCst);
+        self.should_play.store(true, Ordering::SeqCst);
+    }
+
+    pub fn stop_playing(&self) {
+        self.should_play.store(false, Ordering::SeqCst);
+    }
+
     pub fn play(&self, data: &mut [f32], channel_count: usize, frequency: f64) {
         let original_pos = self.pos.load(Ordering::SeqCst);
         let mut pos = f64::from_bits(original_pos);

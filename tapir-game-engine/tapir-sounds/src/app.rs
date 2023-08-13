@@ -27,8 +27,8 @@ pub struct TapirSoundApp {
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 
     midi_input_ports: midir::MidiInput,
-    selected_midi_device: Option<String>,
-    _midi_connection: Option<midir::MidiInputConnection<()>>,
+    selected_midi_device: Option<midir::MidiInputPort>,
+    midi_connection: Option<midir::MidiInputConnection<()>>,
 }
 
 impl TapirSoundApp {
@@ -57,7 +57,7 @@ impl TapirSoundApp {
             audio,
             _audio_device: device,
 
-            _midi_connection: None,
+            midi_connection: None,
             selected_midi_device: None,
             midi_input_ports,
         };
@@ -167,9 +167,12 @@ impl TapirSoundApp {
         let mut display_name = self
             .selected_midi_device
             .as_ref()
-            .unwrap_or(&"No midi input".to_owned())
+            .and_then(|port| self.midi_input_ports.port_name(port).ok())
+            .unwrap_or("No midi input".to_owned())
             .to_string();
         display_name.truncate(25);
+
+        let original_selected_device = self.selected_midi_device.clone();
 
         egui::ComboBox::from_id_source("midi input combobox")
             .selected_text(display_name)
@@ -182,13 +185,47 @@ impl TapirSoundApp {
                         continue;
                     };
 
-                    ui.selectable_value(
-                        &mut self.selected_midi_device,
-                        Some(port_name.clone()),
-                        port_name,
-                    );
+                    ui.selectable_value(&mut self.selected_midi_device, Some(in_port), port_name);
                 }
             });
+
+        if self.selected_midi_device != original_selected_device {
+            if let Some(in_port) = &self.selected_midi_device {
+                let midi_input = midir::MidiInput::new("Tapir sounds - midi input").unwrap();
+                let audio = self.audio.clone();
+
+                fn midi_to_speed(key: u8) -> f64 {
+                    2.0f64.powf(((key as f64) - 69.0) / 12.0)
+                }
+
+                self.midi_connection = Some(
+                    midi_input
+                        .connect(
+                            in_port,
+                            "tapir-sounds-in",
+                            move |_, message, _| {
+                                let event = midly::live::LiveEvent::parse(message).unwrap();
+
+                                if let midly::live::LiveEvent::Midi { message, .. } = event {
+                                    match message {
+                                        midly::MidiMessage::NoteOn { key, .. } => {
+                                            audio.play_at_speed(midi_to_speed(key.into()));
+                                        }
+                                        midly::MidiMessage::NoteOff { .. } => {
+                                            audio.stop_playing();
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            },
+                            (),
+                        )
+                        .expect("Failed to connect midi port"),
+                );
+            } else {
+                self.midi_connection = None;
+            }
+        }
     }
 }
 
