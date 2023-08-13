@@ -85,7 +85,7 @@ impl TapirSoundApp {
         }
     }
 
-    fn save_as(&mut self) {
+    fn save_as(&mut self) -> Option<PathBuf> {
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("tapir sound", &["tapir_sound"])
             .save_file()
@@ -93,6 +93,10 @@ impl TapirSoundApp {
             let path = path.with_extension("tapir_sound");
             save_load::save(&self.state, &path);
             self.file_path = Some(path);
+
+            self.file_path.clone()
+        } else {
+            None
         }
     }
 
@@ -117,6 +121,30 @@ impl TapirSoundApp {
         {
             self.open(&filepath);
         }
+    }
+
+    fn export(&mut self) {
+        let Some(results) = self.calculator.results() else {
+            return;
+        };
+
+        let filepath = if let Some(filepath) = &self.file_path {
+            filepath.with_extension("wav")
+        } else if let Some(filepath) = self.save_as() {
+            filepath.with_extension("wav")
+        } else {
+            return;
+        };
+
+        let Some(data) = self
+            .state
+            .selected_block()
+            .and_then(|id| results.for_block(id))
+        else {
+            return;
+        };
+
+        save_load::export(&filepath, data, self.state.frequency());
     }
 }
 
@@ -145,6 +173,10 @@ impl eframe::App for TapirSoundApp {
 
                     if ui.button("Save as...").clicked() {
                         self.save_as();
+                    }
+
+                    if ui.button("Export").clicked() {
+                        self.export();
                     }
 
                     ui.separator();
@@ -288,6 +320,14 @@ impl eframe::App for TapirSoundApp {
 
         if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
             self.save();
+        }
+
+        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::E)) {
+            self.export();
+        }
+
+        if ctx.input(|i| i.modifiers.command && i.key_down(egui::Key::O)) {
+            self.open_as();
         }
 
         let results = self.calculator.results();

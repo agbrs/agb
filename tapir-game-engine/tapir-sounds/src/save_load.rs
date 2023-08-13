@@ -17,3 +17,23 @@ pub fn load(filepath: &Path, block_factory: &state::BlockFactory) -> state::Stat
 
     deserialized.to_state(block_factory)
 }
+
+pub fn export(filepath: &Path, data: &[f64], frequency: f64) {
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: frequency as u32,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+
+    let mut writer =
+        hound::WavWriter::create(filepath, spec).expect("Failed to open file for writing");
+
+    for sample in data {
+        writer
+            .write_sample((*sample * i16::MAX as f64) as i16)
+            .unwrap();
+    }
+
+    writer.finalize().unwrap();
+}
