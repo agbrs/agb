@@ -49,9 +49,8 @@
                 name: "Noise",
             ),
             inputs: [
-                Frequency(4.0),
+                Periods(0.25),
                 Amplitude(1.0),
-                Periods(1.0),
                 Periods(0.0),
             ],
             x: 761.62244,
