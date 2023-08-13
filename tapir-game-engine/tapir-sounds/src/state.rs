@@ -164,11 +164,11 @@ pub enum Input {
 }
 
 impl Block {
-    pub fn new(block_type: Box<dyn BlockType>) -> Self {
+    pub fn new(block_type: Box<dyn BlockType>, pos: (f32, f32)) -> Self {
         Self {
             block_type,
-            x: 0.0,
-            y: 0.0,
+            x: pos.0,
+            y: pos.1,
             id: Id::new(),
             dirty: true,
         }

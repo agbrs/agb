@@ -100,9 +100,11 @@ impl eframe::App for TapirSoundApp {
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                     for fundamental_shape_type in state::FundamentalShapeType::all() {
                         if ui.button(fundamental_shape_type.name()).clicked() {
-                            self.state.add_block(state::Block::new(Box::new(
-                                state::FundamentalShapeBlock::new(fundamental_shape_type),
-                            )));
+                            let pos = ui.clip_rect().center() - self.pan;
+                            self.state.add_block(state::Block::new(
+                                Box::new(state::FundamentalShapeBlock::new(fundamental_shape_type)),
+                                (pos.x, pos.y),
+                            ));
                         }
                     }
                 });
