@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use eframe::egui;
 
 use crate::audio;
 use crate::calculate;
+use crate::save_load;
 use crate::state;
 use crate::widget;
 
@@ -17,6 +19,8 @@ pub struct TapirSoundApp {
     block_factory: state::BlockFactory,
 
     pan: egui::Vec2,
+
+    file_path: Option<PathBuf>,
 
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
 }
@@ -38,6 +42,8 @@ impl TapirSoundApp {
             block_factory: state::BlockFactory::new(),
             pan: Default::default(),
             last_updated_audio_id: None,
+
+            file_path: None,
         }
     }
 
@@ -69,6 +75,16 @@ impl TapirSoundApp {
                 .set_buffer(Default::default(), self.state.frequency());
         }
     }
+
+    fn save_as(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("tapir sound", &["tapir_sound"])
+            .save_file()
+        {
+            save_load::save(&self.state, &path);
+            self.file_path = Some(path);
+        }
+    }
 }
 
 impl eframe::App for TapirSoundApp {
@@ -76,6 +92,32 @@ impl eframe::App for TapirSoundApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("New").clicked() {
+                        self.state = state::State::default();
+                    }
+
+                    if let Some(save_target) = &self.file_path {
+                        if ui.button("Save").clicked() {
+                            save_load::save(&self.state, save_target);
+                        }
+
+                        if ui.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
+                            save_load::save(&self.state, save_target);
+                        }
+                    } else {
+                        ui.add_enabled(false, egui::Button::new("Save"));
+
+                        if ui.input(|i| i.modifiers.command && i.key_down(egui::Key::S)) {
+                            self.save_as();
+                        }
+                    }
+
+                    if ui.button("Save as...").clicked() {
+                        self.save_as();
+                    }
+
+                    ui.separator();
+
                     if ui.button("Quit").clicked() {
                         frame.close();
                     }

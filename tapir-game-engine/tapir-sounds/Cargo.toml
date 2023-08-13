@@ -12,6 +12,8 @@ env_logger = "0.10"
 fastrand = "2.0"
 im = "15"
 petgraph = "0.6"
+rfd = "0.11.4"
+ron = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 tinyaudio = "0.1"
 uuid = { version = "1.4.1", features = ["v4", "fast-rng", "serde"] }
