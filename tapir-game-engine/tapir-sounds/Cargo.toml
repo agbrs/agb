@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 arc-swap = "1.6.0"
+catppuccin-egui = "3.0"
 eframe = "0.22"
 egui_file = "0.10"
 env_logger = "0.10"

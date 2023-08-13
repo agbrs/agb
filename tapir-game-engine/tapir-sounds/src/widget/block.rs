@@ -115,17 +115,16 @@ fn draggable_block<T>(
             .insert_temp(block_id.into(), OuterRectMemory(outer_rect))
     });
 
-    let bg_colour = if is_selected {
-        if ui.ctx().style().visuals.dark_mode {
-            egui::Color32::DARK_GREEN
-        } else {
-            egui::Color32::LIGHT_GREEN
+    let bg_colour = ui.ctx().style().visuals.widgets.noninteractive.bg_fill;
+
+    let bg_stroke = if is_selected {
+        egui::epaint::Stroke {
+            width: 2.0,
+            color: catppuccin_egui::FRAPPE.green,
         }
     } else {
-        ui.ctx().style().visuals.widgets.noninteractive.bg_fill
+        ui.ctx().style().visuals.widgets.noninteractive.bg_stroke
     };
-
-    let bg_stroke = ui.ctx().style().visuals.widgets.noninteractive.bg_stroke;
 
     let body_shape = egui::epaint::Shape::Rect(egui::epaint::RectShape {
         rect: outer_rect,

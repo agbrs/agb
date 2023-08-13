@@ -530,6 +530,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "catppuccin-egui"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bce23f80f5cd1f392a9b2585fd1815dfa1c3ce9ad52261dda57507f034cb31f9"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2352,6 +2361,7 @@ name = "tapir-sounds"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
+ "catppuccin-egui",
  "eframe",
  "egui_file",
  "env_logger",

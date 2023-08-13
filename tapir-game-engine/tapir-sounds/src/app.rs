@@ -42,7 +42,9 @@ pub struct TapirSoundApp {
 impl TapirSoundApp {
     pub const MAX_NODE_SIZE: [f32; 2] = [200.0, 200.0];
 
-    pub(crate) fn new(_cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
+    pub(crate) fn new(cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
+        catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::FRAPPE);
+
         let audio: Arc<audio::Audio> = Default::default();
         let device = Self::start_sound(audio.clone());
 
