@@ -25,8 +25,8 @@
                 Amplitude(1.0),
                 Periods(0.0),
             ],
-            x: 1389.3649,
-            y: 1443.3134,
+            x: 1471.3907,
+            y: 1396.6409,
         ),
         (
             id: "86835bf1-e832-48bb-a820-567afced66e2",
@@ -36,11 +36,12 @@
             ),
             inputs: [
                 Amplitude(0.74),
-                Amplitude(0.0),
+                Amplitude(0.01),
                 Amplitude(1.0),
+                Toggle(false),
             ],
-            x: 1075.3932,
-            y: 1348.1205,
+            x: 1094.1089,
+            y: 1332.2275,
         ),
         (
             id: "c43c735c-9738-40a9-9ae0-0476971191ce",
@@ -49,12 +50,12 @@
                 name: "Noise",
             ),
             inputs: [
-                Periods(0.25),
+                Periods(1.0),
                 Amplitude(1.0),
                 Periods(0.0),
             ],
             x: 761.62244,
-            y: 1587.3065,
+            y: 1588.1666,
         ),
         (
             id: "d829b555-8883-4f4f-b5f6-7256d10d785c",
