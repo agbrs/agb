@@ -47,6 +47,9 @@ impl Audio {
     pub fn toggle_playing(&self) {
         self.should_play
             .store(!self.should_play.load(Ordering::SeqCst), Ordering::SeqCst);
+        if !self.should_loop() {
+            self.pos.store(0.0f64.to_bits(), Ordering::SeqCst);
+        }
     }
 
     pub fn play(&self, data: &mut [f32], channel_count: usize, frequency: f64) {
