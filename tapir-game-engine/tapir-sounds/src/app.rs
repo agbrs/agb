@@ -14,6 +14,8 @@ pub struct TapirSoundApp {
     audio: Arc<audio::Audio>,
     last_updated_audio_id: Option<calculate::CalculationId>,
 
+    block_factory: state::BlockFactory,
+
     pan: egui::Vec2,
 
     _audio_device: Box<dyn tinyaudio::BaseAudioOutputDevice>,
@@ -33,6 +35,7 @@ impl TapirSoundApp {
             audio,
             _audio_device: device,
             calculator: Default::default(),
+            block_factory: state::BlockFactory::new(),
             pan: Default::default(),
             last_updated_audio_id: None,
         }
@@ -98,13 +101,13 @@ impl eframe::App for TapirSoundApp {
                 ui.separator();
 
                 ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                    for fundamental_shape_type in state::FundamentalShapeType::all() {
-                        if ui.button(fundamental_shape_type.name()).clicked() {
-                            let pos = ui.clip_rect().center() - self.pan;
-                            self.state.add_block(state::Block::new(
-                                Box::new(state::FundamentalShapeBlock::new(fundamental_shape_type)),
-                                (pos.x, pos.y),
-                            ));
+                    for block_type in self.block_factory.available_blocks() {
+                        if ui.button(&block_type.name).clicked() {
+                            let block_pos = ui.clip_rect().center() + self.pan;
+                            self.state.add_block(
+                                self.block_factory
+                                    .make_block(block_type, (block_pos.x, block_pos.y)),
+                            );
                         }
                     }
                 });
