@@ -30,7 +30,7 @@ impl PersistedBlock {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct PersistedState {
+pub struct PersistedState {
     blocks: Vec<PersistedBlock>,
     connections: Vec<(uuid::Uuid, uuid::Uuid, usize)>,
     frequency: f64,

@@ -105,10 +105,6 @@ pub enum Input {
 }
 
 impl Block {
-    pub fn new(block_type: Box<dyn BlockType>, pos: (f32, f32)) -> Self {
-        Self::new_with_id(block_type, pos, state::Id::new())
-    }
-
     pub fn new_with_id(block_type: Box<dyn BlockType>, pos: (f32, f32), id: state::Id) -> Self {
         Self {
             block_type,

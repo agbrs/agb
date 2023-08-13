@@ -81,6 +81,7 @@ impl TapirSoundApp {
             .add_filter("tapir sound", &["tapir_sound"])
             .save_file()
         {
+            let path = path.with_extension("tapir_sound");
             save_load::save(&self.state, &path);
             self.file_path = Some(path);
         }
@@ -92,8 +93,19 @@ impl eframe::App for TapirSoundApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("New").clicked() {
+                    if ui.button("New").clicked()
+                        || ui.input(|i| i.modifiers.command && i.key_down(egui::Key::N))
+                    {
                         self.state = state::State::default();
+                    }
+
+                    if ui.button("Open").clicked() {
+                        if let Some(filepath) = rfd::FileDialog::new()
+                            .add_filter("tapir sound", &["tapir_sound"])
+                            .pick_file()
+                        {
+                            self.state = save_load::load(&filepath, &self.block_factory);
+                        }
                     }
 
                     if let Some(save_target) = &self.file_path {
