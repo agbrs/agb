@@ -29,9 +29,7 @@ pub struct TapirSoundApp {
 impl TapirSoundApp {
     pub const MAX_NODE_SIZE: [f32; 2] = [200.0, 200.0];
 
-    pub(crate) fn new(cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
-        cc.egui_ctx.set_visuals(egui::Visuals::light());
-
+    pub(crate) fn new(_cc: &eframe::CreationContext<'_>, file_path: Option<String>) -> Self {
         let audio: Arc<audio::Audio> = Default::default();
         let device = Self::start_sound(audio.clone());
 
@@ -149,7 +147,7 @@ impl TapirSoundApp {
 }
 
 impl eframe::App for TapirSoundApp {
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {

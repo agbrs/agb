@@ -116,7 +116,11 @@ fn draggable_block<T>(
     });
 
     let bg_colour = if is_selected {
-        egui::Color32::LIGHT_GREEN
+        if ui.ctx().style().visuals.dark_mode {
+            egui::Color32::DARK_GREEN
+        } else {
+            egui::Color32::LIGHT_GREEN
+        }
     } else {
         ui.ctx().style().visuals.widgets.noninteractive.bg_fill
     };
