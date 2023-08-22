@@ -64,6 +64,9 @@ agb_arm_func \fn_name
     bne 4b
 
 5:
+    cmp r2, #0
+    beq 3f
+
 .irp reg, r7,r8,r9,r10
     mov \reg, #0
 .endr
