@@ -49,6 +49,7 @@ named_tag!(
         SQUID_DOWN,
         SQUID_UP_SHADOW,
         SQUID_DOWN_SHADOW,
+        ICE,
     ]
 );
 
