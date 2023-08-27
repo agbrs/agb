@@ -185,9 +185,18 @@ impl EntityMap {
                     };
 
                     if can_move {
+                        if let Some(e) = self.map.get_mut(entity_to_update_key) {
+                            e.location = desired_location;
+                        }
                         let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
                             continue;
                         };
+
+                        animations.push(AnimationInstruction::Move(
+                            entity_to_update_key,
+                            desired_location,
+                            entity_to_update.move_effect(),
+                        ));
 
                         let overlap_resolutions: Vec<_> = self
                             .whats_at(desired_location)
@@ -567,6 +576,10 @@ impl Entity {
             EntityType::Item(Item::Sword) => Some(SoundEffect::SwordDrop),
             _ => None,
         }
+    }
+
+    fn move_effect(&self) -> Option<SoundEffect> {
+        None
     }
 
     fn kill_sound_effect(&self) -> Option<SoundEffect> {
