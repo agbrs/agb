@@ -92,7 +92,8 @@ impl EntityMap {
         entities_to_try_update: &mut VecDeque<(EntityKey, Action)>,
         entity_to_update_key: EntityKey,
         direction: Direction,
-        depth: i32,
+        can_turn_around: bool,
+        push_depth: i32,
     ) -> (bool, bool, bool) {
         let mut hero_has_died = false;
         let mut win_has_triggered = false;
@@ -105,18 +106,9 @@ impl EntityMap {
 
         let desired_location = entity_location + direction.into();
         let surface = map.get(desired_location);
-        if surface == MapElement::Wall {
-            animations.push(AnimationInstruction::FakeOutMove(
-                entity_to_update_key,
-                direction,
-                self.map
-                    .get(entity_to_update_key)
-                    .and_then(|e| e.fake_out_wall_effect()),
-            ));
-            return (false, hero_has_died, win_has_triggered);
-        }
-
-        let (can_move, explicit_stay_put, fake_out_effect) = {
+        let (can_move, explicit_stay_put, fake_out_effect) = if surface == MapElement::Wall {
+            (false, true, None)
+        } else {
             let mut can_move = true;
             let mut explicit_stay_put = false;
             let mut fake_out_effect = None;
@@ -152,7 +144,7 @@ impl EntityMap {
                         explicit_stay_put = true;
                     }
                     MoveAttemptResolution::AttemptPush => {
-                        let depth = depth - 1;
+                        let depth = push_depth - 1;
                         if depth >= 0 {
                             let (can_move_result, hero_has_died_result, win_has_triggered_result) =
                                 self.attempt_move_in_direction(
@@ -161,16 +153,19 @@ impl EntityMap {
                                     entities_to_try_update,
                                     other_entity_key,
                                     direction,
+                                    true,
                                     depth,
                                 );
 
                             if !can_move_result {
                                 can_move = false;
+                                explicit_stay_put = true;
                             }
                             hero_has_died |= hero_has_died_result;
                             win_has_triggered |= win_has_triggered_result;
                         } else {
                             can_move = false;
+                            explicit_stay_put = true;
                         }
                     }
                 }
@@ -253,6 +248,31 @@ impl EntityMap {
                     }
                 }
             }
+        } else if explicit_stay_put
+            && can_turn_around
+            && self.map.get(entity_to_update_key).map(|e| e.turns_around()) == Some(true)
+        {
+            if let Some((Some(change), change_effect)) = self
+                .map
+                .get_mut(entity_to_update_key)
+                .map(|e| (e.change_direction(), e.change_effect()))
+            {
+                animations.push(AnimationInstruction::PriorityChange(
+                    entity_to_update_key,
+                    change,
+                    change_effect,
+                ));
+
+                return self.attempt_move_in_direction(
+                    map,
+                    animations,
+                    entities_to_try_update,
+                    entity_to_update_key,
+                    -direction,
+                    false,
+                    push_depth,
+                );
+            }
         } else {
             animations.push(AnimationInstruction::FakeOutMove(
                 entity_to_update_key,
@@ -283,29 +303,14 @@ impl EntityMap {
         let mut entities_to_try_update = self
             .map
             .iter()
-            .map(|(key, entity)| (key, entity.desired_action(map, self, hero)))
+            .map(|(key, entity)| (key, entity.desired_action(hero)))
             .collect::<VecDeque<_>>();
 
         while let Some((entity_to_update_key, desired_action)) = entities_to_try_update.pop_front()
         {
             match desired_action {
                 Action::Nothing => {}
-                Action::Direction(direction) | Action::ChangeDirection(direction) => {
-                    if matches!(desired_action, Action::ChangeDirection(_)) {
-                        // first change the direction before processing the rest of the instructions
-                        if let Some((Some(change), change_effect)) = self
-                            .map
-                            .get_mut(entity_to_update_key)
-                            .map(|e| (e.change_direction(), e.change_effect()))
-                        {
-                            animations.push(AnimationInstruction::PriorityChange(
-                                entity_to_update_key,
-                                change,
-                                change_effect,
-                            ));
-                        }
-                    }
-
+                Action::Direction(direction) => {
                     let (_, hero_has_died_result, win_has_triggered_result) = self
                         .attempt_move_in_direction(
                             map,
@@ -313,6 +318,7 @@ impl EntityMap {
                             &mut entities_to_try_update,
                             entity_to_update_key,
                             direction,
+                            true,
                             self.map
                                 .get(entity_to_update_key)
                                 .and_then(|e| e.push_depth())
@@ -546,36 +552,19 @@ impl From<&Direction> for Vector2D<i32> {
 pub enum Action {
     Nothing,
     Direction(Direction),
-    ChangeDirection(Direction),
 }
 
 impl Entity {
-    fn desired_action(&self, walls: &Map, entities: &EntityMap, hero_action: Action) -> Action {
+    fn desired_action(&self, hero_action: Action) -> Action {
         match &self.entity {
             EntityType::Hero(_) => hero_action,
-            EntityType::Enemy(Enemy::Squid(squid)) => {
-                let desired_location = self.location + squid.direction.into();
-                let wall = walls.get(desired_location);
-
-                if matches!(wall, MapElement::Wall) {
-                    Action::ChangeDirection(-squid.direction)
-                } else {
-                    let can_move = entities
-                        .whats_at(desired_location)
-                        .map(|(_, other_entity)| resolve_move(self, other_entity))
-                        .filter(|resolution| matches!(resolution, MoveAttemptResolution::StayPut))
-                        .count()
-                        == 0;
-
-                    if can_move {
-                        Action::Direction(squid.direction)
-                    } else {
-                        Action::ChangeDirection(-squid.direction)
-                    }
-                }
-            }
+            EntityType::Enemy(Enemy::Squid(squid)) => Action::Direction(squid.direction),
             _ => Action::Nothing,
         }
+    }
+
+    fn turns_around(&self) -> bool {
+        matches!(self.entity, EntityType::Enemy(Enemy::Squid(_)))
     }
 
     fn pickup(&mut self, item: EntityType) -> Option<EntityType> {
