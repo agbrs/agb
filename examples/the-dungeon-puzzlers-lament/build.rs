@@ -10,25 +10,9 @@ use proc_macro2::TokenStream;
 
 const LEVEL_NAMES: &[&str] = &[
     "a_familiar_sight",
-    "level1",
-    "level2",
-    "level3",
-    "level4",
-    "level5",
-    "level6",
-    "level_switch",
-    "level_spikes",
-    "level_spikes2",
-    "level_squid_force_button",
-    "level_squid_intro",
-    "level_squid2",
-    "level_squid1",
-    "level_squid_item",
-    "level_squid_button",
-    "level_squid_drop",
-    "level_spikes3",
-    "level_around",
-    "level_squidprogramming",
+    "block_push_1",
+    "block_push_2",
+    "block_push_3",
 ];
 
 fn main() {
@@ -102,6 +86,8 @@ enum Entity {
     SquidUp,
     SquidDown,
     Ice,
+    MovableBlock,
+    Glove,
 }
 
 impl FromStr for Entity {
@@ -126,6 +112,8 @@ impl FromStr for Entity {
             "SQUID_UP" => SquidUp,
             "SQUID_DOWN" => SquidDown,
             "ICE" => Ice,
+            "BLOCK" => MovableBlock,
+            "GLOVE" => Glove,
             _ => return Err(()),
         })
     }
@@ -151,6 +139,8 @@ impl quote::ToTokens for Entity {
             SquidUp => quote!(Item::SquidUp),
             SquidDown => quote!(Item::SquidDown),
             Ice => quote!(Item::Ice),
+            MovableBlock => quote!(Item::MovableBlock),
+            Glove => quote!(Item::Glove),
         })
     }
 }

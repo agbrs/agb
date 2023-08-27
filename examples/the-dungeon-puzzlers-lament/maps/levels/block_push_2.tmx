@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="14">
+ <properties>
+  <property name="DIRECTIONS" value="RRUURRDD"/>
+  <property name="ITEMS" value="GLOVE"/>
+  <property name="NAME" value="Should be simple for a dungoen puzzler such as yourself"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,1,4,3,9,0,0,0,
+0,0,0,1,1073741852,16,15,3221225500,8,9,0,
+0,0,0,46,12,15,13,17,11,38,0,
+0,0,0,19,24,28,17,2147483676,25,27,0,
+0,0,0,0,0,10,13,47,0,0,0,
+0,0,0,0,0,19,20,27,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="7" name="STAIRS" x="103.179" y="87.8166">
+   <point/>
+  </object>
+  <object id="9" name="BLOCK" x="86.8994" y="88.2751">
+   <point/>
+  </object>
+  <object id="11" name="BLOCK" x="103.408" y="105.013">
+   <point/>
+  </object>
+  <object id="12" name="HERO" x="69.9323" y="87.1287">
+   <point/>
+  </object>
+  <object id="13" name="BLOCK" x="119.687" y="86.6701">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

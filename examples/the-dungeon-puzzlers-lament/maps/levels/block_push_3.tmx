@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="20">
+ <properties>
+  <property name="DIRECTIONS" value="RRUURRDD"/>
+  <property name="ITEMS" value="BLOCK,ICE"/>
+  <property name="NAME" value="Wow, finally a level with nothing new introduced!"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,1,6,2,8,8,9,0,0,0,
+0,1,1073741852,17,12,16,12,3221225500,9,0,0,
+0,46,11,16,12,17,17,12,38,0,0,
+0,46,17,16,12,16,11,14,38,0,0,
+0,19,26,28,14,12,14,15,38,0,0,
+0,0,0,19,24,28,11,2147483676,27,0,0,
+0,0,0,0,0,19,23,27,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="14" name="HERO" x="54.7994" y="55.9458">
+   <point/>
+  </object>
+  <object id="16" name="BLOCK" x="103.408" y="71.7665">
+   <point/>
+  </object>
+  <object id="17" name="SWITCH" x="119.458" y="55.4872">
+   <point/>
+  </object>
+  <object id="18" name="STAIRS" x="103.408" y="87.358">
+   <point/>
+  </object>
+  <object id="19" name="DOOR_SWITCHED" x="104.325" y="103.179">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

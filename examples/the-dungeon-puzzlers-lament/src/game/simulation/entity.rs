@@ -85,6 +85,195 @@ impl EntityMap {
         AnimationInstruction::Add(idx, entity, location, None)
     }
 
+    fn attempt_move_in_direction(
+        &mut self,
+        map: &Map,
+        animations: &mut Vec<AnimationInstruction>,
+        entities_to_try_update: &mut VecDeque<(EntityKey, Action)>,
+        entity_to_update_key: EntityKey,
+        direction: Direction,
+        depth: i32,
+    ) -> (bool, bool, bool) {
+        let mut hero_has_died = false;
+        let mut win_has_triggered = false;
+
+        let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
+            return (false, hero_has_died, win_has_triggered);
+        };
+
+        let entity_location = entity_to_update.location;
+
+        let desired_location = entity_location + direction.into();
+        let surface = map.get(desired_location);
+        if surface == MapElement::Wall {
+            animations.push(AnimationInstruction::FakeOutMove(
+                entity_to_update_key,
+                direction,
+                self.map
+                    .get(entity_to_update_key)
+                    .and_then(|e| e.fake_out_wall_effect()),
+            ));
+            return (false, hero_has_died, win_has_triggered);
+        }
+
+        let (can_move, explicit_stay_put, fake_out_effect) = {
+            let mut can_move = true;
+            let mut explicit_stay_put = false;
+            let mut fake_out_effect = None;
+
+            let move_attempt_resolutions: Vec<_> = self
+                .whats_at(desired_location)
+                .filter(|(k, _)| *k != entity_to_update_key)
+                .map(|(key, other_entity)| (key, resolve_move(entity_to_update, other_entity)))
+                .collect();
+
+            for (other_entity_key, move_resolution) in move_attempt_resolutions {
+                match move_resolution {
+                    MoveAttemptResolution::KillDie => {
+                        hero_has_died |= self.kill_entity(other_entity_key, animations);
+                        hero_has_died |= self.kill_entity(entity_to_update_key, animations);
+                        can_move = false;
+                    }
+                    MoveAttemptResolution::Kill => {
+                        hero_has_died |= self.kill_entity(other_entity_key, animations);
+                        fake_out_effect = self
+                            .map
+                            .get(entity_to_update_key)
+                            .and_then(|x| x.kill_sound_effect());
+                        can_move = false;
+                    }
+                    MoveAttemptResolution::Die => {
+                        hero_has_died |= self.kill_entity(entity_to_update_key, animations);
+                        can_move = false;
+                    }
+                    MoveAttemptResolution::CoExist => {}
+                    MoveAttemptResolution::StayPut => {
+                        can_move = false;
+                        explicit_stay_put = true;
+                    }
+                    MoveAttemptResolution::AttemptPush => {
+                        let depth = depth - 1;
+                        if depth >= 0 {
+                            let (can_move_result, hero_has_died_result, win_has_triggered_result) =
+                                self.attempt_move_in_direction(
+                                    map,
+                                    animations,
+                                    entities_to_try_update,
+                                    other_entity_key,
+                                    direction,
+                                    depth,
+                                );
+
+                            if !can_move_result {
+                                can_move = false;
+                            }
+                            hero_has_died |= hero_has_died_result;
+                            win_has_triggered |= win_has_triggered_result;
+                        } else {
+                            can_move = false;
+                        }
+                    }
+                }
+            }
+
+            (can_move, explicit_stay_put, fake_out_effect)
+        };
+
+        if can_move {
+            if let Some(e) = self.map.get_mut(entity_to_update_key) {
+                e.location = desired_location;
+            }
+            let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
+                return (can_move, hero_has_died, win_has_triggered);
+            };
+
+            animations.push(AnimationInstruction::Move(
+                entity_to_update_key,
+                desired_location,
+                entity_to_update.move_effect(),
+            ));
+
+            let overlap_resolutions: Vec<_> = self
+                .whats_at(desired_location)
+                .filter(|(k, _)| *k != entity_to_update_key)
+                .map(|(key, other_entity)| (key, resolve_overlap(entity_to_update, other_entity)))
+                .collect();
+
+            for (other_entity_key, move_resolution) in overlap_resolutions {
+                match move_resolution {
+                    OverlapResolution::Pickup => {
+                        animations.push(AnimationInstruction::Attach(
+                            entity_to_update_key,
+                            other_entity_key,
+                            self.map
+                                .get(other_entity_key)
+                                .and_then(|x| x.pickup_sound_effect()),
+                        ));
+                        let other = self.map.remove(other_entity_key).unwrap();
+
+                        if let Some((location, dropped)) = self
+                            .map
+                            .get_mut(entity_to_update_key)
+                            .and_then(|x| x.pickup(other.entity).map(|y| (x.location, y)))
+                        {
+                            let new_key = self.map.insert(Entity {
+                                location,
+                                entity: dropped,
+                            });
+
+                            animations.push(AnimationInstruction::Detatch(
+                                entity_to_update_key,
+                                new_key,
+                                self.map.get(new_key).and_then(|x| x.drop_effect()),
+                            ));
+                        }
+                    }
+                    OverlapResolution::CoExist => {}
+                    OverlapResolution::Win => {
+                        win_has_triggered = true;
+                    }
+                    OverlapResolution::ToggleSystem(system) => {
+                        for (k, e) in self.map.iter_mut() {
+                            if let Some(change) = e.switch(system) {
+                                animations.push(AnimationInstruction::Change(
+                                    k,
+                                    change,
+                                    e.change_effect(),
+                                ));
+                            }
+                        }
+                    }
+                    OverlapResolution::Die => {
+                        hero_has_died |= self.kill_entity(entity_to_update_key, animations);
+                        break;
+                    }
+                    OverlapResolution::MoveAgain => {
+                        entities_to_try_update
+                            .push_front((entity_to_update_key, Action::Direction(direction)));
+                    }
+                }
+            }
+        } else {
+            animations.push(AnimationInstruction::FakeOutMove(
+                entity_to_update_key,
+                direction,
+                if explicit_stay_put {
+                    self.map
+                        .get(entity_to_update_key)
+                        .and_then(|e| e.fake_out_wall_effect())
+                } else {
+                    fake_out_effect.or_else(|| {
+                        self.map
+                            .get(entity_to_update_key)
+                            .and_then(|e| e.fake_out_effect())
+                    })
+                },
+            ));
+        }
+
+        (can_move, hero_has_died, win_has_triggered)
+    }
+
     pub fn tick(&mut self, map: &Map, hero: Action) -> (Outcome, Vec<AnimationInstruction>) {
         let mut hero_has_died = false;
         let mut win_has_triggered = false;
@@ -117,169 +306,21 @@ impl EntityMap {
                         }
                     }
 
-                    let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
-                        continue;
-                    };
-
-                    let entity_location = entity_to_update.location;
-
-                    let desired_location = entity_location + direction.into();
-                    let surface = map.get(desired_location);
-                    if surface == MapElement::Wall {
-                        animations.push(AnimationInstruction::FakeOutMove(
+                    let (_, hero_has_died_result, win_has_triggered_result) = self
+                        .attempt_move_in_direction(
+                            map,
+                            &mut animations,
+                            &mut entities_to_try_update,
                             entity_to_update_key,
                             direction,
                             self.map
                                 .get(entity_to_update_key)
-                                .and_then(|e| e.fake_out_wall_effect()),
-                        ));
-                        continue;
-                    }
+                                .and_then(|e| e.push_depth())
+                                .unwrap_or(0),
+                        );
 
-                    let (can_move, explicit_stay_put, fake_out_effect) = {
-                        let mut can_move = true;
-                        let mut explicit_stay_put = false;
-                        let mut fake_out_effect = None;
-
-                        let move_attempt_resolutions: Vec<_> = self
-                            .whats_at(desired_location)
-                            .filter(|(k, _)| *k != entity_to_update_key)
-                            .map(|(key, other_entity)| {
-                                (key, resolve_move(entity_to_update, other_entity))
-                            })
-                            .collect();
-
-                        for (other_entity_key, move_resolution) in move_attempt_resolutions {
-                            match move_resolution {
-                                MoveAttemptResolution::KillDie => {
-                                    hero_has_died |=
-                                        self.kill_entity(other_entity_key, &mut animations);
-                                    hero_has_died |=
-                                        self.kill_entity(entity_to_update_key, &mut animations);
-                                    can_move = false;
-                                }
-                                MoveAttemptResolution::Kill => {
-                                    hero_has_died |=
-                                        self.kill_entity(other_entity_key, &mut animations);
-                                    fake_out_effect = self
-                                        .map
-                                        .get(entity_to_update_key)
-                                        .and_then(|x| x.kill_sound_effect());
-                                    can_move = false;
-                                }
-                                MoveAttemptResolution::Die => {
-                                    hero_has_died |=
-                                        self.kill_entity(entity_to_update_key, &mut animations);
-                                    can_move = false;
-                                }
-                                MoveAttemptResolution::CoExist => {}
-                                MoveAttemptResolution::StayPut => {
-                                    can_move = false;
-                                    explicit_stay_put = true;
-                                }
-                                MoveAttemptResolution::AttemptPush => todo!(),
-                            }
-                        }
-
-                        (can_move, explicit_stay_put, fake_out_effect)
-                    };
-
-                    if can_move {
-                        if let Some(e) = self.map.get_mut(entity_to_update_key) {
-                            e.location = desired_location;
-                        }
-                        let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
-                            continue;
-                        };
-
-                        animations.push(AnimationInstruction::Move(
-                            entity_to_update_key,
-                            desired_location,
-                            entity_to_update.move_effect(),
-                        ));
-
-                        let overlap_resolutions: Vec<_> = self
-                            .whats_at(desired_location)
-                            .filter(|(k, _)| *k != entity_to_update_key)
-                            .map(|(key, other_entity)| {
-                                (key, resolve_overlap(entity_to_update, other_entity))
-                            })
-                            .collect();
-
-                        for (other_entity_key, move_resolution) in overlap_resolutions {
-                            match move_resolution {
-                                OverlapResolution::Pickup => {
-                                    animations.push(AnimationInstruction::Attach(
-                                        entity_to_update_key,
-                                        other_entity_key,
-                                        self.map
-                                            .get(other_entity_key)
-                                            .and_then(|x| x.pickup_sound_effect()),
-                                    ));
-                                    let other = self.map.remove(other_entity_key).unwrap();
-
-                                    if let Some((location, dropped)) =
-                                        self.map.get_mut(entity_to_update_key).and_then(|x| {
-                                            x.pickup(other.entity).map(|y| (x.location, y))
-                                        })
-                                    {
-                                        let new_key = self.map.insert(Entity {
-                                            location,
-                                            entity: dropped,
-                                        });
-
-                                        animations.push(AnimationInstruction::Detatch(
-                                            entity_to_update_key,
-                                            new_key,
-                                            self.map.get(new_key).and_then(|x| x.drop_effect()),
-                                        ));
-                                    }
-                                }
-                                OverlapResolution::CoExist => {}
-                                OverlapResolution::Win => {
-                                    win_has_triggered = true;
-                                }
-                                OverlapResolution::ToggleSystem(system) => {
-                                    for (k, e) in self.map.iter_mut() {
-                                        if let Some(change) = e.switch(system) {
-                                            animations.push(AnimationInstruction::Change(
-                                                k,
-                                                change,
-                                                e.change_effect(),
-                                            ));
-                                        }
-                                    }
-                                }
-                                OverlapResolution::Die => {
-                                    hero_has_died |=
-                                        self.kill_entity(entity_to_update_key, &mut animations);
-                                    break;
-                                }
-                                OverlapResolution::MoveAgain => {
-                                    entities_to_try_update.push_front((
-                                        entity_to_update_key,
-                                        Action::Direction(direction),
-                                    ));
-                                }
-                            }
-                        }
-                    } else {
-                        animations.push(AnimationInstruction::FakeOutMove(
-                            entity_to_update_key,
-                            direction,
-                            if explicit_stay_put {
-                                self.map
-                                    .get(entity_to_update_key)
-                                    .and_then(|e| e.fake_out_wall_effect())
-                            } else {
-                                fake_out_effect.or_else(|| {
-                                    self.map
-                                        .get(entity_to_update_key)
-                                        .and_then(|e| e.fake_out_effect())
-                                })
-                            },
-                        ));
-                    }
+                    hero_has_died |= hero_has_died_result;
+                    win_has_triggered |= win_has_triggered_result;
                 }
             }
         }
@@ -331,6 +372,7 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
     match (&me.entity, &other.entity) {
         (EntityType::Hero(_), EntityType::Stairs) => OverlapResolution::Win,
         (_, EntityType::Item(_)) => OverlapResolution::Pickup,
+        (EntityType::MovableBlock, EntityType::Spikes(_)) => OverlapResolution::CoExist,
         (_, EntityType::Spikes(switch)) => resolve_spikes(switch),
         (_, EntityType::Switch(switch)) => OverlapResolution::ToggleSystem(switch.system),
         (_, EntityType::Enemy(_) | EntityType::Hero(_)) => OverlapResolution::Die,
@@ -408,6 +450,7 @@ fn resolve_move(mover: &Entity, into: &Entity) -> MoveAttemptResolution {
             holding_door_resolve(squid.holding.as_deref())
         }
         (_, EntityType::Door) => MoveAttemptResolution::StayPut,
+        (_, EntityType::MovableBlock) => MoveAttemptResolution::AttemptPush,
         (_, _) => MoveAttemptResolution::CoExist,
     }
 }
@@ -439,6 +482,7 @@ pub enum EntityType {
     Switch(Switchable),
     Spikes(Switchable),
     Ice,
+    MovableBlock,
 }
 
 #[derive(Debug)]
@@ -457,6 +501,7 @@ pub enum Enemy {
 pub enum Item {
     Sword,
     Key,
+    Glove,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -549,6 +594,14 @@ impl Entity {
             EntityType::Hero(hero) => hero.holding.take().map(|x| *x),
             EntityType::Enemy(Enemy::Squid(squid)) => squid.holding.take().map(|x| *x),
             _ => None,
+        }
+    }
+
+    fn push_depth(&self) -> Option<i32> {
+        if matches!(self.holding(), Some(&EntityType::Item(Item::Glove))) {
+            Some(i32::MAX)
+        } else {
+            Some(1)
         }
     }
 
@@ -721,6 +774,8 @@ impl From<level::Item> for EntityType {
                 holding: None,
             })),
             level::Item::Ice => EntityType::Ice,
+            level::Item::MovableBlock => EntityType::MovableBlock,
+            level::Item::Glove => EntityType::Item(Item::Glove),
         }
     }
 }

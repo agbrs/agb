@@ -19,6 +19,8 @@ pub enum Item {
     SquidUp,
     SquidDown,
     Ice,
+    MovableBlock,
+    Glove,
 }
 
 impl Item {
@@ -39,6 +41,8 @@ impl Item {
             Item::SquidUp => resources::SQUID_UP_SHADOW,
             Item::SquidDown => resources::SQUID_DOWN_SHADOW,
             Item::Ice => resources::ICE,
+            Item::MovableBlock => resources::BLOCK,
+            Item::Glove => resources::GLOVE,
         }
     }
 
@@ -59,6 +63,8 @@ impl Item {
             Item::SquidUp => resources::SQUID_UP,
             Item::SquidDown => resources::SQUID_DOWN,
             Item::Ice => resources::ICE,
+            Item::MovableBlock => resources::BLOCK,
+            Item::Glove => resources::GLOVE,
         }
     }
 
@@ -82,6 +88,8 @@ impl Item {
             Item::SquidUp => STANDARD,
             Item::SquidDown => STANDARD,
             Item::Ice => ZERO,
+            Item::MovableBlock => ZERO,
+            Item::Glove => STANDARD,
         }
     }
 }
