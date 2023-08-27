@@ -9,6 +9,7 @@ use std::{
 use proc_macro2::TokenStream;
 
 const LEVEL_NAMES: &[&str] = &[
+    "a_familiar_sight",
     "level1",
     "level2",
     "level3",
@@ -100,6 +101,7 @@ enum Entity {
     SpikesDown,
     SquidUp,
     SquidDown,
+    Ice,
 }
 
 impl FromStr for Entity {
@@ -123,6 +125,7 @@ impl FromStr for Entity {
             "SPIKES_DOWN" => SpikesDown,
             "SQUID_UP" => SquidUp,
             "SQUID_DOWN" => SquidDown,
+            "ICE" => Ice,
             _ => return Err(()),
         })
     }
@@ -147,6 +150,7 @@ impl quote::ToTokens for Entity {
             SpikesDown => quote!(Item::SpikesDown),
             SquidUp => quote!(Item::SquidUp),
             SquidDown => quote!(Item::SquidDown),
+            Ice => quote!(Item::Ice),
         })
     }
 }
