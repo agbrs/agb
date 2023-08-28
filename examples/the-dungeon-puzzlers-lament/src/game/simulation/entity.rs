@@ -315,7 +315,13 @@ impl EntityMap {
             .map
             .iter()
             .map(|(key, entity)| (key, entity.desired_action(hero)))
-            .collect::<VecDeque<_>>();
+            .collect::<Vec<_>>();
+
+        entities_to_try_update.sort_unstable_by_key(|(e, _)| {
+            let e = self.map.get(*e).unwrap();
+            e.location.x + e.location.y * 1000
+        });
+        let mut entities_to_try_update = VecDeque::from(entities_to_try_update);
 
         while let Some((entity_to_update_key, desired_action)) = entities_to_try_update.pop_front()
         {
