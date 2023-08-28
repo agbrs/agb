@@ -121,7 +121,12 @@ impl RenderCache {
         let mut score = 0;
         if matches!(
             self.item,
-            Item::Stairs | Item::Switch | Item::SwitchPressed | Item::SpikesDown | Item::SpikesUp
+            Item::Stairs
+                | Item::Switch
+                | Item::SwitchPressed
+                | Item::SpikesDown
+                | Item::SpikesUp
+                | Item::Ice
         ) {
             score += 100000;
         }
