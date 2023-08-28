@@ -89,7 +89,6 @@ impl EntityMap {
         &mut self,
         map: &Map,
         animations: &mut Vec<AnimationInstruction>,
-        entities_to_try_update: &mut VecDeque<(EntityKey, Action)>,
         entity_to_update_key: EntityKey,
         direction: Direction,
         can_turn_around: bool,
@@ -150,7 +149,6 @@ impl EntityMap {
                                 self.attempt_move_in_direction(
                                     map,
                                     animations,
-                                    entities_to_try_update,
                                     other_entity_key,
                                     direction,
                                     true,
@@ -250,8 +248,14 @@ impl EntityMap {
                         break;
                     }
                     OverlapResolution::MoveAgain => {
-                        entities_to_try_update
-                            .push_front((entity_to_update_key, Action::Direction(direction)));
+                        self.attempt_move_in_direction(
+                            map,
+                            animations,
+                            other_entity_key,
+                            direction,
+                            false,
+                            push_depth,
+                        );
                     }
                 }
             }
@@ -273,7 +277,6 @@ impl EntityMap {
                 return self.attempt_move_in_direction(
                     map,
                     animations,
-                    entities_to_try_update,
                     entity_to_update_key,
                     -direction,
                     false,
@@ -323,7 +326,6 @@ impl EntityMap {
                         .attempt_move_in_direction(
                             map,
                             &mut animations,
-                            &mut entities_to_try_update,
                             entity_to_update_key,
                             direction,
                             true,

@@ -54,7 +54,7 @@ impl ToPlay {
             }
             AnimationInstruction::FakeOutMove(e, d, p, s) => {
                 self.fakeout
-                    .push(FakeOutMove(e, d, p.map(|p| convert_to_real_space(p)), s))
+                    .push(FakeOutMove(e, d, p.map(convert_to_real_space), s))
             }
             AnimationInstruction::Detatch(e, nk, s) => self.detatch.push(Detatch(e, nk, s)),
             AnimationInstruction::Attach(e, o, s) => {
