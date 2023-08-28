@@ -6,7 +6,7 @@ use core::ops::{Deref, DerefMut};
 
 use agb::{
     display::object::{OamIterator, ObjectUnmanaged, SpriteLoader},
-    fixnum::{Num, Vector2D},
+    fixnum::{num, Num, Vector2D},
 };
 use alloc::vec::Vec;
 use slotmap::SecondaryMap;
@@ -52,7 +52,10 @@ impl ToPlay {
             AnimationInstruction::Move(e, p, s) => {
                 self.moves.push(Move(e, convert_to_real_space(p), s));
             }
-            AnimationInstruction::FakeOutMove(e, d, s) => self.fakeout.push(FakeOutMove(e, d, s)),
+            AnimationInstruction::FakeOutMove(e, d, p, s) => {
+                self.fakeout
+                    .push(FakeOutMove(e, d, p.map(|p| convert_to_real_space(p)), s))
+            }
             AnimationInstruction::Detatch(e, nk, s) => self.detatch.push(Detatch(e, nk, s)),
             AnimationInstruction::Attach(e, o, s) => {
                 if let Some(entity_to_attach) = map.get(o) {
@@ -249,8 +252,13 @@ impl Animation {
 
                 for m in self.to_play.fakeout.drain(0..) {
                     let entity = m.0;
+                    let destination = m.2;
 
-                    self.map.set_entity_to_start_location(entity);
+                    if let Some(destination) = destination {
+                        self.map.set_entity_start_location(entity, destination);
+                    } else {
+                        self.map.set_entity_to_start_location(entity);
+                    }
                 }
 
                 for m in self.to_play.attach_progress.drain(0..) {
@@ -281,18 +289,33 @@ impl Animation {
 
                 for m in self.to_play.fakeout.iter_mut() {
                     let entity = m.0;
-                    let direction = m.1;
-                    let direction = convert_to_real_space(direction.into());
-
-                    sfx.play_sound_effect(m.2.take());
-
-                    let go_to = direction / 2;
-
-                    let start = (self.ease * 2 - 1).abs();
-                    let end_multiplier = -start + 1;
-
                     if let Some(entity) = self.map.get_mut(entity) {
-                        let location = entity.start_position + go_to * end_multiplier;
+                        let direction = m.1;
+                        let destination = m.2.unwrap_or(entity.start_position);
+                        let direction = convert_to_real_space(direction.into());
+
+                        sfx.play_sound_effect(m.3.take());
+
+                        let go_to = destination + direction / 2;
+
+                        let mix = (self.ease * 2 - 1).abs();
+                        let start_position_mix = if self.ease <= num!(0.5) {
+                            mix
+                        } else {
+                            0.into()
+                        };
+
+                        let end_position_mix = if self.ease >= num!(0.5) {
+                            mix
+                        } else {
+                            0.into()
+                        };
+
+                        let intermediate_position_mix = -mix + 1;
+
+                        let location = entity.start_position * start_position_mix
+                            + go_to * intermediate_position_mix
+                            + destination * end_position_mix;
 
                         entity.rendered_position = location;
                     }
@@ -386,7 +409,12 @@ impl Animation {
 }
 
 struct Move(EntityKey, Vector2D<Num<i32, 10>>, Option<SoundEffect>);
-struct FakeOutMove(EntityKey, Direction, Option<SoundEffect>);
+struct FakeOutMove(
+    EntityKey,
+    Direction,
+    Option<Vector2D<Num<i32, 10>>>,
+    Option<SoundEffect>,
+);
 struct Detatch(EntityKey, EntityKey, Option<SoundEffect>);
 struct Attach(EntityKey, Item, EntityKey, Option<SoundEffect>);
 struct AttachProgress(EntityKey, Option<SoundEffect>);
@@ -397,7 +425,12 @@ struct Change(EntityKey, Item, Option<SoundEffect>);
 pub enum AnimationInstruction {
     Add(EntityKey, Item, Vector2D<i32>, Option<SoundEffect>),
     Move(EntityKey, Vector2D<i32>, Option<SoundEffect>),
-    FakeOutMove(EntityKey, Direction, Option<SoundEffect>),
+    FakeOutMove(
+        EntityKey,
+        Direction,
+        Option<Vector2D<i32>>,
+        Option<SoundEffect>,
+    ),
     Detatch(EntityKey, EntityKey, Option<SoundEffect>),
     Attach(EntityKey, EntityKey, Option<SoundEffect>),
     Change(EntityKey, Item, Option<SoundEffect>),

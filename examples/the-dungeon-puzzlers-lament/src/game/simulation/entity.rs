@@ -182,17 +182,24 @@ impl EntityMap {
                 return (can_move, hero_has_died, win_has_triggered);
             };
 
-            animations.push(AnimationInstruction::Move(
-                entity_to_update_key,
-                desired_location,
-                entity_to_update.move_effect(),
-            ));
+            let move_effect = entity_to_update.move_effect();
 
             let overlap_resolutions: Vec<_> = self
                 .whats_at(desired_location)
                 .filter(|(k, _)| *k != entity_to_update_key)
                 .map(|(key, other_entity)| (key, resolve_overlap(entity_to_update, other_entity)))
                 .collect();
+
+            if !overlap_resolutions
+                .iter()
+                .any(|x| matches!(x.1, OverlapResolution::MoveAgain))
+            {
+                animations.push(AnimationInstruction::Move(
+                    entity_to_update_key,
+                    desired_location,
+                    move_effect,
+                ));
+            }
 
             for (other_entity_key, move_resolution) in overlap_resolutions {
                 match move_resolution {
@@ -277,6 +284,7 @@ impl EntityMap {
             animations.push(AnimationInstruction::FakeOutMove(
                 entity_to_update_key,
                 direction,
+                self.map.get(entity_to_update_key).map(|e| e.location),
                 if explicit_stay_put {
                     self.map
                         .get(entity_to_update_key)
