@@ -50,8 +50,10 @@ named_tag!(
         SQUID_UP_SHADOW,
         SQUID_DOWN_SHADOW,
         ICE,
-        BLOCK,
-        GLOVE,
+        ROCK,
+        ROCK_SHADOW,
+        POW_GLOVE,
+        POW_GLOVE_SHADOW,
     ]
 );
 

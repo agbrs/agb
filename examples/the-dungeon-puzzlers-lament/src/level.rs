@@ -41,8 +41,8 @@ impl Item {
             Item::SquidUp => resources::SQUID_UP_SHADOW,
             Item::SquidDown => resources::SQUID_DOWN_SHADOW,
             Item::Ice => resources::ICE,
-            Item::MovableBlock => resources::BLOCK,
-            Item::Glove => resources::GLOVE,
+            Item::MovableBlock => resources::ROCK_SHADOW,
+            Item::Glove => resources::POW_GLOVE_SHADOW,
         }
     }
 
@@ -63,8 +63,8 @@ impl Item {
             Item::SquidUp => resources::SQUID_UP,
             Item::SquidDown => resources::SQUID_DOWN,
             Item::Ice => resources::ICE,
-            Item::MovableBlock => resources::BLOCK,
-            Item::Glove => resources::GLOVE,
+            Item::MovableBlock => resources::ROCK,
+            Item::Glove => resources::POW_GLOVE,
         }
     }
 
@@ -88,7 +88,7 @@ impl Item {
             Item::SquidUp => STANDARD,
             Item::SquidDown => STANDARD,
             Item::Ice => ZERO,
-            Item::MovableBlock => ZERO,
+            Item::MovableBlock => STANDARD,
             Item::Glove => STANDARD,
         }
     }
