@@ -315,36 +315,35 @@ impl EntityMap {
             .map
             .iter()
             .map(|(key, entity)| (key, entity.desired_action(hero)))
+            .filter_map(|(key, action)| match action {
+                Action::Nothing => None,
+                Action::Direction(direction) => Some((key, direction)),
+            })
             .collect::<Vec<_>>();
 
         entities_to_try_update.sort_unstable_by_key(|(e, _)| {
             let e = self.map.get(*e).unwrap();
             e.location.x + e.location.y * 1000
         });
-        let mut entities_to_try_update = VecDeque::from(entities_to_try_update);
 
-        while let Some((entity_to_update_key, desired_action)) = entities_to_try_update.pop_front()
-        {
-            match desired_action {
-                Action::Nothing => {}
-                Action::Direction(direction) => {
-                    let (_, hero_has_died_result, win_has_triggered_result) = self
-                        .attempt_move_in_direction(
-                            map,
-                            &mut animations,
-                            entity_to_update_key,
-                            direction,
-                            true,
-                            self.map
-                                .get(entity_to_update_key)
-                                .and_then(|e| e.push_depth())
-                                .unwrap_or(0),
-                        );
+        let entities_to_try_update = entities_to_try_update;
 
-                    hero_has_died |= hero_has_died_result;
-                    win_has_triggered |= win_has_triggered_result;
-                }
-            }
+        for (entity_to_update_key, direction) in entities_to_try_update.iter().copied() {
+            let (_, hero_has_died_result, win_has_triggered_result) = self
+                .attempt_move_in_direction(
+                    map,
+                    &mut animations,
+                    entity_to_update_key,
+                    direction,
+                    true,
+                    self.map
+                        .get(entity_to_update_key)
+                        .and_then(|e| e.push_depth())
+                        .unwrap_or(0),
+                );
+
+            hero_has_died |= hero_has_died_result;
+            win_has_triggered |= win_has_triggered_result;
         }
 
         (
