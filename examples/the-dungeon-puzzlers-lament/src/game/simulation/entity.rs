@@ -251,7 +251,7 @@ impl EntityMap {
                         self.attempt_move_in_direction(
                             map,
                             animations,
-                            other_entity_key,
+                            entity_to_update_key,
                             direction,
                             false,
                             push_depth,
