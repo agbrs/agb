@@ -5,7 +5,7 @@
 use core::ops::Neg;
 
 use agb::fixnum::Vector2D;
-use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
+use alloc::{boxed::Box, vec::Vec};
 use slotmap::{new_key_type, SlotMap};
 
 use crate::{
@@ -311,7 +311,7 @@ impl EntityMap {
 
         let mut animations = Vec::new();
 
-        let mut entities_to_try_update = self
+        let entities_to_try_update = self
             .map
             .iter()
             .map(|(key, entity)| (key, entity.desired_action(hero)))
@@ -320,13 +320,6 @@ impl EntityMap {
                 Action::Direction(direction) => Some((key, direction)),
             })
             .collect::<Vec<_>>();
-
-        entities_to_try_update.sort_unstable_by_key(|(e, _)| {
-            let e = self.map.get(*e).unwrap();
-            e.location.x + e.location.y * 1000
-        });
-
-        let entities_to_try_update = entities_to_try_update;
 
         for (entity_to_update_key, direction) in entities_to_try_update.iter().copied() {
             let (_, hero_has_died_result, win_has_triggered_result) = self

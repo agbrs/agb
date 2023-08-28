@@ -41,7 +41,10 @@ impl Simulation {
         let mut entities = EntityMap::default();
         let mut animation = Animation::default();
 
-        for (item, location) in a {
+        let mut entities_to_add: Vec<_> = a.collect();
+        entities_to_add.sort_unstable_by_key(|(_, location)| location.x + location.y * 100);
+
+        for (item, location) in entities_to_add {
             animation.populate(entities.add(item, location), sfx);
         }
 
