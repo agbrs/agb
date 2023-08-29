@@ -365,7 +365,7 @@ impl EntityMap {
 
                     if let Some((_other_teleporter_key, other_teleporter)) = other_teleporter {
                         let location_to_teleport_to = other_teleporter.location;
-                        if self.whats_at(location_to_teleport_to).count() != 0 {
+                        if self.whats_at(location_to_teleport_to).count() == 1 {
                             //ok, we can teleport
                             remove_move_animation_for_entity(animations, entity_to_update_key);
                             animations.push(AnimationInstruction::Move(
