@@ -490,7 +490,7 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
         (EntityType::MovableBlock, EntityType::Spikes(_)) => OverlapResolution::CoExist,
         (_, EntityType::Spikes(switch)) => resolve_spikes(switch),
         (_, EntityType::Switch(switch)) => OverlapResolution::ToggleSystem(switch.system),
-        (_, EntityType::Enemy(_) | EntityType::Hero(_)) => OverlapResolution::Die,
+        (_, EntityType::Enemy(_)) => OverlapResolution::Die,
         (_, EntityType::Ice) => OverlapResolution::MoveAgain,
         (_, EntityType::Teleporter) => OverlapResolution::Teleport,
 
