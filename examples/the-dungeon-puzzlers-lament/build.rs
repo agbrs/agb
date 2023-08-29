@@ -359,7 +359,7 @@ fn export_ui_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
                 let tile_id = tile.id() as u16;
                 let vflip = tile.flip_v;
                 let hflip = tile.flip_h;
-                
+
                 quote! { backgrounds::#background.tile_settings[#tile_id as usize].hflip(#hflip).vflip(#vflip) }
             }
             None => {
