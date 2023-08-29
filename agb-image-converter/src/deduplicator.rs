@@ -72,7 +72,7 @@ impl Tile {
 
     fn vflipped(&self) -> Self {
         let mut new_data = self.data;
-        for y in 0..8 {
+        for y in 0..4 {
             for x in 0..8 {
                 new_data.swap(y * 8 + x, (7 - y) * 8 + x);
             }
@@ -85,7 +85,7 @@ impl Tile {
         let mut new_data = self.data;
 
         for y in 0..8 {
-            for x in 0..8 {
+            for x in 0..4 {
                 new_data.swap(y * 8 + x, y * 8 + (7 - x));
             }
         }

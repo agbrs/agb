@@ -11,7 +11,7 @@ use agb::{
         object::{Graphics, OamManaged, Object, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
-            TileSetting, TiledMap, VRamManager,
+            TiledMap, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
@@ -101,7 +101,7 @@ mod map_tiles {
     }
 }
 
-agb::include_background_gfx!(tile_sheet, "2ce8f4", background => "gfx/tile_sheet.png");
+agb::include_background_gfx!(tile_sheet, "2ce8f4", background => deduplicate "gfx/tile_sheet.png");
 
 const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
 const TAG_MAP: &TagMap = GRAPHICS.tags();
@@ -801,7 +801,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 &mut vram,
                 (x, y).into(),
                 &tileset,
-                TileSetting::from_raw(level_display::BLANK),
+                tile_sheet::background.tile_settings[level_display::BLANK],
             );
         }
     }
@@ -846,6 +846,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 current_level % 8 + 1,
                 &tileset,
                 &mut vram,
+                tile_sheet::background.tile_settings,
             );
 
             world_display.commit(&mut vram);
@@ -865,12 +866,11 @@ pub fn main(mut agb: agb::Gba) -> ! {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
                         &tileset,
-                        TileSetting::from_raw(
-                            *level
-                                .background
-                                .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
-                                .unwrap_or(&0),
-                        ),
+                        tile_sheet::background.tile_settings[*level
+                            .background
+                            .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
+                            .unwrap_or(&0)
+                            as usize],
                     )
                 }),
             );
@@ -884,12 +884,11 @@ pub fn main(mut agb: agb::Gba) -> ! {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
                         &tileset,
-                        TileSetting::from_raw(
-                            *level
-                                .foreground
-                                .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
-                                .unwrap_or(&0),
-                        ),
+                        tile_sheet::background.tile_settings[*level
+                            .foreground
+                            .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
+                            .unwrap_or(&0)
+                            as usize],
                     )
                 }),
             );

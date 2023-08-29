@@ -3,10 +3,10 @@ use agb::display::{
     HEIGHT, WIDTH,
 };
 
-const LEVEL_START: u16 = 12 * 28;
-const NUMBERS_START: u16 = 12 * 28 + 3;
-const HYPHEN: u16 = 12 * 28 + 11;
-pub const BLANK: u16 = 11 * 28;
+const LEVEL_START: usize = 12 * 28;
+const NUMBERS_START: usize = 12 * 28 + 3;
+const HYPHEN: usize = 12 * 28 + 11;
+pub const BLANK: usize = 11 * 28;
 
 pub fn write_level(
     map: &mut RegularMap,
@@ -14,15 +14,16 @@ pub fn write_level(
     level: u32,
     tileset: &'_ TileSet<'_>,
     vram: &mut VRamManager,
+    tile_settings: &[TileSetting],
 ) {
     for (i, &tile) in [
         LEVEL_START,
         LEVEL_START + 1,
         LEVEL_START + 2,
         BLANK,
-        world as u16 + NUMBERS_START - 1,
+        world as usize + NUMBERS_START - 1,
         HYPHEN,
-        level as u16 + NUMBERS_START - 1,
+        level as usize + NUMBERS_START - 1,
     ]
     .iter()
     .enumerate()
@@ -31,7 +32,7 @@ pub fn write_level(
             vram,
             (i as u16, 0).into(),
             tileset,
-            TileSetting::from_raw(tile),
+            tile_settings[tile as usize],
         );
     }
 
