@@ -21,6 +21,7 @@ pub enum Item {
     Ice,
     MovableBlock,
     Glove,
+    Teleporter,
 }
 
 impl Item {
@@ -43,6 +44,7 @@ impl Item {
             Item::Ice => resources::ICE,
             Item::MovableBlock => resources::ROCK_SHADOW,
             Item::Glove => resources::POW_GLOVE_SHADOW,
+            Item::Teleporter => resources::TELEPORTER,
         }
     }
 
@@ -65,6 +67,7 @@ impl Item {
             Item::Ice => resources::ICE,
             Item::MovableBlock => resources::ROCK,
             Item::Glove => resources::POW_GLOVE,
+            Item::Teleporter => resources::TELEPORTER,
         }
     }
 
@@ -90,6 +93,7 @@ impl Item {
             Item::Ice => ZERO,
             Item::MovableBlock => ZERO,
             Item::Glove => STANDARD,
+            Item::Teleporter => ZERO,
         }
     }
 }

@@ -54,6 +54,7 @@ named_tag!(
         ROCK_SHADOW,
         POW_GLOVE,
         POW_GLOVE_SHADOW,
+        TELEPORTER,
     ]
 );
 

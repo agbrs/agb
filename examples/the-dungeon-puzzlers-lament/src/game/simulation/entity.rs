@@ -568,6 +568,7 @@ pub enum EntityType {
     Spikes(Switchable),
     Ice,
     MovableBlock,
+    Teleporter,
 }
 
 #[derive(Debug)]
@@ -844,6 +845,7 @@ impl From<level::Item> for EntityType {
             level::Item::Ice => EntityType::Ice,
             level::Item::MovableBlock => EntityType::MovableBlock,
             level::Item::Glove => EntityType::Item(Item::Glove),
+            level::Item::Teleporter => EntityType::Teleporter,
         }
     }
 }
