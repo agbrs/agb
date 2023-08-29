@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting},
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet},
         Priority,
     },
     fixnum::{Num, Vector2D},
@@ -66,11 +66,11 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let tiles = [hat, purple, hyperspace, amplitude];
 
-    let palette_assignments = &[
-        games::hat.palette_assignments,
-        games::purple.palette_assignments,
-        games::hyperspace.palette_assignments,
-        games::amplitude.palette_assignments,
+    let tile_settings = &[
+        games::hat.tile_settings,
+        games::purple.tile_settings,
+        games::hyperspace.tile_settings,
+        games::amplitude.tile_settings,
     ];
 
     vram.set_background_palettes(games::PALETTES);
@@ -87,15 +87,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
             let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
-            (
-                &tiles[game],
-                TileSetting::new(
-                    tile_id as u16,
-                    false,
-                    false,
-                    palette_assignments[game][tile_id],
-                ),
-            )
+            (&tiles[game], tile_settings[game][tile_id])
         }),
     );
 
