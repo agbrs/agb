@@ -121,6 +121,7 @@ enum Entity {
     Ice,
     MovableBlock,
     Glove,
+    Teleporter,
 }
 
 impl FromStr for Entity {
@@ -147,6 +148,7 @@ impl FromStr for Entity {
             "ICE" => Ice,
             "BLOCK" => MovableBlock,
             "GLOVE" => Glove,
+            "TELEPORTER" => Teleporter,
             _ => return Err(()),
         })
     }
@@ -174,6 +176,7 @@ impl quote::ToTokens for Entity {
             Ice => quote!(Item::Ice),
             MovableBlock => quote!(Item::MovableBlock),
             Glove => quote!(Item::Glove),
+            Teleporter => quote!(Item::Teleporter),
         })
     }
 }

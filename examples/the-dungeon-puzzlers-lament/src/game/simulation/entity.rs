@@ -44,6 +44,21 @@ impl ActionResult {
     }
 }
 
+fn remove_move_animation_for_entity(
+    animations: &mut Vec<AnimationInstruction>,
+    entity_key: EntityKey,
+) {
+    if let Some(existing_animation) = animations.iter().position(|x| {
+        if let AnimationInstruction::Move(entity, _, _) = x {
+            *entity == entity_key
+        } else {
+            false
+        }
+    }) {
+        animations.swap_remove(existing_animation);
+    }
+}
+
 struct HasMoved(bool);
 struct WantsToMoveAgain(bool);
 
@@ -338,16 +353,31 @@ impl EntityMap {
                     break;
                 }
                 OverlapResolution::MoveAgain => {
-                    if let Some(existing_animation) = animations.iter().position(|x| {
-                        if let AnimationInstruction::Move(entity, _, _) = x {
-                            *entity == entity_to_update_key
-                        } else {
-                            false
-                        }
-                    }) {
-                        animations.swap_remove(existing_animation);
-                    }
+                    remove_move_animation_for_entity(animations, entity_to_update_key);
                     should_move_again = true;
+                }
+                OverlapResolution::Teleport => {
+                    // find other teleporter
+                    let other_teleporter = self.map.iter().find(|(entity_key, entity)| {
+                        *entity_key != other_entity_key
+                            && matches!(entity.entity, EntityType::Teleporter)
+                    });
+
+                    if let Some((_other_teleporter_key, other_teleporter)) = other_teleporter {
+                        let location_to_teleport_to = other_teleporter.location;
+                        if self.whats_at(location_to_teleport_to).count() != 0 {
+                            //ok, we can teleport
+                            remove_move_animation_for_entity(animations, entity_to_update_key);
+                            animations.push(AnimationInstruction::Move(
+                                entity_to_update_key,
+                                location_to_teleport_to,
+                                Some(SoundEffect::TeleportEffect),
+                            ));
+                            if let Some(entity) = self.map.get_mut(entity_to_update_key) {
+                                entity.location = location_to_teleport_to;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -440,6 +470,7 @@ enum OverlapResolution {
     ToggleSystem(SwitchSystem),
     Die,
     MoveAgain,
+    Teleport,
 }
 
 fn resolve_spikes(switable: &Switchable) -> OverlapResolution {
@@ -461,6 +492,7 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
         (_, EntityType::Switch(switch)) => OverlapResolution::ToggleSystem(switch.system),
         (_, EntityType::Enemy(_) | EntityType::Hero(_)) => OverlapResolution::Die,
         (_, EntityType::Ice) => OverlapResolution::MoveAgain,
+        (_, EntityType::Teleporter) => OverlapResolution::Teleport,
 
         _ => OverlapResolution::CoExist,
     }
