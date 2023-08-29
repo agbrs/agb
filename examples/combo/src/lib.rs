@@ -21,6 +21,7 @@ pub enum Game {
     TheHatChoosesTheWizard,
     ThePurpleNight,
     HyperspaceRoll,
+    TheDungeonPuzzlersLament,
     Amplitude,
 }
 
@@ -30,6 +31,7 @@ impl Game {
             Game::TheHatChoosesTheWizard => the_hat_chooses_the_wizard::main(gba),
             Game::ThePurpleNight => the_purple_night::main(gba),
             Game::HyperspaceRoll => hyperspace_roll::main(gba),
+            Game::TheDungeonPuzzlersLament => the_dungeon_puzzlers_lament::entry(gba),
             Game::Amplitude => amplitude::main(gba),
         }
     }
@@ -39,7 +41,8 @@ impl Game {
             0 => Game::TheHatChoosesTheWizard,
             1 => Game::ThePurpleNight,
             2 => Game::HyperspaceRoll,
-            3 => Game::Amplitude,
+            3 => Game::TheDungeonPuzzlersLament,
+            4 => Game::Amplitude,
             _ => unreachable!("game out of index in an unreachable manner"),
         }
     }
@@ -50,7 +53,8 @@ include_background_gfx!(
     hat => 256 deduplicate "gfx/hat.png",
     purple => 256 deduplicate "gfx/purple.png",
     hyperspace => 256 deduplicate "gfx/hyperspace.png",
-    amplitude => 256 deduplicate "gfx/amplitude.png"
+    dungeon_puzzler => 256 deduplicate "gfx/dungeon_puzzler.png",
+    amplitude => 256 deduplicate "gfx/amplitude.png",
 );
 
 fn get_game(gba: &mut agb::Gba) -> Game {
@@ -62,14 +66,16 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let hat = TileSet::new(games::hat.tiles, TileFormat::EightBpp);
     let purple = TileSet::new(games::purple.tiles, TileFormat::EightBpp);
     let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::EightBpp);
+    let dungeon_puzzler = TileSet::new(games::dungeon_puzzler.tiles, TileFormat::EightBpp);
     let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::EightBpp);
 
-    let tiles = [hat, purple, hyperspace, amplitude];
+    let tiles = [hat, purple, hyperspace, dungeon_puzzler, amplitude];
 
     let tile_settings = &[
         games::hat.tile_settings,
         games::purple.tile_settings,
         games::hyperspace.tile_settings,
+        games::dungeon_puzzler.tile_settings,
         games::amplitude.tile_settings,
     ];
 
