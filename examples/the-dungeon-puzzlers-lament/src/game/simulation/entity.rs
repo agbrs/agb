@@ -51,6 +51,8 @@ fn remove_move_animation_for_entity(
     if let Some(existing_animation) = animations.iter().position(|x| {
         if let AnimationInstruction::Move(entity, _, _) = x {
             *entity == entity_key
+        } else if let AnimationInstruction::FakeOutMove(entity, _, _, _) = x {
+            *entity == entity_key
         } else {
             false
         }
@@ -188,6 +190,7 @@ impl EntityMap {
                     MoveAttemptResolution::AttemptPush => {
                         let depth = push_depth - 1;
                         if depth >= 0 {
+                            remove_move_animation_for_entity(animations, other_entity_key);
                             let (can_move_result, action_result) = self.attempt_move_in_direction(
                                 map,
                                 animations,
