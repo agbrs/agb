@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - You can now declare where looping sound channels should restart.
 - Fixnums now have constructors from_f32 and from_f64. This is mainly useful if using agb-fixnum outside of the Game Boy Advance e.g. in build scripts or macros.
 - New option when loading a background to automatically deduplicate tiles.
+- Methods on tile_setting to toggle its hflip and vflip status.
 
 ### Changed
 
