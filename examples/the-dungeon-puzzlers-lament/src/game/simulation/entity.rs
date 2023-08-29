@@ -143,6 +143,9 @@ impl EntityMap {
 
         let desired_location = entity_location + direction.into();
         let surface = map.get(desired_location);
+
+        let mut should_die_later = false;
+
         let (can_move, explicit_stay_put, fake_out_effect) = if surface == MapElement::Wall {
             (false, true, None)
         } else {
@@ -153,7 +156,9 @@ impl EntityMap {
             let move_attempt_resolutions: Vec<_> = self
                 .whats_at(desired_location)
                 .filter(|(k, _)| *k != entity_to_update_key)
-                .map(|(key, other_entity)| (key, resolve_move(entity_to_update, other_entity)))
+                .map(|(key, other_entity)| {
+                    (key, resolve_move(entity_to_update, other_entity, direction))
+                })
                 .collect();
 
             for (other_entity_key, move_resolution) in move_attempt_resolutions {
@@ -203,6 +208,9 @@ impl EntityMap {
                             can_move = false;
                             explicit_stay_put = true;
                         }
+                    }
+                    MoveAttemptResolution::DieLater => {
+                        should_die_later = true;
                     }
                 }
             }
@@ -272,6 +280,10 @@ impl EntityMap {
                     })
                 },
             ));
+        }
+
+        if should_die_later {
+            hero_has_died |= self.kill_entity(entity_to_update_key, animations);
         }
 
         (
@@ -455,6 +467,7 @@ enum MoveAttemptResolution {
     Die,
     KillDie,
     CoExist,
+    DieLater,
     StayPut,
     AttemptPush,
 }
@@ -498,9 +511,16 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
     }
 }
 
-fn holding_attack_resolve(holding: Option<&EntityType>) -> MoveAttemptResolution {
-    match holding {
-        Some(&EntityType::Item(Item::Sword)) => MoveAttemptResolution::Kill,
+fn holding_attack_resolve(
+    holding: Option<&EntityType>,
+    other: &Entity,
+    direction: Direction,
+) -> MoveAttemptResolution {
+    match (holding, &other.entity) {
+        (Some(&EntityType::Item(Item::Sword)), _) => MoveAttemptResolution::Kill,
+        (_, EntityType::Enemy(Enemy::Squid(squid))) => {
+            hero_walk_into_squid_interaction(squid, direction)
+        }
         _ => MoveAttemptResolution::CoExist,
     }
 }
@@ -549,10 +569,18 @@ fn switch_door_resolve(door: &Switchable) -> MoveAttemptResolution {
     }
 }
 
-fn resolve_move(mover: &Entity, into: &Entity) -> MoveAttemptResolution {
+fn hero_walk_into_squid_interaction(squid: &Squid, direction: Direction) -> MoveAttemptResolution {
+    if direction == -squid.direction {
+        MoveAttemptResolution::DieLater
+    } else {
+        MoveAttemptResolution::CoExist
+    }
+}
+
+fn resolve_move(mover: &Entity, into: &Entity, direction: Direction) -> MoveAttemptResolution {
     match (&mover.entity, &into.entity) {
         (EntityType::Hero(hero), EntityType::Hero(_) | EntityType::Enemy(_)) => {
-            holding_attack_resolve(hero.holding.as_deref())
+            holding_attack_resolve(hero.holding.as_deref(), into, direction)
         }
         (EntityType::Hero(hero), EntityType::Door) => holding_door_resolve(hero.holding.as_deref()),
         (EntityType::Enemy(Enemy::Squid(squid)), EntityType::Hero(_) | EntityType::Enemy(_)) => {
