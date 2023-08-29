@@ -36,6 +36,7 @@ struct BackgroundGfxOption {
     module_name: String,
     file_name: String,
     colours: Colours,
+    deduplicate: bool,
 }
 
 impl config::Image for BackgroundGfxOption {
@@ -72,12 +73,30 @@ impl Parse for BackgroundGfxOption {
             Colours::Colours16
         };
 
+        let lookahead = input.lookahead1();
+
+        let deduplicate = if lookahead.peek(syn::Ident) {
+            let deduplicate: syn::Ident = input.parse()?;
+
+            if deduplicate == "deduplicate" {
+                true
+            } else {
+                return Err(syn::Error::new_spanned(
+                    deduplicate,
+                    "Must either be the literal deduplicate or missing",
+                ));
+            }
+        } else {
+            false
+        };
+
         let file_name: syn::LitStr = input.parse()?;
 
         Ok(Self {
             module_name: module_name.to_string(),
             file_name: file_name.value(),
             colours,
+            deduplicate,
         })
     }
 }

@@ -47,10 +47,10 @@ impl Game {
 
 include_background_gfx!(
     games, "121105",
-    hat => "gfx/hat.png",
-    purple => "gfx/purple.png",
-    hyperspace => "gfx/hyperspace.png",
-    amplitude => "gfx/amplitude.png"
+    hat => deduplicate "gfx/hat.png",
+    purple => deduplicate "gfx/purple.png",
+    hyperspace => deduplicate "gfx/hyperspace.png",
+    amplitude => deduplicate "gfx/amplitude.png"
 );
 
 fn get_game(gba: &mut agb::Gba) -> Game {
