@@ -88,7 +88,7 @@ impl Item {
             Item::SquidUp => STANDARD,
             Item::SquidDown => STANDARD,
             Item::Ice => ZERO,
-            Item::MovableBlock => STANDARD,
+            Item::MovableBlock => ZERO,
             Item::Glove => STANDARD,
         }
     }
