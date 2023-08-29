@@ -734,8 +734,13 @@ impl Entity {
     fn push_depth(&self) -> Option<i32> {
         if matches!(self.holding(), Some(&EntityType::Item(Item::Glove))) {
             Some(i32::MAX)
-        } else {
+        } else if matches!(
+            self.entity,
+            EntityType::Hero(_) | EntityType::Enemy(Enemy::Squid(_))
+        ) {
             Some(1)
+        } else {
+            None
         }
     }
 
