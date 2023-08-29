@@ -102,6 +102,8 @@ impl EntityMap {
         AnimationInstruction::Add(idx, entity, location, None)
     }
 
+    // allow because while it's a lot of arguments, it's not confusing because they are all of different types
+    #[allow(clippy::too_many_arguments)]
     fn attempt_move_in_direction(
         &mut self,
         map: &Map,
