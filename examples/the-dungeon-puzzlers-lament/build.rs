@@ -30,6 +30,7 @@ const LEVEL_NAMES: &[&str] = &[
     "level_squidprogramming",
     "a_familiar_sight",
     "block_push_1",
+    "squid_rock",
     "block_push_2",
     "block_push_3",
 ];
