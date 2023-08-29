@@ -32,6 +32,7 @@ const LEVEL_NAMES: &[&str] = &[
     "block_push_1",
     "just_rocks",
     "squid_rock",
+    "ice_ice",
     "block_push_2",
     "glove_key",
     "block_push_3",
