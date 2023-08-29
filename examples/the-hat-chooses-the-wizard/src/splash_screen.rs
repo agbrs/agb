@@ -1,9 +1,9 @@
 use super::sfx::SfxPlayer;
-use agb::display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager};
+use agb::display::tiled::{RegularMap, TileFormat, TileSet, TiledMap, VRamManager};
 
 agb::include_background_gfx!(splash_screens,
-    splash => "gfx/splash.png",
-    thanks_for_playing => "gfx/thanks_for_playing.png",
+    splash => deduplicate "gfx/splash.png",
+    thanks_for_playing => deduplicate "gfx/thanks_for_playing.png",
 );
 
 pub enum SplashScreen {
@@ -18,12 +18,18 @@ pub fn show_splash_screen(
     vram: &mut VRamManager,
 ) {
     map.set_scroll_pos((0i16, 0i16).into());
-    let tileset = match which {
-        SplashScreen::Start => TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp),
+    let (tileset, settings) = match which {
+        SplashScreen::Start => (
+            TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp),
+            splash_screens::splash.tile_settings,
+        ),
 
-        SplashScreen::End => TileSet::new(
-            splash_screens::thanks_for_playing.tiles,
-            TileFormat::FourBpp,
+        SplashScreen::End => (
+            TileSet::new(
+                splash_screens::thanks_for_playing.tiles,
+                TileFormat::FourBpp,
+            ),
+            splash_screens::thanks_for_playing.tile_settings,
         ),
     };
 
@@ -40,7 +46,7 @@ pub fn show_splash_screen(
                 vram,
                 (x, y).into(),
                 &tileset,
-                TileSetting::from_raw(y * 30 + x),
+                settings[(y * 30 + x) as usize],
             );
         }
 
