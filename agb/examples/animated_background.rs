@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, TiledMap},
+        tiled::{RegularBackgroundSize, TileFormat, TileSet, TiledMap},
         Priority,
     },
     include_background_gfx,
@@ -32,7 +32,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 &mut vram,
                 (x, y).into(),
                 &tileset,
-                TileSetting::new(0, false, false, 0),
+                water_tiles::water_tiles.tile_settings[0],
             );
         }
     }

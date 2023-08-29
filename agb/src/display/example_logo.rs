@@ -1,6 +1,6 @@
 use super::tiled::{RegularMap, TileFormat, TileSet, TiledMap, VRamManager};
 
-crate::include_background_gfx!(crate, agb_logo, test_logo => "gfx/test_logo.png");
+crate::include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/test_logo.png");
 
 pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     vram.set_background_palettes(agb_logo::PALETTES);

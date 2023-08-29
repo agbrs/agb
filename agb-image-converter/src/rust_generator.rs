@@ -93,7 +93,7 @@ pub(crate) fn generate_code(
         let palette_assignment = assignments.get(data.new_index).unwrap_or(&0);
         let vflipped = data.transformation.vflip;
         let hflipped = data.transformation.hflip;
-        let index=  data.new_index as u16;
+        let index = data.new_index as u16;
 
         quote! {
             #crate_prefix::display::tiled::TileSetting::new(#index, #hflipped, #vflipped, #palette_assignment)
