@@ -465,6 +465,9 @@ fn resolve_move(mover: &Entity, into: &Entity) -> MoveAttemptResolution {
         }
         (_, EntityType::Door) => MoveAttemptResolution::StayPut,
         (_, EntityType::MovableBlock) => MoveAttemptResolution::AttemptPush,
+        (EntityType::MovableBlock, EntityType::Hero(_) | EntityType::Enemy(_)) => {
+            MoveAttemptResolution::StayPut
+        }
         (_, _) => MoveAttemptResolution::CoExist,
     }
 }
