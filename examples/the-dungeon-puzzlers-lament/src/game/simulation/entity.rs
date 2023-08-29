@@ -418,6 +418,8 @@ impl EntityMap {
             })
             .collect::<Vec<_>>();
 
+        let mut first_loop = true;
+
         while !entities_to_try_update.is_empty() {
             let mut entities_that_have_moved = Vec::new();
 
@@ -427,7 +429,7 @@ impl EntityMap {
                     &mut animations,
                     entity_to_update_key,
                     direction,
-                    true,
+                    first_loop,
                     self.map
                         .get(entity_to_update_key)
                         .and_then(|e| e.push_depth())
@@ -450,6 +452,8 @@ impl EntityMap {
                 hero_has_died |= action_result.hero_has_died;
                 win_has_triggered |= action_result.win_has_triggered;
             }
+
+            first_loop = false;
         }
 
         (
