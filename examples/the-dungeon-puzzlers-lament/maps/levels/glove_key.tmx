@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="6">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="7">
  <properties>
   <property name="DIRECTIONS" value="LLLLLU"/>
   <property name="ITEMS" value="KEY,BLOCK"/>
@@ -31,6 +31,9 @@
    <point/>
   </object>
   <object id="5" name="BLOCK" x="103.572" y="90.4434">
+   <point/>
+  </object>
+  <object id="6" name="SPIKES" x="39.8034" y="87.1091">
    <point/>
   </object>
  </objectgroup>
