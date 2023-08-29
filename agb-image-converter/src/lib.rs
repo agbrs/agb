@@ -15,6 +15,7 @@ use quote::{format_ident, quote, ToTokens};
 mod aseprite;
 mod colour;
 mod config;
+mod deduplicator;
 mod font_loader;
 mod image_loader;
 mod palette16;
@@ -429,6 +430,7 @@ fn convert_image(
 ) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(settings.filename());
     let image = Image::load_from_file(image_filename);
+    let deduplicate = settings.deduplicate();
 
     rust_generator::generate_code(
         variable_name,
@@ -437,6 +439,7 @@ fn convert_image(
         &image_filename.to_string_lossy(),
         crate_prefix.to_owned(),
         assignment_offset,
+        deduplicate,
     )
 }
 

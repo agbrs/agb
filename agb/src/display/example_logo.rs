@@ -1,4 +1,4 @@
-use super::tiled::{RegularMap, TileFormat, TileSet, TileSetting, TiledMap, VRamManager};
+use super::tiled::{RegularMap, TileFormat, TileSet, TiledMap, VRamManager};
 
 crate::include_background_gfx!(crate, agb_logo, test_logo => "gfx/test_logo.png");
 
@@ -11,10 +11,12 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
         for x in 0..30 {
             let tile_id = y * 30 + x;
 
-            let palette_entry = agb_logo::test_logo.palette_assignments[tile_id as usize];
-            let tile_setting = TileSetting::new(tile_id, false, false, palette_entry);
-
-            map.set_tile(vram, (x, y).into(), &background_tilemap, tile_setting);
+            map.set_tile(
+                vram,
+                (x as u16, y as u16).into(),
+                &background_tilemap,
+                agb_logo::test_logo.tile_settings[tile_id],
+            );
         }
     }
 
