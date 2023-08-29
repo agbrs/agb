@@ -37,6 +37,7 @@ const LEVEL_NAMES: &[&str] = &[
     "block_push_3",
     "teleporter_1",
     "squid_teleport",
+    "teleporter_2",
 ];
 
 fn main() {

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="12">
+ <properties>
+  <property name="DIRECTIONS" value="RRRRDDDDDDDD"/>
+  <property name="ITEMS" value="BLOCK,BLOCK,SQUID_DOWN,TELEPORTER,TELEPORTER,GLOVE,SPIKES"/>
+  <property name="NAME" value="The hero is rather useless without help"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,1,8,7,7,5,2,9,0,0,
+1,6,1073741852,15,16,15,13,14,3221225500,2,9,
+46,15,11,17,17,12,11,14,14,14,47,
+46,13,14,13,14,13,12,17,15,16,47,
+46,15,16,17,13,12,17,16,16,13,47,
+19,28,13,12,17,12,11,16,13,11,38,
+0,19,25,28,15,11,16,12,2147483676,24,27,
+0,0,0,19,28,17,2147483676,22,27,0,0,
+0,0,0,0,46,15,38,0,0,0,0,
+0,0,0,0,19,23,27,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="3" name="HERO" x="23.6165" y="40.8129">
+   <point/>
+  </object>
+  <object id="7" name="SWITCH" x="119.687" y="41.2715">
+   <point/>
+  </object>
+  <object id="8" name="BLOCK" x="102.949" y="39.4372">
+   <point/>
+  </object>
+  <object id="9" name="KEY" x="136.884" y="55.4872">
+   <point/>
+  </object>
+  <object id="10" name="STAIRS" x="85.9823" y="135.05">
+   <point/>
+  </object>
+  <object id="11" name="DOOR" x="87.358" y="118.77">
+   <point/>
+  </object>
+ </objectgroup>
+</map>
