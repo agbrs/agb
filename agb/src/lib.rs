@@ -33,7 +33,7 @@
 //!
 //! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
 
-/// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
+/// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
 /// Suppose you have a file in `examples/water_tiles.png` which contains some tiles you'd like to use.
 ///
@@ -89,7 +89,7 @@
 ///             &mut vram,
 ///             (x, y).into(),
 ///             &tileset,
-///             TileSetting::new(0, false, false, 0),
+///             water_tiles::tiles.tile_settings[0],
 ///         );
 ///     }
 /// }
