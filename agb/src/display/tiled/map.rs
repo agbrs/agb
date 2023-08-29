@@ -83,18 +83,18 @@ where
 
     fn commit(&mut self, vram: &mut VRamManager) {
         let screenblock_memory = self.screenblock_memory();
-        let tile_count_divisor = self.colours().tile_size() / TileFormat::FourBpp.tile_size();
+
         if *self.tiles_dirty() {
             unsafe {
                 dma_copy16(
                     self.tiles_mut().as_ptr() as *const u16,
                     screenblock_memory,
-                    self.map_size().num_tiles() / tile_count_divisor,
+                    self.map_size().num_tiles(),
                 );
             }
         }
 
-        let tile_colour_flag: u16 = (tile_count_divisor == 2).into();
+        let tile_colour_flag: u16 = (self.colours() == TileFormat::EightBpp).into();
 
         let new_bg_control_value = (self.priority() as u16)
             | ((self.screenblock() as u16) << 8)
