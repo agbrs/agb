@@ -44,7 +44,7 @@ impl Item {
             Item::Ice => resources::ICE,
             Item::MovableBlock => resources::ROCK_SHADOW,
             Item::Glove => resources::POW_GLOVE_SHADOW,
-            Item::Teleporter => resources::TELEPORTER,
+            Item::Teleporter => resources::TELEPORTER_SHADOW,
         }
     }
 
