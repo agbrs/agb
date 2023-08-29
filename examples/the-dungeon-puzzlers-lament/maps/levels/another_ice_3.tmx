@@ -3,8 +3,7 @@
  <properties>
   <property name="DIRECTIONS" value="ULURULURULURULUR"/>
   <property name="ITEMS" value="BLOCK,BLOCK,BLOCK,BLOCK,HERO,SQUID_DOWN,GLOVE"/>
-  <property name="NAME">To walk to your own death is stupid.
-To slide to your own death is fun, until the death part.</property>
+  <property name="NAME" value="I did warn you they were going to get stuck again. I can't think of a creature more useless."/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
  <layer id="1" name="Tile Layer 1" width="11" height="10">
