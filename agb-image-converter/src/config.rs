@@ -11,4 +11,5 @@ pub(crate) trait Config {
 pub(crate) trait Image {
     fn filename(&self) -> String;
     fn colours(&self) -> Colours;
+    fn deduplicate(&self) -> bool;
 }

@@ -47,6 +47,10 @@ impl config::Image for BackgroundGfxOption {
     fn colours(&self) -> Colours {
         self.colours
     }
+
+    fn deduplicate(&self) -> bool {
+        self.deduplicate
+    }
 }
 
 impl Parse for BackgroundGfxOption {
