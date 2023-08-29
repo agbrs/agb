@@ -302,7 +302,7 @@ impl VRamManager {
 
         let new_reference: NonNull<u32> =
             unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
-                .unwrap()
+                .expect("Ran out of video RAM for tiles")
                 .cast();
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);
