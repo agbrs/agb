@@ -10,7 +10,7 @@ use crate::memory_mapped::MemoryMapped;
 
 use super::{
     AffineBackgroundSize, BackgroundID, BackgroundSize, BackgroundSizePrivate,
-    RegularBackgroundSize, Tile, TileFormat, TileIndex, TileSet, TileSetting, VRamManager,
+    RegularBackgroundSize, Tile, TileFormat, TileSet, TileSetting, VRamManager,
 };
 
 use alloc::{vec, vec::Vec};
@@ -20,10 +20,9 @@ pub trait TiledMapTypes: private::Sealed {
 }
 
 trait TiledMapPrivate: TiledMapTypes {
-    type TileType: Into<TileIndex> + Copy + Default + Eq + PartialEq;
     type AffineMatrix;
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType];
+    fn tiles_mut(&mut self) -> &mut [Tile];
     fn tiles_dirty(&mut self) -> &mut bool;
 
     fn colours(&self) -> TileFormat;
@@ -59,9 +58,11 @@ where
     T::Size: BackgroundSizePrivate,
 {
     fn clear(&mut self, vram: &mut VRamManager) {
+        let colours = self.colours();
+
         for tile in self.tiles_mut() {
             if *tile != Default::default() {
-                vram.remove_tile((*tile).into());
+                vram.remove_tile(tile.tile_index(colours));
             }
 
             *tile = Default::default();
@@ -134,10 +135,9 @@ impl TiledMapTypes for RegularMap {
 }
 
 impl TiledMapPrivate for RegularMap {
-    type TileType = Tile;
     type AffineMatrix = ();
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+    fn tiles_mut(&mut self) -> &mut [Tile] {
         &mut self.tiles
     }
     fn tiles_dirty(&mut self) -> &mut bool {
@@ -195,11 +195,12 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        if tileset.format() != self.colours() {
+        let colours = self.colours();
+        if tileset.format() != colours {
             panic!(
                 "Cannot set a {:?} colour tile on a {:?} colour background",
                 tileset.format(),
-                self.colours()
+                colours
             );
         }
 
@@ -207,7 +208,7 @@ impl RegularMap {
 
         let old_tile = self.tiles_mut()[pos];
         if old_tile != Tile::default() {
-            vram.remove_tile(old_tile.into());
+            vram.remove_tile(old_tile.tile_index(colours));
         }
 
         let tile_index = tile_setting.index();
@@ -254,7 +255,7 @@ pub struct AffineMap {
 
     transform: AffineMatrixBackground,
 
-    tiles: Vec<u8>,
+    tiles: Vec<Tile>,
     tiles_dirty: bool,
 }
 
@@ -263,10 +264,9 @@ impl TiledMapTypes for AffineMap {
 }
 
 impl TiledMapPrivate for AffineMap {
-    type TileType = u8;
     type AffineMatrix = AffineMatrixBackground;
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+    fn tiles_mut(&mut self) -> &mut [Tile] {
         &mut self.tiles
     }
     fn tiles_dirty(&mut self) -> &mut bool {
@@ -320,19 +320,20 @@ impl AffineMap {
         tile_id: u8,
     ) {
         let pos = self.map_size().gba_offset(pos);
+        let colours = self.colours();
 
         let old_tile = self.tiles_mut()[pos];
-        if old_tile != 0 {
-            vram.remove_tile(old_tile.into());
+        if old_tile != Tile::default() {
+            vram.remove_tile(old_tile.tile_index(colours));
         }
 
         let tile_index = tile_id as u16;
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = vram.add_tile(tileset, tile_index);
-            new_tile_idx.raw_index() as u8
+            Tile::new(new_tile_idx, TileSetting(0))
         } else {
-            0
+            Tile::default()
         };
 
         if old_tile == new_tile {

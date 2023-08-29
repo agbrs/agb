@@ -156,8 +156,8 @@ impl Tile {
         Self(idx.raw_index() | setting.setting())
     }
 
-    fn tile_index(self) -> TileIndex {
-        TileIndex::new(self.0 as usize & ((1 << 10) - 1), TileFormat::FourBpp)
+    fn tile_index(self, format: TileFormat) -> TileIndex {
+        TileIndex::new(self.0 as usize & ((1 << 10) - 1), format)
     }
 }
 

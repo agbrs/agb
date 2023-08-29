@@ -47,10 +47,10 @@ impl Game {
 
 include_background_gfx!(
     games, "121105",
-    hat => deduplicate "gfx/hat.png",
-    purple => deduplicate "gfx/purple.png",
-    hyperspace => deduplicate "gfx/hyperspace.png",
-    amplitude => deduplicate "gfx/amplitude.png"
+    hat => 256 deduplicate "gfx/hat.png",
+    purple => 256 deduplicate "gfx/purple.png",
+    hyperspace => 256 deduplicate "gfx/hyperspace.png",
+    amplitude => 256 deduplicate "gfx/amplitude.png"
 );
 
 fn get_game(gba: &mut agb::Gba) -> Game {
@@ -59,10 +59,10 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let (tile, mut vram) = gba.display.video.tiled0();
 
-    let hat = TileSet::new(games::hat.tiles, TileFormat::FourBpp);
-    let purple = TileSet::new(games::purple.tiles, TileFormat::FourBpp);
-    let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::FourBpp);
-    let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::FourBpp);
+    let hat = TileSet::new(games::hat.tiles, TileFormat::EightBpp);
+    let purple = TileSet::new(games::purple.tiles, TileFormat::EightBpp);
+    let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::EightBpp);
+    let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::EightBpp);
 
     let tiles = [hat, purple, hyperspace, amplitude];
 
@@ -79,7 +79,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         tile.background(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
-            TileFormat::FourBpp,
+            TileFormat::EightBpp,
         ),
         Box::new(|pos| {
             let y = pos.y.rem_euclid(20);
