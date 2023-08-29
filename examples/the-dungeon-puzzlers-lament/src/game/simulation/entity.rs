@@ -30,6 +30,23 @@ pub enum Outcome {
     Win,
 }
 
+struct ActionResult {
+    hero_has_died: bool,
+    win_has_triggered: bool,
+}
+
+impl ActionResult {
+    fn new(hero_has_died: bool, win_has_triggered: bool) -> Self {
+        Self {
+            hero_has_died,
+            win_has_triggered,
+        }
+    }
+}
+
+struct HasMoved(bool);
+struct WantsToMoveAgain(bool);
+
 impl EntityMap {
     fn whats_at(&self, location: Vector2D<i32>) -> impl Iterator<Item = (EntityKey, &Entity)> {
         self.map
@@ -94,12 +111,15 @@ impl EntityMap {
         can_turn_around: bool,
         push_depth: i32,
         entities_that_have_moved: &mut Vec<(EntityKey, Direction)>,
-    ) -> (bool, bool, bool) {
+    ) -> (HasMoved, ActionResult) {
         let mut hero_has_died = false;
         let mut win_has_triggered = false;
 
         let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
-            return (false, hero_has_died, win_has_triggered);
+            return (
+                HasMoved(false),
+                ActionResult::new(hero_has_died, win_has_triggered),
+            );
         };
 
         let entity_location = entity_to_update.location;
@@ -146,23 +166,22 @@ impl EntityMap {
                     MoveAttemptResolution::AttemptPush => {
                         let depth = push_depth - 1;
                         if depth >= 0 {
-                            let (can_move_result, hero_has_died_result, win_has_triggered_result) =
-                                self.attempt_move_in_direction(
-                                    map,
-                                    animations,
-                                    other_entity_key,
-                                    direction,
-                                    true,
-                                    depth,
-                                    entities_that_have_moved,
-                                );
+                            let (can_move_result, action_result) = self.attempt_move_in_direction(
+                                map,
+                                animations,
+                                other_entity_key,
+                                direction,
+                                true,
+                                depth,
+                                entities_that_have_moved,
+                            );
 
-                            if !can_move_result {
+                            if !can_move_result.0 {
                                 can_move = false;
                                 explicit_stay_put = true;
                             }
-                            hero_has_died |= hero_has_died_result;
-                            win_has_triggered |= win_has_triggered_result;
+                            hero_has_died |= action_result.hero_has_died;
+                            win_has_triggered |= action_result.win_has_triggered;
                         } else {
                             can_move = false;
                             explicit_stay_put = true;
@@ -181,7 +200,10 @@ impl EntityMap {
             entities_that_have_moved.push((entity_to_update_key, direction));
 
             let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
-                return (can_move, hero_has_died, win_has_triggered);
+                return (
+                    HasMoved(can_move),
+                    ActionResult::new(hero_has_died, win_has_triggered),
+                );
             };
 
             let move_effect = entity_to_update.move_effect();
@@ -235,20 +257,26 @@ impl EntityMap {
             ));
         }
 
-        (can_move, hero_has_died, win_has_triggered)
+        (
+            HasMoved(can_move),
+            ActionResult::new(hero_has_died, win_has_triggered),
+        )
     }
 
     fn resolve_overlap_from_move(
         &mut self,
         animations: &mut Vec<AnimationInstruction>,
         entity_to_update_key: EntityKey,
-    ) -> (bool, bool, bool) {
+    ) -> (WantsToMoveAgain, ActionResult) {
         let mut win_has_triggered = false;
         let mut hero_has_died = false;
         let mut should_move_again = false;
 
         let Some(entity_to_update) = self.map.get(entity_to_update_key) else {
-            return (should_move_again, hero_has_died, win_has_triggered);
+            return (
+                WantsToMoveAgain(should_move_again),
+                ActionResult::new(hero_has_died, win_has_triggered),
+            );
         };
 
         let location = entity_to_update.location;
@@ -321,7 +349,10 @@ impl EntityMap {
                 }
             }
         }
-        (should_move_again, hero_has_died, win_has_triggered)
+        (
+            WantsToMoveAgain(should_move_again),
+            ActionResult::new(hero_has_died, win_has_triggered),
+        )
     }
 
     pub fn tick(&mut self, map: &Map, hero: Action) -> (Outcome, Vec<AnimationInstruction>) {
@@ -344,34 +375,33 @@ impl EntityMap {
             let mut entities_that_have_moved = Vec::new();
 
             for (entity_to_update_key, direction) in entities_to_try_update.drain(..) {
-                let (_, hero_has_died_result, win_has_triggered_result) = self
-                    .attempt_move_in_direction(
-                        map,
-                        &mut animations,
-                        entity_to_update_key,
-                        direction,
-                        true,
-                        self.map
-                            .get(entity_to_update_key)
-                            .and_then(|e| e.push_depth())
-                            .unwrap_or(0),
-                        &mut entities_that_have_moved,
-                    );
+                let (_, action_result) = self.attempt_move_in_direction(
+                    map,
+                    &mut animations,
+                    entity_to_update_key,
+                    direction,
+                    true,
+                    self.map
+                        .get(entity_to_update_key)
+                        .and_then(|e| e.push_depth())
+                        .unwrap_or(0),
+                    &mut entities_that_have_moved,
+                );
 
-                hero_has_died |= hero_has_died_result;
-                win_has_triggered |= win_has_triggered_result;
+                hero_has_died |= action_result.hero_has_died;
+                win_has_triggered |= action_result.win_has_triggered;
             }
 
             for (entity_to_update_key, direction) in entities_that_have_moved {
-                let (should_move_again, hero_has_died_result, win_has_triggered_result) =
+                let (should_move_again, action_result) =
                     self.resolve_overlap_from_move(&mut animations, entity_to_update_key);
 
-                if should_move_again {
+                if should_move_again.0 {
                     entities_to_try_update.push((entity_to_update_key, direction));
                 }
 
-                hero_has_died |= hero_has_died_result;
-                win_has_triggered |= win_has_triggered_result;
+                hero_has_died |= action_result.hero_has_died;
+                win_has_triggered |= action_result.win_has_triggered;
             }
         }
 
