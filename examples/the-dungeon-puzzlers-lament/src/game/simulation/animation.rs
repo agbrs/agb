@@ -127,6 +127,7 @@ impl RenderCache {
                 | Item::SpikesDown
                 | Item::SpikesUp
                 | Item::Ice
+                | Item::Teleporter
         ) {
             score += 100000;
         }
