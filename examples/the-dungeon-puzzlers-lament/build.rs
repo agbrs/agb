@@ -40,6 +40,8 @@ const LEVEL_NAMES: &[&str] = &[
     "squid_teleport",
     "teleporter_2",
     "slime_teleporter",
+    "another_ice",
+    "another_ice_2",
 ];
 
 fn main() {
