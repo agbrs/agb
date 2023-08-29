@@ -9,6 +9,25 @@ use std::{
 use proc_macro2::TokenStream;
 
 const LEVEL_NAMES: &[&str] = &[
+    "level1",
+    "level2",
+    "level3",
+    "level4",
+    "level5",
+    "level6",
+    "level_switch",
+    "level_spikes",
+    "level_spikes2",
+    "level_squid_force_button",
+    "level_squid_intro",
+    "level_squid2",
+    "level_squid1",
+    "level_squid_item",
+    "level_squid_button",
+    "level_squid_drop",
+    "level_spikes3",
+    "level_around",
+    "level_squidprogramming",
     "a_familiar_sight",
     "block_push_1",
     "block_push_2",
@@ -23,7 +42,18 @@ fn main() {
     let ui_map = load_tmx(&mut tile_loader, "maps/UI.tmx");
     let ui_tiles = export_ui_tiles(&ui_map, quote!(ui));
 
-    let levels = LEVEL_NAMES
+    const DPL_LEVELS_ENVIRONMENT_VARIABLE: &str = "DPL_LEVELS";
+
+    println!(
+        "cargo:rerun-if-env-changed={}",
+        DPL_LEVELS_ENVIRONMENT_VARIABLE
+    );
+
+    let levels: Vec<String> = env::var(DPL_LEVELS_ENVIRONMENT_VARIABLE)
+        .map(|x| x.split(',').map(|x| x.trim().to_string()).collect())
+        .unwrap_or(LEVEL_NAMES.iter().map(|x| x.to_string()).collect());
+
+    let levels = levels
         .iter()
         .map(|level| load_level(&mut tile_loader, &format!("maps/levels/{level}.tmx")))
         .collect::<Vec<_>>();
