@@ -2,7 +2,6 @@ use core::{alloc::Layout, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
-use crate::display::tiled::Tile;
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
@@ -66,21 +65,21 @@ impl<'a> TileSet<'a> {
 #[derive(Debug, Clone, Copy)]
 pub enum TileIndex {
     FourBpp(u16),
-    EightBpp(u8),
+    EightBpp(u16),
 }
 
 impl TileIndex {
     pub(crate) const fn new(index: usize, format: TileFormat) -> Self {
         match format {
             TileFormat::FourBpp => Self::FourBpp(index as u16),
-            TileFormat::EightBpp => Self::EightBpp(index as u8),
+            TileFormat::EightBpp => Self::EightBpp(index as u16),
         }
     }
 
     pub(crate) const fn raw_index(self) -> u16 {
         match self {
             TileIndex::FourBpp(x) => x,
-            TileIndex::EightBpp(x) => x as u16,
+            TileIndex::EightBpp(x) => x,
         }
     }
 
@@ -96,18 +95,6 @@ impl TileIndex {
             TileIndex::FourBpp(x) => x as usize,
             TileIndex::EightBpp(x) => x as usize * 2,
         }
-    }
-}
-
-impl From<Tile> for TileIndex {
-    fn from(tile: Tile) -> Self {
-        tile.tile_index()
-    }
-}
-
-impl From<u8> for TileIndex {
-    fn from(index: u8) -> TileIndex {
-        TileIndex::new(usize::from(index), TileFormat::EightBpp)
     }
 }
 
@@ -302,7 +289,7 @@ impl VRamManager {
 
         let new_reference: NonNull<u32> =
             unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
-                .unwrap()
+                .expect("Ran out of video RAM for tiles")
                 .cast();
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);

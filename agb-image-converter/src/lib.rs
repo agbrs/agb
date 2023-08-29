@@ -15,6 +15,7 @@ use quote::{format_ident, quote, ToTokens};
 mod aseprite;
 mod colour;
 mod config;
+mod deduplicator;
 mod font_loader;
 mod image_loader;
 mod palette16;
@@ -36,6 +37,7 @@ struct BackgroundGfxOption {
     module_name: String,
     file_name: String,
     colours: Colours,
+    deduplicate: bool,
 }
 
 impl config::Image for BackgroundGfxOption {
@@ -45,6 +47,10 @@ impl config::Image for BackgroundGfxOption {
 
     fn colours(&self) -> Colours {
         self.colours
+    }
+
+    fn deduplicate(&self) -> bool {
+        self.deduplicate
     }
 }
 
@@ -72,12 +78,30 @@ impl Parse for BackgroundGfxOption {
             Colours::Colours16
         };
 
+        let lookahead = input.lookahead1();
+
+        let deduplicate = if lookahead.peek(syn::Ident) {
+            let deduplicate: syn::Ident = input.parse()?;
+
+            if deduplicate == "deduplicate" {
+                true
+            } else {
+                return Err(syn::Error::new_spanned(
+                    deduplicate,
+                    "Must either be the literal deduplicate or missing",
+                ));
+            }
+        } else {
+            false
+        };
+
         let file_name: syn::LitStr = input.parse()?;
 
         Ok(Self {
             module_name: module_name.to_string(),
             file_name: file_name.value(),
             colours,
+            deduplicate,
         })
     }
 }
@@ -406,6 +430,7 @@ fn convert_image(
 ) -> proc_macro2::TokenStream {
     let image_filename = &parent.join(settings.filename());
     let image = Image::load_from_file(image_filename);
+    let deduplicate = settings.deduplicate();
 
     rust_generator::generate_code(
         variable_name,
@@ -414,6 +439,7 @@ fn convert_image(
         &image_filename.to_string_lossy(),
         crate_prefix.to_owned(),
         assignment_offset,
+        deduplicate,
     )
 }
 
@@ -468,7 +494,14 @@ fn palette_tile_data(
     let mut tile_data = Vec::new();
 
     for (image_idx, image) in images.iter().enumerate() {
-        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx, true)
+        add_image_to_tile_data(
+            &mut tile_data,
+            image,
+            optimiser,
+            image_idx,
+            true,
+            &(0..images.len()).collect::<Vec<_>>(),
+        );
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -491,6 +524,7 @@ fn add_image_to_tile_data(
     optimiser: &Palette16OptimisationResults,
     assignment_offset: usize,
     is_sprite: bool,
+    remap_index: &[usize],
 ) {
     let tile_size = 8;
     let tiles_x = image.width / tile_size;
@@ -501,7 +535,7 @@ fn add_image_to_tile_data(
             let assignment = if is_sprite {
                 assignment_offset
             } else {
-                y * tiles_x + x + assignment_offset
+                remap_index[y * tiles_x + x] + assignment_offset
             };
 
             let palette_index = optimiser.assignments[assignment];

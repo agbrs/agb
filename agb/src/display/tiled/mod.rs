@@ -156,8 +156,8 @@ impl Tile {
         Self(idx.raw_index() | setting.setting())
     }
 
-    fn tile_index(self) -> TileIndex {
-        TileIndex::new(self.0 as usize & ((1 << 10) - 1), TileFormat::FourBpp)
+    fn tile_index(self, format: TileFormat) -> TileIndex {
+        TileIndex::new(self.0 as usize & ((1 << 10) - 1), format)
     }
 }
 
@@ -165,6 +165,8 @@ impl Tile {
 pub struct TileSetting(u16);
 
 impl TileSetting {
+    pub const BLANK: Self = TileSetting::new(1023, false, false, 0);
+
     #[must_use]
     pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {
         Self(
@@ -178,6 +180,16 @@ impl TileSetting {
     #[must_use]
     pub const fn from_raw(raw: u16) -> Self {
         Self(raw)
+    }
+
+    #[must_use]
+    pub const fn hflip(self, should_flip: bool) -> Self {
+        Self(self.0 ^ ((should_flip as u16) << 10))
+    }
+
+    #[must_use]
+    pub const fn vflip(self, should_flip: bool) -> Self {
+        Self(self.0 ^ ((should_flip as u16) << 11))
     }
 
     fn index(self) -> u16 {

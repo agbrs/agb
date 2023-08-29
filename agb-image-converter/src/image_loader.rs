@@ -4,6 +4,7 @@ use image::{DynamicImage, GenericImageView};
 
 use crate::colour::Colour;
 
+#[derive(Clone)]
 pub(crate) struct Image {
     pub width: usize,
     pub height: usize,
@@ -39,6 +40,14 @@ impl Image {
             width,
             height,
             colour_data,
+        }
+    }
+
+    pub fn from_colour_data(colour_data: Vec<Colour>) -> Self {
+        Self {
+            height: colour_data.len() / 8,
+            colour_data,
+            width: 8,
         }
     }
 

@@ -12,14 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New tracker for playing XM files (see the `agb-tracker` crate).
 - You can now declare where looping sound channels should restart.
 - Fixnums now have constructors from_f32 and from_f64. This is mainly useful if using agb-fixnum outside of the Game Boy Advance e.g. in build scripts or macros.
+- New option when loading a background to automatically deduplicate tiles.
+- Methods on tile_setting to toggle its hflip and vflip status.
 
 ### Changed
 
 - Sound channel panning and volume options are now `Num<i16, 8>` rather than `Num<i16, 4>` for improved precision and sound quality.
 - Due to dependency changes, agb-gbafix is now released under MPL rather than GPL.
+- `include_background_gfx!` now produces tile settings directly rather than palette assigments.
 
 ### Fixed
 
+- 256-colour backgrounds are better supported.
 - Mono looping samples will now correctly play to the end if it doesn't perfectly align with a buffer boundry and short samples now also loop correctly.
 
 ## [0.16.0] - 2023/07/18

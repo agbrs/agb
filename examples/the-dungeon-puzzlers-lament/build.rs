@@ -331,12 +331,10 @@ fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
                     tile_tileset_x * 2 + x_offset + tile_tileset_y * 9 * 4 + y_offset * 9 * 2;
                 let gba_tile_id = gba_tile_id as u16;
 
-                let palette_id =
-                    quote! { backgrounds::#background.palette_assignments[#gba_tile_id as usize] };
-                quote! { TileSetting::new(#gba_tile_id, #hflip, #vflip, #palette_id) }
+                quote! { backgrounds::#background.tile_settings[#gba_tile_id as usize].hflip(#hflip).vflip(#vflip) }
             }
             None => {
-                quote! { TileSetting::new(1023, false, false, 0) }
+                quote! { TileSetting::BLANK }
             }
         }
     });
@@ -361,12 +359,11 @@ fn export_ui_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
                 let tile_id = tile.id() as u16;
                 let vflip = tile.flip_v;
                 let hflip = tile.flip_h;
-                let palette_id =
-                    quote! { backgrounds::#background.palette_assignments[#tile_id as usize] };
-                quote! { TileSetting::new(#tile_id, #hflip, #vflip, #palette_id) }
+
+                quote! { backgrounds::#background.tile_settings[#tile_id as usize].hflip(#hflip).vflip(#vflip) }
             }
             None => {
-                quote! { TileSetting::new(1023, false, false, 0) }
+                quote! { TileSetting::BLANK }
             }
         }
     });
