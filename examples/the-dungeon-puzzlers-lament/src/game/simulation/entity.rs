@@ -453,7 +453,9 @@ fn resolve_spikes(switable: &Switchable) -> OverlapResolution {
 fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
     match (&me.entity, &other.entity) {
         (EntityType::Hero(_), EntityType::Stairs) => OverlapResolution::Win,
-        (_, EntityType::Item(_)) => OverlapResolution::Pickup,
+        (EntityType::Hero(_) | EntityType::Enemy(Enemy::Squid(_)), EntityType::Item(_)) => {
+            OverlapResolution::Pickup
+        }
         (EntityType::MovableBlock, EntityType::Spikes(_)) => OverlapResolution::CoExist,
         (_, EntityType::Spikes(switch)) => resolve_spikes(switch),
         (_, EntityType::Switch(switch)) => OverlapResolution::ToggleSystem(switch.system),
