@@ -6,6 +6,7 @@ use crate::{image_loader::Image, ByteString};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
+use std::collections::BTreeMap;
 use std::iter;
 
 pub(crate) fn generate_palette_code(
@@ -63,21 +64,33 @@ pub(crate) fn generate_code(
         )
     };
 
+    let remap_index = dedup_data
+        .iter()
+        .enumerate()
+        .map(|(i, data)| (data.new_index, i))
+        .collect::<BTreeMap<_, _>>(); // BTreeMap so that values below is in order
+
+    let remap_index = remap_index.values().cloned().collect::<Vec<_>>();
+
     let (tile_data, assignments) = if let Some(assignment_offset) = assignment_offset {
         let mut tile_data = Vec::new();
 
-        add_image_to_tile_data(&mut tile_data, &image, results, assignment_offset, false);
+        add_image_to_tile_data(
+            &mut tile_data,
+            &image,
+            results,
+            assignment_offset,
+            false,
+            &remap_index,
+        );
 
         let tile_data = collapse_to_4bpp(&tile_data);
 
         let num_tiles = image.width * image.height / 8usize.pow(2);
 
-        let assignments = results
-            .assignments
-            .iter()
-            .skip(assignment_offset)
-            .take(num_tiles)
-            .map(|&x| x as u8)
+        let all_assignments = &results.assignments[assignment_offset..];
+        let assignments = (0..num_tiles)
+            .map(|tile_id| all_assignments[remap_index[tile_id]] as u8)
             .collect();
 
         (tile_data, assignments)

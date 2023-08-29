@@ -494,7 +494,14 @@ fn palette_tile_data(
     let mut tile_data = Vec::new();
 
     for (image_idx, image) in images.iter().enumerate() {
-        add_image_to_tile_data(&mut tile_data, image, optimiser, image_idx, true)
+        add_image_to_tile_data(
+            &mut tile_data,
+            image,
+            optimiser,
+            image_idx,
+            true,
+            &(0..images.len()).collect::<Vec<_>>(),
+        );
     }
 
     let tile_data = collapse_to_4bpp(&tile_data);
@@ -517,6 +524,7 @@ fn add_image_to_tile_data(
     optimiser: &Palette16OptimisationResults,
     assignment_offset: usize,
     is_sprite: bool,
+    remap_index: &[usize],
 ) {
     let tile_size = 8;
     let tiles_x = image.width / tile_size;
@@ -527,7 +535,7 @@ fn add_image_to_tile_data(
             let assignment = if is_sprite {
                 assignment_offset
             } else {
-                y * tiles_x + x + assignment_offset
+                remap_index[y * tiles_x + x] + assignment_offset
             };
 
             let palette_index = optimiser.assignments[assignment];
