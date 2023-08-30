@@ -10,6 +10,8 @@ use crate::{
     memory_mapped::MemoryMapped1DArray,
 };
 
+use super::TileSetting;
+
 const TILE_RAM_START: usize = 0x0600_0000;
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
@@ -189,9 +191,11 @@ impl DynamicTile<'_> {
     }
 
     #[must_use]
-    pub fn tile_index(&self) -> u16 {
+    pub fn tile_setting(&self) -> TileSetting {
         let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
-        (difference / TileFormat::FourBpp.tile_size()) as u16
+        let tile_id = (difference / TileFormat::FourBpp.tile_size()) as u16;
+
+        TileSetting::new(tile_id, false, false, 0)
     }
 }
 

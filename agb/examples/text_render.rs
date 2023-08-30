@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, TileFormat, TileSetting, TiledMap},
+        tiled::{RegularBackgroundSize, TileFormat, TiledMap},
         Font, Priority,
     },
     include_font,
@@ -37,7 +37,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 &mut vram,
                 (x, y).into(),
                 &background_tile.tile_set(),
-                TileSetting::from_raw(background_tile.tile_index()),
+                background_tile.tile_setting(),
             );
         }
     }
