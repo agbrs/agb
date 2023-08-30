@@ -44,23 +44,6 @@ impl ActionResult {
     }
 }
 
-fn remove_move_animation_for_entity(
-    animations: &mut Vec<AnimationInstruction>,
-    entity_key: EntityKey,
-) {
-    if let Some(existing_animation) = animations.iter().position(|x| {
-        if let AnimationInstruction::Move(entity, _, _) = x {
-            *entity == entity_key
-        } else if let AnimationInstruction::FakeOutMove(entity, _, _, _) = x {
-            *entity == entity_key
-        } else {
-            false
-        }
-    }) {
-        animations.swap_remove(existing_animation);
-    }
-}
-
 struct HasMoved(bool);
 struct WantsToMoveAgain(bool);
 
@@ -190,7 +173,6 @@ impl EntityMap {
                     MoveAttemptResolution::AttemptPush => {
                         let depth = push_depth - 1;
                         if depth >= 0 {
-                            remove_move_animation_for_entity(animations, other_entity_key);
                             let (can_move_result, action_result) = self.attempt_move_in_direction(
                                 map,
                                 animations,
@@ -270,7 +252,6 @@ impl EntityMap {
             animations.push(AnimationInstruction::FakeOutMove(
                 entity_to_update_key,
                 direction,
-                self.map.get(entity_to_update_key).map(|e| e.location),
                 if explicit_stay_put {
                     self.map
                         .get(entity_to_update_key)
@@ -368,7 +349,6 @@ impl EntityMap {
                     break;
                 }
                 OverlapResolution::MoveAgain => {
-                    remove_move_animation_for_entity(animations, entity_to_update_key);
                     should_move_again = true;
                 }
                 OverlapResolution::Teleport => {
@@ -382,7 +362,6 @@ impl EntityMap {
                         let location_to_teleport_to = other_teleporter.location;
                         if self.whats_at(location_to_teleport_to).count() == 1 {
                             //ok, we can teleport
-                            remove_move_animation_for_entity(animations, entity_to_update_key);
                             animations.push(AnimationInstruction::Move(
                                 entity_to_update_key,
                                 location_to_teleport_to,
