@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="169">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="172">
  <properties>
-  <property name="DIRECTIONS" value="LDDD"/>
+  <property name="DIRECTIONS" value="LDDDD"/>
   <property name="ITEMS" value="SQUID_UP,ICE,ICE"/>
   <property name="NAME" value="In reality, a squid is a friend. They can't help but kill the hero, but they've been helping at every floor!"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
  <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,
-0,0,1,3,2,9,0,0,0,0,0,
-0,0,37,11,11,3221225500,3,3,9,0,0,
-0,0,10,15,13,14,15,14,47,0,0,
+0,0,0,1,7,9,0,0,0,0,0,
+0,0,1,1073741852,13,3221225500,8,9,0,0,0,
+0,0,37,12,17,16,15,3221225500,9,0,0,
+0,0,10,15,11,16,13,15,47,0,0,
 0,0,37,16,14,17,14,11,18,0,0,
 0,0,10,17,13,17,11,12,38,0,0,
-0,0,46,12,13,17,13,13,18,0,0,
-0,0,19,28,15,14,12,2147483676,27,0,0,
-0,0,0,19,21,20,25,27,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0
+0,0,46,17,16,12,13,11,47,0,0,
+0,0,19,28,16,15,17,14,38,0,0,
+0,0,0,19,22,28,11,2147483676,27,0,0,
+0,0,0,0,0,19,24,27,0,0,0
 </data>
  </layer>
  <objectgroup id="2" name="Object Layer 1">
-  <object id="164" name="HERO" x="117.5" y="70.75">
+  <object id="164" name="HERO" x="120.022" y="72.8136">
    <point/>
   </object>
-  <object id="165" name="BLOCK" x="105" y="69.75">
+  <object id="165" name="BLOCK" x="103.749" y="72.7514">
    <point/>
   </object>
-  <object id="166" name="SPIKES" x="104" y="103.25">
+  <object id="166" name="SPIKES" x="104.324" y="122.816">
    <point/>
   </object>
-  <object id="167" name="STAIRS" x="102" y="119.75">
+  <object id="167" name="STAIRS" x="104.656" y="137.806">
    <point/>
   </object>
-  <object id="168" name="SWITCH" x="71.5" y="40">
+  <object id="168" name="SWITCH" x="71.6818" y="25.4545">
+   <point/>
+  </object>
+  <object id="171" name="SPIKES" x="71.6364" y="41.4545">
    <point/>
   </object>
  </objectgroup>
