@@ -16,6 +16,8 @@ pub use tiled1::Tiled1;
 pub use tiled2::Tiled2;
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
+use map::TRANSPARENT_TILE_INDEX;
+
 // affine layers start at BG2
 pub(crate) const AFFINE_BG_ID_OFFSET: usize = 2;
 
@@ -165,7 +167,7 @@ impl Tile {
 pub struct TileSetting(u16);
 
 impl TileSetting {
-    pub const BLANK: Self = TileSetting::new(1023, false, false, 0);
+    pub const BLANK: Self = TileSetting::new(TRANSPARENT_TILE_INDEX, false, false, 0);
 
     #[must_use]
     pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {

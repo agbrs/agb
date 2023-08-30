@@ -128,7 +128,7 @@ pub struct RegularMap {
     tiles_dirty: bool,
 }
 
-pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
+pub(crate) const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl TiledMapTypes for RegularMap {
     type Size = RegularBackgroundSize;
