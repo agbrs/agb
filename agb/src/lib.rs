@@ -77,11 +77,11 @@
 /// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
-/// let tileset = TileSet::new(water_tiles::tiles.tiles, TileFormat::FourBpp);
+/// let tileset = water_tiles::tiles.tiles;
 ///
 /// vram.set_background_palettes(water_tiles::PALETTES);
 ///
-/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
+/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
 ///
 /// for y in 0..20u16 {
 ///     for x in 0..30u16 {
