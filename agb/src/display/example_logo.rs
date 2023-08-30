@@ -5,20 +5,7 @@ crate::include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/te
 pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     vram.set_background_palettes(agb_logo::PALETTES);
 
-    let background_tilemap = agb_logo::test_logo.tiles;
-
-    for y in 0..20 {
-        for x in 0..30 {
-            let tile_id = y * 30 + x;
-
-            map.set_tile(
-                vram,
-                (x as u16, y as u16).into(),
-                &background_tilemap,
-                agb_logo::test_logo.tile_settings[tile_id],
-            );
-        }
-    }
+    map.fill_with(vram, &agb_logo::test_logo);
 
     map.commit(vram);
     map.show();

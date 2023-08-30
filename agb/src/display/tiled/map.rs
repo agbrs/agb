@@ -3,6 +3,7 @@ use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
+use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
@@ -185,6 +186,25 @@ impl RegularMap {
 
             tiles: vec![Default::default(); size.num_tiles()],
             tiles_dirty: true,
+        }
+    }
+
+    pub fn fill_with(&mut self, vram: &mut VRamManager, tile_data: &TileData) {
+        assert!(
+            tile_data.tile_settings.len() >= 20 * 30,
+            "Don't have a full screen's worth of tile data"
+        );
+
+        for y in 0..20u16 {
+            for x in 0..30u16 {
+                let tile_id = y * 30 + x;
+                self.set_tile(
+                    vram,
+                    (x, y).into(),
+                    &tile_data.tiles,
+                    tile_data.tile_settings[tile_id as usize],
+                );
+            }
         }
     }
 
