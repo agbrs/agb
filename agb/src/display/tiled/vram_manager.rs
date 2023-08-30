@@ -49,16 +49,17 @@ pub struct TileSet<'a> {
 
 impl<'a> TileSet<'a> {
     #[must_use]
-    pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
+    pub const fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
+    }
+
+    #[must_use]
+    pub const fn format(&self) -> TileFormat {
+        self.format
     }
 
     fn reference(&self) -> NonNull<[u8]> {
         self.tiles.into()
-    }
-
-    pub(crate) fn format(&self) -> TileFormat {
-        self.format
     }
 }
 

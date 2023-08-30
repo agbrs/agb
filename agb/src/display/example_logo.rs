@@ -1,11 +1,11 @@
-use super::tiled::{RegularMap, TileFormat, TileSet, TiledMap, VRamManager};
+use super::tiled::{RegularMap, TiledMap, VRamManager};
 
 crate::include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/test_logo.png");
 
 pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     vram.set_background_palettes(agb_logo::PALETTES);
 
-    let background_tilemap = TileSet::new(agb_logo::test_logo.tiles, TileFormat::FourBpp);
+    let background_tilemap = agb_logo::test_logo.tiles;
 
     for y in 0..20 {
         for x in 0..30 {
@@ -37,7 +37,7 @@ mod tests {
         let mut map = gfx.background(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
-            TileFormat::FourBpp,
+            agb_logo::test_logo.tiles.format(),
         );
 
         display_logo(&mut map, &mut vram);

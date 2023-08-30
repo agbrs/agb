@@ -4,7 +4,7 @@
 use agb::{
     display::{
         affine::AffineMatrixBackground,
-        tiled::{AffineBackgroundSize, TileFormat, TileSet, TiledMap},
+        tiled::{AffineBackgroundSize, TiledMap},
         Priority,
     },
     fixnum::{num, Num},
@@ -18,7 +18,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let (gfx, mut vram) = gba.display.video.tiled2();
     let vblank = agb::interrupt::VBlank::get();
 
-    let tileset = TileSet::new(affine_tiles::water_tiles.tiles, TileFormat::EightBpp);
+    let tileset = affine_tiles::water_tiles.tiles;
 
     vram.set_background_palettes(affine_tiles::PALETTES);
 
