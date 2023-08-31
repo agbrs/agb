@@ -56,6 +56,11 @@ named_tag!(
         POW_GLOVE_SHADOW,
         TELEPORTER,
         TELEPORTER_SHADOW,
+        HOLE,
+        ROTATOR_RIGHT,
+        ROTATOR_UP,
+        ROTATOR_LEFT,
+        ROTATOR_DOWN,
     ]
 );
 

@@ -22,6 +22,11 @@ pub enum Item {
     MovableBlock,
     Glove,
     Teleporter,
+    Hole,
+    RotatorRight,
+    RotatorLeft,
+    RotatorUp,
+    RotatorDown,
 }
 
 impl Item {
@@ -45,6 +50,11 @@ impl Item {
             Item::MovableBlock => resources::ROCK_SHADOW,
             Item::Glove => resources::POW_GLOVE_SHADOW,
             Item::Teleporter => resources::TELEPORTER_SHADOW,
+            Item::Hole => resources::HOLE,
+            Item::RotatorRight => resources::ROTATOR_RIGHT,
+            Item::RotatorLeft => resources::ROTATOR_LEFT,
+            Item::RotatorUp => resources::ROTATOR_UP,
+            Item::RotatorDown => resources::ROTATOR_DOWN,
         }
     }
 
@@ -68,6 +78,11 @@ impl Item {
             Item::MovableBlock => resources::ROCK,
             Item::Glove => resources::POW_GLOVE,
             Item::Teleporter => resources::TELEPORTER,
+            Item::Hole => resources::HOLE,
+            Item::RotatorRight => resources::ROTATOR_RIGHT,
+            Item::RotatorLeft => resources::ROTATOR_LEFT,
+            Item::RotatorUp => resources::ROTATOR_UP,
+            Item::RotatorDown => resources::ROTATOR_DOWN,
         }
     }
 
@@ -94,6 +109,11 @@ impl Item {
             Item::MovableBlock => ZERO,
             Item::Glove => STANDARD,
             Item::Teleporter => ZERO,
+            Item::Hole => ZERO,
+            Item::RotatorRight => STANDARD,
+            Item::RotatorLeft => STANDARD,
+            Item::RotatorUp => STANDARD,
+            Item::RotatorDown => STANDARD,
         }
     }
 }

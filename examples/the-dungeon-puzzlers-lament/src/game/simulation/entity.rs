@@ -223,32 +223,82 @@ impl EntityMap {
                 desired_location,
                 move_effect,
             ));
-        } else if explicit_stay_put
+        } else if !should_die_later
+            && explicit_stay_put
             && can_turn_around
             && self.map.get(entity_to_update_key).map(|e| e.turns_around()) == Some(true)
         {
-            if let Some((Some(change), change_effect)) = self
+            if let Some(directions_to_attempt) = self
                 .map
-                .get_mut(entity_to_update_key)
-                .map(|e| (e.change_direction(), e.change_effect()))
+                .get(entity_to_update_key)
+                .and_then(|e| e.directions_to_attempt())
             {
-                animations.push(AnimationInstruction::PriorityChange(
+                #[allow(clippy::indexing_slicing)]
+                for &direction_to_attempt in directions_to_attempt {
+                    let (can_move, action) = self.attempt_move_in_direction(
+                        map,
+                        animations,
+                        entity_to_update_key,
+                        direction_to_attempt,
+                        false,
+                        push_depth,
+                        entities_that_have_moved,
+                    );
+
+                    if can_move.0 {
+                        if let Some((Some(change), change_effect)) = self
+                            .map
+                            .get_mut(entity_to_update_key)
+                            .map(|e| (e.change_direction(direction_to_attempt), e.change_effect()))
+                        {
+                            animations.push(AnimationInstruction::PriorityChange(
+                                entity_to_update_key,
+                                change,
+                                change_effect,
+                            ));
+                        }
+
+                        return (
+                            can_move,
+                            ActionResult::new(
+                                hero_has_died || action.hero_has_died,
+                                win_has_triggered || action.win_has_triggered,
+                            ),
+                        );
+                    }
+                }
+
+                let last_direction_attempt = *directions_to_attempt.last().unwrap();
+
+                animations.push(AnimationInstruction::FakeOutMove(
                     entity_to_update_key,
-                    change,
-                    change_effect,
+                    last_direction_attempt,
+                    self.map
+                        .get(entity_to_update_key)
+                        .and_then(|e| e.fake_out_wall_effect()),
                 ));
 
-                return self.attempt_move_in_direction(
-                    map,
-                    animations,
-                    entity_to_update_key,
-                    -direction,
-                    false,
-                    push_depth,
-                    entities_that_have_moved,
+                if let Some((Some(change), change_effect)) =
+                    self.map.get_mut(entity_to_update_key).map(|e| {
+                        (
+                            e.change_direction(last_direction_attempt),
+                            e.change_effect(),
+                        )
+                    })
+                {
+                    animations.push(AnimationInstruction::PriorityChange(
+                        entity_to_update_key,
+                        change,
+                        change_effect,
+                    ));
+                }
+
+                return (
+                    HasMoved(false),
+                    ActionResult::new(hero_has_died, win_has_triggered),
                 );
             }
-        } else {
+        } else if can_turn_around {
             animations.push(AnimationInstruction::FakeOutMove(
                 entity_to_update_key,
                 direction,
@@ -345,6 +395,11 @@ impl EntityMap {
                     }
                 }
                 OverlapResolution::Die => {
+                    hero_has_died |= self.kill_entity(entity_to_update_key, animations);
+                    break;
+                }
+                OverlapResolution::KillDie => {
+                    hero_has_died |= self.kill_entity(other_entity_key, animations);
                     hero_has_died |= self.kill_entity(entity_to_update_key, animations);
                     break;
                 }
@@ -468,6 +523,7 @@ enum OverlapResolution {
     Win,
     ToggleSystem(SwitchSystem),
     Die,
+    KillDie,
     MoveAgain,
     Teleport,
 }
@@ -483,7 +539,7 @@ fn resolve_spikes(switable: &Switchable) -> OverlapResolution {
 fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
     match (&me.entity, &other.entity) {
         (EntityType::Hero(_), EntityType::Stairs) => OverlapResolution::Win,
-        (EntityType::Hero(_) | EntityType::Enemy(Enemy::Squid(_)), EntityType::Item(_)) => {
+        (EntityType::Hero(_) | EntityType::Enemy(Enemy::Moving(_)), EntityType::Item(_)) => {
             OverlapResolution::Pickup
         }
         (EntityType::MovableBlock, EntityType::Spikes(_)) => OverlapResolution::CoExist,
@@ -492,6 +548,8 @@ fn resolve_overlap(me: &Entity, other: &Entity) -> OverlapResolution {
         (_, EntityType::Enemy(_)) => OverlapResolution::Die,
         (_, EntityType::Ice) => OverlapResolution::MoveAgain,
         (_, EntityType::Teleporter) => OverlapResolution::Teleport,
+        (EntityType::MovableBlock, EntityType::Hole) => OverlapResolution::KillDie,
+        (_, EntityType::Hole) => OverlapResolution::Die,
 
         _ => OverlapResolution::CoExist,
     }
@@ -504,18 +562,18 @@ fn holding_attack_resolve(
 ) -> MoveAttemptResolution {
     match (holding, &other.entity) {
         (Some(&EntityType::Item(Item::Sword)), _) => MoveAttemptResolution::Kill,
-        (_, EntityType::Enemy(Enemy::Squid(squid))) => {
+        (_, EntityType::Enemy(Enemy::Moving(squid))) => {
             hero_walk_into_squid_interaction(squid, direction)
         }
         _ => MoveAttemptResolution::CoExist,
     }
 }
 
-fn squid_holding_attack_resolve(me: &Squid, other: &Entity) -> MoveAttemptResolution {
+fn squid_holding_attack_resolve(me: &Moving, other: &Entity) -> MoveAttemptResolution {
     match (me.holding.as_deref(), &other.entity, other.holding()) {
         (
             Some(&EntityType::Item(Item::Sword)),
-            EntityType::Enemy(Enemy::Squid(squid)),
+            EntityType::Enemy(Enemy::Moving(squid)),
             Some(&EntityType::Item(Item::Sword)),
         ) => {
             if squid.direction == -me.direction {
@@ -527,7 +585,7 @@ fn squid_holding_attack_resolve(me: &Squid, other: &Entity) -> MoveAttemptResolu
         (Some(&EntityType::Item(Item::Sword)), EntityType::Enemy(_), None) => {
             MoveAttemptResolution::Kill
         }
-        (_, EntityType::Enemy(Enemy::Squid(squid)), Some(&EntityType::Item(Item::Sword))) => {
+        (_, EntityType::Enemy(Enemy::Moving(squid)), Some(&EntityType::Item(Item::Sword))) => {
             if squid.direction == -me.direction {
                 MoveAttemptResolution::Die
             } else {
@@ -555,7 +613,7 @@ fn switch_door_resolve(door: &Switchable) -> MoveAttemptResolution {
     }
 }
 
-fn hero_walk_into_squid_interaction(squid: &Squid, direction: Direction) -> MoveAttemptResolution {
+fn hero_walk_into_squid_interaction(squid: &Moving, direction: Direction) -> MoveAttemptResolution {
     if direction == -squid.direction {
         MoveAttemptResolution::DieLater
     } else {
@@ -569,14 +627,14 @@ fn resolve_move(mover: &Entity, into: &Entity, direction: Direction) -> MoveAtte
             holding_attack_resolve(hero.holding.as_deref(), into, direction)
         }
         (EntityType::Hero(hero), EntityType::Door) => holding_door_resolve(hero.holding.as_deref()),
-        (EntityType::Enemy(Enemy::Squid(squid)), EntityType::Hero(_) | EntityType::Enemy(_)) => {
+        (EntityType::Enemy(Enemy::Moving(squid)), EntityType::Hero(_) | EntityType::Enemy(_)) => {
             squid_holding_attack_resolve(squid, into)
         }
         (EntityType::Enemy(_), EntityType::Hero(_) | EntityType::Enemy(_)) => {
             MoveAttemptResolution::Kill
         }
         (_, EntityType::SwitchedDoor(door)) => switch_door_resolve(door),
-        (EntityType::Enemy(Enemy::Squid(squid)), EntityType::Door) => {
+        (EntityType::Enemy(Enemy::Moving(squid)), EntityType::Door) => {
             holding_door_resolve(squid.holding.as_deref())
         }
         (_, EntityType::Door) => MoveAttemptResolution::StayPut,
@@ -611,6 +669,7 @@ pub enum EntityType {
     Enemy(Enemy),
     Stairs,
     Door,
+    Hole,
     SwitchedDoor(Switchable),
     Switch(Switchable),
     Spikes(Switchable),
@@ -620,15 +679,22 @@ pub enum EntityType {
 }
 
 #[derive(Debug)]
-pub struct Squid {
+pub struct Moving {
     direction: Direction,
     holding: Option<Box<EntityType>>,
+    movable_enemy_type: MovableEnemyType,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum MovableEnemyType {
+    Squid,
+    Rotator,
 }
 
 #[derive(Debug)]
 pub enum Enemy {
     Slime,
-    Squid(Squid),
+    Moving(Moving),
 }
 
 #[derive(Debug)]
@@ -686,19 +752,19 @@ impl Entity {
     fn desired_action(&self, hero_action: Action) -> Action {
         match &self.entity {
             EntityType::Hero(_) => hero_action,
-            EntityType::Enemy(Enemy::Squid(squid)) => Action::Direction(squid.direction),
+            EntityType::Enemy(Enemy::Moving(squid)) => Action::Direction(squid.direction),
             _ => Action::Nothing,
         }
     }
 
     fn turns_around(&self) -> bool {
-        matches!(self.entity, EntityType::Enemy(Enemy::Squid(_)))
+        matches!(self.entity, EntityType::Enemy(Enemy::Moving(_)))
     }
 
     fn pickup(&mut self, item: EntityType) -> Option<EntityType> {
         let holding = match &mut self.entity {
             EntityType::Hero(hero) => &mut hero.holding,
-            EntityType::Enemy(Enemy::Squid(squid)) => &mut squid.holding,
+            EntityType::Enemy(Enemy::Moving(squid)) => &mut squid.holding,
             _ => panic!("this entity can't pick up things"),
         };
 
@@ -709,7 +775,7 @@ impl Entity {
     fn take_holding(&mut self) -> Option<EntityType> {
         match &mut self.entity {
             EntityType::Hero(hero) => hero.holding.take().map(|x| *x),
-            EntityType::Enemy(Enemy::Squid(squid)) => squid.holding.take().map(|x| *x),
+            EntityType::Enemy(Enemy::Moving(squid)) => squid.holding.take().map(|x| *x),
             _ => None,
         }
     }
@@ -719,7 +785,7 @@ impl Entity {
             Some(i32::MAX)
         } else if matches!(
             self.entity,
-            EntityType::Hero(_) | EntityType::Enemy(Enemy::Squid(_))
+            EntityType::Hero(_) | EntityType::Enemy(Enemy::Moving(_))
         ) {
             Some(1)
         } else {
@@ -730,7 +796,7 @@ impl Entity {
     fn holding(&self) -> Option<&EntityType> {
         match &self.entity {
             EntityType::Hero(hero) => hero.holding.as_deref(),
-            EntityType::Enemy(Enemy::Squid(squid)) => squid.holding.as_deref(),
+            EntityType::Enemy(Enemy::Moving(squid)) => squid.holding.as_deref(),
             _ => None,
         }
     }
@@ -740,7 +806,11 @@ impl Entity {
             EntityType::Hero(_) => Some(SoundEffect::HeroDie),
             EntityType::Door => Some(SoundEffect::DoorOpen),
             EntityType::Enemy(Enemy::Slime) => Some(SoundEffect::SlimeDie),
-            EntityType::Enemy(Enemy::Squid(_)) => Some(SoundEffect::SquidDie),
+            EntityType::Enemy(Enemy::Moving(e))
+                if e.movable_enemy_type == MovableEnemyType::Squid =>
+            {
+                Some(SoundEffect::SquidDie)
+            }
             _ => None,
         }
     }
@@ -792,15 +862,46 @@ impl Entity {
         None
     }
 
-    fn change_direction(&mut self) -> Option<level::Item> {
-        match &mut self.entity {
-            EntityType::Enemy(Enemy::Squid(squid)) => {
-                squid.direction = -squid.direction;
+    fn directions_to_attempt(&self) -> Option<&'static [Direction]> {
+        match &self.entity {
+            EntityType::Enemy(Enemy::Moving(moving_type)) => {
+                Some(match moving_type.movable_enemy_type {
+                    MovableEnemyType::Squid => match moving_type.direction {
+                        Direction::Up => &[Direction::Down],
+                        Direction::Down => &[Direction::Up],
+                        _ => panic!("Left and right movements are not valid for a squid"),
+                    },
+                    MovableEnemyType::Rotator => match moving_type.direction {
+                        Direction::Up => &[Direction::Right, Direction::Left, Direction::Down],
+                        Direction::Down => &[Direction::Left, Direction::Right, Direction::Up],
+                        Direction::Left => &[Direction::Up, Direction::Down, Direction::Right],
+                        Direction::Right => &[Direction::Down, Direction::Up, Direction::Left],
+                    },
+                })
+            }
+            _ => None,
+        }
+    }
 
-                if squid.direction == Direction::Up {
-                    Some(level::Item::SquidUp)
-                } else {
-                    Some(level::Item::SquidDown)
+    fn change_direction(&mut self, direction: Direction) -> Option<level::Item> {
+        match &mut self.entity {
+            EntityType::Enemy(Enemy::Moving(moving)) => {
+                moving.direction = direction;
+
+                match moving.movable_enemy_type {
+                    MovableEnemyType::Squid => {
+                        if direction == Direction::Up {
+                            Some(level::Item::SquidUp)
+                        } else {
+                            Some(level::Item::SquidDown)
+                        }
+                    }
+                    MovableEnemyType::Rotator => Some(match direction {
+                        Direction::Up => level::Item::RotatorUp,
+                        Direction::Down => level::Item::RotatorDown,
+                        Direction::Left => level::Item::RotatorLeft,
+                        Direction::Right => level::Item::RotatorRight,
+                    }),
                 }
             }
             _ => None,
@@ -887,18 +988,41 @@ impl From<level::Item> for EntityType {
                 system: SwitchSystem(0),
                 active: false,
             }),
-            level::Item::SquidUp => EntityType::Enemy(Enemy::Squid(Squid {
+            level::Item::SquidUp => EntityType::Enemy(Enemy::Moving(Moving {
                 direction: Direction::Up,
                 holding: None,
+                movable_enemy_type: MovableEnemyType::Squid,
             })),
-            level::Item::SquidDown => EntityType::Enemy(Enemy::Squid(Squid {
+            level::Item::SquidDown => EntityType::Enemy(Enemy::Moving(Moving {
                 direction: Direction::Down,
                 holding: None,
+                movable_enemy_type: MovableEnemyType::Squid,
             })),
             level::Item::Ice => EntityType::Ice,
             level::Item::MovableBlock => EntityType::MovableBlock,
             level::Item::Glove => EntityType::Item(Item::Glove),
             level::Item::Teleporter => EntityType::Teleporter,
+            level::Item::Hole => EntityType::Hole,
+            level::Item::RotatorRight => EntityType::Enemy(Enemy::Moving(Moving {
+                direction: Direction::Right,
+                holding: None,
+                movable_enemy_type: MovableEnemyType::Rotator,
+            })),
+            level::Item::RotatorLeft => EntityType::Enemy(Enemy::Moving(Moving {
+                direction: Direction::Left,
+                holding: None,
+                movable_enemy_type: MovableEnemyType::Rotator,
+            })),
+            level::Item::RotatorUp => EntityType::Enemy(Enemy::Moving(Moving {
+                direction: Direction::Up,
+                holding: None,
+                movable_enemy_type: MovableEnemyType::Rotator,
+            })),
+            level::Item::RotatorDown => EntityType::Enemy(Enemy::Moving(Moving {
+                direction: Direction::Down,
+                holding: None,
+                movable_enemy_type: MovableEnemyType::Rotator,
+            })),
         }
     }
 }

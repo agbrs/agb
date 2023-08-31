@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="4">
+ <properties>
+  <property name="DIRECTIONS" value="RRRRRRRR"/>
+  <property name="ITEMS" value="BLOCK"/>
+  <property name="NAME" value="That hero won't survive the fall"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,1,6,5,2,2,6,4,8,9,0,
+0,10,17,17,12,15,13,17,17,38,0,
+0,19,20,20,20,25,20,22,21,27,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" name="STAIRS" x="135.08" y="73.5784">
+   <point/>
+  </object>
+  <object id="2" name="HERO" x="55.8537" y="72.9973">
+   <point/>
+  </object>
+  <object id="3" name="HOLE" x="103.811" y="69.6733">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

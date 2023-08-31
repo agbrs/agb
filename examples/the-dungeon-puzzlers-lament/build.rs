@@ -44,6 +44,8 @@ const LEVEL_NAMES: &[&str] = &[
     "another_ice_2",
     "another_ice_3",
     "another_ice_4",
+    "hole_introduction",
+    "rotator_1",
 ];
 
 fn main() {
@@ -131,6 +133,11 @@ enum Entity {
     MovableBlock,
     Glove,
     Teleporter,
+    Hole,
+    RotatorUp,
+    RotatorDown,
+    RotatorLeft,
+    RotatorRight,
 }
 
 impl FromStr for Entity {
@@ -158,6 +165,11 @@ impl FromStr for Entity {
             "BLOCK" => MovableBlock,
             "GLOVE" => Glove,
             "TELEPORTER" => Teleporter,
+            "HOLE" => Hole,
+            "ROTATOR_LEFT" => RotatorLeft,
+            "ROTATOR_RIGHT" => RotatorRight,
+            "ROTATOR_UP" => RotatorUp,
+            "ROTATOR_DOWN" => RotatorDown,
             _ => return Err(()),
         })
     }
@@ -186,6 +198,11 @@ impl quote::ToTokens for Entity {
             MovableBlock => quote!(Item::MovableBlock),
             Glove => quote!(Item::Glove),
             Teleporter => quote!(Item::Teleporter),
+            Hole => quote!(Item::Hole),
+            RotatorUp => quote!(Item::RotatorUp),
+            RotatorDown => quote!(Item::RotatorDown),
+            RotatorLeft => quote!(Item::RotatorLeft),
+            RotatorRight => quote!(Item::RotatorRight),
         })
     }
 }
