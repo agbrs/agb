@@ -195,14 +195,23 @@ impl RegularMap {
             "Don't have a full screen's worth of tile data"
         );
 
-        for y in 0..20u16 {
-            for x in 0..30u16 {
+        assert_eq!(
+            tile_data.tiles.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tile_data.tiles.format(),
+            self.colours()
+        );
+
+        for y in 0..20 {
+            for x in 0..30 {
                 let tile_id = y * 30 + x;
-                self.set_tile(
+                let tile_pos = y * 32 + x;
+                self.set_tile_at_pos(
                     vram,
-                    (x, y).into(),
+                    tile_pos,
                     &tile_data.tiles,
-                    tile_data.tile_settings[tile_id as usize],
+                    tile_data.tile_settings[tile_id],
                 );
             }
         }
@@ -215,20 +224,28 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        let colours = self.colours();
-        if tileset.format() != colours {
-            panic!(
-                "Cannot set a {:?} colour tile on a {:?} colour background",
-                tileset.format(),
-                colours
-            );
-        }
+        assert_eq!(
+            tileset.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tileset.format(),
+            self.colours()
+        );
 
         let pos = self.map_size().gba_offset(pos);
+        self.set_tile_at_pos(vram, pos, tileset, tile_setting);
+    }
 
+    fn set_tile_at_pos(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: usize,
+        tileset: &TileSet<'_>,
+        tile_setting: TileSetting,
+    ) {
         let old_tile = self.tiles_mut()[pos];
         if old_tile != Tile::default() {
-            vram.remove_tile(old_tile.tile_index(colours));
+            vram.remove_tile(old_tile.tile_index(self.colours()));
         }
 
         let tile_index = tile_setting.index();
