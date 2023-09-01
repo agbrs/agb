@@ -51,10 +51,10 @@ impl Item {
             Item::Glove => resources::POW_GLOVE_SHADOW,
             Item::Teleporter => resources::TELEPORTER_SHADOW,
             Item::Hole => resources::HOLE,
-            Item::RotatorRight => resources::ROTATOR_RIGHT,
-            Item::RotatorLeft => resources::ROTATOR_LEFT,
-            Item::RotatorUp => resources::ROTATOR_UP,
-            Item::RotatorDown => resources::ROTATOR_DOWN,
+            Item::RotatorRight => resources::ROTATOR_RIGHT_SHADOW,
+            Item::RotatorLeft => resources::ROTATOR_LEFT_SHADOW,
+            Item::RotatorUp => resources::ROTATOR_UP_SHADOW,
+            Item::RotatorDown => resources::ROTATOR_DOWN_SHADOW,
         }
     }
 

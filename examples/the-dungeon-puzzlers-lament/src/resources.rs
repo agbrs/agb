@@ -61,6 +61,10 @@ named_tag!(
         ROTATOR_UP,
         ROTATOR_LEFT,
         ROTATOR_DOWN,
+        ROTATOR_RIGHT_SHADOW,
+        ROTATOR_UP_SHADOW,
+        ROTATOR_LEFT_SHADOW,
+        ROTATOR_DOWN_SHADOW,
     ]
 );
 
