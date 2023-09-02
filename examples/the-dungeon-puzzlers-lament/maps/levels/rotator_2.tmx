@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="10">
+ <properties>
+  <property name="DIRECTIONS" value="RRRRRRRRUUUUUUUU"/>
+  <property name="ITEMS" value="DOOR,SWITCH"/>
+  <property name="NAME" value="How many floors like this are there?"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,1,6,8,5,4,9,
+0,0,1,7,8,32,11,17,12,17,38,
+0,0,10,14,17,1073741863,14,2147483676,28,13,38,
+0,0,37,11,11,13,13,38,46,15,18,
+1,8,1073741852,16,16,11,13,18,10,11,38,
+37,16,17,12,13,11,17,18,46,11,47,
+10,12,2147483676,22,26,23,23,27,10,17,38,
+46,16,3221225500,5,6,7,5,3,1073741852,15,47,
+10,13,16,15,13,13,12,14,11,12,47,
+19,26,20,21,25,20,22,24,21,24,27
+</data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="3" name="HERO" x="24.9004" y="137.709">
+   <point/>
+  </object>
+  <object id="4" name="STAIRS" x="151.508" y="41.3147">
+   <point/>
+  </object>
+  <object id="5" name="DOOR_SWITCHED" x="103.816" y="138.512">
+   <point/>
+  </object>
+  <object id="6" name="DOOR_SWITCHED_OPEN" x="152.025" y="72.1267">
+   <point/>
+  </object>
+  <object id="7" name="ROTATOR_UP" x="23.3112" y="106.209">
+   <point/>
+  </object>
+ </objectgroup>
+</map>
