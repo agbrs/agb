@@ -385,25 +385,32 @@ impl VRamManager {
         let target_location = tile_reference.0.as_ptr() as *mut _;
 
         unsafe {
-            core::arch::asm!(
-                "cmp r2, #0",
-                "beq 1f",
-                "ldmia r0!, {{r2-r5}}",
-                "stmia r1!, {{r2-r5}}",
-                "ldmia r0!, {{r2-r5}}",
-                "stmia r1!, {{r2-r5}}",
-                "1:",
-                "ldmia r0!, {{r2-r5}}",
-                "stmia r1!, {{r2-r5}}",
-                "ldmia r0!, {{r2-r5}}",
-                "stmia r1!, {{r2-r5}}",
-                inout("r0") tile_data_start => _,
-                inout("r1") target_location => _,
-                inout("r2") tile_format as u32 => _,
-                out("r3") _,
-                out("r4") _,
-                out("r5") _,
-            );
+            match tile_format {
+                TileFormat::FourBpp => core::arch::asm!(
+                    ".rept 2",
+                    "ldmia r0!, {{r2-r5}}",
+                    "stmia r1!, {{r2-r5}}",
+                    ".endr",
+                    inout("r0") tile_data_start => _,
+                    inout("r1") target_location => _,
+                    out("r2") _,
+                    out("r3") _,
+                    out("r4") _,
+                    out("r5") _,
+                ),
+                TileFormat::EightBpp => core::arch::asm!(
+                    ".rept 4",
+                    "ldmia r0!, {{r2-r5}}",
+                    "stmia r1!, {{r2-r5}}",
+                    ".endr",
+                    inout("r0") tile_data_start => _,
+                    inout("r1") target_location => _,
+                    out("r2") _,
+                    out("r3") _,
+                    out("r4") _,
+                    out("r5") _,
+                ),
+            }
         }
     }
 
