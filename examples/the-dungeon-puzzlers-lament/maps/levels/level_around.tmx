@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="3">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="7">
  <properties>
   <property name="DIRECTIONS" value="RULDRULDRULD"/>
   <property name="ITEMS" value="DOOR,SWORD,SLIME,SQUID_UP"/>
   <property name="NAME" value="Now they're just going in circles"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,1,7,5,6,9,0,0,
 0,0,1,4,1073741852,17,13,13,3221225500,9,0,
@@ -20,11 +20,25 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="1" name="HERO" x="72.9779" y="76.2911">
    <point/>
   </object>
   <object id="2" name="STAIRS" x="120.978" y="44.2911">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="4" name="Solution">
+  <object id="3" name="DOOR" x="72.3579" y="57.1247">
+   <point/>
+  </object>
+  <object id="4" name="SWORD" x="87.8152" y="55.5565">
+   <point/>
+  </object>
+  <object id="5" name="SLIME" x="86.9191" y="38.9792">
+   <point/>
+  </object>
+  <object id="6" name="SQUID_UP" x="86.023" y="119.178">
    <point/>
   </object>
  </objectgroup>

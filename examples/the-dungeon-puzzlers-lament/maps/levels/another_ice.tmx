@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="12">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="17">
  <properties>
   <property name="DIRECTIONS" value="RRU"/>
   <property name="ITEMS" value="ICE,ICE,ICE,TELEPORTER,TELEPORTER"/>
   <property name="NAME" value="How fast can something go?"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,1,2,9,0,1,8,6,9,
 0,0,0,10,17,18,1,1073741852,17,12,18,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,19,26,23,27,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="1" name="STAIRS" x="72.2556" y="24.5112">
    <point/>
   </object>
@@ -40,6 +40,23 @@
    <point/>
   </object>
   <object id="10" name="ICE" x="71.5373" y="58.468">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="12" name="ICE" x="120.834" y="102.72">
+   <point/>
+  </object>
+  <object id="13" name="ICE" x="119.229" y="86.2116">
+   <point/>
+  </object>
+  <object id="14" name="ICE" x="118.999" y="69.0151">
+   <point/>
+  </object>
+  <object id="15" name="TELEPORTER" x="118.541" y="37.3736">
+   <point/>
+  </object>
+  <object id="16" name="TELEPORTER" x="89.4216" y="55.4872">
    <point/>
   </object>
  </objectgroup>

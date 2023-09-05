@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="172">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="175">
  <properties>
   <property name="DIRECTIONS" value="LDDDD"/>
   <property name="ITEMS" value="SQUID_UP,ICE,ICE"/>
   <property name="NAME" value="In reality, a squid is a friend. They can't help but kill the hero, but they've been helping at every floor!"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,1,7,9,0,0,0,0,0,
 0,0,1,1073741852,13,3221225500,8,9,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,19,24,27,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="164" name="HERO" x="120.022" y="72.8136">
    <point/>
   </object>
@@ -37,6 +37,17 @@
    <point/>
   </object>
   <object id="171" name="SPIKES" x="71.6364" y="41.4545">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="172" name="ICE" x="87" y="72">
+   <point/>
+  </object>
+  <object id="173" name="ICE" x="70.5" y="56.5">
+   <point/>
+  </object>
+  <object id="174" name="SQUID_UP" x="71.75" y="105.25">
    <point/>
   </object>
  </objectgroup>

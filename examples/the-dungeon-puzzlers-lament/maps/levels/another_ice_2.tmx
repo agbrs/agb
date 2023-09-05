@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="148">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="156">
  <properties>
   <property name="DIRECTIONS" value="DDDDLLLDLLLLD"/>
   <property name="ITEMS" value="BLOCK,BLOCK,BLOCK,BLOCK,HERO,HERO,TELEPORTER,DOOR"/>
   <property name="NAME" value="I must commend you, I'd have given up helping this useless hero by now. They're only going to get stuck again."/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 1,8,2,7,8,8,3,7,4,2,9,
 46,17,13,17,13,12,12,15,11,16,38,
@@ -20,7 +20,7 @@
 0,19,24,20,25,20,27,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="27" name="ICE" x="87.1287" y="74.0594">
    <point/>
   </object>
@@ -100,6 +100,32 @@
    <point/>
   </object>
   <object id="147" name="ICE" x="72.4544" y="69.703">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="148" name="BLOCK" x="23.8458" y="40.1251">
+   <point/>
+  </object>
+  <object id="149" name="BLOCK" x="24.5336" y="54.3408">
+   <point/>
+  </object>
+  <object id="150" name="TELEPORTER" x="23.1579" y="23.6165">
+   <point/>
+  </object>
+  <object id="151" name="DOOR" x="135.05" y="88.7337">
+   <point/>
+  </object>
+  <object id="152" name="BLOCK" x="135.737" y="103.179">
+   <point/>
+  </object>
+  <object id="153" name="BLOCK" x="101.574" y="102.72">
+   <point/>
+  </object>
+  <object id="154" name="HERO" x="119.229" y="38.5201">
+   <point/>
+  </object>
+  <object id="155" name="HERO" x="153.392" y="22.6993">
    <point/>
   </object>
  </objectgroup>

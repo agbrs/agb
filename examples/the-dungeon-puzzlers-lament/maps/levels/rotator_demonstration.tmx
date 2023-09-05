@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="14">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="15">
  <properties>
   <property name="DIRECTIONS" value="UULDLDDDDRDRRRD"/>
   <property name="ITEMS" value="SWITCH"/>
   <property name="NAME" value="There's no way through without a little help"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,1,8,3,9,1,7,9,0,0,0,
 1,1073741852,11,11,3221225500,1073741852,13,38,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,19,20,24,21,27,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="9" name="ROTATOR_UP" x="135.75" y="119.5">
    <point/>
   </object>
@@ -34,6 +34,11 @@
    <point/>
   </object>
   <object id="13" name="DOOR_SWITCHED_OPEN" x="87.25" y="120.5">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="14" name="SWITCH" x="103.25" y="88">
    <point/>
   </object>
  </objectgroup>

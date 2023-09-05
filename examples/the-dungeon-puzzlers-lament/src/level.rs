@@ -2,7 +2,7 @@ use agb::{display::object::Tag, fixnum::Vector2D};
 
 use crate::{game::Direction, map::Map, resources};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Item {
     Sword,
     Slime,
@@ -123,15 +123,19 @@ pub struct Entity(pub Item, pub Vector2D<i32>);
 pub struct Level {
     pub map: Map<'static>,
     pub entities: &'static [Entity],
+    #[cfg(test)]
+    pub solution: &'static [Entity],
     pub directions: &'static [Direction],
     pub items: &'static [Item],
     pub name: &'static str,
 }
 
 impl Level {
+    #[allow(unused_variables)]
     const fn new(
         map: Map<'static>,
         entities: &'static [Entity],
+        solution: &'static [Entity],
         directions: &'static [Direction],
         items: &'static [Item],
         name: &'static str,
@@ -139,6 +143,8 @@ impl Level {
         Self {
             map,
             entities,
+            #[cfg(test)]
+            solution,
             directions,
             items,
             name,

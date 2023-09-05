@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="8">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="11">
  <properties>
   <property name="DIRECTIONS" value="ULLDDLD"/>
   <property name="ITEMS" value="BLOCK,BLOCK,GLOVE"/>
   <property name="NAME" value="Hmmmmmmmm"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 1,7,4,2,6,9,0,1,8,9,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="1" name="SQUID_UP" x="136.499" y="88.7763">
    <point/>
   </object>
@@ -40,6 +40,17 @@
    <point/>
   </object>
   <object id="7" name="SWITCH" x="40.0118" y="105.448">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="8" name="BLOCK" x="136.196" y="71.5373">
+   <point/>
+  </object>
+  <object id="9" name="GLOVE" x="57.7801" y="39.8958">
+   <point/>
+  </object>
+  <object id="10" name="BLOCK" x="38.9786" y="55.9458">
    <point/>
   </object>
  </objectgroup>

@@ -18,9 +18,37 @@ use super::animation::AnimationInstruction;
 
 new_key_type! { pub struct EntityKey; }
 
-#[derive(Default)]
 pub struct EntityMap {
     map: SlotMap<EntityKey, Entity>,
+}
+
+pub struct EntityMapMaker {
+    map: Vec<(crate::level::Item, Vector2D<i32>)>,
+}
+
+impl EntityMapMaker {
+    pub fn new() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
+
+    pub fn add(&mut self, entity: crate::level::Item, location: Vector2D<i32>) {
+        let idx = self.map.push((entity, location));
+    }
+
+    pub fn to_entity_map(mut self) -> (EntityMap, Vec<AnimationInstruction>) {
+        self.map
+            .sort_unstable_by_key(|(_, location)| location.x + location.y * 100);
+        let mut entity_map = EntityMap {
+            map: Default::default(),
+        };
+        let mut animations = Vec::new();
+        for (entity, location) in self.map {
+            animations.push(entity_map.add(entity, location));
+        }
+        (entity_map, animations)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
@@ -1023,6 +1051,110 @@ impl From<level::Item> for EntityType {
                 holding: None,
                 movable_enemy_type: MovableEnemyType::Rotator,
             })),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use agb::hash_map::HashMap;
+
+    #[test_case]
+    fn check_all_puzzle_solutions_work(_gba: &mut agb::Gba) {
+        let number_of_levels = crate::level::Level::num_levels();
+        let mut failed_levels = Vec::new();
+
+        #[derive(Debug)]
+        enum CompleteSimulationResult {
+            Success,
+            ExplicitLoss,
+            InputSequenceOver,
+            MismatchedItems(HashMap<crate::level::Item, ()>),
+        }
+
+        fn check_level_has_valid_items(level: usize) -> HashMap<crate::level::Item, ()> {
+            let level = crate::level::Level::get_level(level);
+
+            let mut given_items = HashMap::new();
+
+            for &item in level.items.iter() {
+                *given_items.entry(item).or_insert(0) += 1;
+            }
+
+            let mut solution_items = HashMap::new();
+
+            for entity in level.solution.iter() {
+                *solution_items.entry(entity.0).or_insert(0) += 1;
+            }
+
+            let mut mismatched = HashMap::new();
+
+            for (&item, &count) in solution_items.iter() {
+                if *given_items.entry(item).or_insert(0) < count {
+                    mismatched.insert(item, ());
+                }
+            }
+
+            mismatched
+        }
+
+        fn check_level_works(level: usize) -> CompleteSimulationResult {
+            let level = crate::level::Level::get_level(level);
+
+            let mut simulator = EntityMapMaker::new();
+            for entity in level.entities {
+                simulator.add(entity.0, entity.1);
+            }
+            for solution_entity in level.solution {
+                simulator.add(solution_entity.0, solution_entity.1);
+            }
+
+            let (mut simulator, _) = simulator.to_entity_map();
+
+            for &direction in level.directions {
+                let (outcome, _) = simulator.tick(&level.map, Action::Direction(direction));
+                match outcome {
+                    Outcome::Continue => {}
+                    Outcome::Loss => return CompleteSimulationResult::ExplicitLoss,
+                    Outcome::Win => return CompleteSimulationResult::Success,
+                }
+            }
+
+            CompleteSimulationResult::InputSequenceOver
+        }
+
+        for level_idx in 0..number_of_levels {
+            let mismatched_items = check_level_has_valid_items(level_idx);
+            if !mismatched_items.is_empty() {
+                failed_levels.push((
+                    level_idx,
+                    CompleteSimulationResult::MismatchedItems(mismatched_items),
+                ))
+            }
+            let outcome = check_level_works(level_idx);
+            match outcome {
+                CompleteSimulationResult::ExplicitLoss
+                | CompleteSimulationResult::InputSequenceOver => {
+                    failed_levels.push((level_idx, outcome))
+                }
+                _ => {}
+            }
+        }
+
+        if !failed_levels.is_empty() {
+            agb::println!("Levels that failed were:");
+            for (level, outcome) in failed_levels {
+                agb::println!(
+                    "Level: {}, reason {:?}, lament: {}",
+                    level,
+                    outcome,
+                    crate::level::Level::get_level(level).name
+                );
+            }
+
+            panic!("Level check failed");
         }
     }
 }

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="14">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="15">
  <properties>
   <property name="DIRECTIONS" value="RRUURRDD"/>
   <property name="ITEMS" value="GLOVE"/>
   <property name="NAME" value="Should be simple for a dungoen puzzler such as yourself"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="7" name="STAIRS" x="103.179" y="87.8166">
    <point/>
   </object>
@@ -34,6 +34,11 @@
    <point/>
   </object>
   <object id="13" name="BLOCK" x="119.687" y="86.6701">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="4" name="Solution">
+  <object id="14" name="GLOVE" x="87.1287" y="70.8494">
    <point/>
   </object>
  </objectgroup>

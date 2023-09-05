@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="11">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="12">
  <properties>
   <property name="DIRECTIONS" value="DRDRRDLRD"/>
   <property name="ITEMS" value="BLOCK"/>
   <property name="NAME" value="Hmmmmm"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="2" name="HERO" x="56.8918" y="56.0583">
    <point/>
   </object>
@@ -37,6 +37,11 @@
    <point/>
   </object>
   <object id="10" name="BLOCK" x="105.448" y="73.5634">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="4" name="Solution">
+  <object id="11" name="BLOCK" x="72.3579" y="103.496">
    <point/>
   </object>
  </objectgroup>

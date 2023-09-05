@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="15">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="18">
  <properties>
   <property name="DIRECTIONS" value="DDDDRRRD"/>
   <property name="ITEMS" value="BLOCK,BLOCK,SWITCH"/>
   <property name="NAME" value="Try not to go too far"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,19,26,27,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="4" name="ICE" x="119.968" y="121.411">
    <point/>
   </object>
@@ -43,6 +43,17 @@
    <point/>
   </object>
   <object id="14" name="DOOR_SWITCHED_OPEN" x="70.5455" y="124">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="15" name="BLOCK" x="135.125" y="71.4972">
+   <point/>
+  </object>
+  <object id="16" name="SWITCH" x="136.025" y="102.299">
+   <point/>
+  </object>
+  <object id="17" name="BLOCK" x="54.185" y="120.511">
    <point/>
   </object>
  </objectgroup>

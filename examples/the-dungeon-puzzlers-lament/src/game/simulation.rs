@@ -11,7 +11,7 @@ use crate::{
 
 use self::{
     animation::{Animation, RenderCache},
-    entity::{Action, EntityMap},
+    entity::{Action, EntityMap, EntityMapMaker},
 };
 
 mod animation;
@@ -33,19 +33,21 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn generate(
-        a: impl Iterator<Item = (Item, Vector2D<i32>)>,
+        entities_to_add: impl Iterator<Item = (Item, Vector2D<i32>)>,
         level: &'static Level,
         sfx: &mut Sfx,
         loader: &mut SpriteLoader,
     ) -> Simulation {
-        let mut entities = EntityMap::default();
+        let mut entities = EntityMapMaker::new();
         let mut animation = Animation::default();
 
-        let mut entities_to_add: Vec<_> = a.collect();
-        entities_to_add.sort_unstable_by_key(|(_, location)| location.x + location.y * 100);
-
         for (item, location) in entities_to_add {
-            animation.populate(entities.add(item, location), sfx);
+            entities.add(item, location);
+        }
+
+        let (entities, animations) = entities.to_entity_map();
+        for ani in animations {
+            animation.populate(ani, sfx);
         }
 
         let mut simulation = Simulation {

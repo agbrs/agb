@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="7">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="9">
  <properties>
   <property name="DIRECTIONS" value="LLLLLLLLUUUU"/>
   <property name="ITEMS" value="BLOCK,BLOCK"/>
   <property name="NAME" value="Less familiar, but exciting nonetheless"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,1,3,2,6,9,0,0,0,0,0,
 0,46,15,14,13,3221225500,4,6,7,7,9,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="3" name="HERO" x="119.458" y="71.7665">
    <point/>
   </object>
@@ -31,6 +31,14 @@
    <point/>
   </object>
   <object id="6" name="DOOR_SWITCHED" x="87.1287" y="54.3408">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="7" name="BLOCK" x="54.3408" y="71.9958">
+   <point/>
+  </object>
+  <object id="8" name="BLOCK" x="86.2116" y="68.7858">
    <point/>
   </object>
  </objectgroup>

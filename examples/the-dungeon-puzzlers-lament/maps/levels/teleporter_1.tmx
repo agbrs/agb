@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="6">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="8">
  <properties>
   <property name="DIRECTIONS" value="RRRDRRRR"/>
   <property name="ITEMS" value="TELEPORTER"/>
   <property name="NAME" value="They say you can't remember moving"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,1,4,5,4,3,7,2,8,9,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="3" name="HERO" x="39.3333" y="40.3333">
    <point/>
   </object>
@@ -28,6 +28,11 @@
    <point/>
   </object>
   <object id="5" name="TELEPORTER" x="87.6667" y="100.333">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="7" name="TELEPORTER" x="87" y="39.6667">
    <point/>
   </object>
  </objectgroup>

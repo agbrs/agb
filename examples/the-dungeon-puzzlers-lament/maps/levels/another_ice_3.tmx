@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="164">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="178">
  <properties>
   <property name="DIRECTIONS" value="ULURULURULURULUR"/>
   <property name="ITEMS" value="BLOCK,BLOCK,BLOCK,BLOCK,HERO,SQUID_DOWN,GLOVE"/>
   <property name="NAME" value="I did warn you they were going to get stuck again. I can't think of a creature more useless."/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 1,8,2,7,8,8,3,9,1,2,9,
 46,2147483676,22,23,28,12,12,38,19,26,27,
@@ -20,7 +20,7 @@
 19,22,22,20,25,22,26,25,26,24,27
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="148" name="ICE" x="70.8494" y="140.323">
    <point/>
   </object>
@@ -43,6 +43,29 @@
    <point/>
   </object>
   <object id="162" name="ICE" x="39.8958" y="139.635">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="171" name="BLOCK" x="103.75" y="120.75">
+   <point/>
+  </object>
+  <object id="172" name="BLOCK" x="102.75" y="105.5">
+   <point/>
+  </object>
+  <object id="173" name="BLOCK" x="103" y="89.75">
+   <point/>
+  </object>
+  <object id="174" name="SQUID_DOWN" x="101.5" y="55.75">
+   <point/>
+  </object>
+  <object id="175" name="GLOVE" x="101.75" y="72.75">
+   <point/>
+  </object>
+  <object id="176" name="HERO" x="151.5" y="136.5">
+   <point/>
+  </object>
+  <object id="177" name="BLOCK" x="23.75" y="136.25">
    <point/>
   </object>
  </objectgroup>
