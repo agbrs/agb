@@ -1067,14 +1067,21 @@ mod tests {
         let mut failed_levels = Vec::new();
 
         #[derive(Debug)]
+        #[allow(dead_code)]
+        struct MismatchCount {
+            given: i32,
+            used: i32,
+        }
+
+        #[derive(Debug)]
         enum CompleteSimulationResult {
             Success,
             ExplicitLoss,
             InputSequenceOver,
-            MismatchedItems(HashMap<crate::level::Item, ()>),
+            MismatchedItems(HashMap<crate::level::Item, MismatchCount>),
         }
 
-        fn check_level_has_valid_items(level: usize) -> HashMap<crate::level::Item, ()> {
+        fn check_level_has_valid_items(level: usize) -> HashMap<crate::level::Item, MismatchCount> {
             let level = crate::level::Level::get_level(level);
 
             let mut given_items = HashMap::new();
@@ -1092,8 +1099,15 @@ mod tests {
             let mut mismatched = HashMap::new();
 
             for (&item, &count) in solution_items.iter() {
-                if *given_items.entry(item).or_insert(0) < count {
-                    mismatched.insert(item, ());
+                let given_count = given_items.get(&item).copied().unwrap_or(0);
+                if given_count < count {
+                    mismatched.insert(
+                        item,
+                        MismatchCount {
+                            given: given_count,
+                            used: count,
+                        },
+                    );
                 }
             }
 
