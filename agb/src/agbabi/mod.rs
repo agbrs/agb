@@ -4,14 +4,6 @@ global_asm!(include_str!("macros.inc"));
 global_asm!(include_str!("memcpy.s"));
 global_asm!(include_str!("memset.s"));
 
-extern "C" {
-    fn __aeabi_memcpy4(dest: *mut u32, src: *const u32, n: usize);
-}
-
-pub(crate) unsafe fn memcpy(dest: *mut u32, src: *const u32, n: usize) {
-    __aeabi_memcpy4(dest, src, n);
-}
-
 #[cfg(test)]
 mod test {
     mod memset {

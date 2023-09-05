@@ -4,7 +4,6 @@ use alloc::{slice, vec::Vec};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
-    agbabi,
     display::palette16,
     dma::dma_copy16,
     hash_map::{Entry, HashMap},
@@ -381,11 +380,13 @@ impl VRamManager {
         let tile_offset = (tile_id as usize) * tile_size;
         let tile_slice = &tile_set.tiles[tile_offset..(tile_offset + tile_size)];
 
-        let tile_size = tile_slice.len();
         let target_location = tile_reference.0.as_ptr() as *mut _;
 
         unsafe {
-            agbabi::memcpy(target_location, tile_slice.as_ptr() as *const _, tile_size);
+            match tile_set.format {
+                TileFormat::FourBpp => copy_tile_4bpp(tile_slice.as_ptr().cast(), target_location),
+                TileFormat::EightBpp => copy_tile_8bpp(tile_slice.as_ptr().cast(), target_location),
+            }
         }
     }
 
@@ -408,4 +409,9 @@ impl VRamManager {
             self.set_background_palette(palette_index as u8, entry);
         }
     }
+}
+
+extern "C" {
+    fn copy_tile_4bpp(src: *const u32, dest: *mut u32);
+    fn copy_tile_8bpp(src: *const u32, dest: *mut u32);
 }

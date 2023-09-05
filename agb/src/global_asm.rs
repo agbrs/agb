@@ -6,3 +6,4 @@ global_asm!(include_str!("crt0.s"));
 global_asm!(include_str!("interrupt_handler.s"));
 global_asm!(include_str!("sound/mixer/mixer.s"));
 global_asm!(include_str!("save/asm_routines.s"));
+global_asm!(include_str!("display/tiled/tile_copy.s"));
