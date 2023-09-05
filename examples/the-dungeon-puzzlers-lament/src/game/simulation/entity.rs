@@ -34,10 +34,10 @@ impl EntityMapMaker {
     }
 
     pub fn add(&mut self, entity: crate::level::Item, location: Vector2D<i32>) {
-        let idx = self.map.push((entity, location));
+        self.map.push((entity, location));
     }
 
-    pub fn to_entity_map(mut self) -> (EntityMap, Vec<AnimationInstruction>) {
+    pub fn make_entity_map(mut self) -> (EntityMap, Vec<AnimationInstruction>) {
         self.map
             .sort_unstable_by_key(|(_, location)| location.x + location.y * 100);
         let mut entity_map = EntityMap {
@@ -1111,7 +1111,7 @@ mod tests {
                 simulator.add(solution_entity.0, solution_entity.1);
             }
 
-            let (mut simulator, _) = simulator.to_entity_map();
+            let (mut simulator, _) = simulator.make_entity_map();
 
             for &direction in level.directions {
                 let (outcome, _) = simulator.tick(&level.map, Action::Direction(direction));

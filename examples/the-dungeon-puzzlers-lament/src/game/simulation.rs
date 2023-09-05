@@ -45,7 +45,7 @@ impl Simulation {
             entities.add(item, location);
         }
 
-        let (entities, animations) = entities.to_entity_map();
+        let (entities, animations) = entities.make_entity_map();
         for ani in animations {
             animation.populate(ani, sfx);
         }
