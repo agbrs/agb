@@ -29,9 +29,10 @@ const fn layout_of(format: TileFormat) -> Layout {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(C)]
 pub enum TileFormat {
-    FourBpp,
-    EightBpp,
+    FourBpp = 0,
+    EightBpp = 1,
 }
 
 impl TileFormat {
@@ -376,17 +377,33 @@ impl VRamManager {
         tile_id: u16,
         tile_reference: TileReference,
     ) {
-        let tile_size = tile_set.format.tile_size();
+        let tile_format = tile_set.format;
+        let tile_size = tile_format.tile_size();
         let tile_offset = (tile_id as usize) * tile_size;
-        let tile_slice = &tile_set.tiles[tile_offset..(tile_offset + tile_size)];
+        let tile_data_start = unsafe { tile_set.tiles.as_ptr().add(tile_offset) };
 
         let target_location = tile_reference.0.as_ptr() as *mut _;
 
         unsafe {
-            match tile_set.format {
-                TileFormat::FourBpp => copy_tile_4bpp(tile_slice.as_ptr().cast(), target_location),
-                TileFormat::EightBpp => copy_tile_8bpp(tile_slice.as_ptr().cast(), target_location),
-            }
+            core::arch::asm!(
+                "cmp r2, #0",
+                "beq 1f",
+                "ldmia r0!, {{r2-r5}}",
+                "stmia r1!, {{r2-r5}}",
+                "ldmia r0!, {{r2-r5}}",
+                "stmia r1!, {{r2-r5}}",
+                "1:",
+                "ldmia r0!, {{r2-r5}}",
+                "stmia r1!, {{r2-r5}}",
+                "ldmia r0!, {{r2-r5}}",
+                "stmia r1!, {{r2-r5}}",
+                inout("r0") tile_data_start => _,
+                inout("r1") target_location => _,
+                inout("r2") tile_format as u32 => _,
+                out("r3") _,
+                out("r4") _,
+                out("r5") _,
+            );
         }
     }
 
@@ -409,9 +426,4 @@ impl VRamManager {
             self.set_background_palette(palette_index as u8, entry);
         }
     }
-}
-
-extern "C" {
-    fn copy_tile_4bpp(src: *const u32, dest: *mut u32);
-    fn copy_tile_8bpp(src: *const u32, dest: *mut u32);
 }

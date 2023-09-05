@@ -131,7 +131,7 @@ pub(crate) fn generate_code(
                     pub bytes: Bytes,
                 }
 
-                const ALIGNED: &AlignedAs<u16, [u8]> = &AlignedAs {
+                const ALIGNED: &AlignedAs<u32, [u8]> = &AlignedAs {
                     _align: [],
                     bytes: *#data,
                 };
