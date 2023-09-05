@@ -12,7 +12,7 @@ const DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
 
     let mut tracker = Tracker::new(&DB_TOFFE);

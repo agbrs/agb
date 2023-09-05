@@ -109,7 +109,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
         let _ = save::save_max_level(&mut gba.save, 0);
     }
 
-    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     let sfx = Sfx::new(&mut mixer);
 
     let mut g = Agb {

@@ -475,7 +475,7 @@ fn note_to_speed(
         FrequencyType::AmigaFrequencies => note_to_frequency_amega(note, fine_tune, relative_note),
     };
 
-    let gba_audio_frequency = 18157f64;
+    let gba_audio_frequency = 32768f64;
 
     let speed = frequency / gba_audio_frequency;
     Num::from_f64(speed)
