@@ -35,7 +35,7 @@
 //! fn main(mut gba: Gba) -> ! {
 //!     let vblank_provider = agb::interrupt::VBlank::get();
 //!
-//!     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
+//!     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 //!     mixer.enable();
 //!
 //!     let mut tracker = Tracker::new(&DB_TOFFE);
@@ -49,7 +49,7 @@
 //! }
 //! ```
 //!
-//! Note that currently you have to select 18157Hz as the frequency for the mixer.
+//! Note that currently you have to select 32768Hz as the frequency for the mixer.
 //! This restriction will be lifted in a future version.
 //!
 //! # Concepts
