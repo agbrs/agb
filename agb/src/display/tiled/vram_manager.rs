@@ -29,19 +29,15 @@ const fn layout_of(format: TileFormat) -> Layout {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(C)]
 pub enum TileFormat {
-    FourBpp = 0,
-    EightBpp = 1,
+    FourBpp = 5,
+    EightBpp = 6,
 }
 
 impl TileFormat {
     /// Returns the size of the tile in bytes
     pub(crate) const fn tile_size(self) -> usize {
-        match self {
-            TileFormat::FourBpp => 8 * 8 / 2,
-            TileFormat::EightBpp => 8 * 8,
-        }
+        1 << self as usize
     }
 }
 
