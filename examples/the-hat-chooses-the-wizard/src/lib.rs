@@ -10,8 +10,8 @@ use agb::{
     display::{
         object::{Graphics, OamManaged, Object, Tag, TagMap},
         tiled::{
-            InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TileSet,
-            TiledMap, VRamManager,
+            InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TiledMap,
+            VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
@@ -793,7 +793,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    let tileset = TileSet::new(tile_sheet::background.tiles, TileFormat::FourBpp);
+    let tileset = tile_sheet::background.tiles;
 
     for y in 0..32u16 {
         for x in 0..32u16 {

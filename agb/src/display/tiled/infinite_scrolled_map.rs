@@ -40,29 +40,27 @@ use crate::{
 /// use agb::display::Priority;
 ///
 /// mod tilemap {
-///    pub const BACKGROUND_MAP: &[u16] = &[ // Probably load this from a file
+///    pub const BACKGROUND_MAP: &[usize] = &[ // Probably load this from a file
 /// # 0, 1, 2];
 ///    pub const WIDTH: i32 = // set it to some width
 /// # 12;
-///    pub const MAP_TILES: &[u8] = &[ // probably load this from a file
-/// # 0];
 /// }
+///
+/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn foo(mut gba: agb::Gba) {
 /// let (gfx, mut vram) = gba.display.video.tiled0();
 ///
-/// let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+/// let tile_data = water_tiles::tiles;
 ///
 /// let mut backdrop = InfiniteScrolledMap::new(
 ///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
 ///     Box::new(|pos| {
 ///         (
-///             &tileset,
-///             TileSetting::from_raw(
-///                 *tilemap::BACKGROUND_MAP
+///             &tile_data.tiles,
+///             tile_data.tile_settings[*tilemap::BACKGROUND_MAP
 ///                     .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-///                     .unwrap_or(&0),
-///             ),
+///                     .unwrap_or(&0)]
 ///         )
 ///     }),
 /// );
@@ -135,26 +133,27 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # use agb::display::Priority;
     /// #
     /// # mod tilemap {
-    /// #   pub const BACKGROUND_MAP: &[u16] = &[0, 1, 2];
+    /// #   pub const BACKGROUND_MAP: &[usize] = &[0, 1, 2];
     /// #   pub const WIDTH: i32 = 12;
     /// #   pub const MAP_TILES: &[u8] = &[0];
     /// # }
     /// #
+    /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
+    /// #
     /// # fn foo(mut gba: agb::Gba) {
     /// # let (gfx, mut vram) = gba.display.video.tiled0();
     /// #
-    /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+    /// # let tile_data = water_tiles::tiles;
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
     /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
     /// #    Box::new(|pos| {
     /// #        (
-    /// #            &tileset,
-    /// #            TileSetting::from_raw(
+    /// #            &tile_data.tiles,
+    /// #            tile_data.tile_settings[
     /// #                *tilemap::BACKGROUND_MAP
     /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-    /// #                     .unwrap_or(&0),
-    /// #            ),
+    /// #                     .unwrap_or(&0)]
     /// #        )
     /// #    }),
     /// # );
@@ -210,26 +209,27 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # use agb::display::Priority;
     /// #
     /// # mod tilemap {
-    /// #   pub const BACKGROUND_MAP: &[u16] = &[0, 1, 2];
+    /// #   pub const BACKGROUND_MAP: &[usize] = &[0, 1, 2];
     /// #   pub const WIDTH: i32 = 12;
     /// #   pub const MAP_TILES: &[u8] = &[0];
     /// # }
     /// #
+    /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
+    /// #
     /// # fn foo(mut gba: agb::Gba) {
     /// # let (gfx, mut vram) = gba.display.video.tiled0();
     /// #
-    /// # let tileset = TileSet::new(&tilemap::MAP_TILES, TileFormat::FourBpp);
+    /// # let tile_data = water_tiles::tiles;
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
     /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
     /// #    Box::new(|pos| {
     /// #        (
-    /// #            &tileset,
-    /// #            TileSetting::from_raw(
+    /// #            &tile_data.tiles,
+    /// #            tile_data.tile_settings[
     /// #                *tilemap::BACKGROUND_MAP
     /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-    /// #                     .unwrap_or(&0),
-    /// #            ),
+    /// #                     .unwrap_or(&0)]
     /// #        )
     /// #    }),
     /// # );

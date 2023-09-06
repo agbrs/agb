@@ -114,6 +114,11 @@ pub(crate) fn generate_code(
     });
 
     let data = ByteString(&tile_data);
+    let tile_format = if assignment_offset.is_some() {
+        quote! { #crate_prefix::display::tiled::TileFormat::FourBpp }
+    } else {
+        quote! { #crate_prefix::display::tiled::TileFormat::EightBpp }
+    };
 
     quote! {
         #[allow(non_upper_case_globals)]
@@ -126,7 +131,7 @@ pub(crate) fn generate_code(
                     pub bytes: Bytes,
                 }
 
-                const ALIGNED: &AlignedAs<u16, [u8]> = &AlignedAs {
+                const ALIGNED: &AlignedAs<u32, [u8]> = &AlignedAs {
                     _align: [],
                     bytes: *#data,
                 };
@@ -134,11 +139,13 @@ pub(crate) fn generate_code(
                 &ALIGNED.bytes
             };
 
+            const TILE_SET: #crate_prefix::display::tiled::TileSet = #crate_prefix::display::tiled::TileSet::new(TILE_DATA, #tile_format);
+
             const TILE_SETTINGS: &[#crate_prefix::display::tiled::TileSetting] = &[
                 #(#tile_settings),*
             ];
 
-            #crate_prefix::display::tile_data::TileData::new(TILE_DATA, TILE_SETTINGS)
+            #crate_prefix::display::tile_data::TileData::new(TILE_SET, TILE_SETTINGS)
         };
     }
 }

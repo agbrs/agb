@@ -3,6 +3,7 @@ use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
+use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
@@ -128,7 +129,7 @@ pub struct RegularMap {
     tiles_dirty: bool,
 }
 
-pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
+pub(crate) const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl TiledMapTypes for RegularMap {
     type Size = RegularBackgroundSize;
@@ -188,6 +189,34 @@ impl RegularMap {
         }
     }
 
+    pub fn fill_with(&mut self, vram: &mut VRamManager, tile_data: &TileData) {
+        assert!(
+            tile_data.tile_settings.len() >= 20 * 30,
+            "Don't have a full screen's worth of tile data"
+        );
+
+        assert_eq!(
+            tile_data.tiles.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tile_data.tiles.format(),
+            self.colours()
+        );
+
+        for y in 0..20 {
+            for x in 0..30 {
+                let tile_id = y * 30 + x;
+                let tile_pos = y * 32 + x;
+                self.set_tile_at_pos(
+                    vram,
+                    tile_pos,
+                    &tile_data.tiles,
+                    tile_data.tile_settings[tile_id],
+                );
+            }
+        }
+    }
+
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
@@ -195,20 +224,28 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        let colours = self.colours();
-        if tileset.format() != colours {
-            panic!(
-                "Cannot set a {:?} colour tile on a {:?} colour background",
-                tileset.format(),
-                colours
-            );
-        }
+        assert_eq!(
+            tileset.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tileset.format(),
+            self.colours()
+        );
 
         let pos = self.map_size().gba_offset(pos);
+        self.set_tile_at_pos(vram, pos, tileset, tile_setting);
+    }
 
+    fn set_tile_at_pos(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: usize,
+        tileset: &TileSet<'_>,
+        tile_setting: TileSetting,
+    ) {
         let old_tile = self.tiles_mut()[pos];
         if old_tile != Tile::default() {
-            vram.remove_tile(old_tile.tile_index(colours));
+            vram.remove_tile(old_tile.tile_index(self.colours()));
         }
 
         let tile_index = tile_setting.index();

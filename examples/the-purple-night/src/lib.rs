@@ -15,7 +15,7 @@ use alloc::{boxed::Box, vec::Vec};
 use agb::{
     display::{
         object::{Graphics, OamManaged, Object, Sprite, Tag, TagMap},
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, VRamManager},
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, VRamManager},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{num, FixedNum, Rect, Vector2D},
@@ -2191,7 +2191,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let (background, mut vram) = gba.display.video.tiled0();
     vram.set_background_palettes(background::PALETTES);
-    let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
+    let tileset = background::background.tiles;
     let object = gba.display.object.get_managed();
 
     loop {

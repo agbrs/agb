@@ -3,7 +3,7 @@
 
 use agb::display::{
     palette16::Palette16,
-    tiled::{RegularBackgroundSize, TileFormat, TileSetting, TiledMap},
+    tiled::{RegularBackgroundSize, TileFormat, TiledMap},
     Priority,
 };
 
@@ -42,7 +42,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 &mut vram,
                 (x as u16, y as u16).into(),
                 &dynamic_tile.tile_set(),
-                TileSetting::from_raw(dynamic_tile.tile_index()),
+                dynamic_tile.tile_setting(),
             );
 
             vram.remove_dynamic_tile(dynamic_tile);

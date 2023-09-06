@@ -1,5 +1,5 @@
 use super::sfx::SfxPlayer;
-use agb::display::tiled::{RegularMap, TileFormat, TileSet, TiledMap, VRamManager};
+use agb::display::tiled::{RegularMap, TiledMap, VRamManager};
 
 agb::include_background_gfx!(splash_screens,
     splash => deduplicate "gfx/splash.png",
@@ -18,19 +18,9 @@ pub fn show_splash_screen(
     vram: &mut VRamManager,
 ) {
     map.set_scroll_pos((0i16, 0i16).into());
-    let (tileset, settings) = match which {
-        SplashScreen::Start => (
-            TileSet::new(splash_screens::splash.tiles, TileFormat::FourBpp),
-            splash_screens::splash.tile_settings,
-        ),
-
-        SplashScreen::End => (
-            TileSet::new(
-                splash_screens::thanks_for_playing.tiles,
-                TileFormat::FourBpp,
-            ),
-            splash_screens::thanks_for_playing.tile_settings,
-        ),
+    let tile_data = match which {
+        SplashScreen::Start => splash_screens::splash,
+        SplashScreen::End => splash_screens::thanks_for_playing,
     };
 
     let vblank = agb::interrupt::VBlank::get();
@@ -40,19 +30,7 @@ pub fn show_splash_screen(
     sfx.frame();
     vblank.wait_for_vblank();
 
-    for y in 0..20u16 {
-        for x in 0..30u16 {
-            map.set_tile(
-                vram,
-                (x, y).into(),
-                &tileset,
-                settings[(y * 30 + x) as usize],
-            );
-        }
-
-        sfx.frame();
-        vblank.wait_for_vblank();
-    }
+    map.fill_with(vram, &tile_data);
 
     map.commit(vram);
     vram.set_background_palettes(splash_screens::PALETTES);

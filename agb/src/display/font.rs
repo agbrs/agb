@@ -3,7 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
-use super::tiled::{DynamicTile, RegularMap, TileSetting, VRamManager};
+use super::tiled::{DynamicTile, RegularMap, VRamManager};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
@@ -230,7 +230,7 @@ impl<'a, 'b> TextRenderer<'b> {
                 vram_manager,
                 (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16).into(),
                 &tile.tile_set(),
-                TileSetting::from_raw(tile.tile_index()),
+                tile.tile_setting(),
             );
         }
     }
@@ -294,7 +294,7 @@ mod tests {
                     &mut vram,
                     (x, y).into(),
                     &background_tile.tile_set(),
-                    TileSetting::from_raw(background_tile.tile_index()),
+                    background_tile.tile_setting(),
                 );
             }
         }

@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet},
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat},
         Priority,
     },
     fixnum::{Num, Vector2D},
@@ -63,20 +63,12 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let (tile, mut vram) = gba.display.video.tiled0();
 
-    let hat = TileSet::new(games::hat.tiles, TileFormat::EightBpp);
-    let purple = TileSet::new(games::purple.tiles, TileFormat::EightBpp);
-    let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::EightBpp);
-    let dungeon_puzzler = TileSet::new(games::dungeon_puzzler.tiles, TileFormat::EightBpp);
-    let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::EightBpp);
-
-    let tiles = [hat, purple, hyperspace, dungeon_puzzler, amplitude];
-
-    let tile_settings = &[
-        games::hat.tile_settings,
-        games::purple.tile_settings,
-        games::hyperspace.tile_settings,
-        games::dungeon_puzzler.tile_settings,
-        games::amplitude.tile_settings,
+    let tiles = [
+        games::hat,
+        games::purple,
+        games::hyperspace,
+        games::dungeon_puzzler,
+        games::amplitude,
     ];
 
     vram.set_background_palettes(games::PALETTES);
@@ -93,7 +85,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
             let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
-            (&tiles[game], tile_settings[game][tile_id])
+            (&tiles[game].tiles, tiles[game].tile_settings[tile_id])
         }),
     );
 
