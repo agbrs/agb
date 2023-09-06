@@ -18,7 +18,7 @@ fn main(mut gba: Gba) -> ! {
     timer.set_enabled(true);
     timer2.set_cascade(true).set_enabled(true);
 
-    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
 
     let mut tracker = Tracker::new(&DB_TOFFE);
