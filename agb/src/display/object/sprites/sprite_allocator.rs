@@ -1,9 +1,6 @@
 use core::{alloc::Allocator, ptr::NonNull};
 
-use alloc::{
-    boxed::Box,
-    rc::{Rc, Weak},
-};
+use alloc::{boxed::Box, rc::Rc};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
@@ -48,7 +45,9 @@ struct SpriteId(usize);
 
 impl SpriteId {
     fn from_static_sprite(sprite: &'static Sprite) -> SpriteId {
-        SpriteId(sprite as *const _ as usize)
+        let location = sprite as *const _ as usize;
+
+        SpriteId(location)
     }
 }
 
@@ -65,8 +64,8 @@ impl PaletteId {
 
 /// This holds loading of static sprites and palettes.
 pub struct SpriteLoader {
-    static_palette_map: HashMap<PaletteId, Weak<PaletteVramData>>,
-    static_sprite_map: HashMap<SpriteId, Weak<SpriteVramData>>,
+    static_palette_map: HashMap<PaletteId, Rc<PaletteVramData>>,
+    static_sprite_map: HashMap<SpriteId, Rc<SpriteVramData>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -199,38 +198,6 @@ impl SpriteVram {
 }
 
 impl SpriteLoader {
-    fn create_sprite_no_insert(
-        palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
-        sprite: &'static Sprite,
-    ) -> Result<(Weak<SpriteVramData>, SpriteVram), LoaderError> {
-        let palette = Self::try_get_vram_palette_asoc(palette_map, sprite.palette)?;
-
-        let sprite = SpriteVram::new(sprite.data, sprite.size, palette)?;
-        Ok((Rc::downgrade(&sprite.data), sprite))
-    }
-
-    fn try_get_vram_palette_asoc(
-        palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
-        palette: &'static Palette16,
-    ) -> Result<PaletteVram, LoaderError> {
-        let id = PaletteId::from_static_palette(palette);
-        Ok(match palette_map.entry(id) {
-            crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
-                Some(data) => PaletteVram { data },
-                None => {
-                    let pv = PaletteVram::new(palette)?;
-                    entry.insert(Rc::downgrade(&pv.data));
-                    pv
-                }
-            },
-            crate::hash_map::Entry::Vacant(entry) => {
-                let pv = PaletteVram::new(palette)?;
-                entry.insert(Rc::downgrade(&pv.data));
-                pv
-            }
-        })
-    }
-
     /// Attempts to get a sprite
     pub fn try_get_vram_sprite(
         &mut self,
@@ -240,23 +207,20 @@ impl SpriteLoader {
 
         let id = SpriteId::from_static_sprite(sprite);
 
-        Ok(match self.static_sprite_map.entry(id) {
-            crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
-                Some(data) => SpriteVram { data },
-                None => {
-                    let (weak, vram) =
-                        Self::create_sprite_no_insert(&mut self.static_palette_map, sprite)?;
-                    entry.insert(weak);
-                    vram
-                }
-            },
-            crate::hash_map::Entry::Vacant(entry) => {
-                let (weak, vram) =
-                    Self::create_sprite_no_insert(&mut self.static_palette_map, sprite)?;
-                entry.insert(weak);
-                vram
-            }
-        })
+        if let crate::hash_map::Entry::Occupied(entry) = self.static_sprite_map.entry(id) {
+            return Ok(SpriteVram {
+                data: entry.get().clone(),
+            });
+        }
+
+        let palette = self.try_get_vram_palette(sprite.palette)?;
+
+        let sprite = SpriteVram::new(sprite.data, sprite.size, palette.clone()).or_else(|_| {
+            self.garbage_collect_sprites();
+            SpriteVram::new(sprite.data, sprite.size, palette)
+        })?;
+        self.static_sprite_map.insert(id, sprite.data.clone());
+        Ok(sprite)
     }
 
     /// Attempts to allocate a static palette
@@ -264,7 +228,19 @@ impl SpriteLoader {
         &mut self,
         palette: &'static Palette16,
     ) -> Result<PaletteVram, LoaderError> {
-        Self::try_get_vram_palette_asoc(&mut self.static_palette_map, palette)
+        let id = PaletteId::from_static_palette(palette);
+        if let crate::hash_map::Entry::Occupied(entry) = self.static_palette_map.entry(id) {
+            return Ok(PaletteVram {
+                data: entry.get().clone(),
+            });
+        }
+
+        let pv = PaletteVram::new(palette).or_else(|_| {
+            self.garbage_collect();
+            PaletteVram::new(palette)
+        })?;
+        self.static_palette_map.insert(id, pv.data.clone());
+        Ok(pv)
     }
 
     /// Allocates a sprite to vram, panics if it cannot fit.
@@ -286,14 +262,18 @@ impl SpriteLoader {
         }
     }
 
+    fn garbage_collect_sprites(&mut self) {
+        self.static_sprite_map
+            .retain(|_, v| Rc::strong_count(v) != 1);
+    }
+
     /// Remove internal references to sprites that no longer exist in vram. If
     /// you neglect calling this, memory will leak over time in relation to the
     /// total number of different sprites used. It will not leak vram.
     pub fn garbage_collect(&mut self) {
-        self.static_sprite_map
-            .retain(|_, v| Weak::strong_count(v) != 0);
+        self.garbage_collect_sprites();
         self.static_palette_map
-            .retain(|_, v| Weak::strong_count(v) != 0);
+            .retain(|_, v| Rc::strong_count(v) != 1);
     }
 }
 

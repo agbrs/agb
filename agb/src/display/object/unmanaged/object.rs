@@ -1,6 +1,6 @@
 use core::{cell::UnsafeCell, marker::PhantomData};
 
-use agb_fixnum::Vector2D;
+use agb_fixnum::{Rect, Vector2D};
 use alloc::vec::Vec;
 
 use crate::display::{
@@ -8,7 +8,7 @@ use crate::display::{
         affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance,
         OBJECT_ATTRIBUTE_MEMORY,
     },
-    Priority,
+    Priority, HEIGHT, WIDTH,
 };
 
 use super::attributes::{AffineMode, Attributes};
@@ -68,6 +68,7 @@ pub struct OamUnmanaged<'gba> {
 
 pub struct OamIterator<'oam> {
     index: usize,
+    position: Vector2D<i32>,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
@@ -77,6 +78,7 @@ pub struct OamIterator<'oam> {
 /// See [`OamIterator`] for potential pitfalls.
 pub struct OamSlot<'oam> {
     slot: usize,
+    position: Vector2D<i32>,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
@@ -109,6 +111,7 @@ impl OamSlot<'_> {
         if let Some(affine_matrix) = &object.affine_matrix {
             Self::handle_affine(&mut attributes, frame_data, affine_matrix);
         }
+        attributes.set_position(self.position + object.position);
         attributes.write(unsafe { OBJECT_ATTRIBUTE_MEMORY.add(self.slot * 4) });
 
         frame_data.this_frame_sprites.push(object.sprite.clone());
@@ -145,10 +148,36 @@ impl<'oam> Iterator for OamIterator<'oam> {
         } else {
             self.index += 1;
             Some(OamSlot {
+                position: self.position,
                 slot: idx,
                 frame_data: self.frame_data,
             })
         }
+    }
+}
+
+impl OamIterator<'_> {
+    fn set_inner(&mut self, object: &ObjectUnmanaged) -> OamDisplayResult {
+        let screen_area: Rect<i32> = Rect::new((0i32, 0i32).into(), (WIDTH, HEIGHT).into());
+        let sprite_size = object.sprite.size().to_width_height();
+        let sprite_size: Vector2D<i32> = (sprite_size.0 as i32, sprite_size.1 as i32).into();
+        let my_area = Rect::new(object.position + self.position, sprite_size);
+
+        if !screen_area.touches(my_area) {
+            return OamDisplayResult::Written;
+        }
+
+        if let Some(slot) = self.next() {
+            slot.set(object);
+            OamDisplayResult::Written
+        } else {
+            OamDisplayResult::SomeNotWritten
+        }
+    }
+
+    /// Writes objects in the Renderable to slots in OAM.
+    pub fn set<R: OamDisplay>(&mut self, renderable: R) {
+        renderable.set_in(self);
     }
 }
 
@@ -183,6 +212,7 @@ impl OamUnmanaged<'_> {
         );
 
         OamIterator {
+            position: (0, 0).into(),
             index: 0,
             frame_data: &self.frame_data,
         }
@@ -209,6 +239,7 @@ pub struct ObjectUnmanaged {
     attributes: Attributes,
     sprite: SpriteVram,
     affine_matrix: Option<AffineMatrixVram>,
+    position: Vector2D<i32>,
 }
 
 impl ObjectUnmanaged {
@@ -223,10 +254,13 @@ impl ObjectUnmanaged {
             attributes: Attributes::default(),
             sprite,
             affine_matrix: None,
+            position: (0, 0).into(),
         };
 
         sprite.attributes.set_sprite(sprite_location, shape, size);
         sprite.attributes.set_palette(palette_location);
+
+        sprite.attributes.show();
 
         sprite
     }
@@ -238,15 +272,9 @@ impl ObjectUnmanaged {
         self.attributes.is_visible()
     }
 
-    /// Display the sprite in Normal mode.
-    pub fn show(&mut self) -> &mut Self {
-        self.attributes.show();
-
-        self
-    }
-
+    #[must_use]
     /// Display the sprite in Affine mode.
-    pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
+    pub fn show_affine(mut self, affine_mode: AffineMode) -> Self {
         assert!(
             self.affine_matrix.is_some(),
             "affine matrix must be set before enabling affine matrix!"
@@ -257,78 +285,58 @@ impl ObjectUnmanaged {
         self
     }
 
+    #[must_use]
     /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
-    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
+    pub fn set_hflip(mut self, flip: bool) -> Self {
         self.attributes.set_hflip(flip);
 
         self
     }
 
+    #[must_use]
     /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
-    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
+    pub fn set_vflip(mut self, flip: bool) -> Self {
         self.attributes.set_vflip(flip);
 
         self
     }
 
+    #[must_use]
     /// Sets the priority of the object relative to the backgrounds priority.
-    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+    pub fn set_priority(mut self, priority: Priority) -> Self {
         self.attributes.set_priority(priority);
 
         self
     }
 
-    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
-    /// modes using [`show`][ObjectUnmanaged::show] and
-    /// [`show_affine`][ObjectUnmanaged::show_affine] respectively.
-    pub fn hide(&mut self) -> &mut Self {
-        self.attributes.hide();
-
-        self
-    }
-
-    /// Sets the x position of the object.
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attributes.set_x(x);
-
-        self
-    }
-
-    /// Sets the y position of the object.
-    pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.attributes.set_y(y);
-
-        self
-    }
-
+    #[must_use]
     /// Sets the position of the object.
-    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
-        self.set_y(position.y.rem_euclid(1 << 9) as u16);
-        self.set_x(position.x.rem_euclid(1 << 9) as u16);
+    pub fn set_position(mut self, position: Vector2D<i32>) -> Self {
+        self.position = position;
 
         self
     }
 
+    #[must_use]
     /// Sets the affine matrix. This only has an affect in Affine mode.
-    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
+    pub fn set_affine_matrix(mut self, affine_matrix: AffineMatrixInstance) -> Self {
         let vram = affine_matrix.vram();
         self.affine_matrix = Some(vram);
 
         self
     }
 
-    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
+    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) {
         let size = sprite.size();
         let (shape, size) = size.shape_size();
 
         self.attributes.set_sprite(sprite.location(), shape, size);
         self.attributes.set_palette(sprite.palette_location());
-
-        self
     }
 
+    #[must_use]
     /// Sets the current sprite for the object.
-    pub fn set_sprite(&mut self, sprite: SpriteVram) -> &mut Self {
+    pub fn set_sprite(mut self, sprite: SpriteVram) -> Self {
         self.set_sprite_attributes(&sprite);
 
         self.sprite = sprite;
@@ -348,14 +356,14 @@ mod tests {
 
     #[test_case]
     fn object_usage(gba: &mut crate::Gba) {
-        const GRAPHICS: &Graphics = include_aseprite!(
+        static GRAPHICS: &Graphics = include_aseprite!(
             "../examples/the-purple-night/gfx/objects.aseprite",
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
 
-        const BOSS: &Tag = GRAPHICS.tags().get("Boss");
+        static BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
-        let (mut gfx, mut loader) = gba.display.object.get_unmanaged();
+        let (mut gfx, mut loader) = gba.display.object.get();
 
         {
             let mut slotter = gfx.iter();
@@ -363,12 +371,70 @@ mod tests {
             let slot_a = slotter.next().unwrap();
             let slot_b = slotter.next().unwrap();
 
-            let mut obj = ObjectUnmanaged::new(loader.get_vram_sprite(BOSS.sprite(2)));
-
-            obj.show();
+            let obj = ObjectUnmanaged::new(loader.get_vram_sprite(BOSS.sprite(2)));
 
             slot_b.set(&obj);
             slot_a.set(&obj);
         }
     }
+}
+
+/// Something (or multiple things) that can be written to oam slots
+pub trait OamDisplay {
+    /// Write it to oam slots, returns whether all the writes could succeed.
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult;
+
+    /// Write it to oam slots with a given offset.
+    fn set_at(self, oam: &mut OamIterator, position: Vector2D<i32>) -> OamDisplayResult
+    where
+        Self: Sized,
+    {
+        let initial_position = oam.position;
+        oam.position += position;
+        let result = self.set_in(oam);
+        oam.position = initial_position;
+        result
+    }
+}
+
+impl OamDisplay for ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(&self)
+    }
+}
+
+impl OamDisplay for &ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(self)
+    }
+}
+
+impl OamDisplay for &mut ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(self)
+    }
+}
+
+impl<T, O> OamDisplay for T
+where
+    T: IntoIterator<Item = O>,
+    O: OamDisplay,
+{
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        for object in self.into_iter() {
+            if matches!(object.set_in(oam), OamDisplayResult::SomeNotWritten) {
+                return OamDisplayResult::SomeNotWritten;
+            }
+        }
+
+        OamDisplayResult::Written
+    }
+}
+
+/// The result of setting on the Oam
+pub enum OamDisplayResult {
+    /// All objects were written successfully
+    Written,
+    /// Some objects were not written
+    SomeNotWritten,
 }

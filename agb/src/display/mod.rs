@@ -7,7 +7,7 @@ use video::Video;
 
 use self::{
     blend::Blend,
-    object::{initilise_oam, OamManaged, OamUnmanaged, SpriteLoader},
+    object::{initilise_oam, OamUnmanaged, SpriteLoader},
     window::Windows,
 };
 
@@ -84,21 +84,9 @@ pub struct Display {
 pub struct ObjectDistribution;
 
 impl ObjectDistribution {
-    pub fn get_unmanaged(&mut self) -> (OamUnmanaged<'_>, SpriteLoader) {
+    pub fn get(&mut self) -> (OamUnmanaged<'_>, SpriteLoader) {
         unsafe { initilise_oam() };
         (OamUnmanaged::new(), SpriteLoader::new())
-    }
-
-    pub fn get_managed(&mut self) -> OamManaged<'_> {
-        unsafe { initilise_oam() };
-        OamManaged::new()
-    }
-
-    /// The old name for [`get_managed`][ObjectDistribution::get_managed] kept around for easier migration.
-    /// This will be removed in a future release.
-    #[deprecated = "use get_managed to get the managed oam instead"]
-    pub fn get(&mut self) -> OamManaged<'_> {
-        self.get_managed()
     }
 }
 

@@ -21,6 +21,7 @@ SECTIONS {
         KEEP(*(.crt0));
         *(.crt0 .crt0*);
         *(.text .text*);
+        *(.sprites .sprites*);
         . = ALIGN(4);
     } > rom
     __text_end = .;

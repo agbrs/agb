@@ -4,7 +4,7 @@ use agb_fixnum::{num, Num, Vector2D};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
-use crate::display::object::{DynamicSprite, PaletteVram, Size, SpriteVram};
+use crate::display::object::{DynamicSprite, OamDisplay, PaletteVram, Size, SpriteVram};
 use crate::display::palette16::Palette16;
 use crate::{
     display::{object::ObjectUnmanaged, HEIGHT, WIDTH},
@@ -140,7 +140,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 }
 
 pub fn no_game(mut gba: crate::Gba) -> ! {
-    let (mut oam, _) = gba.display.object.get_unmanaged();
+    let (mut oam, _) = gba.display.object.get();
 
     let squares = generate_sprites();
 
@@ -196,15 +196,11 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
                 (idx, *position + Vector2D::new(time.sin(), time.cos()) * 10)
             })
             .map(|(idx, pos)| {
-                let mut obj = ObjectUnmanaged::new(squares[idx % squares.len()].clone());
-                obj.show().set_position(pos.floor());
-                obj
+                ObjectUnmanaged::new(squares[idx % squares.len()].clone()).set_position(pos.floor())
             })
             .collect();
 
         vblank.wait_for_vblank();
-        for (obj, slot) in letters.iter().zip(oam.iter()) {
-            slot.set(obj);
-        }
+        letters.set_in(&mut oam.iter());
     }
 }
