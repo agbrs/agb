@@ -231,6 +231,10 @@ pub struct Gba {
 impl Gba {
     #[doc(hidden)]
     #[must_use]
+    /// # Safety
+    ///
+    /// May only be called a single time. It is not needed to call this due to
+    /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
         Self::single_new()
     }
