@@ -33,6 +33,8 @@ pub fn memory_write_hint<T>(val: *mut T) {
 /// This seems to be a problem caused by Rust issue #62256:
 /// <https://github.com/rust-lang/rust/issues/62256>
 ///
+/// # Safety
+///
 /// **WARNING FOR ANYONE WHO FINDS THIS**: This implementation will *only* be
 /// correct on the GBA, and should not be used on any other platform. The GBA
 /// is very old, and has no atomics to begin with - only a main thread and
