@@ -68,7 +68,7 @@ check-linker-script-consistency:
     find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
     find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
 
-ci: check-linker-script-consistency build-debug clippy fmt-check test miri build-release test-release doctest-agb build-roms build-book check-docs
+ci: check-linker-script-consistency build-debug clippy fmt-check test miri build-release test-release doctest-agb test-games build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -102,6 +102,12 @@ miri:
 _run-tool +tool:
     (cd tools && cargo build)
     "$CARGO_TARGET_DIR/debug/tools" {{tool}}
+
+test-games:
+    just test-game the-dungeon-puzzlers-lament
+
+test-game game:
+    (cd "examples/{{game}}" && CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test)
 
 _build-rom folder name:
     #!/usr/bin/env bash
