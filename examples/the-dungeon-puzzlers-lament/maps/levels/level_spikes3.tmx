@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="8">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="11">
  <properties>
   <property name="DIRECTIONS" value="RRRRRRRRRRRRRR"/>
   <property name="ITEMS" value="DOOR,SQUID_DOWN,DOOR_SWITCHED,DOOR_SWITCHED_OPEN"/>
   <property name="NAME" value="Why are they running right at it?"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,0,1,8,4,1073741872,2,7,9,0,0,
 0,0,37,15,15,1073741863,15,13,3221225500,3,9,
@@ -20,7 +20,7 @@
 0,0,0,0,0,19,21,22,23,27,0
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="1" name="HERO" x="39.5158" y="73.1744">
    <point/>
   </object>
@@ -40,6 +40,17 @@
    <point/>
   </object>
   <object id="7" name="SLIME" x="121.484" y="71.1188">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="8" name="SQUID_DOWN" x="136.427" y="55.3325">
+   <point/>
+  </object>
+  <object id="9" name="DOOR" x="135.755" y="120.074">
+   <point/>
+  </object>
+  <object id="10" name="DOOR_SWITCHED_OPEN" x="87.5912" y="72.5819">
    <point/>
   </object>
  </objectgroup>

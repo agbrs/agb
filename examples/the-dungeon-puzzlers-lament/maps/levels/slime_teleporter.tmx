@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="12">
+ <properties>
+  <property name="DIRECTIONS" value="UUULLLD"/>
+  <property name="ITEMS" value="TELEPORTER,TELEPORTER,SQUID_UP,SWITCH"/>
+  <property name="NAME" value="Hmmmmmmmmmm"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Ground" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,1,6,4,3,9,0,0,0,
+0,0,1,1073741852,14,15,15,3221225500,8,9,0,
+0,1,1073741852,17,15,12,14,17,16,38,0,
+0,10,11,39,14,39,15,17,11,18,0,
+0,37,16,1073741863,12,1073741863,15,14,12,38,0,
+0,46,17,29,2147483677,15,15,11,12,18,0,
+0,19,20,28,17,13,11,11,13,47,0,
+0,0,0,19,24,28,14,15,2147483676,27,0,
+0,0,0,0,0,19,22,22,27,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Puzzle">
+  <object id="1" name="STAIRS" x="70.4375" y="75.2306">
+   <point/>
+  </object>
+  <object id="2" name="SLIME" x="72.3131" y="60.6429">
+   <point/>
+  </object>
+  <object id="3" name="HERO" x="118.577" y="107.323">
+   <point/>
+  </object>
+  <object id="5" name="SWORD" x="103.156" y="57.7254">
+   <point/>
+  </object>
+  <object id="6" name="SPIKES" x="70.2291" y="89.6099">
+   <point/>
+  </object>
+  <object id="7" name="SWITCH" x="86.0671" y="57.1002">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="8" name="SQUID_UP" x="102.6" y="71.6859">
+   <point/>
+  </object>
+  <object id="9" name="TELEPORTER" x="102.152" y="40.9954">
+   <point/>
+  </object>
+  <object id="10" name="TELEPORTER" x="70.5658" y="36.515">
+   <point/>
+  </object>
+  <object id="11" name="SWITCH" x="116.714" y="55.1085">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

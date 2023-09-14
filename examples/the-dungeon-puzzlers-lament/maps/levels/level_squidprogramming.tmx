@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="10">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="13">
  <properties>
   <property name="DIRECTIONS" value="RRRRRRRRRRRRRRR"/>
   <property name="ITEMS" value="SWITCH,SWITCH,SWITCH,DOOR_SWITCHED,DOOR_SWITCHED_OPEN,SQUID_UP,SQUID_UP,SQUID_DOWN,SQUID_DOWN"/>
   <property name="NAME" value="DO I HAVE TO DO EVERYTHING?"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Tile Layer 1" width="11" height="10">
+ <layer id="1" name="Ground" width="11" height="10">
   <data encoding="csv">
 0,1,4,3221225492,7,2147483655,3,1073741844,1073741850,2147483649,0,
 0,37,2147483659,11,2147483659,2147483665,3221225486,3221225484,1073741839,3221225518,0,
@@ -20,7 +20,7 @@
 19,2147483672,2147483673,1073741831,1073741832,1073741829,21,1073741826,22,22,27
 </data>
  </layer>
- <objectgroup id="2" name="Object Layer 1">
+ <objectgroup id="2" name="Puzzle">
   <object id="1" name="STAIRS" x="151.602" y="138.188">
    <point/>
   </object>
@@ -46,6 +46,17 @@
    <point/>
   </object>
   <object id="9" name="SPIKES_DOWN" x="135.404" y="141.984">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="10" name="SQUID_UP" x="38.2908" y="43.7936">
+   <point/>
+  </object>
+  <object id="11" name="SWITCH" x="39.8958" y="26.8265">
+   <point/>
+  </object>
+  <object id="12" name="SWITCH" x="41.0422" y="85.9823">
    <point/>
   </object>
  </objectgroup>

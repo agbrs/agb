@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="9">
+ <properties>
+  <property name="DIRECTIONS" value="LLLLLU"/>
+  <property name="ITEMS" value="KEY,BLOCK"/>
+  <property name="NAME" value="Hmmmm"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Ground" width="11" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,1,8,3,2,2,8,5,4,9,0,
+0,10,17,15,17,11,13,15,16,38,0,
+1,1073741852,11,12,11,13,17,13,16,47,0,
+10,12,17,14,15,13,13,11,13,18,0,
+19,28,12,15,13,13,14,15,13,38,0,
+0,19,25,26,24,22,25,24,24,27,0,
+0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Puzzle">
+  <object id="1" name="HERO" x="134.623" y="90.0266">
+   <point/>
+  </object>
+  <object id="2" name="GLOVE" x="119.41" y="88.7763">
+   <point/>
+  </object>
+  <object id="4" name="STAIRS" x="71.4795" y="72.1047">
+   <point/>
+  </object>
+  <object id="5" name="BLOCK" x="103.572" y="90.4434">
+   <point/>
+  </object>
+  <object id="6" name="SPIKES" x="39.8034" y="87.1091">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="7" name="KEY" x="71.8693" y="86.8421">
+   <point/>
+  </object>
+  <object id="8" name="BLOCK" x="88.6388" y="86.8421">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

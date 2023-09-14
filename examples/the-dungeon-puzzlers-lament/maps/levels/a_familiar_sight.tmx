@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="5">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="4">
  <properties>
   <property name="DIRECTIONS" value="LLRRRRR"/>
-  <property name="ITEMS" value="SLIME,SWORD"/>
-  <property name="NAME" value="It takes time to kill slimes"/>
+  <property name="ITEMS" value="ICE"/>
+  <property name="NAME" value="A familiar sight..."/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
  <layer id="1" name="Ground" width="11" height="10">
@@ -29,10 +29,7 @@
   </object>
  </objectgroup>
  <objectgroup id="3" name="Solution">
-  <object id="3" name="SLIME" x="38.7493" y="72.6837">
-   <point/>
-  </object>
-  <object id="4" name="SWORD" x="53.8822" y="71.5373">
+  <object id="3" name="ICE" x="55.0287" y="71.0787">
    <point/>
   </object>
  </objectgroup>

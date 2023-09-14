@@ -75,6 +75,7 @@ impl<'a> Sfx<'a> {
                 SoundEffect::SwordDrop => {}
                 SoundEffect::SwitchedDoorToggle => {}
                 SoundEffect::SpikesToggle => {}
+                SoundEffect::TeleportEffect => {}
             }
         }
     }
@@ -101,4 +102,5 @@ pub enum SoundEffect {
     SwitchedDoorToggle,
     SpikesToggle,
     WallHit,
+    TeleportEffect,
 }
