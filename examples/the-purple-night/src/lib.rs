@@ -15,10 +15,7 @@ use alloc::{boxed::Box, vec::Vec};
 use agb::{
     display::{
         object::{Graphics, OamManaged, Object, Sprite, Tag, TagMap},
-        tiled::{
-            InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting,
-            VRamManager,
-        },
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, VRamManager},
         Priority, HEIGHT, WIDTH,
     },
     fixnum::{num, FixedNum, Rect, Vector2D},
@@ -57,7 +54,7 @@ const SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
 const SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
 const SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
-agb::include_background_gfx!(background, "53269a", background => "gfx/background.aseprite");
+agb::include_background_gfx!(background, "53269a", background => deduplicate "gfx/background.aseprite");
 
 type Number = FixedNum<8>;
 
@@ -2194,7 +2191,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let (background, mut vram) = gba.display.video.tiled0();
     vram.set_background_palettes(background::PALETTES);
-    let tileset = TileSet::new(background::background.tiles, TileFormat::FourBpp);
+    let tileset = background::background.tiles;
     let object = gba.display.object.get_managed();
 
     loop {
@@ -2207,11 +2204,10 @@ fn game_with_level(gba: &mut agb::Gba) {
             Box::new(|pos| {
                 (
                     &tileset,
-                    TileSetting::from_raw(
-                        *tilemap::BACKGROUND_MAP
-                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                            .unwrap_or(&0),
-                    ),
+                    background::background.tile_settings[*tilemap::BACKGROUND_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
                 )
             }),
         );
@@ -2225,11 +2221,10 @@ fn game_with_level(gba: &mut agb::Gba) {
             Box::new(|pos| {
                 (
                     &tileset,
-                    TileSetting::from_raw(
-                        *tilemap::FOREGROUND_MAP
-                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                            .unwrap_or(&0),
-                    ),
+                    background::background.tile_settings[*tilemap::FOREGROUND_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
                 )
             }),
         );
@@ -2243,11 +2238,10 @@ fn game_with_level(gba: &mut agb::Gba) {
             Box::new(|pos| {
                 (
                     &tileset,
-                    TileSetting::from_raw(
-                        *tilemap::CLOUD_MAP
-                            .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                            .unwrap_or(&0),
-                    ),
+                    background::background.tile_settings[*tilemap::CLOUD_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
                 )
             }),
         );

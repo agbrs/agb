@@ -3,9 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{
-            RegularBackgroundSize, RegularMap, TileFormat, TileSetting, TiledMap, VRamManager,
-        },
+        tiled::{RegularBackgroundSize, RegularMap, TileFormat, TiledMap, VRamManager},
         Font, Priority,
     },
     include_font, include_wav,
@@ -98,7 +96,7 @@ fn init_background(bg: &mut RegularMap, vram: &mut VRamManager) {
                 vram,
                 (x, y).into(),
                 &background_tile.tile_set(),
-                TileSetting::from_raw(background_tile.tile_index()),
+                background_tile.tile_setting(),
             );
         }
     }

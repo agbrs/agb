@@ -11,6 +11,7 @@ the-purple-night = { path = "../the-purple-night" }
 the-hat-chooses-the-wizard = { path = "../the-hat-chooses-the-wizard" }
 hyperspace-roll = { path = "../hyperspace-roll" }
 amplitude = { path = "../amplitude" }
+the-dungeon-puzzlers-lament = { path = "../the-dungeon-puzzlers-lament" }
 
 [profile.dev]
 opt-level = 3

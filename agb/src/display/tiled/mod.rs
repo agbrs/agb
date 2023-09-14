@@ -16,6 +16,8 @@ pub use tiled1::Tiled1;
 pub use tiled2::Tiled2;
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
+use map::TRANSPARENT_TILE_INDEX;
+
 // affine layers start at BG2
 pub(crate) const AFFINE_BG_ID_OFFSET: usize = 2;
 
@@ -156,8 +158,8 @@ impl Tile {
         Self(idx.raw_index() | setting.setting())
     }
 
-    fn tile_index(self) -> TileIndex {
-        TileIndex::new(self.0 as usize & ((1 << 10) - 1), TileFormat::FourBpp)
+    fn tile_index(self, format: TileFormat) -> TileIndex {
+        TileIndex::new(self.0 as usize & ((1 << 10) - 1), format)
     }
 }
 
@@ -165,6 +167,8 @@ impl Tile {
 pub struct TileSetting(u16);
 
 impl TileSetting {
+    pub const BLANK: Self = TileSetting::new(TRANSPARENT_TILE_INDEX, false, false, 0);
+
     #[must_use]
     pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {
         Self(
@@ -178,6 +182,16 @@ impl TileSetting {
     #[must_use]
     pub const fn from_raw(raw: u16) -> Self {
         Self(raw)
+    }
+
+    #[must_use]
+    pub const fn hflip(self, should_flip: bool) -> Self {
+        Self(self.0 ^ ((should_flip as u16) << 10))
+    }
+
+    #[must_use]
+    pub const fn vflip(self, should_flip: bool) -> Self {
+        Self(self.0 ^ ((should_flip as u16) << 11))
     }
 
     fn index(self) -> u16 {

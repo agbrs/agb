@@ -2,7 +2,6 @@ use core::{alloc::Layout, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
-use crate::display::tiled::Tile;
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
@@ -10,6 +9,8 @@ use crate::{
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
 };
+
+use super::TileSetting;
 
 const TILE_RAM_START: usize = 0x0600_0000;
 
@@ -29,17 +30,14 @@ const fn layout_of(format: TileFormat) -> Layout {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileFormat {
-    FourBpp,
-    EightBpp,
+    FourBpp = 5,
+    EightBpp = 6,
 }
 
 impl TileFormat {
     /// Returns the size of the tile in bytes
     pub(crate) const fn tile_size(self) -> usize {
-        match self {
-            TileFormat::FourBpp => 8 * 8 / 2,
-            TileFormat::EightBpp => 8 * 8,
-        }
+        1 << self as usize
     }
 }
 
@@ -50,37 +48,38 @@ pub struct TileSet<'a> {
 
 impl<'a> TileSet<'a> {
     #[must_use]
-    pub fn new(tiles: &'a [u8], format: TileFormat) -> Self {
+    pub const fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
+    }
+
+    #[must_use]
+    pub const fn format(&self) -> TileFormat {
+        self.format
     }
 
     fn reference(&self) -> NonNull<[u8]> {
         self.tiles.into()
-    }
-
-    pub(crate) fn format(&self) -> TileFormat {
-        self.format
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum TileIndex {
     FourBpp(u16),
-    EightBpp(u8),
+    EightBpp(u16),
 }
 
 impl TileIndex {
     pub(crate) const fn new(index: usize, format: TileFormat) -> Self {
         match format {
             TileFormat::FourBpp => Self::FourBpp(index as u16),
-            TileFormat::EightBpp => Self::EightBpp(index as u8),
+            TileFormat::EightBpp => Self::EightBpp(index as u16),
         }
     }
 
     pub(crate) const fn raw_index(self) -> u16 {
         match self {
             TileIndex::FourBpp(x) => x,
-            TileIndex::EightBpp(x) => x as u16,
+            TileIndex::EightBpp(x) => x,
         }
     }
 
@@ -96,18 +95,6 @@ impl TileIndex {
             TileIndex::FourBpp(x) => x as usize,
             TileIndex::EightBpp(x) => x as usize * 2,
         }
-    }
-}
-
-impl From<Tile> for TileIndex {
-    fn from(tile: Tile) -> Self {
-        tile.tile_index()
-    }
-}
-
-impl From<u8> for TileIndex {
-    fn from(index: u8) -> TileIndex {
-        TileIndex::new(usize::from(index), TileFormat::EightBpp)
     }
 }
 
@@ -201,9 +188,11 @@ impl DynamicTile<'_> {
     }
 
     #[must_use]
-    pub fn tile_index(&self) -> u16 {
+    pub fn tile_setting(&self) -> TileSetting {
         let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
-        (difference / TileFormat::FourBpp.tile_size()) as u16
+        let tile_id = (difference / TileFormat::FourBpp.tile_size()) as u16;
+
+        TileSetting::new(tile_id, false, false, 0)
     }
 }
 
@@ -302,7 +291,7 @@ impl VRamManager {
 
         let new_reference: NonNull<u32> =
             unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
-                .unwrap()
+                .expect("Ran out of video RAM for tiles")
                 .cast();
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);
@@ -384,21 +373,41 @@ impl VRamManager {
         tile_id: u16,
         tile_reference: TileReference,
     ) {
-        let tile_size = tile_set.format.tile_size();
+        let tile_format = tile_set.format;
+        let tile_size = tile_format.tile_size();
         let tile_offset = (tile_id as usize) * tile_size;
-        let tile_slice = &tile_set.tiles[tile_offset..(tile_offset + tile_size)];
-
-        let tile_size_in_half_words = tile_slice.len() / 2;
+        let tile_data_start = unsafe { tile_set.tiles.as_ptr().add(tile_offset) };
 
         let target_location = tile_reference.0.as_ptr() as *mut _;
 
         unsafe {
-            dma_copy16(
-                tile_slice.as_ptr() as *const u16,
-                target_location,
-                tile_size_in_half_words,
-            );
-        };
+            match tile_format {
+                TileFormat::FourBpp => core::arch::asm!(
+                    ".rept 2",
+                    "ldmia {src}!, {{{tmp1},{tmp2},{tmp3},{tmp4}}}",
+                    "stmia {dest}!, {{{tmp1},{tmp2},{tmp3},{tmp4}}}",
+                    ".endr",
+                    src = inout(reg) tile_data_start => _,
+                    dest = inout(reg) target_location => _,
+                    tmp1 = out(reg) _,
+                    tmp2 = out(reg) _,
+                    tmp3 = out(reg) _,
+                    tmp4 = out(reg) _,
+                ),
+                TileFormat::EightBpp => core::arch::asm!(
+                    ".rept 4",
+                    "ldmia {src}!, {{{tmp1},{tmp2},{tmp3},{tmp4}}}",
+                    "stmia {dest}!, {{{tmp1},{tmp2},{tmp3},{tmp4}}}",
+                    ".endr",
+                    src = inout(reg) tile_data_start => _,
+                    dest = inout(reg) target_location => _,
+                    tmp1 = out(reg) _,
+                    tmp2 = out(reg) _,
+                    tmp3 = out(reg) _,
+                    tmp4 = out(reg) _,
+                ),
+            }
+        }
     }
 
     /// Copies raw palettes to the background palette without any checks.

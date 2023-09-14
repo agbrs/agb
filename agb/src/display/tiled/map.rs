@@ -3,6 +3,7 @@ use core::ops::{Deref, DerefMut};
 
 use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
+use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
 use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
@@ -10,7 +11,7 @@ use crate::memory_mapped::MemoryMapped;
 
 use super::{
     AffineBackgroundSize, BackgroundID, BackgroundSize, BackgroundSizePrivate,
-    RegularBackgroundSize, Tile, TileFormat, TileIndex, TileSet, TileSetting, VRamManager,
+    RegularBackgroundSize, Tile, TileFormat, TileSet, TileSetting, VRamManager,
 };
 
 use alloc::{vec, vec::Vec};
@@ -20,10 +21,9 @@ pub trait TiledMapTypes: private::Sealed {
 }
 
 trait TiledMapPrivate: TiledMapTypes {
-    type TileType: Into<TileIndex> + Copy + Default + Eq + PartialEq;
     type AffineMatrix;
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType];
+    fn tiles_mut(&mut self) -> &mut [Tile];
     fn tiles_dirty(&mut self) -> &mut bool;
 
     fn colours(&self) -> TileFormat;
@@ -59,9 +59,11 @@ where
     T::Size: BackgroundSizePrivate,
 {
     fn clear(&mut self, vram: &mut VRamManager) {
+        let colours = self.colours();
+
         for tile in self.tiles_mut() {
             if *tile != Default::default() {
-                vram.remove_tile((*tile).into());
+                vram.remove_tile(tile.tile_index(colours));
             }
 
             *tile = Default::default();
@@ -82,18 +84,18 @@ where
 
     fn commit(&mut self, vram: &mut VRamManager) {
         let screenblock_memory = self.screenblock_memory();
-        let tile_count_divisor = self.colours().tile_size() / TileFormat::FourBpp.tile_size();
+
         if *self.tiles_dirty() {
             unsafe {
                 dma_copy16(
                     self.tiles_mut().as_ptr() as *const u16,
                     screenblock_memory,
-                    self.map_size().num_tiles() / tile_count_divisor,
+                    self.map_size().num_tiles(),
                 );
             }
         }
 
-        let tile_colour_flag: u16 = (tile_count_divisor == 2).into();
+        let tile_colour_flag: u16 = (self.colours() == TileFormat::EightBpp).into();
 
         let new_bg_control_value = (self.priority() as u16)
             | ((self.screenblock() as u16) << 8)
@@ -127,17 +129,16 @@ pub struct RegularMap {
     tiles_dirty: bool,
 }
 
-pub const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
+pub(crate) const TRANSPARENT_TILE_INDEX: u16 = (1 << 10) - 1;
 
 impl TiledMapTypes for RegularMap {
     type Size = RegularBackgroundSize;
 }
 
 impl TiledMapPrivate for RegularMap {
-    type TileType = Tile;
     type AffineMatrix = ();
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+    fn tiles_mut(&mut self) -> &mut [Tile] {
         &mut self.tiles
     }
     fn tiles_dirty(&mut self) -> &mut bool {
@@ -188,6 +189,34 @@ impl RegularMap {
         }
     }
 
+    pub fn fill_with(&mut self, vram: &mut VRamManager, tile_data: &TileData) {
+        assert!(
+            tile_data.tile_settings.len() >= 20 * 30,
+            "Don't have a full screen's worth of tile data"
+        );
+
+        assert_eq!(
+            tile_data.tiles.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tile_data.tiles.format(),
+            self.colours()
+        );
+
+        for y in 0..20 {
+            for x in 0..30 {
+                let tile_id = y * 30 + x;
+                let tile_pos = y * 32 + x;
+                self.set_tile_at_pos(
+                    vram,
+                    tile_pos,
+                    &tile_data.tiles,
+                    tile_data.tile_settings[tile_id],
+                );
+            }
+        }
+    }
+
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
@@ -195,19 +224,28 @@ impl RegularMap {
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
-        if tileset.format() != self.colours() {
-            panic!(
-                "Cannot set a {:?} colour tile on a {:?} colour background",
-                tileset.format(),
-                self.colours()
-            );
-        }
+        assert_eq!(
+            tileset.format(),
+            self.colours(),
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tileset.format(),
+            self.colours()
+        );
 
         let pos = self.map_size().gba_offset(pos);
+        self.set_tile_at_pos(vram, pos, tileset, tile_setting);
+    }
 
+    fn set_tile_at_pos(
+        &mut self,
+        vram: &mut VRamManager,
+        pos: usize,
+        tileset: &TileSet<'_>,
+        tile_setting: TileSetting,
+    ) {
         let old_tile = self.tiles_mut()[pos];
         if old_tile != Tile::default() {
-            vram.remove_tile(old_tile.into());
+            vram.remove_tile(old_tile.tile_index(self.colours()));
         }
 
         let tile_index = tile_setting.index();
@@ -254,7 +292,7 @@ pub struct AffineMap {
 
     transform: AffineMatrixBackground,
 
-    tiles: Vec<u8>,
+    tiles: Vec<Tile>,
     tiles_dirty: bool,
 }
 
@@ -263,10 +301,9 @@ impl TiledMapTypes for AffineMap {
 }
 
 impl TiledMapPrivate for AffineMap {
-    type TileType = u8;
     type AffineMatrix = AffineMatrixBackground;
 
-    fn tiles_mut(&mut self) -> &mut [Self::TileType] {
+    fn tiles_mut(&mut self) -> &mut [Tile] {
         &mut self.tiles
     }
     fn tiles_dirty(&mut self) -> &mut bool {
@@ -320,19 +357,20 @@ impl AffineMap {
         tile_id: u8,
     ) {
         let pos = self.map_size().gba_offset(pos);
+        let colours = self.colours();
 
         let old_tile = self.tiles_mut()[pos];
-        if old_tile != 0 {
-            vram.remove_tile(old_tile.into());
+        if old_tile != Tile::default() {
+            vram.remove_tile(old_tile.tile_index(colours));
         }
 
         let tile_index = tile_id as u16;
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = vram.add_tile(tileset, tile_index);
-            new_tile_idx.raw_index() as u8
+            Tile::new(new_tile_idx, TileSetting(0))
         } else {
-            0
+            Tile::default()
         };
 
         if old_tile == new_tile {

@@ -1,4 +1,5 @@
 use agb::{
+    fixnum::num,
     include_wav,
     sound::mixer::{Mixer, SoundChannel},
 };
@@ -37,38 +38,38 @@ impl<'a> Sfx<'a> {
     }
 
     pub fn bad_selection(&mut self) {
-        self.mixer.play_sound(SoundChannel::new(BAD_SELECTION));
+        self.play_effect(BAD_SELECTION);
     }
 
     pub fn select(&mut self) {
-        self.mixer.play_sound(SoundChannel::new(SELECT));
+        self.play_effect(SELECT);
     }
 
     pub fn place(&mut self) {
-        self.mixer.play_sound(SoundChannel::new(PLACE));
+        self.play_effect(PLACE);
     }
 
     pub fn play_sound_effect(&mut self, effect: Option<SoundEffect>) {
         if let Some(effect) = effect {
             match effect {
                 SoundEffect::WallHit => {
-                    self.mixer.play_sound(SoundChannel::new(WALL_HIT));
+                    self.play_effect(WALL_HIT);
                 }
                 SoundEffect::SlimeDie => {
-                    self.mixer.play_sound(SoundChannel::new(SLIME_DEATH));
+                    self.play_effect(SLIME_DEATH);
                 }
                 SoundEffect::HeroDie => {}
                 SoundEffect::SquidDie => {}
                 SoundEffect::SwordPickup => {
-                    self.mixer.play_sound(SoundChannel::new(SWORD_PICKUP));
+                    self.play_effect(SWORD_PICKUP);
                 }
                 SoundEffect::SwordKill => {}
                 SoundEffect::KeyPickup => {}
                 SoundEffect::DoorOpen => {
-                    self.mixer.play_sound(SoundChannel::new(DOOR_OPEN));
+                    self.play_effect(DOOR_OPEN);
                 }
                 SoundEffect::SwitchToggle => {
-                    self.mixer.play_sound(SoundChannel::new(SWICTH_TOGGLES[0]));
+                    self.play_effect(SWICTH_TOGGLES[0]);
                 }
                 SoundEffect::KeyDrop => {}
                 SoundEffect::SwordDrop => {}
@@ -77,6 +78,12 @@ impl<'a> Sfx<'a> {
                 SoundEffect::TeleportEffect => {}
             }
         }
+    }
+
+    fn play_effect(&mut self, effect: &'static [u8]) {
+        let mut channel = SoundChannel::new(effect);
+        channel.playback(num!(0.5));
+        self.mixer.play_sound(channel);
     }
 }
 

@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat, TileSet, TileSetting},
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat},
         Priority,
     },
     fixnum::{Num, Vector2D},
@@ -21,6 +21,7 @@ pub enum Game {
     TheHatChoosesTheWizard,
     ThePurpleNight,
     HyperspaceRoll,
+    TheDungeonPuzzlersLament,
     Amplitude,
 }
 
@@ -30,6 +31,7 @@ impl Game {
             Game::TheHatChoosesTheWizard => the_hat_chooses_the_wizard::main(gba),
             Game::ThePurpleNight => the_purple_night::main(gba),
             Game::HyperspaceRoll => hyperspace_roll::main(gba),
+            Game::TheDungeonPuzzlersLament => the_dungeon_puzzlers_lament::entry(gba),
             Game::Amplitude => amplitude::main(gba),
         }
     }
@@ -39,7 +41,8 @@ impl Game {
             0 => Game::TheHatChoosesTheWizard,
             1 => Game::ThePurpleNight,
             2 => Game::HyperspaceRoll,
-            3 => Game::Amplitude,
+            3 => Game::TheDungeonPuzzlersLament,
+            4 => Game::Amplitude,
             _ => unreachable!("game out of index in an unreachable manner"),
         }
     }
@@ -47,10 +50,11 @@ impl Game {
 
 include_background_gfx!(
     games, "121105",
-    hat => "gfx/hat.png",
-    purple => "gfx/purple.png",
-    hyperspace => "gfx/hyperspace.png",
-    amplitude => "gfx/amplitude.png"
+    hat => 256 deduplicate "gfx/hat.png",
+    purple => 256 deduplicate "gfx/purple.png",
+    hyperspace => 256 deduplicate "gfx/hyperspace.png",
+    dungeon_puzzler => 256 deduplicate "gfx/dungeon_puzzler.png",
+    amplitude => 256 deduplicate "gfx/amplitude.png",
 );
 
 fn get_game(gba: &mut agb::Gba) -> Game {
@@ -59,18 +63,12 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let (tile, mut vram) = gba.display.video.tiled0();
 
-    let hat = TileSet::new(games::hat.tiles, TileFormat::FourBpp);
-    let purple = TileSet::new(games::purple.tiles, TileFormat::FourBpp);
-    let hyperspace = TileSet::new(games::hyperspace.tiles, TileFormat::FourBpp);
-    let amplitude = TileSet::new(games::amplitude.tiles, TileFormat::FourBpp);
-
-    let tiles = [hat, purple, hyperspace, amplitude];
-
-    let palette_assignments = &[
-        games::hat.palette_assignments,
-        games::purple.palette_assignments,
-        games::hyperspace.palette_assignments,
-        games::amplitude.palette_assignments,
+    let tiles = [
+        games::hat,
+        games::purple,
+        games::hyperspace,
+        games::dungeon_puzzler,
+        games::amplitude,
     ];
 
     vram.set_background_palettes(games::PALETTES);
@@ -79,7 +77,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         tile.background(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
-            TileFormat::FourBpp,
+            TileFormat::EightBpp,
         ),
         Box::new(|pos| {
             let y = pos.y.rem_euclid(20);
@@ -87,15 +85,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
             let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
-            (
-                &tiles[game],
-                TileSetting::new(
-                    tile_id as u16,
-                    false,
-                    false,
-                    palette_assignments[game][tile_id],
-                ),
-            )
+            (&tiles[game].tiles, tiles[game].tile_settings[tile_id])
         }),
     );
 

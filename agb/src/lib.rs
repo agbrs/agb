@@ -33,7 +33,7 @@
 //!
 //! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
 
-/// This macro is used to convert a png or bmp into a format usable by the Game Boy Advance.
+/// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
 /// Suppose you have a file in `examples/water_tiles.png` which contains some tiles you'd like to use.
 ///
@@ -77,11 +77,11 @@
 /// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
-/// let tileset = TileSet::new(water_tiles::tiles.tiles, TileFormat::FourBpp);
+/// let tileset = water_tiles::tiles.tiles;
 ///
 /// vram.set_background_palettes(water_tiles::PALETTES);
 ///
-/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
+/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
 ///
 /// for y in 0..20u16 {
 ///     for x in 0..30u16 {
@@ -89,7 +89,7 @@
 ///             &mut vram,
 ///             (x, y).into(),
 ///             &tileset,
-///             TileSetting::new(0, false, false, 0),
+///             water_tiles::tiles.tile_settings[0],
 ///         );
 ///     }
 /// }
@@ -231,6 +231,10 @@ pub struct Gba {
 impl Gba {
     #[doc(hidden)]
     #[must_use]
+    /// # Safety
+    ///
+    /// May only be called a single time. It is not needed to call this due to
+    /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
         Self::single_new()
     }

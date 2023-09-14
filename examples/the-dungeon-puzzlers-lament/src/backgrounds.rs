@@ -1,12 +1,12 @@
 use agb::{
-    display::tiled::{RegularMap, TileFormat, TileSet, TileSetting, VRamManager},
+    display::tiled::{RegularMap, VRamManager},
     include_background_gfx,
 };
 
 include_background_gfx!(backgrounds, "1e151b",
-    ui => "maps/ui_tiles.png",
-    level => "maps/level.png",
-    ending => "gfx/ending_page.aseprite",
+    ui => deduplicate "maps/ui_tiles.png",
+    level => deduplicate "maps/level.png",
+    ending => deduplicate "gfx/ending_page.aseprite",
 );
 
 mod tilemaps {
@@ -19,7 +19,7 @@ pub fn load_palettes(vram_manager: &mut VRamManager) {
 }
 
 pub fn load_ui(map: &mut RegularMap, vram_manager: &mut VRamManager) {
-    let ui_tileset = TileSet::new(backgrounds::ui.tiles, TileFormat::FourBpp);
+    let ui_tileset = backgrounds::ui.tiles;
 
     for y in 0..20u16 {
         for x in 0..30u16 {
@@ -38,7 +38,7 @@ pub fn load_level_background(
 ) {
     let level_map = &tilemaps::LEVELS_MAP[level_number];
 
-    let level_tileset = TileSet::new(backgrounds::level.tiles, TileFormat::FourBpp);
+    let level_tileset = backgrounds::level.tiles;
 
     for y in 0..20u16 {
         for x in 0..22u16 {
@@ -51,18 +51,5 @@ pub fn load_level_background(
 }
 
 pub fn load_ending_page(map: &mut RegularMap, vram_manager: &mut VRamManager) {
-    let ending_tileset = TileSet::new(backgrounds::ending.tiles, TileFormat::FourBpp);
-
-    for y in 0..20u16 {
-        for x in 0..30u16 {
-            let tile_pos = y * 30 + x;
-            let tile_setting = TileSetting::new(
-                tile_pos,
-                false,
-                false,
-                backgrounds::ending.palette_assignments[tile_pos as usize],
-            );
-            map.set_tile(vram_manager, (x, y).into(), &ending_tileset, tile_setting);
-        }
-    }
+    map.fill_with(vram_manager, &backgrounds::ending);
 }
