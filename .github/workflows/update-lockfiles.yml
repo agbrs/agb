@@ -16,7 +16,7 @@ jobs:
       - name: Set CARGO_TARGET_DIR
         run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
       - name: Check out repository
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+        uses: actions/checkout@v4
       - uses: extractions/setup-just@v1
       - name: Update lock files
         run: just update-lockfiles --commit
