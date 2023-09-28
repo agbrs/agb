@@ -96,6 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zero volume now plays no sound.
 - Fixed issue where volume was incorrect for volumes which were powers of 2.
 
+### Fixed
+- Fixed a bug in bitmap4 that caused setting pixels to be always incorrect.
+
 ## [0.12.2] - 2022/10/22
 
 This is a minor release to fix an alignment issue with background tiles.
