@@ -48,9 +48,9 @@ impl Bitmap4 {
 
         let c = addr.get(x_in_screen, y_in_screen);
         if x & 0b1 != 0 {
-            addr.set(x_in_screen, y_in_screen, (c & 0xff) | u16::from(colour) << 8);
+            addr.set(x_in_screen, y_in_screen, c & 0xff | u16::from(colour) << 8);
         } else {
-            addr.set(x_in_screen, y_in_screen, (c & 0xff00) | u16::from(colour));
+            addr.set(x_in_screen, y_in_screen, c & 0xff00 | u16::from(colour));
         }
     }
 
