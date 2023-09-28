@@ -22,12 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `include_background_gfx!` now produces tile sets and tile settings directly.
 
 ### Fixed
-- Fixed a bug in bitmap4 that caused setting pixels to be always incorrect.
-
-### Fixed
 
 - 256-colour backgrounds are better supported.
 - Mono looping samples will now correctly play to the end if it doesn't perfectly align with a buffer boundry and short samples now also loop correctly.
+- Fixed a bug in bitmap4 that caused setting pixels to be always incorrect.
 
 ## [0.16.0] - 2023/07/18
 
