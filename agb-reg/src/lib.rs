@@ -29,18 +29,30 @@ pub const BACKGROUND_CONTROL: *mut [BackgroundControl; 4] = background_control(0
 pub const fn background_offset(bg: usize) -> *mut Offset {
     assert!(bg < 4, "background must be in range 0..=3");
 
+    background_offset_unchecked(bg)
+}
+
+pub const fn background_offset_unchecked(bg: usize) -> *mut Offset {
     (0x0400_0010 + bg * core::mem::size_of::<Offset>()) as *mut _
 }
 
 pub const fn background_offset_horizontal(bg: usize) -> *mut u16 {
     assert!(bg < 4, "background must be in range 0..=3");
 
+    background_offset_horizontal_unchecked(bg)
+}
+
+pub const fn background_offset_horizontal_unchecked(bg: usize) -> *mut u16 {
     (0x0400_0010 + bg * core::mem::size_of::<Offset>()) as *mut u16
 }
 
 pub const fn background_offset_vertical(bg: usize) -> *mut u16 {
     assert!(bg < 4, "background must be in range 0..=3");
 
+    background_offset_vertical_unchecked(bg)
+}
+
+pub const fn background_offset_vertical_unchecked(bg: usize) -> *mut u16 {
     (0x0400_0010 + bg * core::mem::size_of::<Offset>() + core::mem::size_of::<u16>()) as *mut u16
 }
 
@@ -60,7 +72,7 @@ pub const BACKGROUND_3_OFFSET: *mut Offset = background_offset(3);
 pub const BACKGROUND_3_OFFSET_HORIZONTAL: *mut u16 = background_offset_horizontal(3);
 pub const BACKGROUND_3_OFFSET_VERTICAL: *mut u16 = background_offset_vertical(3);
 
-pub const BACKGROUND_OFFSET: *mut [Offset; 4] = 0x0400_0010 as *mut _;
+pub const BACKGROUND_OFFSET: *mut [Offset; 4] = background_offset(0).cast();
 
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
