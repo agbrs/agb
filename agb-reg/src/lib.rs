@@ -1,4 +1,9 @@
 #![no_std]
+#![deny(clippy::all)]
+#![deny(unsafe_op_in_unsafe_fn)]
+#![deny(clippy::missing_const_for_fn)]
+#![deny(missing_debug_implementations)]
+#![deny(missing_copy_implementations)]
 
 //! This crate contains definitions of the hardware registers used in the Game
 //! Boy Advance. It contains bitfields that define the registers as well as
@@ -10,6 +15,30 @@
 //! Do note that registers may overlap in certain modes.
 
 use bilge::prelude::*;
+
+pub trait VolatileUpdate<T: Copy> {
+    /// Performs a volatile read, lets you modify it, then performs a volatile
+    /// write with the updated value.
+    ///
+    /// # Safety
+    /// This is designed to volatily read and write to a raw pointer. All the
+    /// usual raw pointer rules apply.
+    unsafe fn update_volatile<F>(self, f: F)
+    where
+        F: FnOnce(&mut T);
+}
+
+impl<T: Copy> VolatileUpdate<T> for *mut T {
+    unsafe fn update_volatile<F>(self, f: F)
+    where
+        F: FnOnce(&mut T),
+    {
+        // Safety: the safety guarentees of this function mean I can do this
+        let mut t = unsafe { self.read_volatile() };
+        f(&mut t);
+        unsafe { self.write_volatile(t) };
+    }
+}
 
 pub const DISPLAY_CONTROL: *mut DisplayControl = 0x0400_0000 as *mut _;
 pub const VERTICAL_COUNT: *mut u16 = 0x0400_0006 as *mut _;
@@ -74,6 +103,36 @@ pub const BACKGROUND_3_OFFSET_VERTICAL: *mut u16 = background_offset_vertical(3)
 
 pub const BACKGROUND_OFFSET: *mut [Offset; 4] = background_offset(0).cast();
 
+pub const fn window_horizontal(window: usize) -> *mut WindowHorizontal {
+    assert!(window < 2, "window must be less than 2");
+
+    window_horizontal_unchecked(window)
+}
+
+pub const fn window_horizontal_unchecked(window: usize) -> *mut WindowHorizontal {
+    (0x0400_0040 + window * core::mem::size_of::<WindowHorizontal>()) as *mut _
+}
+
+pub const fn window_vertical(window: usize) -> *mut WindowVertical {
+    assert!(window < 2, "window must be less than 2");
+
+    window_vertical_unchecked(window)
+}
+
+pub const fn window_vertical_unchecked(window: usize) -> *mut WindowVertical {
+    (0x0400_0044 + window * core::mem::size_of::<WindowVertical>()) as *mut _
+}
+
+pub const WINDOW_0_HORIZONTAL: *mut WindowHorizontal = window_horizontal(0);
+pub const WINDOW_0_VERTICAL: *mut WindowVertical = window_vertical(0);
+
+pub const WINDOW_1_HORIZONTAL: *mut WindowHorizontal = window_horizontal(1);
+pub const WINDOW_1_VERTICAL: *mut WindowVertical = window_vertical(1);
+
+pub const WINDOW_INNER: *mut WindowInner = 0x0400_0048 as *mut _;
+pub const WINDOW_OUTER: *mut WindowOuter = 0x0400_004A as *mut _;
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BackgroundAffineMatrixParameter {
     A,
     B,
@@ -147,13 +206,9 @@ pub struct DisplayControl {
     hblank_in_oam: bool,
     object_mapping: ObjectMappingMode,
     force_blank: bool,
-    background_0: IsEnabled,
-    background_1: IsEnabled,
-    background_2: IsEnabled,
-    background_3: IsEnabled,
+    background: [IsEnabled; 4],
     object: IsEnabled,
-    window_0: IsEnabled,
-    window_1: IsEnabled,
+    window: [IsEnabled; 2],
     window_object: IsEnabled,
 }
 
@@ -272,4 +327,40 @@ pub struct BackgroundAffineMatrix {
     pub d: u16,
     pub x: u16,
     pub y: u16,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct WindowHorizontal {
+    right: u8,
+    left: u8,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct WindowVertical {
+    bottom: u8,
+    top: u8,
+}
+
+#[bitsize(8)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct Window {
+    background: [IsEnabled; 4],
+    object: IsEnabled,
+    effect: IsEnabled,
+    reserved: u2,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct WindowInner {
+    window: [Window; 2],
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct WindowOuter {
+    outside: Window,
+    object: Window,
 }
