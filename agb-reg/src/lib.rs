@@ -204,16 +204,16 @@ pub struct Offset {
 #[bitsize(16)]
 #[derive(TryFromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct DisplayControl {
-    mode: DisplayMode,
-    is_game_boy_colour: bool,
-    page_select: Page,
-    hblank_in_oam: bool,
-    object_mapping: ObjectMappingMode,
-    force_blank: bool,
-    background: [IsEnabled; 4],
-    object: IsEnabled,
-    window: [IsEnabled; 2],
-    window_object: IsEnabled,
+    pub mode: DisplayMode,
+    pub is_game_boy_colour: bool,
+    pub page_select: Page,
+    pub hblank_in_oam: bool,
+    pub object_mapping: ObjectMappingMode,
+    pub force_blank: bool,
+    pub background: [IsEnabled; 4],
+    pub object: IsEnabled,
+    pub window: [IsEnabled; 2],
+    pub window_object: IsEnabled,
 }
 
 #[bitsize(1)]
@@ -269,14 +269,14 @@ pub enum DisplayMode {
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct BackgroundControl {
-    priority: Priority,
-    tile_block: u2,
+    pub priority: Priority,
+    pub tile_block: u2,
     reserved: u2,
-    mosaic: IsEnabled,
-    colour_mode: ColourMode,
-    map_block: u5,
-    affine_wrapping: IsEnabled,
-    size: BackgroundSize,
+    pub mosaic: IsEnabled,
+    pub colour_mode: ColourMode,
+    pub map_block: u5,
+    pub affine_wrapping: IsEnabled,
+    pub size: BackgroundSize,
 }
 
 #[bitsize(2)]
@@ -336,45 +336,45 @@ pub struct BackgroundAffineMatrix {
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct WindowHorizontal {
-    right: u8,
-    left: u8,
+    pub right: u8,
+    pub left: u8,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct WindowVertical {
-    bottom: u8,
-    top: u8,
+    pub bottom: u8,
+    pub top: u8,
 }
 
 #[bitsize(8)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct Window {
-    background: [IsEnabled; 4],
-    object: IsEnabled,
-    effect: IsEnabled,
+    pub background: [IsEnabled; 4],
+    pub object: IsEnabled,
+    pub effect: IsEnabled,
     reserved: u2,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct WindowInner {
-    window: [Window; 2],
+    pub window: [Window; 2],
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct WindowOuter {
-    outside: Window,
-    object: Window,
+    pub outside: Window,
+    pub object: Window,
 }
 
 #[bitsize(6)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct EffectTarget {
-    background: [IsEnabled; 4],
-    object: IsEnabled,
-    backdrop: IsEnabled,
+    pub background: [IsEnabled; 4],
+    pub object: IsEnabled,
+    pub backdrop: IsEnabled,
 }
 
 #[bitsize(2)]
@@ -389,24 +389,24 @@ pub enum BlendMode {
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct BlendControl {
-    target: EffectTarget,
-    mode: BlendMode,
-    blend_target: EffectTarget,
+    pub target: EffectTarget,
+    pub mode: BlendMode,
+    pub blend_target: EffectTarget,
     reserved: u2,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct BlendAlpha {
-    first: u5,
+    pub first: u5,
     reserved: u3,
-    second: u5,
+    pub second: u5,
     reserved: u3,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
 pub struct BlendBrighness {
-    brightness: u5,
+    pub brightness: u5,
     reserved: u11,
 }
