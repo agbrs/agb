@@ -74,6 +74,63 @@ pub const BACKGROUND_3_OFFSET_VERTICAL: *mut u16 = background_offset_vertical(3)
 
 pub const BACKGROUND_OFFSET: *mut [Offset; 4] = background_offset(0).cast();
 
+pub enum BackgroundAffineMatrixParameter {
+    A,
+    B,
+    C,
+    D,
+    X,
+    Y,
+}
+
+pub const fn background_affine_matrix_parameter(
+    bg: usize,
+    parameter: BackgroundAffineMatrixParameter,
+) -> *mut u16 {
+    assert!(bg >= 2 && bg < 4, "background must be in range 2..=3");
+
+    background_affine_matrix_parameter_unchecked(bg, parameter)
+}
+
+pub const fn background_affine_matrix_parameter_unchecked(
+    bg: usize,
+    parameter: BackgroundAffineMatrixParameter,
+) -> *mut u16 {
+    (0x0400_0020
+        + (bg - 2) * core::mem::size_of::<BackgroundAffineMatrix>()
+        + (parameter as usize) * core::mem::size_of::<u16>()) as *mut _
+}
+
+pub const BACKGROUND_2_AFFINE: *mut BackgroundAffineMatrix =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::A).cast();
+pub const BACKGROUND_2_AFFINE_A: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::A);
+pub const BACKGROUND_2_AFFINE_B: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::B);
+pub const BACKGROUND_2_AFFINE_C: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::C);
+pub const BACKGROUND_2_AFFINE_D: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::D);
+pub const BACKGROUND_2_AFFINE_X: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::X);
+pub const BACKGROUND_2_AFFINE_Y: *mut u16 =
+    background_affine_matrix_parameter(2, BackgroundAffineMatrixParameter::Y);
+
+pub const BACKGROUND_3_AFFINE: *mut BackgroundAffineMatrix =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::A).cast();
+pub const BACKGROUND_3_AFFINE_A: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::A);
+pub const BACKGROUND_3_AFFINE_B: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::B);
+pub const BACKGROUND_3_AFFINE_C: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::C);
+pub const BACKGROUND_3_AFFINE_D: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::D);
+pub const BACKGROUND_3_AFFINE_X: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::X);
+pub const BACKGROUND_3_AFFINE_Y: *mut u16 =
+    background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::Y);
+
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Offset {
@@ -204,4 +261,15 @@ pub enum BackgroundAffineSize {
     A32x32,
     A64x64,
     A128x128,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct BackgroundAffineMatrix {
+    pub a: u16,
+    pub b: u16,
+    pub c: u16,
+    pub d: u16,
+    pub x: u16,
+    pub y: u16,
 }
