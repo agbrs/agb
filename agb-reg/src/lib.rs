@@ -190,6 +190,10 @@ pub const BACKGROUND_3_AFFINE_X: *mut u16 =
 pub const BACKGROUND_3_AFFINE_Y: *mut u16 =
     background_affine_matrix_parameter(3, BackgroundAffineMatrixParameter::Y);
 
+pub const BLEND_CONTROL: *mut BlendControl = 0x0400_0050 as *mut _;
+pub const BLEND_ALPHA: *mut BlendAlpha = 0x0400_0052 as *mut _;
+pub const BLEND_BRIGHTNESS: *mut BlendBrighness = 0x0400_0054 as *mut _;
+
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Offset {
@@ -363,4 +367,46 @@ pub struct WindowInner {
 pub struct WindowOuter {
     outside: Window,
     object: Window,
+}
+
+#[bitsize(6)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct EffectTarget {
+    background: [IsEnabled; 4],
+    object: IsEnabled,
+    backdrop: IsEnabled,
+}
+
+#[bitsize(2)]
+#[derive(FromBits, Clone, Copy, PartialEq, Debug)]
+pub enum BlendMode {
+    None,
+    Alpha,
+    Brighten,
+    Darken,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct BlendControl {
+    target: EffectTarget,
+    mode: BlendMode,
+    blend_target: EffectTarget,
+    reserved: u2,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct BlendAlpha {
+    first: u5,
+    reserved: u3,
+    second: u5,
+    reserved: u3,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+pub struct BlendBrighness {
+    brightness: u5,
+    reserved: u11,
 }
