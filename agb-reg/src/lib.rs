@@ -194,6 +194,8 @@ pub const BLEND_CONTROL: *mut BlendControl = 0x0400_0050 as *mut _;
 pub const BLEND_ALPHA: *mut BlendAlpha = 0x0400_0052 as *mut _;
 pub const BLEND_BRIGHTNESS: *mut BlendBrighness = 0x0400_0054 as *mut _;
 
+pub const MOSAIC: *mut Mosaic = 0x0400_004C as *mut _;
+
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Offset {
@@ -202,7 +204,7 @@ pub struct Offset {
 }
 
 #[bitsize(16)]
-#[derive(TryFromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(TryFromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct DisplayControl {
     pub mode: DisplayMode,
     pub is_game_boy_colour: bool,
@@ -267,7 +269,7 @@ pub enum DisplayMode {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct BackgroundControl {
     pub priority: Priority,
     pub tile_block: u2,
@@ -280,18 +282,18 @@ pub struct BackgroundControl {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct Priority(u2);
 
 #[bitsize(1)]
-#[derive(FromBits, Clone, Copy, PartialEq, Debug)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ColourMode {
     FourBitPerPixel,
     EightBitPerPixel,
 }
 
 #[bitsize(2)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct BackgroundSize(u2);
 
 impl From<BackgroundRegularSize> for BackgroundSize {
@@ -334,21 +336,21 @@ pub struct BackgroundAffineMatrix {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct WindowHorizontal {
     pub right: u8,
     pub left: u8,
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct WindowVertical {
     pub bottom: u8,
     pub top: u8,
 }
 
 #[bitsize(8)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct Window {
     pub background: [IsEnabled; 4],
     pub object: IsEnabled,
@@ -357,20 +359,20 @@ pub struct Window {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct WindowInner {
     pub window: [Window; 2],
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct WindowOuter {
     pub outside: Window,
     pub object: Window,
 }
 
 #[bitsize(6)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct EffectTarget {
     pub background: [IsEnabled; 4],
     pub object: IsEnabled,
@@ -378,7 +380,7 @@ pub struct EffectTarget {
 }
 
 #[bitsize(2)]
-#[derive(FromBits, Clone, Copy, PartialEq, Debug)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BlendMode {
     None,
     Alpha,
@@ -387,7 +389,7 @@ pub enum BlendMode {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct BlendControl {
     pub target: EffectTarget,
     pub mode: BlendMode,
@@ -396,7 +398,7 @@ pub struct BlendControl {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct BlendAlpha {
     pub first: u5,
     reserved: u3,
@@ -405,8 +407,17 @@ pub struct BlendAlpha {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Clone, Copy, PartialEq, DebugBits)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct BlendBrighness {
     pub brightness: u5,
     reserved: u11,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct Mosaic {
+    background_horizontal: u4,
+    background_vertical: u4,
+    object_horizontal: u4,
+    object_vertical: u4,
 }
