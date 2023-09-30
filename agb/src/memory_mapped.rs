@@ -20,6 +20,10 @@ impl<T> MemoryMapped<T> {
             unsafe { self.address.write_volatile(val) }
         }
     }
+
+    pub(crate) fn as_ptr(&self) -> *mut T {
+        self.address
+    }
 }
 
 impl<T> MemoryMapped<T>

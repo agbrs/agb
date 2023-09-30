@@ -5,6 +5,7 @@ use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
 use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
+use crate::dma;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
@@ -292,6 +293,11 @@ impl RegularMap {
 
     pub fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
         self.scroll = pos;
+    }
+
+    #[must_use]
+    pub fn x_scroll_dma(&self) -> dma::DmaControllable<i16> {
+        dma::DmaControllable::new(self.x_register().as_ptr())
     }
 
     fn x_register(&self) -> MemoryMapped<i16> {

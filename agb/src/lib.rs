@@ -235,6 +235,8 @@ pub struct Gba {
     pub save: save::SaveManager,
     /// Manages access to the Game Boy Advance's 4 timers.
     pub timers: timer::TimerController,
+    /// Manages access to the Game Boy Advance's DMA
+    pub dma: dma::DmaController,
 }
 
 impl Gba {
@@ -255,6 +257,7 @@ impl Gba {
             mixer: sound::mixer::MixerController::new(),
             save: save::SaveManager::new(),
             timers: timer::TimerController::new(),
+            dma: dma::DmaController::new(),
         }
     }
 }
