@@ -16,9 +16,17 @@
 
 use bilge::prelude::*;
 
-pub trait VolatileUpdate<T: Copy> {
+pub trait UpdateVolatile<T: Copy> {
     /// Performs a volatile read, lets you modify it, then performs a volatile
     /// write with the updated value.
+    ///
+    /// ```no_run
+    /// use agb_reg::{DISPLAY_CONTROL, UpdateVolatile};
+    ///
+    /// unsafe {
+    ///     DISPLAY_CONTROL.update_volatile(|x| x.set_background_at(2, true.into()));
+    /// }
+    /// ```
     ///
     /// # Safety
     /// This is designed to volatily read and write to a raw pointer. All the
@@ -28,7 +36,7 @@ pub trait VolatileUpdate<T: Copy> {
         F: FnOnce(&mut T);
 }
 
-impl<T: Copy> VolatileUpdate<T> for *mut T {
+impl<T: Copy> UpdateVolatile<T> for *mut T {
     unsafe fn update_volatile<F>(self, f: F)
     where
         F: FnOnce(&mut T),
