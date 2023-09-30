@@ -429,8 +429,8 @@ pub struct BlendBrighness {
 #[bitsize(16)]
 #[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct Mosaic {
-    background_horizontal: u4,
-    background_vertical: u4,
-    object_horizontal: u4,
-    object_vertical: u4,
+    pub background_horizontal: u4,
+    pub background_vertical: u4,
+    pub object_horizontal: u4,
+    pub object_vertical: u4,
 }
