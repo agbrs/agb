@@ -53,6 +53,11 @@ pub const VERTICAL_COUNT: *mut u16 = 0x0400_0006 as *mut _;
 
 pub const fn background_control(bg: usize) -> *mut BackgroundControl {
     assert!(bg < 4, "background must be in range 0..=3");
+
+    background_control_unchecked(bg)
+}
+
+pub const fn background_control_unchecked(bg: usize) -> *mut BackgroundControl {
     (0x0400_0008 + bg * core::mem::size_of::<BackgroundControl>()) as *mut _
 }
 
