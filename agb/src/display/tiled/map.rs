@@ -5,7 +5,6 @@ use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
 use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
-use crate::dma::dma_copy16;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
@@ -93,9 +92,8 @@ where
 
         if *self.tiles_dirty() {
             unsafe {
-                dma_copy16(
+                screenblock_memory.copy_from(
                     self.tiles_mut().as_ptr() as *const u16,
-                    screenblock_memory,
                     self.map_size().num_tiles(),
                 );
             }

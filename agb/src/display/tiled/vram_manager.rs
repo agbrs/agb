@@ -5,7 +5,6 @@ use alloc::{slice, vec::Vec};
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
-    dma::dma_copy16,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
 };
@@ -413,7 +412,9 @@ impl VRamManager {
     /// Copies raw palettes to the background palette without any checks.
     pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
         unsafe {
-            dma_copy16(palette.as_ptr(), PALETTE_BACKGROUND.as_ptr(), palette.len());
+            PALETTE_BACKGROUND
+                .as_ptr()
+                .copy_from_nonoverlapping(palette.as_ptr(), palette.len());
         }
     }
 
