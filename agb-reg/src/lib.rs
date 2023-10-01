@@ -209,6 +209,19 @@ pub const BLEND_BRIGHTNESS: *mut BlendBrighness = 0x0400_0054 as *mut _;
 
 pub const MOSAIC: *mut Mosaic = 0x0400_004C as *mut _;
 
+pub const SOUND_1_CONTROL_TONE_SWEEP: *mut SoundToneSweep = 0x0400_0060 as *mut _;
+pub const SOUND_1_CONTROL_DUTY_LEN_ENVELOPE: *mut SoundDutyLenEnvelope = 0x0400_0062 as *mut _;
+pub const SOUND_1_CONTROL_FREQUENCY: *mut SoundFrequencyControl = 0x0400_0064 as *mut _;
+
+pub const SOUND_2_CONTROL_DUTY_LEN_ENVELOPE: *mut SoundDutyLenEnvelope = 0x0400_0068 as *mut _;
+pub const SOUND_2_CONTROL_FREQUENCY: *mut SoundFrequencyControl = 0x0400_006C as *mut _;
+
+pub const SOUND_3_CONTROL_WAVE: *mut SoundWaveSelect = 0x0400_0070 as *mut _;
+pub const SOUND_3_CONTROL_LENGTH_VOLUME: *mut SoundLengthVolume = 0x0400_0072 as *mut _;
+pub const SOUND_3_CONTROL_FREQUNECY: *mut SoundFrequencyControl = 0x0400_0074 as *mut _;
+
+pub const SOUND_3_WAVE_PATTERN: *mut [u16; 8] = 0x0400_0090 as *mut _;
+
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Offset {
@@ -433,4 +446,98 @@ pub struct Mosaic {
     pub background_vertical: u4,
     pub object_horizontal: u4,
     pub object_vertical: u4,
+}
+
+#[bitsize(1)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SweepFrequencyDirection {
+    Increase,
+    Decrease,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct SoundToneSweep {
+    pub sweep_shift: u3,
+    pub sweep_frequency_direction: SweepFrequencyDirection,
+    pub sweep_time: u3,
+    reserved: u9,
+}
+
+#[bitsize(2)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DutyCycle {
+    S12_5,
+    S25,
+    S50,
+    S75,
+}
+
+#[bitsize(1)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EnvelopeDirection {
+    Decrease,
+    Increase,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct SoundDutyLenEnvelope {
+    pub length: u6,
+    pub wave_duty: DutyCycle,
+    pub envelope_step_time: u3,
+    pub envelope_direction: EnvelopeDirection,
+    pub initial_envelope_volume: u4,
+}
+
+#[bitsize(1)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Timed {
+    Continue,
+    Stop,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct SoundFrequencyControl {
+    pub frequency: u11,
+    reserved: u3,
+    pub timed: Timed,
+    pub restart: bool,
+}
+
+#[bitsize(1)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WaveTableSize {
+    Single,
+    Double,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct SoundWaveSelect {
+    reserved: u5,
+    pub wave_table_size: WaveTableSize,
+    pub active_wave_table: u1,
+    pub channel: IsEnabled,
+    reserved: u8,
+}
+
+#[bitsize(3)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SoundVolume {
+    Mute = 0b000,
+    Full = 0b001,
+    Half = 0b010,
+    Quarter = 0b011,
+    #[fallback]
+    ThreeQuarter = 0b100,
+}
+
+#[bitsize(16)]
+#[derive(FromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
+pub struct SoundLengthVolume {
+    pub length: u8,
+    reserved: u5,
+    pub volume: SoundVolume,
 }
