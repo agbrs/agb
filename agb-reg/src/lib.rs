@@ -37,6 +37,7 @@ pub trait UpdateVolatile<T: Copy> {
 }
 
 impl<T: Copy> UpdateVolatile<T> for *mut T {
+    #[inline(always)]
     unsafe fn update_volatile<F>(self, f: F)
     where
         F: FnOnce(&mut T),
@@ -45,6 +46,64 @@ impl<T: Copy> UpdateVolatile<T> for *mut T {
         let mut t = unsafe { self.read_volatile() };
         f(&mut t);
         unsafe { self.write_volatile(t) };
+    }
+}
+
+pub trait PointerAt<T> {
+    /// ```no_run
+    /// use agb_reg::{BACKGROUND_CONTROL, UpdateVolatile, PointerAt};
+    ///
+    /// unsafe {
+    ///     BACKGROUND_CONTROL
+    ///         .at(1)
+    ///         .update_volatile(|x| x.set_mosaic(true.into()));
+    /// }
+    /// ```
+    ///
+    /// Panics if out of bounds.
+    ///
+    /// # Safety
+    /// This is designed to dereference raw pointers, so the normal pointer
+    /// rules apply.
+    unsafe fn at(self, idx: usize) -> *mut T;
+
+    /// ```no_run
+    /// use agb_reg::{BACKGROUND_CONTROL, UpdateVolatile, PointerAt};
+    ///
+    /// unsafe {
+    ///     BACKGROUND_CONTROL
+    ///         .at_unchecked(1)
+    ///         .update_volatile(|x| x.set_mosaic(true.into()));
+    /// }
+    /// ```
+    ///
+    /// # Safety
+    /// This is designed to dereference raw pointers, so the normal pointer
+    /// rules apply. Also no bounds checking is performed.
+    unsafe fn at_unchecked(self, idx: usize) -> *mut T;
+}
+
+impl<T, const N: usize> PointerAt<T> for *mut [T; N] {
+    #[inline(always)]
+    unsafe fn at(self, idx: usize) -> *mut T {
+        unsafe { (&mut ((*self)[idx])) as *mut T }
+    }
+
+    #[inline(always)]
+    unsafe fn at_unchecked(self, idx: usize) -> *mut T {
+        unsafe { ((*self).get_unchecked_mut(idx)) as *mut T }
+    }
+}
+
+impl<T> PointerAt<T> for *mut [T] {
+    #[inline(always)]
+    unsafe fn at(self, idx: usize) -> *mut T {
+        unsafe { (&mut ((*self)[idx])) as *mut T }
+    }
+
+    #[inline(always)]
+    unsafe fn at_unchecked(self, idx: usize) -> *mut T {
+        unsafe { ((*self).get_unchecked_mut(idx)) as *mut T }
     }
 }
 
