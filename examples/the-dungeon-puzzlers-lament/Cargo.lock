@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "agb_tracker"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "agb",
  "agb_tracker_interop",
@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "agb_tracker_interop"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "agb_fixnum",
  "proc-macro2",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "agb_xm"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "agb_xm_core",
  "proc-macro-error",
@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "agb_xm_core"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "agb_fixnum",
  "agb_tracker_interop",
