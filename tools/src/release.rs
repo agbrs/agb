@@ -41,7 +41,10 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         return Ok(());
     }
 
-    let project_toml_files = glob_many(&root_directory, &["agb-*/Cargo.toml"])?;
+    let project_toml_files = glob_many(
+        &root_directory,
+        &["agb-*/Cargo.toml", "tracker/agb-*/Cargo.toml"],
+    )?;
     let agb_cargo_toml = root_directory.join("agb/Cargo.toml");
 
     update_to_version(&root_directory, &agb_cargo_toml, version)?;
