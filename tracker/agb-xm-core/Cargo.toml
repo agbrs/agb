@@ -14,6 +14,6 @@ quote = "1"
 syn = "2"
 
 agb_tracker_interop = { version = "0.16.0", path = "../agb-tracker-interop" }
-agb_fixnum = { version = "0.16.0", path = "../../agb-fixnum" }
+agb_fixnum = { version = "0.17.0", path = "../../agb-fixnum" }
 
 xmrs = "0.3"
