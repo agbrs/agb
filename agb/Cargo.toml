@@ -24,6 +24,7 @@ rustc-hash = { version = "1", default-features = false }
 
 [package.metadata.docs.rs]
 default-target = "thumbv4t-none-eabi"
+cargo-args = ["-Zbuild-std=core,alloc"]
 
 [profile.dev]
 opt-level = 3
