@@ -1,6 +1,6 @@
 [package]
 name = "agb"
-version = "0.17.0"
+version = "0.17.1"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 description = "Library for Game Boy Advance Development"
@@ -13,11 +13,11 @@ testing = []
 
 [dependencies]
 bitflags = "2"
-agb_image_converter = { version = "0.17.0", path = "../agb-image-converter" }
-agb_sound_converter = { version = "0.17.0", path = "../agb-sound-converter" }
-agb_macros = { version = "0.17.0", path = "../agb-macros" }
-agb_fixnum = { version = "0.17.0", path = "../agb-fixnum" }
-agb_hashmap = { version = "0.17.0", path = "../agb-hashmap" }
+agb_image_converter = { version = "0.17.1", path = "../agb-image-converter" }
+agb_sound_converter = { version = "0.17.1", path = "../agb-sound-converter" }
+agb_macros = { version = "0.17.1", path = "../agb-macros" }
+agb_fixnum = { version = "0.17.1", path = "../agb-fixnum" }
+agb_hashmap = { version = "0.17.1", path = "../agb-hashmap" }
 bare-metal = "1"
 bilge = "0.2"
 rustc-hash = { version = "1", default-features = false }

@@ -1,6 +1,6 @@
 [package]
 name = "agb_xm"
-version = "0.17.0"
+version = "0.17.1"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -11,6 +11,6 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-agb_xm_core = { version = "0.17.0", path = "../agb-xm-core" }
+agb_xm_core = { version = "0.17.1", path = "../agb-xm-core" }
 proc-macro-error = "1"
 proc-macro2 = "1"

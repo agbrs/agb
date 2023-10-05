@@ -16,7 +16,7 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "agb"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "agb_fixnum",
  "agb_hashmap",
@@ -31,21 +31,21 @@ dependencies = [
 
 [[package]]
 name = "agb_fixnum"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "agb_macros",
 ]
 
 [[package]]
 name = "agb_hashmap"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "rustc-hash",
 ]
 
 [[package]]
 name = "agb_image_converter"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "asefile",
  "fontdue",
@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "agb_macros"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -66,7 +66,7 @@ dependencies = [
 
 [[package]]
 name = "agb_sound_converter"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "hound",
  "proc-macro2",

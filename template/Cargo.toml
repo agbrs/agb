@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-agb = "0.17.0"
+agb = "0.17.1"
 
 [profile.dev]
 opt-level = 3

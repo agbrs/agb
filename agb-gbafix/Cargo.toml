@@ -1,6 +1,6 @@
 [package]
 name = "agb-gbafix"
-version = "0.17.0"
+version = "0.17.1"
 edition = "2021"
 authors = ["Gwilym Inzani <email@gwilym.dev>"]
 license = "MPL-2.0"
