@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "targetArchitecture": "arm",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerServerAddress": "localhost:2345",
+            "preLaunchTask": "Rust build: debug",
+            "program": "${workspaceFolder}/target/thumbv4t-none-eabi/debug/the-dungeon-puzzlers-lament",
+            "linux": {
+                "miDebuggerPath": "arm-none-eabi-gdb",
+                "setupCommands": [
+                    {
+                        "text": "shell \"mgba-qt\" -g \"${workspaceFolder}/target/thumbv4t-none-eabi/debug/the-dungeon-puzzlers-lament\" &"
+                    }
+                ]
+            },
+        }
+    ]
+}
