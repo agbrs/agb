@@ -470,9 +470,7 @@ where
         K: Borrow<Q>,
         Q: Hash + ?Sized,
     {
-        let mut hasher = self.hasher.build_hasher();
-        key.hash(&mut hasher);
-        let result = hasher.finish();
+        let result = self.hasher.hash_one(key);
 
         // we want to allow truncation here since we're reducing 64 bits to 32
         #[allow(clippy::cast_possible_truncation)]
