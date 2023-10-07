@@ -6,7 +6,12 @@
             "command": "cargo",
             "args": [
                 "build"
-            ]
-        }
-    ]
+            ],
+            "options": {
+                "env": {
+                    "CARGO_TARGET_DIR": "${workspaceRoot}/target"
+                }
+            }
+        },
+    ],
 }
