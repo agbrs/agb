@@ -350,20 +350,6 @@ impl VBlank {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test_case]
-    fn test_interrupt_table_length(_gba: &mut crate::Gba) {
-        assert_eq!(
-            unsafe { INTERRUPT_TABLE.len() },
-            Interrupt::Gamepak as usize + 1,
-            "interrupt table should be able to store gamepak interrupt"
-        );
-    }
-}
-
 #[must_use]
 /// The behaviour of this function is undefined in the sense that it will output
 /// some information in some way that can be interpreted in a way to give some
@@ -382,5 +368,19 @@ pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandle
         add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
             crate::println!("{:#010x}", crate::program_counter_before_interrupt());
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_case]
+    fn test_interrupt_table_length(_gba: &mut crate::Gba) {
+        assert_eq!(
+            unsafe { INTERRUPT_TABLE.len() },
+            Interrupt::Gamepak as usize + 1,
+            "interrupt table should be able to store gamepak interrupt"
+        );
     }
 }
