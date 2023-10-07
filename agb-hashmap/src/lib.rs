@@ -947,7 +947,7 @@ impl core::ops::Add<i32> for HashType {
 
 #[cfg(test)]
 mod test {
-    use core::cell::RefCell;
+    use core::{cell::RefCell, hash::Hasher};
 
     use alloc::vec::Vec;
 
