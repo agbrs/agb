@@ -31,7 +31,7 @@ use core::{
     alloc::Allocator,
     borrow::Borrow,
     fmt::Debug,
-    hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
+    hash::{BuildHasher, BuildHasherDefault, Hash},
     iter::FromIterator,
     num::Wrapping,
     ops::Index,
@@ -470,9 +470,7 @@ where
         K: Borrow<Q>,
         Q: Hash + ?Sized,
     {
-        let mut hasher = self.hasher.build_hasher();
-        key.hash(&mut hasher);
-        let result = hasher.finish();
+        let result = self.hasher.hash_one(key);
 
         // we want to allow truncation here since we're reducing 64 bits to 32
         #[allow(clippy::cast_possible_truncation)]
@@ -949,7 +947,7 @@ impl core::ops::Add<i32> for HashType {
 
 #[cfg(test)]
 mod test {
-    use core::cell::RefCell;
+    use core::{cell::RefCell, hash::Hasher};
 
     use alloc::vec::Vec;
 
