@@ -31,7 +31,7 @@ use core::{
     alloc::Allocator,
     borrow::Borrow,
     fmt::Debug,
-    hash::{BuildHasher, BuildHasherDefault, Hash, Hasher},
+    hash::{BuildHasher, BuildHasherDefault, Hash},
     iter::FromIterator,
     num::Wrapping,
     ops::Index,
