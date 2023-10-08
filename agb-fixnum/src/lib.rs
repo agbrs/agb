@@ -1235,6 +1235,12 @@ mod tests {
     }
 
     #[test]
+    fn check_cos_accuracy() {
+        let n: Num<i32, 8> = Num::new(1) / 32;
+        assert_eq!(n.cos(), num!(0.9808));
+    }
+
+    #[test]
     fn test_numbers() {
         // test addition
         let n: Num<i32, 8> = 1.into();
