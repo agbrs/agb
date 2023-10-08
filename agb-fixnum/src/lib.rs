@@ -533,17 +533,10 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     /// ```
     #[must_use]
     pub fn cos(self) -> Self {
-        let one: Self = I::one().into();
         let mut x = self;
-        let four: I = 4.into();
-        let two: I = 2.into();
-        let sixteen: I = 16.into();
-        let nine: I = 9.into();
-        let forty: I = 40.into();
-
-        x -= one / four + (x + one / four).floor();
-        x *= (x.abs() - one / two) * sixteen;
-        x += x * (x.abs() - one) * (nine / forty);
+        x -= num!(0.25) + (x + num!(0.25)).floor();
+        x *= (x.abs() - num!(0.5)) * num!(16.);
+        x += x * (x.abs() - num!(1.)) * num!(0.225);
         x
     }
 
