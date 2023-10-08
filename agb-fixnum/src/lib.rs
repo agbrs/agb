@@ -1230,7 +1230,10 @@ mod tests {
     #[test]
     fn check_cos_accuracy() {
         let n: Num<i32, 8> = Num::new(1) / 32;
-        assert_eq!(n.cos(), num!(0.9808));
+        assert_eq!(
+            n.cos(),
+            Num::from_f64((2. * core::f64::consts::PI / 32.).cos())
+        );
     }
 
     #[test]
