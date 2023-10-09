@@ -133,7 +133,7 @@ macro_rules! upcast_multiply_impl {
                         .wrapping_mul(b_frac)
                         .wrapping_add(b_floor.wrapping_mul(a_frac)),
                 )
-                .wrapping_add(a_frac.wrapping_mul(b_frac) >> n)
+                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -1234,6 +1234,17 @@ mod tests {
             n.cos(),
             Num::from_f64((2. * core::f64::consts::PI / 32.).cos())
         );
+    }
+
+    #[test]
+    fn check_16_bit_precision_i32() {
+        let a: Num<i32, 16> = num!(1.923);
+        let b = num!(2.723);
+
+        assert_eq!(
+            a * b,
+            Num::from_raw(((a.to_raw() as i64 * b.to_raw() as i64) >> 16) as i32)
+        )
     }
 
     #[test]
