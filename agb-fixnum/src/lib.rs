@@ -133,7 +133,7 @@ macro_rules! upcast_multiply_impl {
                         .wrapping_mul(b_frac)
                         .wrapping_add(b_floor.wrapping_mul(a_frac)),
                 )
-                .wrapping_add(a_frac.wrapping_mul(b_frac) >> n)
+                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -533,17 +533,10 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     /// ```
     #[must_use]
     pub fn cos(self) -> Self {
-        let one: Self = I::one().into();
         let mut x = self;
-        let four: I = 4.into();
-        let two: I = 2.into();
-        let sixteen: I = 16.into();
-        let nine: I = 9.into();
-        let forty: I = 40.into();
-
-        x -= one / four + (x + one / four).floor();
-        x *= (x.abs() - one / two) * sixteen;
-        x += x * (x.abs() - one) * (nine / forty);
+        x -= num!(0.25) + (x + num!(0.25)).floor();
+        x *= (x.abs() - num!(0.5)) * num!(16.);
+        x += x * (x.abs() - num!(1.)) * num!(0.225);
         x
     }
 
@@ -1232,6 +1225,26 @@ mod tests {
         test_base::<9>();
         // and a prime
         test_base::<11>();
+    }
+
+    #[test]
+    fn check_cos_accuracy() {
+        let n: Num<i32, 8> = Num::new(1) / 32;
+        assert_eq!(
+            n.cos(),
+            Num::from_f64((2. * core::f64::consts::PI / 32.).cos())
+        );
+    }
+
+    #[test]
+    fn check_16_bit_precision_i32() {
+        let a: Num<i32, 16> = num!(1.923);
+        let b = num!(2.723);
+
+        assert_eq!(
+            a * b,
+            Num::from_raw(((a.to_raw() as i64 * b.to_raw() as i64) >> 16) as i32)
+        )
     }
 
     #[test]
