@@ -7,9 +7,13 @@ EXTERN(__RUST_INTERRUPT_HANDLER)
 EXTERN(__agbabi_memset)
 EXTERN(__agbabi_memcpy)
 
+/* The bios reserves the final 256 bytes of iwram for its exclusive use, so we
+ * need to avoid writing there */
+__bios_reserved_iwram = 256;
+
 MEMORY {
     ewram (w!x) : ORIGIN = 0x02000000, LENGTH = 256K
-    iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K
+    iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K - __bios_reserved_iwram
     rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
 }
 
