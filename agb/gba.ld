@@ -36,45 +36,33 @@ SECTIONS {
         . = ALIGN(4);
     } > rom
 
-    __iwram_rom_start = .;
     .iwram : {
-        __iwram_data_start = ABSOLUTE(.);
-
         *(.iwram .iwram.*);
         . = ALIGN(4);
 
         *(.text_iwram .text_iwram.*);
         . = ALIGN(4);
-
-        __iwram_data_end = ABSOLUTE(.);
     } > iwram AT>rom
+    __iwram_data_start = ADDR(.iwram);
+    __iwram_rom_start = LOADADDR(.iwram);
+    __iwram_rom_length_halfwords = (SIZEOF(.iwram) + 1) / 2;
 
-    . = __iwram_rom_start + (__iwram_data_end - __iwram_data_start);
-
-    __ewram_rom_start = .;
     .ewram : {
-        __ewram_data_start = ABSOLUTE(.);
-
         *(.ewram .ewram.*);
         . = ALIGN(4);
 
         *(.data .data.*);
         . = ALIGN(4);
-
-        __ewram_data_end = ABSOLUTE(.);
     } > ewram AT>rom
+    __ewram_data_start = ADDR(.ewram);
+    __ewram_rom_start = LOADADDR(.ewram);
+    __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
     
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
         __iwram_end = ABSOLUTE(.);
     } > iwram
-
-    __iwram_rom_length_bytes = __iwram_data_end - __iwram_data_start;
-    __iwram_rom_length_halfwords = (__iwram_rom_length_bytes + 1) / 2;
-
-    __ewram_rom_length_bytes = __ewram_data_end - __ewram_data_start;
-    __ewram_rom_length_halfwords = (__ewram_rom_length_bytes + 1) / 2;
 
     .shstrtab : {
        *(.shstrtab)
