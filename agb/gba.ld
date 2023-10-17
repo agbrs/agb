@@ -21,7 +21,7 @@ SECTIONS {
     . = ORIGIN(rom);
 
     .text : {
-        KEEP(*(.entrypoint));
+        *(.entrypoint.regular .entrypoint.common);
 
         *(.text .text*);
         . = ALIGN(4);
