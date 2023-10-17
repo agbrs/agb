@@ -20,9 +20,12 @@ MEMORY {
 SECTIONS {
     . = ORIGIN(rom);
 
-    .text : {
+    .entrypoint : {
         *(.entrypoint.regular .entrypoint.common);
+        . = ALIGN(4);
+    } > rom
 
+    .text : {
         *(.text .text*);
         . = ALIGN(4);
     } > rom

@@ -19,9 +19,12 @@ MEMORY {
 SECTIONS {
     . = ORIGIN(ewram);
 
-    .text : {
+    .entrypoint : {
         *(.entrypoint.multiboot .entrypoint.common);
+        . = ALIGN(4);
+    } > ewram
 
+    .text : {
         *(.text .text*);
         . = ALIGN(4);
     } > ewram
