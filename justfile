@@ -15,6 +15,7 @@ clippy:
 
 test:
     just _test-debug agb
+    just _test-multiboot
     just _test-debug agb-fixnum
     just _test-debug agb-hashmap
     just _test-debug tracker/agb-tracker
@@ -152,6 +153,8 @@ _test-debug crate:
     (cd "{{crate}}" && cargo test)
 _test-debug-arm crate:
     (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)
+_test-multiboot:
+    (cd "agb" && AGB_MULTIBOOT=true RUSTFLAGS="-Clink-arg=-Tgba_mb.ld -Ctarget-cpu=arm7tdmi" cargo test --test=test_multiboot)
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
