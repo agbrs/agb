@@ -194,6 +194,11 @@ impl TileSetting {
         Self(self.0 ^ ((should_flip as u16) << 11))
     }
 
+    #[must_use]
+    pub const fn palette(self, palette_id: u8) -> Self {
+        Self(self.0 ^ ((palette_id as u16) << 12))
+    }
+
     fn index(self) -> u16 {
         self.0 & ((1 << 10) - 1)
     }

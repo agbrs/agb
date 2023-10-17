@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - There is now a multiboot feature which you can use to easily make multiboot ROMs.
+- Can now set palette on a TileSetting struct.
 
 ### Changed
 - You no longer need the gba.ld or gba_mb.ld files in your repository. You should delete these when upgrading.
