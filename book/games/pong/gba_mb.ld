@@ -1,15 +1,19 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
-ENTRY(__start)
+ENTRY(__mb_entry)
 EXTERN(__RUST_INTERRUPT_HANDLER)
 
 EXTERN(__agbabi_memset)
 EXTERN(__agbabi_memcpy)
 
+/* The bios reserves the final 256 bytes of iwram for its exclusive use, so we
+ * need to avoid writing there */
+__bios_reserved_iwram = 256;
+
 MEMORY {
     ewram (w!x) : ORIGIN = 0x02000000, LENGTH = 256K
-    iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K
+    iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K - __bios_reserved_iwram
 }
 
 __text_start = ORIGIN(ewram);
@@ -22,7 +26,7 @@ SECTIONS {
         *(.crt0 .crt0*);
         *(.text .text*);
         . = ALIGN(4);
-    } > rom
+    } > ewram
     __text_end = .;
 
     .rodata : {
@@ -30,51 +34,43 @@ SECTIONS {
         . = ALIGN(4);
     } > ewram
 
-    __iwram_rom_start = .;
     .iwram : {
-        __iwram_data_start = ABSOLUTE(.);
-
         *(.iwram .iwram.*);
         . = ALIGN(4);
 
         *(.text_iwram .text_iwram.*);
         . = ALIGN(4);
-
-        __iwram_data_end = ABSOLUTE(.);
     } > iwram AT>ewram
+    __iwram_data_start = ADDR(.iwram);
+    __iwram_rom_start = LOADADDR(.iwram);
+    __iwram_rom_length_halfwords = (SIZEOF(.iwram) + 1) / 2;
+    __iwram_end = __iwram_data_start + SIZEOF(.iwram);
 
-    . = __iwram_rom_start + (__iwram_data_end - __iwram_data_start);
-
-    __ewram_rom_start = .;
     .ewram : {
-        __ewram_data_start = ABSOLUTE(.);
-
         *(.ewram .ewram.*);
         . = ALIGN(4);
 
         *(.data .data.*);
         . = ALIGN(4);
 
-        __ewram_data_end = ABSOLUTE(.);
-    } > ewram AT>ewram
+    } > ewram
+    __ewram_data_start = ADDR(.ewram);
+    __ewram_rom_start = LOADADDR(.ewram);
+    __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
     
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
-        __iwram_end = ABSOLUTE(.);
-    } > iwram
+         = ABSOLUTE(.);
+    } > ewram
 
-    __iwram_rom_length_bytes = __iwram_data_end - __iwram_data_start;
-    __iwram_rom_length_halfwords = (__iwram_rom_length_bytes + 1) / 2;
-
-    __ewram_rom_length_bytes = __ewram_data_end - __ewram_data_start;
-    __ewram_rom_length_halfwords = (__ewram_rom_length_bytes + 1) / 2;
+    __ewram_data_end = __ewram_data_start + SIZEOF(.ewram) + SIZEOF(.bss);
 
     .shstrtab : {
        *(.shstrtab)
     }
 
-        /* debugging sections */
+    /* debugging sections */
     /* Stabs */
     .stab            0 : { *(.stab) }
     .stabstr         0 : { *(.stabstr) }

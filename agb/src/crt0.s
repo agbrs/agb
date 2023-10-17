@@ -10,7 +10,8 @@ __start:
     .fill 188, 1, 0
 
     @ multiboot launch point
-b .Initialise_mb
+__mb_entry:
+    b .Initialise_mb
 
     .byte 0 @ boot mode, BIOS overwrites this value
     .byte 0 @ slave ID number
