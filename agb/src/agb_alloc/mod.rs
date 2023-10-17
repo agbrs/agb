@@ -126,22 +126,22 @@ pub(crate) unsafe fn number_of_blocks() -> u32 {
 
 fn iwram_data_end() -> usize {
     extern "C" {
-        static __iwram_end: usize;
+        static __iwram_end: u8;
     }
 
     // Symbols defined in the linker have an address *but no data or value*.
     // As strange as this looks, they are only useful to take the address of.
-    (unsafe { &__iwram_end }) as *const _ as usize
+    unsafe { core::ptr::addr_of!(__iwram_end) as usize }
 }
 
 fn data_end() -> usize {
     extern "C" {
-        static __ewram_data_end: usize;
+        static __ewram_data_end: u8;
     }
 
     // Symbols defined in the linker have an address *but no data or value*.
     // As strange as this looks, they are only useful to take the address of.
-    (unsafe { &__ewram_data_end }) as *const _ as usize
+    unsafe { core::ptr::addr_of!(__ewram_data_end) as usize }
 }
 
 #[cfg(test)]
