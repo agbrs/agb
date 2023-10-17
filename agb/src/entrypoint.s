@@ -1,7 +1,7 @@
 
     .arm
     .global __start
-    .section .crt0
+    .section .entrypoint
     .align
 __start:
     b .Initialise
