@@ -34,6 +34,7 @@ __start:
 @ Filled in by gbafix
     .space 192
     @ multiboot launch point
+.global __mb_entry
 __mb_entry:
     b .Initialise_mb
 
