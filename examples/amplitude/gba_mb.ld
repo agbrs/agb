@@ -16,18 +16,18 @@ MEMORY {
     iwram (w!x) : ORIGIN = 0x03000000, LENGTH = 32K - __bios_reserved_iwram
 }
 
-__text_start = ORIGIN(ewram);
-
 SECTIONS {
-    . = __text_start;
+    . = ORIGIN(ewram);
+
+    .entrypoint : {
+        *(.entrypoint.multiboot .entrypoint.common);
+        . = ALIGN(4);
+    } > ewram
 
     .text : {
-        KEEP(*(.crt0));
-        *(.crt0 .crt0*);
         *(.text .text*);
         . = ALIGN(4);
     } > ewram
-    __text_end = .;
 
     .rodata : {
         *(.rodata .rodata.*);

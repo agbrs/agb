@@ -17,18 +17,18 @@ MEMORY {
     rom (rx)    : ORIGIN = 0x08000000, LENGTH = 32M
 }
 
-__text_start = ORIGIN(rom);
-
 SECTIONS {
-    . = __text_start;
+    . = ORIGIN(rom);
+
+    .entrypoint : {
+        *(.entrypoint.regular .entrypoint.common);
+        . = ALIGN(4);
+    } > rom
 
     .text : {
-        KEEP(*(.crt0));
-        *(.crt0 .crt0*);
         *(.text .text*);
         . = ALIGN(4);
     } > rom
-    __text_end = .;
 
     .rodata : {
         *(.rodata .rodata.*);
