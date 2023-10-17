@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- General improvements to the linker script that you will need to update.
+
 ### Fixed
 
+- Multiboot builds now work on mgba.
 - Fixed inaccuracy in cosine implementation caused by accidentally multiplying correction term by zero.
 
 ## [0.17.1] - 2023/10/05
