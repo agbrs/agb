@@ -2,7 +2,7 @@
 @ An interrupt handler that simply acknowledges all interrupts
     .arm
     .global InterruptHandler
-    .section .iwram, "ax", %progbits
+    .section .iwram.interrupt_handler, "ax", %progbits
     .align
 InterruptHandler:
     mov r2, #0x04000000 @ interrupt enable register location
