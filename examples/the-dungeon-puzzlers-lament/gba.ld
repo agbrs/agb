@@ -22,7 +22,6 @@ __text_start = ORIGIN(rom);
 SECTIONS {
     . = __text_start;
 
-
     .text : {
         KEEP(*(.crt0));
         *(.crt0 .crt0*);
@@ -46,6 +45,7 @@ SECTIONS {
     __iwram_data_start = ADDR(.iwram);
     __iwram_rom_start = LOADADDR(.iwram);
     __iwram_rom_length_halfwords = (SIZEOF(.iwram) + 1) / 2;
+    __iwram_end = __iwram_data_start + SIZEOF(.iwram);
 
     .ewram : {
         *(.ewram .ewram.*);
@@ -53,6 +53,7 @@ SECTIONS {
 
         *(.data .data.*);
         . = ALIGN(4);
+
     } > ewram AT>rom
     __ewram_data_start = ADDR(.ewram);
     __ewram_rom_start = LOADADDR(.ewram);
@@ -61,8 +62,11 @@ SECTIONS {
     .bss : {
         *(.bss .bss.*);
         . = ALIGN(4);
-        __iwram_end = ABSOLUTE(.);
-    } > iwram
+         = ABSOLUTE(.);
+    } > ewram
+
+    __ewram_data_end = __ewram_data_start + SIZEOF(.ewram) + SIZEOF(.bss);
+
 
     .shstrtab : {
        *(.shstrtab)
