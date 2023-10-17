@@ -31,8 +31,9 @@ __start:
     .arm
     .section .entrypoint.multiboot, "ax", %progbits
     .align
+    b __mb_entry
 @ Filled in by gbafix
-    .space 192
+    .space 188
     @ multiboot launch point
 .global __mb_entry
 __mb_entry:
