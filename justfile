@@ -146,7 +146,7 @@ _test-debug crate:
 _test-debug-arm crate:
     (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)
 _test-multiboot:
-    (cd "agb" && AGB_MULTIBOOT=true RUSTFLAGS="-Clink-arg=-Tgba_mb.ld -Ctarget-cpu=arm7tdmi" cargo test --test=test_multiboot)
+    (cd "agb" && AGB_MULTIBOOT=true cargo test --features=multiboot --test=test_multiboot)
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:
