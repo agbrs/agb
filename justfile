@@ -15,6 +15,7 @@ clippy:
 
 test:
     just _test-debug agb
+    just _test-multiboot
     just _test-debug agb-fixnum
     just _test-debug agb-hashmap
     just _test-debug tracker/agb-tracker
@@ -64,11 +65,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-check-linker-script-consistency:
-    find -type f -name gba.ld -print0 | xargs -0 -n1 cmp -- agb/gba.ld
-    find -type f -name gba_mb.ld -print0 | xargs -0 -n1 cmp -- agb/gba_mb.ld
-
-ci: check-linker-script-consistency build-debug clippy fmt-check test miri build-release test-release doctest-agb test-games build-roms build-book check-docs
+ci: build-debug clippy fmt-check test miri build-release test-release doctest-agb test-games build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -87,10 +84,6 @@ build-book:
 
 update-lockfiles *args:
     bash .github/scripts/update-lockfiles.sh {{args}}
-
-update-linker-scripts:
-    find -type f -name gba.ld | grep -v ./agb/gba.ld | xargs -n1 cp -v -- agb/gba.ld
-    find -type f -name gba_mb.ld | grep -v ./agb/gba_mb.ld | xargs -n1 cp -v -- agb/gba_mb.ld
 
 publish *args: (_run-tool "publish" args)
 
@@ -152,6 +145,8 @@ _test-debug crate:
     (cd "{{crate}}" && cargo test)
 _test-debug-arm crate:
     (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)
+_test-multiboot:
+    (cd "agb" && AGB_MULTIBOOT=true cargo test --features=multiboot --test=test_multiboot)
 _clippy crate:
     (cd "{{crate}}" && cargo clippy --examples --tests -- {{CLIPPY_ARGUMENTS}})
 _clean crate:

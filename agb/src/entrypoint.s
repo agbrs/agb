@@ -1,31 +1,13 @@
 
     .arm
-    .global __start
-    .section .crt0
+    .section .entrypoint.regular, "ax", %progbits
     .align
+.global __start
 __start:
     b .Initialise
 
     @ Filled in by gbafix
-    .fill 188, 1, 0
-
-    @ multiboot launch point
-b .Initialise_mb
-
-    .byte 0 @ boot mode, BIOS overwrites this value
-    .byte 0 @ slave ID number
-    .fill 26, 1, 0 @ unused?
-    .word 0 @ joybus entrypoint
-
-.Initialise_mb:
-    swi 0x00250000
-
-    @ Set interrupt handler
-    ldr r0, =InterruptHandler
-    ldr r1, =0x03007FFC
-    str r0, [r1]
-
-    b .CommonInit
+    .space 188
 
 .Initialise:
     @ Set interrupt handler
@@ -43,8 +25,40 @@ b .Initialise_mb
                                                @   r2: length + size information
                                                @
                                                @ see: https://mgba-emu.github.io/gbatek/#swi-0bh-gbands7nds9dsi7dsi9---cpuset
+    ldr r0, =CommonInit
+    bx r0
 
-.CommonInit:
+    .arm
+    .section .entrypoint.multiboot, "ax", %progbits
+    .align
+    b __mb_entry
+@ Filled in by gbafix
+    .space 188
+    @ multiboot launch point
+.global __mb_entry
+__mb_entry:
+    b .Initialise_mb
+
+    .byte 0 @ boot mode, BIOS overwrites this value
+    .byte 0 @ slave ID number
+    .space 26 @ unused?
+
+.Initialise_mb:
+    swi 0x00250000
+
+    @ Set interrupt handler
+    ldr r0, =InterruptHandler
+    ldr r1, =0x03007FFC
+    str r0, [r1]
+
+    ldr r0, =CommonInit
+    bx r0
+
+    .arm
+    .section .entrypoint.common, "ax", %progbits
+    .align
+.global CommonInit
+CommonInit:
     @ set the waitstate control register to the normal value used in manufactured cartridges
     ldr r0, =0x04000204 @ address for waitstate control register
     ldr r1, =0x4317     @ WS0/ROM=3,1 clks; SRAM=8 clks; WS2/EEPROM: 8,8 clks; prefetch enabled

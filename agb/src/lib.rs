@@ -459,7 +459,8 @@ mod test {
             let address = iwram_ptr as usize;
             assert!(
                 (0x0200_0000..0x0204_0000).contains(&address),
-                "implicit data storage is expected to be in ewram, which is between 0x0300_0000 and 0x0300_8000, but was actually found to be at {address:#010X}"            );
+                "implicit data storage is expected to be in ewram, which is between 0x0300_0000 and 0x0300_8000, but was actually found to be at {address:#010X}"
+            );
             let c = iwram_ptr.read_volatile();
             assert_eq!(c, 9, "expected content to be 9");
             iwram_ptr.write_volatile(u32::MAX);

@@ -126,22 +126,22 @@ pub(crate) unsafe fn number_of_blocks() -> u32 {
 
 fn iwram_data_end() -> usize {
     extern "C" {
-        static __iwram_end: usize;
+        static __iwram_end: u8;
     }
 
-    // TODO: This seems completely wrong, but without the &, rust generates
-    // a double dereference :/. Maybe a bug in nightly?
-    (unsafe { &__iwram_end }) as *const _ as usize
+    // Symbols defined in the linker have an address *but no data or value*.
+    // As strange as this looks, they are only useful to take the address of.
+    unsafe { core::ptr::addr_of!(__iwram_end) as usize }
 }
 
 fn data_end() -> usize {
     extern "C" {
-        static __ewram_data_end: usize;
+        static __ewram_data_end: u8;
     }
 
-    // TODO: This seems completely wrong, but without the &, rust generates
-    // a double dereference :/. Maybe a bug in nightly?
-    (unsafe { &__ewram_data_end }) as *const _ as usize
+    // Symbols defined in the linker have an address *but no data or value*.
+    // As strange as this looks, they are only useful to take the address of.
+    unsafe { core::ptr::addr_of!(__ewram_data_end) as usize }
 }
 
 #[cfg(test)]

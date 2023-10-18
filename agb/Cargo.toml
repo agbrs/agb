@@ -10,6 +10,7 @@ repository = "https://github.com/agbrs/agb"
 [features]
 default = ["testing"]
 testing = []
+multiboot = []
 
 [dependencies]
 bitflags = "2"

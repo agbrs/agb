@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- There is now a multiboot feature which you can use to easily make multiboot ROMs.
+
+### Changed
+- You no longer need the gba.ld or gba_mb.ld files in your repository. You should delete these when upgrading.
+
 ### Fixed
 
+- Multiboot builds now work on mgba.
 - Fixed inaccuracy in cosine implementation caused by accidentally multiplying correction term by zero.
 
 ## [0.17.1] - 2023/10/05
