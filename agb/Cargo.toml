@@ -28,10 +28,10 @@ default-target = "thumbv4t-none-eabi"
 cargo-args = ["-Zbuild-std=core,alloc"]
 
 [profile.dev]
-opt-level = "z"
+opt-level = 3
 debug = true
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = "fat"
 debug = true
