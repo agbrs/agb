@@ -11,10 +11,6 @@ use self::{
     window::Windows,
 };
 
-/// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
-pub mod bitmap3;
-/// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
-pub mod bitmap4;
 /// Test logo of agb.
 pub mod example_logo;
 pub mod object;
@@ -138,15 +134,6 @@ unsafe fn set_graphics_mode(mode: DisplayMode) {
 
     // disable blank screen
     let s = s & !(1 << 7);
-
-    DISPLAY_CONTROL.set(s);
-}
-
-unsafe fn set_graphics_settings(settings: GraphicsSettings) {
-    let current = DISPLAY_CONTROL.get();
-    // preserve display mode
-    let current = current & 0b111;
-    let s = settings.bits() | current;
 
     DISPLAY_CONTROL.set(s);
 }

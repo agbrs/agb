@@ -79,21 +79,3 @@ impl<T, const N: usize> MemoryMapped1DArray<T, N> {
         self.array.cast()
     }
 }
-
-pub struct MemoryMapped2DArray<T, const X: usize, const Y: usize> {
-    array: *mut [[T; X]; Y],
-}
-
-impl<T, const X: usize, const Y: usize> MemoryMapped2DArray<T, X, Y> {
-    pub const unsafe fn new(address: usize) -> Self {
-        MemoryMapped2DArray {
-            array: address as *mut [[T; X]; Y],
-        }
-    }
-    pub fn get(&self, x: usize, y: usize) -> T {
-        unsafe { (&mut (*self.array)[y][x] as *mut T).read_volatile() }
-    }
-    pub fn set(&self, x: usize, y: usize, val: T) {
-        unsafe { (&mut (*self.array)[y][x] as *mut T).write_volatile(val) }
-    }
-}
