@@ -89,7 +89,6 @@ impl Bitmap4<'_> {
         DISPLAY_CONTROL.set(swapped);
     }
 
-    
     /// Draws 2-pixel wide point on the non-current page at (x, y) coordinates with colour
     /// index whose colour is specified in the background palette. Panics if (x,
     /// y) is out of the bounds of the screen.
@@ -130,7 +129,7 @@ impl Bitmap4<'_> {
 
         let c = u16::from(colour);
 
-        for x in 0..(WIDTH/2) as usize {
+        for x in 0..(WIDTH / 2) as usize {
             for y in 0..(HEIGHT as usize) {
                 addr.set(x, y, c << 8 | c);
             }
@@ -140,7 +139,6 @@ impl Bitmap4<'_> {
     /// Fills non-current page with color.
     pub fn clear(&mut self, colour: u8) {
         let display = DISPLAY_CONTROL.get();
-
         // get other page
         let page = if display & GraphicsSettings::PAGE_SELECT.bits() != 0 {
             Page::Front
