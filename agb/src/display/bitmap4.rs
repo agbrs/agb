@@ -88,4 +88,64 @@ impl Bitmap4<'_> {
         let swapped = display ^ GraphicsSettings::PAGE_SELECT.bits();
         DISPLAY_CONTROL.set(swapped);
     }
+
+    /// Draws 2-pixel wide point on the non-current page at (x, y) coordinates with colour
+    /// index whose colour is specified in the background palette. Panics if (x,
+    /// y) is out of the bounds of the screen.
+    pub fn draw_wide_point(&mut self, x: i32, y: i32, colour: u8) {
+        let display = DISPLAY_CONTROL.get();
+
+        // get other page
+        let page = if display & GraphicsSettings::PAGE_SELECT.bits() != 0 {
+            Page::Front
+        } else {
+            Page::Back
+        };
+
+        self.draw_wide_point_page(x, y, colour, page);
+    }
+
+    /// Draws 2-pixel wide point on specified page at (x, y) coordinates with colour index
+    /// whose colour is specified in the background palette. Panics if (x, y) is
+    /// out of the bounds of the screen.
+    pub fn draw_wide_point_page(&mut self, x: i32, y: i32, colour: u8, page: Page) {
+        let addr = match page {
+            Page::Front => BITMAP_PAGE_FRONT_MODE_4,
+            Page::Back => BITMAP_PAGE_BACK_MODE_4,
+        };
+
+        let x_in_screen = (x / 2) as usize;
+        let y_in_screen = y as usize;
+        let c = u16::from(colour);
+        addr.set(x_in_screen, y_in_screen, c << 8 | c);
+    }
+
+    /// Fills specified page with color.
+    pub fn clear_page(&mut self, colour: u8, page: Page) {
+        let addr = match page {
+            Page::Front => BITMAP_PAGE_FRONT_MODE_4,
+            Page::Back => BITMAP_PAGE_BACK_MODE_4,
+        };
+
+        let c = u16::from(colour);
+
+        for x in 0..(WIDTH / 2) as usize {
+            for y in 0..(HEIGHT as usize) {
+                addr.set(x, y, c << 8 | c);
+            }
+        }
+    }
+
+    /// Fills non-current page with color.
+    pub fn clear(&mut self, colour: u8) {
+        let display = DISPLAY_CONTROL.get();
+        // get other page
+        let page = if display & GraphicsSettings::PAGE_SELECT.bits() != 0 {
+            Page::Front
+        } else {
+            Page::Back
+        };
+
+        self.clear_page(colour, page);
+    }
 }
