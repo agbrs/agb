@@ -16,37 +16,14 @@ use agb::{
     input::Button,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Game {
-    TheHatChoosesTheWizard,
-    ThePurpleNight,
-    HyperspaceRoll,
-    TheDungeonPuzzlersLament,
-    Amplitude,
-}
+type Game = fn(agb::Gba) -> !;
 
-impl Game {
-    fn launch_game(self, gba: agb::Gba) -> ! {
-        match self {
-            Game::TheHatChoosesTheWizard => the_hat_chooses_the_wizard::main(gba),
-            Game::ThePurpleNight => the_purple_night::main(gba),
-            Game::HyperspaceRoll => hyperspace_roll::main(gba),
-            Game::TheDungeonPuzzlersLament => the_dungeon_puzzlers_lament::entry(gba),
-            Game::Amplitude => amplitude::main(gba),
-        }
-    }
-
-    fn from_index(index: i32) -> Game {
-        match index.rem_euclid(4) {
-            0 => Game::TheHatChoosesTheWizard,
-            1 => Game::ThePurpleNight,
-            2 => Game::HyperspaceRoll,
-            3 => Game::TheDungeonPuzzlersLament,
-            4 => Game::Amplitude,
-            _ => unreachable!("game out of index in an unreachable manner"),
-        }
-    }
-}
+const GAMES: &[Game] = &[
+    the_hat_chooses_the_wizard::main,
+    the_purple_night::main,
+    the_dungeon_puzzlers_lament::entry,
+    amplitude::main,
+];
 
 include_background_gfx!(
     games, "121105",
@@ -120,7 +97,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         input.update();
 
         if input.is_just_pressed(Button::A) {
-            break Game::from_index(game_idx);
+            break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize];
         }
     };
 
@@ -132,5 +109,5 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    get_game(&mut gba).launch_game(gba)
+    get_game(&mut gba)(gba)
 }
