@@ -8,6 +8,7 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
+        tile_data::TileData,
         tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat},
         Priority,
     },
@@ -18,11 +19,23 @@ use agb::{
 
 type Game = fn(agb::Gba) -> !;
 
-const GAMES: &[Game] = &[
-    the_hat_chooses_the_wizard::main,
-    the_purple_night::main,
-    the_dungeon_puzzlers_lament::entry,
-    amplitude::main,
+struct GameWithTiles {
+    game: fn(agb::Gba) -> !,
+    tiles: TileData,
+}
+
+impl GameWithTiles {
+    const fn new(tiles: TileData, game: fn(agb::Gba) -> !) -> Self {
+        GameWithTiles { game, tiles }
+    }
+}
+
+const GAMES: &[GameWithTiles] = &[
+    GameWithTiles::new(games::hat, the_hat_chooses_the_wizard::main),
+    GameWithTiles::new(games::purple, the_purple_night::main),
+    GameWithTiles::new(games::hyperspace, hyperspace_roll::main),
+    GameWithTiles::new(games::dungeon_puzzler, the_dungeon_puzzlers_lament::entry),
+    GameWithTiles::new(games::amplitude, amplitude::main),
 ];
 
 include_background_gfx!(
@@ -40,14 +53,6 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let (tile, mut vram) = gba.display.video.tiled0();
 
-    let tiles = [
-        games::hat,
-        games::purple,
-        games::hyperspace,
-        games::dungeon_puzzler,
-        games::amplitude,
-    ];
-
     vram.set_background_palettes(games::PALETTES);
 
     let mut bg = InfiniteScrolledMap::new(
@@ -60,9 +65,12 @@ fn get_game(gba: &mut agb::Gba) -> Game {
             let y = pos.y.rem_euclid(20);
             let x = pos.x.rem_euclid(30);
 
-            let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
+            let game = (pos.x).rem_euclid(GAMES.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
-            (&tiles[game].tiles, tiles[game].tile_settings[tile_id])
+            (
+                &GAMES[game].tiles.tiles,
+                GAMES[game].tiles.tile_settings[tile_id],
+            )
         }),
     );
 
@@ -97,7 +105,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         input.update();
 
         if input.is_just_pressed(Button::A) {
-            break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize];
+            break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize].game;
         }
     };
 
