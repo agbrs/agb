@@ -345,6 +345,7 @@ pub mod test_runner {
     }
 
     // needed to fudge the #[entry] below
+    #[cfg(test)]
     mod agb {
         pub mod test_runner {
             pub use super::super::agb_start_tests;
