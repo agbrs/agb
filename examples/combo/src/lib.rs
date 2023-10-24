@@ -8,6 +8,7 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
+        tile_data::TileData,
         tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat},
         Priority,
     },
@@ -16,37 +17,26 @@ use agb::{
     input::Button,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Game {
-    TheHatChoosesTheWizard,
-    ThePurpleNight,
-    HyperspaceRoll,
-    TheDungeonPuzzlersLament,
-    Amplitude,
+type Game = fn(agb::Gba) -> !;
+
+struct GameWithTiles {
+    game: fn(agb::Gba) -> !,
+    tiles: TileData,
 }
 
-impl Game {
-    fn launch_game(self, gba: agb::Gba) -> ! {
-        match self {
-            Game::TheHatChoosesTheWizard => the_hat_chooses_the_wizard::main(gba),
-            Game::ThePurpleNight => the_purple_night::main(gba),
-            Game::HyperspaceRoll => hyperspace_roll::main(gba),
-            Game::TheDungeonPuzzlersLament => the_dungeon_puzzlers_lament::entry(gba),
-            Game::Amplitude => amplitude::main(gba),
-        }
-    }
-
-    fn from_index(index: i32) -> Game {
-        match index.rem_euclid(4) {
-            0 => Game::TheHatChoosesTheWizard,
-            1 => Game::ThePurpleNight,
-            2 => Game::HyperspaceRoll,
-            3 => Game::TheDungeonPuzzlersLament,
-            4 => Game::Amplitude,
-            _ => unreachable!("game out of index in an unreachable manner"),
-        }
+impl GameWithTiles {
+    const fn new(tiles: TileData, game: fn(agb::Gba) -> !) -> Self {
+        GameWithTiles { game, tiles }
     }
 }
+
+const GAMES: &[GameWithTiles] = &[
+    GameWithTiles::new(games::hat, the_hat_chooses_the_wizard::main),
+    GameWithTiles::new(games::purple, the_purple_night::main),
+    GameWithTiles::new(games::hyperspace, hyperspace_roll::main),
+    GameWithTiles::new(games::dungeon_puzzler, the_dungeon_puzzlers_lament::entry),
+    GameWithTiles::new(games::amplitude, amplitude::main),
+];
 
 include_background_gfx!(
     games, "121105",
@@ -63,14 +53,6 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let (tile, mut vram) = gba.display.video.tiled0();
 
-    let tiles = [
-        games::hat,
-        games::purple,
-        games::hyperspace,
-        games::dungeon_puzzler,
-        games::amplitude,
-    ];
-
     vram.set_background_palettes(games::PALETTES);
 
     let mut bg = InfiniteScrolledMap::new(
@@ -83,9 +65,12 @@ fn get_game(gba: &mut agb::Gba) -> Game {
             let y = pos.y.rem_euclid(20);
             let x = pos.x.rem_euclid(30);
 
-            let game = (pos.x).rem_euclid(tiles.len() as i32 * 30) as usize / 30;
+            let game = (pos.x).rem_euclid(GAMES.len() as i32 * 30) as usize / 30;
             let tile_id = (y * 30 + x) as usize;
-            (&tiles[game].tiles, tiles[game].tile_settings[tile_id])
+            (
+                &GAMES[game].tiles.tiles,
+                GAMES[game].tiles.tile_settings[tile_id],
+            )
         }),
     );
 
@@ -120,7 +105,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         input.update();
 
         if input.is_just_pressed(Button::A) {
-            break Game::from_index(game_idx);
+            break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize].game;
         }
     };
 
@@ -132,5 +117,5 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    get_game(&mut gba).launch_game(gba)
+    get_game(&mut gba)(gba)
 }
