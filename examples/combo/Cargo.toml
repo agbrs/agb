@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-agb = { version = "0.17.1", path = "../../agb" }
+agb = { version = "0.18.0", path = "../../agb" }
 the-purple-night = { path = "../the-purple-night" }
 the-hat-chooses-the-wizard = { path = "../the-hat-chooses-the-wizard" }
 hyperspace-roll = { path = "../hyperspace-roll" }

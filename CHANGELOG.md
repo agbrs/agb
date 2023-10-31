@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2023/10/31
+
 ### Added
 - There is now a multiboot feature which you can use to easily make multiboot ROMs.
 - Can now set palette on a TileSetting struct.
