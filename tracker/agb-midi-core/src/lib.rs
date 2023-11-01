@@ -1,6 +1,13 @@
-use std::{error::Error, fs::File, io::BufReader, path::Path};
+use std::{
+    error::Error,
+    fs::{self, File},
+    io::BufReader,
+    path::Path,
+};
 
-use agb_tracker_interop::Track;
+use agb_fixnum::Num;
+use agb_tracker_interop::{Pattern, PatternEffect, PatternSlot, Sample, Track};
+use midly::{Format, MetaMessage, Smf, Timing, TrackEventKind};
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::quote;
@@ -61,6 +68,7 @@ pub fn agb_midi_core(args: TokenStream) -> TokenStream {
 
 pub struct MidiInfo {
     sound_font: SoundFont,
+    midi: Smf<'static>,
 }
 
 impl MidiInfo {
@@ -68,22 +76,148 @@ impl MidiInfo {
         let mut sound_font_file = BufReader::new(File::open(sf2_file)?);
         let sound_font = SoundFont::new(&mut sound_font_file)?;
 
-        Ok(Self { sound_font })
+        let midi_data = fs::read(midi_file)?;
+        let smf = Smf::parse(&midi_data)?;
+
+        Ok(Self {
+            sound_font,
+            midi: smf.make_static(),
+        })
     }
 }
 
 pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
+    let midi = &midi_info.midi;
+
+    assert_eq!(
+        midi.header.format,
+        Format::SingleTrack,
+        "Only single track is currently supported"
+    );
+    let Timing::Metrical(timing) = midi.header.timing else { panic!("Only metrical timing is currently supported") };
+    let ticks_per_beat = timing.as_int();
+
+    let mut channel_data = vec![];
+    let mut current_ticks = 0;
+    let mut pattern = vec![];
+
+    let mut initial_microseconds_per_beat = None;
+
+    for event in &midi.tracks[0] {
+        current_ticks += event.delta.as_int();
+
+        match event.kind {
+            TrackEventKind::Midi { channel, message } => {
+                let channel_id = channel.as_int() as usize;
+                channel_data.resize(
+                    channel_data.len().max(channel_id + 1),
+                    ChannelData::default(),
+                );
+                let channel_data = &mut channel_data[channel_id];
+
+                match message {
+                    midly::MidiMessage::NoteOff { .. } => pattern.push(PatternSlot {
+                        speed: 0.into(),
+                        sample: 0,
+                        effect1: PatternEffect::Stop,
+                        effect2: PatternEffect::None,
+                    }),
+                    midly::MidiMessage::NoteOn { key, vel } => pattern.push(PatternSlot {
+                        speed: midi_key_to_speed(key.as_int() as i8),
+                        sample: channel_data.current_sample,
+                        effect1: PatternEffect::Volume(Num::from_f32(vel.as_int() as f32 / 128.0)),
+                        effect2: PatternEffect::None,
+                    }),
+                    midly::MidiMessage::Aftertouch { .. } => {}
+                    midly::MidiMessage::PitchBend { .. } => {}
+                    midly::MidiMessage::ProgramChange { program } => {
+                        channel_data.current_sample = program.as_int().into();
+                    }
+                    midly::MidiMessage::Controller { .. } => {}
+                    midly::MidiMessage::ChannelAftertouch { .. } => {}
+                }
+            }
+            TrackEventKind::Meta(MetaMessage::Tempo(tempo)) => {
+                initial_microseconds_per_beat = Some(tempo.as_int());
+            }
+            _ => {}
+        }
+    }
+
+    let mut samples = vec![];
+    let sf2 = &midi_info.sound_font;
+    let sf2_data = sf2.get_wave_data();
+
+    struct SampleData {
+        data: Vec<u8>,
+        restart_point: Option<u32>,
+    }
+
+    for sample in sf2.get_sample_headers() {
+        let sample_start = sample.get_start() as usize;
+        let sample_end = sample.get_end() as usize;
+
+        let sample_data = &sf2_data[sample_start..sample_end];
+
+        let loop_start = sample.get_start_loop() as usize;
+        let restart_point = if loop_start < sample_start {
+            None
+        } else {
+            Some((loop_start - sample_start) as u32)
+        };
+
+        let data = sample_data
+            .iter()
+            .map(|data| (data >> 8) as i8 as u8)
+            .collect::<Vec<_>>();
+
+        let sample = SampleData {
+            data,
+            restart_point,
+        };
+
+        samples.push(sample);
+    }
+
+    let samples: Vec<_> = samples
+        .iter()
+        .map(|sample| Sample {
+            data: &sample.data,
+            should_loop: sample.restart_point.is_some(),
+            restart_point: sample.restart_point.unwrap_or(0),
+            volume: 256.into(),
+            volume_envelope: None,
+            fadeout: 0.into(),
+        })
+        .collect();
+
+    let pattern = pattern.into_iter().collect::<Vec<_>>();
+
     let track = Track {
-        samples: &[],
+        samples: &samples,
         envelopes: &[],
-        pattern_data: &[],
-        patterns: &[],
-        patterns_to_play: &[],
-        num_channels: 0,
-        frames_per_tick: 2.into(),
-        ticks_per_step: 2,
+        pattern_data: &pattern,
+        patterns: &[Pattern {
+            length: pattern.len() / channel_data.len(),
+            start_position: 0,
+        }],
+        patterns_to_play: &[0],
+        num_channels: channel_data.len(),
+        frames_per_tick: Num::from_f64(
+            initial_microseconds_per_beat.expect("No tempo was ever sent") as f64 / 16742.706298828, // microseconds per frame
+        ),
+        ticks_per_step: ticks_per_beat.into(),
         repeat: 0,
     };
 
     quote!(#track)
+}
+
+#[derive(Default, Clone)]
+struct ChannelData {
+    current_sample: u16,
+}
+
+fn midi_key_to_speed(key: i8) -> Num<u16, 8> {
+    Num::from_f64(440.0 * 2f64.powf((key - 69) as f64 / 12.0))
 }
