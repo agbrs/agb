@@ -1,8 +1,10 @@
-use std::{error::Error, path::Path};
+use std::{error::Error, fs::File, io::BufReader, path::Path};
 
+use agb_tracker_interop::Track;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::quote;
+use rustysynth::SoundFont;
 use syn::{
     parse::{Parse, ParseStream},
     LitStr, Token,
@@ -57,14 +59,31 @@ pub fn agb_midi_core(args: TokenStream) -> TokenStream {
     }
 }
 
-pub struct MidiInfo {}
+pub struct MidiInfo {
+    sound_font: SoundFont,
+}
 
 impl MidiInfo {
     pub fn load_from_file(sf2_file: &Path, midi_file: &Path) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {})
+        let mut sound_font_file = BufReader::new(File::open(sf2_file)?);
+        let sound_font = SoundFont::new(&mut sound_font_file)?;
+
+        Ok(Self { sound_font })
     }
 }
 
 pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
-    quote! {}
+    let track = Track {
+        samples: &[],
+        envelopes: &[],
+        pattern_data: &[],
+        patterns: &[],
+        patterns_to_play: &[],
+        num_channels: 0,
+        frames_per_tick: 2.into(),
+        ticks_per_step: 2,
+        repeat: 0,
+    };
+
+    quote!(#track)
 }

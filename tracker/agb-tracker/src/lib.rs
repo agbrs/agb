@@ -77,6 +77,10 @@ use agb::{
 #[cfg(feature = "xm")]
 pub use agb_xm::include_xm;
 
+/// Import a midi file. Only available if you have the `midi` feature enabled (enabled by default).
+#[cfg(feature = "midi")]
+pub use agb_midi::include_midi;
+
 #[doc(hidden)]
 pub mod __private {
     pub use agb::fixnum::Num;
