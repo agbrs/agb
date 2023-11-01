@@ -190,6 +190,13 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         }
     }
 
+    patterns.retain(|pattern| {
+        !pattern.iter().all(|pattern_slot| {
+            matches!(pattern_slot.effect1, PatternEffect::None)
+                && matches!(pattern_slot.effect2, PatternEffect::None)
+        })
+    });
+
     for pattern in &mut patterns {
         pattern.resize_with(current_ticks as usize, || PatternSlot {
             speed: 0.into(),
@@ -211,20 +218,28 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         })
         .collect();
 
-    let pattern = patterns.into_iter().flatten().collect::<Vec<_>>();
+    let resulting_num_channels = patterns.len();
+    let mut pattern = Vec::with_capacity(current_ticks as usize * resulting_num_channels);
+    for i in 0..current_ticks {
+        for pattern_slots in &patterns {
+            pattern.push(pattern_slots[i as usize].clone());
+        }
+    }
 
     let track = Track {
         samples: &samples,
         envelopes: &[],
         pattern_data: &pattern,
         patterns: &[Pattern {
-            length: pattern.len() / channel_data.len(),
+            length: pattern.len() / resulting_num_channels,
             start_position: 0,
         }],
         patterns_to_play: &[0],
-        num_channels: channel_data.len(),
+        num_channels: resulting_num_channels,
         frames_per_tick: Num::from_f64(
-            initial_microseconds_per_beat.expect("No tempo was ever sent") as f64 / 16742.706298828, // microseconds per frame
+            initial_microseconds_per_beat.expect("No tempo was ever sent") as f64
+                / 16742.706298828 // microseconds per frame
+                / ticks_per_beat as f64,
         ),
         ticks_per_step: 1,
         repeat: 0,

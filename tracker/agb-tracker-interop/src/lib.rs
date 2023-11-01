@@ -32,7 +32,7 @@ pub struct Pattern {
     pub start_position: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PatternSlot {
     pub speed: Num<u16, 8>,
     pub sample: u16,
@@ -48,7 +48,7 @@ pub struct Envelope<'a> {
     pub loop_end: Option<usize>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub enum PatternEffect {
     /// Don't play an effect
     #[default]
