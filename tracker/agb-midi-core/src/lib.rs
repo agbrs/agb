@@ -98,7 +98,12 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
 
     for sample in sf2.get_sample_headers() {
         let sample_start = sample.get_start() as usize;
-        let sample_end = sample.get_end() as usize;
+        let mut sample_end = sample.get_end() as usize;
+        let sample_loop_end = sample.get_end_loop() as usize;
+
+        if sample_loop_end > sample_start && sample_loop_end < sample_end {
+            sample_end = sample_loop_end;
+        }
 
         let sample_data = &sf2_data[sample_start..sample_end];
 
