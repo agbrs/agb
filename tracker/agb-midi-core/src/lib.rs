@@ -87,63 +87,6 @@ impl MidiInfo {
 }
 
 pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
-    let midi = &midi_info.midi;
-
-    assert_eq!(
-        midi.header.format,
-        Format::SingleTrack,
-        "Only single track is currently supported"
-    );
-    let Timing::Metrical(timing) = midi.header.timing else { panic!("Only metrical timing is currently supported") };
-    let ticks_per_beat = timing.as_int();
-
-    let mut channel_data = vec![];
-    let mut current_ticks = 0;
-    let mut pattern = vec![];
-
-    let mut initial_microseconds_per_beat = None;
-
-    for event in &midi.tracks[0] {
-        current_ticks += event.delta.as_int();
-
-        match event.kind {
-            TrackEventKind::Midi { channel, message } => {
-                let channel_id = channel.as_int() as usize;
-                channel_data.resize(
-                    channel_data.len().max(channel_id + 1),
-                    ChannelData::default(),
-                );
-                let channel_data = &mut channel_data[channel_id];
-
-                match message {
-                    midly::MidiMessage::NoteOff { .. } => pattern.push(PatternSlot {
-                        speed: 0.into(),
-                        sample: 0,
-                        effect1: PatternEffect::Stop,
-                        effect2: PatternEffect::None,
-                    }),
-                    midly::MidiMessage::NoteOn { key, vel } => pattern.push(PatternSlot {
-                        speed: midi_key_to_speed(key.as_int() as i8),
-                        sample: channel_data.current_sample,
-                        effect1: PatternEffect::Volume(Num::from_f32(vel.as_int() as f32 / 128.0)),
-                        effect2: PatternEffect::None,
-                    }),
-                    midly::MidiMessage::Aftertouch { .. } => {}
-                    midly::MidiMessage::PitchBend { .. } => {}
-                    midly::MidiMessage::ProgramChange { program } => {
-                        channel_data.current_sample = program.as_int().into();
-                    }
-                    midly::MidiMessage::Controller { .. } => {}
-                    midly::MidiMessage::ChannelAftertouch { .. } => {}
-                }
-            }
-            TrackEventKind::Meta(MetaMessage::Tempo(tempo)) => {
-                initial_microseconds_per_beat = Some(tempo.as_int());
-            }
-            _ => {}
-        }
-    }
-
     let mut samples = vec![];
     let sf2 = &midi_info.sound_font;
     let sf2_data = sf2.get_wave_data();
@@ -179,6 +122,83 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         samples.push(sample);
     }
 
+    let midi = &midi_info.midi;
+
+    assert_eq!(
+        midi.header.format,
+        Format::SingleTrack,
+        "Only single track is currently supported"
+    );
+    let Timing::Metrical(timing) = midi.header.timing else { panic!("Only metrical timing is currently supported") };
+    let ticks_per_beat = timing.as_int();
+
+    let mut channel_data = vec![];
+    let mut current_ticks = 0;
+
+    let mut initial_microseconds_per_beat = None;
+
+    let mut patterns = vec![];
+
+    for event in &midi.tracks[0] {
+        current_ticks += event.delta.as_int();
+
+        match event.kind {
+            TrackEventKind::Midi { channel, message } => {
+                let channel_id = channel.as_int() as usize;
+                channel_data.resize(
+                    channel_data.len().max(channel_id + 1),
+                    ChannelData::default(),
+                );
+                patterns.resize_with(patterns.len().max(channel_id + 1), Vec::new);
+
+                let channel_data = &mut channel_data[channel_id];
+                let pattern = &mut patterns[channel_id];
+
+                pattern.resize_with((current_ticks as usize).saturating_sub(1), || PatternSlot {
+                    speed: 0.into(),
+                    sample: 0,
+                    effect1: PatternEffect::None,
+                    effect2: PatternEffect::None,
+                });
+
+                match message {
+                    midly::MidiMessage::NoteOff { .. } => pattern.push(PatternSlot {
+                        speed: 0.into(),
+                        sample: 0,
+                        effect1: PatternEffect::Stop,
+                        effect2: PatternEffect::None,
+                    }),
+                    midly::MidiMessage::NoteOn { key, vel } => pattern.push(PatternSlot {
+                        speed: midi_key_to_speed(key.as_int() as i8),
+                        sample: channel_data.current_sample,
+                        effect1: PatternEffect::Volume(Num::from_f32(vel.as_int() as f32 / 128.0)),
+                        effect2: PatternEffect::None,
+                    }),
+                    midly::MidiMessage::Aftertouch { .. } => {}
+                    midly::MidiMessage::PitchBend { .. } => {}
+                    midly::MidiMessage::ProgramChange { program } => {
+                        channel_data.current_sample = program.as_int().into();
+                    }
+                    midly::MidiMessage::Controller { .. } => {}
+                    midly::MidiMessage::ChannelAftertouch { .. } => {}
+                }
+            }
+            TrackEventKind::Meta(MetaMessage::Tempo(tempo)) => {
+                initial_microseconds_per_beat = Some(tempo.as_int());
+            }
+            _ => {}
+        }
+    }
+
+    for pattern in &mut patterns {
+        pattern.resize_with(current_ticks as usize, || PatternSlot {
+            speed: 0.into(),
+            sample: 0,
+            effect1: PatternEffect::None,
+            effect2: PatternEffect::None,
+        });
+    }
+
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| Sample {
@@ -191,7 +211,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         })
         .collect();
 
-    let pattern = pattern.into_iter().collect::<Vec<_>>();
+    let pattern = patterns.into_iter().flatten().collect::<Vec<_>>();
 
     let track = Track {
         samples: &samples,
@@ -206,7 +226,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         frames_per_tick: Num::from_f64(
             initial_microseconds_per_beat.expect("No tempo was ever sent") as f64 / 16742.706298828, // microseconds per frame
         ),
-        ticks_per_step: ticks_per_beat.into(),
+        ticks_per_step: 1,
         repeat: 0,
     };
 
@@ -219,5 +239,5 @@ struct ChannelData {
 }
 
 fn midi_key_to_speed(key: i8) -> Num<u16, 8> {
-    Num::from_f64(440.0 * 2f64.powf((key - 69) as f64 / 12.0))
+    Num::from_f64(2f64.powf((key - 69) as f64 / 12.0))
 }
