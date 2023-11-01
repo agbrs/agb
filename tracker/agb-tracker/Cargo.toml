@@ -8,10 +8,12 @@ description = "Library for playing tracker music. Designed for use with the agb 
 repository = "https://github.com/agbrs/agb"
 
 [features]
-default = ["xm"]
+default = ["xm", "midi"]
 xm = ["dep:agb_xm"]
+midi = ["dep:agb_midi"]
 
 [dependencies]
+agb_midi = { version = "0.18.1", path = "../agb-midi", optional = true }
 agb_xm = { version = "0.18.1", path = "../agb-xm", optional = true }
 agb = { version = "0.18.1", path = "../../agb" }
 agb_tracker_interop = { version = "0.18.1", path = "../agb-tracker-interop", default-features = false }

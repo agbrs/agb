@@ -1,0 +1,16 @@
+[package]
+name = "agb_midi"
+version = "0.18.0"
+authors = ["Gwilym Inzani <gw@ilym.me>"]
+edition = "2021"
+license = "MPL-2.0"
+description = "Library for converting MIDI files for use with agb-tracker on the Game Boy Advance. You shouldn't use this package directly"
+repository = "https://github.com/agbrs/agb"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+agb_midi_core = { version = "0.18.0", path = "../agb-midi-core" }
+proc-macro-error = "1"
+proc-macro2 = "1"
