@@ -10,7 +10,7 @@ use syn::{
 
 struct MidiCoreInput {
     sf2_file: LitStr,
-    comma: Token![,],
+    _comma: Token![,],
     midi_file: LitStr,
 }
 
@@ -18,7 +18,7 @@ impl Parse for MidiCoreInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             sf2_file: input.parse()?,
-            comma: input.parse()?,
+            _comma: input.parse()?,
             midi_file: input.parse()?,
         })
     }
