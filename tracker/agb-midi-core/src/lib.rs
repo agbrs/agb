@@ -130,6 +130,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
             data,
             restart_point,
             note_offset,
+            sample_start,
 
             sample_rate: sample.get_sample_rate() as u32,
         };
@@ -216,10 +217,12 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                         let coarse_tune = instrument_region.get_coarse_tune();
                         let fine_tune = instrument_region.get_fine_tune();
 
+                        let sample = &samples[sample_id];
+
                         pattern.push(PatternSlot {
                             speed: midi_key_to_speed(
                                 key.as_int() as i16,
-                                &samples[sample_id],
+                                sample,
                                 channel_data.get_tune()
                                     + coarse_tune as f64
                                     + fine_tune as f64 / 8192.0,
@@ -245,6 +248,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                     }
                     midly::MidiMessage::Controller { controller, value } => {
                         match controller.as_int() {
+                            0 => assert_eq!(value.as_int(), 0, "no support for changing bank yet"),
                             6 => channel_data.data_entry_coarse(value.as_int() as i32),
                             7 => channel_data.volume = value.as_int() as f32 / 128.0,
                             10 => channel_data.panning = value.as_int() as f32 / 64.0 - 1.0,
@@ -355,11 +359,14 @@ impl ChannelData {
     }
 }
 
+#[derive(Debug)]
 struct SampleData {
     data: Vec<u8>,
     restart_point: Option<u32>,
     sample_rate: u32,
     note_offset: i32,
+
+    sample_start: usize,
 }
 
 fn midi_key_to_speed(key: i16, sample: &SampleData, tune: f64) -> Num<u16, 8> {
