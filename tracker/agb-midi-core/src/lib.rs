@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     error::Error,
     fs::{self, File},
     io::BufReader,
@@ -91,9 +92,13 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     let sf2 = &midi_info.sound_font;
     let sf2_data = sf2.get_wave_data();
 
-    struct SampleData {
-        data: Vec<u8>,
-        restart_point: Option<u32>,
+    let mut preset_lookup = HashMap::new();
+
+    for (i, preset) in sf2.get_presets().iter().enumerate() {
+        preset_lookup.insert(
+            preset.get_bank_number() << 16 | preset.get_patch_number(),
+            i,
+        );
     }
 
     for sample in sf2.get_sample_headers() {
@@ -114,6 +119,8 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
             Some((loop_start - sample_start) as u32)
         };
 
+        let note_offset = sample.get_original_pitch();
+
         let data = sample_data
             .iter()
             .map(|data| (data >> 8) as i8 as u8)
@@ -122,6 +129,9 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         let sample = SampleData {
             data,
             restart_point,
+            note_offset,
+
+            sample_rate: sample.get_sample_rate() as u32,
         };
 
         samples.push(sample);
@@ -150,6 +160,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         match event.kind {
             TrackEventKind::Midi { channel, message } => {
                 let channel_id = channel.as_int() as usize;
+
                 channel_data.resize(
                     channel_data.len().max(channel_id + 1),
                     ChannelData::default(),
@@ -173,18 +184,75 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                         effect1: PatternEffect::Stop,
                         effect2: PatternEffect::None,
                     }),
-                    midly::MidiMessage::NoteOn { key, vel } => pattern.push(PatternSlot {
-                        speed: midi_key_to_speed(key.as_int() as i8),
-                        sample: channel_data.current_sample,
-                        effect1: PatternEffect::Volume(Num::from_f32(vel.as_int() as f32 / 128.0)),
-                        effect2: PatternEffect::None,
-                    }),
+                    midly::MidiMessage::NoteOn { key, vel } => {
+                        if vel == 0 {
+                            pattern.push(PatternSlot {
+                                speed: 0.into(),
+                                sample: 0,
+                                effect1: PatternEffect::Stop,
+                                effect2: PatternEffect::None,
+                            });
+                            continue;
+                        }
+
+                        let preset = &sf2.get_presets()[channel_data.current_sample];
+                        let region = preset
+                            .get_regions()
+                            .iter()
+                            .find(|region| {
+                                region.contains(key.as_int() as i32, vel.as_int() as i32)
+                            })
+                            .expect("cannot find preset with correct region");
+                        let instrument = &sf2.get_instruments()[region.get_instrument_id()];
+                        let instrument_region = instrument
+                            .get_regions()
+                            .iter()
+                            .find(|region| {
+                                region.contains(key.as_int() as i32, vel.as_int() as i32)
+                            })
+                            .expect("cannot find instrument with correct region");
+                        let sample_id = instrument_region.get_sample_id();
+
+                        let coarse_tune = instrument_region.get_coarse_tune();
+                        let fine_tune = instrument_region.get_fine_tune();
+
+                        pattern.push(PatternSlot {
+                            speed: midi_key_to_speed(
+                                key.as_int() as i16,
+                                &samples[sample_id],
+                                channel_data.get_tune()
+                                    + coarse_tune as f64
+                                    + fine_tune as f64 / 8192.0,
+                            ),
+                            sample: sample_id as u16,
+                            effect1: PatternEffect::Volume(Num::from_f32(
+                                vel.as_int() as f32 / 128.0 * channel_data.volume,
+                            )),
+                            effect2: PatternEffect::Panning(Num::from_f32(
+                                (channel_data.panning + 1.0) / 2.0,
+                            )),
+                        });
+                    }
                     midly::MidiMessage::Aftertouch { .. } => {}
                     midly::MidiMessage::PitchBend { .. } => {}
                     midly::MidiMessage::ProgramChange { program } => {
-                        channel_data.current_sample = program.as_int().into();
+                        let mut lookup_id = program.as_int().into();
+                        if channel_id == 9 {
+                            lookup_id += 128 << 16;
+                        }
+
+                        channel_data.current_sample = *preset_lookup.get(&lookup_id).unwrap_or(&0);
                     }
-                    midly::MidiMessage::Controller { .. } => {}
+                    midly::MidiMessage::Controller { controller, value } => {
+                        match controller.as_int() {
+                            6 => channel_data.data_entry_coarse(value.as_int() as i32),
+                            7 => channel_data.volume = value.as_int() as f32 / 128.0,
+                            10 => channel_data.panning = value.as_int() as f32 / 64.0 - 1.0,
+                            26 => channel_data.data_entry_fine(value.as_int() as i32),
+                            100 => channel_data.set_rpn(value.as_int() as i32),
+                            _ => {}
+                        }
+                    }
                     midly::MidiMessage::ChannelAftertouch { .. } => {}
                 }
             }
@@ -255,9 +323,48 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
 
 #[derive(Default, Clone)]
 struct ChannelData {
-    current_sample: u16,
+    current_sample: usize,
+    volume: f32,
+    panning: f32,
+    rpn: i32,
+    fine_tune: i16,
+    course_tune: i16,
 }
 
-fn midi_key_to_speed(key: i8) -> Num<u16, 8> {
-    Num::from_f64(2f64.powf((key - 69) as f64 / 12.0))
+impl ChannelData {
+    fn set_rpn(&mut self, value: i32) {
+        self.rpn = value;
+    }
+
+    fn data_entry_fine(&mut self, value: i32) {
+        if self.rpn == 1 {
+            self.fine_tune = (((self.fine_tune as i32) & 0xFF80) | value) as i16;
+        }
+    }
+
+    fn data_entry_coarse(&mut self, value: i32) {
+        if self.rpn == 1 {
+            self.fine_tune = (self.fine_tune & 0x7F) | (value << 7) as i16;
+        } else if self.rpn == 2 {
+            self.course_tune = (value - 64) as i16;
+        }
+    }
+
+    fn get_tune(&self) -> f64 {
+        self.course_tune as f64 + (1.0 / 8192f64) * (self.fine_tune - 8192) as f64
+    }
+}
+
+struct SampleData {
+    data: Vec<u8>,
+    restart_point: Option<u32>,
+    sample_rate: u32,
+    note_offset: i32,
+}
+
+fn midi_key_to_speed(key: i16, sample: &SampleData, tune: f64) -> Num<u16, 8> {
+    let sample_rate = sample.sample_rate as f64;
+    let relative_note = sample.note_offset as f64;
+
+    Num::from_f64(2f64.powf((key as f64 - tune - relative_note) / 12.0) * 32768.0 / sample_rate)
 }
