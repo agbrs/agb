@@ -130,7 +130,6 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
             data,
             restart_point,
             note_offset,
-            sample_start,
 
             sample_rate: sample.get_sample_rate() as u32,
         };
@@ -227,7 +226,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                                     + coarse_tune as f64
                                     + fine_tune as f64 / 8192.0,
                             ),
-                            sample: sample_id as u16,
+                            sample: sample_id as u16 + 1,
                             effect1: PatternEffect::Volume(Num::from_f32(
                                 vel.as_int() as f32 / 128.0 * channel_data.volume,
                             )),
@@ -365,8 +364,6 @@ struct SampleData {
     restart_point: Option<u32>,
     sample_rate: u32,
     note_offset: i32,
-
-    sample_start: usize,
 }
 
 fn midi_key_to_speed(key: i16, sample: &SampleData, tune: f64) -> Num<u16, 8> {
