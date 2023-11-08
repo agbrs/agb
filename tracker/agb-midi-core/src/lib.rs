@@ -366,9 +366,9 @@ struct SampleData {
     note_offset: i32,
 }
 
-fn midi_key_to_speed(key: i16, sample: &SampleData, tune: f64) -> Num<u16, 8> {
+fn midi_key_to_speed(key: i16, sample: &SampleData, _tune: f64) -> Num<u16, 8> {
     let sample_rate = sample.sample_rate as f64;
     let relative_note = sample.note_offset as f64;
 
-    Num::from_f64(2f64.powf((key as f64 - tune - relative_note) / 12.0) * 32768.0 / sample_rate)
+    Num::from_f64(2f64.powf((key as f64 - relative_note) / 12.0) * sample_rate / 32768.0)
 }
