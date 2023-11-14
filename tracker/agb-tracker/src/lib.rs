@@ -78,6 +78,9 @@ use agb::{
 pub use agb_xm::include_xm;
 
 /// Import a midi file. Only available if you have the `midi` feature enabled (enabled by default).
+/// This is currently experimental, and many types of MIDI file or MIDI features are not supported.
+///
+/// Takes 2 arguments, an SF2 file and a midi file.
 #[cfg(feature = "midi")]
 pub use agb_midi::include_midi;
 
