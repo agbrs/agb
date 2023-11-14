@@ -144,7 +144,9 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         Format::SingleTrack,
         "Only single track is currently supported"
     );
-    let Timing::Metrical(timing) = midi.header.timing else { panic!("Only metrical timing is currently supported") };
+    let Timing::Metrical(timing) = midi.header.timing else {
+        panic!("Only metrical timing is currently supported")
+    };
     let ticks_per_beat = timing.as_int();
 
     let mut channel_data = vec![];
