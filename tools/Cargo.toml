@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = "4"
-toml_edit = "0.20"
+toml_edit = "0.21"
 glob = "0.3"
 chrono = "0.4"
 dependency-graph = "0.1.5"
