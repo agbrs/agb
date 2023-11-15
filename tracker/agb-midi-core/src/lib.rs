@@ -236,7 +236,25 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                         });
                     }
                     midly::MidiMessage::Aftertouch { .. } => {}
-                    midly::MidiMessage::PitchBend { .. } => {}
+                    midly::MidiMessage::PitchBend { bend } => {
+                        // bend is between 0 and 8192 where 0 = -2 semitones and 8193 is +2 semitones (I think)
+                        let amount = (bend.0.as_int() as f64 - (8192.0 / 2.0)) / (8192.0 / 2.0);
+
+                        // amount is now between -1 and 1
+                        let two_semitones_multiplier = 493.88 / 440.0; // B4 / A4
+                        let amount = if amount < 0.0 {
+                            1.0 / two_semitones_multiplier * (-amount)
+                        } else {
+                            two_semitones_multiplier * amount
+                        };
+
+                        pattern.push(PatternSlot {
+                            speed: 0.into(),
+                            sample: 0,
+                            effect1: PatternEffect::PitchBend(Num::from_f64(amount)),
+                            effect2: PatternEffect::None,
+                        });
+                    }
                     midly::MidiMessage::ProgramChange { program } => {
                         let mut lookup_id = program.as_int().into();
                         if channel_id == 9 {

@@ -69,6 +69,8 @@ pub enum PatternEffect {
     SetFramesPerTick(Num<u32, 8>),
     SetGlobalVolume(Num<i32, 8>),
     GlobalVolumeSlide(Num<i32, 8>),
+    /// Increase / decrease the pitch by the specified amount immediately
+    PitchBend(Num<u32, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -310,6 +312,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::GlobalVolumeSlide(amount) => {
                 let amount = amount.to_raw();
                 quote! { GlobalVolumeSlide(agb_tracker::__private::Num::from_raw(#amount)) }
+            }
+            PatternEffect::PitchBend(amount) => {
+                let amount = amount.to_raw();
+                quote! { PitchBend(agb_tracker::__private::Num::from_raw(#amount)) }
             }
         };
 

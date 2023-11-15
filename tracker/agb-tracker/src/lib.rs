@@ -428,6 +428,12 @@ impl TrackerChannel {
 
                     channel.playback(self.base_speed.change_base());
                 }
+                PatternEffect::PitchBend(amount) => {
+                    if tick == 0 {
+                        self.base_speed *= amount.change_base();
+                        channel.playback(self.base_speed.change_base());
+                    }
+                }
                 // These are global effects handled below
                 PatternEffect::SetTicksPerStep(_)
                 | PatternEffect::SetFramesPerTick(_)
