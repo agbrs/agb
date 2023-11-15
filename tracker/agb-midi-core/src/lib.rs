@@ -232,9 +232,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                             effect1: PatternEffect::Volume(Num::from_f32(
                                 vel.as_int() as f32 / 128.0 * channel_data.volume,
                             )),
-                            effect2: PatternEffect::Panning(Num::from_f32(
-                                (channel_data.panning + 1.0) / 2.0,
-                            )),
+                            effect2: PatternEffect::Panning(Num::from_f32(channel_data.panning)),
                         });
                     }
                     midly::MidiMessage::Aftertouch { .. } => {}
