@@ -112,6 +112,7 @@ pub struct Tracker {
 #[derive(Default)]
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
+    original_speed: Num<u32, 16>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
 }
@@ -328,6 +329,7 @@ impl TrackerChannel {
         {
             if speed != 0.into() {
                 self.base_speed = speed.change_base();
+                self.original_speed = self.base_speed;
             }
 
             channel.playback(self.base_speed.change_base());
@@ -430,7 +432,7 @@ impl TrackerChannel {
                 }
                 PatternEffect::PitchBend(amount) => {
                     if tick == 0 {
-                        self.base_speed *= amount.change_base();
+                        self.base_speed = self.original_speed * amount.change_base();
                         channel.playback(self.base_speed.change_base());
                     }
                 }
