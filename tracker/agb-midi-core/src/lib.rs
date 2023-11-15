@@ -209,12 +209,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                 let channel_data = &mut channel_data[channel_id];
                 let pattern = &mut patterns[channel_id];
 
-                pattern.resize_with((current_ticks as usize).saturating_sub(1), || PatternSlot {
-                    speed: 0.into(),
-                    sample: 0,
-                    effect1: PatternEffect::None,
-                    effect2: PatternEffect::None,
-                });
+                pattern.resize_with((current_ticks as usize).saturating_sub(1), Default::default);
 
                 match message {
                     midly::MidiMessage::NoteOff { .. } => pattern.push(PatternSlot {
@@ -329,12 +324,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     });
 
     for pattern in &mut patterns {
-        pattern.resize_with(current_ticks as usize, || PatternSlot {
-            speed: 0.into(),
-            sample: 0,
-            effect1: PatternEffect::None,
-            effect2: PatternEffect::None,
-        });
+        pattern.resize_with(current_ticks as usize, Default::default);
     }
 
     let frames_per_tick = initial_microseconds_per_beat.expect("No tempo was ever sent") as f64
