@@ -7,7 +7,7 @@ use std::{
 };
 
 use agb_fixnum::Num;
-use agb_tracker_interop::{Pattern, PatternEffect, PatternSlot, Sample, Track};
+use agb_tracker_interop::{Envelope, Pattern, PatternEffect, PatternSlot, Sample, Track};
 use midly::{Format, MetaMessage, Smf, Timing, TrackEventKind};
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
@@ -101,6 +101,8 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         );
     }
 
+    let mut envelopes = vec![];
+
     for sample in sf2.get_sample_headers() {
         let sample_start = sample.get_start() as usize;
         let mut sample_end = sample.get_end() as usize;
@@ -126,12 +128,47 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
             .map(|data| (data >> 8) as i8 as u8)
             .collect::<Vec<_>>();
 
+        let instrument_region = sf2
+            .get_instruments()
+            .iter()
+            .flat_map(|i| i.get_regions().iter())
+            .find(|region| region.get_sample_id() == samples.len());
+
+        let envelope = instrument_region.map(|region| {
+            let delay = region.get_delay_volume_envelope();
+            let attack = region.get_attack_volume_envelope();
+            let hold = region.get_hold_volume_envelope();
+            let decay = region.get_decay_volume_envelope();
+            let sustain = region.get_sustain_volume_envelope() / 100.0;
+            let release = region.get_release_volume_envelope();
+
+            let envelope_data = EnvelopeData {
+                delay,
+                attack,
+                hold,
+                decay,
+                sustain,
+                release,
+            };
+
+            if let Some(index) = envelopes
+                .iter()
+                .position(|envelope| envelope == &envelope_data)
+            {
+                index
+            } else {
+                envelopes.push(envelope_data);
+                envelopes.len() - 1
+            }
+        });
+
         let sample = SampleData {
             data,
             restart_point,
             note_offset,
 
             sample_rate: sample.get_sample_rate() as u32,
+            envelope,
         };
 
         samples.push(sample);
@@ -300,6 +337,64 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         });
     }
 
+    let frames_per_tick = initial_microseconds_per_beat.expect("No tempo was ever sent") as f64
+        / 16742.706298828 // microseconds per frame
+        / ticks_per_beat as f64;
+
+    struct ParsedEnvelopeData {
+        amounts: Vec<Num<i16, 8>>,
+        decay: f32,
+    }
+
+    let envelopes: Vec<_> = envelopes
+        .iter()
+        .map(|envelope| {
+            let mut amounts = vec![];
+
+            let ticks_per_second = (60.0 / frames_per_tick) as f32;
+
+            let delay_ticks = (envelope.delay * ticks_per_second) as usize;
+            let attack_ticks = (envelope.attack * ticks_per_second) as usize;
+            let hold_ticks = (envelope.hold * ticks_per_second) as usize;
+            let decay_ticks = (envelope.decay * ticks_per_second) as usize;
+            let release_ticks = envelope.release * ticks_per_second;
+
+            // volume envelope looks like the following:
+            //          /--------\
+            //         /          \______
+            //        /                  \
+            //       /                    \
+            // _____/                      \
+            // delay      hold    sustain*
+            //      attack      decay    release**
+            //
+            // *  The sustain is actually a single point with the sustain set in the envelope data
+            // ** release is stored separately alongside the sample's 'fadeout'
+
+            amounts.resize(delay_ticks, Num::<i16, 8>::default());
+            for i in 0..attack_ticks {
+                amounts.push(Num::from_f32(i as f32 / attack_ticks as f32));
+            }
+
+            amounts.resize(amounts.len() + hold_ticks, 1.into());
+            for i in 0..decay_ticks {
+                amounts.push(Num::from_f32(
+                    (decay_ticks - i) as f32 / decay_ticks as f32 * (1.0 - envelope.sustain)
+                        + envelope.sustain,
+                ));
+            }
+
+            if amounts.is_empty() {
+                amounts.push(1.into());
+            }
+
+            ParsedEnvelopeData {
+                amounts,
+                decay: (1.0 / release_ticks).min(0.5),
+            }
+        })
+        .collect();
+
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| Sample {
@@ -307,8 +402,11 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
             should_loop: sample.restart_point.is_some(),
             restart_point: sample.restart_point.unwrap_or(0),
             volume: 256.into(),
-            volume_envelope: None,
-            fadeout: 0.into(),
+            volume_envelope: sample.envelope,
+            fadeout: sample
+                .envelope
+                .map(|e| Num::from_f32(envelopes[e].decay))
+                .unwrap_or(0.into()),
         })
         .collect();
 
@@ -320,9 +418,19 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         }
     }
 
+    let envelopes: Vec<_> = envelopes
+        .iter()
+        .map(|envelope| Envelope {
+            amount: &envelope.amounts,
+            sustain: Some(envelope.amounts.len() - 1),
+            loop_start: None,
+            loop_end: None,
+        })
+        .collect();
+
     let track = Track {
         samples: &samples,
-        envelopes: &[],
+        envelopes: &envelopes,
         pattern_data: &pattern,
         patterns: &[Pattern {
             length: pattern.len() / resulting_num_channels,
@@ -330,11 +438,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         }],
         patterns_to_play: &[0],
         num_channels: resulting_num_channels,
-        frames_per_tick: Num::from_f64(
-            initial_microseconds_per_beat.expect("No tempo was ever sent") as f64
-                / 16742.706298828 // microseconds per frame
-                / ticks_per_beat as f64,
-        ),
+        frames_per_tick: Num::from_f64(frames_per_tick),
         ticks_per_step: 1,
         repeat: 0,
     };
@@ -382,6 +486,7 @@ struct SampleData {
     restart_point: Option<u32>,
     sample_rate: u32,
     note_offset: i32,
+    envelope: Option<usize>,
 }
 
 fn midi_key_to_speed(key: i16, sample: &SampleData, _tune: f64) -> Num<u16, 8> {
@@ -389,4 +494,14 @@ fn midi_key_to_speed(key: i16, sample: &SampleData, _tune: f64) -> Num<u16, 8> {
     let relative_note = sample.note_offset as f64;
 
     Num::from_f64(2f64.powf((key as f64 - relative_note) / 12.0) * sample_rate / 32768.0)
+}
+
+#[derive(Clone, PartialEq)]
+struct EnvelopeData {
+    delay: f32,
+    attack: f32,
+    hold: f32,
+    decay: f32,
+    sustain: f32,
+    release: f32,
 }
