@@ -229,7 +229,11 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                             continue;
                         }
 
-                        let preset = &sf2.get_presets()[channel_data.current_sample];
+                        let Some(current_sample) = channel_data.current_sample else {
+                            continue;
+                        };
+
+                        let preset = &sf2.get_presets()[current_sample];
                         let region = preset
                             .get_regions()
                             .iter()
@@ -293,7 +297,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
                             lookup_id += 128 << 16;
                         }
 
-                        channel_data.current_sample = *preset_lookup.get(&lookup_id).unwrap_or(&0);
+                        channel_data.current_sample = preset_lookup.get(&lookup_id).copied();
                     }
                     midly::MidiMessage::Controller { controller, value } => {
                         match controller.as_int() {
@@ -436,9 +440,9 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     quote!(#track)
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Default)]
 struct ChannelData {
-    current_sample: usize,
+    current_sample: Option<usize>,
     volume: f32,
     panning: f32,
     rpn: i32,
@@ -479,11 +483,13 @@ struct SampleData {
     envelope: Option<usize>,
 }
 
-fn midi_key_to_speed(key: i16, sample: &SampleData, _tune: f64) -> Num<u16, 8> {
+fn midi_key_to_speed(key: i16, sample: &SampleData, tune: f64) -> Num<u16, 8> {
     let sample_rate = sample.sample_rate as f64;
     let relative_note = sample.note_offset as f64;
 
-    Num::from_f64(2f64.powf((key as f64 - relative_note) / 12.0) * sample_rate / 32768.0)
+    Num::from_f64(
+        2f64.powf((key as f64 - relative_note + tune + 1.0) / 12.0) * sample_rate / 32768.0,
+    )
 }
 
 #[derive(Clone, PartialEq)]
