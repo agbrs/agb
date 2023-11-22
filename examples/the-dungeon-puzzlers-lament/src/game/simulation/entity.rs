@@ -154,6 +154,8 @@ impl EntityMap {
 
         let entity_location = entity_to_update.location;
 
+        let should_squish = entity_to_update.will_squish();
+
         let desired_location = entity_location + direction.into();
         let surface = map.get(desired_location);
 
@@ -230,6 +232,8 @@ impl EntityMap {
 
             (can_move, explicit_stay_put, fake_out_effect)
         };
+
+        let mut late_can_move = can_move;
 
         if can_move {
             if let Some(e) = self.map.get_mut(entity_to_update_key) {
@@ -327,6 +331,10 @@ impl EntityMap {
                 );
             }
         } else if can_turn_around {
+            if should_squish {
+                should_die_later = true;
+                late_can_move = true;
+            }
             animations.push(AnimationInstruction::FakeOutMove(
                 entity_to_update_key,
                 direction,
@@ -349,7 +357,7 @@ impl EntityMap {
         }
 
         (
-            HasMoved(can_move),
+            HasMoved(late_can_move),
             ActionResult::new(hero_has_died, win_has_triggered),
         )
     }
@@ -658,6 +666,10 @@ fn resolve_move(mover: &Entity, into: &Entity, direction: Direction) -> MoveAtte
         (EntityType::Enemy(Enemy::Moving(squid)), EntityType::Hero(_) | EntityType::Enemy(_)) => {
             squid_holding_attack_resolve(squid, into)
         }
+        (
+            EntityType::MovableBlock | EntityType::Enemy(Enemy::Slime),
+            EntityType::Enemy(Enemy::Slime),
+        ) => MoveAttemptResolution::AttemptPush,
         (EntityType::Enemy(_), EntityType::Hero(_) | EntityType::Enemy(_)) => {
             MoveAttemptResolution::Kill
         }
@@ -819,6 +831,10 @@ impl Entity {
         } else {
             None
         }
+    }
+
+    fn will_squish(&self) -> bool {
+        matches!(self.entity, EntityType::Enemy(Enemy::Slime))
     }
 
     fn holding(&self) -> Option<&EntityType> {
