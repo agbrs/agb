@@ -46,7 +46,10 @@ const LEVEL_NAMES: &[&str] = &[
     "another_ice_3",
     "another_ice_4",
     "hole_introduction",
+    "rotator_demonstration",
     "rotator_1",
+    "rotator_2",
+    "level_slime_squish",
 ];
 
 fn main() {
