@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="14">
+ <properties>
+  <property name="DIRECTIONS" value="RRRRRRRRDDDD"/>
+  <property name="ITEMS" value="GLOVE,BLOCK,BLOCK,BLOCK"/>
+  <property name="NAME" value="Maybe a bit of compression will help"/>
+ </properties>
+ <tileset firstgid="1" source="../level16.tsx"/>
+ <layer id="1" name="Ground" width="11" height="10">
+  <data encoding="csv">
+0,0,0,1,2,8,5,9,0,0,0,
+0,0,0,46,15,12,12,47,0,0,0,
+0,0,1,1073741852,14,16,13,3221225500,9,0,0,
+0,1,1073741852,16,13,14,14,17,3221225500,4,9,
+0,10,13,13,13,15,12,17,16,12,47,
+0,19,28,16,12,12,17,17,14,12,47,
+0,0,46,11,16,11,17,17,12,2147483676,27,
+0,0,37,11,14,12,13,11,13,38,0,
+0,0,46,16,14,15,17,15,11,18,0,
+0,0,19,24,26,24,24,20,22,27,0
+</data>
+ </layer>
+ <objectgroup id="2" name="Puzzle">
+  <object id="5" name="HERO" x="38.5327" y="72.7273">
+   <point/>
+  </object>
+  <object id="6" name="SLIME" x="86.7624" y="72.7273">
+   <point/>
+  </object>
+  <object id="7" name="STAIRS" x="103.349" y="103.349">
+   <point/>
+  </object>
+  <object id="8" name="SLIME" x="119.426" y="73.748">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="Solution">
+  <object id="9" name="BLOCK" x="70.6858" y="70.4306">
+   <point/>
+  </object>
+  <object id="10" name="BLOCK" x="103.094" y="69.4099">
+   <point/>
+  </object>
+  <object id="11" name="BLOCK" x="135.247" y="69.4099">
+   <point/>
+  </object>
+  <object id="13" name="GLOVE" x="54.8644" y="68.6443">
+   <point/>
+  </object>
+ </objectgroup>
+</map>
