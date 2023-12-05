@@ -11,18 +11,18 @@ use agb::{
     include_background_gfx,
 };
 
-include_background_gfx!(affine_tiles, water_tiles => 256 "examples/water_tiles.png");
+include_background_gfx!(affine_tiles, "3f3f74", water_tiles => 256 "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled2();
+    let (gfx, mut vram) = gba.display.video.tiled1();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = affine_tiles::water_tiles.tiles;
 
     vram.set_background_palettes(affine_tiles::PALETTES);
 
-    let mut bg = gfx.background(Priority::P0, AffineBackgroundSize::Background32x32);
+    let mut bg = gfx.affine(Priority::P0, AffineBackgroundSize::Background32x32);
 
     for y in 0..32u16 {
         for x in 0..32u16 {
