@@ -19,4 +19,4 @@ syn = { version = "2", features = ["proc-macro", "parsing"] }
 proc-macro2 = "1"
 quote = "1"
 asefile = "0.3.6"
-fontdue = "0.7"
+fontdue = "0.8"

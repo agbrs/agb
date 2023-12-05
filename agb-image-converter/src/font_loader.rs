@@ -16,8 +16,8 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     let font = fontdue::Font::from_bytes(
         font_data,
         fontdue::FontSettings {
-            collection_index: 0,
             scale: pixels_per_em,
+            ..Default::default()
         },
     )
     .expect("Invalid font data");
