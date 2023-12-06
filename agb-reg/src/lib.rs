@@ -288,6 +288,21 @@ pub struct Offset {
     pub vertical: u16,
 }
 
+trait OffsetDeref {
+    fn horizontal_ptr(self) -> *mut u16;
+    fn vertical_ptr(self) -> *mut u16;
+}
+
+impl OffsetDeref for *mut Offset {
+    fn horizontal_ptr(self) -> *mut u16 {
+        unsafe { core::ptr::addr_of_mut!((*self).horizontal) }
+    }
+
+    fn vertical_ptr(self) -> *mut u16 {
+        unsafe { core::ptr::addr_of_mut!((*self).vertical) }
+    }
+}
+
 #[bitsize(16)]
 #[derive(TryFromBits, Clone, Copy, PartialEq, Eq, DebugBits)]
 pub struct DisplayControl {
