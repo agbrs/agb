@@ -159,6 +159,10 @@ pub fn busy_wait_for_vblank() {
     while VCOUNT.get() < 160 {}
 }
 
+/// The priority of a background layer or object. A higher priority should be
+/// thought of as rendering first, and so is behind that of a lower priority.
+/// For an equal priority background layer and object, the background has a
+/// higher priority and therefore is behind the object.
 #[bitsize(2)]
 #[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum Priority {
