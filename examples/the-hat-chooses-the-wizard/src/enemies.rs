@@ -6,14 +6,14 @@ use agb::{
     fixnum::Vector2D,
 };
 
-const SLIME_IDLE: &Tag = TAG_MAP.get("Slime Idle");
-const SLIME_JUMP: &Tag = TAG_MAP.get("Slime Jump");
-const SLIME_SPLAT: &Tag = TAG_MAP.get("Slime splat");
+static SLIME_IDLE: &Tag = TAG_MAP.get("Slime Idle");
+static SLIME_JUMP: &Tag = TAG_MAP.get("Slime Jump");
+static SLIME_SPLAT: &Tag = TAG_MAP.get("Slime splat");
 
-const SNAIL_EMERGE: &Tag = TAG_MAP.get("Snail Emerge");
-const SNAIL_MOVE: &Tag = TAG_MAP.get("Snail Move");
-const SNAIL_DEATH: &Tag = TAG_MAP.get("Snail Death");
-const SNAIL_IDLE: &Tag = TAG_MAP.get("Snail Idle");
+static SNAIL_EMERGE: &Tag = TAG_MAP.get("Snail Emerge");
+static SNAIL_MOVE: &Tag = TAG_MAP.get("Snail Move");
+static SNAIL_DEATH: &Tag = TAG_MAP.get("Snail Death");
+static SNAIL_IDLE: &Tag = TAG_MAP.get("Snail Idle");
 
 enum UpdateState {
     Nothing,

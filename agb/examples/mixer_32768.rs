@@ -14,9 +14,9 @@ use agb::{
 use core::fmt::Write;
 
 // Music - "Crazy glue" by Josh Woodward, free download at http://joshwoodward.com
-const CRAZY_GLUE: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
+static CRAZY_GLUE: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {

@@ -19,8 +19,8 @@ pub fn show_splash_screen(
 ) {
     map.set_scroll_pos((0i16, 0i16));
     let tile_data = match which {
-        SplashScreen::Start => splash_screens::splash,
-        SplashScreen::End => splash_screens::thanks_for_playing,
+        SplashScreen::Start => &splash_screens::splash,
+        SplashScreen::End => &splash_screens::thanks_for_playing,
     };
 
     let vblank = agb::interrupt::VBlank::get();
@@ -30,7 +30,7 @@ pub fn show_splash_screen(
     sfx.frame();
     vblank.wait_for_vblank();
 
-    map.fill_with(vram, &tile_data);
+    map.fill_with(vram, tile_data);
 
     map.commit(vram);
     vram.set_background_palettes(splash_screens::PALETTES);

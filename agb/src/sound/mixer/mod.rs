@@ -82,7 +82,7 @@
 //! # let vblank = agb::interrupt::VBlank::get();
 //! # use agb::{*, sound::mixer::*};
 //! // Outside your main function in global scope:
-//! const MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+//! static MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 //!
 //! // Then to play the sound:
 //! let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
@@ -194,7 +194,7 @@ impl Frequency {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
-/// const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+/// static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
@@ -213,7 +213,7 @@ impl Frequency {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
-/// const JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+/// static JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
@@ -258,7 +258,7 @@ impl SoundChannel {
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
-    /// const JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+    /// static JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
     ///
     /// // somewhere in code
     /// let jump_sound = SoundChannel::new(JUMP_SOUND);
@@ -302,7 +302,7 @@ impl SoundChannel {
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
-    /// const MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+    /// static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
     ///
     /// // somewhere in code
     /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);

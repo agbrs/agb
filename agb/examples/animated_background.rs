@@ -16,7 +16,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let (gfx, mut vram) = gba.display.video.tiled0();
     let vblank = agb::interrupt::VBlank::get();
 
-    let tileset = water_tiles::water_tiles.tiles;
+    let tileset = &water_tiles::water_tiles.tiles;
 
     vram.set_background_palettes(water_tiles::PALETTES);
 
@@ -31,7 +31,7 @@ fn main(mut gba: agb::Gba) -> ! {
             bg.set_tile(
                 &mut vram,
                 (x, y),
-                &tileset,
+                tileset,
                 water_tiles::water_tiles.tile_settings[0],
             );
         }
@@ -44,7 +44,7 @@ fn main(mut gba: agb::Gba) -> ! {
     loop {
         i = (i + 1) % 8;
 
-        vram.replace_tile(&tileset, 0, &tileset, i);
+        vram.replace_tile(tileset, 0, tileset, i);
 
         vblank.wait_for_vblank();
     }

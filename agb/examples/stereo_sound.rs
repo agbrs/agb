@@ -14,9 +14,9 @@ use agb::{
 use core::fmt::Write;
 
 // Music - "Let it in" by Josh Woodward, free download at http://joshwoodward.com
-const LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
+static LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {

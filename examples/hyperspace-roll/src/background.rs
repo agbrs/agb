@@ -23,7 +23,7 @@ pub(crate) fn load_help_text(
     help_text_line: u16,
     at_tile: (u16, u16),
 ) {
-    let help_tiledata = backgrounds::help;
+    let help_tiledata = &backgrounds::help;
 
     for x in 0..16 {
         let tile_id = help_text_line * 16 + x;
@@ -43,9 +43,9 @@ pub(crate) fn load_description(
     vram: &mut VRamManager,
 ) {
     let description_data = if face_id < 10 {
-        backgrounds::descriptions1
+        &backgrounds::descriptions1
     } else {
-        backgrounds::descriptions2
+        &backgrounds::descriptions2
     };
 
     for y in 0..11 {

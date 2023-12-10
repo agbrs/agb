@@ -21,21 +21,21 @@ type Game = fn(agb::Gba) -> !;
 
 struct GameWithTiles {
     game: fn(agb::Gba) -> !,
-    tiles: TileData,
+    tiles: &'static TileData,
 }
 
 impl GameWithTiles {
-    const fn new(tiles: TileData, game: fn(agb::Gba) -> !) -> Self {
+    const fn new(tiles: &'static TileData, game: fn(agb::Gba) -> !) -> Self {
         GameWithTiles { game, tiles }
     }
 }
 
-const GAMES: &[GameWithTiles] = &[
-    GameWithTiles::new(games::hat, the_hat_chooses_the_wizard::main),
-    GameWithTiles::new(games::purple, the_purple_night::main),
-    GameWithTiles::new(games::hyperspace, hyperspace_roll::main),
-    GameWithTiles::new(games::dungeon_puzzler, the_dungeon_puzzlers_lament::entry),
-    GameWithTiles::new(games::amplitude, amplitude::main),
+static GAMES: &[GameWithTiles] = &[
+    GameWithTiles::new(&games::hat, the_hat_chooses_the_wizard::main),
+    GameWithTiles::new(&games::purple, the_purple_night::main),
+    GameWithTiles::new(&games::hyperspace, hyperspace_roll::main),
+    GameWithTiles::new(&games::dungeon_puzzler, the_dungeon_puzzlers_lament::entry),
+    GameWithTiles::new(&games::amplitude, amplitude::main),
 ];
 
 include_background_gfx!(

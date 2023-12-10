@@ -15,16 +15,16 @@ use agb::{
     include_aseprite,
 };
 
-// Import the sprites in to this constant. This holds the sprite
+// Import the sprites in to this static. This holds the sprite
 // and palette data in a way that is manageable by agb.
-const GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
+static GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 
 // We define some easy ways of referencing the sprites
 #[allow(dead_code)]
-const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
+static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
 #[allow(dead_code)]
-const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
-const BALL: &Tag = GRAPHICS.tags().get("Ball");
+static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
+static BALL: &Tag = GRAPHICS.tags().get("Ball");
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack

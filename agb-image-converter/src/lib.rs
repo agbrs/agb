@@ -414,15 +414,15 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         #(#include_paths)*
 
 
-        const PALETTES: &[Palette16] = &[
+        static PALETTES: &[Palette16] = &[
             #(#palette_data),*
         ];
 
-        pub const SPRITES: &[Sprite] = &[
+        static SPRITES: &[Sprite] = &[
             #(#sprites),*
         ];
 
-        const TAGS: &TagMap = &TagMap::new(
+        static TAGS: TagMap = TagMap::new(
             &[
                 #(#tags),*
             ]

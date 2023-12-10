@@ -29,7 +29,7 @@
 //! use agb::{Gba, sound::mixer::Frequency};
 //! use agb_tracker::{include_xm, Track, Tracker};
 //!
-//! const DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
+//! static DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
 //!
 //! #[agb::entry]
 //! fn main(mut gba: Gba) -> ! {
