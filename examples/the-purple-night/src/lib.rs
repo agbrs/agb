@@ -27,32 +27,32 @@ use agb::{
 use generational_arena::Arena;
 use sfx::Sfx;
 
-const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
-const TAG_MAP: &TagMap = GRAPHICS.tags();
+static GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
+static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-const LONG_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
-const LONG_SWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
-const LONG_SWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
-const LONG_SWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
-const LONG_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
+static LONG_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
+static LONG_SWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
+static LONG_SWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
+static LONG_SWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
+static LONG_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
 
-const SHORT_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
-const SHORT_SWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
-const SHORT_SWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
-const SHORT_SWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
-const SHORT_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
+static SHORT_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
+static SHORT_SWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
+static SHORT_SWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
+static SHORT_SWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
+static SHORT_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
 
-const KNIFE_IDLE: &Tag = TAG_MAP.get("idle - knife");
-const KNIFE_WALK: &Tag = TAG_MAP.get("walk - knife");
-const KNIFE_JUMP: &Tag = TAG_MAP.get("jump - knife");
-const KNIFE_ATTACK: &Tag = TAG_MAP.get("attack - knife");
-const KNIFE_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - knife");
+static KNIFE_IDLE: &Tag = TAG_MAP.get("idle - knife");
+static KNIFE_WALK: &Tag = TAG_MAP.get("walk - knife");
+static KNIFE_JUMP: &Tag = TAG_MAP.get("jump - knife");
+static KNIFE_ATTACK: &Tag = TAG_MAP.get("attack - knife");
+static KNIFE_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - knife");
 
-const SWORDLESS_IDLE: &Tag = TAG_MAP.get("idle swordless");
-const SWORDLESS_WALK: &Tag = TAG_MAP.get("walk swordless");
-const SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
-const SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
-const SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
+static SWORDLESS_IDLE: &Tag = TAG_MAP.get("idle swordless");
+static SWORDLESS_WALK: &Tag = TAG_MAP.get("walk swordless");
+static SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
+static SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
+static SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
 agb::include_background_gfx!(background, "53269a", background => deduplicate "gfx/background.aseprite");
 
@@ -809,7 +809,7 @@ impl BatData {
             .unwrap_or(false);
         let should_damage = entity.collider().touches(player.entity.collider());
 
-        const BAT_IDLE: &Tag = TAG_MAP.get("bat");
+        static BAT_IDLE: &Tag = TAG_MAP.get("bat");
 
         match &mut self.bat_state {
             BatState::Idle => {
@@ -883,7 +883,7 @@ impl BatData {
                 }
             }
             BatState::Dead => {
-                const BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
+                static BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
                 let sprite = BAT_DEAD.sprite(0);
                 let sprite = controller.sprite(sprite);
 
@@ -950,7 +950,7 @@ impl SlimeData {
                     self.sprite_offset = 0;
                 }
 
-                const IDLE: &Tag = TAG_MAP.get("slime idle");
+                static IDLE: &Tag = TAG_MAP.get("slime idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
                 let sprite = controller.sprite(sprite);
@@ -990,7 +990,7 @@ impl SlimeData {
                         sfx.slime_boing();
                     }
 
-                    const CHASE: &Tag = TAG_MAP.get("Slime jump");
+                    static CHASE: &Tag = TAG_MAP.get("Slime jump");
 
                     let sprite = CHASE.sprite(frame as usize);
                     let sprite = controller.sprite(sprite);
@@ -1021,7 +1021,7 @@ impl SlimeData {
             }
             SlimeState::Dead(count) => {
                 if *count < 5 * 4 {
-                    const DEATH: &Tag = TAG_MAP.get("Slime death");
+                    static DEATH: &Tag = TAG_MAP.get("Slime death");
                     let sprite = DEATH.sprite(*count as usize / 4);
                     let sprite = controller.sprite(sprite);
 
@@ -1074,7 +1074,7 @@ impl MiniFlameData {
 
         self.sprite_offset += 1;
 
-        const ANGRY: &Tag = TAG_MAP.get("angry boss");
+        static ANGRY: &Tag = TAG_MAP.get("angry boss");
 
         match &mut self.state {
             MiniFlameState::Idle(frames) => {
@@ -1148,7 +1148,7 @@ impl MiniFlameData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                const DEATH: &Tag = TAG_MAP.get("angry boss dead");
+                static DEATH: &Tag = TAG_MAP.get("angry boss dead");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 12);
                 let sprite = controller.sprite(sprite);
@@ -1209,7 +1209,7 @@ impl EmuData {
                     self.sprite_offset = 0;
                 }
 
-                const IDLE: &Tag = TAG_MAP.get("emu - idle");
+                static IDLE: &Tag = TAG_MAP.get("emu - idle");
 
                 let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
                 let sprite = controller.sprite(sprite);
@@ -1256,7 +1256,7 @@ impl EmuData {
                     sfx.emu_step();
                 }
 
-                const WALK: &Tag = TAG_MAP.get("emu-walk");
+                static WALK: &Tag = TAG_MAP.get("emu-walk");
 
                 let sprite = WALK.sprite(self.sprite_offset as usize / 2);
                 let sprite = controller.sprite(sprite);
@@ -1311,7 +1311,7 @@ impl EmuData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                const DEATH: &Tag = TAG_MAP.get("emu - die");
+                static DEATH: &Tag = TAG_MAP.get("emu - die");
 
                 let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 4);
                 let sprite = controller.sprite(sprite);
@@ -1345,10 +1345,10 @@ impl EnemyData {
     }
 
     fn sprite(&self) -> &'static Sprite {
-        const SLIME: &Tag = TAG_MAP.get("slime idle");
-        const BAT: &Tag = TAG_MAP.get("bat");
-        const MINI_FLAME: &Tag = TAG_MAP.get("angry boss");
-        const EMU: &Tag = TAG_MAP.get("emu - idle");
+        static SLIME: &Tag = TAG_MAP.get("slime idle");
+        static BAT: &Tag = TAG_MAP.get("bat");
+        static MINI_FLAME: &Tag = TAG_MAP.get("angry boss");
+        static EMU: &Tag = TAG_MAP.get("emu - idle");
         match self {
             EnemyData::Slime(_) => SLIME.sprite(0),
             EnemyData::Bat(_) => BAT.sprite(0),
@@ -1436,7 +1436,7 @@ impl ParticleData {
                     return UpdateInstruction::Remove;
                 }
 
-                const DUST: &Tag = TAG_MAP.get("dust");
+                static DUST: &Tag = TAG_MAP.get("dust");
                 let sprite = DUST.sprite(*frame as usize / 3);
                 let sprite = controller.sprite(sprite);
 
@@ -1450,7 +1450,7 @@ impl ParticleData {
                     return UpdateInstruction::Remove; // have played the animation 6 times
                 }
 
-                const HEALTH: &Tag = TAG_MAP.get("Heath");
+                static HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
                 let sprite = controller.sprite(sprite);
 
@@ -1476,7 +1476,7 @@ impl ParticleData {
                 UpdateInstruction::None
             }
             ParticleData::BossHealer(frame, target) => {
-                const HEALTH: &Tag = TAG_MAP.get("Heath");
+                static HEALTH: &Tag = TAG_MAP.get("Heath");
                 let sprite = HEALTH.animation_sprite(*frame as usize / 3);
                 let sprite = controller.sprite(sprite);
 
@@ -1633,7 +1633,7 @@ impl<'a> FollowingBoss<'a> {
             self.timer / 16
         };
 
-        const BOSS: &Tag = TAG_MAP.get("happy boss");
+        static BOSS: &Tag = TAG_MAP.get("happy boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
         let sprite = controller.sprite(sprite);
@@ -1766,7 +1766,7 @@ impl<'a> Boss<'a> {
         self.timer += 1;
         let frame = self.timer / animation_rate;
 
-        const BOSS: &Tag = TAG_MAP.get("Boss");
+        static BOSS: &Tag = TAG_MAP.get("Boss");
 
         let sprite = BOSS.animation_sprite(frame as usize);
         let sprite = object_controller.sprite(sprite);
@@ -2192,7 +2192,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let (background, mut vram) = gba.display.video.tiled0();
     vram.set_background_palettes(background::PALETTES);
-    let tileset = background::background.tiles;
+    let tileset = &background::background.tiles;
     let object = gba.display.object.get_managed();
 
     loop {
@@ -2204,7 +2204,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             ),
             Box::new(|pos| {
                 (
-                    &tileset,
+                    tileset,
                     background::background.tile_settings[*tilemap::BACKGROUND_MAP
                         .get((pos.x + tilemap::WIDTH * pos.y) as usize)
                         .unwrap_or(&0)
@@ -2221,7 +2221,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             ),
             Box::new(|pos| {
                 (
-                    &tileset,
+                    tileset,
                     background::background.tile_settings[*tilemap::FOREGROUND_MAP
                         .get((pos.x + tilemap::WIDTH * pos.y) as usize)
                         .unwrap_or(&0)
@@ -2238,7 +2238,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             ),
             Box::new(|pos| {
                 (
-                    &tileset,
+                    tileset,
                     background::background.tile_settings[*tilemap::CLOUD_MAP
                         .get((pos.x + tilemap::WIDTH * pos.y) as usize)
                         .unwrap_or(&0)

@@ -164,8 +164,8 @@ mod tiled_export {
             use crate::Level;
             use agb::fixnum::Vector2D;
 
-            pub const fn get_level() -> Level {{
-                Level {{
+            pub const fn get_level() -> &'static Level {{
+                &Level {{
                     background: TILEMAP,
                     foreground: BACKGROUND,
                     dimensions: Vector2D {{x: WIDTH, y: HEIGHT}},

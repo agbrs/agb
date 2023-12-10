@@ -11,14 +11,14 @@ use agb::fixnum::num;
 use agb_fixnum::Num;
 use alloc::vec::Vec;
 
-const GRAPHICS: &Graphics = agb::include_aseprite!(
+static GRAPHICS: &Graphics = agb::include_aseprite!(
     "examples/gfx/objects.aseprite",
     "examples/gfx/boss.aseprite",
     "examples/gfx/wide.aseprite",
     "examples/gfx/tall.aseprite"
 );
-const SPRITES: &[Sprite] = GRAPHICS.sprites();
-const TAG_MAP: &TagMap = GRAPHICS.tags();
+static SPRITES: &[Sprite] = GRAPHICS.sprites();
+static TAG_MAP: &TagMap = GRAPHICS.tags();
 
 fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();

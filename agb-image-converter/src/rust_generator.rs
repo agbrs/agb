@@ -31,7 +31,7 @@ pub(crate) fn generate_palette_code(
     });
 
     quote! {
-        pub const PALETTES: &[#crate_prefix::display::palette16::Palette16] = &[#(#palettes),*];
+        pub static PALETTES: &[#crate_prefix::display::palette16::Palette16] = &[#(#palettes),*];
     }
 }
 
@@ -122,7 +122,7 @@ pub(crate) fn generate_code(
 
     quote! {
         #[allow(non_upper_case_globals)]
-        pub const #output_variable_name: #crate_prefix::display::tile_data::TileData = {
+        pub static #output_variable_name: #crate_prefix::display::tile_data::TileData = {
             const _: &[u8] = include_bytes!(#image_filename);
 
             const TILE_DATA: &[u8] = {

@@ -5,18 +5,18 @@ use agb::{
 };
 use agb_tracker::{include_xm, Track, Tracker};
 
-const MUSIC: Track = include_xm!("sfx/gwilym-theme2.xm");
+static MUSIC: Track = include_xm!("sfx/gwilym-theme2.xm");
 
-const BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
-const SELECT: &[u8] = include_wav!("sfx/select.wav");
-const PLACE: &[u8] = include_wav!("sfx/place.wav");
+static BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
+static SELECT: &[u8] = include_wav!("sfx/select.wav");
+static PLACE: &[u8] = include_wav!("sfx/place.wav");
 
-const SLIME_DEATH: &[u8] = include_wav!("sfx/slime_death.wav");
-const SWORD_PICKUP: &[u8] = include_wav!("sfx/sword_pickup.wav");
-const WALL_HIT: &[u8] = include_wav!("sfx/wall_hit.wav");
-const DOOR_OPEN: &[u8] = include_wav!("sfx/door_open.wav");
+static SLIME_DEATH: &[u8] = include_wav!("sfx/slime_death.wav");
+static SWORD_PICKUP: &[u8] = include_wav!("sfx/sword_pickup.wav");
+static WALL_HIT: &[u8] = include_wav!("sfx/wall_hit.wav");
+static DOOR_OPEN: &[u8] = include_wav!("sfx/door_open.wav");
 
-const SWICTH_TOGGLES: &[&[u8]] = &[include_wav!("sfx/switch_toggle1.wav")];
+static SWICTH_TOGGLES: &[&[u8]] = &[include_wav!("sfx/switch_toggle1.wav")];
 
 pub struct Sfx<'a> {
     mixer: &'a mut Mixer<'a>,

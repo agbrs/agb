@@ -82,7 +82,7 @@ macro_rules! align_bytes {
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::{display::object::Graphics, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// static GRAPHICS: &Graphics = include_aseprite!(
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
@@ -112,7 +112,7 @@ macro_rules! include_aseprite {
 
         $crate::include_aseprite_inner!($($aseprite_path),*);
 
-        &Graphics::new(SPRITES, TAGS)
+        &Graphics::new(SPRITES, &TAGS)
     }};
 }
 
@@ -151,12 +151,12 @@ impl Graphics {
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// static GRAPHICS: &Graphics = include_aseprite!(
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
 ///
-/// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+/// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
 /// ```
 /// This being the whole animation associated with the walk sequence of the emu.
 /// See [Tag] for details on how to use this.
@@ -213,12 +213,12 @@ impl TagMap {
     /// # #![no_std]
     /// # #![no_main]
     /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-    /// const GRAPHICS: &Graphics = include_aseprite!(
+    /// static GRAPHICS: &Graphics = include_aseprite!(
     ///     "examples/gfx/boss.aseprite",
     ///     "examples/gfx/objects.aseprite"
     /// );
     ///
-    /// const EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
+    /// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
     /// ```
     ///
     /// See [Tag] for more details.
@@ -261,6 +261,8 @@ pub struct Tag {
     len: usize,
     direction: Direction,
 }
+
+unsafe impl Sync for Tag {}
 
 impl Tag {
     /// The individual sprites that make up the animation themselves.

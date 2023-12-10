@@ -15,7 +15,7 @@ extern crate alloc;
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);

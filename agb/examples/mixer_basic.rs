@@ -7,7 +7,7 @@ use agb::sound::mixer::{Frequency, SoundChannel};
 use agb::{fixnum::num, include_wav, Gba};
 
 // Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
-const DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
+static DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {

@@ -94,11 +94,11 @@ impl<'a> quote::ToTokens for Track<'a> {
 
         tokens.append_all(quote! {
             {
-                const SAMPLES: &[agb_tracker::__private::agb_tracker_interop::Sample<'static>] = &[#(#samples),*];
-                const PATTERN_DATA: &[agb_tracker::__private::agb_tracker_interop::PatternSlot] = &[#(#pattern_data),*];
-                const PATTERNS: &[agb_tracker::__private::agb_tracker_interop::Pattern] = &[#(#patterns),*];
-                const PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
-                const ENVELOPES: &[agb_tracker::__private::agb_tracker_interop::Envelope<'static>] = &[#(#envelopes),*];
+                static SAMPLES: &[agb_tracker::__private::agb_tracker_interop::Sample<'static>] = &[#(#samples),*];
+                static PATTERN_DATA: &[agb_tracker::__private::agb_tracker_interop::PatternSlot] = &[#(#pattern_data),*];
+                static PATTERNS: &[agb_tracker::__private::agb_tracker_interop::Pattern] = &[#(#patterns),*];
+                static PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
+                static ENVELOPES: &[agb_tracker::__private::agb_tracker_interop::Envelope<'static>] = &[#(#envelopes),*];
 
                 agb_tracker::Track {
                     samples: SAMPLES,
@@ -149,7 +149,7 @@ impl quote::ToTokens for Envelope<'_> {
 
         tokens.append_all(quote! {
             {
-                const AMOUNTS: &[agb_tracker::__private::Num<i16, 8>] = &[#(#amount),*];
+                static AMOUNTS: &[agb_tracker::__private::Num<i16, 8>] = &[#(#amount),*];
 
                 agb_tracker::__private::agb_tracker_interop::Envelope {
                     amount: AMOUNTS,
@@ -201,7 +201,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
                 #[repr(align(4))]
                 struct AlignmentWrapper<const N: usize>([u8; N]);
 
-                const SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
+                static SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
                 agb_tracker::__private::agb_tracker_interop::Sample {
                     data: SAMPLE_DATA,
                     should_loop: #should_loop,

@@ -49,7 +49,7 @@
 /// ```rust,ignore
 /// // module name comes from the first argument, name of the constant from the arrow
 /// mod water_tiles {
-///     pub const tiles = /* ... */;
+///     pub static tiles = /* ... */;
 /// }
 /// ```
 ///
@@ -77,7 +77,7 @@
 /// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
-/// let tileset = water_tiles::tiles.tiles;
+/// let tileset = &water_tiles::tiles.tiles;
 ///
 /// vram.set_background_palettes(water_tiles::PALETTES);
 ///
@@ -88,7 +88,7 @@
 ///         bg.set_tile(
 ///             &mut vram,
 ///             (x, y),
-///             &tileset,
+///             tileset,
 ///             water_tiles::tiles.tile_settings[0],
 ///         );
 ///     }
