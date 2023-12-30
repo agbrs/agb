@@ -193,6 +193,29 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[macro_export]
+macro_rules! register_main {
+    ($entry_point: ident) => {
+        const fn entry_point_function_is_invalid(_: fn($crate::Gba) -> !) {}
+
+        const _: () = entry_point_function_is_invalid($entry_point);
+
+        #[cfg(not(test))]
+        #[export_name = "main"]
+        pub extern "C" fn entry_point() -> ! {
+            let gba = unsafe { $crate::Gba::new_in_entry() };
+            $entry_point(gba);
+        }
+
+        #[cfg(test)]
+        #[export_name = "main"]
+        pub extern "C" fn entry_point() -> ! {
+            let gba = unsafe { $crate::Gba::new_in_entry() };
+            $crate::test_runner::agb_start_tests(gba, test_main);
+        }
+    };
+}
+
 /// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
 /// borrow checker's responsibility to ensure no clashes of global resources.
 ///
