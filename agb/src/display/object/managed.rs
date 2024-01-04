@@ -135,18 +135,85 @@ impl Store {
 ///
 /// Otherwise I'd recommend using [`OamUnmanaged`].
 pub struct OamManaged<'gba> {
-    object_store: Store,
+    object_store: OrderedStore,
     sprite_loader: UnsafeCell<SpriteLoader>,
     unmanaged: UnsafeCell<OamUnmanaged<'gba>>,
 }
 
-impl OamManaged<'_> {
-    pub(crate) fn new() -> Self {
+/// Stores a bunch of objects and manages the z ordering for you.
+///
+/// I have not benchmarked this against using rust's native [`core::alloc::Vec`]
+/// sorting every frame based on z index. In my experience this is usually fast enough.
+pub struct OrderedStore {
+    object_store: Store,
+}
+
+/// An iterator over the visible objects in the object store.
+pub struct OrderedStoreIterator<'store> {
+    iter: StoreIterator<'store>,
+}
+
+impl<'store> Iterator for OrderedStoreIterator<'store> {
+    type Item = &'store ObjectUnmanaged;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for next in self.iter.by_ref() {
+            let item = unsafe { &*next.object.get() };
+            if item.is_visible() {
+                return Some(item);
+            }
+        }
+
+        None
+    }
+}
+
+impl<'a> IntoIterator for &'a OrderedStore {
+    type Item = &'a ObjectUnmanaged;
+
+    type IntoIter = OrderedStoreIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        OrderedStoreIterator {
+            iter: unsafe { self.object_store.iter() },
+        }
+    }
+}
+
+impl OrderedStore {
+    /// Creates a new empty ordered object store.
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             object_store: Store {
                 store: UnsafeCell::new(Arena::new()),
                 first_z: Cell::new(None),
             },
+        }
+    }
+
+    /// Creates an object from the sprite in vram.
+    pub fn object(&self, sprite: SpriteVram) -> Object<'_> {
+        self.object_store
+            .insert_object(ObjectUnmanaged::new(sprite))
+    }
+
+    /// Iter over the ordered store in order
+    pub fn iter(&self) -> OrderedStoreIterator {
+        self.into_iter()
+    }
+}
+
+impl Default for OrderedStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl OamManaged<'_> {
+    pub(crate) fn new() -> Self {
+        Self {
+            object_store: OrderedStore::new(),
             sprite_loader: UnsafeCell::new(SpriteLoader::new()),
             unmanaged: UnsafeCell::new(OamUnmanaged::new()),
         }
@@ -169,13 +236,9 @@ impl OamManaged<'_> {
         // safety: commit is not reentrant
         let unmanaged = unsafe { &mut *self.unmanaged.get() };
 
-        for (object, slot) in unsafe { self.object_store.iter() }
-            .map(|item| unsafe { &*item.object.get() })
-            .filter(|object| object.is_visible())
-            .zip(unmanaged.iter())
-        {
-            slot.set(object);
-        }
+        let mut unmanaged = unmanaged.iter();
+
+        unmanaged.set(&self.object_store);
 
         // safety: not reentrant
         unsafe {
@@ -185,8 +248,7 @@ impl OamManaged<'_> {
 
     /// Creates an object from the sprite in vram.
     pub fn object(&self, sprite: SpriteVram) -> Object<'_> {
-        self.object_store
-            .insert_object(ObjectUnmanaged::new(sprite))
+        self.object_store.object(sprite)
     }
 
     /// Creates a sprite in vram from a static sprite from [`include_aseprite`][crate::include_aseprite].
@@ -500,7 +562,7 @@ mod tests {
             objects[index_to_modify].set_z(modify_to);
 
             assert!(
-                managed.object_store.is_all_ordered_right(),
+                managed.object_store.object_store.is_all_ordered_right(),
                 "objects are unordered after {} modifications. Modified {} to {}.",
                 modification_number + 1,
                 index_to_modify,
