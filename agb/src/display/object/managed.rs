@@ -142,8 +142,8 @@ pub struct OamManaged<'gba> {
 
 /// Stores a bunch of objects and manages the z ordering for you.
 ///
-/// I have not benchmarked this against using rust's native [`core::alloc::Vec`]
-/// sorting every frame based on z index. In my experience this is usually fast enough.
+/// An alternate to consider is using an arena, storing keys in a vector, and
+/// sorting that vector by key in the arena.
 pub struct OrderedStore {
     object_store: Store,
 }
