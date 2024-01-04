@@ -71,6 +71,22 @@ pub struct OamIterator<'oam> {
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
+impl OamIterator<'_> {
+    fn set_inner(&mut self, object: &ObjectUnmanaged) -> OamDisplayResult {
+        if let Some(slot) = self.next() {
+            slot.set(object);
+            OamDisplayResult::Written
+        } else {
+            OamDisplayResult::SomeNotWritten
+        }
+    }
+
+    /// Writes objects in the Renderable to slots in OAM.
+    pub fn set<R: OamDisplay>(&mut self, renderable: R) {
+        renderable.set_in(self);
+    }
+}
+
 /// A slot in Oam that you can write to. Note that you must call [OamSlot::set]
 /// or else it is a bug and will panic when dropped.
 ///
@@ -335,6 +351,53 @@ impl ObjectUnmanaged {
 
         self
     }
+}
+
+pub trait OamDisplay {
+    /// Write it to oam slots, returns whether all the writes could succeed.
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult;
+}
+
+impl OamDisplay for ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(&self)
+    }
+}
+
+impl OamDisplay for &ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(self)
+    }
+}
+
+impl OamDisplay for &mut ObjectUnmanaged {
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        oam.set_inner(self)
+    }
+}
+
+impl<T, O> OamDisplay for T
+where
+    T: IntoIterator<Item = O>,
+    O: OamDisplay,
+{
+    fn set_in(self, oam: &mut OamIterator) -> OamDisplayResult {
+        for object in self.into_iter() {
+            if matches!(object.set_in(oam), OamDisplayResult::SomeNotWritten) {
+                return OamDisplayResult::SomeNotWritten;
+            }
+        }
+
+        OamDisplayResult::Written
+    }
+}
+
+/// The result of setting on the Oam
+pub enum OamDisplayResult {
+    /// All objects were written successfully
+    Written,
+    /// Some objects were not written
+    SomeNotWritten,
 }
 
 #[cfg(test)]
