@@ -523,7 +523,6 @@ impl<'a> Player<'a> {
         let mut entity = Entity::new(object_controller, Rect::new((0, 1).into(), (5, 10).into()));
         let s = object_controller.sprite(LONG_SWORD_IDLE.sprite(0));
         entity.sprite.set_sprite(s);
-        entity.sprite.show();
         entity.position = (144, 0).into();
 
         Player {
@@ -1875,7 +1874,9 @@ impl<'a> Game<'a> {
 
         match self.move_state {
             MoveState::Advancing => {
-                self.offset += Into::<Vector2D<Number>>::into((1, 0)) / 8;
+                let difference = self.player.entity.position.x - (self.offset.x + WIDTH / 2);
+
+                self.offset.x = self.offset.x.max(self.offset.x + difference / 16);
 
                 if self.has_just_reached_end() {
                     sfx.boss();
@@ -2151,7 +2152,7 @@ impl<'a> Game<'a> {
 
     fn new(object: &'a OamManaged<'a>, level: Level<'a>, start_at_boss: bool) -> Self {
         let mut player = Player::new(object);
-        let mut offset = (8, 8).into();
+        let mut offset = (144 - WIDTH / 2, 8).into();
         if start_at_boss {
             player.entity.position = (133 * 8, 10 * 8).into();
             offset = (130 * 8, 8).into();
@@ -2249,7 +2250,7 @@ fn game_with_level(gba: &mut agb::Gba) {
         let start_pos = if start_at_boss {
             (130 * 8, 8).into()
         } else {
-            (8, 8).into()
+            (144 - WIDTH / 2, 8).into()
         };
 
         let mut game = Game::new(
