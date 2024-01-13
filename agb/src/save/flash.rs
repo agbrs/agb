@@ -243,7 +243,7 @@ static CHIP_INFO: InitOnce<&'static ChipInfo> = InitOnce::new();
 fn cached_chip_info() -> Result<&'static ChipInfo, Error> {
     CHIP_INFO
         .try_get(|| -> Result<_, Error> { Ok(FlashChipType::detect()?.chip_info()) })
-        .map(Clone::clone)
+        .cloned()
 }
 
 /// Actual implementation of the ChipInfo functions.
