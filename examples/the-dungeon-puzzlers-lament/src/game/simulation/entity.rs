@@ -1074,6 +1074,9 @@ mod tests {
         }
 
         #[derive(Debug)]
+        // allow dead code because field is unused apart from in a debug string,
+        // which is what we want to use it for.
+        #[allow(dead_code)]
         enum CompleteSimulationResult {
             Success,
             ExplicitLoss,
