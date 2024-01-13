@@ -1,49 +1,55 @@
 {
-	"folders": [
-		{
-			"path": "../agb"
-		},
-		{
-			"path": "../agb-sound-converter"
-		},
-		{
-			"path": "../agb-macros"
-		},
-		{
-			"path": "../agb-image-converter"
-		},
-		{
-			"path": "../agb-fixnum"
-		},
-		{
-			"path": "../examples/the-purple-night"
-		},
-		{
-			"path": "../examples/the-hat-chooses-the-wizard"
-		},
-		{
-			"path": "../examples/hyperspace-roll"
-		},
-		{
-			"path": "../.github"
-		},
-		{
-			"path": "../template"
-		},
-		{
-			"path": "../book"
-		},
-		{
-			"path": "../mgba-test-runner"
-		},
-		{
-			"path": "../tools"
-		},
-		{
-			"path": "../examples/combo"
-		},
-		{
-			"path": "../agb-hashmap"
-		}
-	]
+  "folders": [
+    {
+      "path": "../agb"
+    },
+    {
+      "path": "../agb-sound-converter"
+    },
+    {
+      "path": "../agb-macros"
+    },
+    {
+      "path": "../agb-image-converter"
+    },
+    {
+      "path": "../agb-fixnum"
+    },
+    {
+      "path": "../examples/the-purple-night"
+    },
+    {
+      "path": "../examples/the-hat-chooses-the-wizard"
+    },
+    {
+      "path": "../examples/hyperspace-roll"
+    },
+    {
+      "path": "../.github"
+    },
+    {
+      "path": "../template"
+    },
+    {
+      "path": "../book"
+    },
+    {
+      "path": "../mgba-test-runner"
+    },
+    {
+      "path": "../tools"
+    },
+    {
+      "path": "../examples/combo"
+    },
+    {
+      "path": "../agb-hashmap"
+    },
+    {
+      "path": "../examples/amplitude"
+    },
+    {
+      "path": "../examples/the-dungeon-puzzlers-lament"
+    }
+  ]
 }
