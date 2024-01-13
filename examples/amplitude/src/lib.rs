@@ -186,7 +186,7 @@ struct Game {
 
 enum GameState {
     Continue,
-    Loss(u32),
+    Loss,
 }
 
 impl Game {
@@ -314,7 +314,7 @@ impl Game {
             || (self.head_position.y + 1).floor() > display::HEIGHT + 4;
 
         if saw_has_hit_head || out_of_bounds_death {
-            GameState::Loss(self.alive_frames)
+            GameState::Loss
         } else {
             GameState::Continue
         }
@@ -443,7 +443,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
             game.render(oam_frame, &sprite_cache);
 
-            if let GameState::Loss(_) = state {
+            if matches!(state, GameState::Loss) {
                 for _ in 0..30 {
                     vblank.wait_for_vblank();
                 }
