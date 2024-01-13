@@ -11,6 +11,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # RUSTUP_TOOLCHAIN: ${{ !github.event.schedule && 'nightly-2023-12-01' || 'nightly' }}
+  RUSTUP_TOOLCHAIN: "nightly"
 
 jobs:
   build:
