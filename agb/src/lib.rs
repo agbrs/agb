@@ -417,11 +417,11 @@ mod test {
     }
 
     #[link_section = ".ewram"]
-    static mut EWART_TEST: u32 = 5;
+    static mut EWRAM_TEST: u32 = 5;
     #[test_case]
     fn ewram_static_test(_gba: &mut Gba) {
         unsafe {
-            let ewram_ptr = addr_of_mut!(EWART_TEST);
+            let ewram_ptr = addr_of_mut!(EWRAM_TEST);
             let content = ewram_ptr.read_volatile();
             assert_eq!(content, 5, "expected data in ewram to be 5");
             ewram_ptr.write_volatile(content + 1);
