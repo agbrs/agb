@@ -387,6 +387,8 @@ pub(crate) fn program_counter_before_interrupt() -> u32 {
 
 #[cfg(test)]
 mod test {
+    use core::ptr::addr_of_mut;
+
     use super::Gba;
 
     #[test_case]
@@ -415,11 +417,11 @@ mod test {
     }
 
     #[link_section = ".ewram"]
-    static mut EWRAM_TEST: u32 = 5;
+    static mut EWART_TEST: u32 = 5;
     #[test_case]
     fn ewram_static_test(_gba: &mut Gba) {
         unsafe {
-            let ewram_ptr = &mut EWRAM_TEST as *mut u32;
+            let ewram_ptr = addr_of_mut!(EWART_TEST);
             let content = ewram_ptr.read_volatile();
             assert_eq!(content, 5, "expected data in ewram to be 5");
             ewram_ptr.write_volatile(content + 1);
@@ -438,7 +440,7 @@ mod test {
     #[test_case]
     fn iwram_explicit_test(_gba: &mut Gba) {
         unsafe {
-            let iwram_ptr = &mut IWRAM_EXPLICIT as *mut u32;
+            let iwram_ptr = addr_of_mut!(IWRAM_EXPLICIT);
             let address = iwram_ptr as usize;
             assert!(
                 (0x0300_0000..0x0300_8000).contains(&address),
@@ -456,7 +458,7 @@ mod test {
     #[test_case]
     fn implicit_data_test(_gba: &mut Gba) {
         unsafe {
-            let iwram_ptr = &mut IMPLICIT_STORAGE as *mut u32;
+            let iwram_ptr = addr_of_mut!(IMPLICIT_STORAGE);
             let address = iwram_ptr as usize;
             assert!(
                 (0x0200_0000..0x0204_0000).contains(&address),
