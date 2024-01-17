@@ -16,5 +16,5 @@ exclude = [
 
 [build-dependencies]
 bindgen = "0.69"
-pkg-config = "0.3.28"
+pkg-config = "0.3.29"
 cmake = "0.1"
