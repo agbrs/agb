@@ -42,7 +42,9 @@ struct BackgroundGfxOption {
 
 impl config::Image for BackgroundGfxOption {
     fn filename(&self) -> String {
-        self.file_name.clone()
+        self.file_name
+            .clone()
+            .replace(OUT_DIR, &get_out_dir(&self.file_name))
     }
 
     fn colours(&self) -> Colours {
@@ -293,6 +295,8 @@ pub fn include_colours_inner(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
+    let out_dir = get_out_dir(&input.to_string());
+
     let parser = Punctuated::<LitStr, syn::Token![,]>::parse_terminated;
     let parsed = match parser.parse(input) {
         Ok(e) => e,
@@ -310,6 +314,7 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
     let filenames: Vec<PathBuf> = parsed
         .iter()
         .map(|s| s.value())
+        .map(|s| s.replace(OUT_DIR, &out_dir))
         .map(|s| Path::new(&root).join(&*s))
         .collect();
 
@@ -660,6 +665,16 @@ fn valid_sprite_size(width: u32, height: u32) -> bool {
         (16, 32) => true,
         (32, 64) => true,
         (_, _) => false,
+    }
+}
+
+const OUT_DIR: &str = "$OUT_DIR";
+
+fn get_out_dir(raw_input: &str) -> String {
+    if raw_input.contains(OUT_DIR) {
+        std::env::var("OUT_DIR").expect("Failed to get OUT_DIR")
+    } else {
+        String::new()
     }
 }
 
