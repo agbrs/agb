@@ -228,6 +228,7 @@ pub struct SoundChannel {
     should_loop: bool,
     restart_point: Num<u32, 8>,
 
+    is_playing: bool,
     playback_speed: Num<u32, 8>,
     volume: Num<i16, 8>, // between 0 and 1
 
@@ -272,6 +273,7 @@ impl SoundChannel {
             pos: 0.into(),
             should_loop: false,
             playback_speed: 1.into(),
+            is_playing: true,
             panning: 0.into(),
             is_done: false,
             priority: SoundPriority::Low,
@@ -316,6 +318,7 @@ impl SoundChannel {
             pos: 0.into(),
             should_loop: false,
             playback_speed: 1.into(),
+            is_playing: true,
             panning: 0.into(),
             is_done: false,
             priority: SoundPriority::High,
@@ -417,6 +420,20 @@ impl SoundChannel {
     #[inline]
     pub fn set_pos(&mut self, pos: impl Into<Num<u32, 8>>) -> &mut Self {
         self.pos = pos.into();
+        self
+    }
+
+    /// Pause this channel. You can resume later by using [`.resume()`](SoundChannel::resume())
+    #[inline]
+    pub fn pause(&mut self) -> &mut Self {
+        self.is_playing = false;
+        self
+    }
+
+    /// Resume a paused channel paused by [`.pause()`](SoundChannel::pause())
+    #[inline]
+    pub fn resume(&mut self) -> &mut Self {
+        self.is_playing = true;
         self
     }
 }
