@@ -414,8 +414,8 @@ impl MixerBuffer {
         working_buffer: &mut [Num<i16, 4>],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
-        let mut channels =
-            channels.filter(|channel| !channel.is_done && channel.volume != 0.into());
+        let mut channels = channels
+            .filter(|channel| !channel.is_done && channel.volume != 0.into() && channel.is_playing);
 
         if let Some(channel) = channels.next() {
             if channel.is_stereo {

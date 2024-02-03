@@ -46,6 +46,14 @@ fn main(mut gba: Gba) -> ! {
                 } else {
                     channel.volume(1);
                 }
+
+                if input.is_pressed(Button::A) {
+                    channel.resume();
+                }
+
+                if input.is_pressed(Button::B) {
+                    channel.pause();
+                }
             }
         }
 
