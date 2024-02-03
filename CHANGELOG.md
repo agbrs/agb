@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- You can now use include_aseprite and include_background_gfx to include files from the out directory using the `$OUT_DIR` token.
+
 ## [0.18.0] - 2023/10/31
 
 ### Added
