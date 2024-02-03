@@ -97,6 +97,15 @@
 /// bg.show();
 /// # }
 /// ```
+///
+/// Including from the out directory is supported through the `$OUT_DIR` token.
+///
+/// ```rust,ignore
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::include_background_gfx;
+/// include_background_gfx!(generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
+/// ```
 pub use agb_image_converter::include_background_gfx;
 
 #[doc(hidden)]
