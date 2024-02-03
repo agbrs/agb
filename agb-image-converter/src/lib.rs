@@ -171,6 +171,15 @@ impl config::Config for IncludeBackgroundGfxInput {
     }
 }
 
+/// Including from the out directory is supported through the `$OUT_DIR` token.
+///
+/// ```rust,ignore
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::include_background_gfx;
+/// include_background_gfx!(generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
+/// ```
+///
 #[proc_macro]
 pub fn include_background_gfx(input: TokenStream) -> TokenStream {
     let config = Box::new(parse_macro_input!(input as IncludeBackgroundGfxInput));

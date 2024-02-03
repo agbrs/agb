@@ -91,6 +91,17 @@ macro_rules! align_bytes {
 /// name in code. You should ensure tags are unique as this is not enforced by
 /// aseprite.
 ///
+/// Including from the out directory is supported through the `$OUT_DIR` token.
+///
+/// ```rust,ignore
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::{display::object::Graphics, include_aseprite};
+/// const GRAPHICS: &Graphics = include_aseprite!(
+///     "$OUT_DIR/generated_sprite.aseprite"
+/// );
+/// ```
+///
 #[macro_export]
 macro_rules! include_aseprite {
     ($($aseprite_path: expr),*) => {{
