@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-agb = { version = "0.18.0", path = "../../agb" }
+agb = { version = "0.18.1", path = "../../agb" }
 
 [build-dependencies]
 serde = { version = "1.0", features = ["derive"] }

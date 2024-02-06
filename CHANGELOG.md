@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2024/02/06
+
 ### Added
 - You can now use include_aseprite and include_background_gfx to include files from the out directory using the `$OUT_DIR` token.
 - Added `.pause()` and `.resume()` methods to `SoundChannels` to let you pause and resume from where you left off.
