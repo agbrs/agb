@@ -62,12 +62,6 @@ pub(super) trait BackgroundSizePrivate: BackgroundSize + Sized {
     fn tile_pos_y(&self, y: i32) -> u16 {
         ((y as u32) & (self.height() - 1)) as u16
     }
-    fn px_offset_x(&self, x: i32) -> u16 {
-        ((x as u32) & (self.width() * 8 - 1)) as u16
-    }
-    fn px_offset_y(&self, y: i32) -> u16 {
-        ((y as u32) & (self.height() * 8 - 1)) as u16
-    }
 }
 
 impl BackgroundSize for RegularBackgroundSize {
