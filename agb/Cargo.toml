@@ -21,7 +21,6 @@ agb_fixnum = { version = "0.18.1", path = "../agb-fixnum" }
 agb_hashmap = { version = "0.18.1", path = "../agb-hashmap" }
 bare-metal = "1"
 bilge = "0.2"
-rustc-hash = { version = "1", default-features = false }
 
 [package.metadata.docs.rs]
 default-target = "thumbv4t-none-eabi"
