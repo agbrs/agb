@@ -71,12 +71,6 @@ impl BlockAllocator {
         f(inner)
     }
 
-    #[doc(hidden)]
-    #[cfg(any(test, feature = "testing"))]
-    pub unsafe fn number_of_blocks(&self) -> u32 {
-        self.with_inner(|inner| inner.number_of_blocks())
-    }
-
     pub unsafe fn alloc(&self, layout: Layout) -> Option<NonNull<u8>> {
         self.with_inner(|inner| inner.alloc(layout))
     }
@@ -103,20 +97,6 @@ impl BlockAllocatorInner {
                 first_free_block: None,
             },
         }
-    }
-
-    #[doc(hidden)]
-    #[cfg(any(test, feature = "testing"))]
-    pub unsafe fn number_of_blocks(&mut self) -> u32 {
-        let mut count = 0;
-
-        let mut list_ptr = &mut self.state.first_free_block;
-        while let Some(mut current) = list_ptr {
-            count += 1;
-            list_ptr = &mut current.as_mut().next;
-        }
-
-        count
     }
 
     /// Requests a brand new block from the inner bump allocator

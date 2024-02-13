@@ -119,11 +119,6 @@ static __IWRAM_ALLOC: BlockAllocator = unsafe {
     })
 };
 
-#[cfg(any(test, feature = "testing"))]
-pub(crate) unsafe fn number_of_blocks() -> u32 {
-    GLOBAL_ALLOC.number_of_blocks()
-}
-
 fn iwram_data_end() -> usize {
     extern "C" {
         static __iwram_end: u8;
