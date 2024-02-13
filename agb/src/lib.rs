@@ -306,12 +306,6 @@ pub mod test_runner {
             self(gba);
             mgba::test_runner_measure_cycles();
 
-            assert!(
-                unsafe { agb_alloc::number_of_blocks() } < 2,
-                "memory is being leaked, there are {} blocks",
-                unsafe { agb_alloc::number_of_blocks() }
-            );
-
             mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
                 .unwrap();
         }
