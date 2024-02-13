@@ -1,10 +1,7 @@
-use core::alloc::{GlobalAlloc, Layout};
-use core::cell::RefCell;
+use core::alloc::Layout;
 use core::ptr::NonNull;
 
 use super::SendNonNull;
-use crate::interrupt::free;
-use bare_metal::Mutex;
 
 pub(crate) struct StartEnd {
     pub start: fn() -> usize,
@@ -14,10 +11,6 @@ pub(crate) struct StartEnd {
 pub(crate) struct BumpAllocatorInner {
     current_ptr: Option<SendNonNull<u8>>,
     start_end: StartEnd,
-}
-
-pub(crate) struct BumpAllocator {
-    inner: Mutex<RefCell<BumpAllocatorInner>>,
 }
 
 impl BumpAllocatorInner {
@@ -57,21 +50,4 @@ impl BumpAllocatorInner {
 
         NonNull::new(resulting_ptr as *mut _)
     }
-}
-
-impl BumpAllocator {
-    fn alloc_safe(&self, layout: Layout) -> Option<NonNull<u8>> {
-        free(|key| self.inner.borrow(key).borrow_mut().alloc(layout))
-    }
-}
-
-unsafe impl GlobalAlloc for BumpAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        match self.alloc_safe(layout) {
-            None => core::ptr::null_mut(),
-            Some(p) => p.as_ptr(),
-        }
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}
 }
