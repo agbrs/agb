@@ -140,14 +140,12 @@ static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
 ];
 
 #[no_mangle]
-extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) -> u16 {
+extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) {
     for (i, root) in unsafe { INTERRUPT_TABLE.iter().enumerate() } {
         if (1 << i) & interrupt != 0 {
             root.trigger_interrupts();
         }
     }
-
-    interrupt
 }
 
 struct InterruptInner {
@@ -223,8 +221,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 }
 
 #[must_use]
-/// Adds an interrupt handler as long as the returned value is alive. The
-/// closure takes a [`CriticalSection`] which can be used for mutexes.
+/// Adds an interrupt handler as long as the returned value is alive.
 ///
 /// # Safety
 /// * You *must not* allocate in an interrupt.
@@ -307,6 +304,27 @@ where
     r
 }
 
+pub fn interruptable<F, R>(mut f: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    let enabled = INTERRUPTS_ENABLED.get();
+
+    INTERRUPTS_ENABLED.set(1);
+
+    // prevents the contents of the function from being reordered before IME is disabled.
+    crate::sync::memory_write_hint(&mut f);
+
+    let mut r = f();
+
+    // prevents the contents of the function from being reordered after IME is re-enabled.
+    crate::sync::memory_write_hint(&mut r);
+
+    INTERRUPTS_ENABLED.set(enabled);
+
+    r
+}
+
 static NUM_VBLANKS: Static<usize> = Static::new(0); // overflows after 2.27 years
 static HAS_CREATED_INTERRUPT: Static<bool> = Static::new(false);
 
@@ -382,5 +400,65 @@ mod tests {
             Interrupt::Gamepak as usize + 1,
             "interrupt table should be able to store gamepak interrupt"
         );
+    }
+
+    #[test_case]
+    fn test_nested_interrupts(gba: &mut crate::Gba) {
+        let mut timers = gba.timers.timers();
+
+        let timer_a = &mut timers.timer2;
+        let timer_b = &mut timers.timer3;
+
+        timer_a.set_interrupt(true);
+        timer_a.set_overflow_amount(10000);
+
+        timer_b.set_interrupt(true);
+        timer_b.set_overflow_amount(15000);
+
+        static TIMER: Static<u32> = Static::new(0);
+
+        let _interrupt_1 = unsafe {
+            add_interrupt_handler(timer_a.interrupt(), || {
+                interruptable(|| while TIMER.read() == 0 {});
+
+                TIMER.write(2);
+            })
+        };
+
+        let _interrupt_2 = unsafe {
+            add_interrupt_handler(timer_b.interrupt(), || {
+                TIMER.write(1);
+            })
+        };
+
+        timer_b.set_enabled(true);
+        timer_a.set_enabled(true);
+
+        while TIMER.read() != 2 {}
+    }
+
+    #[test_case]
+    fn setup_teardown_speed(gba: &mut crate::Gba) {
+        static TIMER: Static<u32> = Static::new(0);
+        for _ in 0..100 {
+            TIMER.write(0);
+
+            let timers = gba.timers.timers();
+
+            let mut timer_a = timers.timer2;
+
+            timer_a.set_interrupt(true);
+            timer_a.set_overflow_amount(10000);
+
+            timer_a.set_enabled(true);
+
+            let _interrupt_1 = unsafe {
+                add_interrupt_handler(timer_a.interrupt(), || {
+                    TIMER.write(1);
+                })
+            };
+
+            while TIMER.read() == 0 {}
+        }
     }
 }

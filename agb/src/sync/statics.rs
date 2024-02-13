@@ -277,7 +277,7 @@ mod test {
                 let mut timer = gba.timers.timers().timer2;
                 timer.set_cascade(false);
                 timer.set_divider(Divider::Divider1);
-                timer.set_overflow_amount(1049);
+                timer.set_overflow_amount(5049);
                 timer.set_interrupt(true);
                 timer.set_enabled(true);
 
@@ -322,16 +322,43 @@ mod test {
     }
 
     #[test_case]
-    fn write_read_concurrency_test(gba: &mut Gba) {
+    fn write_read_concurrency_test_1(gba: &mut Gba) {
         generate_concurrency_test!(1, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_2(gba: &mut Gba) {
         generate_concurrency_test!(2, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_3(gba: &mut Gba) {
         generate_concurrency_test!(3, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_4(gba: &mut Gba) {
         generate_concurrency_test!(4, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_5(gba: &mut Gba) {
         generate_concurrency_test!(5, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_6(gba: &mut Gba) {
         generate_concurrency_test!(6, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_7(gba: &mut Gba) {
         generate_concurrency_test!(7, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_8(gba: &mut Gba) {
         generate_concurrency_test!(8, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_9(gba: &mut Gba) {
         generate_concurrency_test!(9, gba);
+    }
+    #[test_case]
+    fn write_read_concurrency_test_10(gba: &mut Gba) {
         generate_concurrency_test!(10, gba);
     }
 }
