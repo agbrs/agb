@@ -262,7 +262,6 @@ unsafe impl<T> Sync for Static<T> {}
 
 #[cfg(test)]
 mod test {
-    use crate::interrupt::Interrupt;
     use crate::sync::Static;
     use crate::timer::Divider;
     use crate::Gba;
@@ -282,7 +281,7 @@ mod test {
                 timer.set_enabled(true);
 
                 let _int = unsafe {
-                    crate::interrupt::add_interrupt_handler(Interrupt::Timer2, |_| {
+                    crate::interrupt::add_interrupt_handler(timer.interrupt(), || {
                         VALUE.write(SENTINEL);
                     })
                 };

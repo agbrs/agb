@@ -165,8 +165,10 @@ impl Mixer<'_> {
         let buffer_pointer_for_interrupt_handler: &MixerBuffer =
             unsafe { core::mem::transmute(buffer_pointer_for_interrupt_handler) };
         let interrupt_handler = unsafe {
-            add_interrupt_handler(interrupt_timer.interrupt(), |cs| {
-                buffer_pointer_for_interrupt_handler.swap(cs);
+            add_interrupt_handler(interrupt_timer.interrupt(), || {
+                free(|cs| {
+                    buffer_pointer_for_interrupt_handler.swap(cs);
+                });
             })
         };
 
