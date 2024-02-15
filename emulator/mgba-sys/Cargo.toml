@@ -2,12 +2,7 @@
 name = "mgba-sys"
 version = "0.1.0"
 edition = "2021"
-exclude = [
-    "mgba/doc/*",
-    "mgba/res/*",
-    "mgba/cinema/*",
-    "mgba/tools/*",
-]
+exclude = ["mgba/doc/*", "mgba/res/*", "mgba/cinema/*", "mgba/tools/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,5 +11,5 @@ exclude = [
 
 [build-dependencies]
 bindgen = "0.69"
-pkg-config = "0.3.30"
+pkg-config = "0.3"
 cmake = "0.1"
