@@ -292,9 +292,9 @@ pub(crate) fn customise_screen(
                             &mut agb.vram,
                         );
                     }
-                    descriptions_map.show();
+                    descriptions_map.set_visible(true);
                 } else {
-                    descriptions_map.hide();
+                    descriptions_map.set_visible(false);
                 }
 
                 let (x, y) = upgrade_position(cursor.upgrade);
@@ -307,7 +307,7 @@ pub(crate) fn customise_screen(
                 } else if input.is_just_pressed(Button::A)
                     && player_dice.dice[cursor.dice].faces[cursor.face] != upgrades[cursor.upgrade]
                 {
-                    descriptions_map.hide();
+                    descriptions_map.set_visible(false);
 
                     modified.push(Cursor {
                         dice: cursor.dice,
@@ -347,12 +347,12 @@ pub(crate) fn customise_screen(
         agb.obj.commit();
         descriptions_map.commit(&mut agb.vram);
         help_background.commit(&mut agb.vram);
-        help_background.show();
+        help_background.set_visible(true);
         agb.star_background.commit(&mut agb.vram);
     }
 
-    descriptions_map.hide();
-    help_background.hide();
+    descriptions_map.set_visible(false);
+    help_background.set_visible(false);
     crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
     crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
     descriptions_map.clear(&mut agb.vram);

@@ -85,12 +85,12 @@ pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sf
     background.set_scroll_pos((0i16, 0).into());
     vram.set_background_palettes(backgrounds::PALETTES);
 
-    background.hide();
+    background.set_visible(true);
 
     background.fill_with(vram, &backgrounds::title);
     background.commit(vram);
     sfx.frame();
-    background.show();
+    background.set_visible(true);
 }
 
 pub struct StarBackground<'a> {
@@ -141,13 +141,8 @@ impl<'a> StarBackground<'a> {
         self.background2.commit(vram);
     }
 
-    pub fn hide(&mut self) {
-        self.background1.hide();
-        self.background2.hide();
-    }
-
-    pub fn show(&mut self) {
-        self.background1.show();
-        self.background2.show();
+    pub fn set_visible(&mut self, visible: bool) {
+        self.background1.set_visible(visible);
+        self.background2.set_visible(visible);
     }
 }

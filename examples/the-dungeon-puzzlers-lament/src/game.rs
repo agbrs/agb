@@ -102,7 +102,7 @@ struct Construction<'a, 'b> {
 
 impl<'a, 'b> Drop for Construction<'a, 'b> {
     fn drop(&mut self) {
-        self.background.hide();
+        self.background.set_visible(false);
     }
 }
 
@@ -115,7 +115,7 @@ impl<'a, 'b> Construction<'a, 'b> {
         let game = GameState::new(level);
         game.load_level_background(background, vram_manager);
         background.commit(vram_manager);
-        background.show();
+        background.set_visible(true);
         Self { background, game }
     }
 
@@ -237,18 +237,10 @@ impl<'a, 'b> Game<'a, 'b> {
         self.phase.render(loader, oam)
     }
 
-    pub fn hide_background(&mut self) {
+    pub fn set_background_visibility(&mut self, visible: bool) {
         match &mut self.phase {
-            GamePhase::Construction(construction) => construction.background.hide(),
-            GamePhase::Execute(execute) => execute.construction.background.hide(),
-            _ => {}
-        }
-    }
-
-    pub fn show_background(&mut self) {
-        match &mut self.phase {
-            GamePhase::Construction(construction) => construction.background.show(),
-            GamePhase::Execute(execute) => execute.construction.background.show(),
+            GamePhase::Construction(construction) => construction.background.set_visible(visible),
+            GamePhase::Execute(execute) => execute.construction.background.set_visible(visible),
             _ => {}
         }
     }
@@ -408,8 +400,8 @@ impl<'a, 'b> Pausable<'a, 'b> {
         {
             self.paused = self.paused.change();
             match self.paused {
-                Paused::Paused => self.game.hide_background(),
-                Paused::Playing => self.game.show_background(),
+                Paused::Paused => self.game.set_background_visibility(false),
+                Paused::Playing => self.game.set_background_visibility(true),
             }
         }
 

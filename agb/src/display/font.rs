@@ -314,14 +314,14 @@ mod tests {
             writeln!(&mut writer, "World!").unwrap();
             writer.commit();
             bg.commit(&mut vram);
-            bg.show();
+            bg.set_visible(true);
 
             // Test writing with same renderer after showing background
             let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
             writeln!(&mut writer, "This is a font rendering example").unwrap();
             writer.commit();
             bg.commit(&mut vram);
-            bg.show();
+            bg.set_visible(true);
 
             crate::test_runner::assert_image_output("examples/font/font-test-output.png");
             renderer.clear(&mut vram);

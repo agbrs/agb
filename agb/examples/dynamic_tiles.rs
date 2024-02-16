@@ -50,7 +50,7 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     bg.commit(&mut vram);
-    bg.show();
+    bg.set_visible(true);
 
     loop {
         vblank.wait_for_vblank();

@@ -94,7 +94,7 @@
 ///     }
 /// }
 /// bg.commit(&mut vram);
-/// bg.show();
+/// bg.set_visible(true);
 /// # }
 /// ```
 ///

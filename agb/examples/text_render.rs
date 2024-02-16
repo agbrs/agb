@@ -53,7 +53,7 @@ fn main(mut gba: agb::Gba) -> ! {
     writer.commit();
 
     bg.commit(&mut vram);
-    bg.show();
+    bg.set_visible(true);
 
     let mut frame = 0;
 

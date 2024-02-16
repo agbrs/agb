@@ -39,7 +39,7 @@ fn main(mut gba: Gba) -> ! {
     writer.commit();
 
     bg.commit(&mut vram);
-    bg.show();
+    bg.set_visible(true);
 
     let timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer2;
