@@ -6,7 +6,7 @@ use super::{
 };
 
 use crate::{
-    display,
+    display::{self, Priority},
     fixnum::{Rect, Vector2D},
 };
 
@@ -69,7 +69,7 @@ use crate::{
 ///
 /// backdrop.set_pos(&mut vram, (3, 5).into());
 /// backdrop.commit(&mut vram);
-/// backdrop.show();
+/// backdrop.set_visible(true);
 /// # }
 /// ```
 pub struct InfiniteScrolledMap<'a> {
@@ -389,14 +389,32 @@ impl<'a> InfiniteScrolledMap<'a> {
         PartialUpdateStatus::Done
     }
 
-    /// Makes the map visible
-    pub fn show(&mut self) {
-        self.map.show();
+    /// Sets wether the map is visible  
+    /// Use [is_visible](Self::is_visible) to get the value
+    pub fn set_visible(&mut self, visible: bool) {
+        self.map.set_visible(visible);
     }
 
-    /// Hides the map
-    pub fn hide(&mut self) {
-        self.map.hide();
+    /// Checks whether the map is not marked as hidden  
+    /// Use [set_visible](Self::set_visible) to set the value
+    #[must_use]
+    pub fn is_visible(&self) -> bool {
+        self.map.is_visible()
+    }
+
+    /// Sets the map priority  
+    /// This require to call [commit](Self::commit) in order to apply the value  
+    /// Use [priority](Self::priority) to get the value
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.map.set_priority(priority);
+    }
+
+    /// Returns the latest map priority set  
+    /// This will only be the currently applied priority if you called [commit](Self::commit) before calling this function  
+    /// Use [set_priority](Self::set_priority) to set the value
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.map.priority()
     }
 
     /// Copies data to vram. Needs to be called during vblank if possible

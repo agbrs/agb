@@ -171,7 +171,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
             let mut score_display = NumberDisplay::new((216, 9).into());
             score_display.set_value(Some(save::load_high_score()), &agb.obj);
             agb.obj.commit();
-            agb.star_background.hide();
+            agb.star_background.set_visible(false);
 
             let mut input = agb::input::ButtonController::new();
             loop {
@@ -187,13 +187,13 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
         agb.obj.commit();
 
-        help_background.hide();
+        help_background.set_visible(false);
         help_background.clear(&mut agb.vram);
         help_background.commit(&mut agb.vram);
         agb.sfx.frame();
 
         background::load_palettes(&mut agb.vram);
-        agb.star_background.show();
+        agb.star_background.set_visible(true);
 
         loop {
             dice = customise::customise_screen(

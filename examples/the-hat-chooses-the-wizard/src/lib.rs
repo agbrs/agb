@@ -656,14 +656,9 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         }
     }
 
-    fn show_backgrounds(&mut self) {
-        self.background.background.show();
-        self.background.foreground.show();
-    }
-
-    fn hide_backgrounds(&mut self) {
-        self.background.background.hide();
-        self.background.foreground.hide();
+    fn set_backgrounds_visibility(&mut self, visible: bool) {
+        self.background.background.set_visible(visible);
+        self.background.foreground.set_visible(visible);
     }
 
     fn clear_backgrounds(&mut self, vram: &mut VRamManager) {
@@ -812,7 +807,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
     world_display.commit(&mut vram);
-    world_display.show();
+    world_display.set_visible(true);
 
     splash_screen::show_splash_screen(
         splash_screen::SplashScreen::Start,
@@ -823,7 +818,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
     loop {
         world_display.commit(&mut vram);
-        world_display.show();
+        world_display.set_visible(true);
 
         vram.set_background_palettes(tile_sheet::PALETTES);
 
@@ -850,7 +845,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             );
 
             world_display.commit(&mut vram);
-            world_display.show();
+            world_display.set_visible(true);
 
             sfx.frame();
             vblank.wait_for_vblank();
@@ -918,9 +913,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             object.commit();
 
-            level.show_backgrounds();
+            level.set_backgrounds_visibility(true);
 
-            world_display.hide();
+            world_display.set_visible(false);
 
             loop {
                 match level.update_frame(&mut sfx, &mut vram, &object) {
@@ -945,7 +940,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 object.commit();
             }
 
-            level.hide_backgrounds();
+            level.set_backgrounds_visibility(false);
             level.clear_backgrounds(&mut vram);
         }
 

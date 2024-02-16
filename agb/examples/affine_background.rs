@@ -31,7 +31,7 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     bg.commit(&mut vram);
-    bg.show();
+    bg.set_visible(true);
 
     let mut rotation = num!(0.);
     let rotation_increase: Num<i32, 16> = num!(0.01);

@@ -78,7 +78,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     bg.set_pos(&mut vram, (0, 0).into());
     bg.commit(&mut vram);
-    bg.show();
+    bg.set_visible(true);
 
     let mut position: Vector2D<Num<i32, 8>> = (0, 0).into();
     let mut game_idx = 0;
@@ -109,7 +109,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         }
     };
 
-    bg.hide();
+    bg.set_visible(false);
     bg.clear(&mut vram);
     bg.commit(&mut vram);
 

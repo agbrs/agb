@@ -98,7 +98,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     backgrounds::load_ui(&mut ui_bg, &mut vram);
 
     ui_bg.commit(&mut vram);
-    ui_bg.show();
+    ui_bg.set_visible(true);
 
     let (unmanaged, sprite_loader) = gba.display.object.get_unmanaged();
 
@@ -126,9 +126,9 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     loop {
         if current_level >= level::Level::num_levels() {
             current_level = 0;
-            ui_bg.hide();
-            level_bg.hide();
-            ending_bg.show();
+            ui_bg.set_visible(false);
+            level_bg.set_visible(false);
+            ending_bg.set_visible(true);
             loop {
                 if g.frame(
                     &mut (),
@@ -138,8 +138,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
                     break;
                 }
             }
-            ui_bg.show();
-            ending_bg.hide();
+            ui_bg.set_visible(true);
+            ending_bg.set_visible(false);
         } else {
             if current_level > maximum_level {
                 maximum_level = current_level;

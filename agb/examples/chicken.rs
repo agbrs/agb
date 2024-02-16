@@ -71,7 +71,7 @@ fn main(mut gba: agb::Gba) -> ! {
         );
     }
 
-    background.show();
+    background.set_visible(true);
     background.commit(&mut vram);
 
     let object = gba.display.object.get_managed();

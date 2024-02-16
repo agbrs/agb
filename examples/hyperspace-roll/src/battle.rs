@@ -592,11 +592,11 @@ pub(crate) fn battle_screen(
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
         help_background.commit(&mut agb.vram);
-        help_background.show();
+        help_background.set_visible(true);
 
         if current_battle_state.enemy.health == 0 {
             agb.sfx.ship_explode();
-            help_background.hide();
+            help_background.set_visible(false);
             crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
             crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
             return BattleResult::Win;
@@ -604,7 +604,7 @@ pub(crate) fn battle_screen(
 
         if current_battle_state.player.health == 0 {
             agb.sfx.ship_explode();
-            help_background.hide();
+            help_background.set_visible(false);
             crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
             crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
             return BattleResult::Loss;

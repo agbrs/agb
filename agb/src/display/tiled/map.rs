@@ -47,8 +47,8 @@ trait TiledMapPrivate: TiledMapTypes {
 /// it is 'sealed' so you cannot implement this yourself.
 pub trait TiledMap: TiledMapTypes {
     fn clear(&mut self, vram: &mut VRamManager);
-    fn show(&mut self);
-    fn hide(&mut self);
+    fn set_visible(&mut self, visible: bool);
+    fn is_visible(&self) -> bool;
     fn commit(&mut self, vram: &mut VRamManager);
     fn size(&self) -> Self::Size;
 }
@@ -70,16 +70,22 @@ where
         }
     }
 
-    fn show(&mut self) {
+    /// Sets wether the map is visible  
+    /// Use [is_visible](TiledMap::is_visible) to get the value
+    fn set_visible(&mut self, visible: bool) {
         let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode | (1 << (self.background_id() + 0x08)) as u16;
+        let new_mode = if visible {
+            mode | (1 << (self.background_id() + 0x08)) as u16
+        } else {
+            mode & !(1 << (self.background_id() + 0x08)) as u16
+        };
         DISPLAY_CONTROL.set(new_mode);
     }
 
-    fn hide(&mut self) {
-        let mode = DISPLAY_CONTROL.get();
-        let new_mode = mode & !(1 << (self.background_id() + 0x08)) as u16;
-        DISPLAY_CONTROL.set(new_mode);
+    /// Checks whether the map is not marked as hidden  
+    /// Use [set_visible](TiledMap::set_visible) to set the value
+    fn is_visible(&self) -> bool {
+        DISPLAY_CONTROL.get() & (1 << (self.background_id() + 0x08)) > 0
     }
 
     fn commit(&mut self, vram: &mut VRamManager) {
@@ -266,6 +272,21 @@ impl RegularMap {
         *self.tiles_dirty() = true;
     }
 
+    /// Returns the latest map priority set  
+    /// This will only be the currently applied priority if you called [commit](TiledMap::commit) before calling this function  
+    /// Use [set_priority](Self::set_priority) to set the value
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+
+    /// Sets the map priority  
+    /// This require to call [commit](TiledMap::commit) in order to apply the value  
+    /// Use [priority](Self::priority) to get the value
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.priority = priority;
+    }
+
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<i16> {
         self.scroll
@@ -384,6 +405,17 @@ impl AffineMap {
 
     pub fn set_transform(&mut self, transformation: impl Into<AffineMatrixBackground>) {
         self.transform = transformation.into();
+    }
+
+    // Gets the map priority
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+
+    /// Sets the map priority
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.priority = priority;
     }
 
     fn bg_affine_matrix(&self) -> MemoryMapped<AffineMatrixBackground> {

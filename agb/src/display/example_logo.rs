@@ -8,7 +8,7 @@ pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
     map.fill_with(vram, &agb_logo::test_logo);
 
     map.commit(vram);
-    map.show();
+    map.set_visible(true);
 }
 
 #[cfg(test)]

@@ -92,9 +92,9 @@ impl<'a> Level<'a> {
         foreground.commit(vram);
         clouds.commit(vram);
 
-        backdrop.show();
-        foreground.show();
-        clouds.show();
+        backdrop.set_visible(true);
+        foreground.set_visible(true);
+        clouds.set_visible(true);
 
         let slime_spawns = tilemap::SLIME_SPAWNS_X
             .iter()

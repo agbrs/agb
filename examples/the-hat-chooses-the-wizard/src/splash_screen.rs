@@ -34,7 +34,7 @@ pub fn show_splash_screen(
 
     map.commit(vram);
     vram.set_background_palettes(splash_screens::PALETTES);
-    map.show();
+    map.set_visible(true);
 
     loop {
         input.update();
@@ -51,6 +51,6 @@ pub fn show_splash_screen(
         vblank.wait_for_vblank();
     }
 
-    map.hide();
+    map.set_visible(false);
     map.clear(vram);
 }
