@@ -85,7 +85,7 @@ pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sf
     background.set_scroll_pos((0i16, 0).into());
     vram.set_background_palettes(backgrounds::PALETTES);
 
-    background.set_visible(true);
+    background.set_visible(false);
 
     background.fill_with(vram, &backgrounds::title);
     background.commit(vram);
