@@ -364,6 +364,8 @@ pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandle
 
 #[cfg(test)]
 mod tests {
+    use portable_atomic::AtomicU8;
+
     use super::*;
 
     #[test_case]
@@ -380,5 +382,15 @@ mod tests {
         critical_section::with(|_| {
             assert_eq!(INTERRUPTS_ENABLED.get(), 0);
         });
+    }
+
+    #[test_case]
+    fn atomic_check(_gba: &mut crate::Gba) {
+        static ATOMIC: AtomicU8 = AtomicU8::new(8);
+
+        for i in 0..=255 {
+            ATOMIC.store(i, Ordering::SeqCst);
+            assert_eq!(ATOMIC.load(Ordering::SeqCst), i);
+        }
     }
 }
