@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `.priority()`, `.set_priority()` and `.is_visible()` to `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
+- Added `.hflip()`, `.vflip()`, `.priority()`, `.position()` to `ObjectUnmanaged` and `Object`.
 
 ## [0.18.1] - 2024/02/06
 
