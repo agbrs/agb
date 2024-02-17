@@ -1,10 +1,10 @@
 use agb::{
     save::{Error, SaveManager},
-    sync::Static,
     Gba,
 };
+use portable_atomic::{AtomicU32, Ordering};
 
-static MAXIMUM_LEVEL: Static<u32> = Static::new(0);
+static MAXIMUM_LEVEL: AtomicU32 = AtomicU32::new(0);
 
 pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
     gba.save.init_sram();
@@ -24,9 +24,9 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
         let max_level = u32::from_le_bytes(buffer);
 
         if max_level > 100 {
-            MAXIMUM_LEVEL.write(0)
+            MAXIMUM_LEVEL.store(0, Ordering::SeqCst)
         } else {
-            MAXIMUM_LEVEL.write(max_level)
+            MAXIMUM_LEVEL.store(max_level, Ordering::SeqCst)
         }
     }
 
@@ -34,13 +34,13 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
 }
 
 pub fn load_max_level() -> u32 {
-    MAXIMUM_LEVEL.read()
+    MAXIMUM_LEVEL.load(Ordering::SeqCst)
 }
 
 pub fn save_max_level(save: &mut SaveManager, level: u32) -> Result<(), Error> {
     save.access()?
         .prepare_write(1..5)?
         .write(1, &level.to_le_bytes())?;
-    MAXIMUM_LEVEL.write(level);
+    MAXIMUM_LEVEL.store(level, Ordering::SeqCst);
     Ok(())
 }
