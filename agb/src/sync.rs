@@ -142,3 +142,28 @@ impl<'a, T> DerefMut for LockGuard<'a, T> {
 #[no_mangle]
 #[inline(always)]
 pub unsafe extern "C" fn __sync_synchronize() {}
+
+#[cfg(test)]
+mod tests {
+    use once_cell::sync::OnceCell;
+
+    #[derive(Default)]
+    #[allow(dead_code)]
+    struct Storage([u32; 16 / 4]);
+
+    #[test_case]
+    fn check_init_once(_: &mut crate::Gba) {
+        static CELL: OnceCell<Storage> = OnceCell::new();
+
+        core::hint::black_box(CELL.get_or_init(Default::default));
+    }
+
+    #[test_case]
+    fn check_init_once_many(_: &mut crate::Gba) {
+        static CELL: OnceCell<Storage> = OnceCell::new();
+
+        for _ in 0..1000 {
+            core::hint::black_box(CELL.get_or_init(Default::default));
+        }
+    }
+}
