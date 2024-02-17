@@ -395,7 +395,8 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
+    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.  
+    /// Use [hflip](Self::hflip) to get the value
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_hflip(flip) };
@@ -403,7 +404,15 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
+    /// Returns the horizontal flip
+    /// Use [set_hflip](Self::set_hflip) to set the value
+    #[must_use]
+    pub fn hflip(&self) -> bool {
+        unsafe { self.object_shared().hflip() }
+    }
+
+    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.  
+    /// Use [vflip](Self::vflip) to get the value
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_vflip(flip) };
@@ -411,12 +420,27 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the priority of the object relative to the backgrounds priority.
+    /// Returns the vertical flip
+    /// Use [set_vflip](Self::set_vflip) to set the value
+    #[must_use]
+    pub fn vflip(&self) -> bool {
+        unsafe { self.object_shared().vflip() }
+    }
+
+    /// Sets the priority of the object relative to the backgrounds priority.  
+    /// Use [priority](Self::priority) to get the value
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_priority(priority) };
 
         self
+    }
+
+    /// Returns the priority of the object  
+    /// Use [set_priority](Self::set_priority) to set the value
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        unsafe { self.object_shared().priority() }
     }
 
     /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
@@ -429,7 +453,9 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the x position of the object.
+    /// Sets the x position of the object.  
+    /// Use [x](Self::x) to get the value  
+    /// Use [set_position](Self::set_position) to set both `x` and `y`
     pub fn set_x(&mut self, x: u16) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_x(x) };
@@ -437,7 +463,16 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the y position of the object.
+    /// Returns the x position of the object  
+    /// Use [set_x](Self::set_x) to set the value
+    #[must_use]
+    pub fn x(&self) -> u16 {
+        unsafe { self.object_shared().x() }
+    }
+
+    /// Sets the y position of the object.  
+    /// Use [y](Self::y) to get the value  
+    /// Use [set_position](Self::set_position) to set both `x` and `y`
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_y(y) };
@@ -445,12 +480,27 @@ impl Object<'_> {
         self
     }
 
-    /// Sets the position of the object.
+    /// Returns the y position of the object  
+    /// Use [set_y](Self::set_y) to set the value
+    #[must_use]
+    pub fn y(&self) -> u16 {
+        unsafe { self.object_shared().y() }
+    }
+
+    /// Sets the position of the object.  
+    /// Use [position](Self::position) to get the value
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
         unsafe { self.object().set_position(position) };
 
         self
+    }
+
+    /// Returns the position of the object  
+    /// Use [set_position](Self::set_position) to set the value
+    #[must_use]
+    pub fn position(&self) -> Vector2D<i32> {
+        unsafe { self.object_shared().position() }
     }
 
     /// Sets the affine matrix. This only has an affect in Affine mode.

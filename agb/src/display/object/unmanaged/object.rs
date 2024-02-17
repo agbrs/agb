@@ -257,29 +257,53 @@ impl ObjectUnmanaged {
         self
     }
 
-    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
+    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.  
+    /// Use [hflip](Self::hflip) to get the value
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_hflip(flip);
 
         self
     }
 
-    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
+    /// Returns the horizontal flip  
+    /// Use [set_hflip](Self::set_hflip) to set the value
+    #[must_use]
+    pub fn hflip(&self) -> bool {
+        self.attributes.hflip()
+    }
+
+    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.  
+    /// Use [vflip](Self::vflip) to get the value
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_vflip(flip);
 
         self
     }
 
-    /// Sets the priority of the object relative to the backgrounds priority.
+    /// Returns the vertical flip  
+    /// Use [set_vflip](Self::set_vflip) to set the value
+    #[must_use]
+    pub fn vflip(&self) -> bool {
+        self.attributes.vflip()
+    }
+
+    /// Sets the priority of the object relative to the backgrounds priority.  
+    /// Use [priority](Self::priority) to get the value
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.attributes.set_priority(priority);
 
         self
     }
 
-    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine
-    /// modes using [`show`][ObjectUnmanaged::show] and
+    /// Returns the priority of the object  
+    /// Use [set_priority](Self::set_priority) to set the value
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.attributes.priority()
+    }
+
+    /// Changes the sprite mode to be hidden, can be changed to Normal or Affine  
+    /// modes using [`show`][ObjectUnmanaged::show] and  
     /// [`show_affine`][ObjectUnmanaged::show_affine] respectively.
     pub fn hide(&mut self) -> &mut Self {
         self.attributes.hide();
@@ -287,26 +311,52 @@ impl ObjectUnmanaged {
         self
     }
 
-    /// Sets the x position of the object.
+    /// Sets the x position of the object.  
+    /// Use [x](Self::x) to get the value  
+    /// Use [set_position](Self::set_position) to set both `x` and `y`
     pub fn set_x(&mut self, x: u16) -> &mut Self {
         self.attributes.set_x(x);
 
         self
     }
 
-    /// Sets the y position of the object.
+    /// Returns the x position of the object  
+    /// Use [set_x](Self::set_x) to set the value
+    #[must_use]
+    pub fn x(&self) -> u16 {
+        self.attributes.x()
+    }
+
+    /// Sets the y position of the object.  
+    /// Use [y](Self::y) to get the value  
+    /// Use [set_position](Self::set_position) to set both `x` and `y`
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         self.attributes.set_y(y);
 
         self
     }
 
-    /// Sets the position of the object.
+    /// Returns the y position of the object  
+    /// Use [set_y](Self::set_y) to set the value
+    #[must_use]
+    pub fn y(&self) -> u16 {
+        self.attributes.y()
+    }
+
+    /// Sets the position of the object.  
+    /// Use [position](Self::position) to get the value
     pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
         self.set_y(position.y.rem_euclid(1 << 9) as u16);
         self.set_x(position.x.rem_euclid(1 << 9) as u16);
 
         self
+    }
+
+    /// Returns the position of the object  
+    /// Use [set_position](Self::set_position) to set the value
+    #[must_use]
+    pub fn position(&self) -> Vector2D<i32> {
+        Vector2D::new(self.x() as i32, self.y() as i32)
     }
 
     /// Sets the affine matrix. This only has an affect in Affine mode.

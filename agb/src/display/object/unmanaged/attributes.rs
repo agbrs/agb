@@ -81,10 +81,18 @@ impl Attributes {
         self
     }
 
+    pub fn hflip(self) -> bool {
+        self.a1s.horizontal_flip()
+    }
+
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         self.a1s.set_vertical_flip(flip);
 
         self
+    }
+
+    pub fn vflip(self) -> bool {
+        self.a1s.vertical_flip()
     }
 
     pub fn set_x(&mut self, x: u16) -> &mut Self {
@@ -94,10 +102,18 @@ impl Attributes {
         self
     }
 
+    pub fn x(self) -> u16 {
+        u16::from(self.a1a.x())
+    }
+
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.a2.set_priority(priority);
 
         self
+    }
+
+    pub fn priority(self) -> Priority {
+        self.a2.priority()
     }
 
     pub fn hide(&mut self) -> &mut Self {
@@ -110,6 +126,10 @@ impl Attributes {
         self.a0.set_y(y as u8);
 
         self
+    }
+
+    pub fn y(self) -> u16 {
+        u16::from(self.a0.y())
     }
 
     pub fn set_palette(&mut self, palette_id: u16) -> &mut Self {
