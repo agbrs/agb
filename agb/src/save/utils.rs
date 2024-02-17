@@ -1,8 +1,10 @@
 //! A package containing useful utilities for writing save accessors.
 
 use super::Error;
-use crate::sync::{RawMutex, RawMutexGuard};
-use crate::timer::{Divider, Timer};
+use crate::{
+    sync::{RawLock, RawLockGuard},
+    timer::{Divider, Timer},
+};
 
 /// A timeout type used to prevent hardware errors in save media from hanging
 /// the game.
@@ -50,8 +52,8 @@ impl Drop for Timeout {
     }
 }
 
-pub fn lock_media_access() -> Result<RawMutexGuard<'static>, Error> {
-    static LOCK: RawMutex = RawMutex::new();
+pub fn lock_media_access() -> Result<RawLockGuard<'static>, Error> {
+    static LOCK: RawLock = RawLock::new();
     match LOCK.try_lock() {
         Some(x) => Ok(x),
         None => Err(Error::MediaInUse),

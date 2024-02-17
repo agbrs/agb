@@ -86,7 +86,7 @@
 //!   size.
 
 use crate::save::utils::Timeout;
-use crate::sync::{Mutex, RawMutexGuard};
+use crate::sync::{Lock, RawLockGuard};
 use crate::timer::Timer;
 use core::ops::Range;
 
@@ -179,7 +179,7 @@ trait RawSaveAccess: Sync {
     fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
 }
 
-static CURRENT_SAVE_ACCESS: Mutex<Option<&'static dyn RawSaveAccess>> = Mutex::new(None);
+static CURRENT_SAVE_ACCESS: Lock<Option<&'static dyn RawSaveAccess>> = Lock::new(None);
 
 fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
@@ -196,7 +196,7 @@ fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
 
 /// Allows reading and writing of save media.
 pub struct SaveData {
-    _lock: RawMutexGuard<'static>,
+    _lock: RawLockGuard<'static>,
     access: &'static dyn RawSaveAccess,
     info: &'static MediaInfo,
     timeout: utils::Timeout,
@@ -356,19 +356,19 @@ mod marker {
 
     #[inline(always)]
     pub fn emit_eeprom_marker() {
-        crate::sync::memory_read_hint(&EEPROM);
+        core::hint::black_box(&EEPROM);
     }
     #[inline(always)]
     pub fn emit_sram_marker() {
-        crate::sync::memory_read_hint(&SRAM);
+        core::hint::black_box(&SRAM);
     }
     #[inline(always)]
     pub fn emit_flash_512k_marker() {
-        crate::sync::memory_read_hint(&FLASH512K);
+        core::hint::black_box(&FLASH512K);
     }
     #[inline(always)]
     pub fn emit_flash_1m_marker() {
-        crate::sync::memory_read_hint(&FLASH1M);
+        core::hint::black_box(&FLASH1M);
     }
 }
 

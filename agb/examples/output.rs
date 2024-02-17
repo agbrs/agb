@@ -1,17 +1,17 @@
 #![no_std]
 #![no_main]
 
-use agb::sync::Static;
+use portable_atomic::{AtomicU32, Ordering};
 
-static COUNT: Static<u32> = Static::new(0);
+static COUNT: AtomicU32 = AtomicU32::new(0);
 
 #[agb::entry]
 fn main(_gba: agb::Gba) -> ! {
     let _a = unsafe {
         agb::interrupt::add_interrupt_handler(agb::interrupt::Interrupt::VBlank, |_| {
-            let cur_count = COUNT.read();
+            let cur_count = COUNT.load(Ordering::SeqCst);
             agb::println!("Hello, world, frame = {}", cur_count);
-            COUNT.write(cur_count + 1);
+            COUNT.store(cur_count + 1, Ordering::SeqCst);
         })
     };
     loop {}
