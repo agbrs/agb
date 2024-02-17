@@ -10,6 +10,7 @@ edition = "2021"
 agb = { version = "0.19.1", path = "../../agb" }
 agb_tracker = { version = "0.19.1", path = "../../tracker/agb-tracker", default-features = false, features = ["xm"] }
 slotmap = { version = "1", default-features = false }
+portable-atomic = { version = "1.6.0", default-features = false }
 
 [profile.dev]
 opt-level = 3
