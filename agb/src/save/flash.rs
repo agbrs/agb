@@ -47,8 +47,8 @@ fn issue_flash_command(c2: u8) {
 }
 
 /// A simple thing to avoid excessive bank switches
-static CURRENT_BANK: AtomicU8 = AtomicU8::new(!0);
 fn set_bank(bank: u8) -> Result<(), Error> {
+    static CURRENT_BANK: AtomicU8 = AtomicU8::new(!0);
     if bank == 0xFF {
         Err(Error::OutOfBounds)
     } else if bank != CURRENT_BANK.load(Ordering::SeqCst) {
@@ -242,9 +242,13 @@ impl FlashChipType {
     }
 }
 
-static CHIP_INFO: OnceCell<&'static ChipInfo> = OnceCell::new();
-
 fn cached_chip_info() -> Result<&'static ChipInfo, Error> {
+    static CHIP_INFO: OnceCell<&'static ChipInfo> = OnceCell::new();
+
+    for _ in 0..100 {
+        unsafe { core::arch::asm!("nop") };
+    }
+
     CHIP_INFO
         .get_or_try_init(|| -> Result<_, Error> { Ok(FlashChipType::detect()?.chip_info()) })
         .cloned()
