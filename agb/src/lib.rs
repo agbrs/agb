@@ -175,7 +175,7 @@ mod single;
 /// Implements sound output.
 pub mod sound;
 /// A module containing functions and utilities useful for synchronizing state.
-pub mod sync;
+mod sync;
 /// System BIOS calls / syscalls.
 pub mod syscall;
 /// Interactions with the internal timers

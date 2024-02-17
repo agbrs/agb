@@ -1,9 +1,10 @@
 use core::{cell::Cell, marker::PhantomPinned, pin::Pin};
 
 use alloc::boxed::Box;
-use bare_metal::CriticalSection;
+use critical_section::{CriticalSection, RawRestoreState};
+use portable_atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped, sync::Static};
+use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped};
 
 #[derive(Clone, Copy)]
 pub enum Interrupt {
@@ -234,7 +235,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// * The closure must be static because forgetting the interrupt handler would
 ///   cause a use after free.
 ///
-/// [`CriticalSection`]: bare_metal::CriticalSection
+/// [`CriticalSection`]: critical_section::CriticalSection
 ///
 /// # Examples
 ///
@@ -242,7 +243,7 @@ fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// # #![no_std]
 /// # #![no_main]
 /// # fn foo() {
-/// use bare_metal::CriticalSection;
+/// use critical_section::CriticalSection;
 /// use agb::interrupt::{add_interrupt_handler, Interrupt};
 /// // Safety: doesn't allocate
 /// let _a = unsafe {
@@ -257,7 +258,7 @@ pub unsafe fn add_interrupt_handler(
     handler: impl Fn(CriticalSection) + Send + Sync + 'static,
 ) -> InterruptHandler {
     fn do_with_inner(interrupt: Interrupt, inner: Pin<Box<InterruptInner>>) -> InterruptHandler {
-        free(|_| {
+        critical_section::with(|_| {
             let root = interrupt_to_root(interrupt);
             root.add();
             let mut c = root.next.get();
@@ -283,32 +284,23 @@ pub unsafe fn add_interrupt_handler(
     do_with_inner(interrupt, inner)
 }
 
-/// How you can access mutexes outside of interrupts by being given a
-/// [`CriticalSection`]
-///
-/// [`CriticalSection`]: bare_metal::CriticalSection
-pub fn free<F, R>(mut f: F) -> R
-where
-    F: FnOnce(CriticalSection) -> R,
-{
-    let enabled = INTERRUPTS_ENABLED.get();
+struct MyCriticalSection;
+critical_section::set_impl!(MyCriticalSection);
 
-    disable_interrupts();
+unsafe impl critical_section::Impl for MyCriticalSection {
+    unsafe fn acquire() -> RawRestoreState {
+        let irq = INTERRUPTS_ENABLED.get();
+        INTERRUPTS_ENABLED.set(0);
+        irq
+    }
 
-    // prevents the contents of the function from being reordered before IME is disabled.
-    crate::sync::memory_write_hint(&mut f);
-
-    let mut r = f(unsafe { CriticalSection::new() });
-
-    // prevents the contents of the function from being reordered after IME is re-enabled.
-    crate::sync::memory_write_hint(&mut r);
-
-    INTERRUPTS_ENABLED.set(enabled);
-    r
+    unsafe fn release(token: RawRestoreState) {
+        INTERRUPTS_ENABLED.set(token);
+    }
 }
 
-static NUM_VBLANKS: Static<usize> = Static::new(0); // overflows after 2.27 years
-static HAS_CREATED_INTERRUPT: Static<bool> = Static::new(false);
+static NUM_VBLANKS: AtomicUsize = AtomicUsize::new(0); // overflows after 2.27 years
+static HAS_CREATED_INTERRUPT: AtomicBool = AtomicBool::new(false);
 
 #[non_exhaustive]
 pub struct VBlank {
@@ -320,29 +312,28 @@ impl VBlank {
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
-        if !HAS_CREATED_INTERRUPT.read() {
+        if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
             // safety: we don't allocate in the interrupt
             let handler = unsafe {
                 add_interrupt_handler(Interrupt::VBlank, |_| {
-                    NUM_VBLANKS.write(NUM_VBLANKS.read() + 1);
+                    NUM_VBLANKS.store(NUM_VBLANKS.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
                 })
             };
             core::mem::forget(handler);
-
-            HAS_CREATED_INTERRUPT.write(true);
         }
 
         VBlank {
-            last_waited_number: Cell::new(NUM_VBLANKS.read()),
+            last_waited_number: Cell::new(NUM_VBLANKS.load(Ordering::SeqCst)),
         }
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
     pub fn wait_for_vblank(&self) {
         let last_waited_number = self.last_waited_number.get();
-        self.last_waited_number.set(NUM_VBLANKS.read() + 1);
+        self.last_waited_number
+            .set(NUM_VBLANKS.load(Ordering::SeqCst) + 1);
 
-        if last_waited_number < NUM_VBLANKS.read() {
+        if last_waited_number < NUM_VBLANKS.load(Ordering::SeqCst) {
             return;
         }
 
@@ -382,5 +373,12 @@ mod tests {
             Interrupt::Gamepak as usize + 1,
             "interrupt table should be able to store gamepak interrupt"
         );
+    }
+
+    #[test_case]
+    fn interrupts_disabled_in_critical_section(_gba: &mut crate::Gba) {
+        critical_section::with(|_| {
+            assert_eq!(INTERRUPTS_ENABLED.get(), 0);
+        });
     }
 }

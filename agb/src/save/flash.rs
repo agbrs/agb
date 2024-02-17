@@ -5,11 +5,13 @@
 
 // TODO: Setup cartridge read timings for faster Flash access.
 
+use once_cell::sync::OnceCell;
+use portable_atomic::{AtomicU8, Ordering};
+
 use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
 use crate::save::asm_utils::*;
 use crate::save::utils::Timeout;
 use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
-use crate::sync::{InitOnce, Static};
 use core::cmp;
 
 // Volatile address ports for flash
@@ -45,14 +47,14 @@ fn issue_flash_command(c2: u8) {
 }
 
 /// A simple thing to avoid excessive bank switches
-static CURRENT_BANK: Static<u8> = Static::new(!0);
+static CURRENT_BANK: AtomicU8 = AtomicU8::new(!0);
 fn set_bank(bank: u8) -> Result<(), Error> {
     if bank == 0xFF {
         Err(Error::OutOfBounds)
-    } else if bank != CURRENT_BANK.read() {
+    } else if bank != CURRENT_BANK.load(Ordering::SeqCst) {
         issue_flash_command(CMD_SET_BANK);
         FLASH_PORT_BANK.set(bank);
-        CURRENT_BANK.write(bank);
+        CURRENT_BANK.store(bank, Ordering::SeqCst);
         Ok(())
     } else {
         Ok(())
@@ -239,10 +241,12 @@ impl FlashChipType {
         }
     }
 }
-static CHIP_INFO: InitOnce<&'static ChipInfo> = InitOnce::new();
+
+static CHIP_INFO: OnceCell<&'static ChipInfo> = OnceCell::new();
+
 fn cached_chip_info() -> Result<&'static ChipInfo, Error> {
     CHIP_INFO
-        .try_get(|| -> Result<_, Error> { Ok(FlashChipType::detect()?.chip_info()) })
+        .get_or_try_init(|| -> Result<_, Error> { Ok(FlashChipType::detect()?.chip_info()) })
         .cloned()
 }
 
@@ -380,7 +384,7 @@ impl ChipInfo {
         buf: &[u8],
         timeout: &mut Timeout,
     ) -> Result<(), Error> {
-        crate::interrupt::free(|_| {
+        critical_section::with(|_| {
             issue_flash_command(CMD_WRITE);
             for i in 0..128 {
                 FLASH_DATA.set(offset + i, buf[i]);

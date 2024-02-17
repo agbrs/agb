@@ -191,7 +191,7 @@ pub(crate) fn dma3_exclusive<R>(f: impl FnOnce() -> R) -> R {
     const DMA1_CTRL_HI: MemoryMapped<u16> = unsafe { MemoryMapped::new(dma_control_addr(1) + 2) };
     const DMA2_CTRL_HI: MemoryMapped<u16> = unsafe { MemoryMapped::new(dma_control_addr(2) + 2) };
 
-    crate::interrupt::free(|_| {
+    critical_section::with(|_| {
         let dma0_ctl = DMA0_CTRL_HI.get();
         let dma1_ctl = DMA1_CTRL_HI.get();
         let dma2_ctl = DMA2_CTRL_HI.get();

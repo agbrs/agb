@@ -1,10 +1,10 @@
 use agb::save::{Error, MediaInfo};
-use agb::sync::InitOnce;
 use core::cmp;
+use once_cell::sync::OnceCell;
 
 fn init_sram(gba: &mut agb::Gba) -> &'static MediaInfo {
-    static ONCE: InitOnce<MediaInfo> = InitOnce::new();
-    ONCE.get(|| {
+    static ONCE: OnceCell<MediaInfo> = OnceCell::new();
+    ONCE.get_or_init(|| {
         crate::save_setup(gba);
         gba.save.access().unwrap().media_info().clone()
     })
