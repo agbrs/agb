@@ -1,7 +1,6 @@
 #![deny(missing_docs)]
 use crate::fixnum::Vector2D;
 use bitflags::bitflags;
-use core::convert::From;
 
 /// Tri-state enum. Allows for -1, 0 and +1.
 /// Useful if checking if the D-Pad is pointing left, right, or unpressed.

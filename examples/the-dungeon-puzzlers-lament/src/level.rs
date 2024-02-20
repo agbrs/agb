@@ -162,7 +162,6 @@ impl Level {
 
 mod levels {
     use super::*;
-    use agb::fixnum::Vector2D;
 
     include!(concat!(env!("OUT_DIR"), "/levels.rs"));
 }

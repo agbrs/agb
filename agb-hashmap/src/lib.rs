@@ -32,7 +32,6 @@ use core::{
     borrow::Borrow,
     fmt::Debug,
     hash::{BuildHasher, BuildHasherDefault, Hash},
-    iter::FromIterator,
     num::Wrapping,
     ops::Index,
 };
@@ -948,8 +947,6 @@ impl core::ops::Add<i32> for HashType {
 #[cfg(test)]
 mod test {
     use core::{cell::RefCell, hash::Hasher};
-
-    use alloc::vec::Vec;
 
     use super::*;
 

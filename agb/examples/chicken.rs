@@ -11,7 +11,6 @@ use agb::{
     },
     input::Button,
 };
-use core::convert::TryInto;
 
 #[derive(PartialEq, Eq)]
 enum State {
