@@ -77,6 +77,13 @@ use agb::{
 #[cfg(feature = "xm")]
 pub use agb_xm::include_xm;
 
+/// Import a midi file. Only available if you have the `midi` feature enabled (enabled by default).
+/// This is currently experimental, and many types of MIDI file or MIDI features are not supported.
+///
+/// Takes 2 arguments, an SF2 file and a midi file.
+#[cfg(feature = "midi")]
+pub use agb_midi::include_midi;
+
 #[doc(hidden)]
 pub mod __private {
     pub use agb::fixnum::Num;
@@ -105,6 +112,7 @@ pub struct Tracker {
 #[derive(Default)]
 struct TrackerChannel {
     channel_id: Option<ChannelId>,
+    original_speed: Num<u32, 16>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
 }
@@ -321,6 +329,7 @@ impl TrackerChannel {
         {
             if speed != 0.into() {
                 self.base_speed = speed.change_base();
+                self.original_speed = self.base_speed;
             }
 
             channel.playback(self.base_speed.change_base());
@@ -420,6 +429,12 @@ impl TrackerChannel {
                     }
 
                     channel.playback(self.base_speed.change_base());
+                }
+                PatternEffect::PitchBend(amount) => {
+                    if tick == 0 {
+                        self.base_speed = self.original_speed * amount.change_base();
+                        channel.playback(self.base_speed.change_base());
+                    }
                 }
                 // These are global effects handled below
                 PatternEffect::SetTicksPerStep(_)

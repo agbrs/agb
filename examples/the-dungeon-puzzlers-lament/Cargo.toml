@@ -8,8 +8,8 @@ edition = "2021"
 
 [dependencies]
 agb = { version = "0.18.1", path = "../../agb" }
+agb_tracker = { version = "0.18.1", path = "../../tracker/agb-tracker", default-features = false, features = ["xm"] }
 slotmap = { version = "1", default-features = false }
-agb_tracker = { version = "0.18.1", path = "../../tracker/agb-tracker" }
 
 [profile.dev]
 opt-level = 3

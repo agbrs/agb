@@ -32,7 +32,7 @@ pub struct Pattern {
     pub start_position: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PatternSlot {
     pub speed: Num<u16, 8>,
     pub sample: u16,
@@ -48,7 +48,7 @@ pub struct Envelope<'a> {
     pub loop_end: Option<usize>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum PatternEffect {
     /// Don't play an effect
     #[default]
@@ -69,6 +69,8 @@ pub enum PatternEffect {
     SetFramesPerTick(Num<u32, 8>),
     SetGlobalVolume(Num<i32, 8>),
     GlobalVolumeSlide(Num<i32, 8>),
+    /// Increase / decrease the pitch by the specified amount immediately
+    PitchBend(Num<u32, 8>),
 }
 
 #[cfg(feature = "quote")]
@@ -310,6 +312,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::GlobalVolumeSlide(amount) => {
                 let amount = amount.to_raw();
                 quote! { GlobalVolumeSlide(agb_tracker::__private::Num::from_raw(#amount)) }
+            }
+            PatternEffect::PitchBend(amount) => {
+                let amount = amount.to_raw();
+                quote! { PitchBend(agb_tracker::__private::Num::from_raw(#amount)) }
             }
         };
 
