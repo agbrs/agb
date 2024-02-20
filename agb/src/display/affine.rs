@@ -81,10 +81,7 @@
 //! # }
 //! ```
 
-use core::{
-    convert::TryFrom,
-    ops::{Mul, MulAssign},
-};
+use core::ops::{Mul, MulAssign};
 
 use agb_fixnum::{Num, Vector2D};
 

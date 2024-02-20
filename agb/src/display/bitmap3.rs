@@ -4,7 +4,7 @@ use super::{
     set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, HEIGHT, WIDTH,
 };
 
-use core::{convert::TryInto, marker::PhantomData};
+use core::marker::PhantomData;
 
 const BITMAP_MODE_3: MemoryMapped2DArray<u16, { WIDTH as usize }, { HEIGHT as usize }> =
     unsafe { MemoryMapped2DArray::new(0x600_0000) };

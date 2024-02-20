@@ -183,8 +183,6 @@ enum ColourMode {
 
 #[allow(clippy::module_inception)]
 mod attributes {
-    use crate::display::Priority;
-
     use super::*;
 
     #[bitsize(16)]
