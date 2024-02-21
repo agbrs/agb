@@ -5,6 +5,7 @@ use alloc::{slice, vec::Vec};
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::palette16,
+    dma,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
 };
@@ -422,6 +423,36 @@ impl VRamManager {
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
         }
+    }
+
+    /// The DMA register for controlling a single colour in a single background. Good for drawing gradients
+    #[must_use]
+    pub fn background_palette_colour_dma(
+        &self,
+        pal_index: usize,
+        colour_index: usize,
+    ) -> dma::DmaControllable<u16> {
+        assert!(pal_index < 16);
+        assert!(colour_index < 16);
+
+        dma::DmaControllable::new(unsafe {
+            PALETTE_BACKGROUND
+                .as_ptr()
+                .add(16 * pal_index + colour_index)
+        })
+    }
+
+    /// Sets a single colour for a given background palette. Takes effect immediately
+    pub fn set_background_palette_colour(
+        &mut self,
+        pal_index: usize,
+        colour_index: usize,
+        colour: u16,
+    ) {
+        assert!(pal_index < 16);
+        assert!(colour_index < 16);
+
+        PALETTE_BACKGROUND.set(colour_index + 16 * pal_index, colour);
     }
 
     /// Copies palettes to the background palettes without any checks.

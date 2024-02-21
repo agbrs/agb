@@ -291,8 +291,8 @@ impl RegularMap {
         self.scroll
     }
 
-    pub fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
-        self.scroll = pos;
+    pub fn set_scroll_pos(&mut self, pos: impl Into<Vector2D<i16>>) {
+        self.scroll = pos.into();
     }
 
     #[must_use]
