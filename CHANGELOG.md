@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expermental and incomplete support for MIDI files with agb-tracker.
 
 ### Change
-- Bcakground `set_scroll_pos` and `set_tile` now accepts an `impl Into<Vector2D<u16>>` rather than a `Vector<u16>`.
+- A few functions which previously accepted a `Vector<u16>` now accept an `impl Into<Vector2D<u16>>` instead.
 
 ## [0.18.1] - 2024/02/06
 
