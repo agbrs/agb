@@ -8,3 +8,4 @@ repository = "https://github.com/agbrs/agb"
 
 [dependencies]
 agb_macros = { version = "0.18.1", path = "../agb-macros" }
+num = { version = "0.4", default-features = false }

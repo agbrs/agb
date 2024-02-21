@@ -170,6 +170,39 @@ fixed_width_signed_integer_impl!(i32);
 #[repr(transparent)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
+impl<I: FixedWidthUnsignedInteger, const N: usize> num::Zero for Num<I, N> {
+    fn zero() -> Self {
+        Self::new(I::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.to_raw() == I::zero()
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> num::One for Num<I, N> {
+    fn one() -> Self {
+        Self::new(I::one())
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger + num::Num, const N: usize> num::Num for Num<I, N> {
+    type FromStrRadixErr = <f64 as num::Num>::FromStrRadixErr;
+
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        // for some reason, if I don't have this it's an error, and if I do it is unused
+        #[allow(unused_imports)]
+        use num::traits::float::FloatCore;
+
+        let v: f64 = f64::from_str_radix(str, radix)?;
+
+        let integer = v.trunc();
+        let fractional = v.fract() * (1u64 << 30) as f64;
+
+        Ok(Self::new_from_parts((integer as i32, fractional as i32)))
+    }
+}
+
 /// An often convenient representation for the Game Boy Advance using word sized
 /// internal representation for maximum efficiency
 pub type FixedNum<const N: usize> = Num<i32, N>;
@@ -1109,6 +1142,7 @@ mod tests {
 
     use super::*;
     use alloc::format;
+    use num::Num as _;
 
     #[test]
     fn formats_whole_numbers_correctly() {
@@ -1424,6 +1458,37 @@ mod tests {
                 (7, 7),
             ]
         );
+    }
+
+    #[test]
+    fn test_str_radix() {
+        use alloc::string::ToString;
+
+        macro_rules! str_radix_test {
+            ($val:tt) => {
+                assert_eq!(
+                    Num::<i32, 8>::from_str_radix(stringify!($val), 10).unwrap(),
+                    num!($val)
+                );
+            };
+            (-$val:tt) => {
+                assert_eq!(
+                    Num::<i32, 8>::from_str_radix(&("-".to_string() + stringify!($val)), 10)
+                        .unwrap(),
+                    num!(-$val)
+                );
+            };
+        }
+
+        str_radix_test!(0.1);
+        str_radix_test!(0.100000);
+        str_radix_test!(0000.1000);
+        str_radix_test!(000000.100000);
+        str_radix_test!(000000.1);
+
+        str_radix_test!(138.229);
+        str_radix_test!(-138.229);
+        str_radix_test!(-1321.229231);
     }
 
     #[cfg(not(debug_assertions))]
