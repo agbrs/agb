@@ -1,4 +1,5 @@
 use agb::display::object::{OamManaged, Object};
+use agb::fixnum::Vector2D;
 use agb::rng;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -149,7 +150,7 @@ impl<'a> BattleScreenDisplay<'a> {
                 let mut attack_obj = obj
                     .object_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack));
 
-                let attack_obj_position = (120, 56 + 32 * i).into();
+                let attack_obj_position = Vector2D::new(120, 56 + 32 * i);
                 attack_obj.set_position(attack_obj_position).hide();
 
                 let mut attack_cooldown =

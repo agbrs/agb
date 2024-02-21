@@ -489,9 +489,9 @@ impl Object<'_> {
 
     /// Sets the position of the object.  
     /// Use [position](Self::position) to get the value
-    pub fn set_position(&mut self, position: Vector2D<i32>) -> &mut Self {
+    pub fn set_position(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         // safety: only have one of these, doesn't modify slotmap
-        unsafe { self.object().set_position(position) };
+        unsafe { self.object().set_position(position.into()) };
 
         self
     }

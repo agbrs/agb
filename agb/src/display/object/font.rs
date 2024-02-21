@@ -229,11 +229,11 @@ impl BufferedRender<'_> {
 ///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
 ///     let _ = writeln!(writer, "Hello, World!");
-///     writer.layout((WIDTH, 40).into(), TextAlignment::Left, 2);
+///     writer.layout((WIDTH, 40), TextAlignment::Left, 2);
 ///
 ///     loop {
 ///         writer.next_letter_group();
-///         writer.update((0, 0).into());
+///         writer.update((0, 0));
 ///         vblank.wait_for_vblank();
 ///         let oam = &mut unmanaged.iter();
 ///         writer.commit(oam);
@@ -287,7 +287,7 @@ impl ObjectTextRender<'_> {
     /// Force a relayout, must be called after writing.
     pub fn layout(
         &mut self,
-        area: Vector2D<i32>,
+        area: impl Into<Vector2D<i32>>,
         alignment: TextAlignment,
         paragraph_spacing: i32,
     ) {
@@ -295,7 +295,7 @@ impl ObjectTextRender<'_> {
             self.buffer.font,
             &self.buffer.preprocessor,
             &LayoutSettings {
-                area,
+                area: area.into(),
                 alignment,
                 paragraph_spacing,
             },
@@ -331,7 +331,7 @@ impl ObjectTextRender<'_> {
     /// Updates the internal state of the number of letters to write and popped
     /// line. Should be called in the same frame as and after
     /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
-    pub fn update(&mut self, position: Vector2D<i32>) {
+    pub fn update(&mut self, position: impl Into<Vector2D<i32>>) {
         if !self.buffer.buffered_chars.is_empty()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
         {
@@ -339,7 +339,7 @@ impl ObjectTextRender<'_> {
         }
 
         self.layout.update_objects_to_display_at_position(
-            position,
+            position.into(),
             self.buffer.letters.letters.iter(),
             self.number_of_objects,
         );

@@ -377,11 +377,11 @@ impl AffineMap {
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
-        pos: Vector2D<u16>,
+        pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
         tile_id: u8,
     ) {
-        let pos = self.map_size().gba_offset(pos);
+        let pos = self.map_size().gba_offset(pos.into());
         let colours = self.colours();
 
         let old_tile = self.tiles_mut()[pos];

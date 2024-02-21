@@ -35,7 +35,7 @@ fn main(mut gba: agb::Gba) -> ! {
         for x in 0..30u16 {
             bg.set_tile(
                 &mut vram,
-                (x, y).into(),
+                (x, y),
                 &background_tile.tile_set(),
                 background_tile.tile_setting(),
             );
@@ -44,7 +44,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     vram.remove_dynamic_tile(background_tile);
 
-    let mut renderer = FONT.render_text((0u16, 3u16).into());
+    let mut renderer = FONT.render_text((0u16, 3u16));
     let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
     writeln!(&mut writer, "Hello, World!").unwrap();
@@ -58,7 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut frame = 0;
 
     loop {
-        let mut renderer = FONT.render_text((4u16, 0u16).into());
+        let mut renderer = FONT.render_text((4u16, 0u16));
         let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
         writeln!(&mut writer, "Frame {frame}").unwrap();

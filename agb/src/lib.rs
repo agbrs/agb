@@ -87,7 +87,7 @@
 ///     for x in 0..30u16 {
 ///         bg.set_tile(
 ///             &mut vram,
-///             (x, y).into(),
+///             (x, y),
 ///             &tileset,
 ///             water_tiles::tiles.tile_settings[0],
 ///         );
