@@ -60,7 +60,7 @@ impl Dma {
     pub unsafe fn hblank_transfer<'a, T>(
         &'a self,
         location: &DmaControllable<T>,
-        values: &[T],
+        values: &'a [T],
     ) -> DmaTransferHandle<'a, T>
     where
         T: Copy,
