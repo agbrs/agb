@@ -225,7 +225,7 @@ impl RegularMap {
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
-        pos: Vector2D<u16>,
+        pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
@@ -237,7 +237,7 @@ impl RegularMap {
             self.colours()
         );
 
-        let pos = self.map_size().gba_offset(pos);
+        let pos = self.map_size().gba_offset(pos.into());
         self.set_tile_at_pos(vram, pos, tileset, tile_setting);
     }
 

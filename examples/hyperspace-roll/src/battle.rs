@@ -489,7 +489,7 @@ pub(crate) fn battle_screen(
     agb.sfx.battle();
     agb.sfx.frame();
 
-    help_background.set_scroll_pos((-16i16, -97i16).into());
+    help_background.set_scroll_pos((-16i16, -97i16));
     crate::background::load_help_text(&mut agb.vram, help_background, 1, (0, 0));
     crate::background::load_help_text(&mut agb.vram, help_background, 2, (0, 1));
 

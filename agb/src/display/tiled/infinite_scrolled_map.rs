@@ -273,7 +273,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
                 self.map.set_tile(
                     vram,
-                    (x_idx as u16, (y_idx + copy_from as usize) as u16).into(),
+                    (x_idx as u16, (y_idx + copy_from as usize) as u16),
                     tileset,
                     tile_setting,
                 );
@@ -373,8 +373,7 @@ impl<'a> InfiniteScrolledMap<'a> {
                 (
                     size.tile_pos_x(tile_x - self.offset.x),
                     size.tile_pos_y(tile_y - self.offset.y),
-                )
-                    .into(),
+                ),
                 tileset,
                 tile_setting,
             );

@@ -30,7 +30,7 @@ pub(crate) fn load_help_text(
 
         background.set_tile(
             vram,
-            (x + at_tile.0, at_tile.1).into(),
+            (x + at_tile.0, at_tile.1),
             &help_tiledata.tiles,
             help_tiledata.tile_settings[tile_id as usize],
         )
@@ -53,7 +53,7 @@ pub(crate) fn load_description(
             let tile_id = y * 8 + x + 8 * 11 * (face_id as u16 % 10);
             descriptions_map.set_tile(
                 vram,
-                (x, y).into(),
+                (x, y),
                 &description_data.tiles,
                 description_data.tile_settings[tile_id as usize],
             )
@@ -74,15 +74,15 @@ fn create_background_map(map: &mut RegularMap, vram: &mut VRamManager, stars_til
                 backgrounds::stars.tile_settings[tile_id as usize]
             };
 
-            map.set_tile(vram, (x, y).into(), stars_tileset, tile_setting);
+            map.set_tile(vram, (x, y), stars_tileset, tile_setting);
         }
     }
 
-    map.set_scroll_pos((0i16, rng::gen().rem_euclid(8) as i16).into());
+    map.set_scroll_pos((0i16, rng::gen().rem_euclid(8) as i16));
 }
 
 pub fn show_title_screen(background: &mut RegularMap, vram: &mut VRamManager, sfx: &mut Sfx) {
-    background.set_scroll_pos((0i16, 0).into());
+    background.set_scroll_pos((0i16, 0));
     vram.set_background_palettes(backgrounds::PALETTES);
 
     background.set_visible(false);

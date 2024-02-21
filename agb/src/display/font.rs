@@ -228,7 +228,7 @@ impl<'a, 'b> TextRenderer<'b> {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
                 vram_manager,
-                (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16).into(),
+                (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16),
                 &tile.tile_set(),
                 tile.tile_setting(),
             );

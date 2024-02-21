@@ -794,7 +794,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
         for x in 0..32u16 {
             world_display.set_tile(
                 &mut vram,
-                (x, y).into(),
+                (x, y),
                 &tileset,
                 tile_sheet::background.tile_settings[level_display::BLANK],
             );

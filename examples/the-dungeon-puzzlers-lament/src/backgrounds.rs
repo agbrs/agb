@@ -26,7 +26,7 @@ pub fn load_ui(map: &mut RegularMap, vram_manager: &mut VRamManager) {
             let tile_pos = y * 30 + x;
             let tile_setting = tilemaps::UI_BACKGROUND_MAP[tile_pos as usize];
 
-            map.set_tile(vram_manager, (x, y).into(), &ui_tileset, tile_setting);
+            map.set_tile(vram_manager, (x, y), &ui_tileset, tile_setting);
         }
     }
 }
@@ -45,7 +45,7 @@ pub fn load_level_background(
             let tile_pos = y * 22 + x;
             let tile_setting = level_map[tile_pos as usize];
 
-            map.set_tile(vram_manager, (x, y).into(), &level_tileset, tile_setting);
+            map.set_tile(vram_manager, (x, y), &level_tileset, tile_setting);
         }
     }
 }

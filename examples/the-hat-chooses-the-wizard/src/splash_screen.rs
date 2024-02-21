@@ -17,7 +17,7 @@ pub fn show_splash_screen(
     map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
-    map.set_scroll_pos((0i16, 0i16).into());
+    map.set_scroll_pos((0i16, 0i16));
     let tile_data = match which {
         SplashScreen::Start => splash_screens::splash,
         SplashScreen::End => splash_screens::thanks_for_playing,

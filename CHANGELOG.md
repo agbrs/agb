@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect* examples.
 - Expermental and incomplete support for MIDI files with agb-tracker.
 
+### Change
+- Bcakground `set_scroll_pos` and `set_tile` now accepts an `impl Into<Vector2D<u16>>` rather than a `Vector<u16>`.
+
 ## [0.18.1] - 2024/02/06
 
 ### Added
