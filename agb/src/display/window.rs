@@ -2,7 +2,7 @@
 //! The window feature of the GBA.
 use core::marker::PhantomData;
 
-use crate::{fixnum::Rect, memory_mapped::MemoryMapped};
+use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
@@ -265,5 +265,15 @@ impl MovableWindow {
             (rect.size.x as u8, rect.size.y as u8).into(),
         );
         self.set_position_u8(new_rect)
+    }
+
+    /// DMA to control the horizontal position of the window. The lower 8 bits are
+    /// the left hand side, and the upper 8 bits are the right hand side.
+    ///
+    /// When you use this, you should also set the height of the window approprately using
+    /// [`set_position`](Self::set_position).
+    #[must_use]
+    pub fn horizontal_position_dma(&self) -> dma::DmaControllable<u16> {
+        dma::DmaControllable::new(unsafe { REG_HORIZONTAL_BASE.add(self.id) })
     }
 }
