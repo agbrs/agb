@@ -40,7 +40,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
             bg.set_tile(
                 &mut vram,
-                (x as u16, y as u16).into(),
+                (x as u16, y as u16),
                 &dynamic_tile.tile_set(),
                 dynamic_tile.tile_setting(),
             );

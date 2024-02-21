@@ -58,7 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let start = timer.value();
 
-    wr.layout((WIDTH, 40).into(), TextAlignment::Justify, 2);
+    wr.layout((WIDTH, 40), TextAlignment::Justify, 2);
     let end = timer.value();
 
     agb::println!(
@@ -83,7 +83,7 @@ fn main(mut gba: agb::Gba) -> ! {
             line_done = false;
             wr.pop_line();
         }
-        wr.update((0, HEIGHT - 40).into());
+        wr.update((0, HEIGHT - 40));
         let end = timer.value();
 
         frame += 1;

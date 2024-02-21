@@ -26,7 +26,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     for y in 0..32u16 {
         for x in 0..32u16 {
-            bg.set_tile(&mut vram, (x, y).into(), &tileset, 1);
+            bg.set_tile(&mut vram, (x, y), &tileset, 1);
         }
     }
 
@@ -46,14 +46,14 @@ fn main(mut gba: agb::Gba) -> ! {
         scroll_x += input.x_tri() as i32;
         scroll_y += input.y_tri() as i32;
 
-        let scroll_pos = (scroll_x, scroll_y).into();
+        let scroll_pos = (scroll_x, scroll_y);
 
         rotation += rotation_increase;
         rotation = rotation.rem_euclid(1.into());
 
         let transformation = AffineMatrixBackground::from_scale_rotation_position(
-            (0, 0).into(),
-            (1, 1).into(),
+            (0, 0),
+            (1, 1),
             rotation,
             scroll_pos,
         );

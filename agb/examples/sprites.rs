@@ -34,7 +34,7 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
             let mut obj = gfx.object_sprite(&SPRITES[0]);
             obj.set_affine_matrix(matrix.clone());
             obj.show_affine(object::AffineMode::Affine);
-            obj.set_position((x * 16 + 8, y * 16 + 8).into());
+            obj.set_position((x * 16 + 8, y * 16 + 8));
             objs.push(obj);
         }
     }
@@ -87,7 +87,7 @@ fn all_tags(gfx: &OamManaged) {
         let (size_x, size_y) = (size_x as i32, size_y as i32);
         let mut obj = gfx.object_sprite(sprite);
         obj.show();
-        obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2).into());
+        obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2));
         objs.push((obj, v));
     }
 

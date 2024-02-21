@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `.priority()`, `.set_priority()` and `.is_visible()` to `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Added `.hflip()`, `.vflip()`, `.priority()`, `.position()` to `ObjectUnmanaged` and `Object`.
+- An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect* examples.
 - Expermental and incomplete support for MIDI files with agb-tracker.
 - Fixnum now implements [`num::Num`](https://docs.rs/num/0.4/num/trait.Num.html) from the [`num`](https://crates.io/crates/num) crate.
+
+### Change
+- A few functions which previously accepted a `Vector<u16>` now accept an `impl Into<Vector2D<u16>>` instead.
 
 ## [0.18.1] - 2024/02/06
 

@@ -31,7 +31,7 @@ fn main(mut gba: Gba) -> ! {
 
     init_background(&mut bg, &mut vram);
 
-    let mut title_renderer = FONT.render_text((0u16, 3u16).into());
+    let mut title_renderer = FONT.render_text((0u16, 3u16));
     let mut writer = title_renderer.writer(1, 0, &mut bg, &mut vram);
 
     writeln!(&mut writer, "Let it in by Josh Woodward").unwrap();
@@ -55,7 +55,7 @@ fn main(mut gba: Gba) -> ! {
     let mut frame_counter = 0i32;
     let mut has_written_frame_time = false;
 
-    let mut stats_renderer = FONT.render_text((0u16, 6u16).into());
+    let mut stats_renderer = FONT.render_text((0u16, 6u16));
     loop {
         vblank_provider.wait_for_vblank();
         bg.commit(&mut vram);
@@ -94,7 +94,7 @@ fn init_background(bg: &mut RegularMap, vram: &mut VRamManager) {
         for x in 0..30u16 {
             bg.set_tile(
                 vram,
-                (x, y).into(),
+                (x, y),
                 &background_tile.tile_set(),
                 background_tile.tile_setting(),
             );

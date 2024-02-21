@@ -2,7 +2,7 @@
 //! The window feature of the GBA.
 use core::marker::PhantomData;
 
-use crate::{fixnum::Rect, memory_mapped::MemoryMapped};
+use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
@@ -32,7 +32,7 @@ pub enum WinIn {
 impl<'gba> Windows<'gba> {
     pub(crate) fn new() -> Self {
         let s = Self {
-            wins: [MovableWindow::new(), MovableWindow::new()],
+            wins: [MovableWindow::new(0), MovableWindow::new(1)],
             out: Window::new(),
             obj: Window::new(),
             phantom: PhantomData,
@@ -63,8 +63,8 @@ impl<'gba> Windows<'gba> {
     /// modify them. This should be done during vblank shortly after the wait
     /// for next vblank call.
     pub fn commit(&self) {
-        for (id, win) in self.wins.iter().enumerate() {
-            win.commit(id);
+        for win in &self.wins {
+            win.commit();
         }
         self.out.commit(2);
         self.obj.commit(3);
@@ -85,6 +85,7 @@ pub struct Window {
 pub struct MovableWindow {
     inner: Window,
     rect: Rect<u8>,
+    id: usize,
 }
 
 impl Window {
@@ -166,10 +167,11 @@ impl Window {
 }
 
 impl MovableWindow {
-    fn new() -> Self {
+    fn new(id: usize) -> Self {
         Self {
             inner: Window::new(),
             rect: Rect::new((0, 0).into(), (0, 0).into()),
+            id,
         }
     }
 
@@ -201,7 +203,7 @@ impl MovableWindow {
     /// nothing rendered and represents a 0x0 rectangle at (0, 0).
     #[inline(always)]
     pub fn reset(&mut self) -> &mut Self {
-        *self = Self::new();
+        *self = Self::new(self.id);
 
         self
     }
@@ -227,8 +229,8 @@ impl MovableWindow {
         self
     }
 
-    fn commit(&self, id: usize) {
-        self.inner.commit(id);
+    fn commit(&self) {
+        self.inner.commit(self.id);
 
         let left_right =
             (self.rect.position.x as u16) << 8 | (self.rect.position.x + self.rect.size.x) as u16;
@@ -236,8 +238,8 @@ impl MovableWindow {
         let top_bottom =
             (self.rect.position.y as u16) << 8 | (self.rect.position.y + self.rect.size.y) as u16;
         unsafe {
-            REG_HORIZONTAL_BASE.add(id).write_volatile(left_right);
-            REG_VERTICAL_BASE.add(id).write_volatile(top_bottom);
+            REG_HORIZONTAL_BASE.add(self.id).write_volatile(left_right);
+            REG_VERTICAL_BASE.add(self.id).write_volatile(top_bottom);
         }
     }
 
@@ -263,5 +265,15 @@ impl MovableWindow {
             (rect.size.x as u8, rect.size.y as u8).into(),
         );
         self.set_position_u8(new_rect)
+    }
+
+    /// DMA to control the horizontal position of the window. The lower 8 bits are
+    /// the left hand side, and the upper 8 bits are the right hand side.
+    ///
+    /// When you use this, you should also set the height of the window approprately using
+    /// [`set_position`](Self::set_position).
+    #[must_use]
+    pub fn horizontal_position_dma(&self) -> dma::DmaControllable<u16> {
+        dma::DmaControllable::new(unsafe { REG_HORIZONTAL_BASE.add(self.id) })
     }
 }

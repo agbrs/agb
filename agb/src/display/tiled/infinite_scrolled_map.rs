@@ -258,8 +258,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         let offset = self.current_pos - (x_start * 8, y_start * 8).into();
 
-        self.map
-            .set_scroll_pos((offset.x as i16, offset.y as i16).into());
+        self.map.set_scroll_pos((offset.x as i16, offset.y as i16));
         self.offset = (x_start, y_start).into();
 
         let copy_from = self.copied_up_to;
@@ -274,7 +273,7 @@ impl<'a> InfiniteScrolledMap<'a> {
 
                 self.map.set_tile(
                     vram,
-                    (x_idx as u16, (y_idx + copy_from as usize) as u16).into(),
+                    (x_idx as u16, (y_idx + copy_from as usize) as u16),
                     tileset,
                     tile_setting,
                 );
@@ -374,8 +373,7 @@ impl<'a> InfiniteScrolledMap<'a> {
                 (
                     size.tile_pos_x(tile_x - self.offset.x),
                     size.tile_pos_y(tile_y - self.offset.y),
-                )
-                    .into(),
+                ),
                 tileset,
                 tile_setting,
             );

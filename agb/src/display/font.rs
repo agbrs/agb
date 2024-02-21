@@ -78,12 +78,12 @@ impl Font {
 impl Font {
     #[must_use]
     /// Create renderer starting at the given tile co-ordinates.
-    pub fn render_text(&self, tile_pos: Vector2D<u16>) -> TextRenderer<'_> {
+    pub fn render_text(&self, tile_pos: impl Into<Vector2D<u16>>) -> TextRenderer<'_> {
         TextRenderer {
             current_x_pos: 0,
             current_y_pos: 0,
             font: self,
-            tile_pos,
+            tile_pos: tile_pos.into(),
             tiles: Default::default(),
         }
     }
@@ -228,7 +228,7 @@ impl<'a, 'b> TextRenderer<'b> {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
                 vram_manager,
-                (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16).into(),
+                (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16),
                 &tile.tile_set(),
                 tile.tile_setting(),
             );
@@ -292,7 +292,7 @@ mod tests {
             for x in 0..30u16 {
                 bg.set_tile(
                     &mut vram,
-                    (x, y).into(),
+                    (x, y),
                     &background_tile.tile_set(),
                     background_tile.tile_setting(),
                 );
@@ -301,7 +301,7 @@ mod tests {
 
         vram.remove_dynamic_tile(background_tile);
 
-        let mut renderer = FONT.render_text((0u16, 3u16).into());
+        let mut renderer = FONT.render_text((0u16, 3u16));
 
         // Test twice to ensure that clearing works
         for _ in 0..2 {

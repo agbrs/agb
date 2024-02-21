@@ -5,7 +5,7 @@ use crate::bitarray::Bitarray;
 use crate::display::affine::AffineMatrixBackground;
 use crate::display::tile_data::TileData;
 use crate::display::{Priority, DISPLAY_CONTROL};
-use crate::dma::dma_copy16;
+use crate::dma;
 use crate::fixnum::Vector2D;
 use crate::memory_mapped::MemoryMapped;
 
@@ -93,9 +93,8 @@ where
 
         if *self.tiles_dirty() {
             unsafe {
-                dma_copy16(
+                screenblock_memory.copy_from(
                     self.tiles_mut().as_ptr() as *const u16,
-                    screenblock_memory,
                     self.map_size().num_tiles(),
                 );
             }
@@ -226,7 +225,7 @@ impl RegularMap {
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
-        pos: Vector2D<u16>,
+        pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
@@ -238,7 +237,7 @@ impl RegularMap {
             self.colours()
         );
 
-        let pos = self.map_size().gba_offset(pos);
+        let pos = self.map_size().gba_offset(pos.into());
         self.set_tile_at_pos(vram, pos, tileset, tile_setting);
     }
 
@@ -292,8 +291,13 @@ impl RegularMap {
         self.scroll
     }
 
-    pub fn set_scroll_pos(&mut self, pos: Vector2D<i16>) {
-        self.scroll = pos;
+    pub fn set_scroll_pos(&mut self, pos: impl Into<Vector2D<i16>>) {
+        self.scroll = pos.into();
+    }
+
+    #[must_use]
+    pub fn x_scroll_dma(&self) -> dma::DmaControllable<i16> {
+        dma::DmaControllable::new(self.x_register().as_ptr())
     }
 
     fn x_register(&self) -> MemoryMapped<i16> {
@@ -373,11 +377,11 @@ impl AffineMap {
     pub fn set_tile(
         &mut self,
         vram: &mut VRamManager,
-        pos: Vector2D<u16>,
+        pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
         tile_id: u8,
     ) {
-        let pos = self.map_size().gba_offset(pos);
+        let pos = self.map_size().gba_offset(pos.into());
         let colours = self.colours();
 
         let old_tile = self.tiles_mut()[pos];

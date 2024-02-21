@@ -28,8 +28,8 @@ pub fn write_level(
     .iter()
     .enumerate()
     {
-        map.set_tile(vram, (i as u16, 0).into(), tileset, tile_settings[tile]);
+        map.set_tile(vram, (i as u16, 0), tileset, tile_settings[tile]);
     }
 
-    map.set_scroll_pos((-(WIDTH / 2 - 7 * 8 / 2) as i16, -(HEIGHT / 2 - 4) as i16).into());
+    map.set_scroll_pos((-(WIDTH / 2 - 7 * 8 / 2) as i16, -(HEIGHT / 2 - 4) as i16));
 }

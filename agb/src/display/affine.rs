@@ -295,15 +295,15 @@ impl AffineMatrixBackground {
     /// # }
     /// ```
     pub fn from_scale_rotation_position(
-        transform_origin: Vector2D<Num<i32, 8>>,
-        scale: Vector2D<Num<i32, 8>>,
+        transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
+        scale: impl Into<Vector2D<Num<i32, 8>>>,
         rotation: Num<i32, 16>,
-        position: Vector2D<Num<i32, 8>>,
+        position: impl Into<Vector2D<Num<i32, 8>>>,
     ) -> Self {
         crate::syscall::bg_affine_matrix(
-            transform_origin,
-            position.try_change_base::<i16, 8>().unwrap().floor(),
-            scale.try_change_base().unwrap(),
+            transform_origin.into(),
+            position.into().try_change_base::<i16, 8>().unwrap().floor(),
+            scale.into().try_change_base().unwrap(),
             rotation.rem_euclid(1.into()).try_change_base().unwrap(),
         )
     }

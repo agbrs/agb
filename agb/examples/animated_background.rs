@@ -30,7 +30,7 @@ fn main(mut gba: agb::Gba) -> ! {
         for x in 0..30u16 {
             bg.set_tile(
                 &mut vram,
-                (x, y).into(),
+                (x, y),
                 &tileset,
                 water_tiles::water_tiles.tile_settings[0],
             );

@@ -64,7 +64,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let i = i as u16;
         background.set_tile(
             &mut vram,
-            (i % 32, i / 32).into(),
+            (i % 32, i / 32),
             &tileset,
             TileSetting::from_raw(tile),
         );
