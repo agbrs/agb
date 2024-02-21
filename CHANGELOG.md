@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Added `.hflip()`, `.vflip()`, `.priority()`, `.position()` to `ObjectUnmanaged` and `Object`.
 - Expermental and incomplete support for MIDI files with agb-tracker.
+- Fixnum now implements [`num::Num`](https://docs.rs/num/0.4/num/trait.Num.html) from the [`num`](https://crates.io/crates/num) crate.
 
 ## [0.18.1] - 2024/02/06
 
