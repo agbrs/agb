@@ -73,8 +73,10 @@ impl Dma {
 
         let n_transfers = (size_of::<T>() / 2) as u32;
 
-        self.source_addr.set(handle.data.as_ptr() as u32);
+        self.source_addr.set(handle.data.as_ptr().add(1) as u32);
         self.dest_addr.set(location.memory_location as u32);
+
+        location.memory_location.write_volatile(values[0]);
 
         self.ctrl_addr.set(
             (0b10 << 0x15) | // keep destination address fixed
