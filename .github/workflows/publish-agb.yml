@@ -19,7 +19,7 @@ jobs:
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATE_API }}
 
-      - uses: extractions/setup-just@v1
+      - uses: extractions/setup-just@v2
 
       - name: Publish crates
         run: just publish
