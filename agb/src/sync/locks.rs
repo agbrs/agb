@@ -60,6 +60,12 @@ impl RawMutex {
 unsafe impl Send for RawMutex {}
 unsafe impl Sync for RawMutex {}
 
+impl Default for RawMutex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A guard representing an active lock on an [`RawMutex`].
 pub struct RawMutexGuard<'a>(&'a RawMutex);
 impl<'a> Drop for RawMutexGuard<'a> {
