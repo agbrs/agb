@@ -52,6 +52,12 @@ impl RandomNumberGenerator {
     }
 }
 
+impl Default for RandomNumberGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 static GLOBAL_RNG: Mutex<RefCell<RandomNumberGenerator>> =
     Mutex::new(RefCell::new(RandomNumberGenerator::new()));
 

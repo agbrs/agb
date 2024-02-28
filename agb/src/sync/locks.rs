@@ -60,6 +60,12 @@ impl RawMutex {
 unsafe impl Send for RawMutex {}
 unsafe impl Sync for RawMutex {}
 
+impl Default for RawMutex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A guard representing an active lock on an [`RawMutex`].
 pub struct RawMutexGuard<'a>(&'a RawMutex);
 impl<'a> Drop for RawMutexGuard<'a> {
@@ -136,6 +142,7 @@ pub struct InitOnce<T> {
     is_initialized: Static<bool>,
     value: UnsafeCell<MaybeUninit<T>>,
 }
+
 impl<T> InitOnce<T> {
     /// Creates a new uninitialized object.
     #[must_use]
@@ -195,6 +202,13 @@ impl<T> InitOnce<T> {
         }
     }
 }
+
+impl<T> Default for InitOnce<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Drop for InitOnce<T> {
     fn drop(&mut self) {
         if self.is_initialized.read() {
