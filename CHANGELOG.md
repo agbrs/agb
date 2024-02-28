@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect* examples.
 - Expermental and incomplete support for MIDI files with agb-tracker.
 - Fixnum now implements [`num::Num`](https://docs.rs/num/0.4/num/trait.Num.html) from the [`num`](https://crates.io/crates/num) crate.
-- `Default` implementations for `RandomNumberGenerator` and `RawMutex`.
+- `Default` implementations for `RandomNumberGenerator`, `InitOnce` and `RawMutex`.
 
 ### Change
 - A few functions which previously accepted a `Vector<u16>` now accept an `impl Into<Vector2D<u16>>` instead.
