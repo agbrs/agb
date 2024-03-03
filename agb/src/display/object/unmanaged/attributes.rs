@@ -75,6 +75,12 @@ impl Attributes {
         self
     }
 
+    pub fn set_graphics_mode(&mut self, graphics_mode: GraphicsMode) -> &mut Self {
+        self.a0.set_graphics_mode(graphics_mode);
+
+        self
+    }
+
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         self.a1s.set_horizontal_flip(flip);
 
@@ -166,7 +172,7 @@ enum ObjectMode {
 
 #[bitsize(2)]
 #[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
-enum GraphicsMode {
+pub enum GraphicsMode {
     #[default]
     Normal,
     AlphaBlending,
