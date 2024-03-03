@@ -11,12 +11,12 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-image = { version = "0.23", default-features = false, features = [
+image = { version = "0.24", default-features = false, features = [
     "png",
     "bmp",
 ] }
 syn = { version = "2", features = ["proc-macro", "parsing"] }
 proc-macro2 = "1"
 quote = "1"
-asefile = "0.3.6"
+asefile = "0.3.7"
 fontdue = "0.8"
