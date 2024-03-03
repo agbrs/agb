@@ -22,7 +22,6 @@ mod palette16;
 mod palette256;
 mod rust_generator;
 
-use image::GenericImageView;
 use image_loader::Image;
 
 use colour::Colour;
