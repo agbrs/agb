@@ -306,15 +306,18 @@ impl<'a> InfiniteScrolledMap<'a> {
 
         self.current_pos = new_pos;
 
+        let old_tile_x = div_floor(old_pos.x, 8);
+        let old_tile_y = div_floor(old_pos.y, 8);
+
         let new_tile_x = div_floor(new_pos.x, 8);
         let new_tile_y = div_floor(new_pos.y, 8);
 
-        let difference_tile_x = div_ceil(difference.x, 8);
-        let difference_tile_y = div_ceil(difference.y, 8);
+        let difference_tile_x = new_tile_x - old_tile_x;
+        let difference_tile_y = new_tile_y - old_tile_y;
 
         let size = self.map.size();
 
-        let vertical_rect_to_update: Rect<i32> = if div_floor(old_pos.x, 8) != new_tile_x {
+        let vertical_rect_to_update: Rect<i32> = if difference_tile_x != 0 {
             // need to update the x line
             // calculate which direction we need to update
             let direction = difference.x.signum();
@@ -332,13 +335,14 @@ impl<'a> InfiniteScrolledMap<'a> {
 
             Rect::new(
                 (line_to_update, new_tile_y - 1).into(),
-                (difference_tile_x, y_tiles_to_update).into(),
+                (-difference_tile_x, y_tiles_to_update).into(),
             )
+            .abs()
         } else {
             Rect::new((0i32, 0).into(), (0i32, 0).into())
         };
 
-        let horizontal_rect_to_update: Rect<i32> = if div_floor(old_pos.y, 8) != new_tile_y {
+        let horizontal_rect_to_update: Rect<i32> = if difference_tile_y != 0 {
             // need to update the y line
             // calculate which direction we need to update
             let direction = difference.y.signum();
@@ -356,8 +360,9 @@ impl<'a> InfiniteScrolledMap<'a> {
 
             Rect::new(
                 (new_tile_x - 1, line_to_update).into(),
-                (x_tiles_to_update, difference_tile_y).into(),
+                (x_tiles_to_update, -difference_tile_y).into(),
             )
+            .abs()
         } else {
             Rect::new((0i32, 0).into(), (0i32, 0).into())
         };
