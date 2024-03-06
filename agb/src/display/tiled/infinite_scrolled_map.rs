@@ -330,7 +330,7 @@ impl<'a> InfiniteScrolledMap<'a> {
                 new_tile_x
             } else {
                 // moving to the right, so need to update the right most position
-                new_tile_x + 30 // TODO is this correct?
+                new_tile_x + 31 // TODO is this correct?
             };
 
             Rect::new(
@@ -355,7 +355,7 @@ impl<'a> InfiniteScrolledMap<'a> {
                 new_tile_y
             } else {
                 // moving down so need to update the bottom
-                new_tile_y + 20 // TODO is this correct?
+                new_tile_y + 21 // TODO is this correct?
             };
 
             Rect::new(
