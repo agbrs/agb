@@ -16,7 +16,7 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "agb"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb_fixnum",
  "agb_hashmap",
@@ -30,7 +30,7 @@ dependencies = [
 
 [[package]]
 name = "agb_fixnum"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb_macros",
  "num",
@@ -38,14 +38,14 @@ dependencies = [
 
 [[package]]
 name = "agb_hashmap"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "rustc-hash",
 ]
 
 [[package]]
 name = "agb_image_converter"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "asefile",
  "fontdue",
@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "agb_macros"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -66,7 +66,7 @@ dependencies = [
 
 [[package]]
 name = "agb_sound_converter"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "hound",
  "proc-macro2",
@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "agb_tracker"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb",
  "agb_tracker_interop",
@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "agb_tracker_interop"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb_fixnum",
  "proc-macro2",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "agb_xm"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb_xm_core",
  "proc-macro-error",
@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "agb_xm_core"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "agb_fixnum",
  "agb_tracker_interop",

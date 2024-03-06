@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.1] - 2024/03/06
+
 ### Added
 
 - `.abs()` on `Vector2D` and `Rect`
