@@ -11,6 +11,7 @@ use core::{
         Sub, SubAssign,
     },
 };
+use num_traits::Signed;
 
 #[doc(hidden)]
 /// Used internally by the [num!] macro which should be used instead.
@@ -32,49 +33,25 @@ macro_rules! num {
 
 /// A trait for everything required to use as the internal representation of the
 /// fixed point number.
-pub trait Number:
-    Sized
-    + Copy
-    + PartialOrd
-    + Ord
-    + PartialEq
-    + Eq
-    + Add<Output = Self>
-    + Sub<Output = Self>
-    + Rem<Output = Self>
-    + Div<Output = Self>
-    + Mul<Output = Self>
-{
-}
+pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
 impl<I: FixedWidthUnsignedInteger> Number for I {}
 
 /// A trait for integers that don't implement unary negation
 pub trait FixedWidthUnsignedInteger:
-    Sized
-    + Copy
+    Copy
     + PartialOrd
     + Ord
-    + PartialEq
-    + Eq
     + Shl<usize, Output = Self>
     + Shr<usize, Output = Self>
-    + Add<Output = Self>
-    + Sub<Output = Self>
-    + Not<Output = Self>
     + BitAnd<Output = Self>
-    + Rem<Output = Self>
-    + Div<Output = Self>
-    + Mul<Output = Self>
     + From<u8>
     + Debug
     + Display
+    + num_traits::Num
+    + Not<Output = Self>
 {
-    /// Returns the representation of zero
-    fn zero() -> Self;
-    /// Returns the representation of one
-    fn one() -> Self;
     /// Returns the representation of ten
     fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
@@ -84,23 +61,13 @@ pub trait FixedWidthUnsignedInteger:
 }
 
 /// Trait for an integer that includes negation
-pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Neg<Output = Self> {
-    #[must_use]
-    /// Returns the absolute value of the number
-    fn fixed_abs(self) -> Self;
-}
+pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + num_traits::sign::Signed {}
+
+impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
 
 macro_rules! fixed_width_unsigned_integer_impl {
     ($T: ty, $Upcast: ident) => {
         impl FixedWidthUnsignedInteger for $T {
-            #[inline(always)]
-            fn zero() -> Self {
-                0
-            }
-            #[inline(always)]
-            fn one() -> Self {
-                1
-            }
             #[inline(always)]
             fn ten() -> Self {
                 10
@@ -119,6 +86,8 @@ macro_rules! upcast_multiply_impl {
     ($T: ty, optimised_64_bit) => {
         #[inline(always)]
         fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            use num_traits::One;
+
             let mask = (Self::one() << n).wrapping_sub(1);
 
             let a_floor = a >> n;
@@ -144,17 +113,6 @@ macro_rules! upcast_multiply_impl {
     };
 }
 
-macro_rules! fixed_width_signed_integer_impl {
-    ($T: ty) => {
-        impl FixedWidthSignedInteger for $T {
-            #[inline(always)]
-            fn fixed_abs(self) -> Self {
-                self.abs()
-            }
-        }
-    };
-}
-
 fixed_width_unsigned_integer_impl!(u8, u32);
 fixed_width_unsigned_integer_impl!(i16, i32);
 fixed_width_unsigned_integer_impl!(u16, u32);
@@ -162,15 +120,12 @@ fixed_width_unsigned_integer_impl!(u16, u32);
 fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
 fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
 
-fixed_width_signed_integer_impl!(i16);
-fixed_width_signed_integer_impl!(i32);
-
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num::Zero for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N> {
     fn zero() -> Self {
         Self::new(I::zero())
     }
@@ -180,19 +135,19 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> num::Zero for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num::One for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::One for Num<I, N> {
     fn one() -> Self {
         Self::new(I::one())
     }
 }
 
-impl<I: FixedWidthUnsignedInteger + num::Num, const N: usize> num::Num for Num<I, N> {
-    type FromStrRadixErr = <f64 as num::Num>::FromStrRadixErr;
+impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
+    type FromStrRadixErr = <f64 as num_traits::Num>::FromStrRadixErr;
 
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         // for some reason, if I don't have this it's an error, and if I do it is unused
         #[allow(unused_imports)]
-        use num::traits::float::FloatCore;
+        use num_traits::float::FloatCore;
 
         let v: f64 = f64::from_str_radix(str, radix)?;
 
@@ -546,7 +501,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     /// assert_eq!(n.abs(), num!(5.5));
     /// ```
     pub fn abs(self) -> Self {
-        Num(self.0.fixed_abs())
+        Num(self.0.abs())
     }
 
     /// Calculates the cosine of a fixed point number with the domain of [0, 1].
@@ -592,6 +547,28 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         let one: Self = I::one().into();
         let four: I = 4.into();
         (self - one / four).cos()
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> num_traits::sign::Signed for Num<I, N> {
+    fn abs(&self) -> Self {
+        Self::abs(*self)
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        Self(self.0.abs_sub(&other.0))
+    }
+
+    fn signum(&self) -> Self {
+        Self(self.0.signum())
+    }
+
+    fn is_positive(&self) -> bool {
+        self.0.is_positive()
+    }
+
+    fn is_negative(&self) -> bool {
+        self.0.is_negative()
     }
 }
 
@@ -759,12 +736,12 @@ impl<T: Number> SubAssign<Self> for Vector2D<T> {
     }
 }
 
-impl<T: FixedWidthSignedInteger> Vector2D<T> {
+impl<T: Number + Signed> Vector2D<T> {
     /// Calculates the absolute value of the x and y components.
     pub fn abs(self) -> Self {
         Self {
-            x: self.x.fixed_abs(),
-            y: self.y.fixed_abs(),
+            x: self.x.abs(),
+            y: self.y.abs(),
         }
     }
 }
@@ -1083,13 +1060,13 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
     }
 }
 
-impl<T: FixedWidthSignedInteger> Rect<T> {
+impl<T: Number + Signed> Rect<T> {
     /// Makes a rectangle that represents the equivalent location in space but with a positive size
     pub fn abs(self) -> Self {
         Self {
             position: (
-                self.position.x + self.size.x.min(0.into()),
-                self.position.y + self.size.y.min(0.into()),
+                self.position.x + self.size.x.min(T::zero()),
+                self.position.y + self.size.y.min(T::zero()),
             )
                 .into(),
             size: self.size.abs(),
@@ -1166,7 +1143,7 @@ mod tests {
 
     use super::*;
     use alloc::format;
-    use num::Num as _;
+    use num_traits::Num as _;
 
     #[test]
     fn formats_whole_numbers_correctly() {
