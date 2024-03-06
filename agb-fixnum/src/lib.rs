@@ -759,6 +759,16 @@ impl<T: Number> SubAssign<Self> for Vector2D<T> {
     }
 }
 
+impl<T: FixedWidthSignedInteger> Vector2D<T> {
+    /// Calculates the absolute value of the x and y components.
+    pub fn abs(self) -> Self {
+        Self {
+            x: self.x.fixed_abs(),
+            y: self.y.fixed_abs(),
+        }
+    }
+}
+
 impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     #[must_use]
     /// Truncates the x and y coordinate, see [Num::trunc]
@@ -1070,6 +1080,20 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
 
             Some((ret_x, y))
         })
+    }
+}
+
+impl<T: FixedWidthSignedInteger> Rect<T> {
+    /// Makes a rectangle that represents the equivalent location in space but with a positive size
+    pub fn abs(self) -> Self {
+        Self {
+            position: (
+                self.position.x + self.size.x.min(0.into()),
+                self.position.y + self.size.y.min(0.into()),
+            )
+                .into(),
+            size: self.size.abs(),
+        }
     }
 }
 
