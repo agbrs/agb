@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `.abs()` on `Vector2D` and `Rect`
+
+### Fixed
+
+- `InfiniteScrolledMap` can now scroll more than 1 tile in a single frame without corrupting.
+
 ## [0.19.0] - 2024/03/06
 
 ### Added
+
 - Added `.priority()`, `.set_priority()` and `.is_visible()` to `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Added `.into_inner()` to `InfiniteScrolledMap` to get the map back once you are done using it in the `InfiniteScrolledMap`.
@@ -20,21 +29,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Default` implementations for `RandomNumberGenerator`, `InitOnce` and `RawMutex`.
 
 ### Changed
+
 - A few functions which previously accepted a `Vector<u16>` now accept an `impl Into<Vector2D<u16>>` instead.
 
 ## [0.18.1] - 2024/02/06
 
 ### Added
+
 - You can now use include_aseprite and include_background_gfx to include files from the out directory using the `$OUT_DIR` token.
 - Added `.pause()` and `.resume()` methods to `SoundChannels` to let you pause and resume from where you left off.
 
 ## [0.18.0] - 2023/10/31
 
 ### Added
+
 - There is now a multiboot feature which you can use to easily make multiboot ROMs.
 - Can now set palette on a TileSetting struct.
 
 ### Changed
+
 - You no longer need the gba.ld or gba_mb.ld files in your repository. You should delete these when upgrading.
 
 ### Fixed
