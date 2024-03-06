@@ -430,6 +430,12 @@ impl<'a> InfiniteScrolledMap<'a> {
     pub const fn background(&self) -> BackgroundID {
         self.map.background()
     }
+
+    /// Returns the underlying map back. The map will not be cleared.
+    #[must_use]
+    pub fn into_inner(self) -> MapLoan<'a, RegularMap> {
+        self.map
+    }
 }
 
 fn div_floor(x: i32, y: i32) -> i32 {
