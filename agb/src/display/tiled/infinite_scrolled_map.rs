@@ -431,6 +431,7 @@ impl<'a> InfiniteScrolledMap<'a> {
         self.map.background()
     }
 
+    /// Returns the underlying map back. The map will not be cleared.
     #[must_use]
     pub fn into_inner(self) -> MapLoan<'a, RegularMap> {
         self.map
