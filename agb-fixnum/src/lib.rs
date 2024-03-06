@@ -170,7 +170,7 @@ fixed_width_signed_integer_impl!(i32);
 #[repr(transparent)]
 pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num::Zero for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N> {
     fn zero() -> Self {
         Self::new(I::zero())
     }
@@ -180,19 +180,19 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> num::Zero for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num::One for Num<I, N> {
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::One for Num<I, N> {
     fn one() -> Self {
         Self::new(I::one())
     }
 }
 
-impl<I: FixedWidthUnsignedInteger + num::Num, const N: usize> num::Num for Num<I, N> {
-    type FromStrRadixErr = <f64 as num::Num>::FromStrRadixErr;
+impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
+    type FromStrRadixErr = <f64 as num_traits::Num>::FromStrRadixErr;
 
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         // for some reason, if I don't have this it's an error, and if I do it is unused
         #[allow(unused_imports)]
-        use num::traits::float::FloatCore;
+        use num_traits::float::FloatCore;
 
         let v: f64 = f64::from_str_radix(str, radix)?;
 
@@ -1166,7 +1166,7 @@ mod tests {
 
     use super::*;
     use alloc::format;
-    use num::Num as _;
+    use num_traits::Num as _;
 
     #[test]
     fn formats_whole_numbers_correctly() {
