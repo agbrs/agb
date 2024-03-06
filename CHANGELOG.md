@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `.priority()`, `.set_priority()` and `.is_visible()` to `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
+- Added `.into_inner()` to `InfiniteScrolledMap` to get the map back once you are done using it in the `InfiniteScrolledMap`.
 - Added `.hflip()`, `.vflip()`, `.priority()`, `.position()` to `ObjectUnmanaged` and `Object`.
 - An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect* examples.
 - Expermental and incomplete support for MIDI files with agb-tracker.
