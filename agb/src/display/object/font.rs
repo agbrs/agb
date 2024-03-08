@@ -481,6 +481,14 @@ impl ObjectTextRender<'_> {
         false
     }
 
+    /// Immediately renders all the completed letter groups in the buffer.
+    pub fn render_all(&mut self) {
+        while !self.buffer.buffered_chars.is_empty() {
+            self.buffer.process();
+        }
+        self.number_of_objects = self.buffer.letters.letters.len();
+    }
+
     fn at_least_n_letter_groups(&mut self, n: usize) {
         while !self.buffer.buffered_chars.is_empty() && self.buffer.letters.letters.len() <= n {
             self.buffer.process();
