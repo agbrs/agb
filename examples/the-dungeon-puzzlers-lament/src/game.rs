@@ -81,7 +81,7 @@ impl<'a, 'b> Lament<'a, 'b> {
         {
             let mut writer = self.writer.borrow_mut();
             writer.next_letter_group();
-            writer.update(Vector2D::new(16, HEIGHT / 4));
+            writer.update();
         }
         if input.is_just_pressed(Button::A) {
             GamePhase::Construction(Construction::new(self.level, self.background, vram_manager))
@@ -91,7 +91,9 @@ impl<'a, 'b> Lament<'a, 'b> {
     }
 
     fn render(&self, oam: &mut OamIterator) {
-        self.writer.borrow_mut().commit(oam);
+        self.writer
+            .borrow_mut()
+            .commit(oam, Vector2D::new(16, HEIGHT / 4));
     }
 }
 
@@ -287,27 +289,21 @@ struct PauseMenu {
 }
 
 impl PauseMenu {
-    fn text_at_position(
-        text: core::fmt::Arguments,
-        position: Vector2D<i32>,
-    ) -> ObjectTextRender<'static> {
+    fn text_at_position(text: core::fmt::Arguments) -> ObjectTextRender<'static> {
         let mut t = ObjectTextRender::new(&FONT, Size::S32x16, generate_text_palette());
 
         let _ = writeln!(t, "{}", text);
         t.layout(Vector2D::new(i32::MAX, i32::MAX), TextAlignment::Left, 0);
         t.next_line();
-        t.update(position);
+        t.update();
         t
     }
 
     fn new(loader: &mut SpriteLoader, maximum_level: usize, current_level: usize) -> Self {
         PauseMenu {
             option_text: RefCell::new([
-                Self::text_at_position(format_args!("Restart"), Vector2D::new(32, HEIGHT / 4)),
-                Self::text_at_position(
-                    format_args!("Go to level: {}", current_level + 1),
-                    Vector2D::new(32, HEIGHT / 4 + 20),
-                ),
+                Self::text_at_position(format_args!("Restart")),
+                Self::text_at_position(format_args!("Go to level: {}", current_level + 1)),
             ]),
             selection: PauseSelectionInner::Restart,
             indicator_sprite: loader.get_vram_sprite(ARROW_RIGHT.sprite(0)),
@@ -333,10 +329,8 @@ impl PauseMenu {
             let selected_level =
                 (selected_level + lr as i32).rem_euclid(self.maximum_level as i32 + 1);
             self.selected_level = selected_level as usize;
-            self.option_text.borrow_mut()[1] = Self::text_at_position(
-                format_args!("Go to level: {}", selected_level + 1),
-                Vector2D::new(32, HEIGHT / 4 + 20),
-            )
+            self.option_text.borrow_mut()[1] =
+                Self::text_at_position(format_args!("Go to level: {}", selected_level + 1))
         }
 
         if input.is_just_pressed(Button::A) | input.is_just_pressed(Button::START) {
@@ -352,8 +346,8 @@ impl PauseMenu {
     }
 
     fn render(&self, oam: &mut OamIterator) {
-        for text in self.option_text.borrow_mut().iter_mut() {
-            text.commit(oam);
+        for (idx, text) in self.option_text.borrow_mut().iter_mut().enumerate() {
+            text.commit(oam, Vector2D::new(32, HEIGHT / 4 + 20 * idx as i32));
         }
         let mut indicator = ObjectUnmanaged::new(self.indicator_sprite.clone());
         indicator.show();
