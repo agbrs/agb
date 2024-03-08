@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
         vblank.wait_for_vblank();
         input.update();
         let oam = &mut unmanaged.iter();
-        wr.commit(oam);
+        wr.commit(oam, (0, HEIGHT - 40));
 
         let start = timer.value();
         if frame % 4 == 0 {
@@ -84,7 +84,7 @@ fn main(mut gba: agb::Gba) -> ! {
             line_done = false;
             wr.pop_line();
         }
-        wr.update((0, HEIGHT - 40));
+        wr.update();
         let end = timer.value();
 
         frame += 1;

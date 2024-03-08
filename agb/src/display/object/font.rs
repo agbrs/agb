@@ -1,7 +1,10 @@
-use core::fmt::{Display, Write};
+use core::{
+    fmt::{Display, Write},
+    ops::Add,
+};
 
 use agb_fixnum::{Num, Vector2D};
-use alloc::{collections::VecDeque, vec::Vec};
+use alloc::collections::VecDeque;
 
 use crate::display::Font;
 
@@ -256,10 +259,9 @@ impl<'font> ObjectTextRender<'font> {
             buffer: BufferedRender::new(font, sprite_size, palette),
             number_of_objects: 0,
             layout: LayoutCache {
-                positions: VecDeque::new(),
+                relative_positions: VecDeque::new(),
                 line_capacity: VecDeque::new(),
-                objects: Vec::new(),
-                objects_are_at_origin: (0, 0).into(),
+
                 area: (0, 0).into(),
             },
         }
@@ -276,12 +278,100 @@ impl Write for ObjectTextRender<'_> {
     }
 }
 
-impl ObjectTextRender<'_> {
-    /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamIterator) {
-        for (object, slot) in self.layout.objects.iter().zip(oam) {
-            slot.set(object);
+/// A borrowed letter group and its relative position.
+pub struct LetterGroup<'a> {
+    sprite: &'a SpriteVram,
+    relative_position: Vector2D<i32>,
+}
+
+impl<'a> LetterGroup<'a> {
+    /// The sprite in vram for this group of letters.
+    #[must_use]
+    pub fn sprite(&self) -> &'a SpriteVram {
+        self.sprite
+    }
+
+    /// The relative position of the letter group. For example a left aligned
+    /// text would start at (0,0) but a right aligned would have the last group
+    /// of a line be at (0,0).
+    #[must_use]
+    pub fn relative_position(&self) -> Vector2D<i32> {
+        self.relative_position
+    }
+}
+
+impl<'a> Add<Vector2D<i32>> for &LetterGroup<'a> {
+    type Output = LetterGroup<'a>;
+
+    fn add(self, rhs: Vector2D<i32>) -> Self::Output {
+        LetterGroup {
+            sprite: self.sprite,
+            relative_position: self.relative_position + rhs,
         }
+    }
+}
+
+impl<'a> From<LetterGroup<'a>> for ObjectUnmanaged {
+    fn from(value: LetterGroup<'a>) -> Self {
+        let mut object = ObjectUnmanaged::new(value.sprite.clone());
+        object.set_position(value.relative_position);
+        object.show();
+
+        object
+    }
+}
+
+/// An iterator over the currently displaying letter groups
+pub struct LetterGroupIter<'a> {
+    sprite_iter: alloc::collections::vec_deque::Iter<'a, SpriteVram>,
+    position_iter: alloc::collections::vec_deque::Iter<'a, Vector2D<i16>>,
+    remaining_letter_groups: usize,
+}
+
+impl<'a> Iterator for LetterGroupIter<'a> {
+    type Item = LetterGroup<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining_letter_groups == 0 {
+            return None;
+        }
+        self.remaining_letter_groups -= 1;
+
+        match (self.sprite_iter.next(), self.position_iter.next()) {
+            (Some(sprite), Some(position)) => Some(LetterGroup {
+                sprite,
+                relative_position: position.change_base(),
+            }),
+            _ => None,
+        }
+    }
+}
+
+impl ObjectTextRender<'_> {
+    #[must_use]
+    /// An iterator over the letter groups that make up the text
+    pub fn letter_groups(&self) -> LetterGroupIter<'_> {
+        LetterGroupIter {
+            sprite_iter: self.buffer.letters.letters.iter(),
+            position_iter: self.layout.relative_positions.iter(),
+            remaining_letter_groups: self.number_of_objects,
+        }
+    }
+
+    /// Commits work already done to screen. You can commit to multiple places in the same frame.
+    pub fn commit<V: Into<Vector2D<i32>>>(&mut self, oam: &mut OamIterator, position: V) {
+        fn inner(this: &mut ObjectTextRender, oam: &mut OamIterator, position: Vector2D<i32>) {
+            let objects = this
+                .letter_groups()
+                .map(|x| &x + position)
+                .map(ObjectUnmanaged::from);
+
+            for (object, slot) in objects.zip(oam) {
+                slot.set(&object);
+            }
+        }
+
+        inner(self, oam, position.into());
     }
 
     /// Force a relayout, must be called after writing.
@@ -309,17 +399,16 @@ impl ObjectTextRender<'_> {
         let line_height = self.buffer.font.line_height();
         if let Some(line) = self.buffer.preprocessor.lines(width, space).next() {
             // there is a line
-            if self.layout.objects.len() >= line.number_of_letter_groups() {
+            if self.number_of_objects >= line.number_of_letter_groups() {
                 // we have enough rendered letter groups to count
                 self.number_of_objects -= line.number_of_letter_groups();
                 for _ in 0..line.number_of_letter_groups() {
                     self.buffer.letters.letters.pop_front();
-                    self.layout.positions.pop_front();
+                    self.layout.relative_positions.pop_front();
                 }
                 self.layout.line_capacity.pop_front();
-                self.layout.objects.clear();
                 self.buffer.preprocessor.pop(&line);
-                for position in self.layout.positions.iter_mut() {
+                for position in self.layout.relative_positions.iter_mut() {
                     position.y -= line_height as i16;
                 }
                 return true;
@@ -331,18 +420,12 @@ impl ObjectTextRender<'_> {
     /// Updates the internal state of the number of letters to write and popped
     /// line. Should be called in the same frame as and after
     /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
-    pub fn update(&mut self, position: impl Into<Vector2D<i32>>) {
+    pub fn update(&mut self) {
         if !self.buffer.buffered_chars.is_empty()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
         {
             self.buffer.process();
         }
-
-        self.layout.update_objects_to_display_at_position(
-            position.into(),
-            self.buffer.letters.letters.iter(),
-            self.number_of_objects,
-        );
     }
 
     /// Causes the next letter group to be shown on the next update. Returns
@@ -406,43 +489,12 @@ impl ObjectTextRender<'_> {
 }
 
 struct LayoutCache {
-    positions: VecDeque<Vector2D<i16>>,
+    relative_positions: VecDeque<Vector2D<i16>>,
     line_capacity: VecDeque<usize>,
-    objects: Vec<ObjectUnmanaged>,
-    objects_are_at_origin: Vector2D<i32>,
     area: Vector2D<i32>,
 }
 
 impl LayoutCache {
-    fn update_objects_to_display_at_position<'a>(
-        &mut self,
-        position: Vector2D<i32>,
-        letters: impl Iterator<Item = &'a SpriteVram>,
-        number_of_objects: usize,
-    ) {
-        let already_done = if position == self.objects_are_at_origin {
-            self.objects.len()
-        } else {
-            self.objects.clear();
-            0
-        };
-        self.objects.extend(
-            self.positions
-                .iter()
-                .zip(letters)
-                .take(number_of_objects)
-                .skip(already_done)
-                .map(|(offset, letter)| {
-                    let position = offset.change_base() + position;
-                    let mut object = ObjectUnmanaged::new(letter.clone());
-                    object.show().set_position(position);
-                    object
-                }),
-        );
-        self.objects.truncate(number_of_objects);
-        self.objects_are_at_origin = position;
-    }
-
     fn create_positions(
         &mut self,
         font: &Font,
@@ -451,10 +503,10 @@ impl LayoutCache {
     ) {
         self.area = settings.area;
         self.line_capacity.clear();
-        self.positions.clear();
+        self.relative_positions.clear();
         for (line, line_positions) in Self::create_layout(font, preprocessed, settings) {
             self.line_capacity.push_back(line.number_of_letter_groups());
-            self.positions
+            self.relative_positions
                 .extend(line_positions.map(|x| Vector2D::new(x.x as i16, x.y as i16)));
         }
     }
