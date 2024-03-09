@@ -16,4 +16,4 @@ syn = "2"
 agb_tracker_interop = { version = "0.19.1", path = "../agb-tracker-interop" }
 agb_fixnum = { version = "0.19.1", path = "../../agb-fixnum" }
 
-xmrs = "0.3"
+xmrs = "0.4"
