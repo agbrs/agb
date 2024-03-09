@@ -1,19 +1,21 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct FindRootDirectoryError;
 
 pub fn find_agb_root_directory() -> Result<PathBuf, FindRootDirectoryError> {
-    let mut current_path = env::current_dir().map_err(|_| FindRootDirectoryError)?;
+    let current_path = env::current_dir().map_err(|_| FindRootDirectoryError)?;
 
-    while !current_path.clone().join("justfile").exists() {
-        current_path = current_path
-            .parent()
-            .ok_or(FindRootDirectoryError)?
-            .to_owned();
+    let mut search_path: &Path = &current_path;
+
+    while !search_path.join("justfile").exists() {
+        search_path = search_path.parent().ok_or(FindRootDirectoryError)?;
     }
 
-    Ok(current_path)
+    Ok(search_path.to_owned())
 }
 
 #[cfg(test)]
@@ -22,6 +24,7 @@ mod tests {
 
     #[test]
     fn find_agb_root_directory_works() {
-        find_agb_root_directory().unwrap();
+        let agb_root = find_agb_root_directory().unwrap();
+        assert!(agb_root.join("justfile").exists());
     }
 }
