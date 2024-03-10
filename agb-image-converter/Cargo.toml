@@ -11,7 +11,7 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-image = { version = "0.24", default-features = false, features = [
+image = { version = "0.25", default-features = false, features = [
     "png",
     "bmp",
 ] }
