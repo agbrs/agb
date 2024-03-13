@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Export the `dma` module correctly so you can write the types from it and use it in more complex cases.
+
 ## [0.19.1] - 2024/03/06
 
 ### Added
