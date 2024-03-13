@@ -57,6 +57,26 @@ impl Dma {
         unsafe { MemoryMapped::new(dma_control_addr(self.number)) }.set(0);
     }
 
+    /// Triggers a transfer from `values` to `location` to happen on every horizontal blank.
+    ///
+    /// This is useful for doing things like circular windows, wobbly backgrounds or fades
+    /// in palettes that you'd want to change every scan line.
+    ///
+    /// `values` must be a slice of length at lest 160 (since that is how many visible lines there are)
+    /// and the first value will be copied to the target address immediately since the items are only
+    /// transferred at the _end_ of the hblank line rather than the beginning.
+    ///
+    /// It is recommended that you set this up as soon after the vblank interrupt as possible, and don't
+    /// drop the DmaTransferHandler return value until the next vblank interrupt to ensure that you
+    /// a continuous effect.
+    ///
+    /// # Safety
+    ///
+    /// While DmaTransferHandle is not dropped, the slice at `values` must not move in memory.
+    ///
+    /// # Examples
+    ///
+    /// See the `dma_effect_*` examples in the repository to see some ways to use this.
     pub unsafe fn hblank_transfer<'a, T>(
         &'a self,
         location: &DmaControllable<T>,
