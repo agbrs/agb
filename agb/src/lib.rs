@@ -153,7 +153,8 @@ mod agbabi;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
-mod dma;
+/// Provides access to the GBA's direct memory access (DMA) which is used for advanced effects
+pub mod dma;
 /// Button inputs to the system.
 pub mod input;
 /// Interacting with the GBA interrupts
