@@ -18,5 +18,5 @@ image = { version = "0.24", default-features = false, features = [
 syn = { version = "2", features = ["proc-macro", "parsing"] }
 proc-macro2 = "1"
 quote = "1"
-asefile = "0.3.7"
+asefile = "0.3.8"
 fontdue = "0.8"
