@@ -98,7 +98,7 @@ fn update_to_version(
 
     let toml_file_content = std::fs::read_to_string(toml_file).map_err(|_| Error::ReadTomlFile)?;
     let mut cargo_toml = toml_file_content
-        .parse::<toml_edit::Document>()
+        .parse::<toml_edit::DocumentMut>()
         .map_err(|_| Error::InvalidToml(toml_file.to_string_lossy().into_owned()))?;
 
     let new_version = format!("{new_version}");
@@ -120,7 +120,7 @@ fn update_to_version(
         let toml_file_content =
             std::fs::read_to_string(&cargo_toml_file).map_err(|_| Error::ReadTomlFile)?;
         let mut cargo_toml = toml_file_content
-            .parse::<toml_edit::Document>()
+            .parse::<toml_edit::DocumentMut>()
             .map_err(|_| Error::InvalidToml(cargo_toml_file.to_string_lossy().into_owned()))?;
 
         if let Some(this_dep) = cargo_toml["dependencies"].get_mut(&project_name) {
