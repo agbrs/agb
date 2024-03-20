@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use toml_edit::Document;
+use toml_edit::DocumentMut;
 
 use crate::utils::*;
 
@@ -149,10 +149,10 @@ fn get_agb_dependencies(folder: &Path) -> Result<Vec<String>, Error> {
     Ok(result)
 }
 
-fn read_cargo_toml(folder: &Path) -> Result<Document, Error> {
+fn read_cargo_toml(folder: &Path) -> Result<DocumentMut, Error> {
     let cargo_toml_contents =
         fs::read_to_string(folder.join("Cargo.toml")).map_err(|_| Error::CargoToml)?;
-    let cargo_toml: Document = cargo_toml_contents.parse().map_err(|_| Error::CargoToml)?;
+    let cargo_toml: DocumentMut = cargo_toml_contents.parse().map_err(|_| Error::CargoToml)?;
     Ok(cargo_toml)
 }
 
