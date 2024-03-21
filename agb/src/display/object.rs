@@ -23,7 +23,7 @@ pub use affine::AffineMatrixInstance;
 pub use managed::{OamManaged, Object};
 pub use unmanaged::{AffineMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged};
 
-pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
+pub use font::{ChangeColour, LetterGroup, LetterGroupIter, ObjectTextRender, TextAlignment};
 
 use super::DISPLAY_CONTROL;
 
