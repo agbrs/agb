@@ -40,7 +40,7 @@ use crate::{
 /// use agb::display::Priority;
 ///
 /// mod tilemap {
-///    pub const BACKGROUND_MAP: &[usize] = &[ // Probably load this from a file
+///    pub static BACKGROUND_MAP: &[usize] = &[ // Probably load this from a file
 /// # 0, 1, 2];
 ///    pub const WIDTH: i32 = // set it to some width
 /// # 12;
@@ -51,7 +51,7 @@ use crate::{
 /// # fn foo(mut gba: agb::Gba) {
 /// let (gfx, mut vram) = gba.display.video.tiled0();
 ///
-/// let tile_data = water_tiles::tiles;
+/// let tile_data = &water_tiles::tiles;
 ///
 /// let mut backdrop = InfiniteScrolledMap::new(
 ///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
@@ -133,9 +133,9 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # use agb::display::Priority;
     /// #
     /// # mod tilemap {
-    /// #   pub const BACKGROUND_MAP: &[usize] = &[0, 1, 2];
+    /// #   pub static BACKGROUND_MAP: &[usize] = &[0, 1, 2];
     /// #   pub const WIDTH: i32 = 12;
-    /// #   pub const MAP_TILES: &[u8] = &[0];
+    /// #   pub static MAP_TILES: &[u8] = &[0];
     /// # }
     /// #
     /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
@@ -143,7 +143,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # fn foo(mut gba: agb::Gba) {
     /// # let (gfx, mut vram) = gba.display.video.tiled0();
     /// #
-    /// # let tile_data = water_tiles::tiles;
+    /// # let tile_data = &water_tiles::tiles;
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
     /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
@@ -209,9 +209,9 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # use agb::display::Priority;
     /// #
     /// # mod tilemap {
-    /// #   pub const BACKGROUND_MAP: &[usize] = &[0, 1, 2];
+    /// #   pub static BACKGROUND_MAP: &[usize] = &[0, 1, 2];
     /// #   pub const WIDTH: i32 = 12;
-    /// #   pub const MAP_TILES: &[u8] = &[0];
+    /// #   pub static MAP_TILES: &[u8] = &[0];
     /// # }
     /// #
     /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
@@ -219,7 +219,7 @@ impl<'a> InfiniteScrolledMap<'a> {
     /// # fn foo(mut gba: agb::Gba) {
     /// # let (gfx, mut vram) = gba.display.video.tiled0();
     /// #
-    /// # let tile_data = water_tiles::tiles;
+    /// # let tile_data = &water_tiles::tiles;
     /// #
     /// # let mut backdrop = InfiniteScrolledMap::new(
     /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),

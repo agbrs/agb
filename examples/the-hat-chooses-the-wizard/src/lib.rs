@@ -42,7 +42,7 @@ pub struct Level {
 mod map_tiles {
 
     use super::Level;
-    pub const LEVELS: &[Level] = &[
+    pub static LEVELS: &[&Level] = &[
         l1_1::get_level(),
         l1_2::get_level(),
         l1_3::get_level(),
@@ -103,16 +103,16 @@ mod map_tiles {
 
 agb::include_background_gfx!(tile_sheet, "2ce8f4", background => deduplicate "gfx/tile_sheet.png");
 
-const GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
-const TAG_MAP: &TagMap = GRAPHICS.tags();
+static GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
+static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-const WALKING: &Tag = TAG_MAP.get("Walking");
-const JUMPING: &Tag = TAG_MAP.get("Jumping");
-const FALLING: &Tag = TAG_MAP.get("Falling");
-const PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
-const HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
-const HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
-const HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
+static WALKING: &Tag = TAG_MAP.get("Walking");
+static JUMPING: &Tag = TAG_MAP.get("Jumping");
+static FALLING: &Tag = TAG_MAP.get("Falling");
+static PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
+static HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
+static HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
+static HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
 
 type FixedNumberType = FixedNum<10>;
 
@@ -788,14 +788,14 @@ pub fn main(mut agb: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    let tileset = tile_sheet::background.tiles;
+    let tileset = &tile_sheet::background.tiles;
 
     for y in 0..32u16 {
         for x in 0..32u16 {
             world_display.set_tile(
                 &mut vram,
                 (x, y),
-                &tileset,
+                tileset,
                 tile_sheet::background.tile_settings[level_display::BLANK],
             );
         }
@@ -839,7 +839,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 &mut world_display,
                 current_level / 8 + 1,
                 current_level % 8 + 1,
-                &tileset,
+                tileset,
                 &mut vram,
                 tile_sheet::background.tile_settings,
             );
@@ -860,7 +860,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
-                        &tileset,
+                        tileset,
                         tile_sheet::background.tile_settings[*level
                             .background
                             .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
@@ -878,7 +878,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 Box::new(|pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
-                        &tileset,
+                        tileset,
                         tile_sheet::background.tile_settings[*level
                             .foreground
                             .get((pos.y * level.dimensions.x as i32 + pos.x) as usize)
@@ -889,7 +889,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             );
 
             let mut level = PlayingLevel::open_level(
-                &map_tiles::LEVELS[current_level as usize],
+                map_tiles::LEVELS[current_level as usize],
                 &object,
                 &mut background,
                 &mut foreground,

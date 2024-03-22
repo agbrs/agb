@@ -3,7 +3,7 @@ use agb::{
     include_aseprite, include_font,
 };
 
-const SPRITES: &Graphics = include_aseprite!(
+static SPRITES: &Graphics = include_aseprite!(
     "gfx/sprites16x16.aseprite",
     "gfx/sprites8x8.aseprite",
     "gfx/countdown.aseprite"
@@ -16,7 +16,7 @@ macro_rules! named_tag {
         ] $(,)?
     ) => {
         $(
-            pub const $name: &agb::display::object::Tag = $sprites.tags().get(stringify!($name));
+            pub static $name: &agb::display::object::Tag = $sprites.tags().get(stringify!($name));
         )+
     };
 }
@@ -68,4 +68,4 @@ named_tag!(
     ]
 );
 
-pub const FONT: Font = include_font!("fnt/yoster.ttf", 12);
+pub static FONT: Font = include_font!("fnt/yoster.ttf", 12);

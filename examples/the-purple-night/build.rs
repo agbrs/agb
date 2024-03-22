@@ -42,22 +42,22 @@ fn main() {
         (0..map.tilesets[0].tilecount.unwrap()).map(|id| tile_types.get(&(id + 1)).unwrap_or(&0));
 
     let output = quote! {
-        pub const CLOUD_MAP: &[u16] = &[#(#cloud_tiles),*];
-        pub const BACKGROUND_MAP: &[u16] = &[#(#background_tiles),*];
-        pub const FOREGROUND_MAP: &[u16] = &[#(#foreground_tiles),*];
+        pub static CLOUD_MAP: &[u16] = &[#(#cloud_tiles),*];
+        pub static BACKGROUND_MAP: &[u16] = &[#(#background_tiles),*];
+        pub static FOREGROUND_MAP: &[u16] = &[#(#foreground_tiles),*];
         pub const WIDTH: i32 = #width as i32;
         pub const HEIGHT: i32 = #height as i32;
 
-        pub const SLIME_SPAWNS_X: &[u16] = &[#(#slimes_x),*];
-        pub const SLIME_SPAWNS_Y: &[u16] = &[#(#slimes_y),*];
+        pub static SLIME_SPAWNS_X: &[u16] = &[#(#slimes_x),*];
+        pub static SLIME_SPAWNS_Y: &[u16] = &[#(#slimes_y),*];
 
-        pub const BAT_SPAWNS_X: &[u16] = &[#(#bats_x),*];
-        pub const BAT_SPAWNS_Y: &[u16] = &[#(#bats_y),*];
+        pub static BAT_SPAWNS_X: &[u16] = &[#(#bats_x),*];
+        pub static BAT_SPAWNS_Y: &[u16] = &[#(#bats_y),*];
 
-        pub const EMU_SPAWNS_X: &[u16] = &[#(#emus_x),*];
-        pub const EMU_SPAWNS_Y: &[u16] = &[#(#emus_y),*];
+        pub static EMU_SPAWNS_X: &[u16] = &[#(#emus_x),*];
+        pub static EMU_SPAWNS_Y: &[u16] = &[#(#emus_y),*];
 
-        pub const TILE_TYPES: &[u8] = &[#(#tile_types),*];
+        pub static TILE_TYPES: &[u8] = &[#(#tile_types),*];
     };
 
     let output_file = File::create(format!("{out_dir}/tilemap.rs"))

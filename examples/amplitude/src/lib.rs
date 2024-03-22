@@ -133,7 +133,7 @@ fn draw_number(
 
 impl SpriteCache {
     fn new(loader: &mut SpriteLoader) -> Self {
-        const SPRITES: &Graphics = include_aseprite!(
+        static SPRITES: &Graphics = include_aseprite!(
             "gfx/circles.aseprite",
             "gfx/saw.aseprite",
             "gfx/numbers.aseprite",
@@ -152,12 +152,12 @@ impl SpriteCache {
                 .into_boxed_slice()
         }
 
-        const NUMBERS: &Tag = SPRITES.tags().get("numbers");
-        const BLUE_CIRCLE: &Sprite = SPRITES.tags().get("Blue").sprite(0);
-        const RED_CIRCLE: &Sprite = SPRITES.tags().get("Red").sprite(0);
-        const SAW: &Sprite = SPRITES.tags().get("Saw").sprite(0);
-        const BAR_RED: &Tag = SPRITES.tags().get("Red Bar");
-        const BAR_BLUE: &Tag = SPRITES.tags().get("Blue Bar");
+        static NUMBERS: &Tag = SPRITES.tags().get("numbers");
+        static BLUE_CIRCLE: &Sprite = SPRITES.tags().get("Blue").sprite(0);
+        static RED_CIRCLE: &Sprite = SPRITES.tags().get("Red").sprite(0);
+        static SAW: &Sprite = SPRITES.tags().get("Saw").sprite(0);
+        static BAR_RED: &Tag = SPRITES.tags().get("Red Bar");
+        static BAR_BLUE: &Tag = SPRITES.tags().get("Blue Bar");
 
         Self {
             saw: loader.get_vram_sprite(SAW),

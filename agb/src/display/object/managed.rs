@@ -528,9 +528,9 @@ mod tests {
 
     use super::*;
 
-    const TEST_SPRITES: &Graphics = include_aseprite!("examples/gfx/tall.aseprite");
+    static TEST_SPRITES: &Graphics = include_aseprite!("examples/gfx/tall.aseprite");
 
-    const TEST_SPRITE: &Sprite = &TEST_SPRITES.sprites()[0];
+    static TEST_SPRITE: &Sprite = &TEST_SPRITES.sprites()[0];
 
     #[test_case]
     fn test_always_ordered(gba: &mut crate::Gba) {

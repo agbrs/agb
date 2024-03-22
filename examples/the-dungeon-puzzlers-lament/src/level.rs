@@ -151,11 +151,11 @@ impl Level {
         }
     }
 
-    pub const fn get_level(level_number: usize) -> &'static Level {
+    pub fn get_level(level_number: usize) -> &'static Level {
         &levels::LEVELS[level_number]
     }
 
-    pub const fn num_levels() -> usize {
+    pub fn num_levels() -> usize {
         levels::LEVELS.len()
     }
 }
