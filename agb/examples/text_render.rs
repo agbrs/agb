@@ -11,7 +11,7 @@ use agb::{
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
+static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

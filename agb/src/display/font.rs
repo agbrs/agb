@@ -279,7 +279,7 @@ impl<'a, 'b> TextRenderer<'b> {
 mod tests {
     use super::*;
     use crate::display::tiled::{TileFormat, TiledMap};
-    const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
+    static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {
