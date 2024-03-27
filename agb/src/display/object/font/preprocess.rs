@@ -44,6 +44,7 @@ pub(crate) struct Preprocessed {
 
 #[derive(Debug, Default)]
 struct Preprocessor {
+    previous_character: Option<char>,
     width_in_sprite: i32,
 }
 
@@ -72,6 +73,10 @@ impl Preprocessor {
             }
             letter => {
                 let letter = font.letter(letter);
+                if let Some(previous_character) = self.previous_character {
+                    self.width_in_sprite += letter.kerning_amount(previous_character);
+                }
+
                 if self.width_in_sprite + letter.width as i32 > sprite_width {
                     widths.push_back(
                         PreprocessedElement::LetterGroup {
@@ -87,6 +92,8 @@ impl Preprocessor {
                 self.width_in_sprite += letter.advance_width as i32;
             }
         }
+
+        self.previous_character = Some(character);
     }
 }
 

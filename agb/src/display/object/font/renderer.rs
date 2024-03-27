@@ -43,6 +43,8 @@ pub(crate) struct WordRender {
     working: WorkingLetter,
     config: Configuration,
     colour: usize,
+
+    previous_character: Option<char>,
 }
 
 impl WordRender {
@@ -56,6 +58,7 @@ impl WordRender {
             working: WorkingLetter::new(config.sprite_size),
             config,
             colour: 1,
+            previous_character: None,
         }
     }
 
@@ -81,6 +84,11 @@ impl WordRender {
         }
 
         let font_letter: &crate::display::FontLetter = font.letter(c);
+
+        if let Some(previous_character) = self.previous_character {
+            self.working.x_offset += font_letter.kerning_amount(previous_character);
+        }
+        self.previous_character = Some(c);
 
         // uses more than the sprite can hold
         let group = if self.working.x_offset + font_letter.width as i32

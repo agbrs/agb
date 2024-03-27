@@ -17,10 +17,12 @@ pub struct FontLetter {
     pub(crate) xmin: i8,
     pub(crate) ymin: i8,
     pub(crate) advance_width: u8,
+    kerning_amounts: &'static [(char, i8)],
 }
 
 impl FontLetter {
     #[must_use]
+    #[allow(clippy::too_many_arguments)] // only used in macro
     pub const fn new(
         character: char,
         width: u8,
@@ -29,6 +31,7 @@ impl FontLetter {
         xmin: i8,
         ymin: i8,
         advance_width: u8,
+        kerning_amounts: &'static [(char, i8)],
     ) -> Self {
         Self {
             character,
@@ -38,6 +41,7 @@ impl FontLetter {
             xmin,
             ymin,
             advance_width,
+            kerning_amounts,
         }
     }
 
@@ -46,6 +50,17 @@ impl FontLetter {
         let byte = self.data[position / 8];
         let bit = position % 8;
         ((byte >> bit) & 1) != 0
+    }
+
+    pub(crate) fn kerning_amount(&self, previous_char: char) -> i32 {
+        if let Ok(index) = self
+            .kerning_amounts
+            .binary_search_by_key(&previous_char, |kerning_data| kerning_data.0)
+        {
+            self.kerning_amounts[index].1 as i32
+        } else {
+            0
+        }
     }
 }
 
@@ -92,6 +107,7 @@ impl Font {
         TextRenderer {
             current_x_pos: 0,
             current_y_pos: 0,
+            previous_character: None,
             font: self,
             tile_pos: tile_pos.into(),
             tiles: Default::default(),
@@ -103,6 +119,7 @@ impl Font {
 pub struct TextRenderer<'a> {
     current_x_pos: i32,
     current_y_pos: i32,
+    previous_character: Option<char>,
     font: &'a Font,
     tile_pos: Vector2D<u16>,
     tiles: HashMap<(i32, i32), DynamicTile<'a>>,
@@ -258,6 +275,12 @@ impl<'a, 'b> TextRenderer<'b> {
             self.current_x_pos = 0;
         } else {
             let letter = self.font.letter(c);
+
+            if let Some(previous_character) = self.previous_character {
+                self.current_x_pos += letter.kerning_amount(previous_character);
+            }
+            self.previous_character = Some(c);
+
             self.render_letter(letter, vram_manager, foreground_colour, background_colour);
             self.current_x_pos += i32::from(letter.advance_width);
         }
