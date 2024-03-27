@@ -15,7 +15,8 @@ extern crate alloc;
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
+
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
@@ -42,7 +43,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let player_name = "You";
     let _ = writeln!(
             wr,
-            "Woah!{change2} {player_name}! {change1}Hey there! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+            "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
             change2 = ChangeColour::new(2),
             change1 = ChangeColour::new(1),
         );

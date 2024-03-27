@@ -10,6 +10,7 @@ use super::tiled::{DynamicTile, RegularMap, VRamManager};
 /// Does not support any unicode features.
 /// For usage see the `text_render.rs` example
 pub struct FontLetter {
+    pub(crate) character: char,
     pub(crate) width: u8,
     pub(crate) height: u8,
     pub(crate) data: &'static [u8],
@@ -21,6 +22,7 @@ pub struct FontLetter {
 impl FontLetter {
     #[must_use]
     pub const fn new(
+        character: char,
         width: u8,
         height: u8,
         data: &'static [u8],
@@ -29,6 +31,7 @@ impl FontLetter {
         advance_width: u8,
     ) -> Self {
         Self {
+            character,
             width,
             height,
             data,
@@ -47,14 +50,14 @@ impl FontLetter {
 }
 
 pub struct Font {
-    letters: &'static [FontLetter; 128],
+    letters: &'static [FontLetter],
     line_height: i32,
     ascent: i32,
 }
 
 impl Font {
     #[must_use]
-    pub const fn new(letters: &'static [FontLetter; 128], line_height: i32, ascent: i32) -> Self {
+    pub const fn new(letters: &'static [FontLetter], line_height: i32, ascent: i32) -> Self {
         Self {
             letters,
             line_height,
@@ -63,7 +66,14 @@ impl Font {
     }
 
     pub(crate) fn letter(&self, letter: char) -> &'static FontLetter {
-        &self.letters[letter as usize & (128 - 1)]
+        let letter = self
+            .letters
+            .binary_search_by_key(&letter, |letter| letter.character);
+
+        match letter {
+            Ok(index) => &self.letters[index],
+            Err(_) => &self.letters[0],
+        }
     }
 
     pub(crate) fn ascent(&self) -> i32 {
@@ -269,7 +279,7 @@ impl<'a, 'b> TextRenderer<'b> {
 mod tests {
     use super::*;
     use crate::display::tiled::{TileFormat, TiledMap};
-    const FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
+    static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {

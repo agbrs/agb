@@ -11,7 +11,7 @@ use agb::{
 
 use core::fmt::Write;
 
-const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
@@ -47,7 +47,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut renderer = FONT.render_text((0u16, 3u16));
     let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
 
-    writeln!(&mut writer, "Hello, World!").unwrap();
+    writeln!(&mut writer, "Hello, World! こんにちは 世界").unwrap();
     writeln!(&mut writer, "This is a font rendering example").unwrap();
 
     writer.commit();

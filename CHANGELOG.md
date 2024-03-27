@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Initial unicode support for font rendering.
+
 ### Fixed
 
 - Export the `dma` module correctly so you can write the types from it and use it in more complex cases.
