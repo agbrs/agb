@@ -4,6 +4,7 @@ use quote::quote;
 use proc_macro2::TokenStream;
 
 struct LetterData {
+    character: char,
     width: usize,
     height: usize,
     xmin: i32,
@@ -27,9 +28,11 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     let line_height = line_metrics.new_line_size as i32;
     let mut ascent = line_metrics.ascent as i32;
 
-    let letters: Vec<_> = (0..128)
-        .map(|i| font.rasterize(char::from_u32(i).unwrap(), pixels_per_em))
-        .map(|(metrics, bitmap)| {
+    let mut letters: Vec<_> = font
+        .chars()
+        .iter()
+        .map(|(&c, _)| (c, font.rasterize(c, pixels_per_em)))
+        .map(|(c, (metrics, bitmap))| {
             let width = metrics.width;
             let height = metrics.height;
 
@@ -48,6 +51,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
                 .collect();
 
             LetterData {
+                character: c,
                 width,
                 height,
                 rendered,
@@ -57,6 +61,8 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
             }
         })
         .collect();
+
+    letters.sort_unstable_by_key(|letter| letter.character);
 
     let maximum_above_line = letters
         .iter()
@@ -69,6 +75,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     }
 
     let font = letters.iter().map(|letter_data| {
+        let character = letter_data.character;
         let data_raw = ByteString(&letter_data.rendered);
         let height = letter_data.height as u8;
         let width = letter_data.width as u8;
@@ -78,6 +85,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
 
         quote!(
             display::FontLetter::new(
+                #character,
                 #width,
                 #height,
                 #data_raw,
