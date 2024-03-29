@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Export the `dma` module correctly so you can write the types from it and use it in more complex cases.
 
+### Changed
+
+- Many macros now emit statics rather than consts OR can be used as statics OR
+  have had examples changed to use statics. You should use statics where possble
+  for assets as consts can lead to them being included multiple times in the
+  ROM.
+
 ## [0.19.1] - 2024/03/06
 
 ### Added
