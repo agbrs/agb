@@ -6,6 +6,7 @@ edition = "2021"
 license = "MPL-2.0"
 description = "Library for playing tracker music. Designed for use with the agb library for the Game Boy Advance."
 repository = "https://github.com/agbrs/agb"
+exclude = ["/examples"]
 
 [features]
 default = ["xm", "midi"]
