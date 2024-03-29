@@ -429,7 +429,7 @@ impl CursorState {
     }
 }
 
-const fn arrow_for_direction(direction: Direction) -> &'static Tag {
+fn arrow_for_direction(direction: Direction) -> &'static Tag {
     match direction {
         Direction::Up => resources::ARROW_UP,
         Direction::Down => resources::ARROW_DOWN,

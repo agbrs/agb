@@ -12,7 +12,7 @@ use crate::{
     interrupt::VBlank,
 };
 
-const PALETTE: &[u16] = &include_palette!("gfx/pastel.png");
+static PALETTE: &[u16] = &include_palette!("gfx/pastel.png");
 
 fn letters() -> Vec<Vec<Vector2D<Num<i32, 8>>>> {
     vec![

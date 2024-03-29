@@ -398,12 +398,12 @@ mod tests {
 
     #[test_case]
     fn object_usage(gba: &mut crate::Gba) {
-        const GRAPHICS: &Graphics = include_aseprite!(
+        static GRAPHICS: &Graphics = include_aseprite!(
             "../examples/the-purple-night/gfx/objects.aseprite",
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
 
-        const BOSS: &Tag = GRAPHICS.tags().get("Boss");
+        static BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
         let (mut gfx, mut loader) = gba.display.object.get_unmanaged();
 

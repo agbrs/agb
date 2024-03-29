@@ -127,7 +127,7 @@ fn is_private_use(c: char) -> bool {
 ///
 /// use core::fmt::Write;
 ///
-/// const EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
+/// static EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
 ///
 /// # fn foo() {
 /// let mut palette = [0x0; 16];
@@ -214,7 +214,7 @@ impl BufferedRender<'_> {
 ///
 /// use core::fmt::Write;
 ///
-/// const EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
+/// static EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
 ///
 /// #[agb::entry]
 /// fn main(gba: &mut agb::Gba) -> ! {

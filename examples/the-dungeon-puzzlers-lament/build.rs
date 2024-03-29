@@ -78,12 +78,12 @@ fn main() {
     let tilemaps_output = quote! {
         use agb::display::tiled::TileSetting;
 
-        pub const UI_BACKGROUND_MAP: &[TileSetting] = #ui_tiles;
-        pub const LEVELS_MAP: &[&[TileSetting]] = &[#(#levels_tiles),*];
+        pub static UI_BACKGROUND_MAP: &[TileSetting] = #ui_tiles;
+        pub static LEVELS_MAP: &[&[TileSetting]] = &[#(#levels_tiles),*];
     };
 
     let levels_output = quote! {
-        pub const LEVELS: &[Level] = &[#(#levels_data),*];
+        pub static LEVELS: &[Level] = &[#(#levels_data),*];
     };
 
     {

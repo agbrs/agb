@@ -2,28 +2,28 @@ use agb::fixnum::num;
 use agb::rng;
 use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
 
-const BAT_DEATH: &[u8] = agb::include_wav!("sfx/BatDeath.wav");
-const BAT_FLAP: &[u8] = agb::include_wav!("sfx/BatFlap.wav");
-const JUMP1: &[u8] = agb::include_wav!("sfx/Jump1.wav");
-const JUMP2: &[u8] = agb::include_wav!("sfx/Jump2.wav");
-const JUMP3: &[u8] = agb::include_wav!("sfx/Jump3.wav");
-const PLAYER_GETS_HIT: &[u8] = agb::include_wav!("sfx/PlayerGetsHit.wav");
-const PLAYER_HEAL: &[u8] = agb::include_wav!("sfx/PlayerHeal.wav");
-const PLAYER_LANDS: &[u8] = agb::include_wav!("sfx/PlayerLands.wav");
-const SLIME_BOING: &[u8] = agb::include_wav!("sfx/SlimeBoing.wav");
-const SLIME_DEATH: &[u8] = agb::include_wav!("sfx/SlimeDeath.wav");
-const SWORD_SWING: &[u8] = agb::include_wav!("sfx/SwordSwing.wav");
-const FLAME_CHARGE: &[u8] = agb::include_wav!("sfx/FlameCharge.wav");
-const BOSS_FLAME_MOVE: &[u8] = agb::include_wav!("sfx/FlameMove.wav");
-const BURNING_FLAME: &[u8] = agb::include_wav!("sfx/Burning.wav");
+static BAT_DEATH: &[u8] = agb::include_wav!("sfx/BatDeath.wav");
+static BAT_FLAP: &[u8] = agb::include_wav!("sfx/BatFlap.wav");
+static JUMP1: &[u8] = agb::include_wav!("sfx/Jump1.wav");
+static JUMP2: &[u8] = agb::include_wav!("sfx/Jump2.wav");
+static JUMP3: &[u8] = agb::include_wav!("sfx/Jump3.wav");
+static PLAYER_GETS_HIT: &[u8] = agb::include_wav!("sfx/PlayerGetsHit.wav");
+static PLAYER_HEAL: &[u8] = agb::include_wav!("sfx/PlayerHeal.wav");
+static PLAYER_LANDS: &[u8] = agb::include_wav!("sfx/PlayerLands.wav");
+static SLIME_BOING: &[u8] = agb::include_wav!("sfx/SlimeBoing.wav");
+static SLIME_DEATH: &[u8] = agb::include_wav!("sfx/SlimeDeath.wav");
+static SWORD_SWING: &[u8] = agb::include_wav!("sfx/SwordSwing.wav");
+static FLAME_CHARGE: &[u8] = agb::include_wav!("sfx/FlameCharge.wav");
+static BOSS_FLAME_MOVE: &[u8] = agb::include_wav!("sfx/FlameMove.wav");
+static BURNING_FLAME: &[u8] = agb::include_wav!("sfx/Burning.wav");
 
-const EMU_CRASH: &[u8] = agb::include_wav!("sfx/EmuCrash.wav");
-const EMU_STEP: &[u8] = agb::include_wav!("sfx/EmuStep.wav");
-const EMU_DEATH: &[u8] = agb::include_wav!("sfx/EmuDeath.wav");
+static EMU_CRASH: &[u8] = agb::include_wav!("sfx/EmuCrash.wav");
+static EMU_STEP: &[u8] = agb::include_wav!("sfx/EmuStep.wav");
+static EMU_DEATH: &[u8] = agb::include_wav!("sfx/EmuDeath.wav");
 
-const PURPLE_NIGHT: &[u8] = agb::include_wav!("sfx/01 - The Purple Night (Main Loop).wav");
-const SUNRISE: &[u8] = agb::include_wav!("sfx/02 - Sunrise (Main Loop).wav");
-const BLUE_SPIRIT: &[u8] = agb::include_wav!("sfx/03 - Blue Spirit (Main Loop).wav");
+static PURPLE_NIGHT: &[u8] = agb::include_wav!("sfx/01 - The Purple Night (Main Loop).wav");
+static SUNRISE: &[u8] = agb::include_wav!("sfx/02 - Sunrise (Main Loop).wav");
+static BLUE_SPIRIT: &[u8] = agb::include_wav!("sfx/03 - Blue Spirit (Main Loop).wav");
 
 pub struct Sfx<'a> {
     bgm: Option<ChannelId>,

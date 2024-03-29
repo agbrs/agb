@@ -46,14 +46,14 @@ use agb::{
     display::object::{Graphics, Tag}
 };
 
-// Import the sprites in to this constant. This holds the sprite 
+// Import the sprites in to this static. This holds the sprite 
 // and palette data in a way that is manageable by agb.
-const GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
+static GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 
 // We define some easy ways of referencing the sprites
-const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
-const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
-const BALL: &Tag = GRAPHICS.tags().get("Ball");
+static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
+static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
+static BALL: &Tag = GRAPHICS.tags().get("Ball");
 ```
 
 This uses the `include_aseprite` macro to include the sprites in the given aseprite file.
