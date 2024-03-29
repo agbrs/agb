@@ -3,6 +3,11 @@ use quote::quote;
 
 use proc_macro2::TokenStream;
 
+struct KerningData {
+    previous_character: char,
+    amount: f32,
+}
+
 struct LetterData {
     character: char,
     width: usize,
@@ -11,6 +16,7 @@ struct LetterData {
     ymin: i32,
     advance_width: f32,
     rendered: Vec<u8>,
+    kerning_data: Vec<KerningData>,
 }
 
 pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
@@ -31,8 +37,8 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     let mut letters: Vec<_> = font
         .chars()
         .iter()
-        .map(|(&c, _)| (c, font.rasterize(c, pixels_per_em)))
-        .map(|(c, (metrics, bitmap))| {
+        .map(|(&c, &index)| (c, index, font.rasterize(c, pixels_per_em)))
+        .map(|(c, index, (metrics, bitmap))| {
             let width = metrics.width;
             let height = metrics.height;
 
@@ -50,6 +56,25 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
                 })
                 .collect();
 
+            let mut kerning_data: Vec<_> = font
+                .chars()
+                .iter()
+                .filter_map(|(&left_char, &left_index)| {
+                    let kerning = font.horizontal_kern_indexed(
+                        left_index.into(),
+                        index.into(),
+                        pixels_per_em,
+                    )?;
+
+                    Some(KerningData {
+                        previous_character: left_char,
+                        amount: kerning,
+                    })
+                })
+                .collect();
+
+            kerning_data.sort_unstable_by_key(|kd| kd.previous_character);
+
             LetterData {
                 character: c,
                 width,
@@ -58,6 +83,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
                 xmin: metrics.xmin,
                 ymin: metrics.ymin,
                 advance_width: metrics.advance_width,
+                kerning_data,
             }
         })
         .collect();
@@ -82,6 +108,13 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         let xmin = letter_data.xmin as i8;
         let ymin = letter_data.ymin as i8;
         let advance_width = letter_data.advance_width.ceil() as u8;
+        let kerning_amounts = letter_data.kerning_data.iter().map(|kerning_data| {
+            let amount = kerning_data.amount as i8;
+            let c = kerning_data.previous_character;
+            quote! {
+                (#c, #amount)
+            }
+        });
 
         quote!(
             display::FontLetter::new(
@@ -92,6 +125,9 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
                 #xmin,
                 #ymin,
                 #advance_width,
+                &[
+                    #(#kerning_amounts),*
+                ]
             )
         )
     });
