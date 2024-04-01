@@ -17,10 +17,6 @@ struct Args {
 
     /// The output of agb's dump
     dump: String,
-
-    /// Whether the actual code should be shown
-    #[arg(short, long)]
-    code: bool,
 }
 
 struct Location {
@@ -53,7 +49,7 @@ fn main() -> anyhow::Result<()> {
             address += 0x0800_0000;
         }
 
-        print_address(&ctx, i, address, cli.code)?;
+        print_address(&ctx, i, address)?;
     }
 
     Ok(())
@@ -63,7 +59,6 @@ fn print_address(
     ctx: &addr2line::Context<impl gimli::Reader>,
     index: usize,
     address: u64,
-    include_code: bool,
 ) -> anyhow::Result<()> {
     let mut frames = ctx.find_frames(address).skip_all_loads()?;
 
@@ -105,7 +100,7 @@ fn print_address(
             location.line.to_string().green()
         );
 
-        if include_code && location.line != 0 && is_interesting {
+        if location.line != 0 && is_interesting {
             print_line_of_code(&frame, location)?;
         }
 
