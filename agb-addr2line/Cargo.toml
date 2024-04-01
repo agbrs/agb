@@ -14,6 +14,7 @@ addr2line = { version = "0.21", default-features = false, features = [
     "rustc-demangle",
     "std-object",
 ] }
+colored = "2"
 
 [profile.dev]
 opt-level = 3

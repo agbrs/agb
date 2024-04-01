@@ -2,6 +2,7 @@ use std::{fs, path::PathBuf};
 
 use addr2line::{gimli, object};
 use clap::Parser;
+use colored::Colorize;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -65,7 +66,12 @@ fn print_address(ctx: &addr2line::Context<impl gimli::Reader>, address: u64) -> 
             })
             .unwrap_or_default();
 
-        println!("{function_name} ({}:{})", location.filename, location.line);
+        println!(
+            "{}\n\t{}:{}",
+            function_name.white(),
+            location.filename.green(),
+            location.line.to_string().green()
+        );
     }
 
     Ok(())
