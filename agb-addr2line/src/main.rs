@@ -97,7 +97,7 @@ fn print_address(
         if is_first {
             print!("{index}:\t{function_name_to_print}");
         } else {
-            print!("\t(inlined by) {function_name_to_print}");
+            print!("\t(inlined into) {function_name_to_print}");
         }
 
         println!(
