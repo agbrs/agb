@@ -86,10 +86,17 @@ fn print_address(
             })
             .unwrap_or_default();
 
-        if is_first {
-            print!("{index}:\t{}", function_name.bold());
+        let is_interesting = is_interesting_function(&function_name, &location.filename);
+        let function_name_to_print = if is_interesting {
+            function_name.bold()
         } else {
-            print!("\t(inlined by) {function_name}");
+            function_name.normal()
+        };
+
+        if is_first {
+            print!("{index}:\t{function_name_to_print}");
+        } else {
+            print!("\t(inlined by) {function_name_to_print}");
         }
 
         println!(
@@ -98,7 +105,7 @@ fn print_address(
             location.line.to_string().green()
         );
 
-        if include_code && location.line != 0 {
+        if include_code && location.line != 0 && is_interesting {
             print_line_of_code(&frame, location)?;
         }
 
@@ -154,4 +161,16 @@ fn prettify_path(path: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(path)
     }
+}
+
+fn is_interesting_function(function_name: &str, path: &str) -> bool {
+    if function_name == "rust_begin_unwind" {
+        return false; // this is the unwind exception call
+    }
+
+    if path.ends_with("panicking.rs") {
+        return false; // probably part of rust's internal panic mechanisms
+    }
+
+    true
 }
