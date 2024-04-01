@@ -1,6 +1,6 @@
-use std::{fs, path::PathBuf, str::FromStr};
+use std::{fs, path::PathBuf};
 
-use addr2line::object;
+use addr2line::{gimli, object};
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -35,9 +35,20 @@ fn main() -> anyhow::Result<()> {
 
     let ctx = addr2line::Context::new(&object)?;
 
-    let mut frames = ctx
-        .find_frames(parse_address(&cli.dump)?)
-        .skip_all_loads()?;
+    for address in cli.dump.split('-') {
+        let mut address = u64::from_str_radix(address, 16)?;
+        if address <= 0xFFFF {
+            address += 0x0800_0000;
+        }
+
+        print_address(&ctx, address)?;
+    }
+
+    Ok(())
+}
+
+fn print_address(ctx: &addr2line::Context<impl gimli::Reader>, address: u64) -> anyhow::Result<()> {
+    let mut frames = ctx.find_frames(address).skip_all_loads()?;
 
     while let Some(frame) = frames.next()? {
         let function_name = if let Some(func) = frame.function {
@@ -54,19 +65,8 @@ fn main() -> anyhow::Result<()> {
             })
             .unwrap_or_default();
 
-        println!(
-            "{}:{} ({})",
-            location.filename, location.line, function_name
-        );
+        println!("{function_name} ({}:{})", location.filename, location.line);
     }
 
     Ok(())
-}
-
-fn parse_address(input: &str) -> Result<u64, <u64 as FromStr>::Err> {
-    if let Some(input) = input.strip_prefix("0x") {
-        u64::from_str_radix(input, 16)
-    } else {
-        input.parse()
-    }
 }

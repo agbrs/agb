@@ -323,12 +323,10 @@ pub mod test_runner {
         if let Some(mut mgba) = mgba::Mgba::new() {
             let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
 
-            for frame in frames {
-                let _ = mgba.print(
-                    format_args!("{:#08x}", frame.address),
-                    mgba::DebugLevel::Error,
-                );
-            }
+            let _ = mgba.print(
+                format_args!("debug data: {frames}"),
+                mgba::DebugLevel::Error,
+            );
 
             let _ = mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal);
         }

@@ -9,8 +9,8 @@ struct Context {
     registers: [u32; 11],
 }
 
-pub struct Frame {
-    pub address: u32,
+pub struct Frames {
+    frames: Vec<u32>,
 }
 
 #[allow(unused)]
@@ -37,7 +37,7 @@ impl Index<Register> for Context {
 }
 
 #[inline(never)]
-pub(crate) fn unwind_exception() -> Vec<Frame> {
+pub(crate) fn unwind_exception() -> Frames {
     let mut context = Context::default();
 
     unsafe {
@@ -77,10 +77,33 @@ pub(crate) fn unwind_exception() -> Vec<Frame> {
             break;
         }
 
-        frames.push(Frame { address: lr });
+        frames.push(lr);
 
         frame_pointer = sp;
     }
 
-    frames
+    Frames { frames }
+}
+
+impl core::fmt::Display for Frames {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut is_first = true;
+
+        for frame in &self.frames {
+            if !is_first {
+                write!(f, "-")?;
+            }
+
+            if frame & 0xFFFF_0000 == 0x0800_0000 {
+                let frame = frame & 0xFFFF;
+                write!(f, "{frame:x}")?;
+            } else {
+                write!(f, "{frame:x}")?;
+            }
+
+            is_first = false;
+        }
+
+        Ok(())
+    }
 }
