@@ -1,0 +1,22 @@
+[package]
+name = "agb-addr2line"
+version = "0.19.1"
+edition = "2021"
+authors = ["Gwilym Inzani <email@gwilym.dev>"]
+license = "MPL-2.0"
+description = "CLI utility to convert agb stack trace dumps into human readable stack traces"
+repository = "https://github.com/agbrs/agb"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+addr2line = "0.21"
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
