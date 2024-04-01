@@ -3,6 +3,7 @@ use std::{
     fs::{self, File},
     io::Read,
     path::PathBuf,
+    time::SystemTime,
 };
 
 use addr2line::{gimli, object};
@@ -38,7 +39,11 @@ impl Default for Location {
 fn main() -> anyhow::Result<()> {
     let cli = Args::parse();
 
-    let file = fs::read(cli.elf_path)?;
+    let modification_time = fs::metadata(&cli.elf_path)?
+        .modified()
+        .unwrap_or(SystemTime::UNIX_EPOCH);
+
+    let file = fs::read(&cli.elf_path)?;
     let object = object::File::parse(file.as_slice())?;
 
     let ctx = addr2line::Context::new(&object)?;
@@ -49,7 +54,7 @@ fn main() -> anyhow::Result<()> {
             address += 0x0800_0000;
         }
 
-        print_address(&ctx, i, address)?;
+        print_address(&ctx, i, address, modification_time)?;
     }
 
     Ok(())
@@ -59,6 +64,7 @@ fn print_address(
     ctx: &addr2line::Context<impl gimli::Reader>,
     index: usize,
     address: u64,
+    elf_modification_time: SystemTime,
 ) -> anyhow::Result<()> {
     let mut frames = ctx.find_frames(address).skip_all_loads()?;
 
@@ -101,7 +107,7 @@ fn print_address(
         );
 
         if location.line != 0 && is_interesting {
-            print_line_of_code(&frame, location)?;
+            print_line_of_code(&frame, location, elf_modification_time)?;
         }
 
         is_first = false;
@@ -113,6 +119,7 @@ fn print_address(
 fn print_line_of_code(
     frame: &addr2line::Frame<'_, impl gimli::Reader>,
     location: Location,
+    elf_modification_time: SystemTime,
 ) -> anyhow::Result<()> {
     let Some(filename) = frame.location.as_ref().and_then(|location| location.file) else {
         return Ok(());
@@ -121,6 +128,14 @@ fn print_line_of_code(
     let Ok(mut file) = File::open(filename) else {
         return Ok(());
     };
+
+    let modification_time = fs::metadata(filename)?
+        .modified()
+        .unwrap_or(SystemTime::UNIX_EPOCH);
+
+    if modification_time > elf_modification_time {
+        eprintln!("Warning: File {filename} modified more recently than the binary, line info may be incorrect");
+    }
 
     let mut content = String::new();
     file.read_to_string(&mut content)?;
