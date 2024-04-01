@@ -13,6 +13,20 @@ struct Args {
     dump: String,
 }
 
+struct Location {
+    filename: String,
+    line: u32,
+}
+
+impl Default for Location {
+    fn default() -> Self {
+        Self {
+            filename: "??".to_string(),
+            line: 0,
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Args::parse();
 
@@ -21,14 +35,29 @@ fn main() -> anyhow::Result<()> {
 
     let ctx = addr2line::Context::new(&object)?;
 
-    if let Some(location) = ctx.find_location(parse_address(&cli.dump)?)? {
-        let file = location.file.unwrap_or("unknown file");
-        let line = location
-            .line
-            .map(|line| line.to_string())
-            .unwrap_or_else(|| "??".to_owned());
+    let mut frames = ctx
+        .find_frames(parse_address(&cli.dump)?)
+        .skip_all_loads()?;
 
-        println!("{file}:{line}");
+    while let Some(frame) = frames.next()? {
+        let function_name = if let Some(func) = frame.function {
+            func.demangle()?.into_owned()
+        } else {
+            "unknown function".to_string()
+        };
+
+        let location = frame
+            .location
+            .map(|location| Location {
+                filename: location.file.unwrap_or("??").to_owned(),
+                line: location.line.unwrap_or(0),
+            })
+            .unwrap_or_default();
+
+        println!(
+            "{}:{} ({})",
+            location.filename, location.line, function_name
+        );
     }
 
     Ok(())
