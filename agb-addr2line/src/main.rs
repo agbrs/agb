@@ -36,20 +36,26 @@ fn main() -> anyhow::Result<()> {
 
     let ctx = addr2line::Context::new(&object)?;
 
-    for address in cli.dump.split('-') {
+    for (i, address) in cli.dump.split('-').enumerate() {
         let mut address = u64::from_str_radix(address, 16)?;
         if address <= 0xFFFF {
             address += 0x0800_0000;
         }
 
-        print_address(&ctx, address)?;
+        print_address(&ctx, i, address)?;
     }
 
     Ok(())
 }
 
-fn print_address(ctx: &addr2line::Context<impl gimli::Reader>, address: u64) -> anyhow::Result<()> {
+fn print_address(
+    ctx: &addr2line::Context<impl gimli::Reader>,
+    index: usize,
+    address: u64,
+) -> anyhow::Result<()> {
     let mut frames = ctx.find_frames(address).skip_all_loads()?;
+
+    let mut is_first = true;
 
     while let Some(frame) = frames.next()? {
         let function_name = if let Some(func) = frame.function {
@@ -66,12 +72,19 @@ fn print_address(ctx: &addr2line::Context<impl gimli::Reader>, address: u64) -> 
             })
             .unwrap_or_default();
 
+        if is_first {
+            println!("{index}:\t{}", function_name.bold());
+        } else {
+            println!("\t(inlined by) {function_name}");
+        }
+
         println!(
-            "{}\n\t{}:{}",
-            function_name.white(),
+            "\t{}:{}",
             location.filename.green(),
             location.line.to_string().green()
         );
+
+        is_first = false;
     }
 
     Ok(())
