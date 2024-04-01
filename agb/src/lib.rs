@@ -150,6 +150,7 @@ extern crate alloc;
 mod agb_alloc;
 
 mod agbabi;
+mod backtrace;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
@@ -317,11 +318,19 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+        let frames = backtrace::unwind_exception();
+
         if let Some(mut mgba) = mgba::Mgba::new() {
-            mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error)
-                .unwrap();
-            mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal)
-                .unwrap();
+            let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
+
+            for frame in frames {
+                let _ = mgba.print(
+                    format_args!("{:#08x}", frame.address),
+                    mgba::DebugLevel::Error,
+                );
+            }
+
+            let _ = mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal);
         }
 
         loop {}
