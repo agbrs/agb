@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{borrow::Cow, fs, path::PathBuf};
 
 use addr2line::{gimli, object};
 use clap::Parser;
@@ -73,14 +73,14 @@ fn print_address(
             .unwrap_or_default();
 
         if is_first {
-            println!("{index}:\t{}", function_name.bold());
+            print!("{index}:\t{}", function_name.bold());
         } else {
-            println!("\t(inlined by) {function_name}");
+            print!("\t(inlined by) {function_name}");
         }
 
         println!(
-            "\t{}:{}",
-            location.filename.green(),
+            " {}:{}",
+            prettify_path(&location.filename).green(),
             location.line.to_string().green()
         );
 
@@ -88,4 +88,17 @@ fn print_address(
     }
 
     Ok(())
+}
+
+fn prettify_path(path: &str) -> Cow<'_, str> {
+    if let Some(src_index) = path.rfind("/src/") {
+        let crate_name_start = path[0..src_index].rfind('/');
+        let crate_name = crate_name_start
+            .map(|crate_name_start| &path[crate_name_start + 1..src_index])
+            .unwrap_or("<crate>");
+
+        Cow::Owned(format!("<{crate_name}>/{}", &path[src_index + 5..]))
+    } else {
+        Cow::Borrowed(path)
+    }
 }
