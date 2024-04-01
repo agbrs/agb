@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fs, path::PathBuf};
+use std::{
+    borrow::Cow,
+    fs::{self, File},
+    io::Read,
+    path::PathBuf,
+};
 
 use addr2line::{gimli, object};
 use clap::Parser;
@@ -12,11 +17,16 @@ struct Args {
 
     /// The output of agb's dump
     dump: String,
+
+    /// Whether the actual code should be shown
+    #[arg(short, long)]
+    code: bool,
 }
 
 struct Location {
     filename: String,
     line: u32,
+    col: u32,
 }
 
 impl Default for Location {
@@ -24,6 +34,7 @@ impl Default for Location {
         Self {
             filename: "??".to_string(),
             line: 0,
+            col: 0,
         }
     }
 }
@@ -42,7 +53,7 @@ fn main() -> anyhow::Result<()> {
             address += 0x0800_0000;
         }
 
-        print_address(&ctx, i, address)?;
+        print_address(&ctx, i, address, cli.code)?;
     }
 
     Ok(())
@@ -52,13 +63,14 @@ fn print_address(
     ctx: &addr2line::Context<impl gimli::Reader>,
     index: usize,
     address: u64,
+    include_code: bool,
 ) -> anyhow::Result<()> {
     let mut frames = ctx.find_frames(address).skip_all_loads()?;
 
     let mut is_first = true;
 
     while let Some(frame) = frames.next()? {
-        let function_name = if let Some(func) = frame.function {
+        let function_name = if let Some(ref func) = frame.function {
             func.demangle()?.into_owned()
         } else {
             "unknown function".to_string()
@@ -66,9 +78,11 @@ fn print_address(
 
         let location = frame
             .location
+            .as_ref()
             .map(|location| Location {
                 filename: location.file.unwrap_or("??").to_owned(),
                 line: location.line.unwrap_or(0),
+                col: location.column.unwrap_or(0),
             })
             .unwrap_or_default();
 
@@ -84,7 +98,46 @@ fn print_address(
             location.line.to_string().green()
         );
 
+        if include_code && location.line != 0 {
+            print_line_of_code(&frame, location)?;
+        }
+
         is_first = false;
+    }
+
+    Ok(())
+}
+
+fn print_line_of_code(
+    frame: &addr2line::Frame<'_, impl gimli::Reader>,
+    location: Location,
+) -> anyhow::Result<()> {
+    let Some(filename) = frame.location.as_ref().and_then(|location| location.file) else {
+        return Ok(());
+    };
+
+    let Ok(mut file) = File::open(filename) else {
+        return Ok(());
+    };
+
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+
+    let Some(line_of_code) = content.split('\n').nth(location.line as usize - 1) else {
+        eprintln!("File {filename} does not have line {}", location.line);
+        return Ok(());
+    };
+
+    let trimmed = line_of_code.trim_start();
+    let trimmed_len = line_of_code.len() - trimmed.len();
+    println!("\t\t{}", trimmed);
+
+    if location.col != 0 {
+        println!(
+            "\t\t{}{}",
+            " ".repeat(location.col as usize - trimmed_len - 1),
+            "^".bright_blue()
+        );
     }
 
     Ok(())
