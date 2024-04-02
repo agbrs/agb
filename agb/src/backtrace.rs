@@ -87,23 +87,47 @@ pub(crate) fn unwind_exception() -> Frames {
 
 impl core::fmt::Display for Frames {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut is_first = true;
-
         for frame in &self.frames {
-            if !is_first {
-                write!(f, "-")?;
-            }
-
             if frame & 0xFFFF_0000 == 0x0800_0000 {
-                let frame = frame & 0xFFFF;
-                write!(f, "{frame:x}")?;
-            } else {
-                write!(f, "{frame:x}")?;
-            }
+                let frame = *frame as u16; // intentionally truncate
+                let frame_encoded = gwilym_encoding::encode_16(frame);
+                let frame_str = unsafe { core::str::from_utf8_unchecked(&frame_encoded) };
 
-            is_first = false;
+                write!(f, "{frame_str}")?;
+            } else {
+                let frame_encoded = gwilym_encoding::encode_32(*frame);
+                let frame_str = unsafe { core::str::from_utf8_unchecked(&frame_encoded) };
+
+                write!(f, "{frame_str}")?;
+            }
         }
 
         Ok(())
+    }
+}
+
+mod gwilym_encoding {
+    const ALPHABET: &[u8] = b"-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
+    pub fn encode_16(input: u16) -> [u8; 3] {
+        let input = input as usize;
+        [
+            ALPHABET[input >> (16 - 5)],
+            ALPHABET[(input >> (16 - 10)) & 0b11111],
+            ALPHABET[input & 0b111111],
+        ]
+    }
+
+    pub fn encode_32(input: u32) -> [u8; 6] {
+        let input = input as usize;
+        let output_16 = encode_16(input as u16);
+        [
+            ALPHABET[(input >> (32 - 5)) | 0b100000],
+            ALPHABET[(input >> (32 - 10)) & 0b11111],
+            ALPHABET[(input >> (32 - 16)) & 0b111111],
+            output_16[0],
+            output_16[1],
+            output_16[2],
+        ]
     }
 }
