@@ -33,6 +33,8 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
                 text::BitmapTextRender::new(&mut gfx, (8, location).into(), 0x0000);
             let _ = write!(&mut panic_text_render, "{info}");
 
+            // need to wait 2 frames to ensure that mgba finishes rendering before the fatal call below
+            busy_wait_for_vblank();
             busy_wait_for_vblank();
 
             if let Some(mut mgba) = mgba::Mgba::new() {
