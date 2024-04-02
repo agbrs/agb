@@ -325,11 +325,6 @@ pub mod test_runner {
 
         if let Some(mut mgba) = mgba::Mgba::new() {
             let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
-
-            let _ = mgba.print(
-                format_args!("debug data: {frames}"),
-                mgba::DebugLevel::Error,
-            );
         }
 
         render_backtrace(&frames, info);

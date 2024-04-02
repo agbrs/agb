@@ -16,7 +16,11 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
             let mut gba = unsafe { crate::Gba::new_in_entry() };
 
             gba.dma.dma().dma3.disable();
-            draw_qr_code(&mut gba, trace);
+
+            let qrcode_string_data = format!("https://agbrs.dev/crash#v1-{trace}");
+            crate::println!("Stack trace: {qrcode_string_data}");
+
+            draw_qr_code(&mut gba, &qrcode_string_data);
 
             busy_wait_for_vblank();
 
@@ -31,17 +35,16 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
     })
 }
 
-fn draw_qr_code(gba: &mut crate::Gba, trace: &backtrace::Frames) {
+fn draw_qr_code(gba: &mut crate::Gba, qrcode_string_data: &str) {
     let mut gfx = gba.display.video.bitmap3();
 
-    let qrcode_string_data = format!("https://agbrs.dev/crash#v1-{trace}");
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
 
     let mut temp_buffer = vec![0; MAX_VERSION.buffer_len()];
     let mut out_buffer = vec![0; MAX_VERSION.buffer_len()];
 
     let qr_code = match qrcodegen_no_heap::QrCode::encode_text(
-        &qrcode_string_data,
+        qrcode_string_data,
         &mut temp_buffer,
         &mut out_buffer,
         qrcodegen_no_heap::QrCodeEcc::Medium,
