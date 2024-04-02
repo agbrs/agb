@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
 
     let ctx = addr2line::Context::new(&object)?;
 
-    for (i, address) in gwilym_encoding::decode(&cli.dump).into_iter().enumerate() {
+    for (i, address) in gwilym_encoding::decode(&cli.dump)?.into_iter().enumerate() {
         print_address(&ctx, i, address.into(), modification_time)?;
     }
 
@@ -183,7 +183,7 @@ fn is_interesting_function(function_name: &str, path: &str) -> bool {
 mod gwilym_encoding {
     use std::sync::OnceLock;
 
-    const ALPHABET: &[u8] = b"-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+    const ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
     // pub fn encode_16(input: u16) -> [u8; 3] {
     //     let input = input as usize;
@@ -207,7 +207,15 @@ mod gwilym_encoding {
     //     ]
     // }
 
-    pub fn decode(input: &str) -> Vec<u32> {
+    pub fn decode(input: &str) -> anyhow::Result<Vec<u32>> {
+        let Some((input, version)) = input.rsplit_once('v') else {
+            anyhow::bail!("Does not contain version");
+        };
+
+        if version != "1" {
+            anyhow::bail!("Only version 1 is supported");
+        }
+
         let mut result = vec![];
 
         let mut previous_value = None;
@@ -224,7 +232,7 @@ mod gwilym_encoding {
             }
         }
 
-        result
+        Ok(result)
     }
 
     fn decode_chunk(chunk: &[u8]) -> u32 {
