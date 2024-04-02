@@ -3,7 +3,6 @@ use core::fmt::Write;
 use crate::{
     display::{bitmap3::Bitmap3, Font, HEIGHT, WIDTH},
     fixnum::Vector2D,
-    include_font,
 };
 
 static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
