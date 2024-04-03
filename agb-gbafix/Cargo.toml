@@ -12,6 +12,7 @@ elf = "0.7"
 anyhow = "1"
 clap = "4"
 rmp-serde = "1"
+lz4_flex = "0.11"
 
 [profile.dev]
 opt-level = 3

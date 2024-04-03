@@ -165,7 +165,11 @@ fn write_debug<W: Write>(
     }
 
     let mut debug_data = vec![];
-    rmp_serde::encode::write(&mut debug_data, &debug_sections)?;
+    {
+        let mut compressed_writer = lz4_flex::frame::FrameEncoder::new(&mut debug_data);
+        rmp_serde::encode::write(&mut compressed_writer, &debug_sections)?;
+        compressed_writer.flush()?;
+    }
 
     output.write_all(&debug_data)?;
     output.write_all(&(debug_data.len() as u32).to_le_bytes())?;
