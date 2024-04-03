@@ -11,6 +11,7 @@ repository = "https://github.com/agbrs/agb"
 elf = "0.7"
 anyhow = "1"
 clap = "4"
+rmp-serde = "1"
 
 [profile.dev]
 opt-level = 3
