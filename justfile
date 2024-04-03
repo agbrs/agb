@@ -92,6 +92,11 @@ release +args: (_run-tool "release" args)
 miri:
     (cd agb-hashmap && cargo miri test)
 
+build-mgba-wasm:
+    rm -r website/app/src/vendor
+    mkdir website/app/src/vendor
+    podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/app/src/vendor .
+
 _run-tool +tool:
     (cd tools && cargo build)
     "$CARGO_TARGET_DIR/debug/tools" {{tool}}
