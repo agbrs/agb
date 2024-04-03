@@ -2,28 +2,6 @@ use std::{slice::ChunksExact, sync::OnceLock};
 
 const ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-// pub fn encode_16(input: u16) -> [u8; 3] {
-//     let input = input as usize;
-//     [
-//         ALPHABET[input >> (16 - 5)],
-//         ALPHABET[(input >> (16 - 10)) & 0b11111],
-//         ALPHABET[input & 0b111111],
-//     ]
-// }
-
-// pub fn encode_32(input: u32) -> [u8; 6] {
-//     let input = input as usize;
-//     let output_16 = encode_16(input as u16);
-//     [
-//         ALPHABET[(input >> (32 - 5)) | 0b100000],
-//         ALPHABET[(input >> (32 - 10)) & 0b11111],
-//         ALPHABET[(input >> (32 - 16)) & 0b111111],
-//         output_16[0],
-//         output_16[1],
-//         output_16[2],
-//     ]
-// }
-
 pub fn gwilym_decode(input: &str) -> anyhow::Result<GwilymDecodeIter<'_>> {
     GwilymDecodeIter::new(input)
 }
