@@ -34,6 +34,10 @@ pub struct GwilymDecodeIter<'a> {
 
 impl<'a> GwilymDecodeIter<'a> {
     fn new(input: &'a str) -> anyhow::Result<Self> {
+        let input = input
+            .strip_prefix("https://agbrs.dev/crash#")
+            .unwrap_or(input);
+
         let Some((input, version)) = input.rsplit_once('v') else {
             anyhow::bail!("Does not contain version");
         };
@@ -158,6 +162,16 @@ mod test {
         write!(&mut result, "v1")?;
 
         assert_eq!(&gwilym_decode(&result)?.collect::<Vec<_>>(), trace);
+
+        Ok(())
+    }
+
+    #[test]
+    fn should_strip_the_agbrsdev_prefix() -> anyhow::Result<()> {
+        assert_eq!(
+            &gwilym_decode("https://agbrs.dev/crash#2QI65Q69306Kv1")?.collect::<Vec<_>>(),
+            &[0x0800_16d3, 0x0800_315b, 0x0800_3243, 0x0800_0195]
+        );
 
         Ok(())
     }
