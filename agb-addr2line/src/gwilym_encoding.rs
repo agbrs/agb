@@ -38,9 +38,7 @@ impl<'a> Iterator for GwilymDecodeIter<'a> {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(chunk) = self.chunks.next() else {
-            return None;
-        };
+        let chunk = self.chunks.next()?;
 
         let value = decode_chunk(chunk);
         if value & (1 << 16) != 0 {
