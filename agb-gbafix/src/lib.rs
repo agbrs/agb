@@ -173,7 +173,7 @@ fn write_debug<W: Write>(
 
     output.write_all(&debug_data)?;
     output.write_all(&(debug_data.len() as u32).to_le_bytes())?;
-    output.write_all(&(1u32).to_le_bytes())?;
+    output.write_all(b"agb1")?;
 
     Ok(debug_data.len() as u64 + 4)
 }
