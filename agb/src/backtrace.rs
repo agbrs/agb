@@ -120,14 +120,15 @@ mod gwilym_encoding {
 
     pub fn encode_32(input: u32) -> [u8; 6] {
         let input = input as usize;
-        let output_16 = encode_16(input as u16);
+        let output_lower_16 = encode_16(input as u16);
+        let input_upper_16 = input >> 16;
         [
-            ALPHABET[(input >> (32 - 5)) | 0b100000],
-            ALPHABET[(input >> (32 - 10)) & 0b11111],
-            ALPHABET[(input >> (32 - 16)) & 0b111111],
-            output_16[0],
-            output_16[1],
-            output_16[2],
+            ALPHABET[(input_upper_16 >> (16 - 5)) | (1 << 5)],
+            ALPHABET[(input_upper_16 >> (16 - 10)) & 0b11111],
+            ALPHABET[input_upper_16 & 0b111111],
+            output_lower_16[0],
+            output_lower_16[1],
+            output_lower_16[2],
         ]
     }
 }

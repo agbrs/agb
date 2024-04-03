@@ -61,8 +61,11 @@ impl<'a> Iterator for GwilymDecodeIter<'a> {
         };
 
         let value = decode_chunk(chunk);
-        if value & (1 << 17) != 0 {
-            return Some(self.next().unwrap_or(0) | (value << 16));
+        if value & (1 << 16) != 0 {
+            let upper_bits = value << 16;
+            let lower_bits = self.next().unwrap_or(0) & 0xffff;
+
+            return Some(upper_bits | lower_bits);
         }
 
         Some(value | 0x0800_0000)
@@ -88,4 +91,74 @@ fn get_value_for_char(input: u8) -> u32 {
 
         result
     })[input as usize] as u32
+}
+
+#[cfg(test)]
+mod test {
+    use super::{gwilym_decode, ALPHABET};
+    use std::fmt::Write;
+
+    #[test]
+    fn should_correctly_decode_16s() -> anyhow::Result<()> {
+        assert_eq!(
+            &gwilym_decode("2QI65Q69306Kv1")?.collect::<Vec<_>>(),
+            &[0x0800_16d3, 0x0800_315b, 0x0800_3243, 0x0800_0195]
+        );
+
+        Ok(())
+    }
+
+    fn encode_16(input: u16) -> [u8; 3] {
+        let input = input as usize;
+        [
+            ALPHABET[input >> (16 - 5)],
+            ALPHABET[(input >> (16 - 10)) & 0b11111],
+            ALPHABET[input & 0b111111],
+        ]
+    }
+
+    fn encode_32(input: u32) -> [u8; 6] {
+        let input = input as usize;
+        let output_lower_16 = encode_16(input as u16);
+        let input_upper_16 = input >> 16;
+        [
+            ALPHABET[(input_upper_16 >> (16 - 5)) | (1 << 5)],
+            ALPHABET[(input_upper_16 >> (16 - 10)) & 0b11111],
+            ALPHABET[input_upper_16 & 0b111111],
+            output_lower_16[0],
+            output_lower_16[1],
+            output_lower_16[2],
+        ]
+    }
+
+    #[test]
+    fn should_correctly_decode_16s_and_32s() -> anyhow::Result<()> {
+        let trace: &[u32] = &[
+            0x0300_2990,
+            0x0800_3289,
+            0x0500_2993,
+            0x3829_2910,
+            0xffff_ffff,
+            0x0000_0000,
+        ];
+
+        let mut result = String::new();
+        for &ip in trace {
+            if ip & 0xFFFF_0000 == 0x0800_0000 {
+                let encoded = encode_16(ip as u16);
+                let encoded_s = std::str::from_utf8(&encoded)?;
+                write!(&mut result, "{encoded_s}")?
+            } else {
+                let encoded = encode_32(ip);
+                let encoded_s = std::str::from_utf8(&encoded)?;
+                write!(&mut result, "{encoded_s}")?
+            }
+        }
+
+        write!(&mut result, "v1")?;
+
+        assert_eq!(&gwilym_decode(&result)?.collect::<Vec<_>>(), trace);
+
+        Ok(())
+    }
 }
