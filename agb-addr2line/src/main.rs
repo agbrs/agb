@@ -10,6 +10,8 @@ use addr2line::{gimli, object};
 use clap::Parser;
 use colored::Colorize;
 
+mod gwilym_encoding;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -48,7 +50,7 @@ fn main() -> anyhow::Result<()> {
 
     let ctx = addr2line::Context::new(&object)?;
 
-    for (i, address) in gwilym_encoding::decode(&cli.dump)?.into_iter().enumerate() {
+    for (i, address) in gwilym_encoding::gwilym_decode(&cli.dump)?.enumerate() {
         print_address(&ctx, i, address.into(), modification_time)?;
     }
 
@@ -178,81 +180,4 @@ fn is_interesting_function(function_name: &str, path: &str) -> bool {
     }
 
     true
-}
-
-mod gwilym_encoding {
-    use std::sync::OnceLock;
-
-    const ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-
-    // pub fn encode_16(input: u16) -> [u8; 3] {
-    //     let input = input as usize;
-    //     [
-    //         ALPHABET[input >> (16 - 5)],
-    //         ALPHABET[(input >> (16 - 10)) & 0b11111],
-    //         ALPHABET[input & 0b111111],
-    //     ]
-    // }
-
-    // pub fn encode_32(input: u32) -> [u8; 6] {
-    //     let input = input as usize;
-    //     let output_16 = encode_16(input as u16);
-    //     [
-    //         ALPHABET[(input >> (32 - 5)) | 0b100000],
-    //         ALPHABET[(input >> (32 - 10)) & 0b11111],
-    //         ALPHABET[(input >> (32 - 16)) & 0b111111],
-    //         output_16[0],
-    //         output_16[1],
-    //         output_16[2],
-    //     ]
-    // }
-
-    pub fn decode(input: &str) -> anyhow::Result<Vec<u32>> {
-        let Some((input, version)) = input.rsplit_once('v') else {
-            anyhow::bail!("Does not contain version");
-        };
-
-        if version != "1" {
-            anyhow::bail!("Only version 1 is supported");
-        }
-
-        let mut result = vec![];
-
-        let mut previous_value = None;
-        for chunk in input.as_bytes().chunks_exact(3) {
-            let value = decode_chunk(chunk);
-
-            if value & (1 << 17) != 0 {
-                previous_value = Some(value << 16);
-            } else if let Some(upper_bits) = previous_value {
-                result.push(upper_bits | value);
-                previous_value = None;
-            } else {
-                result.push(value | 0x0800_0000);
-            }
-        }
-
-        Ok(result)
-    }
-
-    fn decode_chunk(chunk: &[u8]) -> u32 {
-        let a = get_value_for_char(chunk[0]);
-        let b = get_value_for_char(chunk[1]);
-        let c = get_value_for_char(chunk[2]);
-
-        (a << (16 - 5)) | (b << (16 - 10)) | c
-    }
-
-    fn get_value_for_char(input: u8) -> u32 {
-        static REVERSE_ALHPABET: OnceLock<[u8; 128]> = OnceLock::new();
-
-        REVERSE_ALHPABET.get_or_init(|| {
-            let mut result = [0; 128];
-            for (i, &c) in ALPHABET.iter().enumerate() {
-                result[c as usize] = i as u8;
-            }
-
-            result
-        })[input as usize] as u32
-    }
 }
