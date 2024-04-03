@@ -6,11 +6,13 @@ use std::{
     time::SystemTime,
 };
 
-use addr2line::{gimli, object};
+use addr2line::gimli;
 use clap::Parser;
 use colored::Colorize;
+use load_dwarf::load_dwarf;
 
 mod gwilym_encoding;
+mod load_dwarf;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -46,9 +48,9 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or(SystemTime::UNIX_EPOCH);
 
     let file = fs::read(&cli.elf_path)?;
-    let object = object::File::parse(file.as_slice())?;
+    let dwarf = load_dwarf(&file)?;
 
-    let ctx = addr2line::Context::new(&object)?;
+    let ctx = addr2line::Context::from_dwarf(dwarf)?;
 
     for (i, address) in gwilym_encoding::gwilym_decode(&cli.dump)?.enumerate() {
         print_address(&ctx, i, address.into(), modification_time)?;
