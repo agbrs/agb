@@ -107,7 +107,7 @@ impl core::fmt::Display for Frames {
 }
 
 mod gwilym_encoding {
-    const ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+    static ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
     pub fn encode_16(input: u16) -> [u8; 3] {
         let input = input as usize;
