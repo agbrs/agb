@@ -27,7 +27,10 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 
             let mut trace_text_render =
                 text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
-            let _ = write!(&mut trace_text_render, "https://agbrs.dev/crash\n{trace}");
+            let _ = write!(
+                &mut trace_text_render,
+                "The game crashed :(\nhttps://agbrs.dev/crash\n{trace}"
+            );
 
             let mut panic_text_render =
                 text::BitmapTextRender::new(&mut gfx, (8, location).into(), 0x0000);
