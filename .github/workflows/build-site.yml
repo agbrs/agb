@@ -39,7 +39,7 @@ jobs:
           path: "website/build"
   deploy:
     name: Deploy website
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push'
     # Add a dependency to the build job
     needs: build
 
