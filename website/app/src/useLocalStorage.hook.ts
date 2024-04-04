@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 export const useLocalStorage = <T>(
   defaultValue: T,
@@ -21,7 +21,7 @@ export const useLocalStorage = <T>(
     setValue(newValue);
     try {
       localStorage.setItem(appName, JSON.stringify(newValue));
-    } catch {}
+    } catch { }
   }, []);
 
   return [value, setStoredValue];
