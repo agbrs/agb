@@ -22,6 +22,7 @@ export const useLocalStorage = <T>(
     try {
       localStorage.setItem(appName, JSON.stringify(newValue));
     } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return [value, setStoredValue];
