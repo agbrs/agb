@@ -1,5 +1,4 @@
 import {
-  FC,
   forwardRef,
   useEffect,
   useImperativeHandle,
