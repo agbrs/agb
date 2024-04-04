@@ -22,6 +22,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
+            website/app/node_modules
             ~/.cargo/registry
             ~/.cargo/git
             ~/target
