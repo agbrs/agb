@@ -4,6 +4,8 @@ on:
   merge_group:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
 
 jobs:
   build:
@@ -35,6 +37,7 @@ jobs:
         with:
           path: "website/build"
   deploy:
+    if: github.event_name != 'pull_request'
     # Add a dependency to the build job
     needs: build
 
