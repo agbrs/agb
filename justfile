@@ -101,6 +101,7 @@ build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
 
 build-site-mgba-wrapper: build-mgba-wasm
+    (cd website/app && npm install --no-save --prefer-offline --no-audit)
     (cd website/app && npm run build)
 
 build-site: build-combo-rom-site build-site-mgba-wrapper build-book
