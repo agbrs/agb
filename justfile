@@ -93,9 +93,22 @@ miri:
     (cd agb-hashmap && cargo miri test)
 
 build-mgba-wasm:
-    rm -r website/app/src/vendor
+    rm -rf website/app/src/vendor
     mkdir website/app/src/vendor
     podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/app/src/vendor .
+
+build-combo-rom-site:
+    just _build-rom "examples/combo" "AGBGAMES"
+    cp examples/target/examples/combo.gba website/app/public/game.gba
+
+build-site-mgba-wrapper: build-mgba-wasm
+    (cd website/app && npm run build)
+
+build-site: build-combo-rom-site build-site-mgba-wrapper build-book
+    rm -rf website/build
+    cp website/site website/build -r
+    cp book/book website/build/book -r
+    cp website/app/build website/build/mgba -r
 
 _run-tool +tool:
     (cd tools && cargo build)
