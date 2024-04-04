@@ -95,8 +95,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
             position.x = Num::new(game_idx * 30 * 8);
         }
 
-        position.x +=
-            ((Num::new(game_idx * 30 * 8) - position.x) / 8).clamp(-Num::new(8), Num::new(8));
+        position.x += (Num::new(game_idx * 30 * 8) - position.x) / 8;
 
         bg.set_pos(&mut vram, position.floor());
 
