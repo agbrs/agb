@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Just CI
+    name: Build website
     runs-on: ubuntu-22.04
     steps:
       - name: Set CARGO_TARGET_DIR
@@ -37,6 +37,7 @@ jobs:
         with:
           path: "website/build"
   deploy:
+    name: Deploy website
     if: github.event_name != 'pull_request'
     # Add a dependency to the build job
     needs: build
