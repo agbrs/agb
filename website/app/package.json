@@ -47,6 +47,6 @@
   },
   "devDependencies": {
     "@types/styled-components": "^5.1.26",
-    "prettier": "2.8.8"
+    "prettier": "3.2.5"
   }
 }
