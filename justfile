@@ -92,6 +92,25 @@ release +args: (_run-tool "release" args)
 miri:
     (cd agb-hashmap && cargo miri test)
 
+build-mgba-wasm:
+    rm -rf website/app/src/vendor
+    mkdir website/app/src/vendor
+    podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/app/src/vendor .
+
+build-combo-rom-site:
+    just _build-rom "examples/combo" "AGBGAMES"
+
+build-site-mgba-wrapper: build-mgba-wasm
+    (cd website/app && npm install --no-save --prefer-offline --no-audit)
+    (cd website/app && npm run build)
+
+build-site: build-combo-rom-site build-site-mgba-wrapper build-book
+    rm -rf website/build
+    cp website/site website/build -r
+    cp book/book website/build/book -r
+    cp website/app/build website/build/mgba -r
+    cp examples/target/examples/combo.gba website/build/assets/combo.gba
+
 _run-tool +tool:
     (cd tools && cargo build)
     "$CARGO_TARGET_DIR/debug/tools" {{tool}}

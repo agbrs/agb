@@ -1,0 +1,61 @@
+name: Build and Deploy Website
+
+on:
+  merge_group:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    name: Build website
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: gacts/install-podman@v1
+      - name: Set CARGO_TARGET_DIR
+        run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install build-essential libelf-dev zip -y
+      - uses: actions/checkout@v4
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}--npm--${{ hashFiles('**/package-lock.json') }}
+      - uses: extractions/setup-just@v2
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "0.4.13"
+      - name: Build website
+        run: just build-site
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "website/build"
+  deploy:
+    name: Deploy website
+    if: github.event_name != 'pull_request'
+    # Add a dependency to the build job
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
