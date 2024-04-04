@@ -52,7 +52,10 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         const game = await fetch(gameUrl);
         const gameData = await game.arrayBuffer();
 
-        const gamePath = `${MGBA_ROM_DIRECTORY}/${gameUrl}`;
+        const gameSplit = gameUrl.split("/");
+        const gameBaseName = gameSplit[gameSplit.length - 1];
+
+        const gamePath = `${MGBA_ROM_DIRECTORY}/${gameBaseName}`;
         mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
         mgbaModule.current.loadGame(gamePath);
         mgbaModule.current.setVolume(0.1); // for some reason you have to do this or you get no sound

@@ -68,6 +68,8 @@ function App() {
 
   useAvoidItchIoScrolling();
 
+  const gameUrl = window.location.hash.slice(1);
+
   const [isPlaying, setIsPlaying] = useState(true);
 
   return (
@@ -86,7 +88,7 @@ function App() {
       {isPlaying ? (
         <Mgba
           ref={mgbaRef}
-          gameUrl="./game.gba"
+          gameUrl={gameUrl}
           volume={volume}
           controls={bindings.Actual}
           paused={paused}

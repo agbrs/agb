@@ -99,7 +99,6 @@ build-mgba-wasm:
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
-    cp examples/target/examples/combo.gba website/app/public/game.gba
 
 build-site-mgba-wrapper: build-mgba-wasm
     (cd website/app && npm run build)
@@ -109,6 +108,7 @@ build-site: build-combo-rom-site build-site-mgba-wrapper build-book
     cp website/site website/build -r
     cp book/book website/build/book -r
     cp website/app/build website/build/mgba -r
+    cp examples/target/examples/combo.gba website/build/assets/combo.gba
 
 _run-tool +tool:
     (cd tools && cargo build)
