@@ -12,6 +12,7 @@ jobs:
     name: Build website
     runs-on: ubuntu-22.04
     steps:
+      - uses: gacts/install-podman@v1
       - name: Set CARGO_TARGET_DIR
         run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
       - name: Install build tools
