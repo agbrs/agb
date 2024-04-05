@@ -72,7 +72,6 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         if (state !== MgbaState.Uninitialised) return;
 
         setState(MgbaState.Initialising);
-
         mgbaModule.current = {
           canvas: canvas.current,
         };
@@ -89,7 +88,7 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
           try {
             mgbaModule.current.quitGame();
             mgbaModule.current.quitMgba();
-          } catch { }
+          } catch {}
         };
     }, [state]);
 
@@ -127,10 +126,10 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
       return {
         restart: () => mgbaModule.current.quickReload(),
         buttonPress: (key: GbaKey) => mgbaModule.current.buttonPress(key),
-        buttonRelease: (key: GbaKey) => mgbaModule.current.buttonRelease(key),
+        buttonRelease: (key: GbaKey) => mgbaModule.current.buttonUnpress(key),
       };
     });
 
     return <MgbaCanvas ref={canvas} />;
-  }
+  },
 );

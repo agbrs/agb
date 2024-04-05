@@ -1,132 +1,336 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>agb - a rust framework for making Game Boy Advance games</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
 
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agb - a rust framework for making Game Boy Advance games</title>
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
+      body {
+        font: 1.2em/1.62 sans-serif;
+        background-color: white;
+        font-size: 1.5rem;
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+      }
 
-    body {
-      font: 1.2em/1.62 sans-serif;
-      background-color: white;
-      font-size: 1.5rem;
-      line-height: 1.6;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      margin: 0;
-    }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+      }
 
-    h1,
-    h2,
-    h3 {
-      line-height: 1.2;
-    }
+      .gameDisplay > div {
+        display: flex;
+        justify-content: center;
+        height: 100%;
+      }
 
-    .gameDisplay>div {
-      display: flex;
-      justify-content: center;
-      height: 100%;
-    }
+      .gameDisplay {
+        height: clamp(480px, 40vh, calc(100vw / 3));
+        max-width: 100vw;
+        margin-top: 20px;
+        overflow: hidden;
+      }
 
-    .gameDisplay {
-      height: clamp(480px, 40vh, calc(100vw / 3));
-      max-width: 100vw;
-      margin-top: 20px;
-      overflow: hidden;
-    }
+      .gameDisplay .imageWrapper {
+        aspect-ratio: 15 / 31;
+        height: 100%;
+      }
 
-    .gameDisplay .imageWrapper {
-      aspect-ratio: 15 / 31;
-      height: 100%;
-    }
+      .gameDisplay .imageWrapper > img {
+        height: 100%;
+        image-rendering: pixelated;
+      }
 
-    .gameDisplay .imageWrapper>img {
-      height: 100%;
-      image-rendering: pixelated;
-    }
+      .gameDisplay iframe {
+        border: 0;
+        height: 100%;
+        max-width: 100vw;
+        aspect-ratio: 240 / 160;
+      }
 
-    .gameDisplay iframe {
-      border: 0;
-      height: 100%;
-      max-width: 100vw;
-      aspect-ratio: 240 / 160;
-    }
+      header,
+      .desktopHelp {
+        max-width: 60%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-block-end: 40px;
+      }
 
-    header,
-    .desktopHelp {
-      max-width: 60%;
-      margin-left: auto;
-      margin-right: auto;
-      margin-block-end: 40px;
-    }
+      .red {
+        background-color: #f5755e;
+        flex-grow: 1;
+      }
 
-    .red {
-      background-color: #f5755e;
-      flex-grow: 1;
-    }
+      .links {
+        margin-left: auto;
+        margin-right: auto;
+        display: flex;
+        justify-content: space-around;
+        margin-top: 40px;
+        margin-bottom: 40px;
+        max-width: 40rem;
+      }
 
-    .links {
-      margin-left: auto;
-      margin-right: auto;
-      display: flex;
-      justify-content: space-around;
-      margin-top: 40px;
-      margin-bottom: 40px;
-      max-width: 40rem;
-    }
+      .links > a {
+        text-decoration: none;
+        color: black;
+        background-color: #fad288;
+        border: solid #fad288 2px;
+        border-radius: 5px;
+        padding: 5px 10px;
+      }
 
-    .links>a {
-      text-decoration: none;
-      color: black;
-      background-color: #fad288;
-      border: solid #fad288 2px;
-      border-radius: 5px;
-      padding: 5px 10px;
-    }
+      .links > a:hover {
+        border: solid black 2px;
+      }
 
-    .links>a:hover {
-      border: solid black 2px;
-    }
-  </style>
-</head>
+      .mobileControls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        margin-bottom: 40px;
+      }
 
-<body>
-  <header>
-    <h1>agb - a rust framework for making Game Boy Advance games</h1>
-  </header>
-  <section>
-    <div class="gameDisplay">
-      <div>
-        <div class="imageWrapper"><img src="assets/left.png" /></div>
-        <iframe id="gameFrame" onload="this.contentWindow.focus()" src="mgba/index.html#/assets/combo.gba"></iframe>
-        <div class="imageWrapper"><img src="assets/right.png" /></div>
+      .mobileControls img {
+        image-rendering: pixelated;
+        height: 100%;
+      }
+
+      .mobileControlsRow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+      }
+
+      @media (max-width: 800px) {
+        .desktopHelp {
+          display: none;
+        }
+      }
+
+      @media (min-width: 800px) {
+        .mobileControls {
+          display: none;
+        }
+      }
+
+      .mobileControlsBig {
+        height: calc(32px * 6);
+      }
+
+      .mobileControlsSmall {
+        height: calc(32px * 3);
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>agb - a rust framework for making Game Boy Advance games</h1>
+    </header>
+    <section>
+      <div class="gameDisplay">
+        <div>
+          <div class="imageWrapper"><img src="assets/left.png" /></div>
+          <iframe
+            id="gameFrame"
+            onload="this.contentWindow.focus()"
+            src="mgba/index.html#/assets/combo.gba"
+          ></iframe>
+          <div class="imageWrapper"><img src="assets/right.png" /></div>
+        </div>
       </div>
-    </div>
-    <div class="mobileControls">
+      <div id="mobileControls" class="mobileControls">
+        <div class="mobileControlsRow mobileControlsSmall">
+          <img id="mobileL" src="assets/L.png" />
+          <img id="mobileR" src="assets/R.png" />
+        </div>
+        <div class="mobileControlsRow mobileControlsBig">
+          <img id="mobileDpad" src="assets/dpad.png" />
+          <img id="mobileAb" src="assets/ab.png" />
+        </div>
+        <div class="mobileControlsRow mobileControlsSmall">
+          <img id="mobileStart" src="assets/START.png" />
+          <img id="mobileSelect" src="assets/SELECT.png" />
+        </div>
+        <div class="mobileControlsRow">
+          <button id="mobileRestart">Restart</button>
+        </div>
+      </div>
+      <div class="desktopHelp">
+        <p>
+          Press escape to open the menu where you can view or change controls
+          and restart the game. The game provided is a combination of multiple
+          Game Boy Advance games made using agb, you can press left or right on
+          the main menu to switch game.
+        </p>
+      </div>
+    </section>
 
-    </div>
-    <div class="desktopHelp">
-      <p>
-        Press escape to open the menu where you can view or change controls
-        and restart the game. The game provided is a combination of multiple
-        Game Boy Advance games made using agb, you can press left or right on
-        the main menu to switch game.
-      </p>
-    </div>
-  </section>
+    <section class="red">
+      <div class="links">
+        <a href="https://github.com/agbrs/agb">GitHub</a>
+        <a href="book/">Book</a>
+      </div>
+    </section>
 
-  <section class="red">
-    <div class="links">
-      <a href="https://github.com/agbrs/agb">GitHub</a>
-      <a href="book/">Book</a>
-    </div>
-  </section>
-</body>
+    <script>
+      const addSimpleButton = (ele, key) => {
+        ele.addEventListener("touchstart", (evt) => pressButton(key));
+        ele.addEventListener("touchend", (evt) => releaseButton(key));
+      };
 
+      mobileRestart.addEventListener("click", () => {
+        gameFrame.contentWindow.postMessage({ reset: true });
+      });
+
+      const pressButton = (key) => {
+        gameFrame.contentWindow.postMessage({ isPressed: true, button: key });
+      };
+
+      const releaseButton = (key) => {
+        gameFrame.contentWindow.postMessage({ isPressed: false, button: key });
+      };
+
+      mobileControls.addEventListener("touchmove", (evt) =>
+        evt.preventDefault()
+      );
+
+      mobileControls.addEventListener("contextmenu", (evt) =>
+        evt.preventDefault()
+      );
+
+      addSimpleButton(mobileL, "L");
+      addSimpleButton(mobileR, "L");
+      addSimpleButton(mobileStart, "Start");
+      addSimpleButton(mobileSelect, "Select");
+
+      let previouslyPressedButtons = [];
+
+      const dpadMovement = (touch) => {
+        const target = touch.target.getBoundingClientRect();
+
+        const touchPoint = { x: touch.clientX, y: touch.clientY };
+        const targetArea = {
+          x: target.left,
+          y: target.top,
+          width: target.width,
+          height: target.height,
+        };
+
+        const relativePosition = {
+          x: touchPoint.x - targetArea.x,
+          y: touchPoint.y - targetArea.y,
+        };
+
+        const touchedBox = {
+          x: Math.floor(relativePosition.x / (targetArea.width / 3)),
+          y: Math.floor(relativePosition.y / (targetArea.height / 3)),
+        };
+
+        const buttonBoxMapping = [
+          [["Up", "Left"], ["Up"], ["Up", "Right"]],
+          [["Left"], [], ["Right"]],
+          [["Down", "Left"], ["Down"], ["Down", "Right"]],
+        ];
+
+        const buttonsToPress =
+          (buttonBoxMapping[touchedBox.y] ?? [])[touchedBox.x] ?? [];
+
+        for (let oldButton of previouslyPressedButtons) {
+          if (!buttonsToPress.includes(oldButton)) {
+            releaseButton(oldButton);
+          }
+        }
+
+        for (let newButton of buttonsToPress) {
+          if (!previouslyPressedButtons.includes(newButton)) {
+            pressButton(newButton);
+          }
+        }
+
+        previouslyPressedButtons = buttonsToPress;
+      };
+
+      mobileDpad.addEventListener("touchstart", (evt) =>
+        dpadMovement(evt.touches[0])
+      );
+
+      mobileDpad.addEventListener("touchmove", (evt) =>
+        dpadMovement(evt.touches[0])
+      );
+
+      mobileDpad.addEventListener("touchend", (evt) => {
+        for (let oldButton of previouslyPressedButtons) {
+          releaseButton(oldButton);
+        }
+        previouslyPressedButtons = [];
+      });
+
+      let mobileAbAPress = undefined;
+      const mobileAbMovement = (touch) => {
+        const target = touch.target.getBoundingClientRect();
+
+        const touchPoint = { x: touch.clientX, y: touch.clientY };
+        const targetArea = {
+          x: target.left,
+          y: target.top,
+          width: target.width,
+          height: target.height,
+        };
+
+        const relativePosition = {
+          x: touchPoint.x - targetArea.x,
+          y: touchPoint.y - targetArea.y,
+        };
+
+        const aPress = relativePosition.x > relativePosition.y;
+
+        if (aPress !== mobileAbAPress) {
+          if (mobileAbAPress === true) {
+            releaseButton("A");
+          } else if (mobileAbAPress === false) {
+            releaseButton("B");
+          }
+        }
+        if (aPress) {
+          pressButton("A");
+        } else {
+          pressButton("B");
+        }
+
+        mobileAbAPress = aPress;
+      };
+
+      mobileAb.addEventListener("touchstart", (evt) =>
+        mobileAbMovement(evt.touches[0])
+      );
+
+      mobileAb.addEventListener("touchmove", (evt) =>
+        mobileAbMovement(evt.touches[0])
+      );
+
+      mobileAb.addEventListener("touchend", (evt) => {
+        if (mobileAbAPress === true) {
+          releaseButton("A");
+        } else if (mobileAbAPress === false) {
+          releaseButton("B");
+        }
+
+        mobileAbAPress = undefined;
+      });
+    </script>
+  </body>
 </html>
