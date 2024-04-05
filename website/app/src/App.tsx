@@ -88,7 +88,7 @@ function App() {
     return () => {
       window.removeEventListener("message", buttonPress);
     };
-  });
+  }, []);
 
   useAvoidItchIoScrolling();
 
