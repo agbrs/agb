@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mgba, MgbaHandle } from "./mgba";
 import { BindingsControl, DefaultBindingsSet, Bindings } from "./bindings";
 import { styled } from "styled-components";
@@ -48,7 +48,7 @@ const StartButtonWrapper = styled.button`
 function App() {
   const [{ volume, bindings }, setState] = useLocalStorage(
     { volume: 1.0, bindings: DefaultBindingsSet() },
-    "agbrswebplayer"
+    "agbrswebplayer",
   );
 
   const setVolume = (newVolume: number) =>
@@ -65,6 +65,30 @@ function App() {
   useOnKeyUp("Escape", () => {
     setShowBindings(!showBindings);
   });
+
+  useEffect(() => {
+    const buttonPress = (event: MessageEvent) => {
+      const data = event.data;
+
+      const { isPressed, button, reset } = data;
+
+      if (isPressed === true) {
+        mgbaRef.current?.buttonPress(button);
+      } else if (isPressed === false) {
+        mgbaRef.current?.buttonRelease(button);
+      }
+
+      if (reset) {
+        mgbaRef.current?.restart();
+      }
+    };
+
+    window.addEventListener("message", buttonPress);
+
+    return () => {
+      window.removeEventListener("message", buttonPress);
+    };
+  }, []);
 
   useAvoidItchIoScrolling();
 

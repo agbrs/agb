@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import mGBA from "./vendor/mgba";
-import { KeyBindings } from "./bindings";
+import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
 
 type Module = any;
@@ -36,6 +36,8 @@ const MgbaCanvas = styled.canvas`
 
 export interface MgbaHandle {
   restart: () => void;
+  buttonPress: (key: GbaKey) => void;
+  buttonRelease: (key: GbaKey) => void;
 }
 
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
@@ -70,7 +72,6 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         if (state !== MgbaState.Uninitialised) return;
 
         setState(MgbaState.Initialising);
-
         mgbaModule.current = {
           canvas: canvas.current,
         };
@@ -124,9 +125,11 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
     useImperativeHandle(ref, () => {
       return {
         restart: () => mgbaModule.current.quickReload(),
+        buttonPress: (key: GbaKey) => mgbaModule.current.buttonPress(key),
+        buttonRelease: (key: GbaKey) => mgbaModule.current.buttonUnpress(key),
       };
     });
 
     return <MgbaCanvas ref={canvas} />;
-  }
+  },
 );
