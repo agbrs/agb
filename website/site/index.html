@@ -222,46 +222,53 @@
       addSimpleButton(mobileStart, "Start");
       addSimpleButton(mobileSelect, "Select");
 
-      let previouslyPressedButtons = [];
+      let previouslyPressedButtons = new Set();
 
       const dpadMovement = (touch) => {
-        const target = touch.target.getBoundingClientRect();
+        const currentlyPressed = new Set();
+        for (let touch of touches) {
+          const target = touch.target.getBoundingClientRect();
 
-        const touchPoint = { x: touch.clientX, y: touch.clientY };
-        const targetArea = {
-          x: target.left,
-          y: target.top,
-          width: target.width,
-          height: target.height,
-        };
+          const touchPoint = { x: touch.clientX, y: touch.clientY };
+          const targetArea = {
+            x: target.left,
+            y: target.top,
+            width: target.width,
+            height: target.height,
+          };
 
-        const relativePosition = {
-          x: touchPoint.x - targetArea.x,
-          y: touchPoint.y - targetArea.y,
-        };
+          const relativePosition = {
+            x: touchPoint.x - targetArea.x,
+            y: touchPoint.y - targetArea.y,
+          };
 
-        const touchedBox = {
-          x: Math.floor(relativePosition.x / (targetArea.width / 3)),
-          y: Math.floor(relativePosition.y / (targetArea.height / 3)),
-        };
+          const touchedBox = {
+            x: Math.floor(relativePosition.x / (targetArea.width / 3)),
+            y: Math.floor(relativePosition.y / (targetArea.height / 3)),
+          };
 
-        const buttonBoxMapping = [
-          [["Up", "Left"], ["Up"], ["Up", "Right"]],
-          [["Left"], [], ["Right"]],
-          [["Down", "Left"], ["Down"], ["Down", "Right"]],
-        ];
+          const buttonBoxMapping = [
+            [["Up", "Left"], ["Up"], ["Up", "Right"]],
+            [["Left"], [], ["Right"]],
+            [["Down", "Left"], ["Down"], ["Down", "Right"]],
+          ];
 
-        const buttonsToPress =
-          (buttonBoxMapping[touchedBox.y] ?? [])[touchedBox.x] ?? [];
+          const buttonsToPress =
+            (buttonBoxMapping[touchedBox.y] ?? [])[touchedBox.x] ?? [];
+
+          for (let button of buttonsToPress) {
+            currentlyPressed.add(button);
+          }
+        }
 
         for (let oldButton of previouslyPressedButtons) {
-          if (!buttonsToPress.includes(oldButton)) {
+          if (!buttonsToPress.has(oldButton)) {
             releaseButton(oldButton);
           }
         }
 
         for (let newButton of buttonsToPress) {
-          if (!previouslyPressedButtons.includes(newButton)) {
+          if (!previouslyPressedButtons.has(newButton)) {
             pressButton(newButton);
           }
         }
@@ -270,18 +277,19 @@
       };
 
       mobileDpad.addEventListener("touchstart", (evt) =>
-        dpadMovement(evt.targetTouches[0])
+        dpadMovement(evt.targetTouches)
       );
 
       mobileDpad.addEventListener("touchmove", (evt) =>
-        dpadMovement(evt.targetTouches[0])
+        dpadMovement(evt.targetTouches)
       );
 
       mobileDpad.addEventListener("touchend", (evt) => {
-        for (let oldButton of previouslyPressedButtons) {
-          releaseButton(oldButton);
-        }
-        previouslyPressedButtons = [];
+        dpadMovement(evt.targetTouches);
+      });
+
+      mobileDpad.addEventListener("touchcancel", (evt) => {
+        dpadMovement(evt.targetTouches);
       });
 
       let mobileAbAPress = new Set();
