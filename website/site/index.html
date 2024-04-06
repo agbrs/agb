@@ -62,7 +62,7 @@
         max-width: 60%;
         margin-left: auto;
         margin-right: auto;
-        margin-block-end: 40px;
+        margin-block-end: 20px;
       }
 
       .red {
@@ -110,8 +110,12 @@
       .mobileControlsRow {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .mobileControlsReset {
         justify-content: center;
-        gap: 40px;
       }
 
       @media (max-width: 800px) {
@@ -169,7 +173,7 @@
           <img id="mobileSelect" src="assets/SELECT.png" />
           <img id="mobileStart" src="assets/START.png" />
         </div>
-        <div class="mobileControlsRow">
+        <div class="mobileControlsRow mobileControlsReset">
           <button id="mobileRestart">Restart</button>
         </div>
       </div>
@@ -224,7 +228,7 @@
 
       let previouslyPressedButtons = new Set();
 
-      const dpadMovement = (touch) => {
+      const dpadMovement = (touches) => {
         const currentlyPressed = new Set();
         for (let touch of touches) {
           const target = touch.target.getBoundingClientRect();
@@ -262,18 +266,18 @@
         }
 
         for (let oldButton of previouslyPressedButtons) {
-          if (!buttonsToPress.has(oldButton)) {
+          if (!currentlyPressed.has(oldButton)) {
             releaseButton(oldButton);
           }
         }
 
-        for (let newButton of buttonsToPress) {
+        for (let newButton of currentlyPressed) {
           if (!previouslyPressedButtons.has(newButton)) {
             pressButton(newButton);
           }
         }
 
-        previouslyPressedButtons = buttonsToPress;
+        previouslyPressedButtons = currentlyPressed;
       };
 
       mobileDpad.addEventListener("touchstart", (evt) =>
@@ -317,14 +321,12 @@
 
         for (let oldTouch of mobileAbAPress) {
           if (!currentTouches.has(oldTouch)) {
-            console.log("Release", oldTouch);
             releaseButton(oldTouch);
           }
         }
 
         for (let newTouch of currentTouches) {
           if (!mobileAbAPress.has(newTouch)) {
-            console.log("Press", newTouch);
             pressButton(newTouch);
           }
         }
