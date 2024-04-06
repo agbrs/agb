@@ -270,11 +270,11 @@
       };
 
       mobileDpad.addEventListener("touchstart", (evt) =>
-        dpadMovement(evt.touches[0])
+        dpadMovement(evt.targetTouches[0])
       );
 
       mobileDpad.addEventListener("touchmove", (evt) =>
-        dpadMovement(evt.touches[0])
+        dpadMovement(evt.targetTouches[0])
       );
 
       mobileDpad.addEventListener("touchend", (evt) => {
@@ -284,57 +284,59 @@
         previouslyPressedButtons = [];
       });
 
-      let mobileAbAPress = undefined;
-      const mobileAbMovement = (touch) => {
-        const target = touch.target.getBoundingClientRect();
+      let mobileAbAPress = new Set();
+      const mobileAbMovement = (touches) => {
+        const currentTouches = new Set();
+        for (let touch of touches) {
+          const target = touch.target.getBoundingClientRect();
 
-        const touchPoint = { x: touch.clientX, y: touch.clientY };
-        const targetArea = {
-          x: target.left,
-          y: target.top,
-          width: target.width,
-          height: target.height,
-        };
+          const touchPoint = { x: touch.clientX, y: touch.clientY };
+          const targetArea = {
+            x: target.left,
+            y: target.top,
+            width: target.width,
+            height: target.height,
+          };
 
-        const relativePosition = {
-          x: touchPoint.x - targetArea.x,
-          y: touchPoint.y - targetArea.y,
-        };
+          const relativePosition = {
+            x: touchPoint.x - targetArea.x,
+            y: touchPoint.y - targetArea.y,
+          };
 
-        const aPress = relativePosition.x > relativePosition.y;
+          const aPress = relativePosition.x > relativePosition.y;
+          currentTouches.add(aPress ? "A" : "B");
+        }
 
-        if (aPress !== mobileAbAPress) {
-          if (mobileAbAPress === true) {
-            releaseButton("A");
-          } else if (mobileAbAPress === false) {
-            releaseButton("B");
+        for (let oldTouch of mobileAbAPress) {
+          if (!currentTouches.has(oldTouch)) {
+            console.log("Release", oldTouch);
+            releaseButton(oldTouch);
           }
         }
-        if (aPress) {
-          pressButton("A");
-        } else {
-          pressButton("B");
-        }
 
-        mobileAbAPress = aPress;
+        for (let newTouch of currentTouches) {
+          if (!mobileAbAPress.has(newTouch)) {
+            console.log("Press", newTouch);
+            pressButton(newTouch);
+          }
+        }
+        mobileAbAPress = currentTouches;
       };
 
-      mobileAb.addEventListener("touchstart", (evt) =>
-        mobileAbMovement(evt.touches[0])
-      );
+      mobileAb.addEventListener("touchstart", (evt) => {
+        mobileAbMovement(evt.targetTouches);
+      });
 
-      mobileAb.addEventListener("touchmove", (evt) =>
-        mobileAbMovement(evt.touches[0])
-      );
+      mobileAb.addEventListener("touchmove", (evt) => {
+        mobileAbMovement(evt.targetTouches);
+      });
 
       mobileAb.addEventListener("touchend", (evt) => {
-        if (mobileAbAPress === true) {
-          releaseButton("A");
-        } else if (mobileAbAPress === false) {
-          releaseButton("B");
-        }
+        mobileAbMovement(evt.targetTouches);
+      });
 
-        mobileAbAPress = undefined;
+      mobileAb.addEventListener("touchcancel", (evt) => {
+        mobileAbMovement(evt.targetTouches);
       });
     </script>
   </body>
