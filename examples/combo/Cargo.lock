@@ -832,9 +832,9 @@ checksum = "791978798f0597cfc70478424c2b4fdc2b7a8024aaff78497ef00f24ef674193"
 
 [[package]]
 name = "xmrs"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deb26b5bdddba3e105e32642639f3405ce645f375f32f86438fbfcc9ec53ae8a"
+checksum = "360b8f02f65f13970e32c0ca6ff8f512eb27cc762cf614d412ac87a6ddf1a390"
 dependencies = [
  "bincode",
  "libflate 2.0.0",
