@@ -16,7 +16,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
         if input.is_just_pressed(agb::input::Button::B) {
             #[allow(arithmetic_overflow)]
-            let _p = core::i32::MAX + 1;
+            let _p = i32::MAX + 1;
         }
     }
 }

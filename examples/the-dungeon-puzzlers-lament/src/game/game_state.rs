@@ -390,8 +390,7 @@ impl CursorState {
                 let mut new_x = current_x.saturating_add_signed(lr as isize).max(1);
                 let new_y = current_y
                     .saturating_add_signed(ud as isize)
-                    .max(1)
-                    .min(PLAY_AREA_HEIGHT - 2);
+                    .clamp(1, PLAY_AREA_HEIGHT - 2);
 
                 if new_x == PLAY_AREA_WIDTH - 1 {
                     new_x = new_x.min(PLAY_AREA_WIDTH - 2);
