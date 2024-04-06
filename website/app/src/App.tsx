@@ -51,6 +51,8 @@ function App() {
     "agbrswebplayer",
   );
 
+  const [mgbaId, setMgbaId] = useState(0);
+
   const setVolume = (newVolume: number) =>
     setState({ volume: newVolume, bindings });
   const setBindings = (newBindings: Bindings) =>
@@ -79,7 +81,7 @@ function App() {
       }
 
       if (reset) {
-        mgbaRef.current?.restart();
+        setMgbaId((id) => id + 1);
       }
     };
 
@@ -111,6 +113,7 @@ function App() {
       )}
       {isPlaying ? (
         <Mgba
+          key={mgbaId}
           ref={mgbaRef}
           gameUrl={gameUrl}
           volume={volume}
