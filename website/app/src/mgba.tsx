@@ -8,6 +8,7 @@ import {
 import mGBA from "./vendor/mgba";
 import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
+import { useSmoothedFramerate } from "./useSmoothedFramerate.hook";
 
 type Module = any;
 
@@ -39,6 +40,14 @@ export interface MgbaHandle {
   buttonPress: (key: GbaKey) => void;
   buttonRelease: (key: GbaKey) => void;
 }
+
+const whichFrameSkip = (frameRate: number): number | undefined => {
+  if ((frameRate + 5) % 60 <= 10) {
+    // framerate close to multiple of 60
+    // use frameskip
+    return Math.round(frameRate / 60);
+  }
+};
 
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
   ({ gameUrl, volume, controls, paused }, ref) => {
@@ -91,6 +100,24 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
           } catch {}
         };
     }, [state]);
+
+    const frameRate = useSmoothedFramerate();
+    const frameSkipToUse = whichFrameSkip(frameRate);
+
+    useEffect(() => {
+      if (!gameLoaded) return;
+
+      if (frameSkipToUse) {
+        // framerate close to multiple of 60
+        // use frameskip
+        console.log("Using frameskip");
+        mgbaModule.current.setMainLoopTiming(1, frameSkipToUse);
+      } else {
+        // frame rate not close to multiple of 60, use timeout
+        console.log("Using timeout");
+        mgbaModule.current.setMainLoopTiming(0, 1000 / 59.727500569606);
+      }
+    }, [frameSkipToUse, gameLoaded]);
 
     useEffect(() => {
       if (!gameLoaded) return;
