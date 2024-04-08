@@ -41,6 +41,19 @@ export interface MgbaHandle {
   buttonRelease: (key: GbaKey) => void;
 }
 
+const downloadGame = async (gameUrl: string): Promise<ArrayBuffer> => {
+  const game = await fetch(gameUrl);
+
+  if (gameUrl.endsWith(".gz")) {
+    const decompressedStream = (await game.blob())
+      .stream()
+      .pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(decompressedStream).arrayBuffer();
+  } else {
+    return await game.arrayBuffer();
+  }
+};
+
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
   ({ gameUrl, volume, controls, paused }, ref) => {
     const canvas = useRef(null);
@@ -52,9 +65,7 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
     useEffect(() => {
       if (state !== MgbaState.Initialised) return;
       (async () => {
-        const game = await fetch(gameUrl);
-        const gameData = await game.arrayBuffer();
-
+        const gameData = await downloadGame(gameUrl);
         const gameSplit = gameUrl.split("/");
         const gameBaseName = gameSplit[gameSplit.length - 1];
 
