@@ -145,5 +145,6 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
     });
 
     return <MgbaCanvas ref={canvas} />;
-  },
+  }
 );
+Mgba.displayName = "Mgba";
