@@ -14,7 +14,6 @@ export const useFrameSkip = (mgbaModule: MutableRefObject<mGBAEmulator>) => {
         const raf = (time: DOMHighResTimeStamp) => {
             if (previous) {
                 const delta = time - previous;
-                console.log(delta);
 
                 smoothedFrameTime = (smoothedFrameTime * 3 + delta) / 4;
 

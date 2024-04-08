@@ -110,6 +110,7 @@ build-site: build-combo-rom-site build-site-mgba-wrapper build-book
     cp book/book website/build/book -r
     cp website/app/build website/build/mgba -r
     cp examples/target/examples/combo.gba website/build/assets/combo.gba
+    gzip -9 -c website/build/assets/combo.gba > website/build/assets/combo.gba.gz
 
 _run-tool +tool:
     (cd tools && cargo build)
