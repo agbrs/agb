@@ -6,13 +6,13 @@ use crate::{
     backtrace,
     display::{bitmap3::Bitmap3, busy_wait_for_vblank, HEIGHT, WIDTH},
     dma::dma3_exclusive,
-    interrupt, mgba, syscall,
+    mgba, syscall,
 };
 
 mod text;
 
 pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
-    interrupt::free(|_cs| {
+    critical_section::with(|_cs| {
         dma3_exclusive(|| {
             // SAFETY: This is not fine, but we're crashing anyway. The loop at the end should stop anything bad happening
             let mut gba = unsafe { crate::Gba::new_in_entry() };
