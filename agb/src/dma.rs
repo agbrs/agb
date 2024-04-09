@@ -53,7 +53,7 @@ impl Dma {
         }
     }
 
-    fn disable(&mut self) {
+    pub(crate) fn disable(&mut self) {
         unsafe { MemoryMapped::new(dma_control_addr(self.number)) }.set(0);
     }
 

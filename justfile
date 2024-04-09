@@ -142,7 +142,10 @@ _build-rom folder name:
     cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
 
 gbafix *args:
-    (cd agb-gbafix && cargo run --release -- {{args}})
+    (cd agb-gbafix && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/agb-gbafix" {{args}})
+
+debug *args:
+    (cd agb-debug && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/agb-debug" {{args}})
 
 _all-crates target:
     for CARGO_PROJECT_FILE in agb-*/Cargo.toml agb/Cargo.toml tracker/agb-*/Cargo.toml; do \

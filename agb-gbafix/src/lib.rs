@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Result};
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 
 const GBA_HEADER_SIZE: usize = 192;
 
@@ -71,6 +71,7 @@ pub fn write_gba_file<W: Write>(
     input: &[u8],
     mut header: GbaHeader,
     padding_behaviour: PaddingBehaviour,
+    include_debug: bool,
     output: &mut W,
 ) -> Result<()> {
     let elf_file = elf::ElfBytes::<elf::endian::AnyEndian>::minimal_parse(input)?;
@@ -80,7 +81,7 @@ pub fn write_gba_file<W: Write>(
         .ok_or_else(|| anyhow!("Failed to parse as elf file"))?;
 
     let mut bytes_written = 0;
-    for section_header in section_headers.iter() {
+    for section_header in section_headers {
         const SHT_NOBITS: u32 = 8;
         const SHT_NULL: u32 = 0;
         const SHF_ALLOC: u64 = 2;
@@ -123,6 +124,10 @@ pub fn write_gba_file<W: Write>(
         bytes_written += data.len() as u64;
     }
 
+    if include_debug {
+        bytes_written += write_debug(&elf_file, output)?;
+    }
+
     if !bytes_written.is_power_of_two() && padding_behaviour == PaddingBehaviour::Pad {
         let required_padding = bytes_written.next_power_of_two() - bytes_written;
 
@@ -132,4 +137,43 @@ pub fn write_gba_file<W: Write>(
     }
 
     Ok(())
+}
+
+fn write_debug<W: Write>(
+    elf_file: &elf::ElfBytes<'_, elf::endian::AnyEndian>,
+    output: &mut W,
+) -> Result<u64> {
+    let (Some(section_headers), Some(string_table)) = elf_file.section_headers_with_strtab()?
+    else {
+        bail!("Could not find either the section headers or the string table");
+    };
+
+    let mut debug_sections = HashMap::new();
+
+    for section_header in section_headers {
+        let section_name = string_table.get(section_header.sh_name as usize)?;
+        if !section_name.starts_with(".debug") {
+            continue;
+        }
+
+        let (data, compression) = elf_file.section_data(&section_header)?;
+        if compression.is_some() {
+            bail!("Do not support compression in elf files, section {section_name} was compressed");
+        }
+
+        debug_sections.insert(section_name.to_owned(), data);
+    }
+
+    let mut debug_data = vec![];
+    {
+        let mut compressed_writer = lz4_flex::frame::FrameEncoder::new(&mut debug_data);
+        rmp_serde::encode::write(&mut compressed_writer, &debug_sections)?;
+        compressed_writer.flush()?;
+    }
+
+    output.write_all(&debug_data)?;
+    output.write_all(&(debug_data.len() as u32).to_le_bytes())?;
+    output.write_all(b"agb1")?;
+
+    Ok(debug_data.len() as u64 + 4)
 }

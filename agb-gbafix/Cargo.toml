@@ -11,12 +11,5 @@ repository = "https://github.com/agbrs/agb"
 elf = "0.7"
 anyhow = "1"
 clap = "4"
-
-[profile.dev]
-opt-level = 3
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-debug = true
+rmp-serde = "1"
+lz4_flex = "0.11"

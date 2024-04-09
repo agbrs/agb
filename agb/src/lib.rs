@@ -150,6 +150,7 @@ extern crate alloc;
 mod agb_alloc;
 
 mod agbabi;
+mod backtrace;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
@@ -166,6 +167,7 @@ pub mod mgba;
 pub use agb_fixnum as fixnum;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
 pub use agb_hashmap as hash_map;
+mod panics_render;
 /// Simple random number generator
 pub mod rng;
 pub mod save;
@@ -288,6 +290,8 @@ impl Gba {
 /// You can run the tests using `cargo test`, but it will work better through `mgba-test-runner` by
 /// running something along the lines of `CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test`.
 pub mod test_runner {
+    use self::panics_render::render_backtrace;
+
     use super::*;
 
     #[doc(hidden)]
@@ -317,14 +321,13 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+        let frames = backtrace::unwind_exception();
+
         if let Some(mut mgba) = mgba::Mgba::new() {
-            mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error)
-                .unwrap();
-            mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal)
-                .unwrap();
+            let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
         }
 
-        loop {}
+        render_backtrace(&frames, info);
     }
 
     static mut TEST_GBA: Option<Gba> = None;
