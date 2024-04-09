@@ -41,7 +41,7 @@ export interface MgbaHandle {
   buttonRelease: (key: GbaKey) => void;
 }
 
-const downloadGame = async (gameUrl: string): Promise<ArrayBuffer> => {
+async function downloadGame(gameUrl: string): Promise<ArrayBuffer> {
   const game = await fetch(gameUrl);
 
   if (gameUrl.endsWith(".gz")) {
@@ -52,7 +52,7 @@ const downloadGame = async (gameUrl: string): Promise<ArrayBuffer> => {
   } else {
     return await game.arrayBuffer();
   }
-};
+}
 
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
   ({ gameUrl, volume, controls, paused }, ref) => {

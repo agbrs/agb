@@ -34,15 +34,15 @@ export function Slider({
 }) {
   const slider = useRef<HTMLDivElement>(null);
 
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  function handleClick(event: React.MouseEvent<HTMLDivElement>) {
     onChange(
       event.nativeEvent.offsetX / (event.target as HTMLDivElement).offsetWidth
     );
 
     event.stopPropagation();
-  };
+  }
 
-  const handleDrag = (event: React.MouseEvent<HTMLDivElement>) => {
+  function handleDrag(event: React.MouseEvent<HTMLDivElement>) {
     const sliderRef = slider.current;
 
     if (!sliderRef || event.buttons !== 1) {
@@ -56,7 +56,7 @@ export function Slider({
     const clamped = Math.min(1, Math.max(0, proportion));
 
     onChange(clamped);
-  };
+  }
 
   return (
     <SliderWrapper ref={slider} onClick={handleClick} onMouseMove={handleDrag}>

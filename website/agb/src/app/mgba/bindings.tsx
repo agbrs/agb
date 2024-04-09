@@ -1,7 +1,7 @@
 import { FC, useState } from "react";
 import styled from "styled-components";
 
-const DefaultBindings = (): KeyBindings => {
+function DefaultBindings(): KeyBindings {
   return {
     A: "Z",
     B: "X",
@@ -14,12 +14,14 @@ const DefaultBindings = (): KeyBindings => {
     Left: "LEFT",
     Right: "RIGHT",
   };
-};
+}
 
-export const DefaultBindingsSet = (): Bindings => ({
-  Actual: DefaultBindings(),
-  Displayed: DefaultBindings(),
-});
+export function DefaultBindingsSet(): Bindings {
+  return {
+    Actual: DefaultBindings(),
+    Displayed: DefaultBindings(),
+  };
+}
 
 export enum GbaKey {
   A = "A",
@@ -69,18 +71,22 @@ export interface Bindings {
   Actual: KeyBindings;
 }
 
-const toHumanName = (keyName: string) => {
+function toHumanName(keyName: string) {
   return keyName.replace("Arrow", "");
-};
+}
 
-export const BindingsControl: FC<{
+export function BindingsControl({
+  bindings,
+  setBindings,
+  setPaused,
+}: {
   bindings: Bindings;
   setBindings: (a: Bindings) => void;
   setPaused: (pause: boolean) => void;
-}> = ({ bindings, setBindings, setPaused }) => {
+}) {
   const [buttonToChange, setButtonToChange] = useState<GbaKey | null>(null);
 
-  const setKey = (key: string) => {
+  function setKey(key: string) {
     if (buttonToChange === null) return;
 
     const nextBindings = {
@@ -94,12 +100,12 @@ export const BindingsControl: FC<{
     setButtonToChange(null);
     setBindings(nextBindings);
     setPaused(false);
-  };
+  }
 
-  const onSelectButtonClick = (key: GbaKey) => {
+  function onSelectButtonClick(key: GbaKey) {
     setPaused(true);
     setButtonToChange(key);
-  };
+  }
 
   return (
     <ButtonWrapper onKeyUp={(evt: React.KeyboardEvent) => setKey(evt.key)}>
@@ -116,4 +122,4 @@ export const BindingsControl: FC<{
       ))}
     </ButtonWrapper>
   );
-};
+}

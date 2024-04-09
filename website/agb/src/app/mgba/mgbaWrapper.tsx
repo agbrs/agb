@@ -65,11 +65,13 @@ interface MgbaWrapperProps {
   setIsPlaying?: (isPlaying: boolean) => void;
 }
 
-export const MgbaStandalone: FC<MgbaWrapperProps> = (props) => (
-  <AppContainer>
-    <MgbaWrapper {...props} />
-  </AppContainer>
-);
+export function MgbaStandalone(props: MgbaWrapperProps) {
+  return (
+    <AppContainer>
+      <MgbaWrapper {...props} />
+    </AppContainer>
+  );
+}
 
 export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
   ({ gameUrl, isPlaying = true, setIsPlaying }, ref) => {
@@ -80,10 +82,12 @@ export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
 
     const [mgbaId, setMgbaId] = useState(0);
 
-    const setVolume = (newVolume: number) =>
-      setState({ volume: newVolume, bindings });
-    const setBindings = (newBindings: Bindings) =>
-      setState({ volume, bindings: newBindings });
+    function setVolume(newVolume: number) {
+      return setState({ volume: newVolume, bindings });
+    }
+    function setBindings(newBindings: Bindings) {
+      return setState({ volume, bindings: newBindings });
+    }
 
     const [paused, setPaused] = useState(false);
 

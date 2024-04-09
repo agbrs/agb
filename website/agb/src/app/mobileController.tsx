@@ -52,7 +52,7 @@ const MobileControlsRow = styled.div<{
   ${(props) => props.$centered && `justify-content: center;`}
 `;
 
-const useSimpleButton = (mgba: MgbaHandle, button: GbaKey) => {
+function useSimpleButton(mgba: MgbaHandle, button: GbaKey) {
   return useMemo(() => {
     return {
       onTouchStart: () => {
@@ -63,9 +63,9 @@ const useSimpleButton = (mgba: MgbaHandle, button: GbaKey) => {
       },
     };
   }, [button, mgba]);
-};
+}
 
-const relativeTouch = (touch: Touch) => {
+function relativeTouch(touch: Touch) {
   const target = (touch.target as Element).getBoundingClientRect();
 
   const touchPoint = { x: touch.clientX, y: touch.clientY };
@@ -82,15 +82,15 @@ const relativeTouch = (touch: Touch) => {
   };
 
   return relativePosition;
-};
+}
 
-const useDpadTouch = (mgba: MgbaHandle) => {
+function useDpadTouch(mgba: MgbaHandle) {
   const [previouslyPressedButtons, setTouchedButtons] = useState<Set<GbaKey>>(
     new Set()
   );
 
   return useMemo(() => {
-    const updateDpad = (touches: TouchList) => {
+    function updateDpad(touches: TouchList) {
       const currentlyPressed = new Set<GbaKey>();
 
       for (let touch of touches) {
@@ -130,7 +130,7 @@ const useDpadTouch = (mgba: MgbaHandle) => {
       }
 
       setTouchedButtons(currentlyPressed);
-    };
+    }
 
     return {
       onTouchStart: (event: React.TouchEvent) =>
@@ -141,15 +141,15 @@ const useDpadTouch = (mgba: MgbaHandle) => {
         updateDpad(event.nativeEvent.targetTouches),
     };
   }, [mgba, previouslyPressedButtons]);
-};
+}
 
-const useAbTouch = (mgba: MgbaHandle) => {
+function useAbTouch(mgba: MgbaHandle) {
   const [previouslyPressedButtons, setTouchedButtons] = useState<Set<GbaKey>>(
     new Set()
   );
 
   return useMemo(() => {
-    const updateAbButtons = (touches: TouchList) => {
+    function updateAbButtons(touches: TouchList) {
       const currentlyPressed = new Set<GbaKey>();
 
       for (let touch of touches) {
@@ -173,7 +173,7 @@ const useAbTouch = (mgba: MgbaHandle) => {
       }
 
       setTouchedButtons(currentlyPressed);
-    };
+    }
 
     return {
       onTouchStart: (event: React.TouchEvent) =>
@@ -184,9 +184,9 @@ const useAbTouch = (mgba: MgbaHandle) => {
         updateAbButtons(event.nativeEvent.targetTouches),
     };
   }, [mgba, previouslyPressedButtons]);
-};
+}
 
-export const MobileController: FC<{ mgba: MgbaHandle }> = ({ mgba }) => {
+export function MobileController({ mgba }: { mgba: MgbaHandle }) {
   return (
     <MobileControls onContextMenu={(evt) => evt.preventDefault()}>
       <MobileControlsRow $size={MobileControlsSize.Small}>
@@ -226,4 +226,4 @@ export const MobileController: FC<{ mgba: MgbaHandle }> = ({ mgba }) => {
       </MobileControlsRow>
     </MobileControls>
   );
-};
+}

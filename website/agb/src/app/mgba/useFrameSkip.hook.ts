@@ -2,7 +2,7 @@ import { MutableRefObject, useEffect } from "react";
 import { mGBAEmulator } from "./vendor/mgba";
 
 
-export const useFrameSkip = (mgbaModule: MutableRefObject<mGBAEmulator>) => {
+export function useFrameSkip(mgbaModule: MutableRefObject<mGBAEmulator>) {
     useEffect(() => {
         let previous: number | undefined = undefined;
         let stopped = false;
@@ -11,7 +11,7 @@ export const useFrameSkip = (mgbaModule: MutableRefObject<mGBAEmulator>) => {
         let totalTime = 0;
         let paused = false;
 
-        const raf = (time: DOMHighResTimeStamp) => {
+        function raf(time: DOMHighResTimeStamp) {
             if (previous) {
                 const delta = time - previous;
 
@@ -45,7 +45,7 @@ export const useFrameSkip = (mgbaModule: MutableRefObject<mGBAEmulator>) => {
         }
 
         window.requestAnimationFrame(raf);
-        return () => { stopped = true; }
+        return () => { stopped = true; };
     }, [mgbaModule]);
 
 
