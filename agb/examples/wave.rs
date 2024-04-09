@@ -9,9 +9,9 @@ use agb::{
         tiled::{RegularBackgroundSize, TileFormat},
     },
     fixnum::FixedNum,
-    interrupt::{free, Interrupt},
+    interrupt::Interrupt,
 };
-use bare_metal::{CriticalSection, Mutex};
+use critical_section::{CriticalSection, Mutex};
 
 struct BackCosines {
     cosines: [u16; 32],
@@ -37,7 +37,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let _a = unsafe {
         agb::interrupt::add_interrupt_handler(Interrupt::HBlank, |key: CriticalSection| {
-            let mut back = BACK.borrow(key).borrow_mut();
+            let mut back = BACK.borrow_ref_mut(key);
             let deflection = back.cosines[back.row % 32];
             ((0x0400_0010) as *mut u16).write_volatile(deflection);
             back.row += 1;
@@ -49,8 +49,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     loop {
         vblank.wait_for_vblank();
-        free(|key| {
-            let mut back = BACK.borrow(key).borrow_mut();
+        critical_section::with(|key| {
+            let mut back = BACK.borrow_ref_mut(key);
             back.row = 0;
             time += 1;
             for (r, a) in back.cosines.iter_mut().enumerate() {

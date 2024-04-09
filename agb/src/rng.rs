@@ -1,8 +1,4 @@
-use core::cell::RefCell;
-
-use bare_metal::Mutex;
-
-use crate::interrupt::free;
+use portable_atomic::{AtomicU128, Ordering};
 
 /// A fast pseudo-random number generator. Note that the output of the
 /// random number generator for a given seed is guaranteed stable
@@ -58,13 +54,22 @@ impl Default for RandomNumberGenerator {
     }
 }
 
-static GLOBAL_RNG: Mutex<RefCell<RandomNumberGenerator>> =
-    Mutex::new(RefCell::new(RandomNumberGenerator::new()));
+static GLOBAL_RNG: AtomicU128 = AtomicU128::new(unsafe {
+    core::mem::transmute::<[u32; 4], u128>(RandomNumberGenerator::new().state)
+});
 
 /// Using a global random number generator, provides the next random number
 #[must_use]
 pub fn gen() -> i32 {
-    free(|cs| GLOBAL_RNG.borrow(cs).borrow_mut().gen())
+    let data: u128 = GLOBAL_RNG.load(Ordering::SeqCst);
+    let data_u32: [u32; 4] = unsafe { core::mem::transmute(data) };
+    let mut rng = RandomNumberGenerator { state: data_u32 };
+    let value = rng.gen();
+    GLOBAL_RNG.store(
+        unsafe { core::mem::transmute::<[u32; 4], u128>(rng.state) },
+        Ordering::SeqCst,
+    );
+    value
 }
 
 #[cfg(test)]

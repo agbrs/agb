@@ -4,7 +4,7 @@ use core::pin::Pin;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use bare_metal::{CriticalSection, Mutex};
+use critical_section::{CriticalSection, Mutex};
 
 use super::hw::LeftOrRight;
 use super::{hw, Frequency};
@@ -13,7 +13,6 @@ use super::{SoundChannel, SoundPriority};
 use crate::InternalAllocator;
 use crate::{
     fixnum::Num,
-    interrupt::free,
     interrupt::{add_interrupt_handler, InterruptHandler},
     timer::Divider,
     timer::Timer,
@@ -395,11 +394,11 @@ impl MixerBuffer {
     }
 
     fn should_calculate(&self) -> bool {
-        free(|cs| self.state.borrow(cs).borrow().should_calculate())
+        critical_section::with(|cs| self.state.borrow_ref_mut(cs).should_calculate())
     }
 
     fn swap(&self, cs: CriticalSection) {
-        let buffer = self.state.borrow(cs).borrow_mut().playing_advanced();
+        let buffer = self.state.borrow_ref_mut(cs).playing_advanced();
 
         let left_buffer = buffer;
         // SAFETY: starting pointer is fine, resulting pointer also fine because buffer has length buffer_size() * 2 by construction
@@ -435,7 +434,8 @@ impl MixerBuffer {
             }
         }
 
-        let write_buffer = free(|cs| self.state.borrow(cs).borrow_mut().active_advanced());
+        let write_buffer =
+            critical_section::with(|cs| self.state.borrow_ref_mut(cs).active_advanced());
 
         unsafe {
             agb_rs__mixer_collapse(

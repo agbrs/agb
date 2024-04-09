@@ -175,7 +175,7 @@ mod single;
 /// Implements sound output.
 pub mod sound;
 /// A module containing functions and utilities useful for synchronizing state.
-pub mod sync;
+mod sync;
 /// System BIOS calls / syscalls.
 pub mod syscall;
 /// Interactions with the internal timers
@@ -188,6 +188,12 @@ pub use no_game::no_game;
 
 pub(crate) mod arena;
 mod global_asm;
+
+pub mod external {
+    pub use critical_section;
+    pub use once_cell;
+    pub use portable_atomic;
+}
 
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
