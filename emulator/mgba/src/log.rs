@@ -15,7 +15,6 @@ pub enum LogLevel {
     Unknown,
 }
 
-
 #[derive(Debug, Error)]
 #[error("A log level of {provided_log_level} does not match any known log level")]
 pub struct LogLevelIsNotValid {
@@ -34,9 +33,11 @@ impl TryFrom<mgba_sys::mLogLevel> for LogLevel {
             mgba_sys::mLogLevel_mLOG_DEBUG => LogLevel::Debug,
             mgba_sys::mLogLevel_mLOG_STUB => LogLevel::Stub,
             mgba_sys::mLogLevel_mLOG_GAME_ERROR => LogLevel::GameError,
-            _ => return Err(LogLevelIsNotValid {
-                provided_log_level: value
-            })
+            _ => {
+                return Err(LogLevelIsNotValid {
+                    provided_log_level: value,
+                })
+            }
         })
     }
 }
@@ -95,7 +96,11 @@ extern "C" fn log_string_wrapper(
                 unsafe { CStr::from_ptr(category_c_name).to_str() }.unwrap_or(UNKNOWN)
             };
 
-            logger(category_name, LogLevel::try_from(level).unwrap_or(LogLevel::Unknown), s);
+            logger(
+                category_name,
+                LogLevel::try_from(level).unwrap_or(LogLevel::Unknown),
+                s,
+            );
         }
     }
 }
