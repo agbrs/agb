@@ -40,7 +40,7 @@ jobs:
         run: cargo install --path emulator/test-runner --verbose
       - uses: extractions/setup-just@v2
       - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
+        uses: peaceiris/actions-mdbook@v2
         with:
           mdbook-version: "0.4.13"
       - name: Build and test all crates
