@@ -10,9 +10,11 @@ const BacktraceWrapper = styled.section`
   justify-content: center;
 `;
 
-const getBacktrace = () => window.location.hash.slice(1);
+function getBacktrace() {
+  return window.location.hash.slice(1);
+}
 
-export const BacktraceDisplay: FC = () => {
+export function BacktraceDisplay() {
   const backtrace = useClientValue(getBacktrace) ?? "";
 
   return (
@@ -28,4 +30,4 @@ export const BacktraceDisplay: FC = () => {
       </button>
     </BacktraceWrapper>
   );
-};
+}

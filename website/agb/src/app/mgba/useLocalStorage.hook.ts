@@ -1,9 +1,7 @@
 import { useCallback, useState } from "react";
 
-export const useLocalStorage = <T>(
-  defaultValue: T,
-  appName: string
-): [T, (newValue: T) => void] => {
+export function useLocalStorage<T>(defaultValue: T,
+  appName: string): [T, (newValue: T) => void] {
   const [value, setValue] = useState(() => {
     try {
       const storageValue = localStorage.getItem(appName);
@@ -26,4 +24,4 @@ export const useLocalStorage = <T>(
   }, []);
 
   return [value, setStoredValue];
-};
+}

@@ -32,12 +32,18 @@ const InnerBlock = styled.div<{ $centered?: boolean }>`
   margin-bottom: 40px;
 `;
 
-export const ContentBlock: FC<{
+export function ContentBlock({
+  color = "",
+  children,
+  uncentered = false,
+}: {
   color?: string;
   uncentered?: boolean;
   children: ReactNode;
-}> = ({ color = "", children, uncentered = false }) => (
-  <Section $color={color}>
-    <InnerBlock $centered={!uncentered}>{children}</InnerBlock>
-  </Section>
-);
+}) {
+  return (
+    <Section $color={color}>
+      <InnerBlock $centered={!uncentered}>{children}</InnerBlock>
+    </Section>
+  );
+}

@@ -69,14 +69,16 @@ const ShowOnWideScreen = styled.div`
   }
 `;
 
-const isTouchScreen = () => navigator.maxTouchPoints > 1;
+function isTouchScreen() {
+  return navigator.maxTouchPoints > 1;
+}
 
 function shouldStartPlaying(isTouchScreen: boolean | undefined) {
   if (isTouchScreen === undefined) return false;
   return !isTouchScreen;
 }
 
-const MgbaWithControllerSides = () => {
+function MgbaWithControllerSides() {
   const mgba = useRef<MgbaHandle>(null);
 
   const mgbaHandle = useMemo(
@@ -128,7 +130,7 @@ const MgbaWithControllerSides = () => {
       </ShowOnWideScreen>
     </>
   );
-};
+}
 export default function Home() {
   return (
     <>

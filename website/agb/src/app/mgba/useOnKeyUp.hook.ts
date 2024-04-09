@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 
-export const useOnKeyUp = (targetKey: string, callback: () => void) => {
+export function useOnKeyUp(targetKey: string, callback: () => void) {
   useEffect(() => {
-    const downHandler = (evnt: KeyboardEvent) => {
+    function downHandler(evnt: KeyboardEvent) {
       if (evnt.key === targetKey) {
         callback();
       }
-    };
+    }
 
     window.addEventListener("keyup", downHandler);
 
@@ -14,4 +14,4 @@ export const useOnKeyUp = (targetKey: string, callback: () => void) => {
       window.removeEventListener("keyup", downHandler);
     };
   }, [callback, targetKey]);
-};
+}

@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 
-export const useAvoidItchIoScrolling = () => {
+export function useAvoidItchIoScrolling() {
   useEffect(() => {
-    const eventHandler = (e: KeyboardEvent) => {
+    function eventHandler(e: KeyboardEvent) {
       if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
         e.preventDefault();
       }
-    };
+    }
 
     window.addEventListener("keydown", eventHandler, false);
 
@@ -14,4 +14,4 @@ export const useAvoidItchIoScrolling = () => {
       window.removeEventListener("keydown", eventHandler, false);
     };
   }, []);
-};
+}
