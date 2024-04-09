@@ -2,15 +2,16 @@
 
 import styled from "styled-components";
 import { CenteredBlock, ContentBlock } from "./contentBlock";
-import MgbaWrapper, { MgbaWrapperHandle } from "./mgba/mgbaWrapper";
+import MgbaWrapper from "./mgba/mgbaWrapper";
 import Image from "next/image";
 
 import left from "./gba-parts/left.png";
 import right from "./gba-parts/right.png";
 import { MobileController } from "./mobileController";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { GbaKey } from "./mgba/bindings";
 import { useClientValue } from "./useClientValue.hook";
+import { MgbaHandle } from "./mgba/mgba";
 
 const ExternalLink = styled.a`
   text-decoration: none;
@@ -36,7 +37,7 @@ const GameDisplay = styled.div`
 const GamePanelWrapper = styled.div`
   display: flex;
   justify-content: center;
-  align-items: baseline;
+  align-items: end;
   height: 100%;
 `;
 
@@ -60,12 +61,16 @@ const GameSide = styled.div`
 
 const isTouchScreen = () => navigator.maxTouchPoints > 1;
 
+function shouldStartPlaying(isTouchScreen: boolean | undefined) {
+  if (isTouchScreen === undefined) return false;
+  return !isTouchScreen;
+}
+
 const MgbaWithControllerSides = () => {
-  const mgba = useRef<MgbaWrapperHandle>(null);
+  const mgba = useRef<MgbaHandle>(null);
 
   const mgbaHandle = useMemo(
     () => ({
-      hardReset: () => mgba.current?.hardReset(),
       restart: () => mgba.current?.restart(),
       buttonPress: (key: GbaKey) => mgba.current?.buttonPress(key),
       buttonRelease: (key: GbaKey) => mgba.current?.buttonRelease(key),
@@ -73,7 +78,11 @@ const MgbaWithControllerSides = () => {
     []
   );
 
+  const [isPlaying, setIsPlaying] = useState<boolean>();
   const shouldUseTouchScreenInput = useClientValue(isTouchScreen);
+
+  const playEmulator =
+    isPlaying ?? shouldStartPlaying(shouldUseTouchScreenInput);
 
   return (
     <>
@@ -83,7 +92,12 @@ const MgbaWithControllerSides = () => {
             <Image src={left} alt="" />
           </GameSide>
           <GameDisplayWindow>
-            <MgbaWrapper gameUrl="combo.gba.gz" ref={mgba} />
+            <MgbaWrapper
+              gameUrl="combo.gba.gz"
+              ref={mgba}
+              isPlaying={playEmulator}
+              setIsPlaying={setIsPlaying}
+            />
           </GameDisplayWindow>
           <GameSide>
             <Image src={right} alt="" />

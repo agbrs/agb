@@ -8,8 +8,8 @@ import DPad from "./gba-parts/dpad.png";
 import ABButtons from "./gba-parts/ab.png";
 import Select from "./gba-parts/SELECT.png";
 import Start from "./gba-parts/START.png";
-import { MgbaWrapperHandle } from "./mgba/mgbaWrapper";
 import { GbaKey } from "./mgba/bindings";
+import { MgbaHandle } from "./mgba/mgba";
 
 const MobileControls = styled.div`
   display: flex;
@@ -48,7 +48,7 @@ const MobileControlsRow = styled.div<{
   ${(props) => props.$centered && `justify-content: center;`}
 `;
 
-const useSimpleButton = (mgba: MgbaWrapperHandle, button: GbaKey) => {
+const useSimpleButton = (mgba: MgbaHandle, button: GbaKey) => {
   return useMemo(() => {
     return {
       onTouchStart: () => {
@@ -80,7 +80,7 @@ const relativeTouch = (touch: Touch) => {
   return relativePosition;
 };
 
-const useDpadTouch = (mgba: MgbaWrapperHandle) => {
+const useDpadTouch = (mgba: MgbaHandle) => {
   const [previouslyPressedButtons, setTouchedButtons] = useState<Set<GbaKey>>(
     new Set()
   );
@@ -139,7 +139,7 @@ const useDpadTouch = (mgba: MgbaWrapperHandle) => {
   }, [mgba, previouslyPressedButtons]);
 };
 
-const useAbTouch = (mgba: MgbaWrapperHandle) => {
+const useAbTouch = (mgba: MgbaHandle) => {
   const [previouslyPressedButtons, setTouchedButtons] = useState<Set<GbaKey>>(
     new Set()
   );
@@ -182,7 +182,7 @@ const useAbTouch = (mgba: MgbaWrapperHandle) => {
   }, [mgba, previouslyPressedButtons]);
 };
 
-export const MobileController: FC<{ mgba: MgbaWrapperHandle }> = ({ mgba }) => {
+export const MobileController: FC<{ mgba: MgbaHandle }> = ({ mgba }) => {
   return (
     <MobileControls onContextMenu={(evt) => evt.preventDefault()}>
       <MobileControlsRow $size={MobileControlsSize.Small}>
@@ -218,7 +218,7 @@ export const MobileController: FC<{ mgba: MgbaWrapperHandle }> = ({ mgba }) => {
         />
       </MobileControlsRow>
       <MobileControlsRow $size={MobileControlsSize.Small} $centered>
-        <button onClick={() => mgba.hardReset()}>Restart</button>
+        <button onClick={() => mgba.restart()}>Restart</button>
       </MobileControlsRow>
     </MobileControls>
   );

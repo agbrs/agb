@@ -43,13 +43,12 @@ const AppContainer = styled.main`
 
 const StartButtonWrapper = styled.button`
   margin: auto;
-  font-size: 3em;
+  font-size: 2em;
   padding: 1em;
   text-transform: uppercase;
   background-color: black;
   color: white;
   border: none;
-  border-radius: 0.5em;
   aspect-ratio: 240 / 160;
   width: 100%;
   height: 100%;
@@ -62,7 +61,8 @@ const StartButtonWrapper = styled.button`
 
 interface MgbaWrapperProps {
   gameUrl: string;
-  startNotPlaying?: boolean;
+  isPlaying?: boolean;
+  setIsPlaying?: (isPlaying: boolean) => void;
 }
 
 export const MgbaStandalone: FC<MgbaWrapperProps> = (props) => (
@@ -71,12 +71,8 @@ export const MgbaStandalone: FC<MgbaWrapperProps> = (props) => (
   </AppContainer>
 );
 
-export interface MgbaWrapperHandle extends MgbaHandle {
-  hardReset: () => void;
-}
-
-export const MgbaWrapper = forwardRef<MgbaWrapperHandle, MgbaWrapperProps>(
-  ({ gameUrl, startNotPlaying = false }, ref) => {
+export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
+  ({ gameUrl, isPlaying = true, setIsPlaying }, ref) => {
     const [{ volume, bindings }, setState] = useLocalStorage(
       { volume: 1.0, bindings: DefaultBindingsSet() },
       "agbrswebplayer"
@@ -108,8 +104,6 @@ export const MgbaWrapper = forwardRef<MgbaWrapperHandle, MgbaWrapperProps>(
 
     useAvoidItchIoScrolling();
 
-    const [isPlaying, setIsPlaying] = useState(!startNotPlaying);
-
     return (
       <>
         {showBindings && (
@@ -133,7 +127,7 @@ export const MgbaWrapper = forwardRef<MgbaWrapperHandle, MgbaWrapperProps>(
             paused={paused}
           />
         ) : (
-          <StartButton onClick={() => setIsPlaying(true)} />
+          <StartButton onClick={() => setIsPlaying && setIsPlaying(true)} />
         )}
       </>
     );
@@ -179,7 +173,7 @@ function BindingsWindow({
 
 function StartButton({ onClick }: { onClick: () => void }) {
   return (
-    <StartButtonWrapper onClick={onClick}>Press to start</StartButtonWrapper>
+    <StartButtonWrapper onClick={onClick}>Touch to start</StartButtonWrapper>
   );
 }
 
