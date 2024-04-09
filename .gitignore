@@ -1,6 +1,5 @@
 target
 /out
-template/Cargo.lock
-agb*/Cargo.lock
 *.tiled-session
 website/build
+Cargo.lock
