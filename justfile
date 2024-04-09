@@ -93,24 +93,23 @@ miri:
     (cd agb-hashmap && cargo miri test)
 
 build-mgba-wasm:
-    rm -rf website/app/src/vendor
-    mkdir website/app/src/vendor
-    podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/app/src/vendor .
+    rm -rf website/agb/src/app/mgba/vendor
+    mkdir website/agb/src/app/mgba/vendor
+    podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/agb/src/app/mgba/vendor .
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
 
-build-site-mgba-wrapper: build-mgba-wasm
-    (cd website/app && npm install --no-save --prefer-offline --no-audit)
-    (cd website/app && npm run build)
+build-site-app: build-mgba-wasm build-combo-rom-site
+    mkdir -p website/agb/public
+    gzip -9 -c examples/target/examples/combo.gba > website/agb/public/combo.gba.gz
+    (cd website/agb && npm install --no-save --prefer-offline --no-audit)
+    (cd website/agb && npm run build)
 
-build-site: build-combo-rom-site build-site-mgba-wrapper build-book
+build-site: build-site-app build-book
     rm -rf website/build
-    cp website/site website/build -r
+    cp website/agb/out website/build -r
     cp book/book website/build/book -r
-    cp website/app/build website/build/mgba -r
-    cp examples/target/examples/combo.gba website/build/assets/combo.gba
-    gzip -9 -c website/build/assets/combo.gba > website/build/assets/combo.gba.gz
 
 _run-tool +tool:
     (cd tools && cargo build)
