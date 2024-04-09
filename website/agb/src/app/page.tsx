@@ -20,6 +20,10 @@ const ExternalLink = styled.a`
   border: solid #fad288 2px;
   border-radius: 5px;
   padding: 5px 10px;
+
+  &:hover {
+    border: solid black 2px;
+  }
 `;
 
 const HelpLinks = styled.div`
