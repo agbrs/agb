@@ -1,0 +1,44 @@
+[workspace]
+
+resolver = "2"
+
+# unfortunately we can't include 'agb' or anything which compiles to non-native code
+# in the workspace here, and they need to be tracked separately.
+members = [
+    # "agb"
+    "agb-addr2line",
+    "agb-fixnum",
+    "agb-gbafix",
+    "agb-hashmap",
+    "agb-image-converter",
+    "agb-macros",
+    "agb-sound-converter",
+
+    "tracker/agb-midi",
+    "tracker/agb-midi-core",
+    "tracker/agb-tracker-interop",
+    # "tracker/agb-tracker",
+    "tracker/agb-xm",
+    "tracker/agb-xm-core",
+
+    "tools",
+
+    "emulator/mgba",
+    "emulator/mgba-sys",
+    "emulator/test-runner",
+]
+
+exclude = [
+    "agb",
+
+    "tracker/agb-tracker",
+
+    "examples/amplitude",
+    "examples/combo",
+    "examples/hyperspace-roll",
+    "examples/the-dungeon-puzzlers-lament",
+    "examples/the-hat-chooses-the-wizard",
+    "examples/the-purple-night",
+
+    "book/games/pong",
+]
