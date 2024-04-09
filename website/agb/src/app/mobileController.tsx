@@ -19,6 +19,10 @@ const MobileControls = styled.div`
   flex-direction: column;
   margin-bottom: 40px;
 
+  @media (min-width: 500px) {
+    display: none;
+  }
+
   touch-action: none;
 
   img {
