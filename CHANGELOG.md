@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a new crash screen which provides a mechanism for seeing a full stack trace of your program when it panics.
+  This requires a change to your `.cargo/config.toml`. You must add the rust flag `"-Cforce-frame-pointers=yes"` to
+  your rustflags field.
 - Initial unicode support for font rendering.
 - Kerning support for font rendering.
 
