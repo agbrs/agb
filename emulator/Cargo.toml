@@ -1,6 +1,0 @@
-[workspace]
-members = [
-    "mgba",
-    "mgba-sys",
-    "test-runner"
-]
