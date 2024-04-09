@@ -54,8 +54,9 @@ impl Default for RandomNumberGenerator {
     }
 }
 
-static GLOBAL_RNG: AtomicU128 =
-    AtomicU128::new(unsafe { core::mem::transmute(RandomNumberGenerator::new().state) });
+static GLOBAL_RNG: AtomicU128 = AtomicU128::new(unsafe {
+    core::mem::transmute::<[u32; 4], u128>(RandomNumberGenerator::new().state)
+});
 
 /// Using a global random number generator, provides the next random number
 #[must_use]
@@ -64,7 +65,10 @@ pub fn gen() -> i32 {
     let data_u32: [u32; 4] = unsafe { core::mem::transmute(data) };
     let mut rng = RandomNumberGenerator { state: data_u32 };
     let value = rng.gen();
-    GLOBAL_RNG.store(unsafe { core::mem::transmute(rng.state) }, Ordering::SeqCst);
+    GLOBAL_RNG.store(
+        unsafe { core::mem::transmute::<[u32; 4], u128>(rng.state) },
+        Ordering::SeqCst,
+    );
     value
 }
 
