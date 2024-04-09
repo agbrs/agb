@@ -22,10 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Many macros now emit statics rather than consts OR can be used as statics OR
-  have had examples changed to use statics. You should use statics where possble
+  have had examples changed to use statics. You should use statics where possible
   for assets as consts can lead to them being included multiple times in the
   ROM.
 - Fixnums are now implemented with `num_traits` trait definitions.
+- Rather than having our own sync with Statics, use the standard portable
+  atomics crate. These are reexported for convenience.
 
 ## [0.19.1] - 2024/03/06
 
