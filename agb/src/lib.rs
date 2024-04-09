@@ -189,6 +189,12 @@ pub use no_game::no_game;
 pub(crate) mod arena;
 mod global_asm;
 
+pub mod external {
+    pub use critical_section;
+    pub use once_cell;
+    pub use portable_atomic;
+}
+
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
 #[cfg(not(any(test, feature = "testing")))]
