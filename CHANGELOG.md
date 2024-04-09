@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   have had examples changed to use statics. You should use statics where possble
   for assets as consts can lead to them being included multiple times in the
   ROM.
+- Fixnums are now implemented with `num_traits` trait definitions.
 
 ## [0.19.1] - 2024/03/06
 
