@@ -113,14 +113,14 @@ impl<V: VFile> VFileAlloc<V> {
     }
 
     pub(crate) fn into_mgba(self) -> *mut mgba_sys::VFile {
-        let f = Box::into_raw(self.0) as *mut VFileInner<V>;
+        let f = Box::into_raw(self.0);
         f.cast()
     }
 }
 
 mod vfile_extern {
-    use std::io::SeekFrom;
     use super::VFileExtensions;
+    use std::io::SeekFrom;
 
     /// Safety: Must be part of a VFileInner
     pub unsafe fn create_vfile<V: super::VFile>() -> mgba_sys::VFile {

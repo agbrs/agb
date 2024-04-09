@@ -1,19 +1,14 @@
 use std::path::Path;
 
-use image::{io::Reader, DynamicImage};
+use image::io::Reader;
 
 pub struct ComparisonResult {
     matches: bool,
-    image: DynamicImage,
 }
 
 impl ComparisonResult {
     pub fn success(&self) -> bool {
         self.matches
-    }
-
-    pub fn image(&self) -> &DynamicImage {
-        &self.image
     }
 }
 
@@ -36,10 +31,7 @@ pub fn compare_image(
 
     let (exp_dim_x, exp_dim_y) = expected_buffer.dimensions();
     if exp_dim_x != WIDTH as u32 || exp_dim_y != HEIGHT as u32 {
-        return Ok(ComparisonResult {
-            matches: false,
-            image: expected,
-        });
+        return Ok(ComparisonResult { matches: false });
     }
 
     for y in 0..HEIGHT {
@@ -49,16 +41,10 @@ pub fn compare_image(
             let image_pixel = convert_rgba_to_nearest_gba_colour(image_pixel.0);
 
             if image_pixel[0..3] != video_pixel.to_le_bytes()[0..3] {
-                return Ok(ComparisonResult {
-                    matches: false,
-                    image: expected,
-                });
+                return Ok(ComparisonResult { matches: false });
             }
         }
     }
 
-    Ok(ComparisonResult {
-        matches: true,
-        image: expected,
-    })
+    Ok(ComparisonResult { matches: true })
 }
