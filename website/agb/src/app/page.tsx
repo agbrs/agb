@@ -28,7 +28,7 @@ const HelpLinks = styled.div`
 `;
 
 const GameDisplay = styled.div`
-  height: min(calc(100vw / 1.5), 40vh);
+  height: min(calc(100vw / 1.5), min(90vh, 480px));
   max-width: 100vw;
   margin-top: 20px;
   overflow: hidden;
