@@ -63,6 +63,12 @@ const GameSide = styled.div`
   }
 `;
 
+const ShowOnWideScreen = styled.div`
+  @media (max-width: 500px) {
+    display: none;
+  }
+`;
+
 const isTouchScreen = () => navigator.maxTouchPoints > 1;
 
 function shouldStartPlaying(isTouchScreen: boolean | undefined) {
@@ -108,9 +114,9 @@ const MgbaWithControllerSides = () => {
           </GameSide>
         </GamePanelWrapper>
       </GameDisplay>
-      {shouldUseTouchScreenInput ? (
-        <MobileController mgba={mgbaHandle} />
-      ) : (
+
+      <MobileController mgba={mgbaHandle} />
+      <ShowOnWideScreen>
         <CenteredBlock>
           <p>
             Press escape to open the menu where you can view or change controls
@@ -119,7 +125,7 @@ const MgbaWithControllerSides = () => {
             on the main menu to switch game.
           </p>
         </CenteredBlock>
-      )}
+      </ShowOnWideScreen>
     </>
   );
 };
