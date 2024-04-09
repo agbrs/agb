@@ -6,7 +6,6 @@ edition = "2021"
 
 [dependencies]
 agb = { version = "0.19.1", path = "../../agb" }
-portable-atomic = { version = "1.6.0", default-features = false }
 
 [profile.dev]
 opt-level = 3

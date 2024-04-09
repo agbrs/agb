@@ -1,6 +1,6 @@
+use agb::external::portable_atomic::{AtomicU32, Ordering};
 use agb::save::{Error, SaveManager};
 use agb::Gba;
-use portable_atomic::{AtomicU32, Ordering};
 
 static HIGH_SCORE: AtomicU32 = AtomicU32::new(0);
 
