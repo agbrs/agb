@@ -1,5 +1,5 @@
 [package]
-name = "agb-addr2line"
+name = "agb-debug"
 version = "0.19.1"
 edition = "2021"
 authors = ["Gwilym Inzani <email@gwilym.dev>"]
