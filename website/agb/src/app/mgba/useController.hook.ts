@@ -2,7 +2,9 @@ import { MutableRefObject, useEffect } from "react";
 import { mGBAEmulator } from "./vendor/mgba";
 import { GbaKey } from "./bindings";
 
-export function useController(mgbaModule: MutableRefObject<mGBAEmulator>) {
+export function useController(
+  mgbaModule: MutableRefObject<mGBAEmulator | undefined>
+) {
   useEffect(() => {
     let stopped = false;
 
@@ -64,13 +66,13 @@ export function useController(mgbaModule: MutableRefObject<mGBAEmulator>) {
 
       for (let oldButton of previouslyPressedButtons) {
         if (!currentlyPressed.has(oldButton)) {
-          mgbaModule.current.buttonUnpress(oldButton);
+          mgbaModule.current?.buttonUnpress(oldButton);
         }
       }
 
       for (let newButton of currentlyPressed) {
         if (!previouslyPressedButtons.has(newButton)) {
-          mgbaModule.current.buttonPress(newButton);
+          mgbaModule.current?.buttonPress(newButton);
         }
       }
 
