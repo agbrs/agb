@@ -481,6 +481,9 @@ mod tests {
         timer_b.set_interrupt(true);
         timer_b.set_overflow_amount(15000);
 
+        timer_b.set_enabled(false);
+        timer_a.set_enabled(false);
+
         static TIMER: AtomicU32 = AtomicU32::new(0);
 
         let _interrupt_1 = unsafe {
