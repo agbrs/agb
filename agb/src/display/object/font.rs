@@ -392,31 +392,6 @@ impl ObjectTextRender<'_> {
         );
     }
 
-    /// Removes one complete line. Returns whether a line could be removed. You must call [`update`][ObjectTextRender::update] after this
-    pub fn pop_line(&mut self) -> bool {
-        let width = self.layout.area.x;
-        let space = self.buffer.font.letter(' ').advance_width as i32;
-        let line_height = self.buffer.font.line_height();
-        if let Some(line) = self.buffer.preprocessor.lines(width, space).next() {
-            // there is a line
-            if self.number_of_objects >= line.number_of_letter_groups() {
-                // we have enough rendered letter groups to count
-                self.number_of_objects -= line.number_of_letter_groups();
-                for _ in 0..line.number_of_letter_groups() {
-                    self.buffer.letters.letters.pop_front();
-                    self.layout.relative_positions.pop_front();
-                }
-                self.layout.line_capacity.pop_front();
-                self.buffer.preprocessor.pop(&line);
-                for position in self.layout.relative_positions.iter_mut() {
-                    position.y -= line_height as i16;
-                }
-                return true;
-            }
-        }
-        false
-    }
-
     /// Updates the internal state of the number of letters to write and popped
     /// line. Should be called in the same frame as and after
     /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].

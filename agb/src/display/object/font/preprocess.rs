@@ -117,10 +117,6 @@ impl Line {
         self.width
     }
     #[inline(always)]
-    pub(crate) fn number_of_text_elements(&self) -> usize {
-        self.number_of_text_elements
-    }
-    #[inline(always)]
     pub(crate) fn number_of_spaces(&self) -> usize {
         self.number_of_spaces
     }
@@ -213,13 +209,6 @@ impl Preprocessed {
     pub(crate) fn add_character(&mut self, font: &Font, c: char, sprite_width: i32) {
         self.preprocessor
             .add_character(font, c, sprite_width, &mut self.widths);
-    }
-
-    pub(crate) fn pop(&mut self, line: &Line) {
-        let elements = line.number_of_text_elements();
-        for _ in 0..elements {
-            self.widths.pop_front();
-        }
     }
 
     pub(crate) fn lines(&self, layout_width: i32, minimum_space_width: i32) -> Lines<'_> {
