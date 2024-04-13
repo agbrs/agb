@@ -10,7 +10,7 @@ repository = "https://github.com/agbrs/agb"
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-addr2line = { version = "0.21", default-features = false, features = [
+addr2line = { version = "0.22", default-features = false, features = [
     "rustc-demangle",
     "std-object",
 ] }

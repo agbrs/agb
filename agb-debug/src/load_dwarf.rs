@@ -61,13 +61,12 @@ fn load_from_object<'file>(
         gimli::RunTimeEndian::Big
     };
 
-    fn load_section<'data: 'file, 'file, O, Endian>(
+    fn load_section<'data, Endian>(
         id: gimli::SectionId,
-        file: &'file O,
+        file: &impl object::Object<'data>,
         endian: Endian,
     ) -> Result<gimli::EndianRcSlice<Endian>, gimli::Error>
     where
-        O: object::Object<'data, 'file>,
         Endian: gimli::Endianity,
     {
         use object::ObjectSection;
