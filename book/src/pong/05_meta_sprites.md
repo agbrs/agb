@@ -99,6 +99,8 @@ We used multiple sprites to form one game object of a paddle. We also added
 convenience around the use of the paddle to make creating a paddle and setting
 its position easy.
 
+In the next step we will cover adding collision with the ball and the paddles.
+
 # Exercise
 
 The paddle on the right is facing the wrong way, it needs to be horizontally
