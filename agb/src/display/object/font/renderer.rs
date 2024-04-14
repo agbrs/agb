@@ -43,15 +43,12 @@ pub(crate) struct WordRender {
     working: WorkingLetter,
     config: Configuration,
     colour: usize,
+    start_index_of_letter: usize,
 
     previous_character: Option<char>,
 }
 
 impl WordRender {
-    pub(crate) fn sprite_width(&self) -> i32 {
-        self.config.sprite_size.to_width_height().0 as i32
-    }
-
     #[must_use]
     pub(crate) fn new(config: Configuration) -> Self {
         WordRender {
@@ -59,11 +56,15 @@ impl WordRender {
             config,
             colour: 1,
             previous_character: None,
+            start_index_of_letter: 0,
         }
     }
 
     #[must_use]
-    pub(crate) fn finalise_letter(&mut self) -> Option<SpriteVram> {
+    pub(crate) fn finalise_letter(
+        &mut self,
+        index_of_character: usize,
+    ) -> Option<(usize, SpriteVram)> {
         if self.working.x_offset == 0 {
             return None;
         }
@@ -71,13 +72,20 @@ impl WordRender {
         let mut new_sprite = DynamicSprite::new(self.config.sprite_size);
         core::mem::swap(&mut self.working.dynamic, &mut new_sprite);
         let sprite = new_sprite.to_vram(self.config.palette.clone());
+        let start_index = self.start_index_of_letter;
         self.working.reset();
+        self.start_index_of_letter = index_of_character;
 
-        Some(sprite)
+        Some((start_index, sprite))
     }
 
     #[must_use]
-    pub(crate) fn render_char(&mut self, font: &Font, c: char) -> Option<SpriteVram> {
+    pub(crate) fn render_char(
+        &mut self,
+        font: &Font,
+        c: char,
+        index_of_character: usize,
+    ) -> Option<(usize, SpriteVram)> {
         if let Some(next_colour) = ChangeColour::try_from_char(c) {
             self.colour = next_colour.0 as usize;
             return None;
@@ -94,7 +102,7 @@ impl WordRender {
         let group = if self.working.x_offset + font_letter.width as i32
             > self.config.sprite_size.to_width_height().0 as i32
         {
-            self.finalise_letter()
+            self.finalise_letter(index_of_character)
         } else {
             None
         };

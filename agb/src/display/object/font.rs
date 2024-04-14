@@ -4,7 +4,7 @@ use core::{
 };
 
 use agb_fixnum::{Num, Vector2D};
-use alloc::collections::VecDeque;
+use alloc::{string::String, vec::Vec};
 
 use crate::display::Font;
 
@@ -38,14 +38,22 @@ impl WhiteSpace {
 struct BufferedRender<'font> {
     char_render: WordRender,
     preprocessor: Preprocessed,
-    buffered_chars: VecDeque<char>,
+    string: String,
+    cursor_position: usize,
     letters: Letters,
     font: &'font Font,
 }
 
+#[derive(Debug)]
+struct LettersIndexed {
+    start_index: usize,
+    end_index: usize,
+    sprite: SpriteVram,
+}
+
 #[derive(Debug, Default)]
 struct Letters {
-    letters: VecDeque<SpriteVram>,
+    letters: Vec<LettersIndexed>,
     number_of_groups: usize,
 }
 
@@ -103,13 +111,23 @@ impl TextAlignment {
 
 impl<'font> BufferedRender<'font> {
     #[must_use]
-    fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    fn new(string: String, font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
         let config = Configuration::new(sprite_size, palette);
+
+        let mut pre = Preprocessed::new();
+
+        for character in string.chars() {
+            if !is_private_use(character) {
+                pre.add_character(font, character, sprite_size.to_width_height().0 as i32);
+            }
+        }
+
         BufferedRender {
             char_render: WordRender::new(config),
-            preprocessor: Preprocessed::new(),
-            buffered_chars: VecDeque::new(),
+            preprocessor: pre,
+            string,
             letters: Default::default(),
+            cursor_position: 0,
             font,
         }
     }
@@ -175,30 +193,44 @@ impl Display for ChangeColour {
 }
 
 impl BufferedRender<'_> {
-    fn input_character(&mut self, character: char) {
-        if !is_private_use(character) {
-            self.preprocessor
-                .add_character(self.font, character, self.char_render.sprite_width());
-        }
-        self.buffered_chars.push_back(character);
+    fn next_character(&mut self) -> Option<(usize, char)> {
+        let next = self.string.get(self.cursor_position..)?.chars().next()?;
+        let idx = self.cursor_position;
+
+        self.cursor_position += next.len_utf8();
+        Some((idx, next))
+    }
+
+    fn completed_character(&self) -> bool {
+        self.string.len() == self.cursor_position
     }
 
     fn process(&mut self) {
-        let Some(c) = self.buffered_chars.pop_front() else {
+        let Some((idx, c)) = self.next_character() else {
             return;
         };
         match c {
             ' ' | '\n' => {
-                if let Some(group) = self.char_render.finalise_letter() {
-                    self.letters.letters.push_back(group);
+                if let Some((start_index, group)) = self.char_render.finalise_letter(idx) {
+                    self.letters.letters.push(LettersIndexed {
+                        start_index,
+                        end_index: idx,
+                        sprite: group,
+                    });
                     self.letters.number_of_groups += 1;
                 }
 
                 self.letters.number_of_groups += 1;
             }
             letter => {
-                if let Some(group) = self.char_render.render_char(self.font, letter) {
-                    self.letters.letters.push_back(group);
+                if let Some((start_index, group)) =
+                    self.char_render.render_char(self.font, letter, idx)
+                {
+                    self.letters.letters.push(LettersIndexed {
+                        start_index,
+                        end_index: idx,
+                        sprite: group,
+                    });
                     self.letters.number_of_groups += 1;
                 }
             }
@@ -254,13 +286,13 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(text: String, font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
         Self {
-            buffer: BufferedRender::new(font, sprite_size, palette),
+            buffer: BufferedRender::new(text, font, sprite_size, palette),
             number_of_objects: 0,
             layout: LayoutCache {
-                relative_positions: VecDeque::new(),
-                line_capacity: VecDeque::new(),
+                relative_positions: Vec::new(),
+                line_capacity: Vec::new(),
 
                 area: (0, 0).into(),
             },
@@ -268,19 +300,10 @@ impl<'font> ObjectTextRender<'font> {
     }
 }
 
-impl Write for ObjectTextRender<'_> {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        for c in s.chars() {
-            self.buffer.input_character(c);
-        }
-
-        Ok(())
-    }
-}
-
 /// A borrowed letter group and its relative position.
 pub struct LetterGroup<'a> {
     sprite: &'a SpriteVram,
+    contained_string: &'a str,
     relative_position: Vector2D<i32>,
 }
 
@@ -298,6 +321,12 @@ impl<'a> LetterGroup<'a> {
     pub fn relative_position(&self) -> Vector2D<i32> {
         self.relative_position
     }
+
+    #[must_use]
+    /// A reference to the string that are represented by this sprite
+    pub fn letters(&self) -> &'a str {
+        self.contained_string
+    }
 }
 
 impl<'a> Add<Vector2D<i32>> for &LetterGroup<'a> {
@@ -306,6 +335,7 @@ impl<'a> Add<Vector2D<i32>> for &LetterGroup<'a> {
     fn add(self, rhs: Vector2D<i32>) -> Self::Output {
         LetterGroup {
             sprite: self.sprite,
+            contained_string: self.contained_string,
             relative_position: self.relative_position + rhs,
         }
     }
@@ -323,8 +353,9 @@ impl<'a> From<LetterGroup<'a>> for ObjectUnmanaged {
 
 /// An iterator over the currently displaying letter groups
 pub struct LetterGroupIter<'a> {
-    sprite_iter: alloc::collections::vec_deque::Iter<'a, SpriteVram>,
-    position_iter: alloc::collections::vec_deque::Iter<'a, Vector2D<i16>>,
+    sprite_iter: core::slice::Iter<'a, LettersIndexed>,
+    position_iter: core::slice::Iter<'a, Vector2D<i16>>,
+    string: &'a str,
     remaining_letter_groups: usize,
 }
 
@@ -339,7 +370,8 @@ impl<'a> Iterator for LetterGroupIter<'a> {
 
         match (self.sprite_iter.next(), self.position_iter.next()) {
             (Some(sprite), Some(position)) => Some(LetterGroup {
-                sprite,
+                sprite: &sprite.sprite,
+                contained_string: &self.string[sprite.start_index..sprite.end_index],
                 relative_position: position.change_base(),
             }),
             _ => None,
@@ -355,6 +387,7 @@ impl ObjectTextRender<'_> {
             sprite_iter: self.buffer.letters.letters.iter(),
             position_iter: self.layout.relative_positions.iter(),
             remaining_letter_groups: self.number_of_objects,
+            string: &self.buffer.string,
         }
     }
 
@@ -396,7 +429,7 @@ impl ObjectTextRender<'_> {
     /// line. Should be called in the same frame as and after
     /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
     pub fn update(&mut self) {
-        if !self.buffer.buffered_chars.is_empty()
+        if !self.buffer.completed_character()
             && self.buffer.letters.letters.len() <= self.number_of_objects + 5
         {
             self.buffer.process();
@@ -458,22 +491,22 @@ impl ObjectTextRender<'_> {
 
     /// Immediately renders all the completed letter groups in the buffer.
     pub fn render_all(&mut self) {
-        while !self.buffer.buffered_chars.is_empty() {
+        while !self.buffer.completed_character() {
             self.buffer.process();
         }
         self.number_of_objects = self.buffer.letters.letters.len();
     }
 
     fn at_least_n_letter_groups(&mut self, n: usize) {
-        while !self.buffer.buffered_chars.is_empty() && self.buffer.letters.letters.len() <= n {
+        while !self.buffer.completed_character() && self.buffer.letters.letters.len() <= n {
             self.buffer.process();
         }
     }
 }
 
 struct LayoutCache {
-    relative_positions: VecDeque<Vector2D<i16>>,
-    line_capacity: VecDeque<usize>,
+    relative_positions: Vec<Vector2D<i16>>,
+    line_capacity: Vec<usize>,
     area: Vector2D<i32>,
 }
 
@@ -488,7 +521,7 @@ impl LayoutCache {
         self.line_capacity.clear();
         self.relative_positions.clear();
         for (line, line_positions) in Self::create_layout(font, preprocessed, settings) {
-            self.line_capacity.push_back(line.number_of_letter_groups());
+            self.line_capacity.push(line.number_of_letter_groups());
             self.relative_positions
                 .extend(line_positions.map(|x| Vector2D::new(x.x as i16, x.y as i16)));
         }

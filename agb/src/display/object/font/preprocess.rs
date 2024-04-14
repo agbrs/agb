@@ -1,4 +1,4 @@
-use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 
 use crate::display::Font;
 
@@ -38,7 +38,7 @@ impl PreprocessedElement {
 
 #[derive(Default, Debug)]
 pub(crate) struct Preprocessed {
-    widths: VecDeque<PreprocessedElementEncoded>,
+    widths: Vec<PreprocessedElementEncoded>,
     preprocessor: Preprocessor,
 }
 
@@ -54,12 +54,12 @@ impl Preprocessor {
         font: &Font,
         character: char,
         sprite_width: i32,
-        widths: &mut VecDeque<PreprocessedElementEncoded>,
+        widths: &mut Vec<PreprocessedElementEncoded>,
     ) {
         match character {
             space @ (' ' | '\n') => {
                 if self.width_in_sprite != 0 {
-                    widths.push_back(
+                    widths.push(
                         PreprocessedElement::LetterGroup {
                             width: self.width_in_sprite as u8,
                         }
@@ -67,9 +67,7 @@ impl Preprocessor {
                     );
                     self.width_in_sprite = 0;
                 }
-                widths.push_back(
-                    PreprocessedElement::WhiteSpace(WhiteSpace::from_char(space)).encode(),
-                );
+                widths.push(PreprocessedElement::WhiteSpace(WhiteSpace::from_char(space)).encode());
             }
             letter => {
                 let letter = font.letter(letter);
@@ -78,7 +76,7 @@ impl Preprocessor {
                 }
 
                 if self.width_in_sprite + letter.width as i32 > sprite_width {
-                    widths.push_back(
+                    widths.push(
                         PreprocessedElement::LetterGroup {
                             width: self.width_in_sprite as u8,
                         }
@@ -100,7 +98,7 @@ impl Preprocessor {
 pub(crate) struct Lines<'preprocess> {
     minimum_space_width: i32,
     layout_width: i32,
-    data: &'preprocess VecDeque<PreprocessedElementEncoded>,
+    data: &'preprocess [PreprocessedElementEncoded],
     current_start_idx: usize,
 }
 
@@ -229,7 +227,7 @@ impl Preprocessed {
         self.lines(layout_width, minimum_space_width).map(move |x| {
             let length = x.number_of_text_elements;
 
-            let d = self.widths.range(idx..(idx + length)).copied();
+            let d = self.widths[idx..(idx + length)].iter().copied();
             idx += length;
             (x, d)
         })
