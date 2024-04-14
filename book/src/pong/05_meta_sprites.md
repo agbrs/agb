@@ -42,7 +42,7 @@ Now the paddle will display correctly. It's rather awkward to use, however, havi
 ```rust
 // change our imports to include what we will use
 use agb::{
-    display::object::{Graphics, Object, ObjectManaged, Tag},
+    display::object::{Graphics, Object, OamManaged, Tag},
     include_aseprite,
 };
 
@@ -53,7 +53,7 @@ struct Paddle<'obj> {
 }
 
 impl<'obj> Paddle<'obj> {
-    fn new(object: &'obj ObjectManaged<'_>, start_x: i32, start_y: i32) -> Self {
+    fn new(object: &'obj OamManaged<'_>, start_x: i32, start_y: i32) -> Self {
         let mut paddle_start = object.object_sprite(PADDLE_END.sprite(0));
         let mut paddle_mid = object.object_sprite(PADDLE_MID.sprite(0));
         let mut paddle_end = object.object_sprite(PADDLE_END.sprite(0));
