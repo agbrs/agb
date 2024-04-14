@@ -46,17 +46,19 @@ pub(crate) struct WordRender {
     start_index_of_letter: usize,
 
     previous_character: Option<char>,
+    explicit_break_on: Option<fn(char) -> bool>,
 }
 
 impl WordRender {
     #[must_use]
-    pub(crate) fn new(config: Configuration) -> Self {
+    pub(crate) fn new(config: Configuration, explicit_break_on: Option<fn(char) -> bool>) -> Self {
         WordRender {
             working: WorkingLetter::new(config.sprite_size),
             config,
             colour: 1,
             previous_character: None,
             start_index_of_letter: 0,
+            explicit_break_on,
         }
     }
 
@@ -101,6 +103,7 @@ impl WordRender {
         // uses more than the sprite can hold
         let group = if self.working.x_offset + font_letter.width as i32
             > self.config.sprite_size.to_width_height().0 as i32
+            || self.explicit_break_on.map(|x| x(c)).unwrap_or_default()
         {
             self.finalise_letter(index_of_character)
         } else {

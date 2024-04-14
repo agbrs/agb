@@ -55,6 +55,7 @@ impl Preprocessor {
         character: char,
         sprite_width: i32,
         widths: &mut Vec<PreprocessedElementEncoded>,
+        explicit_break_on: Option<fn(char) -> bool>,
     ) {
         match character {
             space @ (' ' | '\n') => {
@@ -75,7 +76,9 @@ impl Preprocessor {
                     self.width_in_sprite += letter.kerning_amount(previous_character);
                 }
 
-                if self.width_in_sprite + letter.width as i32 > sprite_width {
+                if self.width_in_sprite + letter.width as i32 > sprite_width
+                    || explicit_break_on.map(|x| x(character)).unwrap_or_default()
+                {
                     widths.push(
                         PreprocessedElement::LetterGroup {
                             width: self.width_in_sprite as u8,
@@ -107,6 +110,7 @@ pub(crate) struct Line {
     number_of_text_elements: usize,
     number_of_spaces: usize,
     number_of_letter_groups: usize,
+    ended_on_explicit_newline: bool,
 }
 
 impl Line {
@@ -121,6 +125,10 @@ impl Line {
     #[inline(always)]
     pub(crate) fn number_of_letter_groups(&self) -> usize {
         self.number_of_letter_groups
+    }
+    #[inline(always)]
+    pub(crate) fn ended_on_explicit_newline(&self) -> bool {
+        self.ended_on_explicit_newline
     }
 }
 
@@ -140,6 +148,7 @@ impl<'pre> Iterator for Lines<'pre> {
         let mut length_of_current_word = 0;
         let mut number_of_spaces = 0;
         let mut number_of_letter_groups = 0;
+        let mut ended_on_explicit_newline = false;
 
         while let Some(next) = self.data.get(self.current_start_idx + line_idx_length) {
             match next.decode() {
@@ -176,6 +185,7 @@ impl<'pre> Iterator for Lines<'pre> {
                     match space {
                         WhiteSpace::NewLine => {
                             line_idx_length += 1;
+                            ended_on_explicit_newline = true;
                             break;
                         }
                         WhiteSpace::Space => {
@@ -195,6 +205,7 @@ impl<'pre> Iterator for Lines<'pre> {
             number_of_text_elements: line_idx_length,
             number_of_spaces,
             number_of_letter_groups,
+            ended_on_explicit_newline,
         })
     }
 }
@@ -204,9 +215,15 @@ impl Preprocessed {
         Default::default()
     }
 
-    pub(crate) fn add_character(&mut self, font: &Font, c: char, sprite_width: i32) {
+    pub(crate) fn add_character(
+        &mut self,
+        font: &Font,
+        c: char,
+        sprite_width: i32,
+        explicit_break_on: Option<fn(char) -> bool>,
+    ) {
         self.preprocessor
-            .add_character(font, c, sprite_width, &mut self.widths);
+            .add_character(font, c, sprite_width, &mut self.widths, explicit_break_on);
     }
 
     pub(crate) fn lines(&self, layout_width: i32, minimum_space_width: i32) -> Lines<'_> {

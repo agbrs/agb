@@ -3,17 +3,18 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{
+            ChangeColour, ObjectTextRender, ObjectUnmanaged, PaletteVram, Size, TextAlignment,
+        },
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
 };
+use agb_fixnum::Vector2D;
 
 extern crate alloc;
-
-use core::fmt::Write;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
@@ -36,17 +37,15 @@ fn main(mut gba: agb::Gba) -> ! {
 
     timer.set_enabled(true);
     timer.set_divider(agb::timer::Divider::Divider256);
-
-    let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
-    let start = timer.value();
-
     let player_name = "You";
-    let _ = writeln!(
-            wr,
-            "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
-            change2 = ChangeColour::new(2),
-            change1 = ChangeColour::new(1),
-        );
+    let text = alloc::format!(
+        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you... However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!\n",
+        change2 = ChangeColour::new(2),
+        change1 = ChangeColour::new(1),
+    );
+
+    let start = timer.value();
+    let mut wr = ObjectTextRender::new(text, &FONT, Size::S16x16, palette, Some(|c| c == '.'));
     let end = timer.value();
 
     agb::println!(
@@ -59,7 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let start = timer.value();
 
-    wr.layout((WIDTH, 40), TextAlignment::Justify, 2);
+    wr.layout(WIDTH, TextAlignment::Justify, 2);
     let end = timer.value();
 
     agb::println!(
@@ -67,32 +66,45 @@ fn main(mut gba: agb::Gba) -> ! {
         256 * (end.wrapping_sub(start) as u32)
     );
 
-    let mut line_done = false;
+    let mut line = 0;
     let mut frame = 0;
+    let mut groups_to_show = 0;
 
     loop {
         vblank.wait_for_vblank();
         input.update();
         let oam = &mut unmanaged.iter();
-        wr.commit(oam, (0, HEIGHT - 40));
 
-        let start = timer.value();
-        if frame % 4 == 0 {
-            line_done = !wr.next_letter_group();
+        let done_rendering = !wr.next_letter_group();
+
+        let mut letters = wr.letter_groups();
+        let displayed_letters = letters
+            .by_ref()
+            .take(groups_to_show)
+            .filter(|x| x.line() >= line);
+
+        for (letter, slot) in displayed_letters.zip(oam) {
+            slot.set(&ObjectUnmanaged::from(
+                &letter + Vector2D::new(0, HEIGHT - 40 - line * FONT.line_height()),
+            ))
         }
-        if line_done && input.is_just_pressed(Button::A) {
-            line_done = false;
-            wr.pop_line();
+
+        if let Some(next_letter) = letters.next() {
+            if next_letter.line() < line + 2 {
+                if next_letter.letters() == "." {
+                    if frame % 16 == 0 {
+                        groups_to_show += 1;
+                    }
+                } else if frame % 4 == 0 {
+                    groups_to_show += 1;
+                }
+            } else if input.is_just_pressed(Button::A) {
+                line += 1;
+            }
         }
+
         wr.update();
-        let end = timer.value();
 
         frame += 1;
-
-        agb::println!(
-            "Took {} cycles, line done {}",
-            256 * (end.wrapping_sub(start) as u32),
-            line_done
-        );
     }
 }

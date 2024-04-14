@@ -18,8 +18,6 @@ use alloc::vec::Vec;
 
 extern crate alloc;
 
-use core::fmt::Write;
-
 const FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
@@ -31,14 +29,14 @@ fn text_objects(
     sprite_size: Size,
     palette: PaletteVram,
     text_alignment: TextAlignment,
-    area: Vector2D<i32>,
+    width: i32,
     paragraph_spacing: i32,
     arguments: core::fmt::Arguments,
 ) -> Vec<(SpriteVram, Vector2D<i32>)> {
-    let mut wr = ObjectTextRender::new(font, sprite_size, palette);
-    let _ = writeln!(wr, "{}", arguments);
+    let text = alloc::format!("{}\n", arguments);
+    let mut wr = ObjectTextRender::new(text, font, sprite_size, palette, None);
 
-    wr.layout(area, text_alignment, paragraph_spacing);
+    wr.layout(width, text_alignment, paragraph_spacing);
     wr.render_all();
 
     wr.letter_groups()
@@ -60,7 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
         Size::S16x16,
         palette,
         TextAlignment::Center,
-        (WIDTH, i32::MAX).into(),
+        WIDTH,
         0,
         format_args!("Woah, ROTATION!"),
     )

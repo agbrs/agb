@@ -93,7 +93,9 @@ impl TextAlignment {
                 start_x: (width - line.width()) / 2,
             },
             TextAlignment::Justify => {
-                let space_width = if line.number_of_spaces() != 0 {
+                let space_width = if line.number_of_spaces() != 0
+                    && !line.ended_on_explicit_newline()
+                {
                     Num::new(
                         width - line.width() + line.number_of_spaces() as i32 * minimum_space_width,
                     ) / line.number_of_spaces() as i32
@@ -111,19 +113,30 @@ impl TextAlignment {
 
 impl<'font> BufferedRender<'font> {
     #[must_use]
-    fn new(string: String, font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    fn new(
+        string: String,
+        font: &'font Font,
+        sprite_size: Size,
+        palette: PaletteVram,
+        explicit_break_on: Option<fn(char) -> bool>,
+    ) -> Self {
         let config = Configuration::new(sprite_size, palette);
 
         let mut pre = Preprocessed::new();
 
         for character in string.chars() {
             if !is_private_use(character) {
-                pre.add_character(font, character, sprite_size.to_width_height().0 as i32);
+                pre.add_character(
+                    font,
+                    character,
+                    sprite_size.to_width_height().0 as i32,
+                    explicit_break_on,
+                );
             }
         }
 
         BufferedRender {
-            char_render: WordRender::new(config),
+            char_render: WordRender::new(config, explicit_break_on),
             preprocessor: pre,
             string,
             letters: Default::default(),
@@ -286,25 +299,34 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(text: String, font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(
+        text: String,
+        font: &'font Font,
+        sprite_size: Size,
+        palette: PaletteVram,
+        explicit_break_on: Option<fn(char) -> bool>,
+    ) -> Self {
         Self {
-            buffer: BufferedRender::new(text, font, sprite_size, palette),
+            buffer: BufferedRender::new(text, font, sprite_size, palette, explicit_break_on),
             number_of_objects: 0,
             layout: LayoutCache {
                 relative_positions: Vec::new(),
                 line_capacity: Vec::new(),
-
-                area: (0, 0).into(),
+                paragraph_spacing: 0,
+                width: 0,
             },
         }
     }
 }
 
 /// A borrowed letter group and its relative position.
+#[derive(Debug)]
 pub struct LetterGroup<'a> {
     sprite: &'a SpriteVram,
     contained_string: &'a str,
     relative_position: Vector2D<i32>,
+    line: u8,
+    paragraph: u8,
 }
 
 impl<'a> LetterGroup<'a> {
@@ -323,6 +345,11 @@ impl<'a> LetterGroup<'a> {
     }
 
     #[must_use]
+    pub fn line(&self) -> i32 {
+        self.line as i32
+    }
+
+    #[must_use]
     /// A reference to the string that are represented by this sprite
     pub fn letters(&self) -> &'a str {
         self.contained_string
@@ -337,6 +364,8 @@ impl<'a> Add<Vector2D<i32>> for &LetterGroup<'a> {
             sprite: self.sprite,
             contained_string: self.contained_string,
             relative_position: self.relative_position + rhs,
+            line: self.line,
+            paragraph: self.paragraph,
         }
     }
 }
@@ -352,11 +381,14 @@ impl<'a> From<LetterGroup<'a>> for ObjectUnmanaged {
 }
 
 /// An iterator over the currently displaying letter groups
+#[derive(Debug)]
 pub struct LetterGroupIter<'a> {
     sprite_iter: core::slice::Iter<'a, LettersIndexed>,
-    position_iter: core::slice::Iter<'a, Vector2D<i16>>,
+    position_iter: core::slice::Iter<'a, LayoutPosition>,
     string: &'a str,
     remaining_letter_groups: usize,
+    line_height: i32,
+    paragraph_spacing: i32,
 }
 
 impl<'a> Iterator for LetterGroupIter<'a> {
@@ -372,7 +404,13 @@ impl<'a> Iterator for LetterGroupIter<'a> {
             (Some(sprite), Some(position)) => Some(LetterGroup {
                 sprite: &sprite.sprite,
                 contained_string: &self.string[sprite.start_index..sprite.end_index],
-                relative_position: position.change_base(),
+                relative_position: Vector2D::new(
+                    position.x,
+                    position.line as i32 * self.line_height
+                        + position.paragraph as i32 * self.paragraph_spacing,
+                ),
+                line: position.line,
+                paragraph: position.paragraph,
             }),
             _ => None,
         }
@@ -388,6 +426,8 @@ impl ObjectTextRender<'_> {
             position_iter: self.layout.relative_positions.iter(),
             remaining_letter_groups: self.number_of_objects,
             string: &self.buffer.string,
+            line_height: self.buffer.font.line_height(),
+            paragraph_spacing: self.layout.paragraph_spacing,
         }
     }
 
@@ -408,17 +448,12 @@ impl ObjectTextRender<'_> {
     }
 
     /// Force a relayout, must be called after writing.
-    pub fn layout(
-        &mut self,
-        area: impl Into<Vector2D<i32>>,
-        alignment: TextAlignment,
-        paragraph_spacing: i32,
-    ) {
+    pub fn layout(&mut self, width: i32, alignment: TextAlignment, paragraph_spacing: i32) {
         self.layout.create_positions(
             self.buffer.font,
             &self.buffer.preprocessor,
             &LayoutSettings {
-                area: area.into(),
+                width,
                 alignment,
                 paragraph_spacing,
             },
@@ -449,14 +484,7 @@ impl ObjectTextRender<'_> {
     }
 
     fn can_render_another_element(&self) -> bool {
-        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
-
-        let max_number_of_objects = self
-            .layout
-            .line_capacity
-            .iter()
-            .take(max_number_of_lines)
-            .sum::<usize>();
+        let max_number_of_objects = self.layout.line_capacity.iter().sum::<usize>();
 
         max_number_of_objects > self.number_of_objects
     }
@@ -464,8 +492,6 @@ impl ObjectTextRender<'_> {
     /// Causes the next line to be shown on the next update. Returns
     /// whether another line could be added in the space given.
     pub fn next_line(&mut self) -> bool {
-        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
-
         // find current line
 
         for (start, end) in self
@@ -477,7 +503,6 @@ impl ObjectTextRender<'_> {
                 *count += line_size;
                 Some((start, *count))
             })
-            .take(max_number_of_lines)
         {
             if self.number_of_objects >= start && self.number_of_objects < end {
                 self.number_of_objects = end;
@@ -505,9 +530,17 @@ impl ObjectTextRender<'_> {
 }
 
 struct LayoutCache {
-    relative_positions: Vec<Vector2D<i16>>,
+    relative_positions: Vec<LayoutPosition>,
     line_capacity: Vec<usize>,
-    area: Vector2D<i32>,
+    width: i32,
+    paragraph_spacing: i32,
+}
+
+#[derive(Debug)]
+struct LayoutPosition {
+    line: u8,
+    paragraph: u8,
+    x: i32,
 }
 
 impl LayoutCache {
@@ -517,13 +550,20 @@ impl LayoutCache {
         preprocessed: &Preprocessed,
         settings: &LayoutSettings,
     ) {
-        self.area = settings.area;
+        self.width = settings.width;
+        self.paragraph_spacing = settings.paragraph_spacing;
         self.line_capacity.clear();
         self.relative_positions.clear();
-        for (line, line_positions) in Self::create_layout(font, preprocessed, settings) {
+        for (line_count, (line, line_positions)) in
+            Self::create_layout(font, preprocessed, settings).enumerate()
+        {
             self.line_capacity.push(line.number_of_letter_groups());
             self.relative_positions
-                .extend(line_positions.map(|x| Vector2D::new(x.x as i16, x.y as i16)));
+                .extend(line_positions.map(|(x, paragraph)| LayoutPosition {
+                    line: line_count as u8,
+                    paragraph,
+                    x,
+                }));
         }
     }
 
@@ -531,12 +571,11 @@ impl LayoutCache {
         font: &Font,
         preprocessed: &'a Preprocessed,
         settings: &'a LayoutSettings,
-    ) -> impl Iterator<Item = (Line, impl Iterator<Item = Vector2D<i32>> + 'a)> + 'a {
+    ) -> impl Iterator<Item = (Line, impl Iterator<Item = (i32, u8)> + 'a)> + 'a {
         let minimum_space_width = font.letter(' ').advance_width as i32;
-        let width = settings.area.x;
-        let line_height = font.line_height();
+        let width = settings.width;
 
-        let mut head_position: Vector2D<Num<i32, 10>> = (0, -line_height).into();
+        let mut paragraph_counter = 0;
 
         preprocessed
             .lines_element(width, minimum_space_width)
@@ -545,23 +584,22 @@ impl LayoutCache {
                     .alignment
                     .settings(&line, minimum_space_width, width);
 
-                head_position.y += line_height;
-                head_position.x = line_settings.start_x.into();
+                let mut head_position: Num<i32, 10> = line_settings.start_x.into();
 
                 (
                     line,
                     line_elements.filter_map(move |element| match element.decode() {
                         PreprocessedElement::LetterGroup { width } => {
                             let this_position = head_position;
-                            head_position.x += width as i32;
-                            Some(this_position.floor())
+                            head_position += width as i32;
+                            Some((this_position.floor(), paragraph_counter))
                         }
                         PreprocessedElement::WhiteSpace(space) => {
                             match space {
                                 WhiteSpace::NewLine => {
-                                    head_position.y += settings.paragraph_spacing;
+                                    paragraph_counter += 1;
                                 }
-                                WhiteSpace::Space => head_position.x += line_settings.space_width,
+                                WhiteSpace::Space => head_position += line_settings.space_width,
                             }
                             None
                         }
@@ -573,7 +611,7 @@ impl LayoutCache {
 
 #[derive(PartialEq, Eq, Default)]
 struct LayoutSettings {
-    area: Vector2D<i32>,
+    width: i32,
     alignment: TextAlignment,
     paragraph_spacing: i32,
 }
