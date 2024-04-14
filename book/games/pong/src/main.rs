@@ -11,7 +11,7 @@
 #![no_main]
 
 use agb::{
-    display::object::{Graphics, Tag},
+    display::object::{Graphics, Object, ObjectController, Tag},
     include_aseprite,
 };
 
@@ -20,11 +20,46 @@ use agb::{
 static GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 
 // We define some easy ways of referencing the sprites
-#[allow(dead_code)]
 static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
-#[allow(dead_code)]
 static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
 static BALL: &Tag = GRAPHICS.tags().get("Ball");
+
+struct Paddle<'obj> {
+    start: Object<'obj>,
+    mid: Object<'obj>,
+    end: Object<'obj>,
+}
+
+impl<'obj> Paddle<'obj> {
+    fn new(object: &'obj ObjectController<'_>, start_x: i32, start_y: i32) -> Self {
+        let mut paddle_start = object.object_sprite(PADDLE_END.sprite(0));
+        let mut paddle_mid = object.object_sprite(PADDLE_MID.sprite(0));
+        let mut paddle_end = object.object_sprite(PADDLE_END.sprite(0));
+
+        paddle_start.show();
+        paddle_mid.show();
+        paddle_end.set_vflip(true).show();
+
+        let mut paddle = Self {
+            start: paddle_start,
+            mid: paddle_mid,
+            end: paddle_end,
+        };
+
+        paddle.set_position(start_x, start_y);
+
+        paddle
+    }
+
+    fn set_position(&mut self, x: i32, y: i32) {
+        // new! use of the `set_position` method. This is a helper feature using
+        // agb's vector types. For now we can just use it to avoid adding them
+        // separately
+        self.start.set_position((x, y));
+        self.mid.set_position((x, y + 16));
+        self.end.set_position((x, y + 32));
+    }
+}
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
@@ -43,6 +78,9 @@ fn main(mut gba: agb::Gba) -> ! {
     // Now commit the object controller so this change is reflected on the screen,
     // this should normally be done in vblank but it'll work just fine here for now
     object.commit();
+
+    let mut paddle_a = Paddle::new(&object, 8, 8);
+    let mut paddle_b = Paddle::new(&object, 240 - 16 - 8, 8);
 
     let mut ball_x = 50;
     let mut ball_y = 50;
