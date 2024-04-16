@@ -66,7 +66,7 @@ impl WordRender {
     pub(crate) fn finalise_letter(
         &mut self,
         index_of_character: usize,
-    ) -> Option<(usize, SpriteVram)> {
+    ) -> Option<(usize, SpriteVram, i32)> {
         if self.working.x_offset == 0 {
             return None;
         }
@@ -75,10 +75,11 @@ impl WordRender {
         core::mem::swap(&mut self.working.dynamic, &mut new_sprite);
         let sprite = new_sprite.to_vram(self.config.palette.clone());
         let start_index = self.start_index_of_letter;
+        let width = self.working.x_offset;
         self.working.reset();
         self.start_index_of_letter = index_of_character;
 
-        Some((start_index, sprite))
+        Some((start_index, sprite, width))
     }
 
     #[must_use]
@@ -87,7 +88,7 @@ impl WordRender {
         font: &Font,
         c: char,
         index_of_character: usize,
-    ) -> Option<(usize, SpriteVram)> {
+    ) -> Option<(usize, SpriteVram, i32)> {
         if let Some(next_colour) = ChangeColour::try_from_char(c) {
             self.colour = next_colour.0 as usize;
             return None;
