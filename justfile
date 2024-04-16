@@ -31,6 +31,9 @@ check-docs:
     (cd tracker/agb-tracker && cargo doc --target=thumbv4t-none-eabi --no-deps)
     cargo doc --no-deps
 
+validate-renovate:
+    npx --yes --package renovate -- renovate-config-validator
+
 _build_docs crate:
     (cd "{{crate}}" && cargo doc --no-deps)
 

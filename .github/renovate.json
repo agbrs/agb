@@ -1,9 +1,25 @@
 {
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "ignorePresets": [
     ":prHourlyLimit2"
   ],
-  "dependencyDashboardAutoclose": true
+  "dependencyDashboardAutoclose": true,
+  "packageRules": [
+    {
+      "groupName": "Javascript packages (non-major)",
+      "groupSlug": "js-update",
+      "schedule": [
+        "on tuesday"
+      ],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ]
+    }
+  ]
 }
