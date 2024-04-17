@@ -325,6 +325,14 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+        static IS_PANICKING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
+        if IS_PANICKING.load(portable_atomic::Ordering::SeqCst) {
+            // we panicked during the panic handler, so not much we can do here
+            loop {}
+        } else {
+            IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
+        }
+
         #[cfg(feature = "backtrace")]
         let frames = backtrace::unwind_exception();
 
