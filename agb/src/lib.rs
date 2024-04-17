@@ -214,11 +214,15 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+// If we panic during the panic handler, then there isn't much we can do any more. So this code
+// just infinite loops halting the CPU.
 fn avoid_double_panic() {
     static IS_PANICKING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
+
     if IS_PANICKING.load(portable_atomic::Ordering::SeqCst) {
-        // we panicked during the panic handler, so not much we can do here
-        loop {}
+        loop {
+            syscall::halt();
+        }
     } else {
         IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
     }
