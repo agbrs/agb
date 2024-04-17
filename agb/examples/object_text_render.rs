@@ -4,7 +4,7 @@
 use agb::{
     display::{
         object::{
-            ChangeColour, ObjectTextRender, ObjectUnmanaged, PaletteVram, Size, TextAlignment,
+            ChangeColour, LeftAlignLayout, ObjectUnmanaged, PaletteVram, SimpleTextRender, Size,
         },
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
@@ -13,6 +13,9 @@ use agb::{
     input::Button,
 };
 use agb_fixnum::Vector2D;
+
+use alloc::borrow::Cow;
+use core::num::NonZeroU32;
 
 extern crate alloc;
 
@@ -45,7 +48,14 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     let start = timer.value();
-    let mut wr = ObjectTextRender::new(text, &FONT, Size::S16x16, palette, Some(|c| c == '.'));
+    let simple = SimpleTextRender::new(
+        Cow::Owned(text),
+        &FONT,
+        palette,
+        Size::S16x16,
+        Some(|c| c == '.'),
+    );
+    let mut wr = LeftAlignLayout::new(simple, NonZeroU32::new(WIDTH as u32));
     let end = timer.value();
 
     agb::println!(
@@ -56,17 +66,6 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    let start = timer.value();
-
-    wr.layout(WIDTH, TextAlignment::Justify, 2);
-    let end = timer.value();
-
-    agb::println!(
-        "Layout took {} cycles",
-        256 * (end.wrapping_sub(start) as u32)
-    );
-
-    let mut line = 0;
     let mut frame = 0;
     let mut groups_to_show = 0;
 
@@ -75,35 +74,55 @@ fn main(mut gba: agb::Gba) -> ! {
         input.update();
         let oam = &mut unmanaged.iter();
 
-        let done_rendering = !wr.next_letter_group();
+        wr.at_least_n_letter_groups(groups_to_show + 2);
+        let start = timer.value();
 
-        let mut letters = wr.letter_groups();
-        let displayed_letters = letters
-            .by_ref()
-            .take(groups_to_show)
-            .filter(|x| x.line() >= line);
+        let can_pop_line = {
+            let mut letters = wr.layout();
+            let displayed_letters = letters.by_ref().take(groups_to_show);
 
-        for (letter, slot) in displayed_letters.zip(oam) {
-            slot.set(&ObjectUnmanaged::from(
-                &letter + Vector2D::new(0, HEIGHT - 40 - line * FONT.line_height()),
-            ))
-        }
+            for (letter, slot) in displayed_letters.zip(oam) {
+                let mut obj = ObjectUnmanaged::new(letter.sprite().clone());
+                obj.show();
+                let y = HEIGHT - 40 + letter.line() as i32 * FONT.line_height();
+                obj.set_position(Vector2D::new(letter.x(), y));
 
-        if let Some(next_letter) = letters.next() {
-            if next_letter.line() < line + 2 {
-                if next_letter.letters() == "." {
-                    if frame % 16 == 0 {
+                slot.set(&obj);
+            }
+
+            let speed_up = if input.is_pressed(Button::A | Button::B) {
+                4
+            } else {
+                1
+            };
+
+            if let Some(next_letter) = letters.next() {
+                if next_letter.line() < 2 {
+                    if next_letter.string() == "." {
+                        if frame % (16 / speed_up) == 0 {
+                            groups_to_show += 1;
+                        }
+                    } else if frame % (4 / speed_up) == 0 {
                         groups_to_show += 1;
                     }
-                } else if frame % 4 == 0 {
-                    groups_to_show += 1;
+                    false
+                } else {
+                    true
                 }
-            } else if input.is_just_pressed(Button::A) {
-                line += 1;
+            } else {
+                false
             }
-        }
+        };
 
-        wr.update();
+        let end = timer.value();
+        agb::println!(
+            "Layout took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
+
+        if can_pop_line && input.is_just_pressed(Button::A) {
+            groups_to_show -= wr.pop_line();
+        }
 
         frame += 1;
     }

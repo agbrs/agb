@@ -1,4 +1,4 @@
-use core::num::NonZeroU32;
+use core::{fmt::Display, num::NonZeroU32};
 
 use alloc::{borrow::Cow, collections::VecDeque, vec::Vec};
 
@@ -10,7 +10,15 @@ use super::{PaletteVram, Size, SpriteVram};
 
 mod renderer;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ChangeColour(u8);
+
+impl Display for ChangeColour {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use core::fmt::Write;
+        f.write_char(self.to_char())
+    }
+}
 
 impl ChangeColour {
     #[must_use]
@@ -42,7 +50,6 @@ fn is_private_use(c: char) -> bool {
 struct RenderConfig<'string> {
     string: Cow<'string, str>,
     font: &'static Font,
-    explicit_end_on: Option<fn(char) -> bool>,
 }
 
 struct RenderedSpriteInternal {
@@ -72,7 +79,7 @@ impl RenderedSprite<'_> {
     }
 }
 
-struct SimpleTextRender<'string> {
+pub struct SimpleTextRender<'string> {
     config: RenderConfig<'string>,
     render_index: usize,
     inner_renderer: renderer::WordRender,
@@ -196,6 +203,30 @@ impl<'string> SimpleTextRender<'string> {
         Some((idx, next))
     }
 
+    pub fn is_done(&self) -> bool {
+        self.string().len() == self.render_index
+    }
+
+    pub fn number_of_letter_groups(&self) -> usize {
+        self.rendered_sprite_window.len()
+    }
+
+    pub fn pop_words(&mut self, words: usize) -> usize {
+        assert!(self.word_lengths.len() > words);
+
+        let mut total_letters_to_pop = 0;
+        for _ in 0..words {
+            let number_of_letters_to_pop = self.word_lengths.pop_front().unwrap();
+            total_letters_to_pop += number_of_letters_to_pop.letter_groups;
+        }
+
+        for _ in 0..total_letters_to_pop {
+            self.rendered_sprite_window.pop_front();
+        }
+
+        total_letters_to_pop
+    }
+
     pub fn update(&mut self) {
         let Some((idx, c)) = self.next_character() else {
             return;
@@ -250,21 +281,18 @@ impl<'string> SimpleTextRender<'string> {
         font: &'static Font,
         palette: PaletteVram,
         sprite_size: Size,
+        explicit_break_on: Option<fn(char) -> bool>,
     ) -> Self {
         let mut word_lengths = VecDeque::new();
         word_lengths.push_back(WordLength::default());
         Self {
-            config: RenderConfig {
-                string,
-                font,
-                explicit_end_on: None,
-            },
+            config: RenderConfig { string, font },
             rendered_sprite_window: VecDeque::new(),
             word_lengths,
             render_index: 0,
             inner_renderer: renderer::WordRender::new(
                 Configuration::new(sprite_size, palette),
-                None,
+                explicit_break_on,
             ),
         }
     }
@@ -274,13 +302,7 @@ impl<'string> SimpleTextRender<'string> {
     }
 }
 
-struct LineInformation {
-    start_x: i32,
-    words: usize,
-    space_width: i32,
-}
-
-struct LeftAlignLayout<'string> {
+pub struct LeftAlignLayout<'string> {
     simple: SimpleTextRender<'string>,
     data: LeftAlignLayoutData,
 }
@@ -288,7 +310,7 @@ struct LeftAlignLayout<'string> {
 struct LeftAlignLayoutData {
     width: Option<NonZeroU32>,
     string_index: usize,
-    words_per_line: Vec<usize>,
+    words_per_line: VecDeque<usize>,
     current_line_width: i32,
 }
 
@@ -299,7 +321,7 @@ struct PreparedLetterGroupPosition {
 
 fn length_of_next_word(current_index: &mut usize, s: &str, font: &Font) -> Option<(bool, i32)> {
     let s = &s[*current_index..];
-    if s.len() == 0 {
+    if s.is_empty() {
         return None;
     }
 
@@ -308,17 +330,17 @@ fn length_of_next_word(current_index: &mut usize, s: &str, font: &Font) -> Optio
     for (idx, chr) in s.char_indices() {
         match chr {
             '\n' | ' ' => {
-                if idx != 0 {
-                    return Some((chr == '\n', width));
-                }
+                *current_index += idx + 1;
+                return Some((chr == '\n', width));
             }
+            _ if is_private_use(chr) => {}
             letter => {
                 let letter = font.letter(letter);
                 if let Some(previous_character) = previous_character {
                     width += letter.kerning_amount(previous_character);
                 }
 
-                width += letter.xmin as i32;
+                // width += letter.xmin as i32;
                 width += letter.advance_width as i32;
             }
         }
@@ -328,16 +350,35 @@ fn length_of_next_word(current_index: &mut usize, s: &str, font: &Font) -> Optio
     Some((false, width))
 }
 
-struct LaidOutLetter<'text_render> {
+pub struct LaidOutLetter<'text_render> {
     line: usize,
     x: i32,
     sprite: &'text_render SpriteVram,
     string: &'text_render str,
 }
 
+impl LaidOutLetter<'_> {
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn x(&self) -> i32 {
+        self.x
+    }
+
+    pub fn sprite(&self) -> &SpriteVram {
+        self.sprite
+    }
+
+    pub fn string(&self) -> &str {
+        self.string
+    }
+}
+
 impl<'string> LeftAlignLayout<'string> {
-    fn new(simple: SimpleTextRender<'string>, width: Option<NonZeroU32>) -> Self {
-        let words_per_line = alloc::vec![0];
+    pub fn new(simple: SimpleTextRender<'string>, width: Option<NonZeroU32>) -> Self {
+        let mut words_per_line = VecDeque::new();
+        words_per_line.push_back(0);
 
         Self {
             simple,
@@ -350,7 +391,19 @@ impl<'string> LeftAlignLayout<'string> {
         }
     }
 
-    fn layout(&mut self) -> impl Iterator<Item = LaidOutLetter> {
+    pub fn pop_line(&mut self) -> usize {
+        assert!(self.data.words_per_line.len() > 1, "line not complete");
+        let words = self.data.words_per_line.pop_front().unwrap();
+        self.simple.pop_words(words)
+    }
+
+    pub fn at_least_n_letter_groups(&mut self, desired: usize) {
+        while self.simple.number_of_letter_groups() < desired && !self.simple.is_done() {
+            self.simple.update();
+        }
+    }
+
+    pub fn layout(&mut self) -> impl Iterator<Item = LaidOutLetter> {
         self.data.layout(
             self.simple.string(),
             self.simple.config.font,
@@ -364,25 +417,29 @@ impl LeftAlignLayoutData {
         length_of_next_word(&mut self.string_index, string, font)
     }
 
-    fn try_extend_line(&mut self, string: &str, font: &Font) -> bool {
+    fn try_extend_line(&mut self, string: &str, font: &Font, space_width: i32) -> bool {
         let (force_new_line, length_of_next_word) = self
             .length_of_next_word(string, font)
-            .expect("there should be a word for us to process");
+            .expect("Should have more in the line to extend into");
 
-        if force_new_line
-            || self.current_line_width + length_of_next_word
-                >= self.width.map_or(i32::MAX, |x| x.get() as i32)
+        if self.current_line_width + length_of_next_word
+            > self.width.map_or(i32::MAX, |x| x.get() as i32)
         {
-            self.current_line_width = 0;
-            self.words_per_line.push(0);
+            self.current_line_width = length_of_next_word + space_width;
+            self.words_per_line.push_back(1);
             true
         } else {
             let current_line = self
                 .words_per_line
-                .last_mut()
+                .back_mut()
                 .expect("should always have a line");
+            self.current_line_width += length_of_next_word + space_width;
 
             *current_line += 1;
+            if force_new_line {
+                self.current_line_width = 0;
+                self.words_per_line.push_back(0);
+            }
             false
         }
     }
@@ -405,24 +462,22 @@ impl LeftAlignLayoutData {
 
         simple.flat_map(move |(pixels, letters)| {
             let this_line_is_the_last_processed = current_line + 1 == self.words_per_line.len();
-
             words_in_current_line += 1;
-            if words_in_current_line > self.words_per_line[current_line] {
-                if this_line_is_the_last_processed {
-                    if self.try_extend_line(string, font) {
-                        current_line += 1;
-                        current_line_x_offset = 0;
-                    }
-                } else {
-                    current_line += 1;
-                    current_line_x_offset = 0;
-                }
+
+            if words_in_current_line > self.words_per_line[current_line]
+                && (!this_line_is_the_last_processed
+                    || self.try_extend_line(string, font, space_width))
+            {
+                current_line += 1;
+                current_line_x_offset = 0;
+                words_in_current_line = 1;
             }
 
             let current_line = current_line;
             let mut letter_x_offset = current_line_x_offset;
             current_line_x_offset += pixels.unwrap_or(0);
             current_line_x_offset += space_width;
+
             letters.map(move |x| {
                 let my_offset = letter_x_offset;
                 letter_x_offset += x.width;

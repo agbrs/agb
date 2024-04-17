@@ -111,10 +111,6 @@ impl WordRender {
             None
         };
 
-        if self.working.x_offset != 0 {
-            self.working.x_offset += font_letter.xmin as i32;
-        }
-
         let y_position = font.ascent() - font_letter.height as i32 - font_letter.ymin as i32;
 
         for y in 0..font_letter.height as usize {
