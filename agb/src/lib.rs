@@ -203,12 +203,25 @@ pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+    avoid_double_panic();
+
+    use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
         let _ = mgba.print(format_args!("{info}"), mgba::DebugLevel::Fatal);
     }
 
     #[allow(clippy::empty_loop)]
     loop {}
+}
+
+fn avoid_double_panic() {
+    static IS_PANICKING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
+    if IS_PANICKING.load(portable_atomic::Ordering::SeqCst) {
+        // we panicked during the panic handler, so not much we can do here
+        loop {}
+    } else {
+        IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
+    }
 }
 
 /// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
@@ -325,13 +338,7 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-        static IS_PANICKING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
-        if IS_PANICKING.load(portable_atomic::Ordering::SeqCst) {
-            // we panicked during the panic handler, so not much we can do here
-            loop {}
-        } else {
-            IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
-        }
+        avoid_double_panic();
 
         #[cfg(feature = "backtrace")]
         let frames = backtrace::unwind_exception();
