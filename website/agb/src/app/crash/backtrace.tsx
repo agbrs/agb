@@ -30,17 +30,17 @@ export function BacktracePage() {
         </em>
       </p>
       <h2>For game developers</h2>
-      <p>This page will eventually let you view backtraces in the browser.</p>
-      <p>
-        For now you can copy the backtrace code here and use it with{" "}
-        <code>agb-addr2line</code>.
-      </p>
       <p>If you don&apos;t want players to be sent to this page, you can:</p>
       <ol>
         <li>Configure the backtrace page to point to your own site</li>
         <li>Configure the backtrace page to not point to a site at all</li>
         <li>Not use the backtrace feature</li>
       </ol>
+      <p>
+        Here you can see the debug information contained in the crash log. Given
+        additional debug files it can present you with the corresponding
+        function names, file names, line numbers, and column numbers.
+      </p>
       <Backtrace />
     </ContentBlock>
   );
