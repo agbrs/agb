@@ -87,6 +87,15 @@ release +args: (_run-tool "release" args)
 miri:
     (cd agb-hashmap && cargo miri test)
 
+setup-cargo-wasm:
+    cargo install wasm-pack
+
+build-agb-wasm:
+    (cd agb-wasm && wasm-pack build --target web)
+    rm -rf website/agb/src/app/vendor/agb_wasm
+    mkdir website/agb/src/app/vendor
+    cp agb-wasm/pkg website/agb/src/app/vendor/agb_wasm -r
+
 build-mgba-wasm:
     rm -rf website/agb/src/app/mgba/vendor
     mkdir website/agb/src/app/mgba/vendor
@@ -94,12 +103,18 @@ build-mgba-wasm:
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
-
-build-site-app: build-mgba-wasm build-combo-rom-site
     mkdir -p website/agb/public
     gzip -9 -c examples/target/examples/combo.gba > website/agb/public/combo.gba.gz
+
+
+setup-app-build: build-mgba-wasm build-combo-rom-site build-agb-wasm
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
+
+build-site-app: setup-app-build
     (cd website/agb && npm run build)
+
+serve-site-dev: setup-app-build
+    (cd website/agb && npm run dev)
 
 build-site: build-site-app build-book
     rm -rf website/build

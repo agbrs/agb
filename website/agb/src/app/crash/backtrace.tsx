@@ -3,6 +3,9 @@
 import { ContentBlock } from "../contentBlock";
 import { useClientValue } from "../useClientValue.hook";
 import { styled } from "styled-components";
+import { useEffect, useMemo, useState } from "react";
+import { useAgbDebug } from "../useAgbDebug.hook";
+import { AddressInfo } from "../vendor/agb_wasm/agb_wasm";
 
 export function BacktracePage() {
   return (
@@ -38,8 +41,91 @@ export function BacktracePage() {
         <li>Configure the backtrace page to not point to a site at all</li>
         <li>Not use the backtrace feature</li>
       </ol>
+      <Backtrace />
     </ContentBlock>
   );
+}
+
+function Backtrace() {
+  const backtrace = useClientValue(getBacktrace) ?? "";
+  const backtraceAddresses = useBacktraceData(backtrace);
+
+  const [files, setFile] = useState<File[]>([]);
+  const backtraceLocations = useBacktraceLocations(
+    backtraceAddresses ?? [],
+    files ?? []
+  );
+
+  return (
+    <details>
+      <summary>Addresses in the backtrace</summary>
+      <input
+        type="file"
+        onChange={(evt) => {
+          const files = evt.target.files;
+          const filesArr = (files && Array.from(files)) ?? [];
+          setFile(filesArr);
+        }}
+      />
+      <ol>
+        {backtraceAddresses &&
+          backtraceAddresses.map((x, idx) => (
+            <li key={x}>
+              <code>0x{x.toString(16).padStart(8, "0")}</code>
+              <BacktraceAddressInfo info={backtraceLocations[idx]} />
+            </li>
+          ))}
+      </ol>
+    </details>
+  );
+}
+
+function BacktraceAddressInfo({ info }: { info: AddressInfo[] | undefined }) {
+  if (!info) return;
+
+  return (
+    <ol>
+      {info.map((x, idx) => (
+        <li key={idx}>
+          {x.is_inline && "(inlined into)"} {x.function_name}:{x.column}{" "}
+          {x.filename}:{x.line_number}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function useBacktraceLocations(addresses: number[], file: File[]) {
+  const debug = useAgbDebug();
+  const [debugInfo, setDebugInfo] = useState<AddressInfo[][]>([]);
+
+  useEffect(() => {
+    const f = file[0];
+    if (!f) return;
+    if (!debug) return;
+    (async () => {
+      const buf = await f.arrayBuffer();
+      const view = new Uint8Array(buf);
+
+      const agbDebugFile = debug.debug_file(view);
+      const debugInfo = addresses.map((x) => agbDebugFile.address_info(x));
+      setDebugInfo(debugInfo);
+    })();
+  }, [addresses, debug, file]);
+
+  return debugInfo;
+}
+
+function useBacktraceData(trace?: string) {
+  const debug = useAgbDebug();
+
+  return useMemo(() => {
+    try {
+      if (!trace) return;
+      const addresses = debug?.decode_backtrace(trace);
+      return addresses && Array.from(addresses);
+    } catch {}
+  }, [debug, trace]);
 }
 
 function BacktraceDisplay() {
