@@ -8,7 +8,7 @@ description = "CLI utility to convert agb stack trace dumps into human readable 
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-anyhow = "1"
+thiserror = "1"
 clap = { version = "4", features = ["derive"] }
 addr2line = { version = "0.22", default-features = false, features = [
     "rustc-demangle",

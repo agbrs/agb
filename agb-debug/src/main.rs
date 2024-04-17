@@ -1,5 +1,6 @@
 use std::{
     borrow::Cow,
+    error::Error,
     fs::{self, File},
     io::Read,
     path::PathBuf,
@@ -7,12 +8,9 @@ use std::{
 };
 
 use addr2line::gimli;
+use agb_debug::Location;
 use clap::Parser;
 use colored::Colorize;
-use load_dwarf::load_dwarf;
-
-mod gwilym_encoding;
-mod load_dwarf;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -24,23 +22,7 @@ struct Args {
     dump: String,
 }
 
-struct Location {
-    filename: String,
-    line: u32,
-    col: u32,
-}
-
-impl Default for Location {
-    fn default() -> Self {
-        Self {
-            filename: "??".to_string(),
-            line: 0,
-            col: 0,
-        }
-    }
-}
-
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn Error>> {
     let cli = Args::parse();
 
     let modification_time = fs::metadata(&cli.elf_path)?
@@ -48,11 +30,11 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or(SystemTime::UNIX_EPOCH);
 
     let file = fs::read(&cli.elf_path)?;
-    let dwarf = load_dwarf(&file)?;
+    let dwarf = agb_debug::load_dwarf(&file)?;
 
     let ctx = addr2line::Context::from_dwarf(dwarf)?;
 
-    for (i, address) in gwilym_encoding::gwilym_decode(&cli.dump)?.enumerate() {
+    for (i, address) in agb_debug::gwilym_decode(&cli.dump)?.enumerate() {
         print_address(&ctx, i, address.into(), modification_time)?;
     }
 
@@ -64,7 +46,7 @@ fn print_address(
     index: usize,
     address: u64,
     elf_modification_time: SystemTime,
-) -> anyhow::Result<()> {
+) -> Result<(), Box<dyn Error>> {
     let mut frames = ctx.find_frames(address).skip_all_loads()?;
 
     let mut is_first = true;
@@ -119,7 +101,7 @@ fn print_line_of_code(
     frame: &addr2line::Frame<'_, impl gimli::Reader>,
     location: Location,
     elf_modification_time: SystemTime,
-) -> anyhow::Result<()> {
+) -> Result<(), Box<dyn Error>> {
     let Some(filename) = frame.location.as_ref().and_then(|location| location.file) else {
         return Ok(());
     };
