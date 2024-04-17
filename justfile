@@ -93,7 +93,7 @@ setup-cargo-wasm:
 build-agb-wasm:
     (cd agb-wasm && wasm-pack build --target web)
     rm -rf website/agb/src/app/vendor/agb_wasm
-    mkdir website/agb/src/app/vendor
+    mkdir -p website/agb/src/app/vendor
     cp agb-wasm/pkg website/agb/src/app/vendor/agb_wasm -r
 
 build-mgba-wasm:
