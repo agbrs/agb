@@ -1,7 +1,7 @@
 mod gwilym_encoding;
 mod load_dwarf;
 
-use addr2line::gimli::{self, EndianReader};
+use addr2line::gimli;
 pub use gwilym_encoding::{gwilym_decode, GwilymDecodeError};
 pub use load_dwarf::{load_dwarf, GimliDwarf, LoadDwarfError};
 use thiserror::Error;
@@ -71,7 +71,7 @@ pub fn address_info(
         infos.push(AddressInfo {
             location,
             is_interesting,
-            is_inline: is_first,
+            is_inline: !is_first,
             function: function_name,
         });
         is_first = false;
