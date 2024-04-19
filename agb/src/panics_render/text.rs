@@ -54,12 +54,11 @@ impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
         for y in 0..letter.height as usize {
             for x in 0..letter.width as usize {
                 let rendered = letter.bit_absolute(x, y);
-                if rendered {
-                    self.bitmap.draw_point(
-                        x as i32 + self.head_position.x,
-                        y as i32 + y_position_start,
-                        self.colour,
-                    );
+                let x = x as i32 + self.head_position.x;
+                let y = y as i32 + y_position_start;
+
+                if rendered && (0..=WIDTH).contains(&x) && (0..=HEIGHT).contains(&y) {
+                    self.bitmap.draw_point(x, y, self.colour);
                 }
             }
         }
