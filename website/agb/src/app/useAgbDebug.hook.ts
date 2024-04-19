@@ -3,16 +3,19 @@ import debugInit, {
   decode_backtrace,
   DebugFile,
   InitOutput,
-} from "./vendor/agb_wasm/agb_wasm";
+  AddressInfo,
+} from "./vendor/backtrace/backtrace";
 
 let agbDebug: Promise<InitOutput> | undefined;
 
-interface AgbDebug {
+export { AddressInfo };
+
+export interface AgbDebug {
   decode_backtrace: (backtrace: string) => Uint32Array;
   debug_file: (file: Uint8Array) => DebugFile;
 }
 
-export function useAgbDebug() {
+export function useAgbDebug(): AgbDebug | undefined {
   const [debug, setDebug] = useState<AgbDebug>();
 
   useEffect(() => {
