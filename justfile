@@ -92,9 +92,9 @@ setup-cargo-wasm:
 
 build-website-backtrace:
     (cd website/backtrace && wasm-pack build --target web)
-    rm -rf website/agb/src/app/vendor/agb_wasm
+    rm -rf website/agb/src/app/vendor/backtrace
     mkdir -p website/agb/src/app/vendor
-    cp website/backtrace/pkg website/agb/src/app/vendor/agb_wasm -r
+    cp website/backtrace/pkg website/agb/src/app/vendor/backtrace -r
 
 build-mgba-wasm:
     rm -rf website/agb/src/app/mgba/vendor
