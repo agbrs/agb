@@ -51,6 +51,18 @@ function DebugBacktraceDecode({
 
   return (
     <>
+      <BacktraceListWrapper>
+        <BacktraceList>
+          {backtraceAddresses.map((x, idx) => (
+            <li key={x}>
+              <BacktraceAddressInfo
+                address={x}
+                info={backtraceLocations[idx]}
+              />
+            </li>
+          ))}
+        </BacktraceList>
+      </BacktraceListWrapper>
       <p>
         If you add the elf file used to make the GBA file, or the GBA file
         itself if it was made with <NonWrapCode>agb-gbafix --debug</NonWrapCode>
@@ -72,18 +84,6 @@ function DebugBacktraceDecode({
           }}
         />
       </label>
-      <BacktraceListWrapper>
-        <BacktraceList>
-          {backtraceAddresses.map((x, idx) => (
-            <li key={x}>
-              <BacktraceAddressInfo
-                address={x}
-                info={backtraceLocations[idx]}
-              />
-            </li>
-          ))}
-        </BacktraceList>
-      </BacktraceListWrapper>
     </>
   );
 }

@@ -31,6 +31,8 @@ export function BacktracePage() {
           game you are playing.
         </em>
       </p>
+      <h2>Backtrace</h2>
+      {backtrace && <Debug encodedBacktrace={backtrace} />}
       <h2>For game developers</h2>
       <p>If you don&apos;t want players to be sent to this page, you can:</p>
       <ol>
@@ -38,8 +40,6 @@ export function BacktracePage() {
         <li>Configure the backtrace page to not point to a site at all</li>
         <li>Not use the backtrace feature</li>
       </ol>
-      <h2>Backtrace</h2>
-      {backtrace && <Debug encodedBacktrace={backtrace} />}
     </ContentBlock>
   );
 }
