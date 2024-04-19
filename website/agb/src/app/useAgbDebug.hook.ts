@@ -22,7 +22,6 @@ export function useAgbDebug() {
       }
 
       await agbDebug;
-      console.log("Loaded agb debug");
 
       setDebug({
         decode_backtrace,
