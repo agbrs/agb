@@ -32,15 +32,13 @@ pub(crate) fn test_runner_measure_cycles() {
     NUMBER_OF_CYCLES.set(0);
 }
 
-pub struct Mgba {
-    bytes_written: usize,
-}
+pub struct Mgba {}
 
 impl Mgba {
     #[must_use]
     pub fn new() -> Option<Self> {
         if is_running_in_mgba() {
-            Some(Mgba { bytes_written: 0 })
+            Some(Mgba {})
         } else {
             None
         }
@@ -51,30 +49,32 @@ impl Mgba {
         output: core::fmt::Arguments,
         level: DebugLevel,
     ) -> Result<(), core::fmt::Error> {
-        write!(self, "{output}")?;
+        let mut writer = MgbaWriter { bytes_written: 0 };
+        write!(&mut writer, "{output}")?;
         self.set_level(level);
         Ok(())
     }
 }
 
+struct MgbaWriter {
+    bytes_written: usize,
+}
+
 impl Mgba {
     pub fn set_level(&mut self, level: DebugLevel) {
         DEBUG_LEVEL.set(DEBUG_FLAG_CODE | level as u16);
-        self.bytes_written = 0;
     }
 }
 
-impl core::fmt::Write for Mgba {
+impl core::fmt::Write for MgbaWriter {
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
-        let mut str_iter = s.bytes();
-        while self.bytes_written < 255 {
-            match str_iter.next() {
-                Some(byte) => {
-                    OUTPUT_STRING.set(self.bytes_written, byte);
-                    self.bytes_written += 1;
-                }
-                None => return Ok(()),
+        for b in s.bytes() {
+            if self.bytes_written > 255 {
+                DEBUG_LEVEL.set(DEBUG_FLAG_CODE | DebugLevel::Info as u16);
+                self.bytes_written = 0;
             }
+            OUTPUT_STRING.set(self.bytes_written, b);
+            self.bytes_written += 1;
         }
         Ok(())
     }
