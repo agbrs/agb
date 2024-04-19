@@ -90,11 +90,11 @@ miri:
 setup-cargo-wasm:
     cargo install wasm-pack
 
-build-agb-wasm:
-    (cd agb-wasm && wasm-pack build --target web)
+build-website-backtrace:
+    (cd website/backtrace && wasm-pack build --target web)
     rm -rf website/agb/src/app/vendor/agb_wasm
     mkdir -p website/agb/src/app/vendor
-    cp agb-wasm/pkg website/agb/src/app/vendor/agb_wasm -r
+    cp website/backtrace/pkg website/agb/src/app/vendor/agb_wasm -r
 
 build-mgba-wasm:
     rm -rf website/agb/src/app/mgba/vendor
@@ -107,7 +107,7 @@ build-combo-rom-site:
     gzip -9 -c examples/target/examples/combo.gba > website/agb/public/combo.gba.gz
 
 
-setup-app-build: build-mgba-wasm build-combo-rom-site build-agb-wasm
+setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
 
 build-site-app: setup-app-build
