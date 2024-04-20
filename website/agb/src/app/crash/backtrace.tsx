@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from 'react';
+
 import { ContentBlock } from "../contentBlock";
-import { useClientValue } from "../useClientValue.hook";
 import { styled } from "styled-components";
 import { Debug } from "./debug";
 
 export function BacktracePage() {
-  const backtrace = useClientValue(getBacktrace);
+  const [backtrace, setBacktrace] = useState(getBacktrace);
 
   return (
     <ContentBlock>
@@ -22,9 +23,7 @@ export function BacktracePage() {
         time.{" "}
         <strong>Send these to the creator of the game you are playing.</strong>
       </p>
-      {(backtrace && <BacktraceCopyDisplay backtrace={backtrace} />) || (
-        <p>No backtrace data in Url</p>
-      )}
+      <BacktraceCopyDisplay backtrace={backtrace} setBacktrace={setBacktrace}/>
       <p>
         <em>
           The owners of this website are not necessarily the creators of the
@@ -44,10 +43,10 @@ export function BacktracePage() {
   );
 }
 
-function BacktraceCopyDisplay({ backtrace }: { backtrace: string }) {
+function BacktraceCopyDisplay({ backtrace, setBacktrace }: { backtrace: string , setBacktrace: (newValue: string) => void}) {
   return (
     <BacktraceWrapper>
-      <BacktraceCodeBlock>{backtrace}</BacktraceCodeBlock>
+      <BacktraceInputBox type="text" defaultValue="Enter the backtrace code here" onChange={e => setBacktrace(e.target.value)} value={backtrace} />
       <BacktraceCopyButton
         onClick={() => {
           navigator.clipboard.writeText(backtrace);
@@ -59,11 +58,10 @@ function BacktraceCopyDisplay({ backtrace }: { backtrace: string }) {
   );
 }
 
-const BacktraceCodeBlock = styled.code`
-  font-size: 3rem;
+const BacktraceInputBox = styled.input`
+  font-size: larger;
   background-color: #dddddd;
-  padding: 0px 40px;
-  overflow-x: scroll;
+  flex-grow: 999;
 `;
 
 const BacktraceWrapper = styled.section`
@@ -76,7 +74,6 @@ const BacktraceWrapper = styled.section`
 
 const BacktraceCopyButton = styled.button`
   padding: 10px;
-  overflow-x: scroll;
 `;
 
 function getBacktrace() {
