@@ -150,6 +150,7 @@ extern crate alloc;
 mod agb_alloc;
 
 mod agbabi;
+#[cfg(feature = "backtrace")]
 mod backtrace;
 mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
@@ -167,6 +168,7 @@ pub mod mgba;
 pub use agb_fixnum as fixnum;
 /// Contains an implementation of a hashmap which suits the gameboy advance's hardware.
 pub use agb_hashmap as hash_map;
+#[cfg(feature = "backtrace")]
 mod panics_render;
 /// Simple random number generator
 pub mod rng;
@@ -201,10 +203,8 @@ pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-    use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
-        write!(mgba, "{}", info);
-        mgba.set_level(mgba::DebugLevel::Fatal);
+        let _ = mgba.print(format_args!("{info}"), mgba::DebugLevel::Fatal);
     }
 
     #[allow(clippy::empty_loop)]
@@ -296,8 +296,6 @@ impl Gba {
 /// You can run the tests using `cargo test`, but it will work better through `mgba-test-runner` by
 /// running something along the lines of `CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test`.
 pub mod test_runner {
-    use self::panics_render::render_backtrace;
-
     use super::*;
 
     #[doc(hidden)]
@@ -327,13 +325,20 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
+        #[cfg(feature = "backtrace")]
         let frames = backtrace::unwind_exception();
 
         if let Some(mut mgba) = mgba::Mgba::new() {
             let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
         }
 
-        render_backtrace(&frames, info);
+        #[cfg(feature = "backtrace")]
+        crate::panics_render::render_backtrace(&frames, info);
+
+        #[cfg(not(feature = "backtrace"))]
+        loop {
+            syscall::halt();
+        }
     }
 
     static mut TEST_GBA: Option<Gba> = None;
