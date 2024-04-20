@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { ContentBlock } from "../contentBlock";
+import { GameDeveloperSummary } from './gameDeveloperSummary';
 import { styled } from "styled-components";
 import { Debug } from "./debug";
 
@@ -32,13 +33,7 @@ export function BacktracePage() {
       </p>
       <h2>Backtrace</h2>
       {backtrace && <Debug encodedBacktrace={backtrace} />}
-      <h2>For game developers</h2>
-      <p>If you don&apos;t want players to be sent to this page, you can:</p>
-      <ol>
-        <li>Configure the backtrace page to point to your own site</li>
-        <li>Configure the backtrace page to not point to a site at all</li>
-        <li>Not use the backtrace feature</li>
-      </ol>
+      <GameDeveloperSummary />
     </ContentBlock>
   );
 }
@@ -75,6 +70,7 @@ const BacktraceWrapper = styled.section`
 const BacktraceCopyButton = styled.button`
   padding: 10px;
 `;
+
 
 function getBacktrace() {
   return window.location.hash.slice(1);
