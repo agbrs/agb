@@ -1,6 +1,6 @@
 import { styled } from "styled-components";
 import { AddressInfo, AgbDebug, useAgbDebug } from "../useAgbDebug.hook";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 
 const BacktraceListWrapper = styled.div`
   font-size: 1rem;
@@ -41,8 +41,15 @@ function DebugBacktraceDecode({
     []
   );
 
+  const [backtraceLocationsError, setBacktraceLocationsError] =
+    useState<string>("");
+
   if (typeof backtraceAddresses === "string") {
-    return <DebugError error={backtraceAddresses} />;
+    return (
+      <DebugError>
+        Something went wrong decoding the backtrace: {backtraceAddresses}
+      </DebugError>
+    );
   }
 
   return (
@@ -74,23 +81,33 @@ function DebugBacktraceDecode({
             if (!files) return;
             const file = files[0];
             if (!file) return;
-            loadLocations(debug, backtraceAddresses, file).then((data) =>
-              setBacktraceLocations(data)
-            );
+            setBacktraceLocationsError("");
+            loadLocations(debug, backtraceAddresses, file)
+              .then((data) => setBacktraceLocations(data))
+              .catch((e) => setBacktraceLocationsError(`${e}`));
           }}
         />
       </label>
+      {backtraceLocationsError && (
+        <DebugError>
+          Something went wrong looking up the addresses in the file provided:{" "}
+          {backtraceLocationsError}
+        </DebugError>
+      )}
     </>
   );
 }
 
-function DebugError({ error }: { error: string }) {
-  return (
-    <>
-      <p>Something went wrong decoding the backtrace</p>
-      <p>{error}</p>
-    </>
-  );
+const ErrorBlock = styled.div`
+  background-color: #f78f8f;
+  border: 2px solid #9c0a0a;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 10px;
+`;
+
+function DebugError({ children }: { children: ReactNode }) {
+  return <ErrorBlock>{children}</ErrorBlock>;
 }
 
 function makeNicePath(path: string) {
