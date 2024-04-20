@@ -7,8 +7,7 @@ use std::{
     time::SystemTime,
 };
 
-use addr2line::gimli;
-use agb_debug::Location;
+use agb_debug::{address_info, AddressInfo, Location};
 use clap::Parser;
 use colored::Colorize;
 
@@ -35,77 +34,46 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ctx = addr2line::Context::from_dwarf(dwarf)?;
 
     for (i, address) in agb_debug::gwilym_decode(&cli.dump)?.enumerate() {
-        print_address(&ctx, i, address.into(), modification_time)?;
+        let infos = address_info(&ctx, address.into())?;
+        for info in infos {
+            print_address_info(&info, i, modification_time)?;
+        }
     }
 
     Ok(())
 }
 
-fn print_address(
-    ctx: &addr2line::Context<impl gimli::Reader>,
+fn print_address_info(
+    info: &AddressInfo,
     index: usize,
-    address: u64,
     elf_modification_time: SystemTime,
 ) -> Result<(), Box<dyn Error>> {
-    let mut frames = ctx.find_frames(address).skip_all_loads()?;
+    let function_name_to_print = &info.function;
 
-    let mut is_first = true;
+    if !info.is_inline {
+        print!("{index}:\t{function_name_to_print}");
+    } else {
+        print!("\t(inlined into) {function_name_to_print}");
+    }
 
-    while let Some(frame) = frames.next()? {
-        let function_name = if let Some(ref func) = frame.function {
-            func.demangle()?.into_owned()
-        } else {
-            "unknown function".to_string()
-        };
+    println!(
+        " {}:{}",
+        prettify_path(&info.location.filename).green(),
+        info.location.line.to_string().green()
+    );
 
-        let location = frame
-            .location
-            .as_ref()
-            .map(|location| Location {
-                filename: location.file.unwrap_or("??").to_owned(),
-                line: location.line.unwrap_or(0),
-                col: location.column.unwrap_or(0),
-            })
-            .unwrap_or_default();
-
-        let is_interesting = is_interesting_function(&function_name, &location.filename);
-        let function_name_to_print = if is_interesting {
-            function_name.bold()
-        } else {
-            function_name.normal()
-        };
-
-        if is_first {
-            print!("{index}:\t{function_name_to_print}");
-        } else {
-            print!("\t(inlined into) {function_name_to_print}");
-        }
-
-        println!(
-            " {}:{}",
-            prettify_path(&location.filename).green(),
-            location.line.to_string().green()
-        );
-
-        if location.line != 0 && is_interesting {
-            print_line_of_code(&frame, location, elf_modification_time)?;
-        }
-
-        is_first = false;
+    if info.location.line != 0 && info.is_interesting {
+        print_line_of_code(&info.location, elf_modification_time)?;
     }
 
     Ok(())
 }
 
 fn print_line_of_code(
-    frame: &addr2line::Frame<'_, impl gimli::Reader>,
-    location: Location,
+    location: &Location,
     elf_modification_time: SystemTime,
 ) -> Result<(), Box<dyn Error>> {
-    let Some(filename) = frame.location.as_ref().and_then(|location| location.file) else {
-        return Ok(());
-    };
-
+    let filename = &location.filename;
     let Ok(mut file) = File::open(filename) else {
         return Ok(());
     };
@@ -152,16 +120,4 @@ fn prettify_path(path: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(path)
     }
-}
-
-fn is_interesting_function(function_name: &str, path: &str) -> bool {
-    if function_name == "rust_begin_unwind" {
-        return false; // this is the unwind exception call
-    }
-
-    if path.ends_with("panicking.rs") {
-        return false; // probably part of rust's internal panic mechanisms
-    }
-
-    true
 }
