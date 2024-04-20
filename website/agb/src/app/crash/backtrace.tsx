@@ -67,6 +67,9 @@ function BacktraceCopyDisplay({
 const BacktraceInputBox = styled.input`
   font-size: larger;
   background-color: #eee;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  min-width: 0;
 
   flex-grow: 999;
 `;
@@ -76,7 +79,6 @@ const BacktraceWrapper = styled.section`
   gap: 10px;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
 `;
 
 const BacktraceCopyButton = styled.button`
