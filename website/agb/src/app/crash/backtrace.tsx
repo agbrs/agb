@@ -52,7 +52,7 @@ function BacktraceCopyDisplay({
     <BacktraceWrapper>
       <BacktraceInputBox
         type="text"
-        defaultValue="Enter the backtrace code here"
+        placeholder="Enter the backtrace code here"
         onChange={(e) => setBacktrace(e.target.value)}
         value={backtrace}
       />
