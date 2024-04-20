@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 import { ContentBlock } from "../contentBlock";
-import { GameDeveloperSummary } from './gameDeveloperSummary';
+import { GameDeveloperSummary } from "./gameDeveloperSummary";
 import { styled } from "styled-components";
 import { Debug } from "./debug";
 
@@ -24,7 +24,7 @@ export function BacktracePage() {
         time.{" "}
         <strong>Send these to the creator of the game you are playing.</strong>
       </p>
-      <BacktraceCopyDisplay backtrace={backtrace} setBacktrace={setBacktrace}/>
+      <BacktraceCopyDisplay backtrace={backtrace} setBacktrace={setBacktrace} />
       <p>
         <em>
           The owners of this website are not necessarily the creators of the
@@ -38,10 +38,21 @@ export function BacktracePage() {
   );
 }
 
-function BacktraceCopyDisplay({ backtrace, setBacktrace }: { backtrace: string , setBacktrace: (newValue: string) => void}) {
+function BacktraceCopyDisplay({
+  backtrace,
+  setBacktrace,
+}: {
+  backtrace: string;
+  setBacktrace: (newValue: string) => void;
+}) {
   return (
     <BacktraceWrapper>
-      <BacktraceInputBox type="text" defaultValue="Enter the backtrace code here" onChange={e => setBacktrace(e.target.value)} value={backtrace} />
+      <BacktraceInputBox
+        type="text"
+        defaultValue="Enter the backtrace code here"
+        onChange={(e) => setBacktrace(e.target.value)}
+        value={backtrace}
+      />
       <BacktraceCopyButton
         onClick={() => {
           navigator.clipboard.writeText(backtrace);
@@ -55,7 +66,8 @@ function BacktraceCopyDisplay({ backtrace, setBacktrace }: { backtrace: string ,
 
 const BacktraceInputBox = styled.input`
   font-size: larger;
-  background-color: #dddddd;
+  background-color: #eee;
+
   flex-grow: 999;
 `;
 
@@ -70,7 +82,6 @@ const BacktraceWrapper = styled.section`
 const BacktraceCopyButton = styled.button`
   padding: 10px;
 `;
-
 
 function getBacktrace() {
   return window.location.hash.slice(1);
