@@ -3,6 +3,7 @@ use agb::save::{Error, SaveManager};
 use agb::Gba;
 
 static HIGH_SCORE: AtomicU32 = AtomicU32::new(0);
+static SAVE_OFFSET: usize = 1;
 
 pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
     gba.save.init_sram();
@@ -18,7 +19,7 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
         save_high_score(&mut gba.save, 0)?;
     } else {
         let mut buffer = [0; 4];
-        access.read(1, &mut buffer)?;
+        access.read(SAVE_OFFSET, &mut buffer)?;
         let high_score = u32::from_le_bytes(buffer);
 
         let score = if high_score > 100 { 0 } else { high_score };
@@ -35,8 +36,8 @@ pub fn load_high_score() -> u32 {
 
 pub fn save_high_score(save: &mut SaveManager, score: u32) -> Result<(), Error> {
     save.access()?
-        .prepare_write(1..5)?
-        .write(1, &score.to_le_bytes())?;
+        .prepare_write(SAVE_OFFSET..SAVE_OFFSET + 4)?
+        .write(SAVE_OFFSET, &score.to_le_bytes())?;
     HIGH_SCORE.store(score, Ordering::SeqCst);
     Ok(())
 }

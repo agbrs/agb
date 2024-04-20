@@ -121,8 +121,10 @@ pub fn entry(mut gba: agb::Gba) -> ! {
         oam: unmanaged,
     };
 
-    let mut current_level = 0;
-    let mut maximum_level = save::load_max_level() as usize;
+    let saved_level = save::load_max_level() as usize;
+
+    let mut current_level = saved_level;
+    let mut maximum_level = saved_level;
     loop {
         if current_level >= level::Level::num_levels() {
             current_level = 0;

@@ -5,6 +5,7 @@ use agb::{
 };
 
 static MAXIMUM_LEVEL: AtomicU32 = AtomicU32::new(0);
+static SAVE_OFFSET: usize = 0xFF;
 
 pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
     gba.save.init_sram();
@@ -20,7 +21,7 @@ pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
         save_max_level(&mut gba.save, 0)?;
     } else {
         let mut buffer = [0; 4];
-        access.read(1, &mut buffer)?;
+        access.read(SAVE_OFFSET, &mut buffer)?;
         let max_level = u32::from_le_bytes(buffer);
 
         if max_level > 100 {
@@ -39,8 +40,8 @@ pub fn load_max_level() -> u32 {
 
 pub fn save_max_level(save: &mut SaveManager, level: u32) -> Result<(), Error> {
     save.access()?
-        .prepare_write(1..5)?
-        .write(1, &level.to_le_bytes())?;
+        .prepare_write(SAVE_OFFSET..SAVE_OFFSET + 4)?
+        .write(SAVE_OFFSET, &level.to_le_bytes())?;
     MAXIMUM_LEVEL.store(level, Ordering::SeqCst);
     Ok(())
 }

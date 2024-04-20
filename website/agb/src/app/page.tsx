@@ -78,6 +78,8 @@ function shouldStartPlaying(isTouchScreen: boolean | undefined) {
   return !isTouchScreen;
 }
 
+const COMBO_GAME = new URL("combo.gba.gz", import.meta.url);
+
 function MgbaWithControllerSides() {
   const mgba = useRef<MgbaHandle>(null);
 
@@ -105,7 +107,7 @@ function MgbaWithControllerSides() {
           </GameSide>
           <GameDisplayWindow>
             <MgbaWrapper
-              gameUrl="combo.gba.gz"
+              gameUrl={COMBO_GAME}
               ref={mgba}
               isPlaying={playEmulator}
               setIsPlaying={setIsPlaying}
