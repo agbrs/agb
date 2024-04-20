@@ -91,10 +91,9 @@ build-mgba-wasm:
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
+    gzip -9 -c examples/target/examples/combo.gba > website/agb/src/app/combo.gba.gz
 
 build-site-app: build-mgba-wasm build-combo-rom-site
-    mkdir -p website/agb/public
-    gzip -9 -c examples/target/examples/combo.gba > website/agb/public/combo.gba.gz
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
     (cd website/agb && npm run build)
 

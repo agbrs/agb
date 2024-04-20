@@ -60,7 +60,7 @@ const StartButtonWrapper = styled.button`
 `;
 
 interface MgbaWrapperProps {
-  gameUrl: string;
+  gameUrl: URL;
   isPlaying?: boolean;
   setIsPlaying?: (isPlaying: boolean) => void;
 }

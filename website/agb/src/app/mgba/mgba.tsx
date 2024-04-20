@@ -13,7 +13,7 @@ import { useController } from "./useController.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
 
 interface MgbaProps {
-  gameUrl: string;
+  gameUrl: URL;
   volume?: number;
   controls: KeyBindings;
   paused: boolean;
@@ -41,10 +41,12 @@ export interface MgbaHandle {
   buttonRelease: (key: GbaKey) => void;
 }
 
-async function downloadGame(gameUrl: string): Promise<ArrayBuffer> {
+async function downloadGame(gameUrl: URL): Promise<ArrayBuffer> {
   const game = await fetch(gameUrl);
 
-  if (gameUrl.endsWith(".gz")) {
+  const gameUrlString = gameUrl.toString();
+
+  if (gameUrlString.endsWith(".gz")) {
     const decompressedStream = (await game.blob())
       .stream()
       .pipeThrough(new DecompressionStream("gzip"));
@@ -67,13 +69,14 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
       {},
       "agbrswebplayer/savegames"
     );
+    const gameUrlString = gameUrl.toString();
 
     const [state, setState] = useState(MgbaState.Uninitialised);
     const [gameLoaded, setGameLoaded] = useState(false);
 
     useEffect(() => {
       function beforeUnload() {
-        const gameSplit = gameUrl.split("/");
+        const gameSplit = gameUrlString.split("/");
         const gameBaseName = gameSplit[gameSplit.length - 1];
 
         const save = mgbaModule.current?.getSave();
@@ -90,12 +93,12 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
       return () => {
         window.removeEventListener("beforeunload", beforeUnload);
       };
-    }, [gameUrl, saveGame, setSaveGame]);
+    }, [gameUrlString, saveGame, setSaveGame]);
 
     useEffect(() => {
       if (state !== MgbaState.Initialised) return;
 
-      const gameSplit = gameUrl.split("/");
+      const gameSplit = gameUrlString.split("/");
       const gameBaseName = gameSplit[gameSplit.length - 1];
 
       const save = saveGame[gameBaseName];
@@ -104,13 +107,13 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
       const savePath = `${MGBA_ROM_DIRECTORY}/${gameBaseName}.sav`;
 
       mgbaModule.current?.FS.writeFile(savePath, new Uint8Array([0, 1, 2, 3]));
-    }, [gameUrl, saveGame, state]);
+    }, [gameUrlString, saveGame, state]);
 
     useEffect(() => {
       if (state !== MgbaState.Initialised) return;
       (async () => {
         const gameData = await downloadGame(gameUrl);
-        const gameSplit = gameUrl.split("/");
+        const gameSplit = gameUrlString.split("/");
         const gameBaseName = gameSplit[gameSplit.length - 1];
 
         const gamePath = `${MGBA_ROM_DIRECTORY}/${gameBaseName}`;
@@ -119,7 +122,7 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         mgbaModule.current?.setVolume(0.1); // for some reason you have to do this or you get no sound
         setGameLoaded(true);
       })();
-    }, [state, gameUrl]);
+    }, [state, gameUrl, gameUrlString]);
 
     // init mgba
     useEffect(() => {
