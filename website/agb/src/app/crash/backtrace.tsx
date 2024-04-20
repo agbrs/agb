@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ContentBlock } from "../contentBlock";
 import { GameDeveloperSummary } from "./gameDeveloperSummary";
@@ -8,7 +8,10 @@ import { styled } from "styled-components";
 import { Debug } from "./debug";
 
 export function BacktracePage() {
-  const [backtrace, setBacktrace] = useState(getBacktrace);
+  const [backtrace, setBacktrace] = useState("");
+  useEffect(() => {
+    setBacktrace(getBacktrace());
+  }, []);
 
   return (
     <ContentBlock>
