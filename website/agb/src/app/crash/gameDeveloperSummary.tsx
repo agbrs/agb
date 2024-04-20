@@ -1,6 +1,6 @@
 import { styled } from "styled-components";
 
-export const GameDeveloperSummary = () => {
+export function GameDeveloperSummary() {
   return (
     <Details>
       <Summary>For game developers</Summary>
@@ -12,7 +12,7 @@ export const GameDeveloperSummary = () => {
       </ol>
     </Details>
   );
-};
+}
 
 const Details = styled.details`
   margin-top: 10px;
