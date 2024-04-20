@@ -4,10 +4,6 @@ import { useMemo, useState } from "react";
 
 const BacktraceListWrapper = styled.div`
   font-size: 1rem;
-  position: relative;
-  width: calc(100vw - 20px);
-  margin-left: calc(-1 * (100vw - 20px) / 2);
-  left: 50%;
 `;
 
 const BacktraceList = styled.ol`
@@ -54,7 +50,7 @@ function DebugBacktraceDecode({
       <BacktraceListWrapper>
         <BacktraceList>
           {backtraceAddresses.map((x, idx) => (
-            <li key={x}>
+            <li key={idx}>
               <BacktraceAddressInfo
                 address={x}
                 info={backtraceLocations[idx]}
