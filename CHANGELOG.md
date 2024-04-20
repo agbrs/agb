@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixnums are now implemented with `num_traits` trait definitions.
 - Rather than having our own sync with Statics, use the standard portable
   atomics crate. These are reexported for convenience.
+- `Mgba` no longer implements `Write`. You're unlikely to notice as
+  `agb::println!` is unchanged.
+- Writes of long messages to mgba are split over multiple log messages if they
+  overflow mgba's buffer. On a panic, only the final message will be Fatal with
+  the preceding ones (if needed) being Info.
 
 ## [0.19.1] - 2024/03/06
 

@@ -10,12 +10,11 @@ import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
 import { useFrameSkip } from "./useFrameSkip.hook";
 import { useController } from "./useController.hook";
-
-type Module = any;
+import { useLocalStorage } from "./useLocalStorage.hook";
 
 interface MgbaProps {
-  gameUrl: string;
-  volume?: Number;
+  gameUrl: URL;
+  volume?: number;
   controls: KeyBindings;
   paused: boolean;
 }
@@ -42,10 +41,12 @@ export interface MgbaHandle {
   buttonRelease: (key: GbaKey) => void;
 }
 
-async function downloadGame(gameUrl: string): Promise<ArrayBuffer> {
+async function downloadGame(gameUrl: URL): Promise<ArrayBuffer> {
   const game = await fetch(gameUrl);
 
-  if (gameUrl.endsWith(".gz")) {
+  const gameUrlString = gameUrl.toString();
+
+  if (gameUrlString.endsWith(".gz")) {
     const decompressedStream = (await game.blob())
       .stream()
       .pipeThrough(new DecompressionStream("gzip"));
@@ -55,28 +56,73 @@ async function downloadGame(gameUrl: string): Promise<ArrayBuffer> {
   }
 }
 
+interface SaveGame {
+  [gameName: string]: number[];
+}
+
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
   ({ gameUrl, volume, controls, paused }, ref) => {
     const canvas = useRef(null);
-    const mgbaModule = useRef<Module>({} as mGBAEmulator);
+    const mgbaModule = useRef<mGBAEmulator>();
+
+    const [saveGame, setSaveGame] = useLocalStorage<SaveGame>(
+      {},
+      "agbrswebplayer/savegames"
+    );
+    const gameUrlString = gameUrl.toString();
 
     const [state, setState] = useState(MgbaState.Uninitialised);
     const [gameLoaded, setGameLoaded] = useState(false);
 
     useEffect(() => {
+      function beforeUnload() {
+        const gameSplit = gameUrlString.split("/");
+        const gameBaseName = gameSplit[gameSplit.length - 1];
+
+        const save = mgbaModule.current?.getSave();
+        if (!save) return;
+
+        setSaveGame({
+          ...saveGame,
+          [gameBaseName]: [...save],
+        });
+      }
+
+      window.addEventListener("beforeunload", beforeUnload);
+
+      return () => {
+        window.removeEventListener("beforeunload", beforeUnload);
+      };
+    }, [gameUrlString, saveGame, setSaveGame]);
+
+    useEffect(() => {
+      if (state !== MgbaState.Initialised) return;
+
+      const gameSplit = gameUrlString.split("/");
+      const gameBaseName = gameSplit[gameSplit.length - 1];
+
+      const save = saveGame[gameBaseName];
+      if (!save) return;
+
+      const savePath = `${MGBA_ROM_DIRECTORY}/${gameBaseName}.sav`;
+
+      mgbaModule.current?.FS.writeFile(savePath, new Uint8Array([0, 1, 2, 3]));
+    }, [gameUrlString, saveGame, state]);
+
+    useEffect(() => {
       if (state !== MgbaState.Initialised) return;
       (async () => {
         const gameData = await downloadGame(gameUrl);
-        const gameSplit = gameUrl.split("/");
+        const gameSplit = gameUrlString.split("/");
         const gameBaseName = gameSplit[gameSplit.length - 1];
 
         const gamePath = `${MGBA_ROM_DIRECTORY}/${gameBaseName}`;
-        mgbaModule.current.FS.writeFile(gamePath, new Uint8Array(gameData));
-        mgbaModule.current.loadGame(gamePath);
-        mgbaModule.current.setVolume(0.1); // for some reason you have to do this or you get no sound
+        mgbaModule.current?.FS.writeFile(gamePath, new Uint8Array(gameData));
+        mgbaModule.current?.loadGame(gamePath);
+        mgbaModule.current?.setVolume(0.1); // for some reason you have to do this or you get no sound
         setGameLoaded(true);
       })();
-    }, [state, gameUrl]);
+    }, [state, gameUrl, gameUrlString]);
 
     // init mgba
     useEffect(() => {
@@ -85,22 +131,19 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         if (state !== MgbaState.Uninitialised) return;
 
         setState(MgbaState.Initialising);
-        mgbaModule.current = {
-          canvas: canvas.current,
-        };
 
-        mGBA(mgbaModule.current).then((module: Module) => {
-          mgbaModule.current = module;
-          module.FSInit();
-          setState(MgbaState.Initialised);
-        });
+        const mModule = await mGBA({ canvas: canvas.current });
+        mgbaModule.current = mModule;
+        await mModule.FSInit();
+        await mModule.FSSync();
+        setState(MgbaState.Initialised);
       })();
 
       if (state === MgbaState.Initialised)
         return () => {
           try {
-            mgbaModule.current.quitGame();
-            mgbaModule.current.quitMgba();
+            mgbaModule.current?.quitGame();
+            mgbaModule.current?.quitMgba();
           } catch {}
         };
     }, [state]);
@@ -119,30 +162,31 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
             ? "Return"
             : value.toLowerCase().replace("arrow", "").replace("key", "");
 
-        mgbaModule.current.bindKey(binding, key);
+        mgbaModule.current?.bindKey(binding, key);
       }
     }, [controls, gameLoaded]);
 
     useEffect(() => {
       if (!gameLoaded) return;
-      mgbaModule.current.setVolume(volume ?? 1.0);
+      mgbaModule.current?.setVolume(volume ?? 1.0);
     }, [gameLoaded, volume]);
 
     useEffect(() => {
       if (!gameLoaded) return;
 
       if (paused) {
-        mgbaModule.current.pauseGame();
+        mgbaModule.current?.pauseGame();
       } else {
-        mgbaModule.current.resumeGame();
+        mgbaModule.current?.resumeGame();
       }
     }, [gameLoaded, paused]);
 
     useImperativeHandle(ref, () => {
       return {
-        restart: () => mgbaModule.current.quickReload(),
-        buttonPress: (key: GbaKey) => mgbaModule.current.buttonPress(key),
-        buttonRelease: (key: GbaKey) => mgbaModule.current.buttonUnpress(key),
+        restart: () => mgbaModule.current?.quickReload(),
+        buttonPress: (key: GbaKey) => mgbaModule.current?.buttonPress(key),
+        buttonRelease: (key: GbaKey) => mgbaModule.current?.buttonUnpress(key),
+        saveGame: () => {},
       };
     });
 

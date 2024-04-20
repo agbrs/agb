@@ -1,7 +1,9 @@
 import { MutableRefObject, useEffect } from "react";
 import { mGBAEmulator } from "./vendor/mgba";
 
-export function useFrameSkip(mgbaModule: MutableRefObject<mGBAEmulator>) {
+export function useFrameSkip(
+  mgbaModule: MutableRefObject<mGBAEmulator | undefined>
+) {
   useEffect(() => {
     let previous: number | undefined = undefined;
     let stopped = false;
@@ -23,12 +25,12 @@ export function useFrameSkip(mgbaModule: MutableRefObject<mGBAEmulator>) {
         if (totalTime >= 1 / 60) {
           totalTime -= 1 / 60;
           if (paused) {
-            mgbaModule.current.resumeGame();
+            mgbaModule.current?.resumeGame();
             paused = false;
           }
         } else {
           if (!paused) {
-            mgbaModule.current.pauseGame();
+            mgbaModule.current?.pauseGame();
             paused = true;
           }
         }

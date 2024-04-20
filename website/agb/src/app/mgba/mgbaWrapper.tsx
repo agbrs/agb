@@ -60,7 +60,7 @@ const StartButtonWrapper = styled.button`
 `;
 
 interface MgbaWrapperProps {
-  gameUrl: string;
+  gameUrl: URL;
   isPlaying?: boolean;
   setIsPlaying?: (isPlaying: boolean) => void;
 }
@@ -103,7 +103,6 @@ export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
       restart: () => mgbaRef.current?.restart(),
       buttonPress: (key: GbaKey) => mgbaRef.current?.buttonPress(key),
       buttonRelease: (key: GbaKey) => mgbaRef.current?.buttonRelease(key),
-      hardReset: () => setMgbaId((id) => id + 1),
     }));
 
     useAvoidItchIoScrolling();
@@ -123,7 +122,6 @@ export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
         )}
         {isPlaying ? (
           <Mgba
-            key={mgbaId}
             ref={mgbaRef}
             gameUrl={gameUrl}
             volume={volume}
