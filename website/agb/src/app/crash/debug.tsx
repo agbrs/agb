@@ -139,8 +139,19 @@ function BacktraceAddressInfo({
   address: number;
   info: AddressInfo[] | undefined;
 }) {
+  const formattedAddress = `0x${address.toString(16).padStart(8, "0")}`;
   if (!info) {
-    return <code>0x{address.toString(16).padStart(8, "0")}</code>;
+    return <code>{formattedAddress}</code>;
+  }
+
+  if (info.length === 0) {
+    return (
+      <BacktraceAddressLine>
+        <li>
+          <code>(no info) {formattedAddress}</code>
+        </li>
+      </BacktraceAddressLine>
+    );
   }
 
   function FunctionName({
@@ -155,6 +166,8 @@ function BacktraceAddressInfo({
     }
     return functionName;
   }
+
+  console.log(info);
 
   return (
     <BacktraceAddressLine>
