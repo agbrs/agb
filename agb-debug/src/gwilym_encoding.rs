@@ -1,8 +1,20 @@
 use std::{slice::ChunksExact, sync::OnceLock};
 
+use thiserror::Error;
+
 const ALPHABET: &[u8] = b"0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-pub fn gwilym_decode(input: &str) -> anyhow::Result<GwilymDecodeIter<'_>> {
+#[derive(Debug, Error)]
+pub enum GwilymDecodeError {
+    #[error("Does not contain version")]
+    NoVersion,
+    #[error("Only version 1 is supported")]
+    WrongVersion,
+    #[error("Input must be a multiple of 3 but have {0}")]
+    LengthWrong(usize),
+}
+
+pub fn gwilym_decode(input: &str) -> Result<GwilymDecodeIter<'_>, GwilymDecodeError> {
     GwilymDecodeIter::new(input)
 }
 
@@ -11,21 +23,21 @@ pub struct GwilymDecodeIter<'a> {
 }
 
 impl<'a> GwilymDecodeIter<'a> {
-    fn new(input: &'a str) -> anyhow::Result<Self> {
+    fn new(input: &'a str) -> Result<Self, GwilymDecodeError> {
         let input = input
             .strip_prefix("https://agbrs.dev/crash#")
             .unwrap_or(input);
 
         let Some((input, version)) = input.rsplit_once('v') else {
-            anyhow::bail!("Does not contain version");
+            return Err(GwilymDecodeError::NoVersion);
         };
 
         if version != "1" {
-            anyhow::bail!("Only version 1 is supported");
+            return Err(GwilymDecodeError::WrongVersion);
         }
 
         if input.len() % 3 != 0 {
-            anyhow::bail!("Input string must have length a multiple of 3");
+            return Err(GwilymDecodeError::LengthWrong(input.len()));
         }
 
         Ok(Self {
@@ -75,11 +87,11 @@ fn get_value_for_char(input: u8) -> u32 {
 
 #[cfg(test)]
 mod test {
-    use super::{gwilym_decode, ALPHABET};
+    use super::*;
     use std::fmt::Write;
 
     #[test]
-    fn should_correctly_decode_16s() -> anyhow::Result<()> {
+    fn should_correctly_decode_16s() -> Result<(), GwilymDecodeError> {
         assert_eq!(
             &gwilym_decode("2QI65Q69306Kv1")?.collect::<Vec<_>>(),
             &[0x0800_16d3, 0x0800_315b, 0x0800_3243, 0x0800_0195]
@@ -112,7 +124,7 @@ mod test {
     }
 
     #[test]
-    fn should_correctly_decode_16s_and_32s() -> anyhow::Result<()> {
+    fn should_correctly_decode_16s_and_32s() -> Result<(), Box<dyn std::error::Error>> {
         let trace: &[u32] = &[
             0x0300_2990,
             0x0800_3289,
@@ -143,7 +155,7 @@ mod test {
     }
 
     #[test]
-    fn should_strip_the_agbrsdev_prefix() -> anyhow::Result<()> {
+    fn should_strip_the_agbrsdev_prefix() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(
             &gwilym_decode("https://agbrs.dev/crash#2QI65Q69306Kv1")?.collect::<Vec<_>>(),
             &[0x0800_16d3, 0x0800_315b, 0x0800_3243, 0x0800_0195]

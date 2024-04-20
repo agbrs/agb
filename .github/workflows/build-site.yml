@@ -33,6 +33,8 @@ jobs:
         uses: peaceiris/actions-mdbook@v2
         with:
           mdbook-version: "0.4.13"
+      - name: Setup wasm
+        run: just setup-cargo-wasm
       - name: Build website
         run: just build-site
       - name: Upload artifact
