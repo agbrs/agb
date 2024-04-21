@@ -57,7 +57,7 @@ impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
                 let x = x as i32 + self.head_position.x;
                 let y = y as i32 + y_position_start;
 
-                if rendered && (0..=WIDTH).contains(&x) && (0..=HEIGHT).contains(&y) {
+                if rendered && (0..WIDTH).contains(&x) && (0..HEIGHT).contains(&y) {
                     self.bitmap.draw_point(x, y, self.colour);
                 }
             }
