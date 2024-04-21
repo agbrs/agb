@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added a new crash screen which provides a mechanism for seeing a full stack trace of your program when it panics.
   This requires a change to your `.cargo/config.toml`. You must add the rust flag `"-Cforce-frame-pointers=yes"` to
-  your rustflags field.
+  your rustflags field. This can also be disabled by removing the `backtrace` feature.
 - Initial unicode support for font rendering.
 - Kerning support for font rendering.
 
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced `.show()` and `.hide()` with `.set_visible()`in `RegularMap`, `AffineMap` and `InfiniteScrolledMap`.
 - Added `.into_inner()` to `InfiniteScrolledMap` to get the map back once you are done using it in the `InfiniteScrolledMap`.
 - Added `.hflip()`, `.vflip()`, `.priority()`, `.position()` to `ObjectUnmanaged` and `Object`.
-- An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect* examples.
+- An abstraction over hblank DMA to allow for cool effects like gradients and circular windows. See the dma_effect\* examples.
 - Expermental and incomplete support for MIDI files with agb-tracker.
 - Fixnum now implements [`num::Num`](https://docs.rs/num/0.4/num/trait.Num.html) from the [`num`](https://crates.io/crates/num) crate.
 - `Default` implementations for `RandomNumberGenerator`, `InitOnce` and `RawMutex`.

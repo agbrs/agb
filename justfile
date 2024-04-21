@@ -4,18 +4,22 @@ CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all -Aclippy::empty-loop"
 build: build-roms
 
 build-debug:
-    just _build-debug agb
-    just _build-debug tracker/agb-tracker
+    (cd agb && cargo build --no-default-features)
+    (cd agb && cargo build --no-default-features --features=testing)
+    (cd agb && cargo build --examples --tests)
+
+    (cd tracker/agb-tracker && cargo build --examples --tests)
+
 build-release:
-    just _build-release agb
-    just _build-release tracker/agb-tracker
+    (cd agb && cargo build --examples --tests --release)
+
 clippy:
     just _all-crates _clippy
 
 test:
     just _test-debug agb
-    just _test-multiboot
     just _test-debug tracker/agb-tracker
+    just _test-multiboot
     just _test-debug-arm agb
 
 test-release:
@@ -162,17 +166,11 @@ _all-crates target:
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
 
-_build-debug crate:
-    (cd "{{crate}}" && cargo build --examples --tests)
-_build-release crate:
-    (cd "{{crate}}" && cargo build --release --examples --tests)
 _test-release crate:
-    just _build-release {{crate}}
     (cd "{{crate}}" && cargo test --release)
 _test-release-arm crate:
     (cd "{{crate}}" && cargo test --release --target=armv4t-none-eabi)
 _test-debug crate:
-    just _build-debug {{crate}}
     (cd "{{crate}}" && cargo test)
 _test-debug-arm crate:
     (cd "{{crate}}" && cargo test --target=armv4t-none-eabi)

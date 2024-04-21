@@ -8,7 +8,8 @@ license = "MPL-2.0"
 repository = "https://github.com/agbrs/agb"
 
 [features]
-default = ["testing"]
+default = ["backtrace", "testing"]
+backtrace = ["testing", "dep:qrcodegen-no-heap"]
 testing = []
 multiboot = []
 
@@ -20,7 +21,7 @@ agb_macros = { version = "0.19.1", path = "../agb-macros" }
 agb_fixnum = { version = "0.19.1", path = "../agb-fixnum" }
 agb_hashmap = { version = "0.19.1", path = "../agb-hashmap" }
 bilge = "0.2"
-qrcodegen-no-heap = "1.8"
+qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core"] }
 once_cell = { version = "1.19.0", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
