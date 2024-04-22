@@ -4,11 +4,24 @@ import { ReactNode, useMemo, useState } from "react";
 
 const BacktraceListWrapper = styled.div`
   font-size: 1rem;
+  width: 100vw;
+  margin-left: calc(-50vw);
+  left: 50%;
+  position: relative;
 `;
 
 const BacktraceList = styled.ol`
   overflow-x: scroll;
   white-space: nowrap;
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 60%;
+  max-width: 99%;
+  width: fit-content;
+
+  @media (max-width: 40rem) {
+    min-width: 90%;
+  }
 `;
 
 interface DebugProps {
