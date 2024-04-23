@@ -14,7 +14,7 @@ mod text;
 static WEBSITE: &str = {
     match core::option_env!("AGBRS_BACKTRACE_WEBSITE") {
         Some(x) => x,
-        None => "",
+        None => "https://agbrs.dev/crash#",
     }
 };
 
@@ -30,7 +30,7 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
             let qrcode_string_data = if WEBSITE.is_empty() {
                 format!("{trace}")
             } else {
-                format!("{WEBSITE}#{trace}")
+                format!("{WEBSITE}{trace}")
             };
             crate::println!("Stack trace: {qrcode_string_data}");
 
