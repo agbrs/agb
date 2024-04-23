@@ -12,7 +12,8 @@ export function GameDeveloperSummary() {
             <li>
               Compile with{" "}
               <code>
-                AGBRS_BACKTRACE_WEBSITE="your-website.test/crash#" cargo build
+                AGBRS_BACKTRACE_WEBSITE=&quot;your-website.test/crash#&quot;
+                cargo build
               </code>
               .
             </li>
