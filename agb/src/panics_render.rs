@@ -11,6 +11,13 @@ use crate::{
 
 mod text;
 
+static WEBSITE: &str = {
+    match core::option_env!("AGBRS_BACKTRACE_WEBSITE") {
+        Some(x) => x,
+        None => "https://agbrs.dev/crash#",
+    }
+};
+
 pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
     critical_section::with(|_cs| {
         dma3_exclusive(|| {
@@ -20,7 +27,11 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
             gba.dma.dma().dma3.disable();
             let mut gfx = gba.display.video.bitmap3();
 
-            let qrcode_string_data = format!("https://agbrs.dev/crash#{trace}");
+            let qrcode_string_data = if WEBSITE.is_empty() {
+                format!("{trace}")
+            } else {
+                format!("{WEBSITE}{trace}")
+            };
             crate::println!("Stack trace: {qrcode_string_data}");
 
             let location = draw_qr_code(&mut gfx, &qrcode_string_data);
@@ -29,7 +40,8 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
                 text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
             let _ = write!(
                 &mut trace_text_render,
-                "The game crashed :(\nhttps://agbrs.dev/crash\n{trace}"
+                "The game crashed :({}{WEBSITE}\n{trace}",
+                if WEBSITE.is_empty() { "" } else { "\n" }
             );
 
             let mut panic_text_render =
