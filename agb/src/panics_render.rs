@@ -11,7 +11,12 @@ use crate::{
 
 mod text;
 
-static WEBSITE: Option<&str> = core::option_env!("AGBRS_BACKTRACE_WEBSITE");
+static WEBSITE: &str = {
+    match core::option_env!("AGBRS_BACKTRACE_WEBSITE") {
+        Some(x) => x,
+        None => "",
+    }
+};
 
 pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
     critical_section::with(|_cs| {
@@ -22,12 +27,10 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
             gba.dma.dma().dma3.disable();
             let mut gfx = gba.display.video.bitmap3();
 
-            let website = WEBSITE.unwrap_or("https://agbrs.dev/crash");
-
-            let qrcode_string_data = if website.is_empty() {
+            let qrcode_string_data = if WEBSITE.is_empty() {
                 format!("{trace}")
             } else {
-                format!("{website}#{trace}")
+                format!("{WEBSITE}#{trace}")
             };
             crate::println!("Stack trace: {qrcode_string_data}");
 
@@ -37,8 +40,8 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
                 text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
             let _ = write!(
                 &mut trace_text_render,
-                "The game crashed :({}{website}\n{trace}",
-                if website.is_empty() { "" } else { "\n" }
+                "The game crashed :({}{WEBSITE}\n{trace}",
+                if WEBSITE.is_empty() { "" } else { "\n" }
             );
 
             let mut panic_text_render =
