@@ -18,7 +18,7 @@ agb provides the following features:
 
 - Simple build process with minimal dependencies
 - Built in importing of sprites, backgrounds, music and sound effects
-- High performance audio mixer
+- High performance audio mixer and optional tracker which can play `.xm` files
 - Easy to use sprite and tiled background usage
 - A global allocator allowing for use of both `core` and `alloc`
 
