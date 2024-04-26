@@ -95,9 +95,7 @@ for performant decimals.
 
 `book/games` - games made as part of the tutorial
 
-`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes
-
-`emulator/test-runner` - The source for the test runner used to run unit tests within the emulator
+`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator along with the test runner you can use to run unit tests
 
 `examples` - bigger examples of a complete game, made during game jams
 
