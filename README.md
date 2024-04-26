@@ -72,8 +72,14 @@ Note that before you create a PR, please file an issue so we can discuss what yo
 
 ## Structure of the repo
 
+`agb-debug` - a tool you can use to decode agb stacktraces
+
 `agb-fixnum` - a simple fixed point number storage since the GBA doesn't have a floating point unit, so required
 for performant decimals.
+
+`agb-gbafix` - a clean-room reimplementation of the gbafix utility that accepts elf files rather than binaries
+
+`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
 
 `agb-image-converter` - a crate which converts images in normal formats to a format supported by the game boy advance
 
@@ -81,23 +87,27 @@ for performant decimals.
 
 `agb-sound-converter` - a crate which converts wav files into a format supported by the game boy advance
 
-`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
-
 `agb` - the main library code
 
 `agb/examples` - basic examples often targeting 1 feature, you can run these using `just run-example <example-name>`
-
-`tracker` - crates that make up the `agb-tracker` library which allows playing of tracker files
 
 `book` - the source for the tutorial and website
 
 `book/games` - games made as part of the tutorial
 
+`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes
+
+`emulator/test-runner` - The source for the test runner used to run unit tests within the emulator
+
 `examples` - bigger examples of a complete game, made during game jams
 
-`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes. Currently this does not accept contributions.
-
 `template` - the source for the [template repository](https://github.com/agbrs/template)
+
+`tools` - misc. tools used in the development of `agb` itself
+
+`tracker` - crates that make up the `agb-tracker` library which allows playing of tracker files
+
+`website` - the source of [the website](https://agbrs.dev)
 
 ## Stability
 
