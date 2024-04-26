@@ -48,7 +48,7 @@ to just write games for the Game Boy Advance using this library:
 
 - Recent rustup, see [the rust website](https://www.rust-lang.org/tools/install)
   for instructions for your operating system.
-  - You can update rustup with `rustup update`, or using your package manager
+  - You can update rustup with `rustup self update`, or using your package manager
     if you obtained rustup in this way.
 - libelf and cmake
   - Debian and derivatives: `sudo apt install libelf-dev cmake`
