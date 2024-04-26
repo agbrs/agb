@@ -32,7 +32,7 @@ The best way to get started with agb is to use the template, either within the
 
 Once you have done this, you will find further instructions within the README in the template.
 
-There is an (in progress) tutorial which you can find on the [project website](https://agbrs.github.io/agb/).
+There is an (in progress) tutorial which you can find on the [project website](https://agbrs.dev/).
 
 ## Help / Support
 
