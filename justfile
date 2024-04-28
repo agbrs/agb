@@ -109,7 +109,8 @@ build-mgba-wasm:
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
-    gzip -9 -c examples/target/examples/combo.gba > website/agb/src/app/combo.gba.gz
+    mkdir -p website/agb/src/roms
+    gzip -9 -c examples/target/examples/combo.gba > website/agb/src/roms/combo.gba.gz
 
 
 setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace

@@ -18,7 +18,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export function getGame(slug: string) {
+function getGame(slug: string) {
   const game = Games.find((game) => slugify(game.name) === slug);
   if (!game) {
     throw new Error("Not valid game name, this should never happen");

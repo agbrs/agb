@@ -1,12 +1,12 @@
 import { ShowcaseGame, shuffle } from "@/app/showcase/games";
-import h1 from "./hyperspace-roll-0.png";
-import h2 from "./hyperspace-roll-1.png";
+import d1 from "./the-dungeon-puzzlers-lament-0.png";
+import d2 from "./the-dungeon-puzzlers-lament-1.png";
 
-const Screenshots = [h1, h2];
+const Screenshots = [d1, d2];
 
-export const Hyperspace: ShowcaseGame = {
-  name: "Hyperspace Roll",
-  developers: shuffle(["Corwin Kuiper", "Gwilym Inzani", "Sam Williams"]),
+export const Dungeon: ShowcaseGame = {
+  name: "The Dungeon Puzzler's Lament",
+  developers: shuffle(["Corwin Kuiper", "Gwilym Inzani"]),
   screenshots: Screenshots,
   description: (
     <>
@@ -26,5 +26,5 @@ export const Hyperspace: ShowcaseGame = {
       </p>
     </>
   ),
-  itch: new URL("https://lostimmortal.itch.io/hyperspace-roll"),
+  itch: new URL("https://setsquare.itch.io/dungeon-puzzlers-lament"),
 };

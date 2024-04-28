@@ -5,7 +5,7 @@ import { slugify } from "@/sluggify";
 import { GameDisplay, GameGrid, GameImage } from "./styles";
 
 export const metadata: Metadata = {
-  title: "Games made with agb",
+  title: "Showcase - agb",
 };
 
 export default function ColourPickerPage() {

@@ -5,9 +5,10 @@ import styled from "styled-components";
 import Image from "next/image";
 
 export const GameGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 600px);
   justify-content: center;
+  gap: 48px;
 `;
 
 export const GameImage = styled(Image)`
