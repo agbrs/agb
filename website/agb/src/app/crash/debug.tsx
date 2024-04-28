@@ -1,5 +1,9 @@
 import { styled } from "styled-components";
-import { AddressInfo, AgbDebug, useAgbDebug } from "../useAgbDebug.hook";
+import {
+  AddressInfo,
+  AgbDebug,
+  useAgbDebug,
+} from "../../hooks/useAgbDebug.hook";
 import { ReactNode, useMemo, useState } from "react";
 
 const BacktraceListWrapper = styled.div`

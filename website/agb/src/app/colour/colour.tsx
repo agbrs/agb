@@ -1,6 +1,6 @@
 "use client";
 
-import { ContentBlock } from "../contentBlock";
+import { ContentBlock } from "../../components/contentBlock";
 import { useState } from "react";
 import { styled } from "styled-components";
 
@@ -69,44 +69,48 @@ export default function ColourPicker() {
   }
 
   return (
-    <ContentBlock>
-      <h1>agbrs colour converter</h1>
-      <PickerWrapper>
-        <PickerColumn>
-          <h2>Regular RGB8</h2>
-          <ColourInput
-            type="color"
-            value={hexColour}
-            onChange={(evt) => setHexColour(evt.target.value)}
-          />
-          <Input
-            type="text"
-            value={hexColour}
-            onChange={(evt) => setHexColour(evt.target.value)}
-          />
-        </PickerColumn>
-        <PickerColumn>
-          <h2>GBA RGB5</h2>
-          <ColourInput
-            type="color"
-            value={gbaHexColour}
-            onChange={(evt) => setGbaHexColour(evt.target.value)}
-          />
-          <Input
-            type="text"
-            value={gbaHexColour}
-            onChange={(evt) => setGbaHexColour(evt.target.value)}
-          />
-          <Input
-            type="text"
-            value={gbaU16}
-            onChange={(evt) =>
-              setColour(fromRgb15(parseInt(evt.target.value, 16)))
-            }
-          />
-        </PickerColumn>
-      </PickerWrapper>
-    </ContentBlock>
+    <>
+      <ContentBlock color="#AAAFFF">
+        <h1>agbrs colour converter</h1>
+      </ContentBlock>
+      <ContentBlock>
+        <PickerWrapper>
+          <PickerColumn>
+            <h2>Regular RGB8</h2>
+            <ColourInput
+              type="color"
+              value={hexColour}
+              onChange={(evt) => setHexColour(evt.target.value)}
+            />
+            <Input
+              type="text"
+              value={hexColour}
+              onChange={(evt) => setHexColour(evt.target.value)}
+            />
+          </PickerColumn>
+          <PickerColumn>
+            <h2>GBA RGB5</h2>
+            <ColourInput
+              type="color"
+              value={gbaHexColour}
+              onChange={(evt) => setGbaHexColour(evt.target.value)}
+            />
+            <Input
+              type="text"
+              value={gbaHexColour}
+              onChange={(evt) => setGbaHexColour(evt.target.value)}
+            />
+            <Input
+              type="text"
+              value={gbaU16}
+              onChange={(evt) =>
+                setColour(fromRgb15(parseInt(evt.target.value, 16)))
+              }
+            />
+          </PickerColumn>
+        </PickerWrapper>
+      </ContentBlock>
+    </>
   );
 }
 

@@ -4,7 +4,7 @@ import debugInit, {
   DebugFile,
   InitOutput,
   AddressInfo,
-} from "./vendor/backtrace/backtrace";
+} from "../vendor/backtrace/backtrace";
 
 let agbDebug: Promise<InitOutput> | undefined;
 
