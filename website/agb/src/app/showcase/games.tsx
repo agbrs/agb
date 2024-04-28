@@ -2,6 +2,7 @@ import { StaticImageData } from "next/image";
 import { ReactNode } from "react";
 import { HatWiz } from "./data/tapir/hatwiz/hatwiz";
 import { Purple } from "./data/tapir/purple/purple";
+import { Hyperspace } from "./data/tapir/hyperspace/hyperspace";
 
 export interface ShowcaseGame {
   name: string;
@@ -24,4 +25,4 @@ export function shuffle<T>(a: T[]) {
   return a;
 }
 
-export const Games: ShowcaseGame[] = [HatWiz, Purple];
+export const Games: ShowcaseGame[] = [HatWiz, Purple, Hyperspace];

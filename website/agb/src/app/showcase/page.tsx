@@ -1,10 +1,8 @@
 import { Metadata } from "next";
 import { ContentBlock } from "@/components/contentBlock";
 import { Games, ShowcaseGame } from "./games";
-import Link from "next/link";
 import { slugify } from "@/sluggify";
 import { GameDisplay, GameGrid, GameImage } from "./styles";
-import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Games made with agb",
@@ -28,15 +26,11 @@ export default function ColourPickerPage() {
 }
 
 function Game({ game }: { game: ShowcaseGame }) {
-  const lastImage = game.screenshots[game.screenshots.length - 1];
+  const showcaseImage = game.screenshots[game.screenshots.length - 1];
   return (
-    <GameDisplay>
-      <Link href={`./showcase/${slugify(game.name)}`}>
-        <GameImage>
-          <Image src={lastImage} alt={`Screenshot of ${game.name}`} />
-        </GameImage>
-        <h2>{game.name}</h2>
-      </Link>
+    <GameDisplay href={`./showcase/${slugify(game.name)}`}>
+      <GameImage src={showcaseImage} alt={`Screenshot of ${game.name}`} />
+      <h2>{game.name}</h2>
     </GameDisplay>
   );
 }
