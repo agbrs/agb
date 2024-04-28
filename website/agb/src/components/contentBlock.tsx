@@ -14,11 +14,8 @@ const Section = styled.section<{ $color: string }>`
 const CENTERED_CSS = `
   margin-left: auto;
   margin-right: auto;
-  max-width: 60%;
-
-  @media (max-width: 40rem) {
-    max-width: 90%;
-  }
+  width: 60%;
+  min-width: min(95%, 1000px);
 `;
 
 export const CenteredBlock = styled.div`

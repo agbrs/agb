@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useServerInsertedHTML } from "next/navigation";
-import { ServerStyleSheet, StyleSheetManager } from "styled-components";
+import styled, { ServerStyleSheet, StyleSheetManager } from "styled-components";
 
 export default function StyledComponentsRegistry({
   children,
@@ -26,4 +26,19 @@ export default function StyledComponentsRegistry({
       {children}
     </StyleSheetManager>
   );
+}
+
+const BodyWithPixelRatio = styled.body<{
+  $pixel?: number;
+}>`
+  --device-pixel: calc(1px / ${(props) => props.$pixel});
+`;
+
+export function BodyPixelRatio({ children }: { children: React.ReactNode }) {
+  const [pixel, setPixel] = useState(1);
+  useEffect(() => {
+    setPixel(window.devicePixelRatio);
+  }, []);
+
+  return <BodyWithPixelRatio $pixel={pixel}>{children}</BodyWithPixelRatio>;
 }

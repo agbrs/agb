@@ -3,13 +3,11 @@ import { Games, ShowcaseGame } from "../games";
 import { ContentBlock } from "@/components/contentBlock";
 import { ExternalLink } from "@/components/externalLink";
 import Link from "next/link";
-import Image, { StaticImageData } from "next/image";
 import {
-  ScreenshotsWrapper,
-  ScreenshotWrapper,
   BackToShowcaseWrapper,
   DescriptionAndScreenshots,
   Description,
+  Screenshots,
 } from "./styled";
 
 export async function generateStaticParams() {
@@ -49,18 +47,6 @@ function DeveloperNames({ names }: { names: string[] }) {
   }
   const first = names.slice(0, -1);
   return first.join(", ") + `, and ${names[names.length - 1]}`;
-}
-
-function Screenshots({ screenshots }: { screenshots: StaticImageData[] }) {
-  return (
-    <ScreenshotsWrapper>
-      {screenshots.map((screenshot) => (
-        <ScreenshotWrapper key={screenshot.src}>
-          <Image src={screenshot} alt="" />
-        </ScreenshotWrapper>
-      ))}
-    </ScreenshotsWrapper>
-  );
 }
 
 function Display({ game }: { game: ShowcaseGame }) {

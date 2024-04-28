@@ -16,6 +16,8 @@ import { ExternalLink } from "@/components/externalLink";
 
 const HelpLinks = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   justify-content: space-around;
 `;
 
