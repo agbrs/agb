@@ -28,7 +28,10 @@ export default function ColourPickerPage() {
 function Game({ game }: { game: ShowcaseGame }) {
   const showcaseImage = game.screenshots[game.screenshots.length - 1];
   return (
-    <GameDisplay href={`./showcase/${slugify(game.name)}`}>
+    <GameDisplay
+      href={`./showcase/${slugify(game.name)}`}
+      id={slugify(game.name)}
+    >
       <GameImage src={showcaseImage} alt={`Screenshot of ${game.name}`} />
       <h2>{game.name}</h2>
     </GameDisplay>

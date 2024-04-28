@@ -54,7 +54,7 @@ function Display({ game }: { game: ShowcaseGame }) {
     <>
       <ContentBlock color="#AAAFFF">
         <BackToShowcaseWrapper>
-          <Link href="../showcase">
+          <Link href={`../showcase#${slugify(game.name)}`}>
             <strong>&lt;</strong> Back to showcase
           </Link>
         </BackToShowcaseWrapper>
