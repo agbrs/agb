@@ -17,7 +17,7 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install build-essential libelf-dev zip -y
       - name: Install podman
-        run: curl https://github.com/containers/podman/releases/download/v5.0.2/podman-remote-static-linux_amd64.tar.gz | tar xv -C /usr/local
+        run: curl -L https://github.com/containers/podman/releases/download/v5.0.2/podman-remote-static-linux_amd64.tar.gz | tar xv -C /usr/local
       - uses: actions/checkout@v4
       - name: Cache
         uses: actions/cache@v4
