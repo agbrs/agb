@@ -8,7 +8,7 @@ import {
   DescriptionAndScreenshots,
   Description,
   Screenshots,
-} from "./styled";
+} from "./styles";
 
 export async function generateStaticParams() {
   return Games.map((game) => ({
