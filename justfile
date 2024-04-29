@@ -1,6 +1,8 @@
 export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
 CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all -Aclippy::empty-loop"
 
+podman_command := "podman"
+
 build: build-roms
 
 build-debug:
@@ -103,7 +105,7 @@ build-website-backtrace:
 build-mgba-wasm:
     rm -rf website/agb/src/app/mgba/vendor
     mkdir website/agb/src/app/mgba/vendor
-    podman build --file website/mgba-wasm/BuildMgbaWasm --output=website/agb/src/app/mgba/vendor .
+    {{podman_command}} build --file website/mgba-wasm/BuildMgbaWasm --output=website/agb/src/app/mgba/vendor .
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
