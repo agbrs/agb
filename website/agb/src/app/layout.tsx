@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globalStyles.css";
-import StyledComponentsRegistry from "./registry";
+import StyledComponentsRegistry, { BodyPixelRatio } from "./registry";
 
 export const metadata: Metadata = {
   title: "agb - a rust framework for making Game Boy Advance games",
@@ -13,9 +13,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
-      </body>
+      <StyledComponentsRegistry>
+        <BodyPixelRatio>{children}</BodyPixelRatio>
+      </StyledComponentsRegistry>
     </html>
   );
 }

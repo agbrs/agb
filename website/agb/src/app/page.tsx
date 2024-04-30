@@ -1,35 +1,18 @@
 "use client";
 
 import styled from "styled-components";
-import { CenteredBlock, ContentBlock } from "./contentBlock";
-import MgbaWrapper from "./mgba/mgbaWrapper";
+import { CenteredBlock, ContentBlock } from "../components/contentBlock";
+import MgbaWrapper from "../components/mgba/mgbaWrapper";
 import Image from "next/image";
 
-import left from "./gba-parts/left.png";
-import right from "./gba-parts/right.png";
-import { MobileController } from "./mobileController";
+import left from "./left.png";
+import right from "./right.png";
+import { MobileController } from "../components/mobileController/mobileController";
 import { useMemo, useRef, useState } from "react";
-import { GbaKey } from "./mgba/bindings";
-import { useClientValue } from "./useClientValue.hook";
-import { MgbaHandle } from "./mgba/mgba";
-
-const ExternalLink = styled.a`
-  text-decoration: none;
-  color: black;
-  background-color: #fad288;
-  border: solid #fad288 2px;
-  border-radius: 5px;
-  padding: 5px 10px;
-
-  &:hover {
-    border: solid black 2px;
-  }
-`;
-
-const HelpLinks = styled.div`
-  display: flex;
-  justify-content: space-around;
-`;
+import { GbaKey } from "../components/mgba/bindings";
+import { useClientValue } from "../hooks/useClientValue.hook";
+import { MgbaHandle } from "../components/mgba/mgba";
+import { ExternalLink, ExternalLinkBlock } from "@/components/externalLink";
 
 const GameDisplay = styled.div`
   height: min(calc(100vw / 1.5), min(90vh, 480px));
@@ -78,7 +61,7 @@ function shouldStartPlaying(isTouchScreen: boolean | undefined) {
   return !isTouchScreen;
 }
 
-const COMBO_GAME = new URL("combo.gba.gz", import.meta.url);
+const COMBO_GAME = new URL("../roms/combo.gba.gz", import.meta.url);
 
 function MgbaWithControllerSides() {
   const mgba = useRef<MgbaHandle>(null);
@@ -136,14 +119,14 @@ function MgbaWithControllerSides() {
 export default function Home() {
   return (
     <>
-      <ContentBlock>
+      <ContentBlock color="#AAAFFF">
         <h1>agb - a rust framework for making Game Boy Advance games</h1>
       </ContentBlock>
       <ContentBlock uncentered>
         <MgbaWithControllerSides />
       </ContentBlock>
-      <ContentBlock color="#f5755e">
-        <HelpLinks>
+      <ContentBlock color="#256256">
+        <ExternalLinkBlock>
           <ExternalLink href="https://github.com/agbrs/agb">
             GitHub
           </ExternalLink>
@@ -151,7 +134,8 @@ export default function Home() {
           <ExternalLink href="https://docs.rs/agb/latest/agb/">
             Docs
           </ExternalLink>
-        </HelpLinks>
+          <ExternalLink href="./showcase">Showcase</ExternalLink>
+        </ExternalLinkBlock>
       </ContentBlock>
     </>
   );

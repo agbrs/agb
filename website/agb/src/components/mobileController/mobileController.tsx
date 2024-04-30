@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import Image from "next/image";
 
@@ -8,8 +8,8 @@ import DPad from "./gba-parts/dpad.png";
 import ABButtons from "./gba-parts/ab.png";
 import Select from "./gba-parts/SELECT.png";
 import Start from "./gba-parts/START.png";
-import { GbaKey } from "./mgba/bindings";
-import { MgbaHandle } from "./mgba/mgba";
+import { GbaKey } from "../mgba/bindings";
+import { MgbaHandle } from "../mgba/mgba";
 
 const MobileControls = styled.div`
   display: flex;

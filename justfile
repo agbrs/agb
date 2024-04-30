@@ -98,18 +98,19 @@ setup-cargo-wasm:
 
 build-website-backtrace:
     (cd website/backtrace && wasm-pack build --target web)
-    rm -rf website/agb/src/app/vendor/backtrace
-    mkdir -p website/agb/src/app/vendor
-    cp website/backtrace/pkg website/agb/src/app/vendor/backtrace -r
+    rm -rf website/agb/src/vendor/backtrace
+    mkdir -p website/agb/src/vendor
+    cp website/backtrace/pkg website/agb/src/vendor/backtrace -r
 
 build-mgba-wasm:
-    rm -rf website/agb/src/app/mgba/vendor
-    mkdir website/agb/src/app/mgba/vendor
-    {{podman_command}} build --file website/mgba-wasm/BuildMgbaWasm --output=website/agb/src/app/mgba/vendor .
+    rm -rf website/agb/src/components/mgba/vendor
+    mkdir website/agb/src/components/mgba/vendor
+    {{podman_command}} build --file website/mgba-wasm/BuildMgbaWasm --output=website/agb/src/components/mgba/vendor .
 
 build-combo-rom-site:
     just _build-rom "examples/combo" "AGBGAMES"
-    gzip -9 -c examples/target/examples/combo.gba > website/agb/src/app/combo.gba.gz
+    mkdir -p website/agb/src/roms
+    gzip -9 -c examples/target/examples/combo.gba > website/agb/src/roms/combo.gba.gz
 
 
 setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace
