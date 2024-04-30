@@ -75,7 +75,7 @@ impl<'oam> OamIterator<'oam> {
     /// Sets the next oam slot with the provided `object`.
     ///
     /// Is equivalent to the following:
-    /// ```rust
+    /// ```no_run
     /// # #![no_main]
     /// # #![no_std]
     /// # use agb::display::object::{OamIterator, ObjectUnmanaged};
