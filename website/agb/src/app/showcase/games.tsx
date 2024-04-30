@@ -4,6 +4,7 @@ import { HatWiz } from "./data/tapir/hatwiz/hatwiz";
 import { Purple } from "./data/tapir/purple/purple";
 import { Hyperspace } from "./data/tapir/hyperspace/hyperspace";
 import { Dungeon } from "./data/tapir/dungeon/dungeon";
+import { Leviathan } from "./data/drawing-a-leviathan/leviathan";
 
 export interface ShowcaseGame {
   name: string;
@@ -31,4 +32,5 @@ export const Games: ShowcaseGame[] = shuffle([
   Purple,
   Hyperspace,
   Dungeon,
+  Leviathan,
 ]);
