@@ -69,7 +69,7 @@ function Display({ game }: { game: ShowcaseGame }) {
           <Screenshots screenshots={game.screenshots} />
         </DescriptionAndScreenshots>
       </ContentBlock>
-      <ContentBlock color="#256256">
+      <ContentBlock color="#f5755e">
         <ExternalLinkBlock>
           {game.itch && (
             <ExternalLink href={game.itch.href}>View on itch.io</ExternalLink>

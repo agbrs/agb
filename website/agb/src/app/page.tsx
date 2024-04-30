@@ -125,7 +125,7 @@ export default function Home() {
       <ContentBlock uncentered>
         <MgbaWithControllerSides />
       </ContentBlock>
-      <ContentBlock color="#256256">
+      <ContentBlock color="#f5755e">
         <ExternalLinkBlock>
           <ExternalLink href="https://github.com/agbrs/agb">
             GitHub
