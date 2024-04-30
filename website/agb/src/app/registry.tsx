@@ -29,7 +29,7 @@ export default function StyledComponentsRegistry({
 }
 
 const BodyWithPixelRatio = styled.body<{
-  $pixel?: number;
+  $pixel: number;
 }>`
   --device-pixel: calc(1px / ${(props) => props.$pixel});
 `;
