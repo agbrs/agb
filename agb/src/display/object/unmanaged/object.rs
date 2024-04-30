@@ -71,6 +71,27 @@ pub struct OamIterator<'oam> {
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
+impl<'oam> OamIterator<'oam> {
+    /// Sets the next oam slot with the provided `object`.
+    ///
+    /// Is equivalent to the following:
+    /// ```no_run
+    /// # #![no_main]
+    /// # #![no_std]
+    /// # use agb::display::object::{OamIterator, ObjectUnmanaged};
+    /// # fn set_next_example(oam_iterator: &mut OamIterator, object: &ObjectUnmanaged) {
+    /// if let Some(slot) = oam_iterator.next() {
+    ///     slot.set(object);
+    /// }
+    /// # }
+    /// ```
+    pub fn set_next(&mut self, object: &ObjectUnmanaged) {
+        if let Some(slot) = self.next() {
+            slot.set(object);
+        }
+    }
+}
+
 /// A slot in Oam that you can write to. Note that you must call [OamSlot::set]
 /// or else it is a bug and will panic when dropped.
 ///
