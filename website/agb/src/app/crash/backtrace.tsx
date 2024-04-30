@@ -15,7 +15,7 @@ export function BacktracePage() {
 
   return (
     <>
-      <ContentBlock color="#AAAFFF">
+      <ContentBlock color="#9fa6db">
         <h1>agbrs crash backtrace viewer</h1>
       </ContentBlock>
       <ContentBlock>

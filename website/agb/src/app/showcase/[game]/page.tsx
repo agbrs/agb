@@ -52,7 +52,7 @@ function DeveloperNames({ names }: { names: string[] }) {
 function Display({ game }: { game: ShowcaseGame }) {
   return (
     <>
-      <ContentBlock color="#AAAFFF">
+      <ContentBlock color="#9fa6db">
         <BackToShowcaseWrapper>
           <Link href={`../showcase#${slugify(game.name)}`}>
             <strong>&lt;</strong> Back to showcase

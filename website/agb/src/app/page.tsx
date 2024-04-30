@@ -119,13 +119,13 @@ function MgbaWithControllerSides() {
 export default function Home() {
   return (
     <>
-      <ContentBlock color="#AAAFFF">
+      <ContentBlock color="#9fa6db">
         <h1>agb - a rust framework for making Game Boy Advance games</h1>
       </ContentBlock>
       <ContentBlock uncentered>
         <MgbaWithControllerSides />
       </ContentBlock>
-      <ContentBlock color="#f5755e">
+      <ContentBlock color="#f5735c">
         <ExternalLinkBlock>
           <ExternalLink href="https://github.com/agbrs/agb">
             GitHub

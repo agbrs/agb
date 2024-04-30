@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function ColourPickerPage() {
   return (
     <>
-      <ContentBlock color="#AAAFFF">
+      <ContentBlock color="#9fa6db">
         <h1>Showcase</h1>
       </ContentBlock>
       <ContentBlock uncentered>
