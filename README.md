@@ -18,7 +18,7 @@ agb provides the following features:
 
 - Simple build process with minimal dependencies
 - Built in importing of sprites, backgrounds, music and sound effects
-- High performance audio mixer
+- High performance audio mixer and optional tracker which can play `.xm` files
 - Easy to use sprite and tiled background usage
 - A global allocator allowing for use of both `core` and `alloc`
 
@@ -32,7 +32,7 @@ The best way to get started with agb is to use the template, either within the
 
 Once you have done this, you will find further instructions within the README in the template.
 
-There is an (in progress) tutorial which you can find on the [project website](https://agbrs.github.io/agb/).
+There is an (in progress) tutorial which you can find on the [project website](https://agbrs.dev/).
 
 ## Help / Support
 
@@ -48,7 +48,7 @@ to just write games for the Game Boy Advance using this library:
 
 - Recent rustup, see [the rust website](https://www.rust-lang.org/tools/install)
   for instructions for your operating system.
-  - You can update rustup with `rustup update`, or using your package manager
+  - You can update rustup with `rustup self update`, or using your package manager
     if you obtained rustup in this way.
 - libelf and cmake
   - Debian and derivatives: `sudo apt install libelf-dev cmake`
@@ -72,8 +72,14 @@ Note that before you create a PR, please file an issue so we can discuss what yo
 
 ## Structure of the repo
 
+`agb-debug` - a tool you can use to decode agb stacktraces
+
 `agb-fixnum` - a simple fixed point number storage since the GBA doesn't have a floating point unit, so required
 for performant decimals.
+
+`agb-gbafix` - a clean-room reimplementation of the gbafix utility that accepts elf files rather than binaries
+
+`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
 
 `agb-image-converter` - a crate which converts images in normal formats to a format supported by the game boy advance
 
@@ -81,23 +87,25 @@ for performant decimals.
 
 `agb-sound-converter` - a crate which converts wav files into a format supported by the game boy advance
 
-`agb-hashmap` - an no_std hashmap implementation tuned for use on the game boy advance
-
 `agb` - the main library code
 
 `agb/examples` - basic examples often targeting 1 feature, you can run these using `just run-example <example-name>`
-
-`tracker` - crates that make up the `agb-tracker` library which allows playing of tracker files
 
 `book` - the source for the tutorial and website
 
 `book/games` - games made as part of the tutorial
 
+`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator along with the test runner you can use to run unit tests
+
 `examples` - bigger examples of a complete game, made during game jams
 
-`emulator` - Rust bindings for the [mgba](https://mgba.io) emulator used for our purposes. Currently this does not accept contributions.
-
 `template` - the source for the [template repository](https://github.com/agbrs/template)
+
+`tools` - misc. tools used in the development of `agb` itself
+
+`tracker` - crates that make up the `agb-tracker` library which allows playing of tracker files
+
+`website` - the source of [the website](https://agbrs.dev)
 
 ## Stability
 
