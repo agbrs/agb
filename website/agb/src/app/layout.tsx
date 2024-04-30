@@ -13,9 +13,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <BodyPixelRatio>
-        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
-      </BodyPixelRatio>
+      <StyledComponentsRegistry>
+        <BodyPixelRatio>{children}</BodyPixelRatio>
+      </StyledComponentsRegistry>
     </html>
   );
 }
