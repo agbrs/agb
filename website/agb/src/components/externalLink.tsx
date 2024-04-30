@@ -14,3 +14,10 @@ export const ExternalLink = styled(Link)`
     border: solid black 2px;
   }
 `;
+
+export const ExternalLinkBlock = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-around;
+`;

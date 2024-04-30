@@ -12,14 +12,7 @@ import { useMemo, useRef, useState } from "react";
 import { GbaKey } from "../components/mgba/bindings";
 import { useClientValue } from "../hooks/useClientValue.hook";
 import { MgbaHandle } from "../components/mgba/mgba";
-import { ExternalLink } from "@/components/externalLink";
-
-const HelpLinks = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: space-around;
-`;
+import { ExternalLink, ExternalLinkBlock } from "@/components/externalLink";
 
 const GameDisplay = styled.div`
   height: min(calc(100vw / 1.5), min(90vh, 480px));
@@ -133,7 +126,7 @@ export default function Home() {
         <MgbaWithControllerSides />
       </ContentBlock>
       <ContentBlock color="#256256">
-        <HelpLinks>
+        <ExternalLinkBlock>
           <ExternalLink href="https://github.com/agbrs/agb">
             GitHub
           </ExternalLink>
@@ -142,7 +135,7 @@ export default function Home() {
             Docs
           </ExternalLink>
           <ExternalLink href="./showcase">Showcase</ExternalLink>
-        </HelpLinks>
+        </ExternalLinkBlock>
       </ContentBlock>
     </>
   );

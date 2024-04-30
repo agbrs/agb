@@ -1,7 +1,7 @@
 import { slugify } from "@/sluggify";
 import { Games, ShowcaseGame } from "../games";
 import { ContentBlock } from "@/components/contentBlock";
-import { ExternalLink } from "@/components/externalLink";
+import { ExternalLink, ExternalLinkBlock } from "@/components/externalLink";
 import Link from "next/link";
 import {
   BackToShowcaseWrapper,
@@ -70,9 +70,11 @@ function Display({ game }: { game: ShowcaseGame }) {
         </DescriptionAndScreenshots>
       </ContentBlock>
       <ContentBlock color="#256256">
-        {game.itch && (
-          <ExternalLink href={game.itch.href}>View on itch.io</ExternalLink>
-        )}
+        <ExternalLinkBlock>
+          {game.itch && (
+            <ExternalLink href={game.itch.href}>View on itch.io</ExternalLink>
+          )}
+        </ExternalLinkBlock>
       </ContentBlock>
     </>
   );
