@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   your rustflags field. This can also be disabled by removing the `backtrace` feature.
 - Initial unicode support for font rendering.
 - Kerning support for font rendering.
+- Added `set_next` method to `OamIterator` to avoid repeated boilerplate when dealing with unmanaged objects.
 
 ### Fixed
 
