@@ -17,6 +17,10 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install build-essential libelf-dev zip -y
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout latest released version's book
+        run: git restore --source $(git describe --tags --abbrev=0) book
       - name: Cache
         uses: actions/cache@v4
         with:
