@@ -70,7 +70,7 @@ export default function ColourPicker() {
 
   return (
     <>
-      <ContentBlock color="#AAAFFF">
+      <ContentBlock color="#9fa6db">
         <h1>agbrs colour converter</h1>
       </ContentBlock>
       <ContentBlock>
