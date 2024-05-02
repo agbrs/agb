@@ -16,4 +16,4 @@ addr2line = { version = "0.22", default-features = false, features = [
 ] }
 colored = "2"
 rmp-serde = "1"
-lz4_flex = "0.11"
+lz4_flex = "0.11.3"
