@@ -11,7 +11,7 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-hound = "3.5"
+hound = "3.5.1"
 syn = "2"
 proc-macro2 = "1"
 quote = "1"
