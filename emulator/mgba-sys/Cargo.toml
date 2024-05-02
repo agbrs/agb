@@ -11,5 +11,5 @@ exclude = ["mgba/doc/*", "mgba/res/*", "mgba/cinema/*", "mgba/tools/*"]
 
 [build-dependencies]
 bindgen = "0.69"
-pkg-config = "0.3"
+pkg-config = "0.3.30"
 cmake = "0.1"
