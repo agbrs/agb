@@ -8,7 +8,7 @@ description = "Library for converting XM tracker files for use with agb-tracker 
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-proc-macro-error = "1"
+proc-macro-error = "1.0.4"
 proc-macro2 = "1"
 quote = "1"
 syn = "2"
