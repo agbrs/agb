@@ -20,6 +20,15 @@
         "patch",
         "minor"
       ]
+    },
+    {
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "enabled": false
     }
   ]
 }
