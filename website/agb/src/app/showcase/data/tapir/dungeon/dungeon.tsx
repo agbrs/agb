@@ -11,18 +11,19 @@ export const Dungeon: ShowcaseGame = {
   description: (
     <>
       <p>
-        Get through as many levels as possible in this space themed, dice
-        rolling roguelike.
+        You are the puzzle designer for a dungeon. No, you prefer to think of
+        yourself as a visionary architect. A fiendish master of traps and
+        puzzles designed to foil any attempts from so-called heroes to reach the
+        treasure.
       </p>
       <p>
-        Build up powerful combos to defeat enemies which keep getting stronger.
-        Slowly acquire more dice and upgrade them in order to handle the
-        increasing strength of the enemies you face.
+        However, something changed recently. Heroes keep moving the same way, in
+        predictable patterns. They aren't trying to solve your puzzles any more,
+        or fight the monsters you've carefully placed to ambush them!
       </p>
-
       <p>
-        Hyperspace Roll was influenced by great games such as Slay the Spire,
-        FTL and the board game Escape: The Curse of the Temple.
+        Looks like you'll have to apply your unique talents in other ways. Get
+        the hero through the dungeon and maybe they'll snap out of it?
       </p>
     </>
   ),
