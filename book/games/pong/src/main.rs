@@ -9,6 +9,10 @@
 // using the #[agb::entry] proc macro. Failing to do so will cause failure in linking
 // which won't be a particularly clear error message.
 #![no_main]
+// This is required to allow writing tests
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, reexport_test_harness_main = "test_main")]
+#![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
     display::object::{Graphics, OamManaged, Object, Tag},
@@ -79,8 +83,8 @@ fn main(mut gba: agb::Gba) -> ! {
     // this should normally be done in vblank but it'll work just fine here for now
     object.commit();
 
-    let mut paddle_a = Paddle::new(&object, 8, 8);
-    let mut paddle_b = Paddle::new(&object, 240 - 16 - 8, 8);
+    let mut _paddle_a = Paddle::new(&object, 8, 8);
+    let mut _paddle_b = Paddle::new(&object, 240 - 16 - 8, 8);
 
     let mut ball_x = 50;
     let mut ball_y = 50;
