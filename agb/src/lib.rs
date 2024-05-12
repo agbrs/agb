@@ -203,7 +203,7 @@ pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 #[panic_handler]
 #[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-    avoid_double_panic();
+    avoid_double_panic(info);
 
     use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
@@ -216,10 +216,16 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
 
 // If we panic during the panic handler, then there isn't much we can do any more. So this code
 // just infinite loops halting the CPU.
-fn avoid_double_panic() {
+fn avoid_double_panic(info: &core::panic::PanicInfo) {
     static IS_PANICKING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
 
     if IS_PANICKING.load(portable_atomic::Ordering::SeqCst) {
+        if let Some(mut mgba) = mgba::Mgba::new() {
+            let _ = mgba.print(
+                format_args!("Double panic: {info}"),
+                mgba::DebugLevel::Fatal,
+            );
+        }
         loop {
             syscall::halt();
         }
@@ -342,7 +348,7 @@ pub mod test_runner {
 
     #[panic_handler]
     fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-        avoid_double_panic();
+        avoid_double_panic(info);
 
         #[cfg(feature = "backtrace")]
         let frames = backtrace::unwind_exception();
