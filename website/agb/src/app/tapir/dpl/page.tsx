@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Dungeon Puzzler Redirect",
 };
 
-const REDIRECT_TO = "/showcase/the-dungeon-puzzler's-lament";
+const REDIRECT_TO = "/showcase/the-dungeon-puzzlers-lament";
 
 export default function DplRedirectPage() {
   redirect(REDIRECT_TO);
