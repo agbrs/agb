@@ -18,14 +18,14 @@ function fromHex(hex: string): Colour {
   const c = parseInt(hex, 16);
 
   return {
-    r: c & 255,
+    r: (c >> 16) & 255,
     g: (c >> 8) & 255,
-    b: (c >> 16) & 255,
+    b: c & 255,
   };
 }
 
 function toHex(colour: Colour): string {
-  const hex = (colour.r | (colour.g << 8) | (colour.b << 16))
+  const hex = ((colour.r << 16) | (colour.g << 8) | colour.b)
     .toString(16)
     .padStart(6, "0");
 
