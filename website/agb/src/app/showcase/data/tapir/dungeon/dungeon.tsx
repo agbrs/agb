@@ -18,12 +18,12 @@ export const Dungeon: ShowcaseGame = {
       </p>
       <p>
         However, something changed recently. Heroes keep moving the same way, in
-        predictable patterns. They aren't trying to solve your puzzles any more,
-        or fight the monsters you've carefully placed to ambush them!
+        predictable patterns. They aren&apos;t trying to solve your puzzles any
+        more, or fight the monsters you&apos;ve carefully placed to ambush them!
       </p>
       <p>
-        Looks like you'll have to apply your unique talents in other ways. Get
-        the hero through the dungeon and maybe they'll snap out of it?
+        Looks like you&apos;ll have to apply your unique talents in other ways.
+        Get the hero through the dungeon and maybe they&apos;ll snap out of it?
       </p>
     </>
   ),
