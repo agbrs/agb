@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Showcase - agb",
 };
 
-export default function ColourPickerPage() {
+export default function ShowcasePage() {
   return (
     <>
       <ContentBlock color="#9fa6db">
