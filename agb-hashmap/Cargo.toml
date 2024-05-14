@@ -6,6 +6,9 @@ license = "MPL-2.0"
 description = "A simple no_std hashmap implementation intended for use in the `agb` library"
 repository = "https://github.com/agbrs/agb"
 
+[features]
+allocator_api = []
+
 [dependencies]
 rustc-hash = { version = "1", default-features = false }
 

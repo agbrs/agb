@@ -1,7 +1,7 @@
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
 #![no_std]
-#![feature(allocator_api)]
+#![cfg_attr(feature = "allocator_api", feature(allocator_api))]
 #![deny(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(missing_docs)]
@@ -26,9 +26,25 @@
 
 extern crate alloc;
 
-use alloc::{alloc::Global, vec::Vec};
+pub(crate) use allocate::{Allocator, Global};
+
+#[cfg(not(feature = "allocator_api"))]
+mod allocate {
+    pub trait Allocator {}
+
+    #[derive(Copy, Clone)]
+    pub struct Global;
+
+    impl Allocator for Global {}
+}
+
+#[cfg(feature = "allocator_api")]
+mod allocate {
+    pub(crate) use alloc::alloc::Global;
+    pub(crate) use core::alloc::Allocator;
+}
+
 use core::{
-    alloc::Allocator,
     borrow::Borrow,
     fmt::Debug,
     hash::{BuildHasher, BuildHasherDefault, Hash},
@@ -577,7 +593,8 @@ impl<K, V, ALLOCATOR: ClonableAllocator> IntoIterator for HashMap<K, V, ALLOCATO
 }
 
 mod entries {
-    use core::{alloc::Allocator, hash::Hash};
+    use crate::allocate::Allocator;
+    use core::hash::Hash;
 
     use super::{ClonableAllocator, HashMap, HashType};
 
@@ -941,6 +958,8 @@ impl core::ops::Add<i32> for HashType {
 #[cfg(test)]
 mod test {
     use core::{cell::RefCell, hash::Hasher};
+
+    use alloc::vec::Vec;
 
     use super::*;
 
