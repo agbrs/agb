@@ -1,6 +1,6 @@
 use core::{fmt::Write, panic::PanicInfo};
 
-use alloc::{format, vec};
+use alloc::{format, vec::Vec};
 
 use crate::{
     backtrace,
@@ -66,9 +66,15 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 /// Returns the width / height of the QR code + padding in pixels
 fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
+    const PADDING: i32 = 8;
 
-    let mut temp_buffer = vec![0; MAX_VERSION.buffer_len()];
-    let mut out_buffer = vec![0; MAX_VERSION.buffer_len()];
+    let (Ok(mut temp_buffer), Ok(mut out_buffer)) = (
+        Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
+        Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
+    ) else {
+        crate::println!("Failed to allocate memory to generate QR code");
+        return PADDING;
+    };
 
     let qr_code = match qrcodegen_no_heap::QrCode::encode_text(
         qrcode_string_data,
@@ -83,7 +89,7 @@ fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
         Ok(qr_code) => qr_code,
         Err(e) => {
             crate::println!("Error generating qr code: {e:?}");
-            return 8;
+            return PADDING;
         }
     };
 
@@ -98,5 +104,5 @@ fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
         }
     }
 
-    qr_code.size() * 2 + 8 * 2
+    qr_code.size() * 2 + PADDING * 2
 }
