@@ -66,7 +66,7 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 /// Returns the width / height of the QR code + padding in pixels
 fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
-    const PADDING: i32 = 8 * 2;
+    const PADDING: i32 = 8;
 
     let (Ok(mut temp_buffer), Ok(mut out_buffer)) = (
         Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
@@ -104,5 +104,5 @@ fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
         }
     }
 
-    qr_code.size() * 2 + PADDING
+    qr_code.size() * 2 + PADDING * 2
 }
