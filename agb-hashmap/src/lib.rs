@@ -174,12 +174,6 @@ impl<K, V> HashMap<K, V> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self::with_capacity_in(capacity, Global)
     }
-
-    #[doc(hidden)]
-    #[must_use]
-    pub fn distance_histogram(&self) -> (Vec<usize>, usize) {
-        self.nodes.distance_histogram()
-    }
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
