@@ -19,7 +19,7 @@ You'd need to follow this official github git [guide](https://github.com/git-gui
 
 # 3. mGBA
 
-We recommend using the mGBA emulator which you can download for Mac [here](https://mgba.io/downloads.html).
+We recommend using the mGBA emulator which you can download from [here](https://mgba.io/downloads.html).
 
 After installing, you can add the binary to your Path-environment variable and create an alias for the agb run command to use.
 
