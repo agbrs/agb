@@ -35,13 +35,13 @@ To do this, we'll use the tool `agb-gbafix`.
 Run the following command to convert the binary file to a GBA ROM:
 
 ```sh
-agb-gbafix target/thumbv4t-none-eabi/release/template -o template.gba
+agb-gbafix target/thumbv4t-none-eabi/release/agb_template -o agb_template.gba
 ```
 
 or
 
 ```sh
-agb-gbafix target/thumbv4t-none-eabi/release/template.elf -o template.gba
+agb-gbafix target/thumbv4t-none-eabi/release/agb_template.elf -o agb_template.gba
 ```
 
 This command will add the correct GBA header to the template.gba file and it will be playable on real hardware or an emulator.
