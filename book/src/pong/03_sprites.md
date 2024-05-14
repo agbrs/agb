@@ -63,9 +63,9 @@ Using the `Gba` struct we get the [`ObjectController` struct](https://docs.rs/ag
 
 ```rust
 #[agb::entry]
-fn main(gba: mut agb::Gba) -> ! {
+fn main(mut gba: agb::Gba) -> ! {
     // Get the object manager
-    let object = gba.display.object.get();
+    let object = gba.display.object.get_managed();
 
     // Create an object with the ball sprite
     let mut ball = object.object_sprite(BALL.sprite(0));
