@@ -5,7 +5,7 @@
 - [Running an example](./setup/getting_started.md)
   - [Environment setup](./setup/setup.md)
     - [Linux setup](./setup/linux.md)
-    - [Windows setup]()
+    - [Windows setup](./setup/windows.md)
     - [Mac OS setup](./setup/mac.md)
   - [Building the template](./setup/building.md)
 - [Learn agb part I - pong](./pong/01_introduction.md)
