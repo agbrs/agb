@@ -1,6 +1,6 @@
 [package]
 name = "agb_midi"
-version = "0.19.1"
+version = "0.20.0"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -11,6 +11,6 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-agb_midi_core = { version = "0.19.1", path = "../agb-midi-core" }
+agb_midi_core = { version = "0.20.0", path = "../agb-midi-core" }
 proc-macro-error = "1"
 proc-macro2 = "1"
