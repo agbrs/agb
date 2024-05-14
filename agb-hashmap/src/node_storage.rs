@@ -1,12 +1,14 @@
-use core::{alloc::Allocator, borrow::Borrow, mem};
+use core::{borrow::Borrow, mem};
 
-use alloc::{alloc::Global, vec::Vec};
-
+use crate::allocate::{Allocator, Global};
 use crate::{node::Node, number_before_resize, ClonableAllocator, HashType};
+
+mod vec;
+use vec::MyVec;
 
 #[derive(Clone)]
 pub(crate) struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
-    nodes: Vec<Node<K, V>, ALLOCATOR>,
+    nodes: MyVec<Node<K, V>, ALLOCATOR>,
     max_distance_to_initial_bucket: i32,
 
     number_of_items: usize,
@@ -17,7 +19,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     pub(crate) fn with_size_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
-        let mut nodes = Vec::with_capacity_in(capacity, alloc);
+        let mut nodes = MyVec::with_capacity_in(capacity, alloc);
         for _ in 0..capacity {
             nodes.push(Node::new());
         }
@@ -200,22 +202,6 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
 
     pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
         self.nodes.get_unchecked_mut(at)
-    }
-
-    pub(crate) fn distance_histogram(&self) -> (Vec<usize>, usize) {
-        let mut ret = Vec::new();
-
-        for node in self.nodes.iter() {
-            let distance = node.distance();
-
-            if distance >= 0 {
-                let distance = distance as usize;
-                ret.resize(ret.len().max(distance + 1), 0);
-                ret[distance] += 1;
-            }
-        }
-
-        (ret, self.max_distance_to_initial_bucket as usize)
     }
 
     pub(crate) fn clear(&mut self) {
