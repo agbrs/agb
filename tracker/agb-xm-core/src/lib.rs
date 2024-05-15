@@ -524,33 +524,41 @@ impl EnvelopeData {
     fn new(e: &xmrs::envelope::Envelope, bpm: u32) -> Self {
         let mut amounts = vec![];
 
-        // FT2 manual says number of ticks / second = BPM * 0.4 = BPM * 4 / 10. GBA runs at 60Hz
-        for frame in 0..(e.point.last().unwrap().frame as u32 * 60 * 10 / bpm / 4) {
-            let xm_frame = frame * bpm * 4 / 60 / 10;
+        for frame in 0..=(Self::envelope_frame_to_gba_frame(e.point.last().unwrap().frame, bpm)) {
+            let xm_frame = Self::gba_frame_to_envelope_frame(frame, bpm);
             let index = e
                 .point
                 .iter()
-                .rposition(|point| point.frame < xm_frame as u16)
+                .rposition(|point| point.frame < xm_frame)
                 .unwrap_or(0);
 
             let first_point = &e.point[index];
             let second_point = &e.point[index + 1];
 
-            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame as u16) / 64.0;
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
             let amount = Num::from_f32(amount);
 
             amounts.push(amount);
         }
 
         let sustain = if e.sustain_enabled {
-            Some(e.point[e.sustain_point as usize].frame as usize * 60 / 50)
+            Some(
+                Self::envelope_frame_to_gba_frame(e.point[e.sustain_point as usize].frame, bpm)
+                    as usize,
+            )
         } else {
             None
         };
         let (loop_start, loop_end) = if e.loop_enabled {
             (
-                Some(e.point[e.loop_start_point as usize].frame as usize * 60 / 50),
-                Some(e.point[e.loop_end_point as usize].frame as usize * 60 / 50),
+                Some(Self::envelope_frame_to_gba_frame(
+                    e.point[e.loop_start_point as usize].frame,
+                    bpm,
+                ) as usize),
+                Some(Self::envelope_frame_to_gba_frame(
+                    e.point[e.loop_end_point as usize].frame,
+                    bpm,
+                ) as usize),
             )
         } else {
             (None, None)
@@ -562,5 +570,15 @@ impl EnvelopeData {
             loop_start,
             loop_end,
         }
+    }
+
+    fn envelope_frame_to_gba_frame(envelope_frame: u16, bpm: u32) -> u16 {
+        // FT2 manual says number of ticks / second = BPM * 0.4
+        // somehow this works as a good approximation :/
+        (envelope_frame as u32 * 250 / bpm) as u16
+    }
+
+    fn gba_frame_to_envelope_frame(gba_frame: u16, bpm: u32) -> u16 {
+        (gba_frame as u32 * bpm / 250) as u16
     }
 }

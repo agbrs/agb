@@ -406,11 +406,12 @@ impl TrackerChannel {
                     }
                 }
                 PatternEffect::NoteDelay(wait) => {
-                    if tick <= *wait {
-                        channel.volume(0);
+                    if tick < *wait {
+                        channel.pause();
                     }
 
-                    if tick == *wait + 1 {
+                    if tick == *wait {
+                        channel.resume();
                         channel.volume((self.volume * global_settings.volume).try_change_base().unwrap());
                     }
                 }
