@@ -482,7 +482,7 @@ fn note_to_speed(
 }
 
 fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
-    let real_note = (note as usize as f64) + (relative_note as f64);
+    let real_note = (note as usize as f64) + (relative_note as f64) - 1.0; // notes are 1 indexed but below is 0 indexed
     let period = 10.0 * 12.0 * 16.0 * 4.0 - real_note * 16.0 * 4.0 - fine_tune / 2.0;
     8363.0 * 2.0f64.powf((6.0 * 12.0 * 16.0 * 4.0 - period) / (12.0 * 16.0 * 4.0))
 }
