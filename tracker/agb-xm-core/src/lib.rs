@@ -472,7 +472,7 @@ fn note_to_speed(
         FrequencyType::LinearFrequencies => {
             note_to_frequency_linear(note, fine_tune, relative_note)
         }
-        FrequencyType::AmigaFrequencies => note_to_frequency_amega(note, fine_tune, relative_note),
+        FrequencyType::AmigaFrequencies => note_to_frequency_amiga(note, fine_tune, relative_note),
     };
 
     let gba_audio_frequency = 32768f64;
@@ -487,22 +487,22 @@ fn note_to_frequency_linear(note: Note, fine_tune: f64, relative_note: i8) -> f6
     8363.0 * 2.0f64.powf((6.0 * 12.0 * 16.0 * 4.0 - period) / (12.0 * 16.0 * 4.0))
 }
 
-fn note_to_frequency_amega(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
+fn note_to_frequency_amiga(note: Note, fine_tune: f64, relative_note: i8) -> f64 {
     let note = (note as usize)
         .checked_add_signed(relative_note as isize)
         .expect("Note gone negative");
-    let pos = ((note % 12) * 8 + (fine_tune / 16.0) as usize).min(AMEGA_FREQUENCIES.len() - 2);
+    let pos = ((note % 12) * 8 + (fine_tune / 16.0) as usize).min(AMIGA_FREQUENCIES.len() - 2);
     let frac = (fine_tune / 16.0) - (fine_tune / 16.0).floor();
 
-    let period = ((AMEGA_FREQUENCIES[pos] as f64 * (1.0 - frac))
-        + AMEGA_FREQUENCIES[pos + 1] as f64 * frac)
+    let period = ((AMIGA_FREQUENCIES[pos] as f64 * (1.0 - frac))
+        + AMIGA_FREQUENCIES[pos + 1] as f64 * frac)
         * 32.0 // docs say 16 here, but for some reason I need 32 :/
         / (1 << ((note as i64) / 12)) as f64;
 
     8363.0 * 1712.0 / period
 }
 
-static AMEGA_FREQUENCIES: &[u32] = &[
+static AMIGA_FREQUENCIES: &[u32] = &[
     907, 900, 894, 887, 881, 875, 868, 862, 856, 850, 844, 838, 832, 826, 820, 814, 808, 802, 796,
     791, 785, 779, 774, 768, 762, 757, 752, 746, 741, 736, 730, 725, 720, 715, 709, 704, 699, 694,
     689, 684, 678, 675, 670, 665, 660, 655, 651, 646, 640, 636, 632, 628, 623, 619, 614, 610, 604,
