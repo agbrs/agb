@@ -154,6 +154,16 @@ impl<'a, 'b> TextWriter<'a, 'b> {
     pub fn commit(self) {
         self.text_renderer.commit(self.bg, self.vram_manager);
     }
+
+    pub fn set_foreground_colour(&mut self, colour: u8) -> &mut Self {
+        self.foreground_colour = colour;
+        self
+    }
+
+    pub fn set_background_colour(&mut self, colour: u8) -> &mut Self {
+        self.background_colour = colour;
+        self
+    }
 }
 
 fn div_ceil(quotient: i32, divisor: i32) -> i32 {
