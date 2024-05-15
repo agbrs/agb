@@ -1113,6 +1113,48 @@ impl<T: Number> Vector2D<T> {
         }
     }
 
+    #[doc(alias = "scalar_product")]
+    /// Calculates the dot product / scalar product of two vectors
+    /// ```
+    /// use agb_fixnum::Vector2D;
+    ///
+    /// let v1 = Vector2D::new(3, 5);
+    /// let v2 = Vector2D::new(7, 11);
+    ///
+    /// let dot = v1.dot(v2);
+    /// assert_eq!(dot, 76);
+    /// ```
+    /// The dot product for vectors *A* and *B* is defined as
+    /// > *A*<sub>*x*</sub> × *B*<sub>*x*</sub> + *A*<sub>*y*</sub> × *B*<sub>*y*</sub>.
+    pub fn dot(self, b: Self) -> T {
+        self.x * b.x + self.y * b.y
+    }
+
+    #[doc(alias = "vector_product")]
+    /// Calculates the *z* component of the cross product / vector product of two
+    /// vectors
+    /// ```
+    /// use agb_fixnum::Vector2D;
+    ///
+    /// let v1 = Vector2D::new(3, 5);
+    /// let v2 = Vector2D::new(7, 11);
+    ///
+    /// let dot = v1.cross(v2);
+    /// assert_eq!(dot, -2);
+    /// ```
+    /// The cross product for vectors *A* and *B* is defined as
+    /// > *A*<sub>*x*</sub> × *B*<sub>*y*</sub> - *A*<sub>*y*</sub> × *B*<sub>*x*</sub>.
+    ///
+    ///
+    /// Normally the cross product / vector product is itself a vector. This is
+    /// in the 3D case where the cross product of two vectors is perpendicular
+    /// to both vectors. The only vector perpendicular to two 2D vectors is
+    /// purely in the *z* direction, hence why this method only returns that
+    /// component. The *x* and *y* components are always zero.
+    pub fn cross(self, b: Self) -> T {
+        self.x * b.y - self.y * b.x
+    }
+
     #[must_use]
     /// Swaps the x and y coordinate
     /// ```
