@@ -347,6 +347,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             -Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
+                        0xD => PatternEffect::NoteDelay((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
                     },
                     0xF => match slot.effect_parameter {
