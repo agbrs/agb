@@ -1142,7 +1142,7 @@ impl<T: Number> Vector2D<T> {
     /// let dot = v1.cross(v2);
     /// assert_eq!(dot, -2);
     /// ```
-    /// The cross product for vectors *A* and *B* is defined as
+    /// The *z* component cross product for vectors *A* and *B* is defined as
     /// > *A*<sub>*x*</sub> × *B*<sub>*y*</sub> - *A*<sub>*y*</sub> × *B*<sub>*x*</sub>.
     ///
     ///
