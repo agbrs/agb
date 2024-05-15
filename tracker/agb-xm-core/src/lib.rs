@@ -71,7 +71,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         let envelope = &instrument.volume_envelope;
         let envelope_id = if envelope.enabled {
-            let envelope: EnvelopeData = envelope.as_ref().into();
+            let envelope = EnvelopeData::new(envelope, module.default_bpm as u32);
             let id = existing_envelopes
                 .entry(envelope)
                 .or_insert_with_key(|envelope| {
@@ -520,23 +520,23 @@ struct EnvelopeData {
     loop_end: Option<usize>,
 }
 
-impl From<&xmrs::envelope::Envelope> for EnvelopeData {
-    fn from(e: &xmrs::envelope::Envelope) -> Self {
+impl EnvelopeData {
+    fn new(e: &xmrs::envelope::Envelope, bpm: u32) -> Self {
         let mut amounts = vec![];
 
-        // it should be sampled at 50fps, but we're sampling at 60fps, so need to do a bit of cheating here.
-        for frame in 0..(e.point.last().unwrap().frame * 60 / 50) {
-            let xm_frame = frame * 50 / 60;
+        // FT2 manual says number of ticks / second = BPM * 0.4 = BPM * 4 / 10. GBA runs at 60Hz
+        for frame in 0..(e.point.last().unwrap().frame as u32 * 60 * 10 / bpm / 4) {
+            let xm_frame = frame * bpm * 4 / 60 / 10;
             let index = e
                 .point
                 .iter()
-                .rposition(|point| point.frame < xm_frame)
+                .rposition(|point| point.frame < xm_frame as u16)
                 .unwrap_or(0);
 
             let first_point = &e.point[index];
             let second_point = &e.point[index + 1];
 
-            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame as u16) / 64.0;
             let amount = Num::from_f32(amount);
 
             amounts.push(amount);
