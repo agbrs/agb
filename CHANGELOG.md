@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed an issue with agb tracker where XM files with linear frequencies were playing the wrong notes
+
 ## [0.20.0] - 2024/05/14
 
 ### Added
