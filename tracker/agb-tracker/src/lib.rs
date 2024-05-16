@@ -405,6 +405,20 @@ impl TrackerChannel {
                         }
                     }
                 }
+                PatternEffect::NoteDelay(wait) => {
+                    if tick < *wait {
+                        channel.pause();
+                    }
+
+                    if tick == *wait {
+                        channel.resume();
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
+                    }
+                }
                 PatternEffect::Portamento(amount) => {
                     if tick != 0 {
                         self.base_speed *= amount.change_base();

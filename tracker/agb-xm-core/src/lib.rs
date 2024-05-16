@@ -71,7 +71,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         let envelope = &instrument.volume_envelope;
         let envelope_id = if envelope.enabled {
-            let envelope: EnvelopeData = envelope.as_ref().into();
+            let envelope = EnvelopeData::new(envelope, module.default_bpm as u32);
             let id = existing_envelopes
                 .entry(envelope)
                 .or_insert_with_key(|envelope| {
@@ -347,6 +347,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             -Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
+                        0xD => PatternEffect::NoteDelay((slot.effect_parameter & 0xf).into()),
                         _ => PatternEffect::None,
                     },
                     0xF => match slot.effect_parameter {
@@ -519,13 +520,12 @@ struct EnvelopeData {
     loop_end: Option<usize>,
 }
 
-impl From<&xmrs::envelope::Envelope> for EnvelopeData {
-    fn from(e: &xmrs::envelope::Envelope) -> Self {
+impl EnvelopeData {
+    fn new(e: &xmrs::envelope::Envelope, bpm: u32) -> Self {
         let mut amounts = vec![];
 
-        // it should be sampled at 50fps, but we're sampling at 60fps, so need to do a bit of cheating here.
-        for frame in 0..(e.point.last().unwrap().frame * 60 / 50) {
-            let xm_frame = frame * 50 / 60;
+        for frame in 0..=(Self::envelope_frame_to_gba_frame(e.point.last().unwrap().frame, bpm)) {
+            let xm_frame = Self::gba_frame_to_envelope_frame(frame, bpm);
             let index = e
                 .point
                 .iter()
@@ -542,14 +542,23 @@ impl From<&xmrs::envelope::Envelope> for EnvelopeData {
         }
 
         let sustain = if e.sustain_enabled {
-            Some(e.point[e.sustain_point as usize].frame as usize * 60 / 50)
+            Some(
+                Self::envelope_frame_to_gba_frame(e.point[e.sustain_point as usize].frame, bpm)
+                    as usize,
+            )
         } else {
             None
         };
         let (loop_start, loop_end) = if e.loop_enabled {
             (
-                Some(e.point[e.loop_start_point as usize].frame as usize * 60 / 50),
-                Some(e.point[e.loop_end_point as usize].frame as usize * 60 / 50),
+                Some(Self::envelope_frame_to_gba_frame(
+                    e.point[e.loop_start_point as usize].frame,
+                    bpm,
+                ) as usize),
+                Some(Self::envelope_frame_to_gba_frame(
+                    e.point[e.loop_end_point as usize].frame,
+                    bpm,
+                ) as usize),
             )
         } else {
             (None, None)
@@ -561,5 +570,15 @@ impl From<&xmrs::envelope::Envelope> for EnvelopeData {
             loop_start,
             loop_end,
         }
+    }
+
+    fn envelope_frame_to_gba_frame(envelope_frame: u16, bpm: u32) -> u16 {
+        // FT2 manual says number of ticks / second = BPM * 0.4
+        // somehow this works as a good approximation :/
+        (envelope_frame as u32 * 250 / bpm) as u16
+    }
+
+    fn gba_frame_to_envelope_frame(gba_frame: u16, bpm: u32) -> u16 {
+        (gba_frame as u32 * bpm / 250) as u16
     }
 }
