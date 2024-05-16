@@ -412,7 +412,11 @@ impl TrackerChannel {
 
                     if tick == *wait {
                         channel.resume();
-                        channel.volume((self.volume * global_settings.volume).try_change_base().unwrap());
+                        channel.volume(
+                            (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap(),
+                        );
                     }
                 }
                 PatternEffect::Portamento(amount) => {
