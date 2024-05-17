@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.1] - 2024/05/17
+
 ### Added
 
 - Added `dot` and `cross` product methods for `Vector2D`.

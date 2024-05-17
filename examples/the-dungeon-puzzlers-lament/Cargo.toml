@@ -7,8 +7,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-agb = { version = "0.20.0", path = "../../agb" }
-agb_tracker = { version = "0.20.0", path = "../../tracker/agb-tracker", default-features = false, features = ["xm"] }
+agb = { version = "0.20.1", path = "../../agb" }
+agb_tracker = { version = "0.20.1", path = "../../tracker/agb-tracker", default-features = false, features = ["xm"] }
 slotmap = { version = "1", default-features = false }
 
 [profile.dev]
