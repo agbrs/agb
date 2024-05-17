@@ -15,7 +15,7 @@ agb = { path = "../../agb", version = "0.20.0" }
 generational-arena = { version = "0.2", default-features = false }
 
 [build-dependencies]
-quote = "1.0.10"
+quote = "1"
 tiled = { version = "0.9.4", default-features = false }
 
 [profile.dev]
