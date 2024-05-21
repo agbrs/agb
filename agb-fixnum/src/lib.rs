@@ -151,10 +151,15 @@ impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits:
 
         let v: f64 = f64::from_str_radix(str, radix)?;
 
-        let integer = v.trunc();
-        let fractional = v.fract() * (1u64 << 30) as f64;
+        let integer = v.trunc().abs();
+        let fractional = v.fract().abs() * (1u64 << 32) as f64;
+        let sign = v.signum();
 
-        Ok(Self::new_from_parts((integer as i32, fractional as i32)))
+        Ok(Self::new_from_parts((
+            sign as i8,
+            integer as u32,
+            fractional as u32,
+        )))
     }
 }
 
@@ -451,8 +456,9 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     #[doc(hidden)]
     #[inline(always)]
     /// Called by the [num!] macro in order to create a fixed point number
-    pub fn new_from_parts(num: (i32, i32)) -> Self {
-        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    pub fn new_from_parts((sign, integer, fraction): (i8, u32, u32)) -> Self {
+        let repr = sign as i64 * (((integer as i64) << N) | ((fraction as i64) >> (32 - N)));
+        Self(I::from_as_i32(repr as i32))
     }
 }
 
@@ -1362,6 +1368,39 @@ mod tests {
 
             assert_eq!(m * sixteen, n);
         }
+    }
+
+    #[test]
+    fn test_multiplication_overflow() {
+        let a: Num<i16, 6> = Num::from_f32(0.625);
+        let b: Num<i16, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 6> = Num::from_f32(0.625);
+        let b: Num<u32, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = Num::from_f32(0.625);
+        let b: Num<u32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = Num::from_f32(-0.625);
+        let b: Num<i32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = num!(0.625);
+        let b: Num<u32, 31> = num!(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = num!(-0.625);
+        let b: Num<i32, 31> = num!(0.390625);
+
+        assert_eq!(a * a, b);
     }
 
     #[test]
