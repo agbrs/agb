@@ -37,8 +37,6 @@ impl<I: PrimInt> Number for I {}
 
 /// A trait for integers that don't implement unary negation
 pub trait FixedWidthInteger: Number + PrimInt + Display {
-    /// Returns the representation of ten
-    fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
@@ -53,10 +51,6 @@ impl<I: FixedWidthInteger + Signed> FixedWidthSignedInteger for I {}
 macro_rules! fixed_width_integer_impl {
     ($T: ty, $Upcast: ident) => {
         impl FixedWidthInteger for $T {
-            #[inline(always)]
-            fn ten() -> Self {
-                10
-            }
             #[inline(always)]
             fn from_as_i32(v: i32) -> Self {
                 v as $T
@@ -535,7 +529,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     #[must_use]
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
-        let four: I = I::one() + I::one() + I::one() + I::one();
+        let four: I = I::from_as_i32(4);
         (self - one / four).cos()
     }
 }
