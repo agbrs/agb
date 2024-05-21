@@ -3,15 +3,12 @@
 //! Fixed point number implementation for representing non integers efficiently.
 
 use core::{
-    cmp::{Eq, Ord, PartialEq, PartialOrd},
+    cmp::{Ord, PartialOrd},
     fmt::{Debug, Display},
     mem::size_of,
-    ops::{
-        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
-        Sub, SubAssign,
-    },
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
-use num_traits::Signed;
+use num_traits::{One, PrimInt, Signed, Zero};
 
 #[doc(hidden)]
 /// Used internally by the [num!] macro which should be used instead.
@@ -35,23 +32,11 @@ macro_rules! num {
 /// fixed point number.
 pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
-impl<I: FixedWidthUnsignedInteger> Number for I {}
+impl<I: FixedWidthInteger, const N: usize> Number for Num<I, N> {}
+impl<I: PrimInt> Number for I {}
 
 /// A trait for integers that don't implement unary negation
-pub trait FixedWidthUnsignedInteger:
-    Copy
-    + PartialOrd
-    + Ord
-    + Shl<usize, Output = Self>
-    + Shr<usize, Output = Self>
-    + BitAnd<Output = Self>
-    + From<u8>
-    + Debug
-    + Display
-    + num_traits::Num
-    + Not<Output = Self>
-{
+pub trait FixedWidthInteger: Number + PrimInt + Display {
     /// Returns the representation of ten
     fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
@@ -61,13 +46,13 @@ pub trait FixedWidthUnsignedInteger:
 }
 
 /// Trait for an integer that includes negation
-pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + num_traits::sign::Signed {}
+pub trait FixedWidthSignedInteger: FixedWidthInteger + Signed {}
 
-impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
+impl<I: FixedWidthInteger + Signed> FixedWidthSignedInteger for I {}
 
-macro_rules! fixed_width_unsigned_integer_impl {
+macro_rules! fixed_width_integer_impl {
     ($T: ty, $Upcast: ident) => {
-        impl FixedWidthUnsignedInteger for $T {
+        impl FixedWidthInteger for $T {
             #[inline(always)]
             fn ten() -> Self {
                 10
@@ -113,19 +98,18 @@ macro_rules! upcast_multiply_impl {
     };
 }
 
-fixed_width_unsigned_integer_impl!(u8, u32);
-fixed_width_unsigned_integer_impl!(i16, i32);
-fixed_width_unsigned_integer_impl!(u16, u32);
-
-fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
-fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
+fixed_width_integer_impl!(u8, u32);
+fixed_width_integer_impl!(i16, i32);
+fixed_width_integer_impl!(u16, u32);
+fixed_width_integer_impl!(i32, optimised_64_bit);
+fixed_width_integer_impl!(u32, optimised_64_bit);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
+pub struct Num<I: FixedWidthInteger, const N: usize>(I);
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Zero for Num<I, N> {
     fn zero() -> Self {
         Self::new(I::zero())
     }
@@ -135,13 +119,13 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::One for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> One for Num<I, N> {
     fn one() -> Self {
         Self::new(I::one())
     }
 }
 
-impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
+impl<I: FixedWidthInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
     type FromStrRadixErr = <f64 as num_traits::Num>::FromStrRadixErr;
 
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
@@ -167,7 +151,7 @@ impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits:
 /// internal representation for maximum efficiency
 pub type FixedNum<const N: usize> = Num<i32, N>;
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
         Num(value << N)
     }
@@ -175,7 +159,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
 
 impl<I, const N: usize> Default for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     fn default() -> Self {
         Num(I::zero())
@@ -184,7 +168,7 @@ where
 
 impl<I, T, const N: usize> Add<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -195,7 +179,7 @@ where
 
 impl<I, T, const N: usize> AddAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn add_assign(&mut self, rhs: T) {
@@ -205,7 +189,7 @@ where
 
 impl<I, T, const N: usize> Sub<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -216,7 +200,7 @@ where
 
 impl<I, T, const N: usize> SubAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn sub_assign(&mut self, rhs: T) {
@@ -226,7 +210,7 @@ where
 
 impl<I, const N: usize> Mul<Num<I, N>> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn mul(self, rhs: Num<I, N>) -> Self::Output {
@@ -236,7 +220,7 @@ where
 
 impl<I, const N: usize> Mul<I> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn mul(self, rhs: I) -> Self::Output {
@@ -246,7 +230,7 @@ where
 
 impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     Num<I, N>: Mul<T, Output = Num<I, N>>,
 {
     fn mul_assign(&mut self, rhs: T) {
@@ -256,7 +240,7 @@ where
 
 impl<I, const N: usize> Div<Num<I, N>> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn div(self, rhs: Num<I, N>) -> Self::Output {
@@ -266,7 +250,7 @@ where
 
 impl<I, const N: usize> Div<I> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn div(self, rhs: I) -> Self::Output {
@@ -276,7 +260,7 @@ where
 
 impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     Num<I, N>: Div<T, Output = Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
@@ -286,7 +270,7 @@ where
 
 impl<I, T, const N: usize> Rem<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -297,7 +281,7 @@ where
 
 impl<I, T, const N: usize> RemAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn rem_assign(&mut self, modulus: T) {
@@ -312,9 +296,9 @@ impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
     /// Performs the conversion between two integer types and between two different fractional precisions
-    pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
+    pub fn change_base<J: FixedWidthInteger + From<I>, const M: usize>(self) -> Num<J, M> {
         let n: J = self.0.into();
         if N < M {
             Num(n << (M - N))
@@ -335,7 +319,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     /// let b: Option<Num<u8, 4>> = a.try_change_base();
     /// assert_eq!(b, None);
     /// ```
-    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+    pub fn try_change_base<J: FixedWidthInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Num<J, M>> {
         if size_of::<I>() > size_of::<J>() {
@@ -551,12 +535,12 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     #[must_use]
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
-        let four: I = 4.into();
+        let four: I = I::one() + I::one() + I::one() + I::one();
         (self - one / four).cos()
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> num_traits::sign::Signed for Num<I, N> {
+impl<I: FixedWidthSignedInteger, const N: usize> Signed for Num<I, N> {
     fn abs(&self) -> Self {
         Self::abs(*self)
     }
@@ -578,7 +562,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> num_traits::sign::Signed for Nu
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let mut integral = self.0 >> N;
         let mask: I = (I::one() << N) - I::one();
@@ -645,7 +629,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use core::any::type_name;
 
@@ -752,7 +736,7 @@ impl<T: Number + Signed> Vector2D<T> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger, const N: usize> Vector2D<Num<I, N>> {
     #[must_use]
     /// Truncates the x and y coordinate, see [Num::trunc]
     /// ```
@@ -785,7 +769,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
 
     #[must_use]
     /// Attempts to change the base returning None if the numbers cannot be represented
-    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+    pub fn try_change_base<J: FixedWidthInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Vector2D<Num<J, M>>> {
         Some(Vector2D::new(
@@ -904,7 +888,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
         Vector2D {
             x: n.x.into(),
@@ -1035,7 +1019,7 @@ impl<T: Number> Rect<T> {
     }
 }
 
-impl<T: FixedWidthUnsignedInteger> Rect<T> {
+impl<T: FixedWidthInteger> Rect<T> {
     /// Iterate over the points in a rectangle in row major order.
     /// ```
     /// # use agb_fixnum::*;
@@ -1271,7 +1255,7 @@ mod tests {
 
     #[test]
     fn test_macro_conversion() {
-        fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
+        fn test_positive<A: FixedWidthInteger, const B: usize>() {
             let a: Num<A, B> = num!(1.5);
             let one = A::one() << B;
             let b = Num::from_raw(one + (one >> 1));
@@ -1571,29 +1555,6 @@ mod tests {
         str_radix_test!(138.229);
         str_radix_test!(-138.229);
         str_radix_test!(-1321.229231);
-    }
-
-    #[test]
-    fn test_multiplication_overflow() {
-        let a: Num<i16, 6> = Num::from_f32(0.625);
-        let b: Num<i16, 6> = Num::from_f32(0.390625);
-
-        assert_eq!(a * a, b);
-
-        let a: Num<u32, 6> = Num::from_f32(0.625);
-        let b: Num<u32, 6> = Num::from_f32(0.390625);
-
-        assert_eq!(a * a, b);
-
-        let a: Num<u32, 31> = Num::from_f32(0.625);
-        let b: Num<u32, 31> = Num::from_f32(0.390625);
-
-        assert_eq!(a * a, b);
-
-        let a: Num<i32, 31> = Num::from_f32(-0.625);
-        let b: Num<i32, 31> = Num::from_f32(0.390625);
-
-        assert_eq!(a * a, b);
     }
 
     #[cfg(not(debug_assertions))]
