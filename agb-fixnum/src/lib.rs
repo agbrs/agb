@@ -122,7 +122,8 @@ macro_rules! upcast_multiply_impl {
     };
 }
 
-fixed_width_integer_impl!(u8, u32);
+fixed_width_integer_impl!(i8, i16);
+fixed_width_integer_impl!(u8, u16);
 fixed_width_integer_impl!(i16, i32);
 fixed_width_integer_impl!(u16, u32);
 
