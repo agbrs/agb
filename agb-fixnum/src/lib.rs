@@ -83,26 +83,56 @@ macro_rules! fixed_width_unsigned_integer_impl {
 }
 
 macro_rules! upcast_multiply_impl {
-    ($T: ty, optimised_64_bit) => {
+    ($T: ty, optimised_64_bit_signed) => {
+        #[cfg(not(target_arch = "arm"))]
         #[inline(always)]
         fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            use num_traits::One;
+            (((a as i64) * (b as i64)) >> n) as $T
+        }
 
-            let mask = (Self::one() << n).wrapping_sub(1);
+        #[cfg(target_arch = "arm")]
+        #[cfg_attr(target_feature = "thumb-mode", instruction_set(arm::a32))]
+        #[cfg_attr(not(target_feature = "thumb-mode"), inline(always))]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            use core::arch::asm;
+            let low: u32;
+            let high: u32;
+            unsafe {
+                asm!(
+                    "SMULL {low}, {high}, {a}, {b}",
+                    a = in(reg) a,
+                    b = in(reg) b,
+                    low = lateout(reg) low,
+                    high = lateout(reg) high,
+                );
+            }
+            ((low >> n) | (high << (32 - n))) as $T
+        }
+    };
+    ($T: ty, optimised_64_bit_unsigned) => {
+        #[cfg(not(target_arch = "arm"))]
+        #[inline(always)]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            (((a as u64) * (b as u64)) >> n) as $T
+        }
 
-            let a_floor = a >> n;
-            let a_frac = a & mask;
-
-            let b_floor = b >> n;
-            let b_frac = b & mask;
-
-            (a_floor.wrapping_mul(b_floor) << n)
-                .wrapping_add(
-                    a_floor
-                        .wrapping_mul(b_frac)
-                        .wrapping_add(b_floor.wrapping_mul(a_frac)),
-                )
-                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
+        #[cfg(target_arch = "arm")]
+        #[cfg_attr(target_feature = "thumb-mode", instruction_set(arm::a32))]
+        #[cfg_attr(not(target_feature = "thumb-mode"), inline(always))]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            use core::arch::asm;
+            let low: u32;
+            let high: u32;
+            unsafe {
+                asm!(
+                    "UMULL {low}, {high}, {a}, {b}",
+                    a = in(reg) a,
+                    b = in(reg) b,
+                    low = lateout(reg) low,
+                    high = lateout(reg) high,
+                );
+            }
+            ((low >> n) | (high << (32 - n))) as $T
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -117,8 +147,8 @@ fixed_width_unsigned_integer_impl!(u8, u32);
 fixed_width_unsigned_integer_impl!(i16, i32);
 fixed_width_unsigned_integer_impl!(u16, u32);
 
-fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
-fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
+fixed_width_unsigned_integer_impl!(i32, optimised_64_bit_signed);
+fixed_width_unsigned_integer_impl!(u32, optimised_64_bit_unsigned);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -369,14 +399,14 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     /// because you cannot currently do floating point operations in const contexts, so
     /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
     pub fn from_f32(input: f32) -> Self {
-        Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
+        Self::from_raw(I::from_as_i32((input * (1_usize << N) as f32) as i32))
     }
 
     /// Lossily transforms an f64 into a fixed point representation. This is not const
     /// because you cannot currently do floating point operations in const contexts, so
     /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
     pub fn from_f64(input: f64) -> Self {
-        Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
+        Self::from_raw(I::from_as_i32((input * (1_usize << N) as f64) as i32))
     }
 
     /// Truncates the fixed point number returning the integral part
@@ -1376,6 +1406,29 @@ mod tests {
 
             assert_eq!(m * sixteen, n);
         }
+    }
+
+    #[test]
+    fn test_multiplication_overflow() {
+        let a: Num<i16, 6> = Num::from_f32(0.625);
+        let b: Num<i16, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 6> = Num::from_f32(0.625);
+        let b: Num<u32, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = Num::from_f32(0.625);
+        let b: Num<u32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = Num::from_f32(-0.625);
+        let b: Num<i32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
     }
 
     #[test]
