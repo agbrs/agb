@@ -133,12 +133,14 @@ pub fn num(input: TokenStream) -> TokenStream {
     let f = syn::parse_macro_input!(input as syn::LitFloat);
     let v: f64 = f.base10_parse().expect("The number should be parsable");
 
-    let integer = v.trunc();
-    let fractional = v.fract() * (1_u64 << 30) as f64;
+    let integer = v.trunc().abs();
+    let fractional = v.fract().abs() * (1_u64 << 32) as f64;
+    let sign = v.signum();
 
-    let integer = integer as i32;
-    let fractional = fractional as i32;
-    quote!((#integer, #fractional)).into()
+    let integer = integer as u32;
+    let fractional = fractional as u32;
+    let sign = sign as i8;
+    quote!((#sign, #integer, #fractional)).into()
 }
 
 fn hashed_ident<T: Hash>(f: &T) -> Ident {
