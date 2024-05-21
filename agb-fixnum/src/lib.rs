@@ -35,18 +35,13 @@ pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
 impl<I: FixedWidthInteger, const N: usize> Number for Num<I, N> {}
 impl<I: PrimInt> Number for I {}
 
-/// A trait for integers that don't implement unary negation
+/// A trait for integers with fixed width
 pub trait FixedWidthInteger: Number + PrimInt + Display {
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
     fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
 }
-
-/// Trait for an integer that includes negation
-pub trait FixedWidthSignedInteger: FixedWidthInteger + Signed {}
-
-impl<I: FixedWidthInteger + Signed> FixedWidthSignedInteger for I {}
 
 macro_rules! fixed_width_integer_impl {
     ($T: ty, $Upcast: ident) => {
@@ -283,7 +278,7 @@ where
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Neg for Num<I, N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Num(-self.0)
@@ -474,7 +469,7 @@ impl<const N: usize> Num<i32, N> {
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Num<I, N> {
     #[must_use]
     /// Returns the absolute value of a fixed point number
     /// ```
@@ -534,7 +529,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Signed for Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Signed for Num<I, N> {
     fn abs(&self) -> Self {
         Self::abs(*self)
     }
@@ -868,7 +863,7 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Vector2D<Num<I, N>> {
     /// Creates a unit vector from an angle, noting that the domain of the angle
     /// is [0, 1], see [Num::cos] and [Num::sin].
     /// ```
@@ -1271,7 +1266,7 @@ mod tests {
             assert_eq!(a, b);
         }
 
-        fn test_negative<A: FixedWidthSignedInteger, const B: usize>() {
+        fn test_negative<A: FixedWidthInteger + Signed, const B: usize>() {
             let a: Num<A, B> = num!(-1.5);
             let one = A::one() << B;
             let b = Num::from_raw(one + (one >> 1));
