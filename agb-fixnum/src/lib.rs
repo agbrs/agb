@@ -596,42 +596,44 @@ impl<I: FixedWidthSignedInteger, const N: usize> Signed for Num<I, N> {
 
 impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut integral = self.0 >> N;
-        let mask: I = (I::one() << N) - I::one();
+        let repr = self.0.to_i64().expect("Num<I, N>'s I can always be converted to i64");
+        let mut integral = repr >> N;
+        let mask = (1_i64 << N) - 1;
 
-        let mut fractional = self.0 & mask;
+        let mut fractional = repr & mask;
 
         // Negative fixnums are awkward to print if they have non zero fractional part.
         // This is because you can think of them as `number + non negative fraction`.
         //
         // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
         // So we have to add 1 to the integral bit, and take 1 - fractional bit
-        let sign = if fractional != I::zero() && integral < I::zero() {
-            integral = integral + I::one();
-            fractional = (I::one() << N) - fractional;
+        let sign = if fractional != 0 && integral < 0 {
+            integral += 1;
+            fractional = (1 << N) - fractional;
             -1
         } else {
             1
         };
+        let mut integral = integral as i32;
 
         if let Some(precision) = f.precision() {
-            let precision_multiplier = I::from_as_i32(10_i32.pow(precision as u32));
+            let precision_multiplier = 10_u32.pow(precision as u32);
 
-            let fractional_as_integer = fractional * precision_multiplier * I::ten();
-            let mut fractional_as_integer = fractional_as_integer >> N;
+            let fractional_as_integer = fractional * precision_multiplier as i64 * 10;
+            let mut fractional_as_integer = (fractional_as_integer >> N) as u32;
 
-            if fractional_as_integer % I::ten() >= I::from_as_i32(5) {
-                fractional_as_integer = fractional_as_integer + I::ten();
+            if fractional_as_integer % 10 >= 5 {
+                fractional_as_integer += 10;
             }
 
-            let mut fraction_to_write = fractional_as_integer / I::ten();
+            let mut fraction_to_write = fractional_as_integer / 10;
 
             if fraction_to_write >= precision_multiplier {
-                integral = integral + I::from_as_i32(sign);
-                fraction_to_write = fraction_to_write - precision_multiplier;
+                integral += sign;
+                fraction_to_write -= precision_multiplier;
             }
 
-            if sign == -1 && integral == I::zero() && fraction_to_write != I::zero() {
+            if sign == -1 && integral == 0 && fraction_to_write != 0 {
                 write!(f, "-")?;
             }
 
@@ -641,19 +643,19 @@ impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
                 write!(f, ".{:#0width$}", fraction_to_write, width = precision)?;
             }
         } else {
-            if sign == -1 && integral == I::zero() {
+            if sign == -1 && integral == 0 {
                 write!(f, "-")?;
             }
             write!(f, "{integral}")?;
 
-            if fractional != I::zero() {
+            if fractional != 0 {
                 write!(f, ".")?;
             }
 
-            while fractional & mask != I::zero() {
-                fractional = fractional * I::ten();
+            while fractional & mask != 0 {
+                fractional *= 10;
                 write!(f, "{}", (fractional & !mask) >> N)?;
-                fractional = fractional & mask;
+                fractional &= mask;
             }
         }
 
@@ -1288,6 +1290,18 @@ mod tests {
 
         test_precision!(zero_precision_negative, -0.001, "0", 0);
         test_precision!(zero_precision_positive, 0.001, "0", 0);
+
+        #[test]
+        fn test_high_precision() {
+            let a: Num<i32, 31> = num!(-0.625);
+            assert_eq!(format!("{:.3}", a), "-0.625");
+
+            let a: Num<u32, 31> = num!(0.390625);
+            assert_eq!(format!("{:.6}", a), "0.390625");
+
+            let a: Num<u32, 32> = num!(0.66666667);
+            assert_eq!(format!("{:.8}", a), "0.66666667");
+        }
     }
 
     #[test]
