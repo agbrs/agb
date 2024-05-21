@@ -6,6 +6,7 @@ edition = "2021"
 description = "Library for Game Boy Advance Development"
 license = "MPL-2.0"
 repository = "https://github.com/agbrs/agb"
+homepage = "https://agbrs.dev"
 
 [features]
 default = ["backtrace", "testing"]
