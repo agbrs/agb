@@ -1,6 +1,5 @@
 use core::cell::RefCell;
 use core::marker::PhantomData;
-use core::pin::Pin;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -107,7 +106,7 @@ pub struct Mixer<'gba> {
     // SAFETY: Has to go before buffer because it holds a reference to it
     _interrupt_handler: InterruptHandler,
 
-    buffer: Pin<Box<MixerBuffer, InternalAllocator>>,
+    buffer: raw_box::RawBoxDrop<MixerBuffer, InternalAllocator>,
     channels: [Option<SoundChannel>; 8],
     indices: [i32; 8],
     frequency: Frequency,
@@ -144,7 +143,8 @@ pub struct ChannelId(usize, i32);
 
 impl Mixer<'_> {
     pub(super) fn new(frequency: Frequency) -> Self {
-        let buffer = Box::pin_in(MixerBuffer::new(frequency), InternalAllocator);
+        let buffer =
+            raw_box::RawBoxDrop::new(Box::new_in(MixerBuffer::new(frequency), InternalAllocator));
 
         // SAFETY: you can only ever have 1 Mixer at a time
         let fifo_timer = unsafe { Timer::new(0) };
@@ -157,15 +157,21 @@ impl Mixer<'_> {
             .set_interrupt(true)
             .set_overflow_amount(frequency.buffer_size() as u16);
 
-        let buffer_pointer_for_interrupt_handler: &MixerBuffer = &buffer;
+        struct SendPtr<T>(*const T);
+        unsafe impl<T> Send for SendPtr<T> {}
+        unsafe impl<T> Sync for SendPtr<T> {}
 
-        // SAFETY: dropping the lifetime, sound because interrupt handler dropped before the buffer is
-        //         In the case of the mixer being forgotten, both stay alive so okay
-        let buffer_pointer_for_interrupt_handler: &MixerBuffer =
-            unsafe { core::mem::transmute(buffer_pointer_for_interrupt_handler) };
+        let ptr_for_interrupt_handler = SendPtr(&*buffer);
+
+        // SAFETY: the interrupt handler will be dropped before the buffer is so this never accesses
+        //         freed memory. Also the dereference happens in a critical section to ensure that
+        //         we don't end up accessing while dropping
         let interrupt_handler = unsafe {
-            add_interrupt_handler(interrupt_timer.interrupt(), |cs| {
-                buffer_pointer_for_interrupt_handler.swap(cs);
+            add_interrupt_handler(interrupt_timer.interrupt(), move |cs| {
+                // needed to ensure that rust doesn't only capture the field
+                let _ = &ptr_for_interrupt_handler;
+
+                (*ptr_for_interrupt_handler.0).swap(cs);
             })
         };
 
@@ -544,6 +550,35 @@ impl MixerBuffer {
                 call_mono_fn!(agb_rs__mixer_add_mono);
                 channel.is_done = channel.pos >= channel_len;
             }
+        }
+    }
+}
+
+mod raw_box {
+    use core::ops::Deref;
+
+    use alloc::boxed::Box;
+
+    pub struct RawBoxDrop<T, A: Clone + alloc::alloc::Allocator>(*mut T, A);
+
+    impl<T, A: Clone + alloc::alloc::Allocator> RawBoxDrop<T, A> {
+        pub fn new(inner: Box<T, A>) -> Self {
+            let (ptr, allocator) = Box::into_raw_with_allocator(inner);
+            Self(ptr, allocator)
+        }
+    }
+
+    impl<T, A: Clone + alloc::alloc::Allocator> Deref for RawBoxDrop<T, A> {
+        type Target = T;
+
+        fn deref(&self) -> &Self::Target {
+            unsafe { &*self.0 }
+        }
+    }
+
+    impl<T, A: Clone + alloc::alloc::Allocator> Drop for RawBoxDrop<T, A> {
+        fn drop(&mut self) {
+            unsafe { Box::from_raw_in(self.0, self.1.clone()) };
         }
     }
 }
