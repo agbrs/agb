@@ -73,6 +73,10 @@ pub struct TiledBackground<'gba> {
     frame_data: RefCell<TiledBackgroundModifyables>,
 }
 
+pub struct BackgroundIterator<'bg> {
+    frame_data: &'bg RefCell<TiledBackgroundModifyables>,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
 struct Tile(u16);

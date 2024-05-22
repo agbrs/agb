@@ -11,7 +11,7 @@ use crate::display::Priority;
 
 use super::{
     ScreenblockAllocator, Tile, TileFormat, TileSet, TileSetting, VRamManager, SCREENBLOCK_SIZE,
-    TRANSPARENT_TILE_INDEX,
+    TRANSPARENT_TILE_INDEX, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -67,6 +67,10 @@ impl RegularBackgroundSize {
 
         pos as usize
     }
+
+    const fn size_flag(self) -> u16 {
+        self as u16
+    }
 }
 
 pub struct RegularBackgroundTiles {
@@ -77,14 +81,15 @@ pub struct RegularBackgroundTiles {
     tiles: Vec<Tile>,
     is_dirty: bool,
 
-    screenblock_ptr: NonNull<[Tile]>,
+    screenblock_ptr: NonNull<Tile>,
 }
 
 impl RegularBackgroundTiles {
     pub fn new(priority: Priority, size: RegularBackgroundSize, colours: TileFormat) -> Self {
         let screenblock_ptr = ScreenblockAllocator
             .allocate(size.layout())
-            .expect("Not enough space to allocate for background");
+            .expect("Not enough space to allocate for background")
+            .cast();
 
         Self {
             priority,
@@ -94,7 +99,7 @@ impl RegularBackgroundTiles {
             tiles: vec![Tile::default(); size.num_tiles()],
             is_dirty: true,
 
-            screenblock_ptr: unsafe { mem::transmute(screenblock_ptr) },
+            screenblock_ptr,
         }
     }
 
@@ -146,12 +151,56 @@ impl RegularBackgroundTiles {
         self.tiles[pos] = new_tile;
         self.is_dirty = true;
     }
+
+    pub fn commit(&mut self) {
+        if self.is_dirty {
+            unsafe {
+                self.screenblock_ptr
+                    .as_ptr()
+                    .copy_from_nonoverlapping(self.tiles.as_ptr(), self.size.num_tiles());
+            }
+        }
+
+        self.is_dirty = false;
+    }
+
+    pub fn clear(&mut self, vram: &mut VRamManager) {
+        for tile in &mut self.tiles {
+            if *tile != Tile::default() {
+                vram.remove_tile(tile.tile_index(self.colours));
+            }
+
+            *tile = Tile::default();
+        }
+    }
+
+    pub(crate) fn bg_ctrl_value(&self) -> u16 {
+        let tile_colour_flag: u16 = match self.colours {
+            TileFormat::FourBpp => 0,
+            TileFormat::EightBpp => 1,
+        };
+
+        self.priority as u16
+            | tile_colour_flag << 7
+            | self.screen_base_block() << 8
+            | (self.size.size_flag()) << 0xe
+    }
+
+    fn screen_base_block(&self) -> u16 {
+        let screenblock_location = self.screenblock_ptr.as_ptr() as usize;
+        ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
+    }
 }
 
 impl Drop for RegularBackgroundTiles {
     fn drop(&mut self) {
         unsafe { ScreenblockAllocator.deallocate(self.screenblock_ptr.cast(), self.size.layout()) };
 
-        // TODO: Deallocate the tiles
+        #[cfg(debug_assertions)]
+        {
+            if self.tiles.iter().any(|&t| t != Tile::default()) {
+                panic!("background tiles were not cleared with .clear() before dropping. Memory leak in vram");
+            }
+        }
     }
 }
