@@ -3,6 +3,7 @@ mod vram_manager;
 
 use core::{cell::RefCell, marker::PhantomData};
 
+pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
 use crate::agb_alloc::{
