@@ -10,17 +10,15 @@ use crate::{
     memory_mapped::MemoryMapped1DArray,
 };
 
-use super::TileSetting;
-
-const TILE_RAM_START: usize = 0x0600_0000;
+use super::{TileSetting, CHARBLOCK_SIZE, VRAM_START};
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
 static TILE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
-        start: || TILE_RAM_START + 8 * 8,
-        end: || TILE_RAM_START + 0x8000,
+        start: || VRAM_START + 8 * 8,
+        end: || VRAM_START + CHARBLOCK_SIZE * 2,
     })
 };
 
@@ -179,7 +177,7 @@ impl DynamicTile<'_> {
     pub fn tile_set(&self) -> TileSet<'_> {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
-                TILE_RAM_START as *mut u8,
+                VRAM_START as *mut u8,
                 1024 * TileFormat::FourBpp.tile_size(),
             )
         };
@@ -189,7 +187,7 @@ impl DynamicTile<'_> {
 
     #[must_use]
     pub fn tile_setting(&self) -> TileSetting {
-        let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
+        let difference = self.tile_data.as_ptr() as usize - VRAM_START;
         let tile_id = (difference / TileFormat::FourBpp.tile_size()) as u16;
 
         TileSetting::new(tile_id, false, false, 0)
@@ -216,12 +214,12 @@ impl VRamManager {
     }
 
     fn index_from_reference(reference: TileReference, format: TileFormat) -> TileIndex {
-        let difference = reference.0.as_ptr() as usize - TILE_RAM_START;
+        let difference = reference.0.as_ptr() as usize - VRAM_START;
         TileIndex::new(difference / format.tile_size(), format)
     }
 
     fn reference_from_index(index: TileIndex) -> TileReference {
-        let ptr = (index.raw_index() as usize * index.format().tile_size()) + TILE_RAM_START;
+        let ptr = (index.raw_index() as usize * index.format().tile_size()) + VRAM_START;
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
@@ -238,7 +236,7 @@ impl VRamManager {
         let key = index.refcount_key();
 
         let tiles = unsafe {
-            slice::from_raw_parts_mut(TILE_RAM_START as *mut u8, 1024 * tile_format.tile_size())
+            slice::from_raw_parts_mut(VRAM_START as *mut u8, 1024 * tile_format.tile_size())
         };
 
         let tile_set = TileSet::new(tiles, tile_format);
