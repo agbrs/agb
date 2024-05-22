@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, TiledMap},
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles},
         Priority,
     },
     include_background_gfx,
@@ -13,14 +13,14 @@ include_background_gfx!(water_tiles, water_tiles => "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (mut gfx, mut vram) = gba.display.video.tiled();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = &water_tiles::water_tiles.tiles;
 
     vram.set_background_palettes(water_tiles::PALETTES);
 
-    let mut bg = gfx.background(
+    let mut bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         tileset.format(),
@@ -37,8 +37,11 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    bg.commit(&mut vram);
-    bg.set_visible(true);
+    bg.commit();
+
+    let mut bg_iter = gfx.iter();
+    bg.show(&mut bg_iter);
+    bg_iter.commit(&mut vram);
 
     let mut i = 0;
     loop {
