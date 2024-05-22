@@ -7,7 +7,6 @@ import { useMemo } from "react";
 
 function gameUrl(exampleName: string) {
   const example = Examples.find((x) => slugify(x.example_name) === exampleName);
-  console.log(exampleName);
   if (!example) {
     throw new Error(`cannot find example ${exampleName}`);
   }
