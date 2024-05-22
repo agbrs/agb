@@ -156,7 +156,7 @@ impl BackgroundIterator<'_> {
 
         let mut display_control = DISPLAY_CONTROL.get();
 
-        display_control &= 0b1111000011111000;
+        display_control &= 0b1111000001111000;
         display_control |= video_mode | enabled_backgrounds << 8;
 
         DISPLAY_CONTROL.set(display_control);
