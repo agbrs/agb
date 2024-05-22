@@ -140,7 +140,7 @@ build-site-examples: build-release
     echo "$EXAMPLE_DEFINITIONS" >> website/agb/src/roms/examples/examples.ts
 
 
-setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace build-site-examples:
+setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace build-site-examples
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
 
 build-site-app: setup-app-build
