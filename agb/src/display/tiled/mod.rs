@@ -1,5 +1,7 @@
 mod vram_manager;
 
+pub struct BackgroundId(pub(crate) u8);
+
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 
 #[derive(Clone, Copy, Debug, Default)]
