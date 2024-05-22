@@ -160,7 +160,6 @@ mod agb_alloc;
 mod agbabi;
 #[cfg(feature = "backtrace")]
 mod backtrace;
-mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
 /// Provides access to the GBA's direct memory access (DMA) which is used for advanced effects

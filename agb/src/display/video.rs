@@ -1,7 +1,7 @@
 use super::{
     bitmap3::Bitmap3,
     bitmap4::Bitmap4,
-    tiled::{Tiled0, Tiled1, Tiled2, VRamManager},
+    tiled::{TiledBackground, VRamManager},
 };
 
 /// The video struct controls access to the video hardware.
@@ -22,18 +22,8 @@ impl Video {
         unsafe { Bitmap4::new() }
     }
 
-    /// Tiled 0 mode provides 4 regular, tiled backgrounds
-    pub fn tiled0(&mut self) -> (Tiled0<'_>, VRamManager) {
-        (unsafe { Tiled0::new() }, VRamManager::new())
-    }
-
-    /// Tiled 1 mode provides 2 regular tiled backgrounds and 1 affine tiled background
-    pub fn tiled1(&mut self) -> (Tiled1<'_>, VRamManager) {
-        (unsafe { Tiled1::new() }, VRamManager::new())
-    }
-
-    /// Tiled 2 mode provides 2 affine tiled backgrounds
-    pub fn tiled2(&mut self) -> (Tiled2<'_>, VRamManager) {
-        (unsafe { Tiled2::new() }, VRamManager::new())
+    /// Tiled mode allows for up to 4 backgrounds
+    pub fn tiled(&mut self) -> (TiledBackground<'_>, VRamManager) {
+        (unsafe { TiledBackground::new() }, VRamManager::new())
     }
 }

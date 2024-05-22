@@ -3,7 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
-use super::tiled::{DynamicTile, RegularMap, VRamManager};
+use super::tiled::{DynamicTile, RegularBackgroundTiles, VRamManager};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
@@ -132,7 +132,7 @@ pub struct TextWriter<'a, 'b> {
     background_colour: u8,
     text_renderer: &'a mut TextRenderer<'b>,
     vram_manager: &'a mut VRamManager,
-    bg: &'a mut RegularMap,
+    bg: &'a mut RegularBackgroundTiles,
 }
 
 impl Write for TextWriter<'_, '_> {
@@ -165,7 +165,7 @@ impl<'a, 'b> TextRenderer<'b> {
         &'a mut self,
         foreground_colour: u8,
         background_colour: u8,
-        bg: &'a mut RegularMap,
+        bg: &'a mut RegularBackgroundTiles,
         vram_manager: &'a mut VRamManager,
     ) -> TextWriter<'a, 'b> {
         TextWriter {
@@ -251,7 +251,7 @@ impl<'a, 'b> TextRenderer<'b> {
     }
 
     /// Commit the dynamic tiles that contain the text to the background.
-    pub fn commit(&self, bg: &'a mut RegularMap, vram_manager: &'a mut VRamManager) {
+    pub fn commit(&self, bg: &'a mut RegularBackgroundTiles, vram_manager: &'a mut VRamManager) {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
                 vram_manager,
@@ -301,14 +301,14 @@ impl<'a, 'b> TextRenderer<'b> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::tiled::{TileFormat, TiledMap};
+    use crate::display::tiled::{RegularBackgroundTiles, TileFormat};
     static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {
-        let (gfx, mut vram) = gba.display.video.tiled0();
+        let (mut gfx, mut vram) = gba.display.video.tiled();
 
-        let mut bg = gfx.background(
+        let mut bg = RegularBackgroundTiles::new(
             crate::display::Priority::P0,
             crate::display::tiled::RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
@@ -340,24 +340,26 @@ mod tests {
         for _ in 0..2 {
             let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
             write!(&mut writer, "Hello, ").unwrap();
-            writer.commit();
 
             // Test changing color
             let mut writer = renderer.writer(4, 2, &mut bg, &mut vram);
             writeln!(&mut writer, "World!").unwrap();
             writer.commit();
-            bg.commit(&mut vram);
-            bg.set_visible(true);
 
             // Test writing with same renderer after showing background
             let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
             writeln!(&mut writer, "This is a font rendering example").unwrap();
             writer.commit();
-            bg.commit(&mut vram);
-            bg.set_visible(true);
+            bg.commit();
+
+            let mut bg_iter = gfx.iter();
+            bg.show(&mut bg_iter);
+            bg_iter.commit(&mut vram);
 
             crate::test_runner::assert_image_output("examples/font/font-test-output.png");
             renderer.clear(&mut vram);
         }
+
+        bg.clear(&mut vram);
     }
 }

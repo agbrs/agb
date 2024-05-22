@@ -14,6 +14,7 @@ use crate::{
 
 use super::DISPLAY_CONTROL;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
 
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
@@ -112,7 +113,7 @@ pub struct TiledBackground<'gba> {
 }
 
 impl TiledBackground<'_> {
-    pub(crate) fn new() -> Self {
+    pub(crate) unsafe fn new() -> Self {
         Self {
             _phantom: PhantomData,
         }

@@ -7,7 +7,7 @@ use core::{
 use agb_fixnum::Vector2D;
 use alloc::{vec, vec::Vec};
 
-use crate::display::Priority;
+use crate::display::{tile_data::TileData, Priority};
 
 use super::{
     BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile, TileFormat, TileSet,
@@ -87,6 +87,7 @@ pub struct RegularBackgroundTiles {
 }
 
 impl RegularBackgroundTiles {
+    #[must_use]
     pub fn new(priority: Priority, size: RegularBackgroundSize, colours: TileFormat) -> Self {
         let screenblock_ptr = ScreenblockAllocator
             .allocate(size.layout())
@@ -124,6 +125,34 @@ impl RegularBackgroundTiles {
 
         let pos = self.size.gba_offset(pos.into());
         self.set_tile_at_pos(vram, pos, tileset, tile_setting);
+    }
+
+    pub fn fill_with(&mut self, vram: &mut VRamManager, tile_data: &TileData) {
+        assert!(
+            tile_data.tile_settings.len() >= 20 * 30,
+            "Don't have a full screen's worth of tile data"
+        );
+
+        assert_eq!(
+            tile_data.tiles.format(),
+            self.colours,
+            "Cannot set a {:?} colour tile on a {:?} colour background",
+            tile_data.tiles.format(),
+            self.colours
+        );
+
+        for y in 0..20 {
+            for x in 0..30 {
+                let tile_id = y * 30 + x;
+                let tile_pos = y * 32 + x;
+                self.set_tile_at_pos(
+                    vram,
+                    tile_pos,
+                    &tile_data.tiles,
+                    tile_data.tile_settings[tile_id],
+                );
+            }
+        }
     }
 
     fn set_tile_at_pos(
