@@ -112,8 +112,35 @@ build-combo-rom-site:
     mkdir -p website/agb/src/roms
     gzip -9 -c examples/target/examples/combo.gba > website/agb/src/roms/combo.gba.gz
 
+generate-screenshot *args:
+    (cd emulator/screenshot-generator && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}})
 
-setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace
+
+build-site-examples: build-release
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    mkdir -p website/agb/src/roms/examples
+
+    EXAMPLES="$(cd agb/examples; ls *.rs)"
+    EXAMPLE_DEFINITIONS="export const Examples: {url: URL, example_name: string, screenshot: StaticImageData }[] = [" > website/agb/src/roms/examples/examples.ts
+    EXAMPLE_IMAGE_IMPORTS="import { StaticImageData } from 'next/image';";
+
+    for EXAMPLE_NAME in $EXAMPLES; do
+        EXAMPLE="${EXAMPLE_NAME%.rs}"
+        just gbafix "$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE" --output="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba"
+        gzip -9 -c $CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba > website/agb/src/roms/examples/$EXAMPLE.gba.gz
+        just generate-screenshot --rom="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba" --frames=10 --output=website/agb/src/roms/examples/$EXAMPLE.png
+        EXAMPLE_IMAGE_IMPORTS="$EXAMPLE_IMAGE_IMPORTS import $EXAMPLE from './$EXAMPLE.png';"
+        EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS {url: new URL('./$EXAMPLE.gba.gz', import.meta.url), example_name: '$EXAMPLE', screenshot: $EXAMPLE},"
+    done
+
+    EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS ];"
+    echo "$EXAMPLE_IMAGE_IMPORTS" > website/agb/src/roms/examples/examples.ts
+    echo "$EXAMPLE_DEFINITIONS" >> website/agb/src/roms/examples/examples.ts
+
+
+setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace build-site-examples:
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
 
 build-site-app: setup-app-build
