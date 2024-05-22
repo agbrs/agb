@@ -170,9 +170,9 @@ impl BackgroundIterator<'_> {
             let bg_ctrl = unsafe { MemoryMapped::new(0x0400_0008 + i * 2) };
             bg_ctrl.set(regular_background.bg_ctrl);
 
-            let bg_x_offset = unsafe { MemoryMapped::new(0x0400_0010 + i * 2) };
+            let bg_x_offset = unsafe { MemoryMapped::new(0x0400_0010 + i * 4) };
             bg_x_offset.set(regular_background.scroll_offset.x);
-            let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 2) };
+            let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 4) };
             bg_y_offset.set(regular_background.scroll_offset.y);
         }
 

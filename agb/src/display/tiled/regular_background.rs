@@ -36,9 +36,9 @@ impl RegularBackgroundSize {
     const fn height(self) -> usize {
         match self {
             RegularBackgroundSize::Background32x32 => 32,
-            RegularBackgroundSize::Background64x32 => 64,
+            RegularBackgroundSize::Background64x32 => 32,
             RegularBackgroundSize::Background32x64 => 64,
-            RegularBackgroundSize::Background64x64 => 32,
+            RegularBackgroundSize::Background64x64 => 64,
         }
     }
 
@@ -81,7 +81,7 @@ pub struct RegularBackgroundTiles {
     tiles: Vec<Tile>,
     is_dirty: bool,
 
-    scroll: Vector2D<u16>,
+    scroll: Vector2D<i16>,
 
     screenblock_ptr: NonNull<Tile>,
 }
@@ -106,6 +106,15 @@ impl RegularBackgroundTiles {
 
             screenblock_ptr,
         }
+    }
+
+    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i16>>) {
+        self.scroll = scroll.into();
+    }
+
+    #[must_use]
+    pub fn scroll_pos(&self) -> Vector2D<i16> {
+        self.scroll
     }
 
     pub fn set_tile(
@@ -200,7 +209,7 @@ impl RegularBackgroundTiles {
     pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
         bg_iter.set_next_regular(RegularBackgroundData {
             bg_ctrl: self.bg_ctrl_value(),
-            scroll_offset: self.scroll,
+            scroll_offset: Vector2D::new(self.scroll.x as u16, self.scroll.y as u16),
         });
     }
 

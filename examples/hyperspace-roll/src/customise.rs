@@ -1,8 +1,8 @@
 use agb::{
     display::{
         object::{OamManaged, Object},
-        tiled::{RegularMap, TiledMap},
-        HEIGHT, WIDTH,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        Priority, HEIGHT, WIDTH,
     },
     input::{Button, Tri},
 };
@@ -157,16 +157,26 @@ fn create_upgrade_objects<'a>(gfx: &'a OamManaged, upgrades: &[Face]) -> Vec<Obj
 pub(crate) fn customise_screen(
     agb: &mut Agb,
     mut player_dice: PlayerDice,
-    descriptions_map: &mut RegularMap,
-    help_background: &mut RegularMap,
     level: u32,
 ) -> PlayerDice {
+    let mut descriptions_map = RegularBackgroundTiles::new(
+        Priority::P1,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    let mut help_background = RegularBackgroundTiles::new(
+        Priority::P1,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
     agb.sfx.customise();
     agb.sfx.frame();
     descriptions_map.set_scroll_pos((-174i16, -52));
 
     help_background.set_scroll_pos((-148i16, -34));
-    crate::background::load_help_text(&mut agb.vram, help_background, 0, (0, 0));
+    crate::background::load_help_text(&mut agb.vram, &mut help_background, 0, (0, 0));
 
     // create the dice
 
@@ -202,7 +212,11 @@ pub(crate) fn customise_screen(
 
     let mut modified: Vec<Cursor> = Vec::new();
 
+    let mut description_map_visible = true;
+
     loop {
+        let mut bg_iter = agb.tiled.iter();
+
         counter = counter.wrapping_add(1);
         input.update();
         let ud = (
@@ -288,13 +302,14 @@ pub(crate) fn customise_screen(
                     if cursor.upgrade != old_upgrade {
                         load_description(
                             upgrades[cursor.upgrade] as usize,
-                            descriptions_map,
+                            &mut descriptions_map,
                             &mut agb.vram,
                         );
                     }
-                    descriptions_map.set_visible(true);
+
+                    description_map_visible = true;
                 } else {
-                    descriptions_map.set_visible(false);
+                    description_map_visible = false;
                 }
 
                 let (x, y) = upgrade_position(cursor.upgrade);
@@ -307,7 +322,7 @@ pub(crate) fn customise_screen(
                 } else if input.is_just_pressed(Button::A)
                     && player_dice.dice[cursor.dice].faces[cursor.face] != upgrades[cursor.upgrade]
                 {
-                    descriptions_map.set_visible(false);
+                    description_map_visible = false;
 
                     modified.push(Cursor {
                         dice: cursor.dice,
@@ -344,17 +359,22 @@ pub(crate) fn customise_screen(
         let _ = agb::rng::gen();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
+        agb.star_background.commit();
         agb.obj.commit();
-        descriptions_map.commit(&mut agb.vram);
-        help_background.commit(&mut agb.vram);
-        help_background.set_visible(true);
-        agb.star_background.commit(&mut agb.vram);
+        descriptions_map.commit();
+        help_background.commit();
+
+        help_background.show(&mut bg_iter);
+        if description_map_visible {
+            descriptions_map.show(&mut bg_iter);
+        }
+
+        agb.star_background.show(&mut bg_iter);
+
+        bg_iter.commit(&mut agb.vram);
     }
 
-    descriptions_map.set_visible(false);
-    help_background.set_visible(false);
-    crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
-    crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
+    help_background.clear(&mut agb.vram);
     descriptions_map.clear(&mut agb.vram);
 
     player_dice
