@@ -39,3 +39,4 @@ vendor
 
 *.gba
 *.gba.gz
+src/roms
