@@ -1,14 +1,18 @@
 mod regular_background;
 mod vram_manager;
 
-use core::{cell::RefCell, marker::PhantomData};
+use core::marker::PhantomData;
 
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 
-use crate::agb_alloc::{
-    block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator,
+use crate::{
+    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
+    fixnum::Vector2D,
+    memory_mapped::MemoryMapped,
 };
+
+use super::DISPLAY_CONTROL;
 
 pub struct BackgroundId(pub(crate) u8);
 
@@ -66,17 +70,6 @@ impl TileSetting {
     }
 }
 
-struct TiledBackgroundModifyables {}
-
-pub struct TiledBackground<'gba> {
-    _phantom: PhantomData<&'gba ()>,
-    frame_data: RefCell<TiledBackgroundModifyables>,
-}
-
-pub struct BackgroundIterator<'bg> {
-    frame_data: &'bg RefCell<TiledBackgroundModifyables>,
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
 struct Tile(u16);
@@ -107,3 +100,81 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 };
 
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
+
+#[derive(Default)]
+struct RegularBackgroundData {
+    bg_ctrl: u16,
+    scroll_offset: Vector2D<u16>,
+}
+
+pub struct TiledBackground<'gba> {
+    _phantom: PhantomData<&'gba ()>,
+}
+
+impl TiledBackground<'_> {
+    pub(crate) fn new() -> Self {
+        Self {
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn iter(&mut self) -> BackgroundIterator<'_> {
+        BackgroundIterator::default()
+    }
+}
+
+#[derive(Default)]
+pub struct BackgroundIterator<'bg> {
+    _phantom: PhantomData<&'bg ()>,
+
+    num_regular: usize,
+    regular_backgrounds: [RegularBackgroundData; 4],
+}
+
+impl BackgroundIterator<'_> {
+    fn set_next_regular(&mut self, data: RegularBackgroundData) {
+        let bg_index = self.next_regular_index();
+
+        self.regular_backgrounds[bg_index] = data;
+    }
+
+    fn next_regular_index(&mut self) -> usize {
+        if self.num_regular == 4 {
+            panic!("Can only have 4 regular backgrounds at once");
+        }
+
+        let index = self.num_regular;
+        self.num_regular += 1;
+        index
+    }
+
+    pub fn commit(self, vram: &mut VRamManager) {
+        // TODO: Affine
+        let video_mode = 0;
+        let enabled_backgrounds = (1u16 << self.num_regular) - 1;
+
+        let mut display_control = DISPLAY_CONTROL.get();
+
+        display_control &= 0b1111000011111000;
+        display_control |= video_mode | enabled_backgrounds << 8;
+
+        DISPLAY_CONTROL.set(display_control);
+
+        for (i, regular_background) in self
+            .regular_backgrounds
+            .iter()
+            .take(self.num_regular)
+            .enumerate()
+        {
+            let bg_ctrl = unsafe { MemoryMapped::new(0x0400_0008 + i * 2) };
+            bg_ctrl.set(regular_background.bg_ctrl);
+
+            let bg_x_offset = unsafe { MemoryMapped::new(0x0400_0010 + i * 2) };
+            bg_x_offset.set(regular_background.scroll_offset.x);
+            let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 2) };
+            bg_y_offset.set(regular_background.scroll_offset.y);
+        }
+
+        vram.gc();
+    }
+}

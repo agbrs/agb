@@ -10,8 +10,8 @@ use alloc::{vec, vec::Vec};
 use crate::display::Priority;
 
 use super::{
-    ScreenblockAllocator, Tile, TileFormat, TileSet, TileSetting, VRamManager, SCREENBLOCK_SIZE,
-    TRANSPARENT_TILE_INDEX, VRAM_START,
+    BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile, TileFormat, TileSet,
+    TileSetting, VRamManager, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -81,6 +81,8 @@ pub struct RegularBackgroundTiles {
     tiles: Vec<Tile>,
     is_dirty: bool,
 
+    scroll: Vector2D<u16>,
+
     screenblock_ptr: NonNull<Tile>,
 }
 
@@ -98,6 +100,8 @@ impl RegularBackgroundTiles {
 
             tiles: vec![Tile::default(); size.num_tiles()],
             is_dirty: true,
+
+            scroll: Vector2D::default(),
 
             screenblock_ptr,
         }
@@ -164,6 +168,13 @@ impl RegularBackgroundTiles {
         self.is_dirty = false;
     }
 
+    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
+        bg_iter.set_next_regular(RegularBackgroundData {
+            bg_ctrl: self.bg_ctrl_value(),
+            scroll_offset: self.scroll,
+        });
+    }
+
     pub fn clear(&mut self, vram: &mut VRamManager) {
         for tile in &mut self.tiles {
             if *tile != Tile::default() {
@@ -174,7 +185,7 @@ impl RegularBackgroundTiles {
         }
     }
 
-    pub(crate) fn bg_ctrl_value(&self) -> u16 {
+    fn bg_ctrl_value(&self) -> u16 {
         let tile_colour_flag: u16 = match self.colours {
             TileFormat::FourBpp => 0,
             TileFormat::EightBpp => 1,
