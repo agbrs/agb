@@ -817,7 +817,10 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
 
 impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let repr = self.0.to_i64().expect("Num<I, N>'s I can always be converted to i64");
+        let repr = self
+            .0
+            .to_i64()
+            .expect("Num<I, N>'s I can always be converted to i64");
         let mut integral = repr >> N;
         let mask = (1_i64 << N) - 1;
 
