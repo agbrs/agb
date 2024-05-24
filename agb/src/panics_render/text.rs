@@ -30,6 +30,10 @@ impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
         }
     }
 
+    pub fn head_y_position(&self) -> i32 {
+        self.head_position.y
+    }
+
     fn render_letter(&mut self, c: char) {
         let letter = FONT.letter(c);
 

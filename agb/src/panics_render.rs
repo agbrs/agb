@@ -26,6 +26,7 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 
             gba.dma.dma().dma3.disable();
             let mut gfx = gba.display.video.bitmap3();
+            gfx.clear(0xFFFF);
 
             let qrcode_string_data = if WEBSITE.is_empty() {
                 format!("{trace}")
@@ -38,14 +39,19 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 
             let mut trace_text_render =
                 text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
-            let _ = write!(
+            let _ = writeln!(
                 &mut trace_text_render,
                 "The game crashed :({}{WEBSITE}\n{trace}",
                 if WEBSITE.is_empty() { "" } else { "\n" }
             );
 
-            let mut panic_text_render =
-                text::BitmapTextRender::new(&mut gfx, (8, location).into(), 0x0000);
+            let trace_location = trace_text_render.head_y_position();
+
+            let mut panic_text_render = text::BitmapTextRender::new(
+                &mut gfx,
+                (8, location.max(trace_location + PADDING)).into(),
+                0x0000,
+            );
             let _ = write!(&mut panic_text_render, "{info}");
 
             // need to wait 2 frames to ensure that mgba finishes rendering before the fatal call below
@@ -62,11 +68,11 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
         })
     })
 }
+const PADDING: i32 = 8;
 
 /// Returns the width / height of the QR code + padding in pixels
 fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
-    const PADDING: i32 = 8;
 
     let (Ok(mut temp_buffer), Ok(mut out_buffer)) = (
         Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
