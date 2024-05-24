@@ -73,14 +73,18 @@ const PADDING: i32 = 8;
 /// Returns the width / height of the QR code + padding in pixels
 fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
+    let buffer_len = MAX_VERSION.buffer_len();
 
     let (Ok(mut temp_buffer), Ok(mut out_buffer)) = (
-        Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
-        Vec::try_with_capacity_in(MAX_VERSION.buffer_len(), crate::ExternalAllocator),
+        Vec::try_with_capacity_in(buffer_len, crate::ExternalAllocator),
+        Vec::try_with_capacity_in(buffer_len, crate::ExternalAllocator),
     ) else {
         crate::println!("Failed to allocate memory to generate QR code");
         return PADDING;
     };
+
+    temp_buffer.resize(buffer_len, 0);
+    out_buffer.resize(buffer_len, 0);
 
     let qr_code = match qrcodegen_no_heap::QrCode::encode_text(
         qrcode_string_data,
