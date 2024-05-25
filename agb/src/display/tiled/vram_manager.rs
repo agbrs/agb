@@ -461,4 +461,11 @@ impl VRamManager {
             self.set_background_palette(palette_index as u8, entry);
         }
     }
+
+    /// Gets the index of the colour for a given background palette, or None if it doesn't exist
+    pub fn find_colour_index_16(&mut self, palette_index: usize, colour: u16) -> Option<usize> {
+        assert!(palette_index < 16);
+
+        (0..16).find(|i| PALETTE_BACKGROUND.get(palette_index * 16 + i) == colour)
+    }
 }
