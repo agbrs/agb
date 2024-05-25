@@ -1,12 +1,13 @@
 use core::{fmt::Write, panic::PanicInfo};
 
-use alloc::{format, vec::Vec};
+use alloc::{collections::TryReserveError, format, vec::Vec};
+use qrcodegen_no_heap::DataTooLong;
 
 use crate::{
     backtrace,
     display::{bitmap3::Bitmap3, busy_wait_for_vblank, HEIGHT, WIDTH},
     dma::dma3_exclusive,
-    mgba, syscall,
+    mgba, syscall, ExternalAllocator,
 };
 
 mod text;
@@ -70,32 +71,53 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
 }
 const PADDING: i32 = 8;
 
+struct QrCodeBuffers {
+    temp_buffer: Vec<u8, ExternalAllocator>,
+    out_buffer: Vec<u8, ExternalAllocator>,
+    version: qrcodegen_no_heap::Version,
+}
+
+impl QrCodeBuffers {
+    fn new(version: qrcodegen_no_heap::Version) -> Result<Self, TryReserveError> {
+        let buffer_length = version.buffer_len();
+        let mut temp = Vec::try_with_capacity_in(buffer_length, ExternalAllocator)?;
+        let mut out = Vec::try_with_capacity_in(buffer_length, ExternalAllocator)?;
+        temp.resize(buffer_length, 0);
+        out.resize(buffer_length, 0);
+
+        Ok(Self {
+            temp_buffer: temp,
+            out_buffer: out,
+            version,
+        })
+    }
+
+    fn generate_qr_code(&mut self, data: &str) -> Result<qrcodegen_no_heap::QrCode, DataTooLong> {
+        qrcodegen_no_heap::QrCode::encode_text(
+            data,
+            &mut self.temp_buffer,
+            &mut self.out_buffer,
+            qrcodegen_no_heap::QrCodeEcc::Medium,
+            qrcodegen_no_heap::Version::MIN,
+            self.version,
+            None,
+            true,
+        )
+    }
+}
+
 /// Returns the width / height of the QR code + padding in pixels
 fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
-    let buffer_len = MAX_VERSION.buffer_len();
 
-    let (Ok(mut temp_buffer), Ok(mut out_buffer)) = (
-        Vec::try_with_capacity_in(buffer_len, crate::ExternalAllocator),
-        Vec::try_with_capacity_in(buffer_len, crate::ExternalAllocator),
-    ) else {
+    let Ok(mut buffers) = QrCodeBuffers::new(MAX_VERSION) else {
         crate::println!("Failed to allocate memory to generate QR code");
         return PADDING;
     };
 
-    temp_buffer.resize(buffer_len, 0);
-    out_buffer.resize(buffer_len, 0);
+    let qr_code = buffers.generate_qr_code(qrcode_string_data);
 
-    let qr_code = match qrcodegen_no_heap::QrCode::encode_text(
-        qrcode_string_data,
-        &mut temp_buffer,
-        &mut out_buffer,
-        qrcodegen_no_heap::QrCodeEcc::Medium,
-        qrcodegen_no_heap::Version::MIN,
-        MAX_VERSION,
-        None,
-        true,
-    ) {
+    let qr_code = match qr_code {
         Ok(qr_code) => qr_code,
         Err(e) => {
             crate::println!("Error generating qr code: {e:?}");
@@ -115,4 +137,20 @@ fn draw_qr_code(gfx: &mut Bitmap3<'_>, qrcode_string_data: &str) -> i32 {
     }
 
     qr_code.size() * 2 + PADDING * 2
+}
+
+#[cfg(test)]
+mod tests {
+    use super::QrCodeBuffers;
+
+    const MAX_VERSION: qrcodegen_no_heap::Version = qrcodegen_no_heap::Version::new(6);
+
+    #[test_case]
+    fn check_qr_code_generation(_: &mut crate::Gba) {
+        let mut buffers =
+            QrCodeBuffers::new(MAX_VERSION).expect("should be able to allocate buffers");
+        buffers
+            .generate_qr_code("https://agbrs.dev/crash#09rESxF0r0Cz06hv1")
+            .expect("should be able to generate qr code");
+    }
 }
