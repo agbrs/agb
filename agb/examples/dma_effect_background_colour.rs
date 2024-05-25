@@ -25,7 +25,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let dma = gba.dma.dma().dma0;
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo_basic(&mut map, &mut vram);
 
     let vblank = VBlank::get();
 
