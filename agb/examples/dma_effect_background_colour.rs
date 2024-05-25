@@ -25,24 +25,25 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let dma = gba.dma.dma().dma0;
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo_basic(&mut map, &mut vram);
 
     let vblank = VBlank::get();
 
     let colours: Box<[_]> = (0..160).map(|i| ((i * 0xffff) / 160) as u16).collect();
 
-    let mut frame = 0;
+    let background_colour = 0x732b; // generated using `https://agbrs.dev/colour`
+    let background_colour_index = vram
+        .find_colour_index_16(0, background_colour)
+        .expect("Should contain colour 0x732b");
 
     loop {
-        // hardcoding palette index 2 here which you wouldn't want to do in a real example (instead, look for
-        // the colour you want to replace)
-        let _background_color_transfer =
-            unsafe { dma.hblank_transfer(&vram.background_palette_colour_dma(0, 2), &colours) };
+        let _background_color_transfer = unsafe {
+            dma.hblank_transfer(
+                &vram.background_palette_colour_dma(0, background_colour_index),
+                &colours,
+            )
+        };
 
         vblank.wait_for_vblank();
-        frame += 1;
-        if frame > 160 {
-            frame = 0;
-        }
     }
 }
