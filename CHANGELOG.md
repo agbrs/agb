@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.2] - 2024/05/25
+
 ### Fixed
 
 - Fixed the crash screen to show debug text even if the qr code fails to generate.

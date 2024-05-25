@@ -1,11 +1,11 @@
 [package]
 name = "agb_fixnum"
-version = "0.20.1"
+version = "0.20.2"
 edition = "2021"
 license = "MPL-2.0"
 description = "Library for abstracting over fixed precision numbers. Designed for use with the agb library for the Game Boy Advance"
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-agb_macros = { version = "0.20.1", path = "../agb-macros" }
+agb_macros = { version = "0.20.2", path = "../agb-macros" }
 num-traits = { version = "0.2", default-features = false }
