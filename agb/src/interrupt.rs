@@ -413,29 +413,6 @@ impl VBlank {
     }
 }
 
-#[must_use]
-/// A basic profiler you can use to find hot functions in your code.
-///
-/// The behaviour of this function is undefined in the sense that it will output
-/// some information in some way that can be interpreted in a way to give some
-/// profiling information. What it outputs, how it outputs it, and how to
-/// interpret it are all subject to change at any time.
-///
-/// With that out of the way, the current version will, in mgba, output the
-/// program counter at regular intervals. This can be used to see hot functions
-/// using, for example, addr2line.
-pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandler {
-    timer.set_interrupt(true);
-    timer.set_overflow_amount(period);
-    timer.set_enabled(true);
-
-    unsafe {
-        add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
-            crate::println!("{:#010x}", crate::program_counter_before_interrupt());
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use portable_atomic::{AtomicU8, AtomicU32};
