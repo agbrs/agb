@@ -449,8 +449,8 @@ mod tests {
     fn test_nested_interrupts(gba: &mut crate::Gba) {
         let mut timers = gba.timers.timers();
 
-        let timer_a = &mut timers.timer2;
-        let timer_b = &mut timers.timer3;
+        let timer_a = &mut timers.timer3;
+        let timer_b = &mut timers.timer2;
 
         timer_a.set_interrupt(true);
         timer_a.set_overflow_amount(10000);
