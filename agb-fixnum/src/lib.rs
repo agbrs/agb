@@ -45,15 +45,15 @@ pub trait FixedWidthInteger:
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
-    fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
+    fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self;
     /// Returns Some((a * b) >> N) if the multiplication didn't overflowed
-    fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self>;
+    fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self>;
     /// Returns ((a * b) >> N, flag), where flag is true if the operation overflowed
-    fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool);
+    fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool);
     /// Returns (a * b) >> N, saturating at the numeric bounds instead of overflowing
-    fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self;
+    fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self;
     /// Returns (a * b) >> N, but doesn't panic in case of overflow in debug mode
-    fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self;
+    fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self;
 }
 
 macro_rules! fixed_width_integer_impl {
@@ -114,10 +114,10 @@ macro_rules! upcast_multiply_impl {
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> n) | (high << (32 - n)) as u32) as $T;
-            let is_overflow = (high >> n) != (res >> 31);
+            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+            let is_overflow = (high >> N) != (res >> 31);
             if cfg!(debug_assertions) && is_overflow {
                 panic!("attempt to multiply with overflow");
             }
@@ -126,10 +126,10 @@ macro_rules! upcast_multiply_impl {
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self> {
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
             let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> n) | (high << (32 - n)) as u32) as $T;
-            let is_overflow = (high >> n) != (res >> 31);
+            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+            let is_overflow = (high >> N) != (res >> 31);
             if is_overflow {
                 None
             } else {
@@ -139,19 +139,19 @@ macro_rules! upcast_multiply_impl {
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool) {
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
             let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> n) | (high << (32 - n)) as u32) as $T;
-            let is_overflow = (high >> n) != (res >> 31);
+            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+            let is_overflow = (high >> N) != (res >> 31);
             (res, is_overflow)
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> n) | (high << (32 - n)) as u32) as $T;
-            let is_overflow = (high >> n) != (res >> 31);
+            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+            let is_overflow = (high >> N) != (res >> 31);
             if is_overflow {
                 if (a < 0) ^ (b < 0) {
                     <$T>::MIN
@@ -165,9 +165,9 @@ macro_rules! upcast_multiply_impl {
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_signed(a, b);
-            ((low >> n) | (high << (32 - n)) as u32) as $T
+            ((low >> N) | (high << (32 - N)) as u32) as $T
         }
     };
     ($T: ty, optimised_64_bit_unsigned) => {
@@ -175,58 +175,58 @@ macro_rules! upcast_multiply_impl {
         upcast_multiply_impl!($T, u64);
 
         #[cfg(target_arch = "arm")]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> n) != 0;
+            let is_overflow = (high >> N) != 0;
             if cfg!(debug_assertions) && is_overflow {
                 panic!("attempt to multiply with overflow");
             }
-            ((low >> n) | (high << (32 - n))) as $T
+            ((low >> N) | (high << (32 - N))) as $T
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self> {
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
             let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> n) != 0;
+            let is_overflow = (high >> N) != 0;
             if is_overflow {
                 None
             } else {
-                Some(((low >> n) | (high << (32 - n))) as $T)
+                Some(((low >> N) | (high << (32 - N))) as $T)
             }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool) {
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
             let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> n) != 0;
-            (((low >> n) | (high << (32 - n))) as $T, is_overflow)
+            let is_overflow = (high >> N) != 0;
+            (((low >> N) | (high << (32 - N))) as $T, is_overflow)
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> n) != 0;
+            let is_overflow = (high >> N) != 0;
             if is_overflow {
                 <$T>::MAX
             } else {
-                ((low >> n) | (high << (32 - n))) as $T
+                ((low >> N) | (high << (32 - N))) as $T
             }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
             let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            ((low >> n) | (high << (32 - n))) as $T
+            ((low >> N) | (high << (32 - N))) as $T
         }
     };
     ($T: ty, $Upcast: ty) => {
         #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
             let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
             if cfg!(debug_assertions) && is_overflow {
                 panic!("attempt to multiply with overflow");
@@ -235,8 +235,8 @@ macro_rules! upcast_multiply_impl {
         }
 
         #[inline(always)]
-        fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self> {
-            let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
             let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
             if is_overflow {
                 None
@@ -246,15 +246,15 @@ macro_rules! upcast_multiply_impl {
         }
 
         #[inline(always)]
-        fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool) {
-            let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
             let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
             (res as $T, is_overflow)
         }
 
         #[inline(always)]
-        fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self {
-            let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
             let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
             if is_overflow {
                 #[allow(unused_comparisons)]
@@ -269,8 +269,8 @@ macro_rules! upcast_multiply_impl {
         }
 
         #[inline(always)]
-        fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self {
-            ((a as $Upcast) * (b as $Upcast) >> n) as $T
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
+            ((a as $Upcast) * (b as $Upcast) >> N) as $T
         }
     };
 }
@@ -394,7 +394,7 @@ where
 {
     type Output = Self;
     fn mul(self, rhs: Num<I, N>) -> Self::Output {
-        Num(I::upcast_multiply(self.0, rhs.0, N))
+        Num(I::upcast_multiply::<N>(self.0, rhs.0))
     }
 }
 
@@ -755,7 +755,7 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
 
     /// Checked integer multiplication. Computes self * rhs, returning None if overflow occurred
     pub fn checked_mul(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
-        I::upcast_multiply_checked(self.0, rhs.into().0, N).map(|n| Num(n))
+        I::upcast_multiply_checked::<N>(self.0, rhs.into().0).map(|n| Num(n))
     }
 
     /// Checked integer subtraction. Computes self - rhs, returning None if overflow occurred
@@ -773,7 +773,7 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
     /// Calculates the multiplication of self and rhs.
     /// Returns a tuple of the multiplication along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
     pub fn overflowing_mul(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
-        let (res, flag) = I::upcast_multiply_overflowing(self.0, rhs.into().0, N);
+        let (res, flag) = I::upcast_multiply_overflowing::<N>(self.0, rhs.into().0);
         (Num(res), flag)
     }
 
@@ -791,7 +791,7 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
 
     /// Saturating integer multiplication. Computes self * rhs, saturating at the numeric bounds instead of overflowing
     pub fn saturating_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
-        Num(I::upcast_multiply_saturating(self.0, rhs.into().0, N))
+        Num(I::upcast_multiply_saturating::<N>(self.0, rhs.into().0))
     }
 
     /// Saturating integer subtraction. Computes self - rhs, saturating at the numeric bounds instead of overflowing
@@ -806,7 +806,7 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
 
     /// Wrapping (modular) multiplication. Computes self * rhs, wrapping around at the boundary of the type
     pub fn wrapping_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
-        Num(I::upcast_multiply_wrapping(self.0, rhs.into().0, N))
+        Num(I::upcast_multiply_wrapping::<N>(self.0, rhs.into().0))
     }
 
     /// Wrapping (modular) subtraction. Computes self - rhs, wrapping around at the boundary of the type
