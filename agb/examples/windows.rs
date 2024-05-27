@@ -25,26 +25,11 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     let mut window = gba.display.window.get();
-    window
-        .win_in(WinIn::Win0)
-        .set_background_enable(map.background(), true)
-        .set_position(&Rect::new((10, 10).into(), (64, 64).into()))
-        .enable();
-
-    window
-        .win_out()
-        .enable()
-        .set_background_enable(map.background(), true)
-        .set_blend_enable(true);
 
     example_logo::display_logo(&mut map, &mut vram);
+    map.commit();
 
     let mut blend = gba.display.blend.get();
-
-    blend
-        .set_background_enable(Layer::Top, map.background(), true)
-        .set_backdrop_enable(Layer::Bottom, true)
-        .set_blend_mode(BlendMode::Normal);
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
@@ -72,13 +57,33 @@ fn main(mut gba: agb::Gba) -> ! {
 
         blend_amount = blend_amount.clamp(0.into(), 1.into());
 
-        blend.set_blend_weight(Layer::Top, blend_amount.try_change_base().unwrap());
+        let mut bg_iter = gfx.iter();
+        let background_id = map.show(&mut bg_iter);
+
+        vblank.wait_for_vblank();
+
+        blend
+            .reset()
+            .set_background_enable(Layer::Top, background_id, true)
+            .set_backdrop_enable(Layer::Bottom, true)
+            .set_blend_mode(BlendMode::Normal)
+            .set_blend_weight(Layer::Top, blend_amount.try_change_base().unwrap());
 
         window
             .win_in(WinIn::Win0)
-            .set_position(&Rect::new(pos.floor(), (64, 64).into()));
+            .reset()
+            .set_background_enable(background_id, true)
+            .set_position(&Rect::new(pos.floor(), (64, 64).into()))
+            .enable();
 
-        vblank.wait_for_vblank();
+        window
+            .win_out()
+            .reset()
+            .enable()
+            .set_background_enable(background_id, true)
+            .set_blend_enable(true);
+
+        bg_iter.commit(&mut vram);
         window.commit();
         blend.commit();
     }
