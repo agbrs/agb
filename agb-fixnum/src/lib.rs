@@ -8,7 +8,10 @@ use core::{
     mem::size_of,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
-use num_traits::{One, PrimInt, Signed, Zero};
+use num_traits::{
+    ops::overflowing::{OverflowingAdd, OverflowingSub},
+    One, PrimInt, Signed, WrappingAdd, WrappingSub, Zero,
+};
 
 #[doc(hidden)]
 /// Used internally by the [num!] macro which should be used instead.
@@ -36,11 +39,21 @@ impl<I: FixedWidthInteger, const N: usize> Number for Num<I, N> {}
 impl<I: PrimInt> Number for I {}
 
 /// A trait for integers with fixed width
-pub trait FixedWidthInteger: Number + PrimInt + Display {
+pub trait FixedWidthInteger:
+    Number + PrimInt + OverflowingAdd + OverflowingSub + WrappingAdd + WrappingSub + Display
+{
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
     fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
+    /// Returns Some((a * b) >> N) if the multiplication didn't overflowed
+    fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self>;
+    /// Returns ((a * b) >> N, flag), where flag is true if the operation overflowed
+    fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool);
+    /// Returns (a * b) >> N, saturating at the numeric bounds instead of overflowing
+    fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self;
+    /// Returns (a * b) >> N, but doesn't panic in case of overflow in debug mode
+    fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self;
 }
 
 macro_rules! fixed_width_integer_impl {
@@ -52,14 +65,48 @@ macro_rules! fixed_width_integer_impl {
             }
 
             upcast_multiply_impl!($T, $Upcast);
+
+            #[inline(always)]
+            fn upcast_multiply_checked(a: Self, b: Self, n: usize) -> Option<Self> {
+                let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+                let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+                if is_overflow {
+                    None
+                } else {
+                    Some(res as $T)
+                }
+            }
+
+            #[inline(always)]
+            fn upcast_multiply_overflowing(a: Self, b: Self, n: usize) -> (Self, bool) {
+                let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+                let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+                (res as $T, is_overflow)
+            }
+
+            #[inline(always)]
+            fn upcast_multiply_saturating(a: Self, b: Self, n: usize) -> Self {
+                let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+                let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+                if is_overflow {
+                    #[allow(unused_comparisons)]
+                    if (a < 0) ^ (b < 0) {
+                        <$T>::MIN
+                    } else {
+                        <$T>::MAX
+                    }
+                } else {
+                    res as $T
+                }
+            }
         }
     };
 }
 
 macro_rules! upcast_multiply_impl {
-    ($T: ty, optimised_64_bit) => {
+    ($T: ty, $Upcast:ty, optimised) => {
         #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+        fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self {
             use num_traits::One;
 
             let mask = (Self::one() << n).wrapping_sub(1);
@@ -78,20 +125,53 @@ macro_rules! upcast_multiply_impl {
                 )
                 .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
         }
+
+        #[inline(always)]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            if cfg!(debug_assertions) {
+                let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+                let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+                if cfg!(debug_assertions) && is_overflow {
+                    panic!("attempt to multiply with overflow");
+                }
+                return res as $T;
+            }
+
+            upcast_multiply_wrapping(a, b, n)
+        }
     };
+
+    (i32, $Upcast:ty) => {
+        upcast_multiply_impl!(i32, $Upcast, optimised);
+    };
+    (u32, $Upcast:ty) => {
+        upcast_multiply_impl!(u32, $Upcast, optimised);
+    };
+
     ($T: ty, $Upcast: ty) => {
         #[inline(always)]
         fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            (((a as $Upcast) * (b as $Upcast)) >> n) as $T
+            let res = ((a as $Upcast) * (b as $Upcast)) >> n;
+            let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+            if cfg!(debug_assertions) && is_overflow {
+                panic!("attempt to multiply with overflow");
+            }
+            res as $T
+        }
+
+        #[inline(always)]
+        fn upcast_multiply_wrapping(a: Self, b: Self, n: usize) -> Self {
+            ((a as $Upcast) * (b as $Upcast) >> n) as $T
         }
     };
 }
 
 fixed_width_integer_impl!(u8, u32);
+fixed_width_integer_impl!(i8, i32);
 fixed_width_integer_impl!(i16, i32);
 fixed_width_integer_impl!(u16, u32);
-fixed_width_integer_impl!(i32, optimised_64_bit);
-fixed_width_integer_impl!(u32, optimised_64_bit);
+fixed_width_integer_impl!(i32, i64);
+fixed_width_integer_impl!(u32, u64);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -553,7 +633,10 @@ impl<I: FixedWidthInteger + Signed, const N: usize> Signed for Num<I, N> {
 
 impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let repr = self.0.to_i64().expect("Num<I, N>'s I can always be converted to i64");
+        let repr = self
+            .0
+            .to_i64()
+            .expect("Num<I, N>'s I can always be converted to i64");
         let mut integral = repr >> N;
         let mask = (1_i64 << N) - 1;
 
@@ -625,6 +708,79 @@ impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
         use core::any::type_name;
 
         write!(f, "Num<{}, {}>({})", type_name::<I>(), N, self)
+    }
+}
+
+impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
+    /// Checked integer addition. Computes self + rhs, returning None if overflow occurred
+    pub fn checked_add(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        self.0.checked_add(&rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Checked integer division. Computes self / rhs, returning None if rhs == 0 or the division results in overflow
+    pub fn checked_div(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        (self.0 << N).checked_div(&rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Checked integer multiplication. Computes self * rhs, returning None if overflow occurred
+    pub fn checked_mul(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        I::upcast_multiply_checked(self.0, rhs.into().0, N).map(|n| Num(n))
+    }
+
+    /// Checked integer subtraction. Computes self - rhs, returning None if overflow occurred
+    pub fn checked_sub(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        self.0.checked_sub(&rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Calculates self + rhs
+    /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_add(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = self.0.overflowing_add(&rhs.into().0);
+        (Num(res), flag)
+    }
+
+    /// Calculates the multiplication of self and rhs.
+    /// Returns a tuple of the multiplication along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_mul(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = I::upcast_multiply_overflowing(self.0, rhs.into().0, N);
+        (Num(res), flag)
+    }
+
+    /// Calculates self - rhs
+    /// Returns a tuple of the subtraction along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_sub(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = self.0.overflowing_sub(&rhs.into().0);
+        (Num(res), flag)
+    }
+
+    /// Saturating integer addition. Computes self + rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_add(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.saturating_add(rhs.into().0))
+    }
+
+    /// Saturating integer multiplication. Computes self * rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(I::upcast_multiply_saturating(self.0, rhs.into().0, N))
+    }
+
+    /// Saturating integer subtraction. Computes self - rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_sub(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.saturating_sub(rhs.into().0))
+    }
+
+    /// Wrapping (modular) addition. Computes self + rhs, wrapping around at the boundary of the type
+    pub fn wrapping_add(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.wrapping_add(&rhs.into().0))
+    }
+
+    /// Wrapping (modular) multiplication. Computes self * rhs, wrapping around at the boundary of the type
+    pub fn wrapping_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(I::upcast_multiply_wrapping(self.0, rhs.into().0, N))
+    }
+
+    /// Wrapping (modular) subtraction. Computes self - rhs, wrapping around at the boundary of the type
+    pub fn wrapping_sub(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.wrapping_sub(&rhs.into().0))
     }
 }
 
@@ -1558,6 +1714,234 @@ mod tests {
         str_radix_test!(138.229);
         str_radix_test!(-138.229);
         str_radix_test!(-1321.229231);
+    }
+
+    #[test]
+    fn test_to_string() {
+        use alloc::string::ToString;
+
+        let a: Num<i32, 31> = num!(0.390625);
+        assert_eq!(a.to_string(), "0.390625");
+    }
+
+    mod overflow_strategies {
+        use super::*;
+
+        macro_rules! test_overflow_strategies {
+            ($TestName: ident, $Type: ty) => {
+                #[test]
+                fn $TestName() {
+                    let max_value_integer: Num<$Type, 3> = (<$Type>::MAX >> 3).into();
+                    let min_value_integer: Num<$Type, 3> = (<$Type>::MIN >> 3).into();
+                    let max_value_fract: Num<$Type, 3> = Num::from_raw(<$Type>::MAX);
+                    let min_value_fract: Num<$Type, 3> = Num::from_raw(<$Type>::MIN);
+
+                    let max_minus_one: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 1).into();
+                    let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
+                    assert_eq!(max_minus_two.checked_add(1), Some(max_minus_one));
+                    assert_eq!(max_minus_two.checked_add(3), None);
+                    assert_eq!(max_minus_two.overflowing_add(1), (max_minus_one, false));
+                    assert_eq!(max_minus_two.overflowing_add(3), (min_value_integer, true));
+                    assert_eq!(max_minus_two.saturating_add(1), max_minus_one);
+                    assert_eq!(max_minus_two.saturating_add(3), max_value_fract);
+                    assert_eq!(max_minus_two.wrapping_add(1), max_minus_one);
+                    assert_eq!(max_minus_two.wrapping_add(3), min_value_integer);
+
+                    let eight: Num<$Type, 1> = 8.into();
+                    let four: Num<$Type, 1> = 4.into();
+                    assert_eq!(eight.checked_div(2), Some(four));
+                    assert_eq!(eight.checked_div(0), None);
+
+                    let max_minus_two_times_two: Num<$Type, 3> =
+                        ((<$Type>::MAX >> 3) - 5 | (1 << <$Type>::BITS - 1 - 3)).into();
+                    assert_eq!(max_minus_two.checked_mul(1), Some(max_minus_two));
+                    assert_eq!(four.checked_mul(2), Some(eight));
+                    assert_eq!(max_minus_two.checked_mul(2), None);
+
+                    assert_eq!(max_minus_two.overflowing_mul(1), (max_minus_two, false));
+                    assert_eq!(four.overflowing_mul(2), (eight, false));
+                    assert_eq!(
+                        max_minus_two.overflowing_mul(2),
+                        (max_minus_two_times_two, true)
+                    );
+
+                    assert_eq!(max_minus_two.saturating_mul(1), max_minus_two);
+                    assert_eq!(four.saturating_mul(2), eight);
+                    assert_eq!(max_minus_two.saturating_mul(2), max_value_fract);
+
+                    assert_eq!(max_minus_two.wrapping_mul(1), max_minus_two);
+                    assert_eq!(four.wrapping_mul(2), eight);
+                    assert_eq!(max_minus_two.wrapping_mul(2), max_minus_two_times_two);
+
+                    let min_plus_one: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 1).into();
+                    let min_plus_two: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 2).into();
+                    assert_eq!(min_plus_two.checked_sub(1), Some(min_plus_one));
+                    assert_eq!(min_plus_two.checked_sub(3), None);
+                    assert_eq!(min_plus_two.overflowing_sub(1), (min_plus_one, false));
+                    assert_eq!(min_plus_two.overflowing_sub(3), (max_value_integer, true));
+                    assert_eq!(min_plus_two.saturating_sub(1), min_plus_one);
+                    assert_eq!(min_plus_two.saturating_sub(3), min_value_fract);
+                    assert_eq!(min_plus_two.wrapping_sub(1), min_plus_one);
+                    assert_eq!(min_plus_two.wrapping_sub(3), max_value_integer);
+                }
+            };
+        }
+
+        macro_rules! test_overflow_strategies_signed_mul {
+            ($TestName: ident, $Type: ty) => {
+                #[test]
+                fn $TestName() {
+                    let two_point_five: Num<$Type, 3> = Num::from_f32(2.5);
+                    let five: Num<$Type, 3> = 5.into();
+                    let minus_two_point_five: Num<$Type, 3> = Num::from_f32(-2.5);
+                    let minus_six_point_twenty_five: Num<$Type, 3> = Num::from_f32(6.25);
+                    assert_eq!(two_point_five.checked_mul(-2), Some(-five));
+                    assert_eq!(
+                        minus_two_point_five.checked_mul(minus_two_point_five),
+                        Some(minus_six_point_twenty_five)
+                    );
+                    assert_eq!(two_point_five.overflowing_mul(-2), (-five, false));
+                    assert_eq!(
+                        minus_two_point_five.overflowing_mul(minus_two_point_five),
+                        (minus_six_point_twenty_five, false)
+                    );
+                    assert_eq!(two_point_five.saturating_mul(-2), -five);
+                    assert_eq!(
+                        minus_two_point_five.saturating_mul(minus_two_point_five),
+                        minus_six_point_twenty_five
+                    );
+                    assert_eq!(two_point_five.wrapping_mul(-2), -five);
+                    assert_eq!(
+                        minus_two_point_five.wrapping_mul(minus_two_point_five),
+                        minus_six_point_twenty_five
+                    );
+
+                    let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
+                    let very_small_times_minus_thirty_two: Num<$Type, 2> = (-32).into();
+                    let negative_very_small_squared: Num<$Type, 2> = (<$Type>::MAX >> 2).into();
+                    assert_eq!(very_small.checked_mul(-4), None);
+                    assert_eq!(very_small.checked_mul(very_small), None);
+                    assert_eq!(
+                        very_small.overflowing_mul(-32),
+                        (very_small_times_minus_thirty_two, true)
+                    );
+                    assert_eq!(
+                        very_small.overflowing_mul(-very_small),
+                        (negative_very_small_squared, true)
+                    );
+                    assert_eq!(very_small.saturating_mul(-4), Num::from_raw(<$Type>::MAX));
+                    assert_eq!(
+                        very_small.saturating_mul(-very_small),
+                        Num::from_raw(<$Type>::MIN)
+                    );
+                    assert_eq!(
+                        very_small.wrapping_mul(-32),
+                        very_small_times_minus_thirty_two
+                    );
+                    assert_eq!(
+                        very_small.wrapping_mul(-very_small),
+                        negative_very_small_squared
+                    );
+                }
+            };
+        }
+
+        macro_rules! test_panic_on_overflow {
+            ($ModName: ident, $Type: ty) => {
+                mod $ModName {
+                    use super::*;
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to add with overflow")
+                    )]
+                    fn add() {
+                        let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
+                        let three: Num<$Type, 3> = 3.into();
+                        let _ = max_minus_two + three;
+                    }
+
+                    #[test]
+                    #[should_panic(expected = "attempt to divide by zero")]
+                    fn div() {
+                        let eight: Num<$Type, 1> = 8.into();
+                        let zero: Num<$Type, 1> = 0.into();
+                        let _ = eight / zero;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul() {
+                        let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
+                        let two: Num<$Type, 3> = 2.into();
+                        let _ = max_minus_two * two;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to subtract with overflow")
+                    )]
+                    fn sub() {
+                        let min_plus_two: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 2).into();
+                        let three: Num<$Type, 3> = 3.into();
+                        let _ = min_plus_two - three;
+                    }
+                }
+            };
+        }
+
+        macro_rules! test_panic_on_overflow_signed_mul {
+            ($ModName: ident, $Type: ty) => {
+                mod $ModName {
+                    use super::*;
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul_negative_times_positive() {
+                        let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
+                        let _ = very_small * -very_small;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul_negative_times_negative() {
+                        let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
+                        let minus_thirty_two: Num<$Type, 2> = (-32).into();
+                        let _ = very_small * minus_thirty_two;
+                    }
+                }
+            };
+        }
+
+        test_overflow_strategies!(test_i8, i8);
+        test_overflow_strategies!(test_u8, u8);
+        test_overflow_strategies!(test_i16, i16);
+        test_overflow_strategies!(test_u16, u16);
+        test_overflow_strategies!(test_i32, i32);
+        test_overflow_strategies!(test_u32, u32);
+        test_overflow_strategies_signed_mul!(test_i8_signed_mul, i8);
+        test_overflow_strategies_signed_mul!(test_i16_signed_mul, i16);
+        test_overflow_strategies_signed_mul!(test_i32_signed_mul, i32);
+        test_panic_on_overflow!(test_panic_i8, i8);
+        test_panic_on_overflow!(test_panic_u8, u8);
+        test_panic_on_overflow!(test_panic_i16, i16);
+        test_panic_on_overflow!(test_panic_u16, u16);
+        test_panic_on_overflow!(test_panic_i32, i32);
+        test_panic_on_overflow!(test_panic_u32, u32);
+        test_panic_on_overflow_signed_mul!(test_panic_i8_signed_mul, i8);
+        test_panic_on_overflow_signed_mul!(test_panic_i16_signed_mul, i16);
+        test_panic_on_overflow_signed_mul!(test_panic_i32_signed_mul, i32);
     }
 
     #[cfg(not(debug_assertions))]
