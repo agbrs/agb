@@ -5,10 +5,9 @@ extern crate alloc;
 
 use agb::{
     display::{
-        example_logo,
-        tiled::{RegularBackgroundSize, TileFormat},
+        HEIGHT, WIDTH, example_logo,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         window::WinIn,
-        HEIGHT, WIDTH,
     },
     fixnum::{Num, Rect, Vector2D},
     interrupt::VBlank,
@@ -23,23 +22,19 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (mut gfx, mut vram) = gba.display.video.tiled();
 
-    let mut map = gfx.background(
+    let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
     let mut window = gba.display.window.get();
-    window
-        .win_in(WinIn::Win0)
-        .set_background_enable(map.background(), true)
-        .set_position(&Rect::new((10, 10).into(), (64, 64).into()))
-        .enable();
 
-    let dmas = gba.dma.dma();
+    let mut dmas = gba.dma.dma();
 
     example_logo::display_logo(&mut map, &mut vram);
+    map.commit();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
@@ -58,6 +53,7 @@ fn main(mut gba: agb::Gba) -> ! {
         .collect();
 
     let mut circle_poses = vec![0; 160];
+    let mut circle_transfer = None;
 
     loop {
         pos += velocity;
@@ -83,14 +79,23 @@ fn main(mut gba: agb::Gba) -> ! {
             *value = circle[(i - y_pos) as usize - 1] + x_adjustment;
         }
 
+        let mut bg_iter = gfx.iter();
+        let background_id = map.show(&mut bg_iter);
+
+        vblank.wait_for_vblank();
+        bg_iter.commit(&mut vram);
+
         window
             .win_in(WinIn::Win0)
-            .set_position(&Rect::new(pos.floor(), (64, 65).into()));
+            .set_background_enable(background_id, true)
+            .set_position(&Rect::new(pos.floor(), (64, 65).into()))
+            .enable();
+
         window.commit();
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
-        let _transfer = unsafe { dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses) };
 
-        vblank.wait_for_vblank();
+        drop(circle_transfer);
+        circle_transfer = Some(dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses));
     }
 }
