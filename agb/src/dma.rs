@@ -70,14 +70,18 @@ impl Dma {
     /// drop the DmaTransferHandler return value until the next vblank interrupt to ensure that you
     /// a continuous effect.
     ///
+    /// # Safety
+    ///
+    /// While DmaTransferHandle is not dropped, the slice at `values` must not move in memory.
+    ///
     /// # Examples
     ///
     /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub fn hblank_transfer<T>(
-        &self,
+    pub unsafe fn hblank_transfer<'a, T>(
+        &'a self,
         location: &DmaControllable<T>,
-        values: &[T],
-    ) -> DmaTransferHandle<T>
+        values: &'a [T],
+    ) -> DmaTransferHandle<'a, T>
     where
         T: Copy,
     {
@@ -89,13 +93,10 @@ impl Dma {
 
         let n_transfers = (size_of::<T>() / 2) as u32;
 
-        self.source_addr.set(handle.data[1..].as_ptr() as u32);
+        self.source_addr.set(handle.data.as_ptr().add(1) as u32);
         self.dest_addr.set(location.memory_location as u32);
 
-        // SAFETY: by construction it is safe to write to location.memory_location
-        unsafe {
-            location.memory_location.write_volatile(values[0]);
-        }
+        location.memory_location.write_volatile(values[0]);
 
         self.ctrl_addr.set(
             (0b10 << 0x15) | // keep destination address fixed
@@ -126,15 +127,17 @@ impl<Item> DmaControllable<Item> {
     }
 }
 
-pub struct DmaTransferHandle<T>
+pub struct DmaTransferHandle<'a, T>
 where
     T: Copy,
 {
     number: usize,
     data: Pin<Box<[T]>>,
+
+    phantom: PhantomData<&'a ()>,
 }
 
-impl<T> DmaTransferHandle<T>
+impl<'a, T> DmaTransferHandle<'a, T>
 where
     T: Copy,
 {
@@ -142,11 +145,12 @@ where
         Self {
             number,
             data: Box::into_pin(data.into()),
+            phantom: PhantomData,
         }
     }
 }
 
-impl<T> Drop for DmaTransferHandle<T>
+impl<'a, T> Drop for DmaTransferHandle<'a, T>
 where
     T: Copy,
 {

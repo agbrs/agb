@@ -37,10 +37,12 @@ fn main(mut gba: agb::Gba) -> ! {
         .expect("Should contain colour 0x732b");
 
     loop {
-        let _background_color_transfer = dma.hblank_transfer(
-            &vram.background_palette_colour_dma(0, background_colour_index),
-            &colours,
-        );
+        let _background_color_transfer = unsafe {
+            dma.hblank_transfer(
+                &vram.background_palette_colour_dma(0, background_colour_index),
+                &colours,
+            )
+        };
 
         vblank.wait_for_vblank();
     }
