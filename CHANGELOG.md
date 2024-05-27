@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `find_colour_index_16` and `find_colour_index_256` to the `VRamManager` to find where a colour is in a palette.
+- Implemented Wrapping*, Overflowing*, Checked* and Saturating* methods from num_traits for fixnums.
 
 ## [0.20.2] - 2024/05/25
 
