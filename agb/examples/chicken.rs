@@ -65,7 +65,7 @@ fn main(mut gba: agb::Gba) -> ! {
             &mut vram,
             (i % 32, i / 32),
             &tileset,
-            TileSetting::new(tile, false, false, 0),
+            TileSetting::from_raw(tile & ((1 << 10) - 1), tile & !((1 << 10) - 1)),
         );
     }
 

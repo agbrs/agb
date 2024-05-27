@@ -39,6 +39,14 @@ impl TileSetting {
     }
 
     #[must_use]
+    pub const fn from_raw(tile_id: u16, effect_bits: u16) -> Self {
+        Self {
+            tile_id,
+            effect_bits,
+        }
+    }
+
+    #[must_use]
     pub const fn hflip(self, should_flip: bool) -> Self {
         Self {
             effect_bits: self.effect_bits ^ ((should_flip as u16) << 10),
