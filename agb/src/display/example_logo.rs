@@ -9,13 +9,10 @@ pub fn display_logo(map: &mut RegularBackgroundTiles, vram: &mut VRamManager) {
     map.fill_with(vram, &agb_logo::test_logo);
 }
 
-pub fn display_logo_basic(map: &mut RegularMap, vram: &mut VRamManager) {
+pub fn display_logo_basic(map: &mut RegularBackgroundTiles, vram: &mut VRamManager) {
     vram.set_background_palettes(agb_logo_basic::PALETTES);
 
     map.fill_with(vram, &agb_logo_basic::test_logo);
-
-    map.commit(vram);
-    map.set_visible(true);
 }
 
 #[cfg(test)]
