@@ -298,11 +298,11 @@ impl AffineMatrixBackground {
         transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
         scale: impl Into<Vector2D<Num<i32, 8>>>,
         rotation: Num<i32, 16>,
-        position: impl Into<Vector2D<Num<i32, 8>>>,
+        position: impl Into<Vector2D<i16>>,
     ) -> Self {
         crate::syscall::bg_affine_matrix(
             transform_origin.into(),
-            position.into().try_change_base::<i16, 8>().unwrap().floor(),
+            position.into(),
             scale.into().try_change_base().unwrap(),
             rotation.rem_euclid(1.into()).try_change_base().unwrap(),
         )

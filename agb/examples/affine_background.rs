@@ -43,8 +43,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     loop {
         input.update();
-        scroll_x += input.x_tri() as i32;
-        scroll_y += input.y_tri() as i32;
+        scroll_x += input.x_tri() as i16;
+        scroll_y += input.y_tri() as i16;
 
         let scroll_pos = (scroll_x, scroll_y);
 
