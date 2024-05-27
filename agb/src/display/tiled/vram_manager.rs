@@ -435,11 +435,13 @@ impl VRamManager {
         assert!(pal_index < 16);
         assert!(colour_index < 16);
 
-        dma::DmaControllable::new(unsafe {
-            PALETTE_BACKGROUND
-                .as_ptr()
-                .add(16 * pal_index + colour_index)
-        })
+        unsafe {
+            dma::DmaControllable::new(
+                PALETTE_BACKGROUND
+                    .as_ptr()
+                    .add(16 * pal_index + colour_index),
+            )
+        }
     }
 
     /// Sets a single colour for a given background palette. Takes effect immediately

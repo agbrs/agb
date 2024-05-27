@@ -89,7 +89,7 @@ impl Dma {
             values.len() >= 160,
             "need to pass at least 160 values for a hblank_transfer"
         );
-        let handle = unsafe { DmaTransferHandle::new(self.number, values) };
+        let handle = DmaTransferHandle::new(self.number, values);
 
         let n_transfers = (size_of::<T>() / 2) as u32;
 
@@ -122,7 +122,7 @@ pub struct DmaControllable<Item> {
 }
 
 impl<Item> DmaControllable<Item> {
-    pub(crate) fn new(memory_location: *mut Item) -> Self {
+    pub(crate) unsafe fn new(memory_location: *mut Item) -> Self {
         Self { memory_location }
     }
 }
@@ -141,7 +141,7 @@ impl<T> DmaTransferHandle<'_, T>
 where
     T: Copy,
 {
-    pub(crate) unsafe fn new(number: usize, data: &[T]) -> Self {
+    pub(crate) fn new(number: usize, data: &[T]) -> Self {
         Self {
             number,
             data: Box::into_pin(data.into()),

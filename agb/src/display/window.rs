@@ -276,6 +276,6 @@ impl MovableWindow {
     /// [`set_position`](Self::set_position).
     #[must_use]
     pub fn horizontal_position_dma(&self) -> dma::DmaControllable<u16> {
-        dma::DmaControllable::new(unsafe { REG_HORIZONTAL_BASE.add(self.id) })
+        unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id)) }
     }
 }

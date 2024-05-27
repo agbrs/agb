@@ -8,6 +8,7 @@ pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager}
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
+    dma::DmaControllable,
     fixnum::Vector2D,
     memory_mapped::MemoryMapped,
 };
@@ -16,6 +17,13 @@ use super::DISPLAY_CONTROL;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
+
+impl BackgroundId {
+    #[must_use]
+    pub fn x_scroll_dma(self) -> DmaControllable<u16> {
+        unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
+    }
+}
 
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 
