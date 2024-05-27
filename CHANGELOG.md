@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `find_colour_index_16` and `find_colour_index_256` to the `VRamManager` to find where a colour is in a palette.
 
+### Fixed
+
+- Affine background center position didn't work outside of the upper left quadrant of the gba's screen.
+
 ## [0.20.2] - 2024/05/25
 
 ### Fixed
