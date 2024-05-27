@@ -77,11 +77,11 @@ impl Dma {
     /// # Examples
     ///
     /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub unsafe fn hblank_transfer<'a, T>(
-        &'a self,
+    pub fn hblank_transfer<'dma, T>(
+        &'dma mut self,
         location: &DmaControllable<T>,
-        values: &'a [T],
-    ) -> DmaTransferHandle<'a, T>
+        values: &[T],
+    ) -> DmaTransferHandle<'dma, T>
     where
         T: Copy,
     {
@@ -127,17 +127,17 @@ impl<Item> DmaControllable<Item> {
     }
 }
 
-pub struct DmaTransferHandle<'a, T>
+pub struct DmaTransferHandle<'dma, T>
 where
     T: Copy,
 {
     number: usize,
     data: Pin<Box<[T]>>,
 
-    phantom: PhantomData<&'a ()>,
+    _phantom: PhantomData<&'dma ()>,
 }
 
-impl<T> DmaTransferHandle<'_, T>
+impl<'dma, T> DmaTransferHandle<'dma, T>
 where
     T: Copy,
 {
@@ -145,12 +145,13 @@ where
         Self {
             number,
             data: Box::into_pin(data.into()),
-            phantom: PhantomData,
+
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<T> Drop for DmaTransferHandle<'_, T>
+impl<'dma, T> Drop for DmaTransferHandle<'dma, T>
 where
     T: Copy,
 {

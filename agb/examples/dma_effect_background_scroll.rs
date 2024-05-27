@@ -28,24 +28,27 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let vblank = VBlank::get();
 
-    let dma = gba.dma.dma().dma0;
+    let mut dma = gba.dma.dma().dma0;
     let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
 
     let mut frame = 0;
 
+    let mut x_scroll_transfer = None;
+
     loop {
         let mut bg_iter = gfx.iter();
         let background_id = map.show(&mut bg_iter);
-        bg_iter.commit(&mut vram);
-
-        let _x_scroll_transfer =
-            dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]);
-
-        vblank.wait_for_vblank();
 
         frame += 1;
         if frame > offsets.len() - HEIGHT as usize {
             frame = 0;
         }
+
+        vblank.wait_for_vblank();
+        bg_iter.commit(&mut vram);
+
+        drop(x_scroll_transfer);
+        x_scroll_transfer =
+            Some(dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]));
     }
 }
