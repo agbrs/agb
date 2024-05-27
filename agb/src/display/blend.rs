@@ -212,9 +212,3 @@ impl<'gba> Blend<'gba> {
         }
     }
 }
-
-impl Drop for Blend<'_> {
-    fn drop(&mut self) {
-        self.reset().commit();
-    }
-}

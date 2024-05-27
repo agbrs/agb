@@ -24,12 +24,8 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    let mut window = gba.display.window.get();
-
     example_logo::display_logo(&mut map, &mut vram);
     map.commit();
-
-    let mut blend = gba.display.blend.get();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
@@ -62,8 +58,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
         vblank.wait_for_vblank();
 
+        let mut window = gba.display.window.get();
+        let mut blend = gba.display.blend.get();
+
         blend
-            .reset()
             .set_background_enable(Layer::Top, background_id, true)
             .set_backdrop_enable(Layer::Bottom, true)
             .set_blend_mode(BlendMode::Normal)
@@ -71,14 +69,12 @@ fn main(mut gba: agb::Gba) -> ! {
 
         window
             .win_in(WinIn::Win0)
-            .reset()
             .set_background_enable(background_id, true)
             .set_position(&Rect::new(pos.floor(), (64, 64).into()))
             .enable();
 
         window
             .win_out()
-            .reset()
             .enable()
             .set_background_enable(background_id, true)
             .set_blend_enable(true);
