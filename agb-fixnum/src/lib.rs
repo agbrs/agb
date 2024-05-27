@@ -784,6 +784,45 @@ impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
     }
 }
 
+macro_rules! num_trait_impl {
+    ($NumTrait:path, $NumTraitFnName:ident, $ReturnType:ty) => {
+        impl<I: FixedWidthInteger, const N: usize> $NumTrait for Num<I, N> {
+            fn $NumTraitFnName(&self, v: &Self) -> $ReturnType {
+                Self::$NumTraitFnName(self, *v)
+            }
+        }
+    };
+}
+
+num_trait_impl!(num_traits::CheckedAdd, checked_add, Option<Self>);
+num_trait_impl!(num_traits::CheckedSub, checked_sub, Option<Self>);
+num_trait_impl!(num_traits::CheckedMul, checked_mul, Option<Self>);
+num_trait_impl!(num_traits::CheckedDiv, checked_div, Option<Self>);
+
+num_trait_impl!(num_traits::WrappingAdd, wrapping_add, Self);
+num_trait_impl!(num_traits::WrappingSub, wrapping_sub, Self);
+num_trait_impl!(num_traits::WrappingMul, wrapping_mul, Self);
+
+num_trait_impl!(num_traits::SaturatingAdd, saturating_add, Self);
+num_trait_impl!(num_traits::SaturatingSub, saturating_sub, Self);
+num_trait_impl!(num_traits::SaturatingMul, saturating_mul, Self);
+
+num_trait_impl!(
+    num_traits::ops::overflowing::OverflowingAdd,
+    overflowing_add,
+    (Self, bool)
+);
+num_trait_impl!(
+    num_traits::ops::overflowing::OverflowingSub,
+    overflowing_sub,
+    (Self, bool)
+);
+num_trait_impl!(
+    num_traits::ops::overflowing::OverflowingMul,
+    overflowing_mul,
+    (Self, bool)
+);
+
 /// A vector of two points: (x, y) represented by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Hash)]
 pub struct Vector2D<T: Number> {
