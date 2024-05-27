@@ -714,22 +714,22 @@ impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
 impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
     /// Checked integer addition. Computes self + rhs, returning None if overflow occurred
     pub fn checked_add(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
-        self.0.checked_add(&rhs.into().0).map(|n| Num(n))
+        self.0.checked_add(&rhs.into().0).map(Num)
     }
 
     /// Checked integer division. Computes self / rhs, returning None if rhs == 0 or the division results in overflow
     pub fn checked_div(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
-        (self.0 << N).checked_div(&rhs.into().0).map(|n| Num(n))
+        (self.0 << N).checked_div(&rhs.into().0).map(Num)
     }
 
     /// Checked integer multiplication. Computes self * rhs, returning None if overflow occurred
     pub fn checked_mul(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
-        I::upcast_multiply_checked(self.0, rhs.into().0, N).map(|n| Num(n))
+        I::upcast_multiply_checked(self.0, rhs.into().0, N).map(Num)
     }
 
     /// Checked integer subtraction. Computes self - rhs, returning None if overflow occurred
     pub fn checked_sub(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
-        self.0.checked_sub(&rhs.into().0).map(|n| Num(n))
+        self.0.checked_sub(&rhs.into().0).map(Num)
     }
 
     /// Calculates self + rhs
