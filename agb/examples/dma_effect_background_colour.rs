@@ -30,7 +30,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let colours: Box<[_]> = (0..160).map(|i| ((i * 0xffff) / 160) as u16).collect();
 
-    let dma = gba.dma.dma().dma0;
+    let mut dma = gba.dma.dma().dma0;
 
     let background_colour = 0x732b; // generated using `https://agbrs.dev/colour`
     let background_colour_index = vram
