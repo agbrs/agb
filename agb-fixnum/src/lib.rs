@@ -1534,6 +1534,29 @@ mod tests {
         str_radix_test!(-1321.229231);
     }
 
+    #[test]
+    fn test_multiplication_overflow() {
+        let a: Num<i16, 6> = Num::from_f32(0.625);
+        let b: Num<i16, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 6> = Num::from_f32(0.625);
+        let b: Num<u32, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = Num::from_f32(0.625);
+        let b: Num<u32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = Num::from_f32(-0.625);
+        let b: Num<i32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+    }
+
     #[cfg(not(debug_assertions))]
     #[test]
     fn test_all_multiplies() {
