@@ -90,7 +90,7 @@ fn main(mut gba: agb::Gba) -> ! {
         window.commit();
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
-        let _transfer = unsafe { dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses) };
+        let _transfer = dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses);
 
         vblank.wait_for_vblank();
     }
