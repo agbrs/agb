@@ -34,7 +34,8 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut frame = 0;
 
     loop {
-        let _x_scroll_transfer = dma.hblank_transfer(&map.x_scroll_dma(), &offsets[frame..]);
+        let _x_scroll_transfer =
+            unsafe { dma.hblank_transfer(&map.x_scroll_dma(), &offsets[frame..]) };
 
         vblank.wait_for_vblank();
         frame += 1;
