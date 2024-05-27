@@ -141,10 +141,11 @@ pub struct BackgroundIterator<'bg> {
 }
 
 impl BackgroundIterator<'_> {
-    fn set_next_regular(&mut self, data: RegularBackgroundData) {
+    fn set_next_regular(&mut self, data: RegularBackgroundData) -> BackgroundId {
         let bg_index = self.next_regular_index();
 
         self.regular_backgrounds[bg_index] = data;
+        BackgroundId(bg_index as u8)
     }
 
     fn next_regular_index(&mut self) -> usize {

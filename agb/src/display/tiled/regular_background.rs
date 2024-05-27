@@ -10,8 +10,9 @@ use alloc::{vec, vec::Vec};
 use crate::display::{tile_data::TileData, Priority};
 
 use super::{
-    BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile, TileFormat, TileSet,
-    TileSetting, VRamManager, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_START,
+    BackgroundId, BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile,
+    TileFormat, TileSet, TileSetting, VRamManager, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX,
+    VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -206,11 +207,11 @@ impl RegularBackgroundTiles {
         self.is_dirty = false;
     }
 
-    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
+    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) -> BackgroundId {
         bg_iter.set_next_regular(RegularBackgroundData {
             bg_ctrl: self.bg_ctrl_value(),
             scroll_offset: Vector2D::new(self.scroll.x as u16, self.scroll.y as u16),
-        });
+        })
     }
 
     pub fn clear(&mut self, vram: &mut VRamManager) {

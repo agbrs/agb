@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::display::blend::{BlendMode, Layer};
-use agb::display::tiled::TileFormat;
+use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
 use agb::display::{HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
@@ -16,13 +16,14 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let (mut gfx, mut vram) = gba.display.video.tiled();
 
-    let mut map = gfx.background(
+    let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
+
     let mut window = gba.display.window.get();
     window
         .win_in(WinIn::Win0)
