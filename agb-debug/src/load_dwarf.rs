@@ -1,9 +1,7 @@
 use std::{borrow::Cow, collections::HashMap, io::Cursor, rc::Rc};
 
-use addr2line::{
-    gimli,
-    object::{self, Object},
-};
+use addr2line::gimli;
+use object::Object;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
