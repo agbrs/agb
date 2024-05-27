@@ -107,6 +107,50 @@ fn upcast_multiply_wide_signed(a: i32, b: i32) -> (u32, i32) {
     (low, high)
 }
 
+macro_rules! upcast_multiply_fast_impl {
+    ($FnName: ident, i32) => {
+        upcast_multiply_fast_impl!($FnName, i32, 1);
+    };
+    ($FnName: ident, u32) => {
+        upcast_multiply_fast_impl!($FnName, u32, 0);
+    };
+    ($FnName: ident, $T: ty, $OverflowTypeExpr: expr) => {
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn $FnName<const N: usize>(a: $T, b: $T) -> ($T, bool) {
+            let mask = (1 << N).wrapping_sub(&1);
+
+            let a_floor = a >> N;
+            let a_frac = a & mask;
+
+            let b_floor = b >> N;
+            let b_frac = b & mask;
+
+            let (x, is_overflow1) = a_floor.overflowing_mul(b_floor);
+            // unsigned -> overflow if high != 0
+            // signed   -> overflow if high != (if res >= 0 {0} else {-1})
+            let is_overflow2 =
+                (x as $T >> (32 - N)) != ($OverflowTypeExpr * ((x << N) as $T >> 31));
+            let x = x << N;
+            let (y, is_overflow3) = a_floor
+                .wrapping_mul(b_frac)
+                .overflowing_add(b_floor.wrapping_mul(a_frac));
+            // cannot overflow since a_fract and b_fract are at most 16 bits
+            let z = ((a_frac as u32).wrapping_mul(b_frac as u32) >> N) as $T;
+            let (res, is_overflow4) = x.overflowing_add(y);
+            let (res, is_overflow5) = res.overflowing_add(z);
+
+            (
+                res,
+                is_overflow1 || is_overflow2 || is_overflow3 || is_overflow4 || is_overflow5,
+            )
+        }
+    };
+}
+
+upcast_multiply_fast_impl!(upcast_multiply_fast_signed, i32);
+upcast_multiply_fast_impl!(upcast_multiply_fast_unsigned, u32);
+
 macro_rules! upcast_multiply_impl {
     ($T: ty, optimised_64_bit_signed) => {
         #[cfg(not(target_arch = "arm"))]
@@ -115,9 +159,14 @@ macro_rules! upcast_multiply_impl {
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
-            let is_overflow = (high >> N) != (res >> 31);
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
             if cfg!(debug_assertions) && is_overflow {
                 panic!("attempt to multiply with overflow");
             }
@@ -127,9 +176,14 @@ macro_rules! upcast_multiply_impl {
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
-            let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
-            let is_overflow = (high >> N) != (res >> 31);
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
             if is_overflow {
                 None
             } else {
@@ -140,18 +194,27 @@ macro_rules! upcast_multiply_impl {
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
-            let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
-            let is_overflow = (high >> N) != (res >> 31);
-            (res, is_overflow)
+            if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_signed(a, b);
-            let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
-            let is_overflow = (high >> N) != (res >> 31);
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
             if is_overflow {
                 if (a < 0) ^ (b < 0) {
                     <$T>::MIN
@@ -166,8 +229,12 @@ macro_rules! upcast_multiply_impl {
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_signed(a, b);
-            ((low >> N) | (high << (32 - N)) as u32) as $T
+            if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b).0
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                ((low >> N) | (high << (32 - N)) as u32) as $T
+            }
         }
     };
     ($T: ty, optimised_64_bit_unsigned) => {
@@ -176,51 +243,78 @@ macro_rules! upcast_multiply_impl {
 
         #[cfg(target_arch = "arm")]
         fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> N) != 0;
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
             if cfg!(debug_assertions) && is_overflow {
                 panic!("attempt to multiply with overflow");
             }
-            ((low >> N) | (high << (32 - N))) as $T
+            res
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
-            let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> N) != 0;
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
             if is_overflow {
                 None
             } else {
-                Some(((low >> N) | (high << (32 - N))) as $T)
+                Some(res)
             }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
-            let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> N) != 0;
-            (((low >> N) | (high << (32 - N))) as $T, is_overflow)
+            if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            let is_overflow = (high >> N) != 0;
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
             if is_overflow {
                 <$T>::MAX
             } else {
-                ((low >> N) | (high << (32 - N))) as $T
+                res
             }
         }
 
         #[cfg(target_arch = "arm")]
         #[inline(always)]
         fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
-            let (low, high) = upcast_multiply_wide_unsigned(a, b);
-            ((low >> N) | (high << (32 - N))) as $T
+            if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b).0
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                ((low >> N) | (high << (32 - N))) as $T
+            }
         }
     };
     ($T: ty, $Upcast: ty) => {
@@ -1674,16 +1768,16 @@ mod tests {
         use super::*;
 
         macro_rules! test_overflow_strategies {
-            ($TestName: ident, $Type: ty) => {
+            ($TestName: ident, $Type: ty, $Prec: literal) => {
                 #[test]
                 fn $TestName() {
-                    let max_value_integer: Num<$Type, 3> = (<$Type>::MAX >> 3).into();
-                    let min_value_integer: Num<$Type, 3> = (<$Type>::MIN >> 3).into();
-                    let max_value_fract: Num<$Type, 3> = Num::from_raw(<$Type>::MAX);
-                    let min_value_fract: Num<$Type, 3> = Num::from_raw(<$Type>::MIN);
+                    let max_value_integer: Num<$Type, $Prec> = (<$Type>::MAX >> $Prec).into();
+                    let min_value_integer: Num<$Type, $Prec> = (<$Type>::MIN >> $Prec).into();
+                    let max_value_fract: Num<$Type, $Prec> = Num::from_raw(<$Type>::MAX);
+                    let min_value_fract: Num<$Type, $Prec> = Num::from_raw(<$Type>::MIN);
 
-                    let max_minus_one: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 1).into();
-                    let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
+                    let max_minus_one: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 1).into();
+                    let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
                     assert_eq!(max_minus_two.checked_add(1), Some(max_minus_one));
                     assert_eq!(max_minus_two.checked_add(3), None);
                     assert_eq!(max_minus_two.overflowing_add(1), (max_minus_one, false));
@@ -1693,13 +1787,16 @@ mod tests {
                     assert_eq!(max_minus_two.wrapping_add(1), max_minus_one);
                     assert_eq!(max_minus_two.wrapping_add(3), min_value_integer);
 
-                    let eight: Num<$Type, 1> = 8.into();
-                    let four: Num<$Type, 1> = 4.into();
-                    assert_eq!(eight.checked_div(2), Some(four));
+                    let eight: Num<$Type, $Prec> = 8.into();
+                    let four: Num<$Type, $Prec> = 4.into();
+                    // TODO: fix high precision division
+                    let eight_low_precision: Num<$Type, 1> = 8.into();
+                    let four_low_precision: Num<$Type, 1> = 4.into();
+                    assert_eq!(eight_low_precision.checked_div(2), Some(four_low_precision));
                     assert_eq!(eight.checked_div(0), None);
 
-                    let max_minus_two_times_two: Num<$Type, 3> =
-                        ((<$Type>::MAX >> 3) - 5 | (1 << <$Type>::BITS - 1 - 3)).into();
+                    let max_minus_two_times_two: Num<$Type, $Prec> =
+                        ((<$Type>::MAX >> $Prec) - 5 | (1 << <$Type>::BITS - 1 - $Prec)).into();
                     assert_eq!(max_minus_two.checked_mul(1), Some(max_minus_two));
                     assert_eq!(four.checked_mul(2), Some(eight));
                     assert_eq!(max_minus_two.checked_mul(2), None);
@@ -1719,8 +1816,8 @@ mod tests {
                     assert_eq!(four.wrapping_mul(2), eight);
                     assert_eq!(max_minus_two.wrapping_mul(2), max_minus_two_times_two);
 
-                    let min_plus_one: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 1).into();
-                    let min_plus_two: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 2).into();
+                    let min_plus_one: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 1).into();
+                    let min_plus_two: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 2).into();
                     assert_eq!(min_plus_two.checked_sub(1), Some(min_plus_one));
                     assert_eq!(min_plus_two.checked_sub(3), None);
                     assert_eq!(min_plus_two.overflowing_sub(1), (min_plus_one, false));
@@ -1734,13 +1831,13 @@ mod tests {
         }
 
         macro_rules! test_overflow_strategies_signed_mul {
-            ($TestName: ident, $Type: ty) => {
+            ($TestName: ident, $Type: ty, $Prec: literal) => {
                 #[test]
                 fn $TestName() {
-                    let two_point_five: Num<$Type, 3> = Num::from_f32(2.5);
-                    let five: Num<$Type, 3> = 5.into();
-                    let minus_two_point_five: Num<$Type, 3> = Num::from_f32(-2.5);
-                    let minus_six_point_twenty_five: Num<$Type, 3> = Num::from_f32(6.25);
+                    let two_point_five: Num<$Type, $Prec> = Num::from_f32(2.5);
+                    let five: Num<$Type, $Prec> = 5.into();
+                    let minus_two_point_five: Num<$Type, $Prec> = Num::from_f32(-2.5);
+                    let minus_six_point_twenty_five: Num<$Type, $Prec> = Num::from_f32(6.25);
                     assert_eq!(two_point_five.checked_mul(-2), Some(-five));
                     assert_eq!(
                         minus_two_point_five.checked_mul(minus_two_point_five),
@@ -1762,10 +1859,12 @@ mod tests {
                         minus_six_point_twenty_five
                     );
 
-                    let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
-                    let very_small_times_minus_thirty_two: Num<$Type, 2> = (-32).into();
-                    let negative_very_small_squared: Num<$Type, 2> = (<$Type>::MAX >> 2).into();
-                    assert_eq!(very_small.checked_mul(-4), None);
+                    let very_small: Num<$Type, $Prec> =
+                        (<$Type>::MIN + (2 << $Prec) >> $Prec + 1).into();
+                    let very_small_times_minus_thirty_two: Num<$Type, $Prec> = (-32).into();
+                    let negative_very_small_squared: Num<$Type, $Prec> =
+                        (<$Type>::MAX >> $Prec).into();
+                    assert_eq!(very_small.checked_mul(-32), None);
                     assert_eq!(very_small.checked_mul(very_small), None);
                     assert_eq!(
                         very_small.overflowing_mul(-32),
@@ -1775,7 +1874,7 @@ mod tests {
                         very_small.overflowing_mul(-very_small),
                         (negative_very_small_squared, true)
                     );
-                    assert_eq!(very_small.saturating_mul(-4), Num::from_raw(<$Type>::MAX));
+                    assert_eq!(very_small.saturating_mul(-32), Num::from_raw(<$Type>::MAX));
                     assert_eq!(
                         very_small.saturating_mul(-very_small),
                         Num::from_raw(<$Type>::MIN)
@@ -1793,7 +1892,7 @@ mod tests {
         }
 
         macro_rules! test_panic_on_overflow {
-            ($ModName: ident, $Type: ty) => {
+            ($ModName: ident, $Type: ty, $Prec: literal) => {
                 mod $ModName {
                     use super::*;
 
@@ -1803,8 +1902,8 @@ mod tests {
                         should_panic(expected = "attempt to add with overflow")
                     )]
                     fn add() {
-                        let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
-                        let three: Num<$Type, 3> = 3.into();
+                        let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
+                        let three: Num<$Type, $Prec> = 3.into();
                         let _ = max_minus_two + three;
                     }
 
@@ -1822,8 +1921,8 @@ mod tests {
                         should_panic(expected = "attempt to multiply with overflow")
                     )]
                     fn mul() {
-                        let max_minus_two: Num<$Type, 3> = ((<$Type>::MAX >> 3) - 2).into();
-                        let two: Num<$Type, 3> = 2.into();
+                        let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
+                        let two: Num<$Type, $Prec> = 2.into();
                         let _ = max_minus_two * two;
                     }
 
@@ -1833,8 +1932,8 @@ mod tests {
                         should_panic(expected = "attempt to subtract with overflow")
                     )]
                     fn sub() {
-                        let min_plus_two: Num<$Type, 3> = ((<$Type>::MIN >> 3) + 2).into();
-                        let three: Num<$Type, 3> = 3.into();
+                        let min_plus_two: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 2).into();
+                        let three: Num<$Type, $Prec> = 3.into();
                         let _ = min_plus_two - three;
                     }
                 }
@@ -1842,7 +1941,7 @@ mod tests {
         }
 
         macro_rules! test_panic_on_overflow_signed_mul {
-            ($ModName: ident, $Type: ty) => {
+            ($ModName: ident, $Type: ty, $Prec: literal) => {
                 mod $ModName {
                     use super::*;
 
@@ -1852,7 +1951,8 @@ mod tests {
                         should_panic(expected = "attempt to multiply with overflow")
                     )]
                     fn mul_negative_times_positive() {
-                        let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
+                        let very_small: Num<$Type, $Prec> =
+                            (<$Type>::MIN + (2 << $Prec) >> $Prec).into();
                         let _ = very_small * -very_small;
                     }
 
@@ -1862,32 +1962,39 @@ mod tests {
                         should_panic(expected = "attempt to multiply with overflow")
                     )]
                     fn mul_negative_times_negative() {
-                        let very_small: Num<$Type, 2> = (<$Type>::MIN + 8 >> 3).into();
-                        let minus_thirty_two: Num<$Type, 2> = (-32).into();
+                        let very_small: Num<$Type, $Prec> =
+                            (<$Type>::MIN + (2 << $Prec) >> $Prec).into();
+                        let minus_thirty_two: Num<$Type, $Prec> = (-32).into();
                         let _ = very_small * minus_thirty_two;
                     }
                 }
             };
         }
 
-        test_overflow_strategies!(test_i8, i8);
-        test_overflow_strategies!(test_u8, u8);
-        test_overflow_strategies!(test_i16, i16);
-        test_overflow_strategies!(test_u16, u16);
-        test_overflow_strategies!(test_i32, i32);
-        test_overflow_strategies!(test_u32, u32);
-        test_overflow_strategies_signed_mul!(test_i8_signed_mul, i8);
-        test_overflow_strategies_signed_mul!(test_i16_signed_mul, i16);
-        test_overflow_strategies_signed_mul!(test_i32_signed_mul, i32);
-        test_panic_on_overflow!(test_panic_i8, i8);
-        test_panic_on_overflow!(test_panic_u8, u8);
-        test_panic_on_overflow!(test_panic_i16, i16);
-        test_panic_on_overflow!(test_panic_u16, u16);
-        test_panic_on_overflow!(test_panic_i32, i32);
-        test_panic_on_overflow!(test_panic_u32, u32);
-        test_panic_on_overflow_signed_mul!(test_panic_i8_signed_mul, i8);
-        test_panic_on_overflow_signed_mul!(test_panic_i16_signed_mul, i16);
-        test_panic_on_overflow_signed_mul!(test_panic_i32_signed_mul, i32);
+        test_overflow_strategies!(test_i8, i8, 1);
+        test_overflow_strategies!(test_u8, u8, 1);
+        test_overflow_strategies!(test_i16, i16, 3);
+        test_overflow_strategies!(test_u16, u16, 3);
+        test_overflow_strategies!(test_i32, i32, 3);
+        test_overflow_strategies!(test_i32_high_precision, i32, 18);
+        test_overflow_strategies!(test_u32, u32, 3);
+        test_overflow_strategies!(test_u32_high_precision, u32, 18);
+        test_overflow_strategies_signed_mul!(test_i8_signed_mul, i8, 2);
+        test_overflow_strategies_signed_mul!(test_i16_signed_mul, i16, 3);
+        test_overflow_strategies_signed_mul!(test_i32_signed_mul, i32, 3);
+        test_overflow_strategies_signed_mul!(test_i32_high_precision_signed_mul, i32, 18);
+        test_panic_on_overflow!(test_panic_i8, i8, 2);
+        test_panic_on_overflow!(test_panic_u8, u8, 2);
+        test_panic_on_overflow!(test_panic_i16, i16, 3);
+        test_panic_on_overflow!(test_panic_u16, u16, 3);
+        test_panic_on_overflow!(test_panic_i32, i32, 3);
+        test_panic_on_overflow!(test_panic_i32_high_precision, i32, 18);
+        test_panic_on_overflow!(test_panic_u32, u32, 3);
+        test_panic_on_overflow!(test_panic_u32_high_precision, i32, 18);
+        test_panic_on_overflow_signed_mul!(test_panic_i8_signed_mul, i8, 2);
+        test_panic_on_overflow_signed_mul!(test_panic_i16_signed_mul, i16, 3);
+        test_panic_on_overflow_signed_mul!(test_panic_i32_signed_mul, i32, 3);
+        test_panic_on_overflow_signed_mul!(test_panic_i32_high_precision_signed_mul, i32, 18);
     }
 
     #[test]
