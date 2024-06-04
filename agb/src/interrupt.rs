@@ -338,7 +338,12 @@ unsafe impl critical_section::Impl for MyCriticalSection {
     }
 }
 
-pub fn interruptable<F, R>(f: F) -> R
+/// This makes the interrupt itself interruptable. Other interrupts are not
+/// guaranteed to fire, but are allowed to.
+///
+/// # Safety
+/// * You must not use a critical section acquired outside this inside it.
+pub unsafe fn interruptable<F, R>(f: F) -> R
 where
     F: FnOnce() -> R,
 {
