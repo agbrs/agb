@@ -1,5 +1,3 @@
-
-@ An interrupt handler that simply acknowledges all interrupts
     .arm
     .global InterruptHandler
     .section .iwram.interrupt_handler, "ax", %progbits
