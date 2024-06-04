@@ -48,7 +48,7 @@ InterruptHandler:
 
     @ push saved program status, old interrupt master enable, original enabled interrupts, and the link register
     mrs r1, spsr
-    stmfd sp!, {{r1-r3, lr}}
+    push {{r1-r3, lr}}
 
     @ r0: interrupts that are enabled AND triggered
 
@@ -94,7 +94,7 @@ InterruptHandler:
 
     @ r0: #IO_MEMORY_MAPPED_REGISTERS
 
-    ldmfd sp!, {{r1-r3, lr}}
+    pop {{r1-r3, lr}}
     msr spsr, r1
     str r2, [r0, #OFFSET_INTERRUPT_MASTER_ENABLE]!
 
