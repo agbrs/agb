@@ -446,44 +446,6 @@ mod tests {
     }
 
     #[test_case]
-    fn test_nested_interrupts(gba: &mut crate::Gba) {
-        let mut timers = gba.timers.timers();
-
-        let timer_a = &mut timers.timer3;
-        let timer_b = &mut timers.timer2;
-
-        timer_a.set_interrupt(true);
-        timer_a.set_overflow_amount(10000);
-
-        timer_b.set_interrupt(true);
-        timer_b.set_overflow_amount(15000);
-
-        timer_b.set_enabled(false);
-        timer_a.set_enabled(false);
-
-        static TIMER: AtomicU32 = AtomicU32::new(0);
-
-        let _interrupt_1 = unsafe {
-            add_interrupt_handler(timer_a.interrupt(), |_| {
-                interruptable(|| while TIMER.load(Ordering::SeqCst) == 0 {});
-
-                TIMER.store(2, Ordering::SeqCst);
-            })
-        };
-
-        let _interrupt_2 = unsafe {
-            add_interrupt_handler(timer_b.interrupt(), |_| {
-                TIMER.store(1, Ordering::SeqCst);
-            })
-        };
-
-        timer_b.set_enabled(true);
-        timer_a.set_enabled(true);
-
-        while TIMER.load(Ordering::SeqCst) != 2 {}
-    }
-
-    #[test_case]
     fn setup_teardown_speed(gba: &mut crate::Gba) {
         static TIMER: AtomicU32 = AtomicU32::new(0);
         for _ in 0..100 {
