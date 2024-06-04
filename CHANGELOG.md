@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Affine background center position didn't work outside of the upper left quadrant of the gba's screen.
+- Fixed backtrace pointing to the wrong line of code (being out by one).
 
 ## [0.20.2] - 2024/05/25
 

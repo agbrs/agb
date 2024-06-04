@@ -77,7 +77,10 @@ pub(crate) fn unwind_exception() -> Frames {
             break;
         }
 
-        frames.push(lr);
+        // need to subtract 2 here since the link register points to the _next_ instruction
+        // to execute, not the one that is being branched from which is the one we care about
+        // in the stack trace.
+        frames.push(lr - 2);
 
         frame_pointer = sp;
     }
