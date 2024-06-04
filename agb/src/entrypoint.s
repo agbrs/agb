@@ -80,8 +80,12 @@ CommonInit:
     ldr r0, =0
     mov r1, r0
 
+    @ ensure the frame pointer is zero so that stack traces are guaranteed to terminate
+    mov r7, r0
+
     @ load main and branch
     ldr r2, =main
+    mov lr, pc
     bx  r2
 
     @ loop if we end up here
