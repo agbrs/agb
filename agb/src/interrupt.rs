@@ -343,7 +343,7 @@ unsafe impl critical_section::Impl for MyCriticalSection {
 ///
 /// # Safety
 /// * You must not use a critical section acquired outside this inside it.
-pub unsafe fn interruptable<F, R>(f: F) -> R
+pub(crate) unsafe fn interruptable<F, R>(f: F) -> R
 where
     F: FnOnce() -> R,
 {
