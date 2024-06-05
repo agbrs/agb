@@ -28,7 +28,7 @@ members = [
     "emulator/mgba-sys",
     "emulator/test-runner",
     "emulator/screenshot-generator",
-    "website/backtrace", "tracker/desktop-player",
+    "website/backtrace",
 ]
 
 exclude = [
