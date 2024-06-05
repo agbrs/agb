@@ -8,7 +8,7 @@ description = "Library for playing tracker music. Designed for use with the agb 
 repository = "https://github.com/agbrs/agb"
 
 [features]
-default = ["agb"]
+default = ["agb", "midi", "xm"]
 
 agb = ["dep:agb"]
 xm = ["dep:agb_xm"]
