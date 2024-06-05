@@ -298,12 +298,7 @@ impl<M: Mixer> TrackerChannel<M> {
             channel.stop();
         }
 
-        let mut new_channel = M::SoundChannel::new(match sample.data {
-            alloc::borrow::Cow::Borrowed(data) => data,
-            alloc::borrow::Cow::Owned(_) => {
-                unimplemented!("Must use borrowed COW data for tracker")
-            }
-        });
+        let mut new_channel = M::SoundChannel::new(&sample.data);
 
         new_channel.volume(
             (sample.volume.change_base() * global_settings.volume)
@@ -528,8 +523,13 @@ fn main(gba: agb::Gba) -> ! {
 
 #[cfg(feature = "agb")]
 impl SoundChannel for agb::sound::mixer::SoundChannel {
-    fn new(data: &'static [u8]) -> Self {
-        Self::new(data)
+    fn new(data: &alloc::borrow::Cow<'static, [u8]>) -> Self {
+        Self::new(match data {
+            alloc::borrow::Cow::Borrowed(data) => data,
+            alloc::borrow::Cow::Owned(_) => {
+                unimplemented!("Must use borrowed COW data for tracker")
+            }
+        })
     }
 
     fn stop(&mut self) {
