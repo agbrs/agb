@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use agb::fixnum::Num;
+use agb_fixnum::Num;
 
 pub trait SoundChannel {
     fn new(data: &'static [u8]) -> Self;

@@ -20,6 +20,7 @@ members = [
     # "tracker/agb-tracker",
     "tracker/agb-xm",
     "tracker/agb-xm-core",
+    "tracker/desktop-player",
 
     "tools",
 
@@ -27,7 +28,7 @@ members = [
     "emulator/mgba-sys",
     "emulator/test-runner",
     "emulator/screenshot-generator",
-    "website/backtrace",
+    "website/backtrace", "tracker/desktop-player",
 ]
 
 exclude = [

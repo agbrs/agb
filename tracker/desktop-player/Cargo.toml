@@ -1,0 +1,15 @@
+[package]
+name = "desktop-player"
+version = "0.1.0"
+edition = "2021"
+authors = ["Gwilym Inzani <gw@ilym.me>"]
+license = "MPL-2.0"
+description = "A way to play XM files on desktop as they would on the gba without needing a test ROM"
+repository = "https://github.com/agbrs/agb"
+
+[dependencies]
+agb_xm_core = { version = "0.20.2", path = "../agb-xm-core" }
+agb_tracker = { version = "0.20.2", path = "../agb-tracker", default-features = false }
+agb_fixnum = { version = "0.20.2", path = "../../agb-fixnum" }
+
+xmrs = "0.6"
