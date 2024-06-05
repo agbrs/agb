@@ -9,7 +9,7 @@ repository = "https://github.com/agbrs/agb"
 exclude = ["/examples"]
 
 [features]
-default = ["agb"]
+default = ["agb", "midi", "xm"]
 
 agb = ["dep:agb"]
 xm = ["dep:agb_xm"]
