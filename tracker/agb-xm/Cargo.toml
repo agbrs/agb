@@ -14,3 +14,8 @@ proc-macro = true
 agb_xm_core = { version = "0.20.5", path = "../agb-xm-core" }
 proc-macro-error = "1"
 proc-macro2 = "1"
+
+quote = "1"
+syn = "2"
+
+xmrs = "0.6"
