@@ -65,13 +65,14 @@
 
 extern crate alloc;
 
+mod mixer;
+
 use agb_tracker_interop::{PatternEffect, Sample};
 use alloc::vec::Vec;
 
-use agb::{
-    fixnum::Num,
-    sound::mixer::{ChannelId, Mixer, SoundChannel},
-};
+pub use mixer::{Mixer, SoundChannel};
+
+use agb::fixnum::Num;
 
 /// Import an XM file. Only available if you have the `xm` feature enabled (enabled by default).
 #[cfg(feature = "xm")]
@@ -94,9 +95,9 @@ pub mod __private {
 pub use agb_tracker_interop::Track;
 
 /// Stores the required state in order to play tracker music.
-pub struct Tracker {
+pub struct Tracker<M: Mixer> {
     track: &'static Track,
-    channels: Vec<TrackerChannel>,
+    channels: Vec<TrackerChannel<M>>,
     envelopes: Vec<Option<EnvelopeState>>,
 
     frame: Num<u32, 8>,
@@ -109,9 +110,8 @@ pub struct Tracker {
     current_pattern: usize,
 }
 
-#[derive(Default)]
-struct TrackerChannel {
-    channel_id: Option<ChannelId>,
+struct TrackerChannel<M: Mixer> {
+    channel_id: Option<M::ChannelId>,
     original_speed: Num<u32, 16>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
@@ -132,7 +132,7 @@ struct GlobalSettings {
     volume: Num<i32, 8>,
 }
 
-impl Tracker {
+impl<M: Mixer> Tracker<M> {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
     pub fn new(track: &'static Track) -> Self {
         let mut channels = Vec::new();
@@ -165,7 +165,7 @@ impl Tracker {
 
     /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
     /// See the [example](crate#example) for how to use the tracker.
-    pub fn step(&mut self, mixer: &mut Mixer) {
+    pub fn step(&mut self, mixer: &mut M) {
         if !self.increment_frame() {
             self.update_envelopes(mixer);
             return;
@@ -215,7 +215,7 @@ impl Tracker {
         self.update_envelopes(mixer);
     }
 
-    fn update_envelopes(&mut self, mixer: &mut Mixer) {
+    fn update_envelopes(&mut self, mixer: &mut M) {
         for (channel, envelope_state_option) in self.channels.iter_mut().zip(&mut self.envelopes) {
             if let Some(envelope_state) = envelope_state_option {
                 let envelope = &self.track.envelopes[envelope_state.envelope_id];
@@ -288,13 +288,8 @@ impl Tracker {
     }
 }
 
-impl TrackerChannel {
-    fn play_sound(
-        &mut self,
-        mixer: &mut Mixer<'_>,
-        sample: &Sample,
-        global_settings: &GlobalSettings,
-    ) {
+impl<M: Mixer> TrackerChannel<M> {
+    fn play_sound(&mut self, mixer: &mut M, sample: &Sample, global_settings: &GlobalSettings) {
         if let Some(channel) = self
             .channel_id
             .take()
@@ -303,7 +298,7 @@ impl TrackerChannel {
             channel.stop();
         }
 
-        let mut new_channel = SoundChannel::new(match sample.data {
+        let mut new_channel = M::SoundChannel::new(match sample.data {
             alloc::borrow::Cow::Borrowed(data) => data,
             alloc::borrow::Cow::Owned(_) => {
                 unimplemented!("Must use borrowed COW data for tracker")
@@ -326,7 +321,7 @@ impl TrackerChannel {
         self.volume = sample.volume.change_base();
     }
 
-    fn set_speed(&mut self, mixer: &mut Mixer<'_>, speed: Num<u32, 8>) {
+    fn set_speed(&mut self, mixer: &mut M, speed: Num<u32, 8>) {
         if let Some(channel) = self
             .channel_id
             .as_ref()
@@ -343,7 +338,7 @@ impl TrackerChannel {
 
     fn apply_effect(
         &mut self,
-        mixer: &mut Mixer<'_>,
+        mixer: &mut M,
         effect: &PatternEffect,
         tick: u32,
         global_settings: &mut GlobalSettings,
@@ -485,7 +480,7 @@ impl TrackerChannel {
     #[must_use]
     fn update_volume_envelope(
         &mut self,
-        mixer: &mut Mixer<'_>,
+        mixer: &mut M,
         envelope_state: &EnvelopeState,
         envelope: &agb_tracker_interop::Envelope,
         global_settings: &GlobalSettings,
@@ -514,8 +509,70 @@ impl TrackerChannel {
     }
 }
 
+impl<M: Mixer> Default for TrackerChannel<M> {
+    fn default() -> Self {
+        Self {
+            channel_id: None,
+            original_speed: Num::default(),
+            base_speed: Num::default(),
+            volume: Num::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
     loop {}
+}
+
+impl SoundChannel for agb::sound::mixer::SoundChannel {
+    fn new(data: &'static [u8]) -> Self {
+        Self::new(data)
+    }
+
+    fn stop(&mut self) {
+        self.stop();
+    }
+
+    fn pause(&mut self) -> &mut Self {
+        self.pause()
+    }
+
+    fn resume(&mut self) -> &mut Self {
+        self.resume()
+    }
+
+    fn should_loop(&mut self) -> &mut Self {
+        self.should_loop()
+    }
+
+    fn volume(&mut self, value: impl Into<Num<i16, 8>>) -> &mut Self {
+        self.volume(value)
+    }
+
+    fn restart_point(&mut self, value: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.restart_point(value)
+    }
+
+    fn playback(&mut self, playback_speed: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.playback(playback_speed)
+    }
+
+    fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self {
+        self.panning(panning)
+    }
+}
+
+impl<'gba> Mixer for agb::sound::mixer::Mixer<'gba> {
+    type ChannelId = agb::sound::mixer::ChannelId;
+    type SoundChannel = agb::sound::mixer::SoundChannel;
+
+    fn channel(&mut self, channel_id: &Self::ChannelId) -> Option<&mut Self::SoundChannel> {
+        self.channel(channel_id)
+    }
+
+    fn play_sound(&mut self, channel: Self::SoundChannel) -> Option<Self::ChannelId> {
+        self.play_sound(channel)
+    }
 }
