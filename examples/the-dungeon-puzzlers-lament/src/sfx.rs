@@ -20,7 +20,7 @@ static SWICTH_TOGGLES: &[&[u8]] = &[include_wav!("sfx/switch_toggle1.wav")];
 
 pub struct Sfx<'a> {
     mixer: &'a mut Mixer<'a>,
-    tracker: Tracker,
+    tracker: Tracker<Mixer<'a>>,
 }
 
 impl<'a> Sfx<'a> {
