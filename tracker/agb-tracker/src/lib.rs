@@ -95,7 +95,7 @@ pub use agb_tracker_interop::Track;
 
 /// Stores the required state in order to play tracker music.
 pub struct Tracker {
-    track: &'static Track<'static>,
+    track: &'static Track,
     channels: Vec<TrackerChannel>,
     envelopes: Vec<Option<EnvelopeState>>,
 
@@ -134,7 +134,7 @@ struct GlobalSettings {
 
 impl Tracker {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
-    pub fn new(track: &'static Track<'static>) -> Self {
+    pub fn new(track: &'static Track) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, Default::default);
 
@@ -292,7 +292,7 @@ impl TrackerChannel {
     fn play_sound(
         &mut self,
         mixer: &mut Mixer<'_>,
-        sample: &Sample<'static>,
+        sample: &Sample,
         global_settings: &GlobalSettings,
     ) {
         if let Some(channel) = self
@@ -303,7 +303,12 @@ impl TrackerChannel {
             channel.stop();
         }
 
-        let mut new_channel = SoundChannel::new(sample.data);
+        let mut new_channel = SoundChannel::new(match sample.data {
+            alloc::borrow::Cow::Borrowed(data) => data,
+            alloc::borrow::Cow::Owned(_) => {
+                unimplemented!("Must use borrowed COW data for tracker")
+            }
+        });
 
         new_channel.volume(
             (sample.volume.change_base() * global_settings.volume)
@@ -482,7 +487,7 @@ impl TrackerChannel {
         &mut self,
         mixer: &mut Mixer<'_>,
         envelope_state: &EnvelopeState,
-        envelope: &agb_tracker_interop::Envelope<'_>,
+        envelope: &agb_tracker_interop::Envelope,
         global_settings: &GlobalSettings,
     ) -> bool {
         if let Some(channel) = self

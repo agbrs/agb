@@ -8,12 +8,7 @@ description = "Library for converting XM tracker files for use with agb-tracker 
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-proc-macro-error = "1"
-proc-macro2 = "1"
-quote = "1"
-syn = "2"
-
-agb_tracker_interop = { version = "0.20.2", path = "../agb-tracker-interop" }
+agb_tracker_interop = { version = "0.20.2", path = "../agb-tracker-interop", default-features = false }
 agb_fixnum = { version = "0.20.2", path = "../../agb-fixnum" }
 
 xmrs = "0.6"

@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::HashMap,
     error::Error,
     fs::{self, File},
@@ -386,7 +387,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| Sample {
-            data: &sample.data,
+            data: sample.data.clone().into(),
             should_loop: sample.restart_point.is_some(),
             restart_point: sample.restart_point.unwrap_or(0),
             volume: 256.into(),
@@ -409,7 +410,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     let envelopes: Vec<_> = envelopes
         .iter()
         .map(|envelope| Envelope {
-            amount: &envelope.amounts,
+            amount: envelope.amounts.clone().into(),
             sustain: Some(envelope.amounts.len() - 1),
             loop_start: None,
             loop_end: None,
@@ -417,14 +418,14 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
         .collect();
 
     let track = Track {
-        samples: &samples,
-        envelopes: &envelopes,
-        pattern_data: &pattern,
-        patterns: &[Pattern {
+        samples: samples.into(),
+        envelopes: envelopes.into(),
+        patterns: Cow::from(vec![Pattern {
             length: pattern.len() / resulting_num_channels,
             start_position: 0,
-        }],
-        patterns_to_play: &[0],
+        }]),
+        pattern_data: pattern.into(),
+        patterns_to_play: Cow::from(vec![0]),
         num_channels: resulting_num_channels,
         frames_per_tick: Num::from_f64(frames_per_tick),
         ticks_per_step: 1,

@@ -1,14 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 use agb_fixnum::Num;
+use alloc::borrow::Cow;
 
 #[derive(Debug)]
-pub struct Track<'a> {
-    pub samples: &'a [Sample<'a>],
-    pub envelopes: &'a [Envelope<'a>],
-    pub pattern_data: &'a [PatternSlot],
-    pub patterns: &'a [Pattern],
-    pub patterns_to_play: &'a [usize],
+pub struct Track {
+    pub samples: Cow<'static, [Sample]>,
+    pub envelopes: Cow<'static, [Envelope]>,
+    pub pattern_data: Cow<'static, [PatternSlot]>,
+    pub patterns: Cow<'static, [Pattern]>,
+    pub patterns_to_play: Cow<'static, [usize]>,
 
     pub num_channels: usize,
     pub frames_per_tick: Num<u32, 8>,
@@ -16,9 +19,9 @@ pub struct Track<'a> {
     pub repeat: usize,
 }
 
-#[derive(Debug)]
-pub struct Sample<'a> {
-    pub data: &'a [u8],
+#[derive(Debug, Clone)]
+pub struct Sample {
+    pub data: Cow<'static, [u8]>,
     pub should_loop: bool,
     pub restart_point: u32,
     pub volume: Num<i16, 8>,
@@ -26,7 +29,7 @@ pub struct Sample<'a> {
     pub fadeout: Num<i32, 8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pattern {
     pub length: usize,
     pub start_position: usize,
@@ -40,9 +43,9 @@ pub struct PatternSlot {
     pub effect2: PatternEffect,
 }
 
-#[derive(Debug)]
-pub struct Envelope<'a> {
-    pub amount: &'a [Num<i16, 8>],
+#[derive(Debug, Clone)]
+pub struct Envelope {
+    pub amount: Cow<'static, [Num<i16, 8>]>,
     pub sustain: Option<usize>,
     pub loop_start: Option<usize>,
     pub loop_end: Option<usize>,
@@ -75,7 +78,7 @@ pub enum PatternEffect {
 }
 
 #[cfg(feature = "quote")]
-impl<'a> quote::ToTokens for Track<'a> {
+impl quote::ToTokens for Track {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
@@ -95,20 +98,24 @@ impl<'a> quote::ToTokens for Track<'a> {
 
         tokens.append_all(quote! {
             {
-                static SAMPLES: &[agb_tracker::__private::agb_tracker_interop::Sample<'static>] = &[#(#samples),*];
-                static PATTERN_DATA: &[agb_tracker::__private::agb_tracker_interop::PatternSlot] = &[#(#pattern_data),*];
-                static PATTERNS: &[agb_tracker::__private::agb_tracker_interop::Pattern] = &[#(#patterns),*];
+                use alloc::borrow::Cow;
+                use agb_tracker::__private::agb_tracker_interop::*;
+                use agb_tracker::__private::Num;
+
+                static SAMPLES: &[Sample] = &[#(#samples),*];
+                static PATTERN_DATA: &[PatternSlot] = &[#(#pattern_data),*];
+                static PATTERNS: &[Pattern] = &[#(#patterns),*];
                 static PATTERNS_TO_PLAY: &[usize] = &[#(#patterns_to_play),*];
-                static ENVELOPES: &[agb_tracker::__private::agb_tracker_interop::Envelope<'static>] = &[#(#envelopes),*];
+                static ENVELOPES: &[Envelope] = &[#(#envelopes),*];
 
                 agb_tracker::Track {
-                    samples: SAMPLES,
-                    envelopes: ENVELOPES,
-                    pattern_data: PATTERN_DATA,
-                    patterns: PATTERNS,
-                    patterns_to_play: PATTERNS_TO_PLAY,
+                    samples: Cow::Borrowed(SAMPLES),
+                    envelopes: Cow::Borrowed(ENVELOPES),
+                    pattern_data: Cow::Borrowed(PATTERN_DATA),
+                    patterns: Cow::Borrowed(PATTERNS),
+                    patterns_to_play: Cow::Borrowed(PATTERNS_TO_PLAY),
 
-                    frames_per_tick: agb_tracker::__private::Num::from_raw(#frames_per_tick),
+                    frames_per_tick: Num::from_raw(#frames_per_tick),
                     num_channels: #num_channels,
                     ticks_per_step: #ticks_per_step,
                     repeat: #repeat,
@@ -119,7 +126,7 @@ impl<'a> quote::ToTokens for Track<'a> {
 }
 
 #[cfg(feature = "quote")]
-impl quote::ToTokens for Envelope<'_> {
+impl quote::ToTokens for Envelope {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
@@ -153,7 +160,7 @@ impl quote::ToTokens for Envelope<'_> {
                 static AMOUNTS: &[agb_tracker::__private::Num<i16, 8>] = &[#(#amount),*];
 
                 agb_tracker::__private::agb_tracker_interop::Envelope {
-                    amount: AMOUNTS,
+                    amount: Cow::Borrowed(AMOUNTS),
                     sustain: #sustain,
                     loop_start: #loop_start,
                     loop_end: #loop_end,
@@ -175,7 +182,7 @@ impl quote::ToTokens for ByteString<'_> {
 }
 
 #[cfg(feature = "quote")]
-impl<'a> quote::ToTokens for Sample<'a> {
+impl quote::ToTokens for Sample {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::{quote, TokenStreamExt};
 
@@ -204,7 +211,7 @@ impl<'a> quote::ToTokens for Sample<'a> {
 
                 static SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
                 agb_tracker::__private::agb_tracker_interop::Sample {
-                    data: SAMPLE_DATA,
+                    data: Cow::Borrowed(SAMPLE_DATA),
                     should_loop: #should_loop,
                     restart_point: #restart_point,
                     volume: agb_tracker::__private::Num::from_raw(#volume),
