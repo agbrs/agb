@@ -72,7 +72,7 @@ use alloc::vec::Vec;
 
 pub use mixer::{Mixer, SoundChannel};
 
-use agb::fixnum::Num;
+use agb_fixnum::Num;
 
 /// Import an XM file. Only available if you have the `xm` feature enabled (enabled by default).
 #[cfg(feature = "xm")]
@@ -87,7 +87,7 @@ pub use agb_midi::include_midi;
 
 #[doc(hidden)]
 pub mod __private {
-    pub use agb::fixnum::Num;
+    pub use agb_fixnum::Num;
     pub use agb_tracker_interop;
 }
 
@@ -520,12 +520,13 @@ impl<M: Mixer> Default for TrackerChannel<M> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agb"))]
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
     loop {}
 }
 
+#[cfg(feature = "agb")]
 impl SoundChannel for agb::sound::mixer::SoundChannel {
     fn new(data: &'static [u8]) -> Self {
         Self::new(data)
@@ -564,6 +565,7 @@ impl SoundChannel for agb::sound::mixer::SoundChannel {
     }
 }
 
+#[cfg(feature = "agb")]
 impl<'gba> Mixer for agb::sound::mixer::Mixer<'gba> {
     type ChannelId = agb::sound::mixer::ChannelId;
     type SoundChannel = agb::sound::mixer::SoundChannel;
