@@ -3,7 +3,7 @@
 use agb_fixnum::Num;
 
 pub trait SoundChannel {
-    fn new(data: &'static [u8]) -> Self;
+    fn new(data: &alloc::borrow::Cow<'static, [u8]>) -> Self;
 
     fn stop(&mut self);
     fn pause(&mut self) -> &mut Self;
