@@ -1,51 +1,11 @@
-use std::{collections::HashMap, error::Error, fs, path::Path};
-
-use agb_tracker_interop::PatternEffect;
-use proc_macro2::TokenStream;
-use proc_macro_error::abort;
-
-use quote::quote;
-use syn::LitStr;
+use std::collections::HashMap;
 
 use agb_fixnum::Num;
+use agb_tracker_interop::PatternEffect;
 
-use xmrs::{prelude::*, xm::xmmodule::XmModule};
+use xmrs::prelude::*;
 
-pub fn agb_xm_core(args: TokenStream) -> TokenStream {
-    let input = match syn::parse::<LitStr>(args.into()) {
-        Ok(input) => input,
-        Err(err) => return err.to_compile_error(),
-    };
-
-    let filename = input.value();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let path = Path::new(&root).join(&*filename);
-
-    let include_path = path.to_string_lossy();
-
-    let module = match load_module_from_file(&path) {
-        Ok(track) => track,
-        Err(e) => abort!(input, e),
-    };
-
-    let parsed = parse_module(&module);
-
-    quote! {
-        {
-            const _: &[u8] = include_bytes!(#include_path);
-
-            #parsed
-        }
-    }
-}
-
-pub fn load_module_from_file(xm_path: &Path) -> Result<Module, Box<dyn Error>> {
-    let file_content = fs::read(xm_path)?;
-    Ok(XmModule::load(&file_content)?.to_module())
-}
-
-pub fn parse_module(module: &Module) -> TokenStream {
+pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
     let instruments = &module.instrument;
     let mut instruments_map = HashMap::new();
 
@@ -414,7 +374,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| agb_tracker_interop::Sample {
-            data: &sample.data,
+            data: sample.data.clone().into(),
             should_loop: sample.should_loop,
             restart_point: sample.restart_point,
             volume: sample.volume,
@@ -432,7 +392,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let envelopes = envelopes
         .iter()
         .map(|envelope| agb_tracker_interop::Envelope {
-            amount: &envelope.amounts,
+            amount: envelope.amounts.clone().into(),
             sustain: envelope.sustain,
             loop_start: envelope.loop_start,
             loop_end: envelope.loop_end,
@@ -442,20 +402,18 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let frames_per_tick = bpm_to_frames_per_tick(module.default_bpm as u32);
     let ticks_per_step = module.default_tempo;
 
-    let interop = agb_tracker_interop::Track {
-        samples: &samples,
-        pattern_data: &pattern_data,
-        patterns: &patterns,
+    agb_tracker_interop::Track {
+        samples: samples.into(),
+        pattern_data: pattern_data.into(),
+        patterns: patterns.into(),
         num_channels: module.get_num_channels(),
-        patterns_to_play: &patterns_to_play,
-        envelopes: &envelopes,
+        patterns_to_play: patterns_to_play.into(),
+        envelopes: envelopes.into(),
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
         repeat: module.restart_position as usize,
-    };
-
-    quote!(#interop)
+    }
 }
 
 fn bpm_to_frames_per_tick(bpm: u32) -> Num<u32, 8> {

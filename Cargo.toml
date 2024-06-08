@@ -20,6 +20,7 @@ members = [
     # "tracker/agb-tracker",
     "tracker/agb-xm",
     "tracker/agb-xm-core",
+    "tracker/desktop-player",
 
     "tools",
 
