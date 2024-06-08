@@ -2,11 +2,12 @@ use agb_fixnum::Num;
 use std::{borrow::Cow, num::Wrapping};
 
 const BUFFER_SIZE: usize = 560;
+const NUM_CHANNELS: usize = 8;
 
 #[derive(Default)]
 pub struct Mixer {
-    channels: [Option<SoundChannel>; 8],
-    indices: [Wrapping<usize>; 8],
+    channels: [Option<SoundChannel>; NUM_CHANNELS],
+    indices: [Wrapping<usize>; NUM_CHANNELS],
 }
 
 impl Mixer {
