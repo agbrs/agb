@@ -49,8 +49,7 @@ impl RandomNumberGenerator {
         result as i32
     }
 
-    /// Mixes in some GBA specific properties into the random number generator
-    /// that should be hard to predict.
+    /// Mixes in some low entropy values, call this over time to gradually increase the entropy of the rng.
     pub fn mix(&mut self) {
         let mut mixer = rustc_hash::FxHasher::default();
         for address in [
@@ -67,6 +66,15 @@ impl RandomNumberGenerator {
             mixer.write_u16(unsafe { (address as *mut u16).read_volatile() });
         }
 
+        let mixed = mixer.finish() as u32;
+        self.state[0] ^= mixed;
+        let _ = self.gen();
+    }
+
+    /// Mixes the rng with a single value.
+    pub fn mix_with(&mut self, mix: i32) {
+        let mut mixer = rustc_hash::FxHasher::default();
+        mixer.write_i32(mix);
         let mixed = mixer.finish() as u32;
         self.state[0] ^= mixed;
         let _ = self.gen();
@@ -101,8 +109,14 @@ pub fn gen() -> i32 {
     with_global_rng(RandomNumberGenerator::gen)
 }
 
+/// Mixes the global rng with low entropy values
 pub fn mix() {
     with_global_rng(RandomNumberGenerator::mix);
+}
+
+/// Mixes the global rng with a given value
+pub fn mix_with(mix: i32) {
+    with_global_rng(|x| x.mix_with(mix));
 }
 
 #[cfg(test)]
