@@ -20,7 +20,7 @@ impl Default for Attributes {
             a0: ObjectAttribute0::new(
                 0,
                 ObjectMode::Disabled,
-                GraphicsMode::Normal,
+                GraphicsModeInternal::Normal,
                 false,
                 ColourMode::Four,
                 u2::new(0),
@@ -152,6 +152,28 @@ impl Attributes {
 
         self
     }
+
+    pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
+        self.a0.set_graphics_mode(match mode {
+            GraphicsMode::Normal => GraphicsModeInternal::Normal,
+            GraphicsMode::AlphaBlending => GraphicsModeInternal::AlphaBlending,
+            GraphicsMode::Window => GraphicsModeInternal::Window,
+        });
+
+        self
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Graphics modes control how it gets rendered
+pub enum GraphicsMode {
+    #[default]
+    /// The sprite rendered as you expect
+    Normal,
+    /// This object is part of blending
+    AlphaBlending,
+    /// This object is a mask of the object window
+    Window,
 }
 
 #[bitsize(2)]
@@ -166,7 +188,7 @@ enum ObjectMode {
 
 #[bitsize(2)]
 #[derive(TryFromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
-enum GraphicsMode {
+enum GraphicsModeInternal {
     #[default]
     Normal,
     AlphaBlending,
@@ -190,7 +212,7 @@ mod attributes {
     pub(super) struct ObjectAttribute0 {
         pub y: u8,
         pub object_mode: ObjectMode,
-        pub graphics_mode: GraphicsMode,
+        pub graphics_mode: GraphicsModeInternal,
         pub mosaic: bool,
         pub colour_mode: ColourMode,
         pub shape: u2,
