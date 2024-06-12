@@ -1,6 +1,6 @@
 [package]
 name = "agb_sound_converter"
-version = "0.20.2"
+version = "0.20.3"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"

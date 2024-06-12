@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.3] - 2024/06/12
+
 ### Added
 
 - Added `find_colour_index_16` and `find_colour_index_256` to the `VRamManager` to find where a colour is in a palette.
