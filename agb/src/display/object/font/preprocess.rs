@@ -86,8 +86,12 @@ impl Preprocessor {
                     );
                     self.width_in_sprite = 0;
                 }
-                if self.width_in_sprite != 0 {
-                    self.width_in_sprite += letter.xmin as i32;
+                self.width_in_sprite += letter.xmin as i32;
+                if self.width_in_sprite < 0 {
+                    if let Some(back) = widths.back_mut() {
+                        back.0 -= (-self.width_in_sprite).try_into().unwrap_or(0);
+                    }
+                    self.width_in_sprite = 0;
                 }
                 self.width_in_sprite += letter.advance_width as i32;
             }
