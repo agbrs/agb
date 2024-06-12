@@ -3,17 +3,21 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{
+            ChangeColour, LeftAlignLayout, ObjectUnmanaged, PaletteVram, SimpleTextRender, Size,
+        },
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
 };
+use agb_fixnum::Vector2D;
+
+use alloc::borrow::Cow;
+use core::num::NonZeroU32;
 
 extern crate alloc;
-
-use core::fmt::Write;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
@@ -36,17 +40,22 @@ fn main(mut gba: agb::Gba) -> ! {
 
     timer.set_enabled(true);
     timer.set_divider(agb::timer::Divider::Divider256);
-
-    let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
-    let start = timer.value();
-
     let player_name = "You";
-    let _ = writeln!(
-            wr,
-            "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
-            change2 = ChangeColour::new(2),
-            change1 = ChangeColour::new(1),
-        );
+    let text = alloc::format!(
+        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you... However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!\n",
+        change2 = ChangeColour::new(2),
+        change1 = ChangeColour::new(1),
+    );
+
+    let start = timer.value();
+    let simple = SimpleTextRender::new(
+        Cow::Owned(text),
+        &FONT,
+        palette,
+        Size::S16x16,
+        Some(|c| c == '.'),
+    );
+    let mut wr = LeftAlignLayout::new(simple, NonZeroU32::new(WIDTH as u32));
     let end = timer.value();
 
     agb::println!(
@@ -57,42 +66,64 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    let start = timer.value();
-
-    wr.layout((WIDTH, 40), TextAlignment::Justify, 2);
-    let end = timer.value();
-
-    agb::println!(
-        "Layout took {} cycles",
-        256 * (end.wrapping_sub(start) as u32)
-    );
-
-    let mut line_done = false;
     let mut frame = 0;
+    let mut groups_to_show = 0;
 
     loop {
         vblank.wait_for_vblank();
         input.update();
         let oam = &mut unmanaged.iter();
-        wr.commit(oam);
 
+        wr.at_least_n_letter_groups(groups_to_show + 2);
         let start = timer.value();
-        if frame % 4 == 0 {
-            line_done = !wr.next_letter_group();
-        }
-        if line_done && input.is_just_pressed(Button::A) {
-            line_done = false;
-            wr.pop_line();
-        }
-        wr.update((0, HEIGHT - 40));
+
+        let can_pop_line = {
+            let mut letters = wr.layout();
+            let displayed_letters = letters.by_ref().take(groups_to_show);
+
+            for (letter, slot) in displayed_letters.zip(oam) {
+                let mut obj = ObjectUnmanaged::new(letter.sprite().clone());
+                obj.show();
+                let y = HEIGHT - 40 + letter.line() as i32 * FONT.line_height();
+                obj.set_position(Vector2D::new(letter.x(), y));
+
+                slot.set(&obj);
+            }
+
+            let speed_up = if input.is_pressed(Button::A | Button::B) {
+                4
+            } else {
+                1
+            };
+
+            if let Some(next_letter) = letters.next() {
+                if next_letter.line() < 2 {
+                    if next_letter.string() == "." {
+                        if frame % (16 / speed_up) == 0 {
+                            groups_to_show += 1;
+                        }
+                    } else if frame % (4 / speed_up) == 0 {
+                        groups_to_show += 1;
+                    }
+                    false
+                } else {
+                    true
+                }
+            } else {
+                false
+            }
+        };
+
         let end = timer.value();
+        agb::println!(
+            "Layout took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
+
+        if can_pop_line && input.is_just_pressed(Button::A) {
+            groups_to_show -= wr.pop_line();
+        }
 
         frame += 1;
-
-        agb::println!(
-            "Took {} cycles, line done {}",
-            256 * (end.wrapping_sub(start) as u32),
-            line_done
-        );
     }
 }

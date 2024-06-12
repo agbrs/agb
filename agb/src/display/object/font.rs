@@ -1,146 +1,24 @@
-use core::fmt::{Display, Write};
+use core::{fmt::Display, num::NonZeroU32};
 
-use agb_fixnum::{Num, Vector2D};
-use alloc::{collections::VecDeque, vec::Vec};
+use alloc::{borrow::Cow, collections::VecDeque, vec::Vec};
 
 use crate::display::Font;
 
-use self::{
-    preprocess::{Line, Preprocessed, PreprocessedElement},
-    renderer::{Configuration, WordRender},
-};
+use self::renderer::Configuration;
 
-use super::{OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{PaletteVram, Size, SpriteVram};
 
-mod preprocess;
 mod renderer;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[non_exhaustive]
-pub(crate) enum WhiteSpace {
-    NewLine,
-    Space,
-}
-
-impl WhiteSpace {
-    pub(crate) fn from_char(c: char) -> Self {
-        match c {
-            ' ' => WhiteSpace::Space,
-            '\n' => WhiteSpace::NewLine,
-            _ => panic!("char not supported whitespace"),
-        }
-    }
-}
-
-struct BufferedRender<'font> {
-    char_render: WordRender,
-    preprocessor: Preprocessed,
-    buffered_chars: VecDeque<char>,
-    letters: Letters,
-    font: &'font Font,
-}
-
-#[derive(Debug, Default)]
-struct Letters {
-    letters: VecDeque<SpriteVram>,
-    number_of_groups: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[non_exhaustive]
-/// The text alignment of the layout
-pub enum TextAlignment {
-    #[default]
-    /// Left aligned, the left edge of the text lines up
-    Left,
-    /// Right aligned, the right edge of the text lines up
-    Right,
-    /// Center aligned, the center of the text lines up
-    Center,
-    /// Justified, both the left and right edges line up with space width adapted to make it so.
-    Justify,
-}
-
-struct TextAlignmentSettings {
-    space_width: Num<i32, 10>,
-    start_x: i32,
-}
-
-impl TextAlignment {
-    fn settings(self, line: &Line, minimum_space_width: i32, width: i32) -> TextAlignmentSettings {
-        match self {
-            TextAlignment::Left => TextAlignmentSettings {
-                space_width: minimum_space_width.into(),
-                start_x: 0,
-            },
-            TextAlignment::Right => TextAlignmentSettings {
-                space_width: minimum_space_width.into(),
-                start_x: width - line.width(),
-            },
-            TextAlignment::Center => TextAlignmentSettings {
-                space_width: minimum_space_width.into(),
-                start_x: (width - line.width()) / 2,
-            },
-            TextAlignment::Justify => {
-                let space_width = if line.number_of_spaces() != 0 {
-                    Num::new(
-                        width - line.width() + line.number_of_spaces() as i32 * minimum_space_width,
-                    ) / line.number_of_spaces() as i32
-                } else {
-                    minimum_space_width.into()
-                };
-                TextAlignmentSettings {
-                    space_width,
-                    start_x: 0,
-                }
-            }
-        }
-    }
-}
-
-impl<'font> BufferedRender<'font> {
-    #[must_use]
-    fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
-        let config = Configuration::new(sprite_size, palette);
-        BufferedRender {
-            char_render: WordRender::new(config),
-            preprocessor: Preprocessed::new(),
-            buffered_chars: VecDeque::new(),
-            letters: Default::default(),
-            font,
-        }
-    }
-}
-
-fn is_private_use(c: char) -> bool {
-    ('\u{E000}'..'\u{F8FF}').contains(&c)
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-/// Changes the palette to use to draw characters.
-/// ```rust,no_run
-/// # #![no_std]
-/// # #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, ChangeColour, Size};
-/// use agb::display::palette16::Palette16;
-/// use agb::display::Font;
-///
-/// use core::fmt::Write;
-///
-/// static EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
-///
-/// # fn foo() {
-/// let mut palette = [0x0; 16];
-/// palette[1] = 0xFF_FF;
-/// palette[2] = 0x00_FF;
-/// let palette = Palette16::new(palette);
-/// let palette = PaletteVram::new(&palette).unwrap();
-/// let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
-///
-/// let _ = writeln!(writer, "Hello, {}World{}!", ChangeColour::new(2), ChangeColour::new(1));
-/// # }
-/// ```
 pub struct ChangeColour(u8);
+
+impl Display for ChangeColour {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use core::fmt::Write;
+        f.write_char(self.to_char())
+    }
+}
 
 impl ChangeColour {
     #[must_use]
@@ -165,347 +43,455 @@ impl ChangeColour {
     }
 }
 
-impl Display for ChangeColour {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_char(self.to_char())
+fn is_private_use(c: char) -> bool {
+    ('\u{E000}'..'\u{F8FF}').contains(&c)
+}
+
+struct RenderConfig<'string> {
+    string: Cow<'string, str>,
+    font: &'static Font,
+}
+
+struct RenderedSpriteInternal {
+    start: usize,
+    end: usize,
+    width: i32,
+    sprite: SpriteVram,
+}
+
+struct RenderedSprite<'text_render> {
+    string: &'text_render str,
+    width: i32,
+    sprite: &'text_render SpriteVram,
+}
+
+impl RenderedSprite<'_> {
+    fn text(&self) -> &str {
+        self.string
+    }
+
+    fn width(&self) -> i32 {
+        self.width
+    }
+
+    fn sprite(&self) -> &SpriteVram {
+        &self.sprite
     }
 }
 
-impl BufferedRender<'_> {
-    fn input_character(&mut self, character: char) {
-        if !is_private_use(character) {
-            self.preprocessor
-                .add_character(self.font, character, self.char_render.sprite_width());
-        }
-        self.buffered_chars.push_back(character);
+pub struct SimpleTextRender<'string> {
+    config: RenderConfig<'string>,
+    render_index: usize,
+    inner_renderer: renderer::WordRender,
+    rendered_sprite_window: VecDeque<RenderedSpriteInternal>,
+    word_lengths: VecDeque<WordLength>,
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+struct WordLength {
+    letter_groups: usize,
+    pixels: i32,
+}
+
+struct SimpleLayoutItem<'text_render> {
+    string: &'text_render str,
+    sprite: &'text_render SpriteVram,
+    x: i32,
+}
+
+impl<'text_render> SimpleLayoutItem<'text_render> {
+    fn displayed_string(&self) -> &str {
+        &self.string
     }
 
-    fn process(&mut self) {
-        let Some(c) = self.buffered_chars.pop_front() else {
+    fn sprite(&self) -> &SpriteVram {
+        &self.sprite
+    }
+
+    fn x_offset(&self) -> i32 {
+        self.x
+    }
+}
+
+struct SimpleLayoutIterator<'text_render> {
+    string: &'text_render str,
+    vec_iter: alloc::collections::vec_deque::Iter<'text_render, RenderedSpriteInternal>,
+    word_lengths_iter: alloc::collections::vec_deque::Iter<'text_render, WordLength>,
+    space_width: i32,
+    current_word_length: usize,
+    x_offset: i32,
+}
+
+impl<'text_render> Iterator for SimpleLayoutIterator<'text_render> {
+    type Item = SimpleLayoutItem<'text_render>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.current_word_length == 0 {
+            self.x_offset += self.space_width;
+            self.current_word_length = self.word_lengths_iter.next()?.letter_groups;
+        }
+
+        let rendered = self.vec_iter.next()?;
+        let my_x_offset = self.x_offset;
+        self.x_offset += rendered.width;
+
+        self.current_word_length -= 1;
+
+        Some(SimpleLayoutItem {
+            string: &self.string[rendered.start..rendered.end],
+            sprite: &rendered.sprite,
+            x: my_x_offset,
+        })
+    }
+}
+
+impl<'string> SimpleTextRender<'string> {
+    /// Lays out text in one line with a space between each word, note that
+    /// newlines are just treated as word breaks.
+    ///
+    /// If you want to treat layout fully use one of the layouts
+    /// [`LeftAlignLayout`], [`RightAlignLayout`], [`CenterAlignLayout`], or
+    /// [`JustifyAlignLayout`].
+    pub fn simple_layout(&self) -> SimpleLayoutIterator<'_> {
+        SimpleLayoutIterator {
+            string: &self.config.string,
+            word_lengths_iter: self.word_lengths.iter(),
+            vec_iter: self.rendered_sprite_window.iter(),
+            space_width: self.config.font.letter(' ').advance_width as i32,
+            current_word_length: 0,
+            x_offset: 0,
+        }
+    }
+
+    fn words(&self) -> impl Iterator<Item = (Option<i32>, impl Iterator<Item = RenderedSprite>)> {
+        let mut start = 0;
+        self.word_lengths
+            .iter()
+            .copied()
+            .enumerate()
+            .map(move |(idx, length)| {
+                let potentially_incomplete = self.word_lengths.len() == idx + 1;
+                let definitely_complete = !potentially_incomplete;
+
+                let end = start + length.letter_groups;
+                let this_start = start;
+                start = end;
+
+                (
+                    definitely_complete.then_some(length.pixels),
+                    self.rendered_sprite_window
+                        .range(this_start..end)
+                        .map(|x| RenderedSprite {
+                            string: &self.config.string[x.start..x.end],
+                            width: x.width,
+                            sprite: &x.sprite,
+                        }),
+                )
+            })
+    }
+
+    fn next_character(&mut self) -> Option<(usize, char)> {
+        let next = self
+            .config
+            .string
+            .get(self.render_index..)?
+            .chars()
+            .next()?;
+        let idx = self.render_index;
+
+        self.render_index += next.len_utf8();
+        Some((idx, next))
+    }
+
+    pub fn is_done(&self) -> bool {
+        self.string().len() == self.render_index
+    }
+
+    pub fn number_of_letter_groups(&self) -> usize {
+        self.rendered_sprite_window.len()
+    }
+
+    pub fn pop_words(&mut self, words: usize) -> usize {
+        assert!(self.word_lengths.len() > words);
+
+        let mut total_letters_to_pop = 0;
+        for _ in 0..words {
+            let number_of_letters_to_pop = self.word_lengths.pop_front().unwrap();
+            total_letters_to_pop += number_of_letters_to_pop.letter_groups;
+        }
+
+        for _ in 0..total_letters_to_pop {
+            self.rendered_sprite_window.pop_front();
+        }
+
+        total_letters_to_pop
+    }
+
+    pub fn update(&mut self) {
+        let Some((idx, c)) = self.next_character() else {
             return;
         };
         match c {
             ' ' | '\n' => {
-                if let Some(group) = self.char_render.finalise_letter() {
-                    self.letters.letters.push_back(group);
-                    self.letters.number_of_groups += 1;
+                let length = self
+                    .word_lengths
+                    .back_mut()
+                    .expect("There should always be at least one word length");
+                if let Some((start_index, group, width)) = self.inner_renderer.finalise_letter(idx)
+                {
+                    self.rendered_sprite_window
+                        .push_back(RenderedSpriteInternal {
+                            start: start_index,
+                            end: idx,
+                            sprite: group,
+                            width,
+                        });
+
+                    length.letter_groups += 1;
+                    length.pixels += width;
                 }
 
-                self.letters.number_of_groups += 1;
+                self.word_lengths.push_back(WordLength::default());
             }
             letter => {
-                if let Some(group) = self.char_render.render_char(self.font, letter) {
-                    self.letters.letters.push_back(group);
-                    self.letters.number_of_groups += 1;
+                if let Some((start_index, group, width)) =
+                    self.inner_renderer
+                        .render_char(self.config.font, letter, idx)
+                {
+                    self.rendered_sprite_window
+                        .push_back(RenderedSpriteInternal {
+                            start: start_index,
+                            end: idx,
+                            sprite: group,
+                            width,
+                        });
+                    let length = self
+                        .word_lengths
+                        .back_mut()
+                        .expect("There should always be at least one word length");
+                    length.letter_groups += 1;
+                    length.pixels += width;
                 }
             }
         }
     }
-}
 
-/// The object text renderer. Uses objects to render and layout text. It's use is non trivial.
-/// Changes the palette to use to draw characters.
-/// ```rust,no_run
-/// #![no_std]
-/// #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, TextAlignment, Size};
-/// use agb::display::palette16::Palette16;
-/// use agb::display::{Font, WIDTH};
-///
-/// use core::fmt::Write;
-///
-/// static EXAMPLE_FONT: Font = agb::include_font!("examples/font/yoster.ttf", 12);
-///
-/// #[agb::entry]
-/// fn main(gba: &mut agb::Gba) -> ! {
-///     let (mut unmanaged, _) = gba.display.object.get_unmanaged();
-///     let vblank = agb::interrupt::VBlank::get();
-///
-///     let mut palette = [0x0; 16];
-///     palette[1] = 0xFF_FF;
-///     let palette = Palette16::new(palette);
-///     let palette = PaletteVram::new(&palette).unwrap();
-///
-///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
-///
-///     let _ = writeln!(writer, "Hello, World!");
-///     writer.layout((WIDTH, 40), TextAlignment::Left, 2);
-///
-///     loop {
-///         writer.next_letter_group();
-///         writer.update((0, 0));
-///         vblank.wait_for_vblank();
-///         let oam = &mut unmanaged.iter();
-///         writer.commit(oam);
-///     }
-/// }
-/// ```
-pub struct ObjectTextRender<'font> {
-    buffer: BufferedRender<'font>,
-    layout: LayoutCache,
-    number_of_objects: usize,
-}
-
-impl<'font> ObjectTextRender<'font> {
-    #[must_use]
-    /// Creates a new text renderer with a given font, sprite size, and palette.
-    /// You must ensure that the sprite size can accomodate the letters from the
-    /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(
+        string: Cow<'string, str>,
+        font: &'static Font,
+        palette: PaletteVram,
+        sprite_size: Size,
+        explicit_break_on: Option<fn(char) -> bool>,
+    ) -> Self {
+        let mut word_lengths = VecDeque::new();
+        word_lengths.push_back(WordLength::default());
         Self {
-            buffer: BufferedRender::new(font, sprite_size, palette),
-            number_of_objects: 0,
-            layout: LayoutCache {
-                positions: VecDeque::new(),
-                line_capacity: VecDeque::new(),
-                objects: Vec::new(),
-                objects_are_at_origin: (0, 0).into(),
-                area: (0, 0).into(),
+            config: RenderConfig { string, font },
+            rendered_sprite_window: VecDeque::new(),
+            word_lengths,
+            render_index: 0,
+            inner_renderer: renderer::WordRender::new(
+                Configuration::new(sprite_size, palette),
+                explicit_break_on,
+            ),
+        }
+    }
+
+    fn string(&self) -> &str {
+        &self.config.string
+    }
+}
+
+pub struct LeftAlignLayout<'string> {
+    simple: SimpleTextRender<'string>,
+    data: LeftAlignLayoutData,
+}
+
+struct LeftAlignLayoutData {
+    width: Option<NonZeroU32>,
+    string_index: usize,
+    words_per_line: VecDeque<usize>,
+    current_line_width: i32,
+}
+
+struct PreparedLetterGroupPosition {
+    x: i32,
+    line: i32,
+}
+
+fn length_of_next_word(current_index: &mut usize, s: &str, font: &Font) -> Option<(bool, i32)> {
+    let s = &s[*current_index..];
+    if s.is_empty() {
+        return None;
+    }
+
+    let mut width = 0;
+    let mut previous_character = None;
+    for (idx, chr) in s.char_indices() {
+        match chr {
+            '\n' | ' ' => {
+                *current_index += idx + 1;
+                return Some((chr == '\n', width));
+            }
+            _ if is_private_use(chr) => {}
+            letter => {
+                let letter = font.letter(letter);
+                if let Some(previous_character) = previous_character {
+                    width += letter.kerning_amount(previous_character);
+                }
+
+                // width += letter.xmin as i32;
+                width += letter.advance_width as i32;
+            }
+        }
+        previous_character = Some(chr);
+    }
+    *current_index += s.len();
+    Some((false, width))
+}
+
+pub struct LaidOutLetter<'text_render> {
+    line: usize,
+    x: i32,
+    sprite: &'text_render SpriteVram,
+    string: &'text_render str,
+}
+
+impl LaidOutLetter<'_> {
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn x(&self) -> i32 {
+        self.x
+    }
+
+    pub fn sprite(&self) -> &SpriteVram {
+        self.sprite
+    }
+
+    pub fn string(&self) -> &str {
+        self.string
+    }
+}
+
+impl<'string> LeftAlignLayout<'string> {
+    pub fn new(simple: SimpleTextRender<'string>, width: Option<NonZeroU32>) -> Self {
+        let mut words_per_line = VecDeque::new();
+        words_per_line.push_back(0);
+
+        Self {
+            simple,
+            data: LeftAlignLayoutData {
+                string_index: 0,
+                words_per_line,
+                current_line_width: 0,
+                width,
             },
         }
     }
+
+    pub fn pop_line(&mut self) -> usize {
+        assert!(self.data.words_per_line.len() > 1, "line not complete");
+        let words = self.data.words_per_line.pop_front().unwrap();
+        self.simple.pop_words(words)
+    }
+
+    pub fn at_least_n_letter_groups(&mut self, desired: usize) {
+        while self.simple.number_of_letter_groups() < desired && !self.simple.is_done() {
+            self.simple.update();
+        }
+    }
+
+    pub fn layout(&mut self) -> impl Iterator<Item = LaidOutLetter> {
+        self.data.layout(
+            self.simple.string(),
+            self.simple.config.font,
+            self.simple.words(),
+        )
+    }
 }
 
-impl Write for ObjectTextRender<'_> {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        for c in s.chars() {
-            self.buffer.input_character(c);
-        }
-
-        Ok(())
-    }
-}
-
-impl ObjectTextRender<'_> {
-    /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamIterator) {
-        for (object, slot) in self.layout.objects.iter().zip(oam) {
-            slot.set(object);
-        }
+impl LeftAlignLayoutData {
+    fn length_of_next_word(&mut self, string: &str, font: &Font) -> Option<(bool, i32)> {
+        length_of_next_word(&mut self.string_index, string, font)
     }
 
-    /// Force a relayout, must be called after writing.
-    pub fn layout(
-        &mut self,
-        area: impl Into<Vector2D<i32>>,
-        alignment: TextAlignment,
-        paragraph_spacing: i32,
-    ) {
-        self.layout.create_positions(
-            self.buffer.font,
-            &self.buffer.preprocessor,
-            &LayoutSettings {
-                area: area.into(),
-                alignment,
-                paragraph_spacing,
-            },
-        );
-    }
+    fn try_extend_line(&mut self, string: &str, font: &Font, space_width: i32) -> bool {
+        let (force_new_line, length_of_next_word) = self
+            .length_of_next_word(string, font)
+            .expect("Should have more in the line to extend into");
 
-    /// Removes one complete line. Returns whether a line could be removed. You must call [`update`][ObjectTextRender::update] after this
-    pub fn pop_line(&mut self) -> bool {
-        let width = self.layout.area.x;
-        let space = self.buffer.font.letter(' ').advance_width as i32;
-        let line_height = self.buffer.font.line_height();
-        if let Some(line) = self.buffer.preprocessor.lines(width, space).next() {
-            // there is a line
-            if self.layout.objects.len() >= line.number_of_letter_groups() {
-                // we have enough rendered letter groups to count
-                self.number_of_objects -= line.number_of_letter_groups();
-                for _ in 0..line.number_of_letter_groups() {
-                    self.buffer.letters.letters.pop_front();
-                    self.layout.positions.pop_front();
-                }
-                self.layout.line_capacity.pop_front();
-                self.layout.objects.clear();
-                self.buffer.preprocessor.pop(&line);
-                for position in self.layout.positions.iter_mut() {
-                    position.y -= line_height as i16;
-                }
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Updates the internal state of the number of letters to write and popped
-    /// line. Should be called in the same frame as and after
-    /// [`next_letter_group`][ObjectTextRender::next_letter_group], [`next_line`][ObjectTextRender::next_line], and [`pop_line`][ObjectTextRender::pop_line].
-    pub fn update(&mut self, position: impl Into<Vector2D<i32>>) {
-        if !self.buffer.buffered_chars.is_empty()
-            && self.buffer.letters.letters.len() <= self.number_of_objects + 5
+        if self.current_line_width + length_of_next_word
+            > self.width.map_or(i32::MAX, |x| x.get() as i32)
         {
-            self.buffer.process();
-        }
-
-        self.layout.update_objects_to_display_at_position(
-            position.into(),
-            self.buffer.letters.letters.iter(),
-            self.number_of_objects,
-        );
-    }
-
-    /// Causes the next letter group to be shown on the next update. Returns
-    /// whether another letter could be added in the space given.
-    pub fn next_letter_group(&mut self) -> bool {
-        if !self.can_render_another_element() {
-            return false;
-        }
-        self.number_of_objects += 1;
-        self.at_least_n_letter_groups(self.number_of_objects);
-
-        true
-    }
-
-    fn can_render_another_element(&self) -> bool {
-        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
-
-        let max_number_of_objects = self
-            .layout
-            .line_capacity
-            .iter()
-            .take(max_number_of_lines)
-            .sum::<usize>();
-
-        max_number_of_objects > self.number_of_objects
-    }
-
-    /// Causes the next line to be shown on the next update. Returns
-    /// whether another line could be added in the space given.
-    pub fn next_line(&mut self) -> bool {
-        let max_number_of_lines = (self.layout.area.y / self.buffer.font.line_height()) as usize;
-
-        // find current line
-
-        for (start, end) in self
-            .layout
-            .line_capacity
-            .iter()
-            .scan(0, |count, line_size| {
-                let start = *count;
-                *count += line_size;
-                Some((start, *count))
-            })
-            .take(max_number_of_lines)
-        {
-            if self.number_of_objects >= start && self.number_of_objects < end {
-                self.number_of_objects = end;
-                self.at_least_n_letter_groups(end);
-                return true;
-            }
-        }
-
-        false
-    }
-
-    fn at_least_n_letter_groups(&mut self, n: usize) {
-        while !self.buffer.buffered_chars.is_empty() && self.buffer.letters.letters.len() <= n {
-            self.buffer.process();
-        }
-    }
-}
-
-struct LayoutCache {
-    positions: VecDeque<Vector2D<i16>>,
-    line_capacity: VecDeque<usize>,
-    objects: Vec<ObjectUnmanaged>,
-    objects_are_at_origin: Vector2D<i32>,
-    area: Vector2D<i32>,
-}
-
-impl LayoutCache {
-    fn update_objects_to_display_at_position<'a>(
-        &mut self,
-        position: Vector2D<i32>,
-        letters: impl Iterator<Item = &'a SpriteVram>,
-        number_of_objects: usize,
-    ) {
-        let already_done = if position == self.objects_are_at_origin {
-            self.objects.len()
+            self.current_line_width = length_of_next_word + space_width;
+            self.words_per_line.push_back(1);
+            true
         } else {
-            self.objects.clear();
-            0
-        };
-        self.objects.extend(
-            self.positions
-                .iter()
-                .zip(letters)
-                .take(number_of_objects)
-                .skip(already_done)
-                .map(|(offset, letter)| {
-                    let position = offset.change_base() + position;
-                    let mut object = ObjectUnmanaged::new(letter.clone());
-                    object.show().set_position(position);
-                    object
-                }),
-        );
-        self.objects.truncate(number_of_objects);
-        self.objects_are_at_origin = position;
-    }
+            let current_line = self
+                .words_per_line
+                .back_mut()
+                .expect("should always have a line");
+            self.current_line_width += length_of_next_word + space_width;
 
-    fn create_positions(
-        &mut self,
-        font: &Font,
-        preprocessed: &Preprocessed,
-        settings: &LayoutSettings,
-    ) {
-        self.area = settings.area;
-        self.line_capacity.clear();
-        self.positions.clear();
-        for (line, line_positions) in Self::create_layout(font, preprocessed, settings) {
-            self.line_capacity.push_back(line.number_of_letter_groups());
-            self.positions
-                .extend(line_positions.map(|x| Vector2D::new(x.x as i16, x.y as i16)));
+            *current_line += 1;
+            if force_new_line {
+                self.current_line_width = 0;
+                self.words_per_line.push_back(0);
+            }
+            false
         }
     }
 
-    fn create_layout<'a>(
-        font: &Font,
-        preprocessed: &'a Preprocessed,
-        settings: &'a LayoutSettings,
-    ) -> impl Iterator<Item = (Line, impl Iterator<Item = Vector2D<i32>> + 'a)> + 'a {
-        let minimum_space_width = font.letter(' ').advance_width as i32;
-        let width = settings.area.x;
-        let line_height = font.line_height();
+    fn layout<'a, 'text_render>(
+        &'a mut self,
+        string: &'a str,
+        font: &'static Font,
+        simple: impl Iterator<
+                Item = (
+                    Option<i32>,
+                    impl Iterator<Item = RenderedSprite<'text_render>> + 'a,
+                ),
+            > + 'a,
+    ) -> impl Iterator<Item = LaidOutLetter<'text_render>> + 'a {
+        let mut words_in_current_line = 0;
+        let mut current_line = 0;
+        let mut current_line_x_offset = 0;
+        let space_width = font.letter(' ').advance_width as i32;
 
-        let mut head_position: Vector2D<Num<i32, 10>> = (0, -line_height).into();
+        simple.flat_map(move |(pixels, letters)| {
+            let this_line_is_the_last_processed = current_line + 1 == self.words_per_line.len();
+            words_in_current_line += 1;
 
-        preprocessed
-            .lines_element(width, minimum_space_width)
-            .map(move |(line, line_elements)| {
-                let line_settings = settings
-                    .alignment
-                    .settings(&line, minimum_space_width, width);
+            if words_in_current_line > self.words_per_line[current_line]
+                && (!this_line_is_the_last_processed
+                    || self.try_extend_line(string, font, space_width))
+            {
+                current_line += 1;
+                current_line_x_offset = 0;
+                words_in_current_line = 1;
+            }
 
-                head_position.y += line_height;
-                head_position.x = line_settings.start_x.into();
+            let current_line = current_line;
+            let mut letter_x_offset = current_line_x_offset;
+            current_line_x_offset += pixels.unwrap_or(0);
+            current_line_x_offset += space_width;
 
-                (
-                    line,
-                    line_elements.filter_map(move |element| match element.decode() {
-                        PreprocessedElement::LetterGroup { width } => {
-                            let this_position = head_position;
-                            head_position.x += width as i32;
-                            Some(this_position.floor())
-                        }
-                        PreprocessedElement::WhiteSpace(space) => {
-                            match space {
-                                WhiteSpace::NewLine => {
-                                    head_position.y += settings.paragraph_spacing;
-                                }
-                                WhiteSpace::Space => head_position.x += line_settings.space_width,
-                            }
-                            None
-                        }
-                    }),
-                )
+            letters.map(move |x| {
+                let my_offset = letter_x_offset;
+                letter_x_offset += x.width;
+                LaidOutLetter {
+                    line: current_line,
+                    x: my_offset,
+                    sprite: x.sprite,
+                    string: x.string,
+                }
             })
+        })
     }
 }
 
-#[derive(PartialEq, Eq, Default)]
-struct LayoutSettings {
-    area: Vector2D<i32>,
-    alignment: TextAlignment,
-    paragraph_spacing: i32,
-}
+struct RightAlignLayout {}
+struct CenterAlignLayout {}
+struct JustifyAlignLayout {}
