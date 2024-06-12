@@ -99,9 +99,8 @@ impl WordRender {
             None
         };
 
-        if self.working.x_offset != 0 {
-            self.working.x_offset += font_letter.xmin as i32;
-        }
+        self.working.x_offset += font_letter.xmin as i32;
+        self.working.x_offset = self.working.x_offset.max(0);
 
         let y_position = font.ascent() - font_letter.height as i32 - font_letter.ymin as i32;
 

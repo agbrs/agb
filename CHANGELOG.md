@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Affine background center position didn't work outside of the upper left quadrant of the gba's screen.
 - Fixed backtrace pointing to the wrong line of code (being out by one).
+- Fixes overflow caused by certain font characteristics on boundaries of sprites in the object text renderer.
 
 ## [0.20.2] - 2024/05/25
 
