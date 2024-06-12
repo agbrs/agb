@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `find_colour_index_16` and `find_colour_index_256` to the `VRamManager` to find where a colour is in a palette.
+- Added `set_graphics_mode` to unmanaged sprites. This allows you to change to the blending and window modes.
 
 ### Fixed
 
