@@ -11,7 +11,7 @@ use crate::display::{
     Priority,
 };
 
-use super::attributes::{AffineMode, Attributes};
+use super::attributes::{AffineMode, Attributes, GraphicsMode};
 
 #[derive(Debug)]
 struct OamFrameModifyables {
@@ -403,6 +403,13 @@ impl ObjectUnmanaged {
         self.set_sprite_attributes(&sprite);
 
         self.sprite = sprite;
+
+        self
+    }
+
+    /// Sets the graphics mode of the object
+    pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
+        self.attributes.set_graphics_mode(mode);
 
         self
     }
