@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `manhattan_distance` and `magnitude_squared` no longer require the fixed point number.
+
 ## [0.20.3] - 2024/06/12
 
 ### Added
