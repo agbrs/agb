@@ -744,6 +744,17 @@ impl<T: Number + Signed> Vector2D<T> {
             y: self.y.abs(),
         }
     }
+
+    #[must_use]
+    /// Calculates the manhattan distance, x.abs() + y.abs().
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert_eq!(v1.manhattan_distance(), 7.into());
+    /// ```
+    pub fn manhattan_distance(self) -> T {
+        self.x.abs() + self.y.abs()
+    }
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
@@ -790,28 +801,6 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
 }
 
 impl<const N: usize> Vector2D<Num<i32, N>> {
-    #[must_use]
-    /// Calculates the magnitude squared, ie (x*x + y*y)
-    /// ```
-    /// # use agb_fixnum::*;
-    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
-    /// assert_eq!(v1.magnitude_squared(), 25.into());
-    /// ```
-    pub fn magnitude_squared(self) -> Num<i32, N> {
-        self.x * self.x + self.y * self.y
-    }
-
-    #[must_use]
-    /// Calculates the manhattan distance, x.abs() + y.abs().
-    /// ```
-    /// # use agb_fixnum::*;
-    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
-    /// assert_eq!(v1.manhattan_distance(), 7.into());
-    /// ```
-    pub fn manhattan_distance(self) -> Num<i32, N> {
-        self.x.abs() + self.y.abs()
-    }
-
     #[must_use]
     /// Calculates the magnitude by square root
     /// ```
@@ -1167,6 +1156,17 @@ impl<T: Number> Vector2D<T> {
             x: self.y,
             y: self.x,
         }
+    }
+
+    #[must_use]
+    /// Calculates the magnitude squared, ie (x*x + y*y)
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
+    /// assert_eq!(v1.magnitude_squared(), 25.into());
+    /// ```
+    pub fn magnitude_squared(self) -> T {
+        self.x * self.x + self.y * self.y
     }
 }
 
