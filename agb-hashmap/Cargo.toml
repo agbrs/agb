@@ -11,7 +11,7 @@ exclude = ["/benches"]
 allocator_api = []
 
 [dependencies]
-rustc-hash = { version = "1", default-features = false }
+rustc-hash = { version = "2", default-features = false }
 
 [dev-dependencies]
 rand = { version = "0.8", default-features = false, features = ["small_rng"] }
