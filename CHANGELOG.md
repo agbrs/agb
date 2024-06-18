@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Resolved incompatibility with a dependency's update in `agb-tracker`. If you
+  are already using `agb-tracker`, then this won't yet cause an issue as your
+  lockfile will maintain the working version. However if start a new project, or
+  update dependencies, cargo will choose the later incompatible version.
+
 ## [0.20.4] - 2024/06/13
 
 ### Changed
