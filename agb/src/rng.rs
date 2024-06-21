@@ -1,3 +1,5 @@
+use core::hash::Hasher;
+
 use portable_atomic::{AtomicU128, Ordering};
 
 /// A fast pseudo-random number generator. Note that the output of the
@@ -46,6 +48,37 @@ impl RandomNumberGenerator {
 
         result as i32
     }
+
+    /// Mixes in some low entropy values, call this over time to gradually increase the entropy of the rng.
+    pub fn mix(&mut self) {
+        let mut mixer = rustc_hash::FxHasher::default();
+        for address in [
+            // vcount
+            0x0400_0006_usize,
+            // timers
+            0x0400_0100_usize,
+            0x0400_0104_usize,
+            0x0400_0108_usize,
+            0x0400_010C_usize,
+            // buttons
+            0x0400_0130_usize,
+        ] {
+            mixer.write_u16(unsafe { (address as *mut u16).read_volatile() });
+        }
+
+        let mixed = mixer.finish() as u32;
+        self.state[0] ^= mixed;
+        let _ = self.gen();
+    }
+
+    /// Mixes the rng with a single value.
+    pub fn mix_with(&mut self, mix: i32) {
+        let mut mixer = rustc_hash::FxHasher::default();
+        mixer.write_i32(mix);
+        let mixed = mixer.finish() as u32;
+        self.state[0] ^= mixed;
+        let _ = self.gen();
+    }
 }
 
 impl Default for RandomNumberGenerator {
@@ -58,18 +91,32 @@ static GLOBAL_RNG: AtomicU128 = AtomicU128::new(unsafe {
     core::mem::transmute::<[u32; 4], u128>(RandomNumberGenerator::new().state)
 });
 
-/// Using a global random number generator, provides the next random number
-#[must_use]
-pub fn gen() -> i32 {
+fn with_global_rng<T, F: FnOnce(&mut RandomNumberGenerator) -> T>(x: F) -> T {
     let data: u128 = GLOBAL_RNG.load(Ordering::SeqCst);
     let data_u32: [u32; 4] = unsafe { core::mem::transmute(data) };
     let mut rng = RandomNumberGenerator { state: data_u32 };
-    let value = rng.gen();
+    let value = x(&mut rng);
     GLOBAL_RNG.store(
         unsafe { core::mem::transmute::<[u32; 4], u128>(rng.state) },
         Ordering::SeqCst,
     );
     value
+}
+
+/// Using a global random number generator, provides the next random number
+#[must_use]
+pub fn gen() -> i32 {
+    with_global_rng(RandomNumberGenerator::gen)
+}
+
+/// Mixes the global rng with low entropy values
+pub fn mix() {
+    with_global_rng(RandomNumberGenerator::mix);
+}
+
+/// Mixes the global rng with a given value
+pub fn mix_with(mix: i32) {
+    with_global_rng(|x| x.mix_with(mix));
 }
 
 #[cfg(test)]
