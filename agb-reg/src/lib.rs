@@ -7,7 +7,7 @@
 
 //! This crate contains definitions of the hardware registers used in the Game
 //! Boy Advance. It contains bitfields that define the registers as well as
-//! pointers too them.
+//! pointers to them.
 //!
 //! This crate may only be used on the GBA, use elsewhere is a very quick way to
 //! get UB.
@@ -288,17 +288,21 @@ pub struct Offset {
     pub vertical: u16,
 }
 
-trait OffsetDeref {
-    fn horizontal_ptr(self) -> *mut u16;
-    fn vertical_ptr(self) -> *mut u16;
+pub trait OffsetDeref {
+    /// # Safety
+    /// Pointer must be valid
+    unsafe fn horizontal_ptr(self) -> *mut u16;
+    /// # Safety
+    /// Pointer must be valid
+    unsafe fn vertical_ptr(self) -> *mut u16;
 }
 
 impl OffsetDeref for *mut Offset {
-    fn horizontal_ptr(self) -> *mut u16 {
+    unsafe fn horizontal_ptr(self) -> *mut u16 {
         unsafe { core::ptr::addr_of_mut!((*self).horizontal) }
     }
 
-    fn vertical_ptr(self) -> *mut u16 {
+    unsafe fn vertical_ptr(self) -> *mut u16 {
         unsafe { core::ptr::addr_of_mut!((*self).vertical) }
     }
 }
