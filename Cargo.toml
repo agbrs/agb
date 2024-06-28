@@ -13,6 +13,7 @@ members = [
     "agb-image-converter",
     "agb-macros",
     "agb-sound-converter",
+    "agb-reg",
 
     "tracker/agb-midi",
     "tracker/agb-midi-core",
