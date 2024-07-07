@@ -15,6 +15,7 @@ use super::{
 };
 
 use alloc::{vec, vec::Vec};
+use crate::display::tiled::TileFormat::FourBpp;
 
 pub trait TiledMapTypes: private::Sealed {
     type Size: BackgroundSize + Copy;
@@ -53,10 +54,7 @@ pub trait TiledMap: TiledMapTypes {
     fn size(&self) -> Self::Size;
 }
 
-impl<T> TiledMap for T
-where
-    T: TiledMapPrivate,
-    T::Size: BackgroundSizePrivate,
+impl TiledMap for AffineMap
 {
     fn clear(&mut self, vram: &mut VRamManager) {
         let colours = self.colours();
@@ -89,6 +87,70 @@ where
     }
 
     fn commit(&mut self, vram: &mut VRamManager) {
+        let screenblock_memory = self.screenblock_memory() as *mut u8;
+
+        if *self.tiles_dirty() {
+            unsafe {
+                let tiledata: Vec<u8> = self.tiles_mut().iter().map(|a| a.tile_index(FourBpp).raw_index() as u8).collect();
+                screenblock_memory.copy_from(
+                    tiledata.as_ptr(),
+                    self.map_size().num_tiles(),
+                );
+            }
+        }
+
+        let tile_colour_flag: u16 = (self.colours() == TileFormat::EightBpp).into();
+
+        let new_bg_control_value = (self.priority() as u16)
+            | ((self.screenblock() as u16) << 8)
+            | (tile_colour_flag << 7)
+            | (self.map_size().size_flag() << 14);
+
+        self.bg_control_register().set(new_bg_control_value);
+        self.update_bg_registers();
+
+        vram.gc();
+
+        *self.tiles_dirty() = false;
+    }
+
+    fn size(&self) -> <AffineMap as TiledMapTypes>::Size {
+        self.map_size()
+    }
+}
+impl TiledMap for RegularMap
+{
+    fn clear(&mut self, vram: &mut VRamManager) {
+        let colours = self.colours();
+
+        for tile in self.tiles_mut() {
+            if *tile != Default::default() {
+                vram.remove_tile(tile.tile_index(colours));
+            }
+
+            *tile = Default::default();
+        }
+    }
+
+    /// Sets wether the map is visible
+    /// Use [is_visible](TiledMap::is_visible) to get the value
+    fn set_visible(&mut self, visible: bool) {
+        let mode = DISPLAY_CONTROL.get();
+        let new_mode = if visible {
+            mode | (1 << (self.background_id() + 0x08)) as u16
+        } else {
+            mode & !(1 << (self.background_id() + 0x08)) as u16
+        };
+        DISPLAY_CONTROL.set(new_mode);
+    }
+
+    /// Checks whether the map is not marked as hidden
+    /// Use [set_visible](TiledMap::set_visible) to set the value
+    fn is_visible(&self) -> bool {
+        DISPLAY_CONTROL.get() & (1 << (self.background_id() + 0x08)) > 0
+    }
+
+    fn commit(&mut self, vram: &mut VRamManager) {
         let screenblock_memory = self.screenblock_memory();
 
         if *self.tiles_dirty() {
@@ -115,7 +177,7 @@ where
         *self.tiles_dirty() = false;
     }
 
-    fn size(&self) -> T::Size {
+    fn size(&self) -> <RegularMap as TiledMapTypes>::Size {
         self.map_size()
     }
 }
