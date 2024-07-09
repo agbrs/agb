@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Kludge fix for tilemap gaps in affine graphics modes.
+
 ## [0.20.5] - 2024/06/18
 
 ### Fixed
