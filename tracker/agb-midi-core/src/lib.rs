@@ -358,6 +358,10 @@ pub fn parse_midi(midi_info: &MidiInfo) -> Track {
             sustain: Some(envelope.amounts.len() - 1),
             loop_start: None,
             loop_end: None,
+
+            vib_waveform: Default::default(),
+            vib_amount: Default::default(),
+            vib_speed: Default::default(),
         })
         .collect();
 

@@ -49,6 +49,10 @@ pub struct Envelope {
     pub sustain: Option<usize>,
     pub loop_start: Option<usize>,
     pub loop_end: Option<usize>,
+
+    pub vib_waveform: Waveform,
+    pub vib_amount: Num<u16, 12>,
+    pub vib_speed: u8,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -80,7 +84,7 @@ pub enum PatternEffect {
     PitchBend(Num<u32, 8>),
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Waveform {
     #[default]
     Sine,
@@ -146,12 +150,20 @@ impl quote::ToTokens for Envelope {
             sustain,
             loop_start,
             loop_end,
+            vib_amount,
+            vib_speed,
+            vib_waveform,
         } = self;
 
         let amount = amount.iter().map(|value| {
             let value = value.to_raw();
             quote! { agb_tracker::__private::Num::from_raw(#value) }
         });
+
+        let vib_amount = {
+            let value = vib_amount.to_raw();
+            quote! { agb_tracker::__private::Num::from_raw(#value) }
+        };
 
         let sustain = match sustain {
             Some(value) => quote!(Some(#value)),
@@ -175,6 +187,10 @@ impl quote::ToTokens for Envelope {
                     sustain: #sustain,
                     loop_start: #loop_start,
                     loop_end: #loop_end,
+
+                    vib_waveform: #vib_waveform,
+                    vib_amount: #vib_amount,
+                    vib_speed: #vib_speed,
                 }
             }
         });

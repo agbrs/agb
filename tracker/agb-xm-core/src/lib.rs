@@ -31,7 +31,12 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
 
         let envelope = &instrument.volume_envelope;
         let envelope_id = if envelope.enabled {
-            let envelope = EnvelopeData::new(envelope, module.default_bpm as u32);
+            let envelope = EnvelopeData::new(
+                envelope,
+                instrument,
+                module.frequency_type,
+                module.default_bpm as u32,
+            );
             let id = existing_envelopes
                 .entry(envelope)
                 .or_insert_with_key(|envelope| {
@@ -461,6 +466,10 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
             sustain: envelope.sustain,
             loop_start: envelope.loop_start,
             loop_end: envelope.loop_end,
+
+            vib_amount: envelope.vib_amount.try_change_base().unwrap(),
+            vib_waveform: envelope.vib_waveform,
+            vib_speed: envelope.vib_speed,
         })
         .collect::<Vec<_>>();
 
@@ -541,10 +550,19 @@ struct EnvelopeData {
     sustain: Option<usize>,
     loop_start: Option<usize>,
     loop_end: Option<usize>,
+
+    vib_waveform: Waveform,
+    vib_speed: u8,
+    vib_amount: Num<u32, 12>,
 }
 
 impl EnvelopeData {
-    fn new(e: &xmrs::envelope::Envelope, bpm: u32) -> Self {
+    fn new(
+        e: &xmrs::envelope::Envelope,
+        instrument: &xmrs::instr_default::InstrDefault,
+        frequency_type: FrequencyType,
+        bpm: u32,
+    ) -> Self {
         let mut amounts = vec![];
 
         for frame in 0..=(Self::envelope_frame_to_gba_frame(e.point.last().unwrap().frame, bpm)) {
@@ -587,11 +605,29 @@ impl EnvelopeData {
             (None, None)
         };
 
+        let vib_waveform = match instrument.vibrato.waveform {
+            xmrs::instr_vibrato::Waveform::Sine => Waveform::Sine,
+            xmrs::instr_vibrato::Waveform::Square => Waveform::Square,
+            xmrs::instr_vibrato::Waveform::RampUp => Waveform::Saw,
+            xmrs::instr_vibrato::Waveform::RampDown => Waveform::Saw,
+        };
+
+        let vib_speed = (instrument.vibrato.speed * 64.0) as u8;
+        let vib_depth = instrument.vibrato.depth * 16.0;
+
+        let c4_speed = note_to_speed(Note::C4, 0.0, 0, frequency_type);
+        let vib_amount =
+            note_to_speed(Note::C4, vib_depth.into(), 0, frequency_type) / c4_speed - 1;
+
         EnvelopeData {
             amounts,
             sustain,
             loop_start,
             loop_end,
+
+            vib_waveform,
+            vib_speed,
+            vib_amount,
         }
     }
 

@@ -141,16 +141,18 @@ impl Waves {
     fn value(&self) -> Num<u32, 8> {
         assert!(self.amount.abs() <= 1.into());
 
-        let lookup = match self.waveform {
-            Waveform::Sine => lookups::SINE_LOOKUP,
-            Waveform::Saw => lookups::SAW_LOOKUP,
-            Waveform::Square => lookups::SQUARE_LOOKUP,
-        };
-
-        (self.amount * lookup[self.frame] + 1)
-            .try_change_base()
-            .unwrap()
+        calculate_wave(self.waveform, self.amount, self.frame)
     }
+}
+
+fn calculate_wave(waveform: Waveform, amount: Num<i32, 12>, frame: usize) -> Num<u32, 8> {
+    let lookup = match waveform {
+        Waveform::Sine => lookups::SINE_LOOKUP,
+        Waveform::Saw => lookups::SAW_LOOKUP,
+        Waveform::Square => lookups::SQUARE_LOOKUP,
+    };
+
+    (amount * lookup[frame] + 1).try_change_base().unwrap()
 }
 
 struct EnvelopeState {
@@ -158,6 +160,8 @@ struct EnvelopeState {
     envelope_id: usize,
     finished: bool,
     fadeout: Num<i32, 8>,
+
+    vibrato_pos: usize,
 }
 
 #[derive(Clone)]
@@ -249,6 +253,8 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                     envelope_id,
                     finished: false,
                     fadeout: sample.fadeout,
+
+                    vibrato_pos: 0,
                 });
             }
 
@@ -277,7 +283,12 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     }
 
     fn realise<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
-        for (mixer_channel, tracker_channel) in self.mixer_channels.iter().zip(&mut self.channels) {
+        for (i, (mixer_channel, tracker_channel)) in self
+            .mixer_channels
+            .iter()
+            .zip(&mut self.channels)
+            .enumerate()
+        {
             tracker_channel.tick();
 
             if let Some(channel) = mixer_channel
@@ -288,6 +299,19 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
                 if tracker_channel.vibrato.speed != 0 && tracker_channel.vibrato.enable {
                     current_speed *= tracker_channel.vibrato.value().change_base();
+                } else if let Some(envelope) = &mut self.envelopes[i] {
+                    let track_envelope = &self.track.envelopes[envelope.envelope_id];
+
+                    if track_envelope.vib_speed != 0 {
+                        current_speed *= calculate_wave(
+                            track_envelope.vib_waveform,
+                            track_envelope.vib_amount.change_base(),
+                            envelope.vibrato_pos,
+                        )
+                        .change_base();
+                        envelope.vibrato_pos =
+                            (envelope.vibrato_pos + track_envelope.vib_speed as usize) % 64;
+                    }
                 }
 
                 channel.playback(current_speed.change_base());
