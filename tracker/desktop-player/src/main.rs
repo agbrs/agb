@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         &config.into(),
         move |data: &mut [f32], _| {
             for val in data.iter_mut() {
-                *val = rx.recv().unwrap();
+                *val = rx.try_recv().unwrap_or(0.0);
             }
         },
         |err| eprintln!("Error on audio stream {err}"),
