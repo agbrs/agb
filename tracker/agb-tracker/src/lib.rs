@@ -95,8 +95,8 @@ pub mod __private {
 pub use agb_tracker_interop::Track;
 
 /// Stores the required state in order to play tracker music.
-pub struct TrackerInner<TChannelId> {
-    track: &'static Track,
+pub struct TrackerInner<'track, TChannelId> {
+    track: &'track Track,
     channels: Vec<TrackerChannel<TChannelId>>,
     envelopes: Vec<Option<EnvelopeState>>,
 
@@ -132,9 +132,9 @@ struct GlobalSettings {
     volume: Num<i32, 8>,
 }
 
-impl<TChannelId> TrackerInner<TChannelId> {
+impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
-    pub fn new(track: &'static Track) -> Self {
+    pub fn new(track: &'track Track) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, Default::default);
 
@@ -586,4 +586,4 @@ impl<'gba> Mixer for agb::sound::mixer::Mixer<'gba> {
 
 #[cfg(feature = "agb")]
 /// The type to use if you're using agb-tracker with agb
-pub type Tracker = TrackerInner<agb::sound::mixer::ChannelId>;
+pub type Tracker = TrackerInner<'static, agb::sound::mixer::ChannelId>;

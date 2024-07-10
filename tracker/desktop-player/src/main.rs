@@ -15,10 +15,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_path = &args[1];
     let module = load_module_from_file(Path::new(file_path))?;
 
-    let track = Box::leak::<'static>(Box::new(agb_xm_core::parse_module(&module)));
+    let track = agb_xm_core::parse_module(&module);
 
     let mut mixer = Mixer::new();
-    let mut tracker = agb_tracker::TrackerInner::new(track);
+    let mut tracker = agb_tracker::TrackerInner::new(&track);
 
     let host = cpal::default_host();
     let device = host
