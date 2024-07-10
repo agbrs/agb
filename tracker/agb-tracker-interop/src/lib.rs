@@ -51,7 +51,7 @@ pub struct Envelope {
     pub loop_end: Option<usize>,
 
     pub vib_waveform: Waveform,
-    pub vib_amount: Num<u16, 12>,
+    pub vib_amount: Num<i16, 12>,
     pub vib_speed: u8,
 }
 

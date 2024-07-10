@@ -553,7 +553,7 @@ struct EnvelopeData {
 
     vib_waveform: Waveform,
     vib_speed: u8,
-    vib_amount: Num<u32, 12>,
+    vib_amount: Num<i32, 12>,
 }
 
 impl EnvelopeData {
@@ -616,8 +616,17 @@ impl EnvelopeData {
         let vib_depth = instrument.vibrato.depth * 16.0;
 
         let c4_speed = note_to_speed(Note::C4, 0.0, 0, frequency_type);
-        let vib_amount =
-            note_to_speed(Note::C4, vib_depth.into(), 0, frequency_type) / c4_speed - 1;
+        let mut vib_amount =
+            (note_to_speed(Note::C4, vib_depth.into(), 0, frequency_type) / c4_speed - 1)
+                .try_change_base()
+                .unwrap();
+
+        if matches!(
+            instrument.vibrato.waveform,
+            xmrs::instr_vibrato::Waveform::RampDown
+        ) {
+            vib_amount = -vib_amount;
+        }
 
         EnvelopeData {
             amounts,
