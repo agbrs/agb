@@ -28,7 +28,7 @@ impl Mixer {
 
         for channel in channels {
             let right_amount = ((channel.panning + 1) / 2) * channel.volume;
-            let left_amount = ((channel.panning + 1) / 2) * channel.volume;
+            let left_amount = ((-channel.panning + 1) / 2) * channel.volume;
 
             let right_amount: Num<i16, 4> = right_amount.change_base();
             let left_amount: Num<i16, 4> = left_amount.change_base();
