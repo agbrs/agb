@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for vibrato in `agb-tracker`'s XM format
+
+### Changed
+
+- `agb-tracker` now has an `agb` feature which you must enable to use it with `agb`. You won't notice
+  unless you've been using `default-features = false` in which case we recommend removing that from your `Cargo.toml`.
+
 ### Fixed
 - There are no longer gaps between tiles in affine graphics modes.
 
