@@ -69,6 +69,7 @@ pub enum PatternEffect {
     Portamento(Num<u16, 12>),
     /// Slide each tick the first amount to at most the second amount
     TonePortamento(Num<u16, 12>, Num<u16, 12>),
+    Vibrato(Waveform, Num<u16, 12>, u8),
     SetTicksPerStep(u32),
     SetFramesPerTick(Num<u32, 8>),
     SetGlobalVolume(Num<i32, 8>),
@@ -77,7 +78,7 @@ pub enum PatternEffect {
     PitchBend(Num<u32, 8>),
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Waveform {
     #[default]
     Sine,
@@ -333,6 +334,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::PitchBend(amount) => {
                 let amount = amount.to_raw();
                 quote! { PitchBend(agb_tracker::__private::Num::from_raw(#amount)) }
+            }
+            PatternEffect::Vibrato(waveform, amount, speed) => {
+                let amount = amount.to_raw();
+                quote! { Vibrato(#waveform, #amount, #speed) }
             }
         };
 

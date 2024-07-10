@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use agb_fixnum::Num;
-use agb_tracker_interop::PatternEffect;
+use agb_tracker_interop::{PatternEffect, Waveform};
 
 use xmrs::prelude::*;
 
@@ -276,6 +276,22 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         } else {
                             PatternEffect::None
                         }
+                    }
+                    0x4 => {
+                        let vibrato_speed = effect_parameter >> 4;
+                        let depth = effect_parameter & 0xF;
+
+                        let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                        let speed =
+                            note_to_speed(Note::C4, depth as f64 * 8.0, 0, module.frequency_type);
+
+                        let amount = speed / c4_speed - 1;
+
+                        PatternEffect::Vibrato(
+                            Waveform::Sine,
+                            amount.try_change_base().unwrap(),
+                            vibrato_speed,
+                        )
                     }
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)

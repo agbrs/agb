@@ -132,7 +132,7 @@ struct Waves {
     waveform: Waveform,
     frame: usize,
     speed: usize,
-    amount: Num<i32, 8>,
+    amount: Num<i32, 12>,
 }
 
 impl Waves {
@@ -281,6 +281,7 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 .and_then(|channel_id| mixer.channel(channel_id))
             {
                 let mut current_speed = tracker_channel.current_speed;
+
                 if tracker_channel.vibrato.speed != 0 {
                     current_speed *= tracker_channel.vibrato.value().change_base();
                 }
@@ -497,6 +498,11 @@ impl TrackerChannel {
             PatternEffect::GlobalVolumeSlide(volume_delta) => {
                 global_settings.volume =
                     (global_settings.volume + *volume_delta).clamp(0.into(), 1.into());
+            }
+            PatternEffect::Vibrato(waveform, amount, speed) => {
+                self.vibrato.waveform = *waveform;
+                self.vibrato.amount = amount.change_base();
+                self.vibrato.speed = *speed as usize;
             }
         }
     }
