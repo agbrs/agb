@@ -67,6 +67,7 @@ pub enum PatternEffect {
     NoteCut(u32),
     NoteDelay(u32),
     Portamento(Num<u16, 12>),
+    FinePortamento(Num<u16, 12>),
     /// Slide each tick the first amount to at most the second amount
     TonePortamento(Num<u16, 12>, Num<u16, 12>),
     Vibrato(Waveform, Num<u16, 12>, u8),
@@ -310,6 +311,10 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::Portamento(amount) => {
                 let amount = amount.to_raw();
                 quote! { Portamento(agb_tracker::__private::Num::from_raw(#amount))}
+            }
+            PatternEffect::FinePortamento(amount) => {
+                let amount = amount.to_raw();
+                quote! { FinePortamento(agb_tracker::__private::Num::from_raw(#amount))}
             }
             PatternEffect::TonePortamento(amount, target) => {
                 let amount = amount.to_raw();

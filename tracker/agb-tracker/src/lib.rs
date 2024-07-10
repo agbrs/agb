@@ -462,6 +462,12 @@ impl TrackerChannel {
                     self.current_speed = self.base_speed.change_base();
                 }
             }
+            PatternEffect::FinePortamento(amount) => {
+                if tick == 1 {
+                    self.base_speed *= amount.change_base();
+                    self.current_speed = self.base_speed.change_base();
+                }
+            }
             PatternEffect::TonePortamento(amount, target) => {
                 self.current_volume = (self.volume * global_settings.volume)
                     .try_change_base()

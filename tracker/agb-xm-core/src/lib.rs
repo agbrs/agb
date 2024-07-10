@@ -316,6 +316,40 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         }
                     }
                     0xE => match slot.effect_parameter >> 4 {
+                        0x1 => {
+                            let c4_speed: Num<u32, 12> =
+                                note_to_speed(Note::C4, 0.0, 0, module.frequency_type)
+                                    .change_base();
+                            let speed: Num<u32, 12> = note_to_speed(
+                                Note::C4,
+                                effect_parameter as f64 * 8.0,
+                                0,
+                                module.frequency_type,
+                            )
+                            .change_base();
+
+                            let portamento_amount = speed / c4_speed;
+
+                            PatternEffect::FinePortamento(
+                                portamento_amount.try_change_base().unwrap(),
+                            )
+                        }
+                        0x2 => {
+                            let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                            let speed = note_to_speed(
+                                Note::C4,
+                                effect_parameter as f64 * 8.0,
+                                0,
+                                module.frequency_type,
+                            );
+
+                            let portamento_amount = c4_speed / speed;
+
+                            PatternEffect::FinePortamento(
+                                portamento_amount.try_change_base().unwrap(),
+                            )
+                        }
+
                         0xA => PatternEffect::FineVolumeSlide(
                             Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
@@ -324,7 +358,10 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         0xD => PatternEffect::NoteDelay((slot.effect_parameter & 0xf).into()),
-                        _ => PatternEffect::None,
+                        u => {
+                            eprintln!("Unsupported extended effect E{u:X}y");
+                            PatternEffect::None
+                        }
                     },
                     0xF => match slot.effect_parameter {
                         0 => PatternEffect::SetTicksPerStep(u32::MAX),
@@ -348,7 +385,11 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             PatternEffect::GlobalVolumeSlide(Num::new(first as i32) / 0x40)
                         }
                     }
-                    _ => PatternEffect::None,
+                    e => {
+                        eprintln!("Unsupported effect {e:X}xy");
+
+                        PatternEffect::None
+                    }
                 };
 
                 if sample == 0
