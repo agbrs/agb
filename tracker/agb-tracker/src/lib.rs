@@ -68,7 +68,7 @@ extern crate alloc;
 mod lookups;
 mod mixer;
 
-use agb_tracker_interop::{PatternEffect, Sample};
+use agb_tracker_interop::{PatternEffect, Sample, Waveform};
 use alloc::vec::Vec;
 
 pub use mixer::{Mixer, SoundChannel};
@@ -119,10 +119,36 @@ struct TrackerChannel {
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
 
+    vibrato: Waves,
+
     current_volume: Num<i32, 8>,
     current_speed: Num<u32, 16>,
     current_panning: Num<i32, 8>,
     is_playing: bool,
+}
+
+#[derive(Default)]
+struct Waves {
+    waveform: Waveform,
+    frame: usize,
+    speed: usize,
+    amount: Num<i32, 8>,
+}
+
+impl Waves {
+    fn value(&self) -> Num<u32, 8> {
+        assert!(self.amount.abs() <= 1.into());
+
+        let lookup = match self.waveform {
+            Waveform::Sine => lookups::SINE_LOOKUP,
+            Waveform::Saw => lookups::SAW_LOOKUP,
+            Waveform::Square => lookups::SQUARE_LOOKUP,
+        };
+
+        (self.amount * lookup[self.frame] + 1)
+            .try_change_base()
+            .unwrap()
+    }
 }
 
 struct EnvelopeState {
@@ -247,12 +273,19 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     }
 
     fn realise<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
-        for (mixer_channel, tracker_channel) in self.mixer_channels.iter().zip(&self.channels) {
+        for (mixer_channel, tracker_channel) in self.mixer_channels.iter().zip(&mut self.channels) {
+            tracker_channel.tick();
+
             if let Some(channel) = mixer_channel
                 .as_ref()
                 .and_then(|channel_id| mixer.channel(channel_id))
             {
-                channel.playback(tracker_channel.current_speed.change_base());
+                let mut current_speed = tracker_channel.current_speed;
+                if tracker_channel.vibrato.speed != 0 {
+                    current_speed *= tracker_channel.vibrato.value().change_base();
+                }
+
+                channel.playback(current_speed.change_base());
                 channel.volume(tracker_channel.current_volume.try_change_base().unwrap());
                 channel.panning(tracker_channel.current_panning.try_change_base().unwrap());
 
@@ -486,6 +519,10 @@ impl TrackerChannel {
             .unwrap();
 
         self.volume != 0.into()
+    }
+
+    fn tick(&mut self) {
+        self.vibrato.frame = (self.vibrato.frame + self.vibrato.speed) % 64;
     }
 }
 
