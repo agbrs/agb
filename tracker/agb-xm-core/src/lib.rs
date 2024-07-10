@@ -613,7 +613,7 @@ impl EnvelopeData {
         };
 
         let vib_speed = (instrument.vibrato.speed * 64.0) as u8;
-        let vib_depth = instrument.vibrato.depth * 16.0;
+        let vib_depth = instrument.vibrato.depth * 8.0;
 
         let c4_speed = note_to_speed(Note::C4, 0.0, 0, frequency_type);
         let mut vib_amount =
