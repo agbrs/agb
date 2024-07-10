@@ -65,6 +65,7 @@
 
 extern crate alloc;
 
+mod lookups;
 mod mixer;
 
 use agb_tracker_interop::{PatternEffect, Sample};

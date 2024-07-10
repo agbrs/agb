@@ -23,6 +23,9 @@ agb = { version = "0.20.5", path = "../../agb", optional = true }
 agb_fixnum = { version = "0.20.5", path = "../../agb-fixnum" }
 agb_tracker_interop = { version = "0.20.5", path = "../agb-tracker-interop", default-features = false }
 
+[build-dependencies]
+agb_fixnum = { version = "0.20.5", path = "../../agb-fixnum" }
+
 [profile.dev]
 opt-level = 3
 debug = true

@@ -77,6 +77,15 @@ pub enum PatternEffect {
     PitchBend(Num<u32, 8>),
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum Waveform {
+    #[default]
+    None,
+    Sine,
+    Saw,
+    Square,
+}
+
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Track {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -330,6 +339,24 @@ impl quote::ToTokens for PatternEffect {
 
         tokens.append_all(quote! {
             agb_tracker::__private::agb_tracker_interop::PatternEffect::#type_bit
+        });
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for Waveform {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::{quote, TokenStreamExt};
+
+        let name = match self {
+            Waveform::None => quote!(None),
+            Waveform::Sine => quote!(Sine),
+            Waveform::Saw => quote!(Saw),
+            Waveform::Square => quote!(Square),
+        };
+
+        tokens.append_all(quote! {
+            agb_tracker::__private::agb_tracker_interop::Waveform::#name
         });
     }
 }
