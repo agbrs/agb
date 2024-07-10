@@ -147,12 +147,14 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                                     .map(|note_and_sample| note_and_sample.1.volume)
                                     .unwrap_or(1.into()),
                         ),
-                        0x60..=0x6F => {
-                            PatternEffect::VolumeSlide(-Num::new((slot.volume - 0x60) as i16) / 64)
-                        }
-                        0x70..=0x7F => {
-                            PatternEffect::VolumeSlide(Num::new((slot.volume - 0x70) as i16) / 64)
-                        }
+                        0x60..=0x6F => PatternEffect::VolumeSlide(
+                            -Num::new((slot.volume - 0x60) as i16) / 64,
+                            false,
+                        ),
+                        0x70..=0x7F => PatternEffect::VolumeSlide(
+                            Num::new((slot.volume - 0x70) as i16) / 64,
+                            false,
+                        ),
                         0x80..=0x8F => PatternEffect::FineVolumeSlide(
                             -Num::new((slot.volume - 0x80) as i16) / 128,
                         ),
@@ -283,7 +285,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
 
                         let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
                         let speed =
-                            note_to_speed(Note::C4, depth as f64 * 8.0, 0, module.frequency_type);
+                            note_to_speed(Note::C4, depth as f64 * 16.0, 0, module.frequency_type);
 
                         let amount = speed / c4_speed - 1;
 
@@ -301,9 +303,15 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         let second = effect_parameter & 0xF;
 
                         if first == 0 {
-                            PatternEffect::VolumeSlide(-Num::new(second as i16) / 64)
+                            PatternEffect::VolumeSlide(
+                                -Num::new(second as i16) / 64,
+                                slot.effect_type == 0x6,
+                            )
                         } else {
-                            PatternEffect::VolumeSlide(Num::new(first as i16) / 64)
+                            PatternEffect::VolumeSlide(
+                                Num::new(first as i16) / 64,
+                                slot.effect_type == 0x6,
+                            )
                         }
                     }
                     0xC => {

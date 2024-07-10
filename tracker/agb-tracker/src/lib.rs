@@ -133,6 +133,8 @@ struct Waves {
     frame: usize,
     speed: usize,
     amount: Num<i32, 12>,
+
+    enable: bool,
 }
 
 impl Waves {
@@ -254,6 +256,8 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 channel.set_speed(pattern_slot.speed.change_base());
             }
 
+            channel.vibrato.enable = false;
+
             channel.apply_effect(
                 &pattern_slot.effect1,
                 self.tick,
@@ -282,7 +286,7 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             {
                 let mut current_speed = tracker_channel.current_speed;
 
-                if tracker_channel.vibrato.speed != 0 {
+                if tracker_channel.vibrato.speed != 0 && tracker_channel.vibrato.enable {
                     current_speed *= tracker_channel.vibrato.value().change_base();
                 }
 
@@ -419,13 +423,15 @@ impl TrackerChannel {
 
                 self.volume = volume.change_base();
             }
-            PatternEffect::VolumeSlide(amount) => {
+            PatternEffect::VolumeSlide(amount, keep_vibrato) => {
                 if tick != 0 {
                     self.volume = (self.volume + amount.change_base()).max(0.into());
                     self.current_volume = (self.volume * global_settings.volume)
                         .try_change_base()
                         .unwrap();
                 }
+
+                self.vibrato.enable = *keep_vibrato;
             }
             PatternEffect::FineVolumeSlide(amount) => {
                 if tick == 0 {
@@ -506,9 +512,16 @@ impl TrackerChannel {
                     (global_settings.volume + *volume_delta).clamp(0.into(), 1.into());
             }
             PatternEffect::Vibrato(waveform, amount, speed) => {
+                if *amount != 0.into() {
+                    self.vibrato.amount = amount.change_base();
+                }
+
+                if *speed != 0 {
+                    self.vibrato.speed = *speed as usize;
+                }
+
                 self.vibrato.waveform = *waveform;
-                self.vibrato.amount = amount.change_base();
-                self.vibrato.speed = *speed as usize;
+                self.vibrato.enable = true;
             }
         }
     }

@@ -62,7 +62,8 @@ pub enum PatternEffect {
     Arpeggio(Num<u16, 8>, Num<u16, 8>),
     Panning(Num<i16, 4>),
     Volume(Num<i16, 8>),
-    VolumeSlide(Num<i16, 8>),
+    // bool = maintain vibrato?
+    VolumeSlide(Num<i16, 8>, bool),
     FineVolumeSlide(Num<i16, 8>),
     NoteCut(u32),
     NoteDelay(u32),
@@ -298,9 +299,9 @@ impl quote::ToTokens for PatternEffect {
                 let volume = volume.to_raw();
                 quote! { Volume(agb_tracker::__private::Num::from_raw(#volume))}
             }
-            PatternEffect::VolumeSlide(amount) => {
+            PatternEffect::VolumeSlide(amount, vibrato) => {
                 let amount = amount.to_raw();
-                quote! { VolumeSlide(agb_tracker::__private::Num::from_raw(#amount))}
+                quote! { VolumeSlide(agb_tracker::__private::Num::from_raw(#amount), #vibrato)}
             }
             PatternEffect::FineVolumeSlide(amount) => {
                 let amount = amount.to_raw();
