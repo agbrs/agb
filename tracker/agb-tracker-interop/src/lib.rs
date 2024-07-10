@@ -342,7 +342,7 @@ impl quote::ToTokens for PatternEffect {
             }
             PatternEffect::Vibrato(waveform, amount, speed) => {
                 let amount = amount.to_raw();
-                quote! { Vibrato(#waveform, #amount, #speed) }
+                quote! { Vibrato(#waveform, agb_tracker::__private::Num::from_raw(#amount), #speed) }
             }
         };
 
