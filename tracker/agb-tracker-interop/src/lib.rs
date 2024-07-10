@@ -80,7 +80,6 @@ pub enum PatternEffect {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum Waveform {
     #[default]
-    None,
     Sine,
     Saw,
     Square,
@@ -349,7 +348,6 @@ impl quote::ToTokens for Waveform {
         use quote::{quote, TokenStreamExt};
 
         let name = match self {
-            Waveform::None => quote!(None),
             Waveform::Sine => quote!(Sine),
             Waveform::Saw => quote!(Saw),
             Waveform::Square => quote!(Square),
