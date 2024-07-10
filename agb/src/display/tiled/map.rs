@@ -15,7 +15,6 @@ use super::{
 };
 
 use alloc::{vec, vec::Vec};
-use crate::display::tiled::TileFormat::FourBpp;
 
 pub trait TiledMapTypes: private::Sealed {
     type Size: BackgroundSize + Copy;
@@ -90,8 +89,8 @@ impl TiledMap for AffineMap
         let screenblock_memory = self.screenblock_memory() as *mut u8;
 
         if *self.tiles_dirty() {
+            let tiledata: Vec<u8> = self.tiles_mut().iter().map(|a| a.tile_index(TileFormat::EightBpp).raw_index() as u8).collect();
             unsafe {
-                let tiledata: Vec<u8> = self.tiles_mut().iter().map(|a| a.tile_index(FourBpp).raw_index() as u8).collect();
                 screenblock_memory.copy_from(
                     tiledata.as_ptr(),
                     self.map_size().num_tiles(),
