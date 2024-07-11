@@ -197,7 +197,7 @@ pub fn include_background_gfx(input: TokenStream) -> TokenStream {
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
 
     let module_name = config.module_name.clone();
-    let as_pub = config.as_pub.clone();
+    let as_pub = config.as_pub;
     include_gfx_from_config(config, as_pub, module_name, Path::new(&root))
 }
 
