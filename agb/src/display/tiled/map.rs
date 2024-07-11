@@ -52,8 +52,7 @@ pub trait TiledMap: TiledMapTypes {
     fn size(&self) -> Self::Size;
 }
 
-impl TiledMap for AffineMap
-{
+impl TiledMap for AffineMap {
     fn clear(&mut self, vram: &mut VRamManager) {
         let colours = self.colours();
 
@@ -88,12 +87,13 @@ impl TiledMap for AffineMap
         let screenblock_memory = self.screenblock_memory() as *mut u8;
 
         if *self.tiles_dirty() {
-            let tiledata: Vec<u8> = self.tiles_mut().iter().map(|a| a.tile_index(TileFormat::EightBpp).raw_index() as u8).collect();
+            let tiledata: Vec<u8> = self
+                .tiles_mut()
+                .iter()
+                .map(|a| a.tile_index(TileFormat::EightBpp).raw_index() as u8)
+                .collect();
             unsafe {
-                screenblock_memory.copy_from(
-                    tiledata.as_ptr(),
-                    self.map_size().num_tiles(),
-                );
+                screenblock_memory.copy_from(tiledata.as_ptr(), self.map_size().num_tiles());
             }
         }
 
@@ -116,8 +116,7 @@ impl TiledMap for AffineMap
         self.map_size()
     }
 }
-impl TiledMap for RegularMap
-{
+impl TiledMap for RegularMap {
     fn clear(&mut self, vram: &mut VRamManager) {
         let colours = self.colours();
 
