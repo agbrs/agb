@@ -16,6 +16,8 @@ struct Block {
     next: Option<SendNonNull<Block>>,
 }
 
+const MAX_ALIGN: usize = 8;
+
 impl Block {
     /// Returns the layout of either the block or the wanted layout aligned to
     /// the maximum alignment used (double word).
@@ -29,18 +31,22 @@ impl Block {
             aligned_to.align(),
         )
         .expect("too large allocation")
-        .align_to(8)
+        .align_to(MAX_ALIGN)
         .expect("too large allocation")
         .pad_to_align()
     }
 
     pub fn layout() -> Layout {
-        Layout::new::<Block>().align_to(8).unwrap().pad_to_align()
+        Layout::new::<Block>()
+            .align_to(MAX_ALIGN)
+            .unwrap()
+            .pad_to_align()
     }
 }
 
 struct BlockAllocatorState {
     first_free_block: Option<SendNonNull<Block>>,
+    deallocated_blocks_to_add_to_free_list: Option<SendNonNull<Block>>,
 }
 
 struct BlockAllocatorInner {
@@ -95,14 +101,14 @@ impl BlockAllocatorInner {
             inner_allocator: BumpAllocatorInner::new(start),
             state: BlockAllocatorState {
                 first_free_block: None,
+                deallocated_blocks_to_add_to_free_list: None,
             },
         }
     }
 
     /// Requests a brand new block from the inner bump allocator
-    fn new_block(&mut self, layout: Layout) -> Option<NonNull<u8>> {
-        let overall_layout = Block::either_layout(layout);
-        self.inner_allocator.alloc(overall_layout)
+    fn new_block(&mut self, full_layout: Layout) -> Option<NonNull<u8>> {
+        self.inner_allocator.alloc(full_layout)
     }
 
     /// Merges blocks together to create a normalised list
@@ -128,9 +134,35 @@ impl BlockAllocatorInner {
         }
     }
 
-    pub unsafe fn alloc(&mut self, layout: Layout) -> Option<NonNull<u8>> {
+    unsafe fn alloc_using_recently_freed(&mut self, full_layout: Layout) -> Option<NonNull<u8>> {
+        loop {
+            match &mut self.state.deallocated_blocks_to_add_to_free_list {
+                &mut Some(current_block) => {
+                    if let Some(alloc) = Self::allocate_into_block(
+                        &mut self.state.deallocated_blocks_to_add_to_free_list,
+                        full_layout,
+                    ) {
+                        return Some(alloc);
+                    }
+
+                    let block = current_block.as_ref();
+                    self.state.deallocated_blocks_to_add_to_free_list = block.next;
+
+                    let normalise_point = self.dealloc_no_normalise(
+                        current_block.as_ptr().cast(),
+                        Layout::from_size_align_unchecked(block.size, MAX_ALIGN),
+                    );
+                    if let Some(normalise_point) = *normalise_point {
+                        self.normalise(normalise_point.as_ptr());
+                    }
+                }
+                None => return self.alloc_using_free(full_layout),
+            }
+        }
+    }
+
+    unsafe fn alloc_using_free(&mut self, full_layout: Layout) -> Option<NonNull<u8>> {
         // find a block that this current request fits in
-        let full_layout = Block::either_layout(layout);
 
         let mut list_ptr = &mut self.state.first_free_block;
         // This iterates the free list until it either finds a block that
@@ -144,9 +176,14 @@ impl BlockAllocatorInner {
                     }
                     list_ptr = &mut current_block.as_mut().next;
                 }
-                None => return self.new_block(layout),
+                None => return self.new_block(full_layout),
             }
         }
+    }
+
+    pub unsafe fn alloc(&mut self, layout: Layout) -> Option<NonNull<u8>> {
+        let full_layout = Block::either_layout(layout).pad_to_align();
+        self.alloc_using_recently_freed(full_layout)
     }
 
     /// splits a block in twain
@@ -248,10 +285,16 @@ impl BlockAllocatorInner {
     }
 
     pub unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        let point_to_normalise = self.dealloc_no_normalise(ptr, layout);
-        if let Some(block_to_normalise) = *point_to_normalise {
-            self.normalise(block_to_normalise.as_ptr());
-        }
+        let new_layout = Block::either_layout(layout);
+
+        let block = Block {
+            size: new_layout.size(),
+            next: self.state.deallocated_blocks_to_add_to_free_list,
+        };
+        *(ptr.cast()) = block;
+
+        self.state.deallocated_blocks_to_add_to_free_list =
+            NonNull::new(ptr.cast()).map(SendNonNull);
     }
 
     /// Returns a reference to the pointer to the next block
@@ -276,13 +319,11 @@ impl BlockAllocatorInner {
         }
     }
 
-    pub unsafe fn dealloc_no_normalise(
+    unsafe fn dealloc_no_normalise(
         &mut self,
         ptr: *mut u8,
-        layout: Layout,
+        new_layout: Layout,
     ) -> *mut Option<SendNonNull<Block>> {
-        let new_layout = Block::either_layout(layout).pad_to_align();
-
         // note that this is a reference to a pointer
         let mut list_ptr = &mut self.state.first_free_block;
         let mut list_ptr_prev: *mut Option<SendNonNull<Block>> = list_ptr;
