@@ -30,7 +30,6 @@ trait TiledMapPrivate: TiledMapTypes {
 
     fn background_id(&self) -> usize;
     fn screenblock(&self) -> usize;
-    fn priority(&self) -> Priority;
     fn map_size(&self) -> Self::Size;
 
     fn update_bg_registers(&self);
@@ -217,9 +216,6 @@ impl TiledMapPrivate for RegularMap {
     fn screenblock(&self) -> usize {
         self.screenblock as usize
     }
-    fn priority(&self) -> Priority {
-        self.priority
-    }
     fn map_size(&self) -> Self::Size {
         self.size
     }
@@ -400,9 +396,6 @@ impl TiledMapPrivate for AffineMap {
     }
     fn screenblock(&self) -> usize {
         self.screenblock as usize
-    }
-    fn priority(&self) -> Priority {
-        self.priority
     }
     fn map_size(&self) -> Self::Size {
         self.size
