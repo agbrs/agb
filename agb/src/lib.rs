@@ -205,7 +205,6 @@ pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     avoid_double_panic(info);
 
-    use core::fmt::Write;
     if let Some(mut mgba) = mgba::Mgba::new() {
         let _ = mgba.print(format_args!("{info}"), mgba::DebugLevel::Fatal);
     }

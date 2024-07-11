@@ -180,7 +180,7 @@ impl Drop for InterruptInner {
         fn inner_drop(this: Pin<&mut InterruptInner>) {
             // drop the closure allocation safely
             let _closure_box =
-                unsafe { Box::from_raw(this.closure as *mut dyn Fn(&CriticalSection)) };
+                unsafe { Box::from_raw(this.closure as *mut dyn Fn(CriticalSection)) };
 
             // perform the rest of the drop sequence
             let root = unsafe { &*this.root };
