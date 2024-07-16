@@ -1,4 +1,8 @@
-use core::{cell::Cell, marker::PhantomPinned, pin::Pin};
+use core::{
+    cell::{Cell, UnsafeCell},
+    marker::PhantomPinned,
+    pin::Pin,
+};
 
 use alloc::boxed::Box;
 use critical_section::{CriticalSection, RawRestoreState};
@@ -123,7 +127,11 @@ impl InterruptRoot {
     }
 }
 
-static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
+struct InterruptCell(UnsafeCell<[InterruptRoot; 14]>);
+
+unsafe impl Sync for InterruptCell {}
+
+static INTERRUPT_TABLE: InterruptCell = InterruptCell(UnsafeCell::new([
     InterruptRoot::new(Interrupt::VBlank),
     InterruptRoot::new(Interrupt::HBlank),
     InterruptRoot::new(Interrupt::VCounter),
@@ -138,17 +146,16 @@ static mut INTERRUPT_TABLE: [InterruptRoot; 14] = [
     InterruptRoot::new(Interrupt::Dma3),
     InterruptRoot::new(Interrupt::Keypad),
     InterruptRoot::new(Interrupt::Gamepak),
-];
+]));
 
 #[no_mangle]
-extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) -> u16 {
-    for (i, root) in unsafe { INTERRUPT_TABLE.iter().enumerate() } {
+extern "C" fn __RUST_INTERRUPT_HANDLER(interrupt: u16) {
+    let table: &[InterruptRoot; 14] = unsafe { &*(INTERRUPT_TABLE.0.get() as *const _) };
+    for (i, root) in table.iter().enumerate() {
         if (1 << i) & interrupt != 0 {
             root.trigger_interrupts();
         }
     }
-
-    interrupt
 }
 
 struct InterruptInner {
@@ -220,7 +227,8 @@ impl InterruptRoot {
 }
 
 fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
-    unsafe { &INTERRUPT_TABLE[interrupt as usize] }
+    let table = unsafe { &*(INTERRUPT_TABLE.0.get()) };
+    &table[interrupt as usize]
 }
 
 #[must_use]
@@ -299,6 +307,26 @@ unsafe impl critical_section::Impl for MyCriticalSection {
     }
 }
 
+/// This makes the interrupt itself interruptable. Other interrupts are not
+/// guaranteed to fire, but are allowed to.
+///
+/// # Safety
+/// * You must not use a critical section acquired outside this inside it.
+pub(crate) unsafe fn interruptable<F, R>(f: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    let enabled = INTERRUPTS_ENABLED.get();
+
+    INTERRUPTS_ENABLED.set(1);
+
+    let r = f();
+
+    INTERRUPTS_ENABLED.set(enabled);
+
+    r
+}
+
 static NUM_VBLANKS: AtomicUsize = AtomicUsize::new(0); // overflows after 2.27 years
 static HAS_CREATED_INTERRUPT: AtomicBool = AtomicBool::new(false);
 
@@ -341,37 +369,16 @@ impl VBlank {
     }
 }
 
-#[must_use]
-/// The behaviour of this function is undefined in the sense that it will output
-/// some information in some way that can be interpreted in a way to give some
-/// profiling information. What it outputs, how it outputs it, and how to
-/// interpret it are all subject to change at any time.
-///
-/// With that out of the way, the current version will, in mgba, output the
-/// program counter at regular intervals. This can be used to see hot functions
-/// using, for example, addr2line.
-pub fn profiler(timer: &mut crate::timer::Timer, period: u16) -> InterruptHandler {
-    timer.set_interrupt(true);
-    timer.set_overflow_amount(period);
-    timer.set_enabled(true);
-
-    unsafe {
-        add_interrupt_handler(timer.interrupt(), |_key: CriticalSection| {
-            crate::println!("{:#010x}", crate::program_counter_before_interrupt());
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use portable_atomic::AtomicU8;
+    use portable_atomic::{AtomicU32, AtomicU8};
 
     use super::*;
 
     #[test_case]
     fn test_interrupt_table_length(_gba: &mut crate::Gba) {
         assert_eq!(
-            unsafe { INTERRUPT_TABLE.len() },
+            unsafe { (*INTERRUPT_TABLE.0.get()).len() },
             Interrupt::Gamepak as usize + 1,
             "interrupt table should be able to store gamepak interrupt"
         );
@@ -391,6 +398,31 @@ mod tests {
         for i in 0..=255 {
             ATOMIC.store(i, Ordering::SeqCst);
             assert_eq!(ATOMIC.load(Ordering::SeqCst), i);
+        }
+    }
+
+    #[test_case]
+    fn setup_teardown_speed(gba: &mut crate::Gba) {
+        static TIMER: AtomicU32 = AtomicU32::new(0);
+        for _ in 0..100 {
+            TIMER.store(0, Ordering::SeqCst);
+
+            let timers = gba.timers.timers();
+
+            let mut timer_a = timers.timer2;
+
+            timer_a.set_interrupt(true);
+            timer_a.set_overflow_amount(10000);
+
+            timer_a.set_enabled(true);
+
+            let _interrupt_1 = unsafe {
+                add_interrupt_handler(timer_a.interrupt(), |_| {
+                    TIMER.store(1, Ordering::SeqCst);
+                })
+            };
+
+            while TIMER.load(Ordering::SeqCst) == 0 {}
         }
     }
 }
