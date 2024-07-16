@@ -12,5 +12,11 @@ proc-macro = true
 
 [dependencies]
 agb_xm_core = { version = "0.20.5", path = "../agb-xm-core" }
+agb_tracker_interop = { version = "0.20.2", path = "../agb-tracker-interop", features = ["quote"] }
 proc-macro-error = "1"
 proc-macro2 = "1"
+
+quote = "1"
+syn = "2"
+
+xmrs = "0.6"

@@ -1,51 +1,11 @@
-use std::{collections::HashMap, error::Error, fs, path::Path};
-
-use agb_tracker_interop::PatternEffect;
-use proc_macro2::TokenStream;
-use proc_macro_error::abort;
-
-use quote::quote;
-use syn::LitStr;
+use std::collections::HashMap;
 
 use agb_fixnum::Num;
+use agb_tracker_interop::{PatternEffect, Waveform};
 
-use xmrs::{prelude::*, xm::xmmodule::XmModule};
+use xmrs::prelude::*;
 
-pub fn agb_xm_core(args: TokenStream) -> TokenStream {
-    let input = match syn::parse::<LitStr>(args.into()) {
-        Ok(input) => input,
-        Err(err) => return err.to_compile_error(),
-    };
-
-    let filename = input.value();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let path = Path::new(&root).join(&*filename);
-
-    let include_path = path.to_string_lossy();
-
-    let module = match load_module_from_file(&path) {
-        Ok(track) => track,
-        Err(e) => abort!(input, e),
-    };
-
-    let parsed = parse_module(&module);
-
-    quote! {
-        {
-            const _: &[u8] = include_bytes!(#include_path);
-
-            #parsed
-        }
-    }
-}
-
-pub fn load_module_from_file(xm_path: &Path) -> Result<Module, Box<dyn Error>> {
-    let file_content = fs::read(xm_path)?;
-    Ok(XmModule::load(&file_content)?.to_module())
-}
-
-pub fn parse_module(module: &Module) -> TokenStream {
+pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
     let instruments = &module.instrument;
     let mut instruments_map = HashMap::new();
 
@@ -71,7 +31,12 @@ pub fn parse_module(module: &Module) -> TokenStream {
 
         let envelope = &instrument.volume_envelope;
         let envelope_id = if envelope.enabled {
-            let envelope = EnvelopeData::new(envelope, module.default_bpm as u32);
+            let envelope = EnvelopeData::new(
+                envelope,
+                instrument,
+                module.frequency_type,
+                module.default_bpm as u32,
+            );
             let id = existing_envelopes
                 .entry(envelope)
                 .or_insert_with_key(|envelope| {
@@ -187,12 +152,14 @@ pub fn parse_module(module: &Module) -> TokenStream {
                                     .map(|note_and_sample| note_and_sample.1.volume)
                                     .unwrap_or(1.into()),
                         ),
-                        0x60..=0x6F => {
-                            PatternEffect::VolumeSlide(-Num::new((slot.volume - 0x60) as i16) / 64)
-                        }
-                        0x70..=0x7F => {
-                            PatternEffect::VolumeSlide(Num::new((slot.volume - 0x70) as i16) / 64)
-                        }
+                        0x60..=0x6F => PatternEffect::VolumeSlide(
+                            -Num::new((slot.volume - 0x60) as i16) / 64,
+                            false,
+                        ),
+                        0x70..=0x7F => PatternEffect::VolumeSlide(
+                            Num::new((slot.volume - 0x70) as i16) / 64,
+                            false,
+                        ),
                         0x80..=0x8F => PatternEffect::FineVolumeSlide(
                             -Num::new((slot.volume - 0x80) as i16) / 128,
                         ),
@@ -317,6 +284,22 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::None
                         }
                     }
+                    0x4 => {
+                        let vibrato_speed = effect_parameter >> 4;
+                        let depth = effect_parameter & 0xF;
+
+                        let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                        let speed =
+                            note_to_speed(Note::C4, depth as f64 * 16.0, 0, module.frequency_type);
+
+                        let amount = speed / c4_speed - 1;
+
+                        PatternEffect::Vibrato(
+                            Waveform::Sine,
+                            amount.try_change_base().unwrap(),
+                            vibrato_speed,
+                        )
+                    }
                     0x8 => {
                         PatternEffect::Panning(Num::new(slot.effect_parameter as i16 - 128) / 128)
                     }
@@ -325,9 +308,15 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         let second = effect_parameter & 0xF;
 
                         if first == 0 {
-                            PatternEffect::VolumeSlide(-Num::new(second as i16) / 64)
+                            PatternEffect::VolumeSlide(
+                                -Num::new(second as i16) / 64,
+                                slot.effect_type == 0x6,
+                            )
                         } else {
-                            PatternEffect::VolumeSlide(Num::new(first as i16) / 64)
+                            PatternEffect::VolumeSlide(
+                                Num::new(first as i16) / 64,
+                                slot.effect_type == 0x6,
+                            )
                         }
                     }
                     0xC => {
@@ -340,6 +329,40 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         }
                     }
                     0xE => match slot.effect_parameter >> 4 {
+                        0x1 => {
+                            let c4_speed: Num<u32, 12> =
+                                note_to_speed(Note::C4, 0.0, 0, module.frequency_type)
+                                    .change_base();
+                            let speed: Num<u32, 12> = note_to_speed(
+                                Note::C4,
+                                effect_parameter as f64 * 8.0,
+                                0,
+                                module.frequency_type,
+                            )
+                            .change_base();
+
+                            let portamento_amount = speed / c4_speed;
+
+                            PatternEffect::FinePortamento(
+                                portamento_amount.try_change_base().unwrap(),
+                            )
+                        }
+                        0x2 => {
+                            let c4_speed = note_to_speed(Note::C4, 0.0, 0, module.frequency_type);
+                            let speed = note_to_speed(
+                                Note::C4,
+                                effect_parameter as f64 * 8.0,
+                                0,
+                                module.frequency_type,
+                            );
+
+                            let portamento_amount = c4_speed / speed;
+
+                            PatternEffect::FinePortamento(
+                                portamento_amount.try_change_base().unwrap(),
+                            )
+                        }
+
                         0xA => PatternEffect::FineVolumeSlide(
                             Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
@@ -348,7 +371,10 @@ pub fn parse_module(module: &Module) -> TokenStream {
                         ),
                         0xC => PatternEffect::NoteCut((slot.effect_parameter & 0xf).into()),
                         0xD => PatternEffect::NoteDelay((slot.effect_parameter & 0xf).into()),
-                        _ => PatternEffect::None,
+                        u => {
+                            eprintln!("Unsupported extended effect E{u:X}y");
+                            PatternEffect::None
+                        }
                     },
                     0xF => match slot.effect_parameter {
                         0 => PatternEffect::SetTicksPerStep(u32::MAX),
@@ -372,7 +398,11 @@ pub fn parse_module(module: &Module) -> TokenStream {
                             PatternEffect::GlobalVolumeSlide(Num::new(first as i32) / 0x40)
                         }
                     }
-                    _ => PatternEffect::None,
+                    e => {
+                        eprintln!("Unsupported effect {e:X}xy");
+
+                        PatternEffect::None
+                    }
                 };
 
                 if sample == 0
@@ -414,7 +444,7 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| agb_tracker_interop::Sample {
-            data: &sample.data,
+            data: sample.data.clone().into(),
             should_loop: sample.should_loop,
             restart_point: sample.restart_point,
             volume: sample.volume,
@@ -432,30 +462,32 @@ pub fn parse_module(module: &Module) -> TokenStream {
     let envelopes = envelopes
         .iter()
         .map(|envelope| agb_tracker_interop::Envelope {
-            amount: &envelope.amounts,
+            amount: envelope.amounts.clone().into(),
             sustain: envelope.sustain,
             loop_start: envelope.loop_start,
             loop_end: envelope.loop_end,
+
+            vib_amount: envelope.vib_amount.try_change_base().unwrap(),
+            vib_waveform: envelope.vib_waveform,
+            vib_speed: envelope.vib_speed,
         })
         .collect::<Vec<_>>();
 
     let frames_per_tick = bpm_to_frames_per_tick(module.default_bpm as u32);
     let ticks_per_step = module.default_tempo;
 
-    let interop = agb_tracker_interop::Track {
-        samples: &samples,
-        pattern_data: &pattern_data,
-        patterns: &patterns,
+    agb_tracker_interop::Track {
+        samples: samples.into(),
+        pattern_data: pattern_data.into(),
+        patterns: patterns.into(),
         num_channels: module.get_num_channels(),
-        patterns_to_play: &patterns_to_play,
-        envelopes: &envelopes,
+        patterns_to_play: patterns_to_play.into(),
+        envelopes: envelopes.into(),
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
         repeat: module.restart_position as usize,
-    };
-
-    quote!(#interop)
+    }
 }
 
 fn bpm_to_frames_per_tick(bpm: u32) -> Num<u32, 8> {
@@ -518,10 +550,19 @@ struct EnvelopeData {
     sustain: Option<usize>,
     loop_start: Option<usize>,
     loop_end: Option<usize>,
+
+    vib_waveform: Waveform,
+    vib_speed: u8,
+    vib_amount: Num<i32, 12>,
 }
 
 impl EnvelopeData {
-    fn new(e: &xmrs::envelope::Envelope, bpm: u32) -> Self {
+    fn new(
+        e: &xmrs::envelope::Envelope,
+        instrument: &xmrs::instr_default::InstrDefault,
+        frequency_type: FrequencyType,
+        bpm: u32,
+    ) -> Self {
         let mut amounts = vec![];
 
         for frame in 0..=(Self::envelope_frame_to_gba_frame(e.point.last().unwrap().frame, bpm)) {
@@ -564,11 +605,38 @@ impl EnvelopeData {
             (None, None)
         };
 
+        let vib_waveform = match instrument.vibrato.waveform {
+            xmrs::instr_vibrato::Waveform::Sine => Waveform::Sine,
+            xmrs::instr_vibrato::Waveform::Square => Waveform::Square,
+            xmrs::instr_vibrato::Waveform::RampUp => Waveform::Saw,
+            xmrs::instr_vibrato::Waveform::RampDown => Waveform::Saw,
+        };
+
+        let vib_speed = (instrument.vibrato.speed * 64.0) as u8;
+        let vib_depth = instrument.vibrato.depth * 8.0;
+
+        let c4_speed = note_to_speed(Note::C4, 0.0, 0, frequency_type);
+        let mut vib_amount =
+            (note_to_speed(Note::C4, vib_depth.into(), 0, frequency_type) / c4_speed - 1)
+                .try_change_base()
+                .unwrap();
+
+        if matches!(
+            instrument.vibrato.waveform,
+            xmrs::instr_vibrato::Waveform::RampDown
+        ) {
+            vib_amount = -vib_amount;
+        }
+
         EnvelopeData {
             amounts,
             sustain,
             loop_start,
             loop_end,
+
+            vib_waveform,
+            vib_speed,
+            vib_amount,
         }
     }
 

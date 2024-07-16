@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::HashMap,
     error::Error,
     fs::{self, File},
@@ -9,63 +10,7 @@ use std::{
 use agb_fixnum::Num;
 use agb_tracker_interop::{Envelope, Pattern, PatternEffect, PatternSlot, Sample, Track};
 use midly::{Format, MetaMessage, Smf, Timing, TrackEventKind};
-use proc_macro2::TokenStream;
-use proc_macro_error::abort;
-use quote::quote;
 use rustysynth::SoundFont;
-use syn::{
-    parse::{Parse, ParseStream},
-    LitStr, Token,
-};
-
-struct MidiCoreInput {
-    sf2_file: LitStr,
-    _comma: Token![,],
-    midi_file: LitStr,
-}
-
-impl Parse for MidiCoreInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            sf2_file: input.parse()?,
-            _comma: input.parse()?,
-            midi_file: input.parse()?,
-        })
-    }
-}
-
-pub fn agb_midi_core(args: TokenStream) -> TokenStream {
-    let input: MidiCoreInput = match syn::parse2(args.clone()) {
-        Ok(input) => input,
-        Err(e) => abort!(args, e),
-    };
-
-    let sf2_file = input.sf2_file.value();
-    let midi_file = input.midi_file.value();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let sf2_file = Path::new(&root).join(&*sf2_file);
-    let midi_file = Path::new(&root).join(&*midi_file);
-
-    let sf2_include_path = sf2_file.to_string_lossy();
-    let midi_file_include_path = midi_file.to_string_lossy();
-
-    let midi_info = match MidiInfo::load_from_file(&sf2_file, &midi_file) {
-        Ok(track) => track,
-        Err(e) => abort!(args, e),
-    };
-
-    let parsed = parse_midi(&midi_info);
-
-    quote! {
-        {
-            const _: &[u8] = include_bytes!(#sf2_include_path);
-            const _: &[u8] = include_bytes!(#midi_file_include_path);
-
-            #parsed
-        }
-    }
-}
 
 pub struct MidiInfo {
     sound_font: SoundFont,
@@ -87,7 +32,7 @@ impl MidiInfo {
     }
 }
 
-pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
+pub fn parse_midi(midi_info: &MidiInfo) -> Track {
     let mut samples = vec![];
     let sf2 = &midi_info.sound_font;
     let sf2_data = sf2.get_wave_data();
@@ -386,7 +331,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     let samples: Vec<_> = samples
         .iter()
         .map(|sample| Sample {
-            data: &sample.data,
+            data: sample.data.clone().into(),
             should_loop: sample.restart_point.is_some(),
             restart_point: sample.restart_point.unwrap_or(0),
             volume: 256.into(),
@@ -409,29 +354,31 @@ pub fn parse_midi(midi_info: &MidiInfo) -> TokenStream {
     let envelopes: Vec<_> = envelopes
         .iter()
         .map(|envelope| Envelope {
-            amount: &envelope.amounts,
+            amount: envelope.amounts.clone().into(),
             sustain: Some(envelope.amounts.len() - 1),
             loop_start: None,
             loop_end: None,
+
+            vib_waveform: Default::default(),
+            vib_amount: Default::default(),
+            vib_speed: Default::default(),
         })
         .collect();
 
-    let track = Track {
-        samples: &samples,
-        envelopes: &envelopes,
-        pattern_data: &pattern,
-        patterns: &[Pattern {
+    Track {
+        samples: samples.into(),
+        envelopes: envelopes.into(),
+        patterns: Cow::from(vec![Pattern {
             length: pattern.len() / resulting_num_channels,
             start_position: 0,
-        }],
-        patterns_to_play: &[0],
+        }]),
+        pattern_data: pattern.into(),
+        patterns_to_play: Cow::from(vec![0]),
         num_channels: resulting_num_channels,
         frames_per_tick: Num::from_f64(frames_per_tick),
         ticks_per_step: 1,
         repeat: 0,
-    };
-
-    quote!(#track)
+    }
 }
 
 #[derive(Clone, Default)]

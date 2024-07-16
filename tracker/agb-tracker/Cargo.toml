@@ -9,15 +9,22 @@ repository = "https://github.com/agbrs/agb"
 exclude = ["/examples"]
 
 [features]
-default = ["xm", "midi"]
+default = ["agb", "midi", "xm"]
+
+agb = ["dep:agb"]
 xm = ["dep:agb_xm"]
 midi = ["dep:agb_midi"]
 
 [dependencies]
 agb_midi = { version = "0.20.5", path = "../agb-midi", optional = true }
 agb_xm = { version = "0.20.5", path = "../agb-xm", optional = true }
-agb = { version = "0.20.5", path = "../../agb" }
+agb = { version = "0.20.5", path = "../../agb", optional = true }
+
+agb_fixnum = { version = "0.20.5", path = "../../agb-fixnum" }
 agb_tracker_interop = { version = "0.20.5", path = "../agb-tracker-interop", default-features = false }
+
+[build-dependencies]
+agb_fixnum = { version = "0.20.5", path = "../../agb-fixnum" }
 
 [profile.dev]
 opt-level = 3

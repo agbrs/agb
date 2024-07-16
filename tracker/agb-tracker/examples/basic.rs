@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use agb::sound::mixer::Frequency;
 use agb::Gba;
 use agb_tracker::{include_xm, Track, Tracker};

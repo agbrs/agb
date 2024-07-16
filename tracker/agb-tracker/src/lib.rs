@@ -65,13 +65,15 @@
 
 extern crate alloc;
 
-use agb_tracker_interop::{PatternEffect, Sample};
+mod lookups;
+mod mixer;
+
+use agb_tracker_interop::{PatternEffect, Sample, Waveform};
 use alloc::vec::Vec;
 
-use agb::{
-    fixnum::Num,
-    sound::mixer::{ChannelId, Mixer, SoundChannel},
-};
+pub use mixer::{Mixer, SoundChannel};
+
+use agb_fixnum::Num;
 
 /// Import an XM file. Only available if you have the `xm` feature enabled (enabled by default).
 #[cfg(feature = "xm")]
@@ -86,7 +88,7 @@ pub use agb_midi::include_midi;
 
 #[doc(hidden)]
 pub mod __private {
-    pub use agb::fixnum::Num;
+    pub use agb_fixnum::Num;
     pub use agb_tracker_interop;
 }
 
@@ -94,10 +96,12 @@ pub mod __private {
 pub use agb_tracker_interop::Track;
 
 /// Stores the required state in order to play tracker music.
-pub struct Tracker {
-    track: &'static Track<'static>,
+pub struct TrackerInner<'track, TChannelId> {
+    track: &'track Track,
     channels: Vec<TrackerChannel>,
     envelopes: Vec<Option<EnvelopeState>>,
+
+    mixer_channels: Vec<Option<TChannelId>>,
 
     frame: Num<u32, 8>,
     tick: u32,
@@ -111,10 +115,44 @@ pub struct Tracker {
 
 #[derive(Default)]
 struct TrackerChannel {
-    channel_id: Option<ChannelId>,
     original_speed: Num<u32, 16>,
     base_speed: Num<u32, 16>,
     volume: Num<i32, 8>,
+
+    vibrato: Waves,
+
+    current_volume: Num<i32, 8>,
+    current_speed: Num<u32, 16>,
+    current_panning: Num<i32, 8>,
+    is_playing: bool,
+}
+
+#[derive(Default)]
+struct Waves {
+    waveform: Waveform,
+    frame: usize,
+    speed: usize,
+    amount: Num<i32, 12>,
+
+    enable: bool,
+}
+
+impl Waves {
+    fn value(&self) -> Num<u32, 8> {
+        assert!(self.amount.abs() <= 1.into());
+
+        calculate_wave(self.waveform, self.amount, self.frame)
+    }
+}
+
+fn calculate_wave(waveform: Waveform, amount: Num<i32, 12>, frame: usize) -> Num<u32, 8> {
+    let lookup = match waveform {
+        Waveform::Sine => lookups::SINE_LOOKUP,
+        Waveform::Saw => lookups::SAW_LOOKUP,
+        Waveform::Square => lookups::SQUARE_LOOKUP,
+    };
+
+    (amount * lookup[frame] + 1).try_change_base().unwrap()
 }
 
 struct EnvelopeState {
@@ -122,6 +160,8 @@ struct EnvelopeState {
     envelope_id: usize,
     finished: bool,
     fadeout: Num<i32, 8>,
+
+    vibrato_pos: usize,
 }
 
 #[derive(Clone)]
@@ -132,14 +172,17 @@ struct GlobalSettings {
     volume: Num<i32, 8>,
 }
 
-impl Tracker {
+impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
-    pub fn new(track: &'static Track<'static>) -> Self {
+    pub fn new(track: &'track Track) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, Default::default);
 
         let mut envelopes = Vec::new();
         envelopes.resize_with(track.num_channels, || None);
+
+        let mut mixer_channels = Vec::new();
+        mixer_channels.resize_with(track.num_channels, || None);
 
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
@@ -149,6 +192,7 @@ impl Tracker {
 
         Self {
             track,
+            mixer_channels,
             channels,
             envelopes,
 
@@ -165,9 +209,11 @@ impl Tracker {
 
     /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
     /// See the [example](crate#example) for how to use the tracker.
-    pub fn step(&mut self, mixer: &mut Mixer) {
+    pub fn step<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
         if !self.increment_frame() {
-            self.update_envelopes(mixer);
+            self.update_envelopes();
+
+            self.realise(mixer);
             return;
         }
 
@@ -183,28 +229,48 @@ impl Tracker {
         {
             if pattern_slot.sample != 0 && self.tick == 0 {
                 let sample = &self.track.samples[pattern_slot.sample as usize - 1];
-                channel.play_sound(mixer, sample, &self.global_settings);
+
+                if let Some(channel) = self.mixer_channels[i]
+                    .take()
+                    .and_then(|channel_id| mixer.channel(&channel_id))
+                {
+                    channel.stop();
+                }
+
+                let mut new_channel = M::SoundChannel::new(&sample.data);
+                if sample.should_loop {
+                    new_channel
+                        .should_loop()
+                        .restart_point(sample.restart_point);
+                }
+
+                self.mixer_channels[i] = mixer.play_sound(new_channel);
+
+                channel.reset(sample);
+
                 self.envelopes[i] = sample.volume_envelope.map(|envelope_id| EnvelopeState {
                     frame: 0,
                     envelope_id,
                     finished: false,
                     fadeout: sample.fadeout,
+
+                    vibrato_pos: 0,
                 });
             }
 
             if self.tick == 0 {
-                channel.set_speed(mixer, pattern_slot.speed.change_base());
+                channel.set_speed(pattern_slot.speed.change_base());
             }
 
+            channel.vibrato.enable = false;
+
             channel.apply_effect(
-                mixer,
                 &pattern_slot.effect1,
                 self.tick,
                 &mut self.global_settings,
                 &mut self.envelopes[i],
             );
             channel.apply_effect(
-                mixer,
                 &pattern_slot.effect2,
                 self.tick,
                 &mut self.global_settings,
@@ -212,20 +278,62 @@ impl Tracker {
             );
         }
 
-        self.update_envelopes(mixer);
+        self.update_envelopes();
+        self.realise(mixer);
     }
 
-    fn update_envelopes(&mut self, mixer: &mut Mixer) {
+    fn realise<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
+        for (i, (mixer_channel, tracker_channel)) in self
+            .mixer_channels
+            .iter()
+            .zip(&mut self.channels)
+            .enumerate()
+        {
+            tracker_channel.tick();
+
+            if let Some(channel) = mixer_channel
+                .as_ref()
+                .and_then(|channel_id| mixer.channel(channel_id))
+            {
+                let mut current_speed = tracker_channel.current_speed;
+
+                if tracker_channel.vibrato.speed != 0 && tracker_channel.vibrato.enable {
+                    current_speed *= tracker_channel.vibrato.value().change_base();
+                } else if let Some(envelope) = &mut self.envelopes[i] {
+                    let track_envelope = &self.track.envelopes[envelope.envelope_id];
+
+                    if track_envelope.vib_speed != 0 {
+                        current_speed *= calculate_wave(
+                            track_envelope.vib_waveform,
+                            track_envelope.vib_amount.change_base(),
+                            envelope.vibrato_pos,
+                        )
+                        .change_base();
+                        envelope.vibrato_pos =
+                            (envelope.vibrato_pos + track_envelope.vib_speed as usize) % 64;
+                    }
+                }
+
+                channel.playback(current_speed.change_base());
+                channel.volume(tracker_channel.current_volume.try_change_base().unwrap());
+                channel.panning(tracker_channel.current_panning.try_change_base().unwrap());
+
+                if tracker_channel.is_playing {
+                    channel.resume();
+                } else {
+                    channel.pause();
+                }
+            }
+        }
+    }
+
+    fn update_envelopes(&mut self) {
         for (channel, envelope_state_option) in self.channels.iter_mut().zip(&mut self.envelopes) {
             if let Some(envelope_state) = envelope_state_option {
                 let envelope = &self.track.envelopes[envelope_state.envelope_id];
 
-                if !channel.update_volume_envelope(
-                    mixer,
-                    envelope_state,
-                    envelope,
-                    &self.global_settings,
-                ) {
+                if !channel.update_volume_envelope(envelope_state, envelope, &self.global_settings)
+                {
                     envelope_state_option.take();
                 } else {
                     envelope_state.frame += 1;
@@ -289,177 +397,131 @@ impl Tracker {
 }
 
 impl TrackerChannel {
-    fn play_sound(
-        &mut self,
-        mixer: &mut Mixer<'_>,
-        sample: &Sample<'static>,
-        global_settings: &GlobalSettings,
-    ) {
-        if let Some(channel) = self
-            .channel_id
-            .take()
-            .and_then(|channel_id| mixer.channel(&channel_id))
-        {
-            channel.stop();
-        }
-
-        let mut new_channel = SoundChannel::new(sample.data);
-
-        new_channel.volume(
-            (sample.volume.change_base() * global_settings.volume)
-                .try_change_base()
-                .unwrap(),
-        );
-
-        if sample.should_loop {
-            new_channel
-                .should_loop()
-                .restart_point(sample.restart_point);
-        }
-
-        self.channel_id = mixer.play_sound(new_channel);
+    fn reset(&mut self, sample: &Sample) {
         self.volume = sample.volume.change_base();
+        self.current_volume = self.volume;
+        self.current_panning = 0.into();
+        self.is_playing = true;
     }
 
-    fn set_speed(&mut self, mixer: &mut Mixer<'_>, speed: Num<u32, 8>) {
-        if let Some(channel) = self
-            .channel_id
-            .as_ref()
-            .and_then(|channel_id| mixer.channel(channel_id))
-        {
-            if speed != 0.into() {
-                self.base_speed = speed.change_base();
-                self.original_speed = self.base_speed;
-            }
-
-            channel.playback(self.base_speed.change_base());
+    fn set_speed(&mut self, speed: Num<u32, 8>) {
+        if speed != 0.into() {
+            self.base_speed = speed.change_base();
+            self.original_speed = self.base_speed;
         }
+
+        self.current_speed = self.base_speed;
     }
 
     fn apply_effect(
         &mut self,
-        mixer: &mut Mixer<'_>,
         effect: &PatternEffect,
         tick: u32,
         global_settings: &mut GlobalSettings,
         envelope_state: &mut Option<EnvelopeState>,
     ) {
-        if let Some(channel) = self
-            .channel_id
-            .as_ref()
-            .and_then(|channel_id| mixer.channel(channel_id))
-        {
-            match effect {
-                PatternEffect::None => {}
-                PatternEffect::Stop => {
-                    channel.volume(0);
+        match effect {
+            PatternEffect::None => {}
+            PatternEffect::Stop => {
+                self.current_volume = 0.into();
+
+                if let Some(envelope_state) = envelope_state {
+                    envelope_state.finished = true;
+                }
+            }
+            PatternEffect::Arpeggio(first, second) => {
+                match tick % 3 {
+                    0 => self.current_speed = self.base_speed.change_base(),
+                    1 => self.current_speed = first.change_base(),
+                    2 => self.current_speed = second.change_base(),
+                    _ => unreachable!(),
+                };
+            }
+            PatternEffect::Panning(panning) => {
+                self.current_panning = panning.change_base();
+            }
+            PatternEffect::Volume(volume) => {
+                self.current_volume = (volume.change_base() * global_settings.volume)
+                    .try_change_base()
+                    .unwrap();
+
+                self.volume = volume.change_base();
+            }
+            PatternEffect::VolumeSlide(amount, keep_vibrato) => {
+                if tick != 0 {
+                    self.volume = (self.volume + amount.change_base()).max(0.into());
+                    self.current_volume = (self.volume * global_settings.volume)
+                        .try_change_base()
+                        .unwrap();
+                }
+
+                self.vibrato.enable = *keep_vibrato;
+            }
+            PatternEffect::FineVolumeSlide(amount) => {
+                if tick == 0 {
+                    self.volume = (self.volume + amount.change_base()).max(0.into());
+                    self.current_volume = (self.volume * global_settings.volume)
+                        .try_change_base()
+                        .unwrap();
+                }
+            }
+            PatternEffect::NoteCut(wait) => {
+                if tick == *wait {
+                    self.current_volume = 0.into();
+
                     if let Some(envelope_state) = envelope_state {
                         envelope_state.finished = true;
                     }
                 }
-                PatternEffect::Arpeggio(first, second) => {
-                    match tick % 3 {
-                        0 => channel.playback(self.base_speed.change_base()),
-                        1 => channel.playback(first.change_base()),
-                        2 => channel.playback(second.change_base()),
-                        _ => unreachable!(),
-                    };
-                }
-                PatternEffect::Panning(panning) => {
-                    channel.panning(panning.change_base());
-                }
-                PatternEffect::Volume(volume) => {
-                    channel.volume(
-                        (volume.change_base() * global_settings.volume)
-                            .try_change_base()
-                            .unwrap(),
-                    );
-                    self.volume = volume.change_base();
-                }
-                PatternEffect::VolumeSlide(amount) => {
-                    if tick != 0 {
-                        self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(
-                            (self.volume * global_settings.volume)
-                                .try_change_base()
-                                .unwrap(),
-                        );
-                    }
-                }
-                PatternEffect::FineVolumeSlide(amount) => {
-                    if tick == 0 {
-                        self.volume = (self.volume + amount.change_base()).max(0.into());
-                        channel.volume(
-                            (self.volume * global_settings.volume)
-                                .try_change_base()
-                                .unwrap(),
-                        );
-                    }
-                }
-                PatternEffect::NoteCut(wait) => {
-                    if tick == *wait {
-                        channel.volume(0);
-
-                        if let Some(envelope_state) = envelope_state {
-                            envelope_state.finished = true;
-                        }
-                    }
-                }
-                PatternEffect::NoteDelay(wait) => {
-                    if tick < *wait {
-                        channel.pause();
-                    }
-
-                    if tick == *wait {
-                        channel.resume();
-                        channel.volume(
-                            (self.volume * global_settings.volume)
-                                .try_change_base()
-                                .unwrap(),
-                        );
-                    }
-                }
-                PatternEffect::Portamento(amount) => {
-                    if tick != 0 {
-                        self.base_speed *= amount.change_base();
-                        channel.playback(self.base_speed.change_base());
-                    }
-                }
-                PatternEffect::TonePortamento(amount, target) => {
-                    channel.volume(
-                        (self.volume * global_settings.volume)
-                            .try_change_base()
-                            .unwrap(),
-                    );
-
-                    if tick != 0 {
-                        if *amount < 1.into() {
-                            self.base_speed =
-                                (self.base_speed * amount.change_base()).max(target.change_base());
-                        } else {
-                            self.base_speed =
-                                (self.base_speed * amount.change_base()).min(target.change_base());
-                        }
-                    }
-
-                    channel.playback(self.base_speed.change_base());
-                }
-                PatternEffect::PitchBend(amount) => {
-                    if tick == 0 {
-                        self.base_speed = self.original_speed * amount.change_base();
-                        channel.playback(self.base_speed.change_base());
-                    }
-                }
-                // These are global effects handled below
-                PatternEffect::SetTicksPerStep(_)
-                | PatternEffect::SetFramesPerTick(_)
-                | PatternEffect::SetGlobalVolume(_)
-                | PatternEffect::GlobalVolumeSlide(_) => {}
             }
-        }
+            PatternEffect::NoteDelay(wait) => {
+                if tick < *wait {
+                    self.is_playing = false;
+                }
 
-        // Some effects have to happen regardless of if we're actually playing anything
-        match effect {
+                if tick == *wait {
+                    self.is_playing = true;
+                    self.current_volume = (self.volume * global_settings.volume)
+                        .try_change_base()
+                        .unwrap();
+                }
+            }
+            PatternEffect::Portamento(amount) => {
+                if tick != 0 {
+                    self.base_speed *= amount.change_base();
+                    self.current_speed = self.base_speed.change_base();
+                }
+            }
+            PatternEffect::FinePortamento(amount) => {
+                if tick == 1 {
+                    self.base_speed *= amount.change_base();
+                    self.current_speed = self.base_speed.change_base();
+                }
+            }
+            PatternEffect::TonePortamento(amount, target) => {
+                self.current_volume = (self.volume * global_settings.volume)
+                    .try_change_base()
+                    .unwrap();
+
+                if tick != 0 {
+                    if *amount < 1.into() {
+                        self.base_speed =
+                            (self.base_speed * amount.change_base()).max(target.change_base());
+                    } else {
+                        self.base_speed =
+                            (self.base_speed * amount.change_base()).min(target.change_base());
+                    }
+                }
+
+                self.current_speed = self.base_speed.change_base();
+            }
+            PatternEffect::PitchBend(amount) => {
+                if tick == 0 {
+                    self.base_speed = self.original_speed * amount.change_base();
+                    self.current_speed = self.base_speed.change_base();
+                }
+            }
+
             PatternEffect::SetTicksPerStep(amount) => {
                 global_settings.ticks_per_step = *amount;
             }
@@ -473,44 +535,110 @@ impl TrackerChannel {
                 global_settings.volume =
                     (global_settings.volume + *volume_delta).clamp(0.into(), 1.into());
             }
-            _ => {}
+            PatternEffect::Vibrato(waveform, amount, speed) => {
+                if *amount != 0.into() {
+                    self.vibrato.amount = amount.change_base();
+                }
+
+                if *speed != 0 {
+                    self.vibrato.speed = *speed as usize;
+                }
+
+                self.vibrato.waveform = *waveform;
+                self.vibrato.enable = true;
+            }
         }
     }
 
     #[must_use]
     fn update_volume_envelope(
         &mut self,
-        mixer: &mut Mixer<'_>,
         envelope_state: &EnvelopeState,
-        envelope: &agb_tracker_interop::Envelope<'_>,
+        envelope: &agb_tracker_interop::Envelope,
         global_settings: &GlobalSettings,
     ) -> bool {
-        if let Some(channel) = self
-            .channel_id
-            .as_ref()
-            .and_then(|channel_id| mixer.channel(channel_id))
-        {
-            let amount = envelope.amount[envelope_state.frame];
+        let amount = envelope.amount[envelope_state.frame];
 
-            if envelope_state.finished {
-                self.volume = (self.volume - envelope_state.fadeout).max(0.into());
-            }
-
-            channel.volume(
-                (self.volume * amount.change_base() * global_settings.volume)
-                    .try_change_base()
-                    .unwrap(),
-            );
-
-            self.volume != 0.into()
-        } else {
-            false
+        if envelope_state.finished {
+            self.volume = (self.volume - envelope_state.fadeout).max(0.into());
         }
+
+        self.current_volume = (self.volume * amount.change_base() * global_settings.volume)
+            .try_change_base()
+            .unwrap();
+
+        self.volume != 0.into()
+    }
+
+    fn tick(&mut self) {
+        self.vibrato.frame = (self.vibrato.frame + self.vibrato.speed) % 64;
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "agb"))]
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
     loop {}
 }
+
+#[cfg(feature = "agb")]
+impl SoundChannel for agb::sound::mixer::SoundChannel {
+    fn new(data: &alloc::borrow::Cow<'static, [u8]>) -> Self {
+        Self::new(match data {
+            alloc::borrow::Cow::Borrowed(data) => data,
+            alloc::borrow::Cow::Owned(_) => {
+                unimplemented!("Must use borrowed COW data for tracker")
+            }
+        })
+    }
+
+    fn stop(&mut self) {
+        self.stop();
+    }
+
+    fn pause(&mut self) -> &mut Self {
+        self.pause()
+    }
+
+    fn resume(&mut self) -> &mut Self {
+        self.resume()
+    }
+
+    fn should_loop(&mut self) -> &mut Self {
+        self.should_loop()
+    }
+
+    fn volume(&mut self, value: impl Into<Num<i16, 8>>) -> &mut Self {
+        self.volume(value)
+    }
+
+    fn restart_point(&mut self, value: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.restart_point(value)
+    }
+
+    fn playback(&mut self, playback_speed: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.playback(playback_speed)
+    }
+
+    fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self {
+        self.panning(panning)
+    }
+}
+
+#[cfg(feature = "agb")]
+impl<'gba> Mixer for agb::sound::mixer::Mixer<'gba> {
+    type ChannelId = agb::sound::mixer::ChannelId;
+    type SoundChannel = agb::sound::mixer::SoundChannel;
+
+    fn channel(&mut self, channel_id: &Self::ChannelId) -> Option<&mut Self::SoundChannel> {
+        self.channel(channel_id)
+    }
+
+    fn play_sound(&mut self, channel: Self::SoundChannel) -> Option<Self::ChannelId> {
+        self.play_sound(channel)
+    }
+}
+
+#[cfg(feature = "agb")]
+/// The type to use if you're using agb-tracker with agb
+pub type Tracker = TrackerInner<'static, agb::sound::mixer::ChannelId>;
