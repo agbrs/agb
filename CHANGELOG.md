@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - There are no longer gaps between tiles in affine graphics modes.
 
+### Added
+- Added option to export imported background graphics from `include_background_gfx` as pub.
+
 ## [0.20.5] - 2024/06/18
 
 ### Fixed
