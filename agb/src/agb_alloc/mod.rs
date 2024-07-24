@@ -126,7 +126,7 @@ fn iwram_data_end() -> usize {
 
     // Symbols defined in the linker have an address *but no data or value*.
     // As strange as this looks, they are only useful to take the address of.
-    unsafe { core::ptr::addr_of!(__iwram_end) as usize }
+    core::ptr::addr_of!(__iwram_end) as usize
 }
 
 fn data_end() -> usize {
@@ -136,7 +136,7 @@ fn data_end() -> usize {
 
     // Symbols defined in the linker have an address *but no data or value*.
     // As strange as this looks, they are only useful to take the address of.
-    unsafe { core::ptr::addr_of!(__ewram_data_end) as usize }
+    core::ptr::addr_of!(__ewram_data_end) as usize
 }
 
 #[cfg(test)]
