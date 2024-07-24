@@ -44,4 +44,6 @@ exclude = [
     "examples/the-purple-night",
 
     "book/games/pong",
+
+    "template",
 ]
