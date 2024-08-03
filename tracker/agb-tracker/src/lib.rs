@@ -68,7 +68,7 @@ extern crate alloc;
 mod lookups;
 mod mixer;
 
-use agb_tracker_interop::{PatternEffect, Sample, Waveform};
+use agb_tracker_interop::{Jump, PatternEffect, Sample, Waveform};
 use alloc::vec::Vec;
 
 pub use mixer::{Mixer, SoundChannel};
@@ -111,6 +111,7 @@ pub struct TrackerInner<'track, TChannelId> {
 
     current_row: usize,
     current_pattern: usize,
+    current_jump: Option<Jump>,
 }
 
 #[derive(Default)]
@@ -204,6 +205,7 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
             current_pattern: 0,
             current_row: 0,
+            current_jump: None,
         }
     }
 
@@ -269,12 +271,14 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 self.tick,
                 &mut self.global_settings,
                 &mut self.envelopes[i],
+                &mut self.current_jump,
             );
             channel.apply_effect(
                 &pattern_slot.effect2,
                 self.tick,
                 &mut self.global_settings,
                 &mut self.envelopes[i],
+                &mut self.current_jump,
             );
         }
 
@@ -373,16 +377,21 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             self.frame -= self.global_settings.frames_per_tick;
 
             if self.tick >= self.global_settings.ticks_per_step {
-                self.current_row += 1;
+                if let Some(jump) = self.current_jump.take() {
+                    self.handle_jump(jump);
+                } else {
+                    self.current_row += 1;
 
-                if self.current_row
-                    >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
-                {
-                    self.current_pattern += 1;
-                    self.current_row = 0;
+                    if self.current_row
+                        >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]]
+                            .length
+                    {
+                        self.current_pattern += 1;
+                        self.current_row = 0;
 
-                    if self.current_pattern >= self.track.patterns_to_play.len() {
-                        self.current_pattern = self.track.repeat;
+                        if self.current_pattern >= self.track.patterns_to_play.len() {
+                            self.current_pattern = self.track.repeat;
+                        }
                     }
                 }
 
@@ -392,6 +401,32 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             true
         } else {
             false
+        }
+    }
+
+    fn handle_jump(&mut self, jump: Jump) {
+        match jump {
+            Jump::Position { pattern } => {
+                self.current_pattern = pattern as usize;
+                self.current_row = 0;
+            }
+            Jump::PatternBreak { row } => {
+                self.current_pattern += 1;
+                self.current_row = row as usize;
+            }
+            Jump::Combined { pattern, row } => {
+                self.current_pattern = pattern as usize;
+                self.current_row = row as usize;
+            }
+        };
+        if self.current_pattern >= self.track.patterns_to_play.len() {
+            self.current_pattern = self.track.repeat;
+        }
+        if self.current_row
+            >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
+        {
+            // TODO: reconsider this default
+            self.current_row = 0;
         }
     }
 }
@@ -419,6 +454,7 @@ impl TrackerChannel {
         tick: u32,
         global_settings: &mut GlobalSettings,
         envelope_state: &mut Option<EnvelopeState>,
+        current_jump: &mut Option<Jump>,
     ) {
         match effect {
             PatternEffect::None => {}
@@ -546,6 +582,9 @@ impl TrackerChannel {
 
                 self.vibrato.waveform = *waveform;
                 self.vibrato.enable = true;
+            }
+            PatternEffect::Jump(jump) => {
+                *current_jump = Some(jump.clone());
             }
         }
     }
