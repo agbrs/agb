@@ -29,6 +29,16 @@ pub struct Sample {
     pub fadeout: Num<i32, 8>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Jump {
+    /// Jump to the given pattern position `pattern` at row index 0
+    Position { pattern: u8 },
+    /// Jump to the next pattern position, at row index `row`
+    PatternBreak { row: u8 },
+    /// Jump to the pattern position `pattern` at row index `row`
+    Combined { pattern: u8, row: u8 },
+}
+
 #[derive(Debug, Clone)]
 pub struct Pattern {
     pub length: usize,
@@ -82,6 +92,7 @@ pub enum PatternEffect {
     GlobalVolumeSlide(Num<i32, 8>),
     /// Increase / decrease the pitch by the specified amount immediately
     PitchBend(Num<u32, 8>),
+    Jump(Jump),
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -90,6 +101,31 @@ pub enum Waveform {
     Sine,
     Saw,
     Square,
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for Jump {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::{quote, TokenStreamExt};
+
+        let type_bit = match self {
+            Jump::Position { pattern } => {
+                quote! {Position{pattern: #pattern} }
+            }
+            Jump::PatternBreak { row } => {
+                quote! { PatternBreak{row: #row} }
+            }
+            Jump::Combined { pattern, row } => {
+                quote! {
+                    Combined{pattern: #pattern, row: #row }
+                }
+            }
+        };
+
+        tokens.append_all(quote! {
+            agb_tracker::__private::agb_tracker_interop::Jump::#type_bit
+        });
+    }
 }
 
 #[cfg(feature = "quote")]
@@ -286,6 +322,7 @@ impl quote::ToTokens for Pattern {
         } = self;
 
         tokens.append_all(quote! {
+
             agb_tracker::__private::agb_tracker_interop::Pattern {
                 length: #length,
                 start_position: #start_position,
@@ -360,6 +397,9 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::Vibrato(waveform, amount, speed) => {
                 let amount = amount.to_raw();
                 quote! { Vibrato(#waveform, agb_tracker::__private::Num::from_raw(#amount), #speed) }
+            }
+            PatternEffect::Jump(jump) => {
+                quote! { Jump(#jump) }
             }
         };
 
