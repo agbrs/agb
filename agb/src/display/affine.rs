@@ -90,6 +90,13 @@ type AffineMatrixElement = Num<i32, 8>;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// An affine matrix stored in a way that is efficient for the GBA to perform
 /// operations on. This implements multiplication.
+///
+/// ```
+/// a b x
+/// c d y
+/// 0 0 0
+/// ```
+#[allow(missing_docs)]
 pub struct AffineMatrix {
     pub a: AffineMatrixElement,
     pub b: AffineMatrixElement,
@@ -318,6 +325,12 @@ impl From<AffineMatrixBackground> for AffineMatrix {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C, packed(4))]
 /// An affine matrix that can be used in affine objects
+///
+/// ```
+/// a b
+/// c d
+/// ```
+#[allow(missing_docs)]
 pub struct AffineMatrixObject {
     pub a: Num<i16, 8>,
     pub b: Num<i16, 8>,
