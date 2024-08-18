@@ -432,7 +432,7 @@ impl AffineMap {
         vram: &mut VRamManager,
         pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
-        tile_id: u8,
+        tile_index: u16,
     ) {
         let pos = self.map_size().gba_offset(pos.into());
         let colours = self.colours();
@@ -441,8 +441,6 @@ impl AffineMap {
         if old_tile != Tile::default() {
             vram.remove_tile(old_tile.tile_index(colours));
         }
-
-        let tile_index = tile_id as u16;
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = vram.add_tile(tileset, tile_index);
