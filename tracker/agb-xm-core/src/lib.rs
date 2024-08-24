@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use agb_fixnum::Num;
-use agb_tracker_interop::{PatternEffect, Waveform};
+use agb_tracker_interop::{Jump, PatternEffect, Waveform};
 
 use xmrs::prelude::*;
 
@@ -101,6 +101,9 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
         let mut note_and_sample = vec![None; module.get_num_channels()];
 
         for row in pattern.iter() {
+            // the combined jump for each row
+            let mut jump = None;
+
             for (i, slot) in row.iter().enumerate() {
                 let channel_number = i % module.get_num_channels();
 
@@ -319,6 +322,18 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             )
                         }
                     }
+                    0xB => {
+                        let pattern_idx = slot.effect_parameter;
+
+                        jump = Some((
+                            channel_number,
+                            Jump::Position {
+                                pattern: pattern_idx,
+                            },
+                        ));
+
+                        PatternEffect::None
+                    }
                     0xC => {
                         if let Some((_, sample)) = maybe_note_and_sample {
                             PatternEffect::Volume(
@@ -327,6 +342,29 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         } else {
                             PatternEffect::None
                         }
+                    }
+                    0xD => {
+                        // NOTE: this field is generally interpreted as decimal.
+                        let first = slot.effect_parameter >> 4;
+                        let second = slot.effect_parameter & 0xF;
+                        let row_idx = first * 10 + second;
+
+                        let pattern_break = Jump::PatternBreak { row: row_idx };
+
+                        // if to the *right* of 0xD effect, make combined
+                        if let Some((idx, Jump::Position { pattern })) = jump {
+                            jump = Some((
+                                idx,
+                                Jump::Combined {
+                                    pattern,
+                                    row: row_idx,
+                                },
+                            ))
+                        } else {
+                            jump = Some((channel_number, pattern_break));
+                        }
+
+                        PatternEffect::None
                     }
                     0xE => match slot.effect_parameter >> 4 {
                         0x1 => {
@@ -431,6 +469,16 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         effect1,
                         effect2,
                     });
+                }
+            }
+            // At the last channel, evaluate the combined jump,
+            // and place at the first jump effect channel index
+            if let Some((jump_channel, jump)) = jump.take() {
+                let jump_effect = PatternEffect::Jump(jump);
+                let pattern_data_idx =
+                    pattern_data.len() - module.get_num_channels() + jump_channel;
+                if let Some(data) = pattern_data.get_mut(pattern_data_idx) {
+                    data.effect2 = jump_effect;
                 }
             }
         }
