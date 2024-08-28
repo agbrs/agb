@@ -439,7 +439,10 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         }
                     }
                     e => {
-                        eprintln!("Unsupported effect {e:X}xy");
+                        let effect_char = char::from_digit(e as u32, 36)
+                            .unwrap_or('?')
+                            .to_ascii_uppercase();
+                        eprintln!("Unsupported effect {effect_char}xy");
 
                         PatternEffect::None
                     }
