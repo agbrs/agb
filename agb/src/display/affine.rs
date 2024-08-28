@@ -91,7 +91,7 @@ type AffineMatrixElement = Num<i32, 8>;
 /// An affine matrix stored in a way that is efficient for the GBA to perform
 /// operations on. This implements multiplication.
 ///
-/// ```
+/// ```txt
 /// a b x
 /// c d y
 /// 0 0 0
@@ -326,7 +326,7 @@ impl From<AffineMatrixBackground> for AffineMatrix {
 #[repr(C, packed(4))]
 /// An affine matrix that can be used in affine objects
 ///
-/// ```
+/// ```txt
 /// a b
 /// c d
 /// ```
