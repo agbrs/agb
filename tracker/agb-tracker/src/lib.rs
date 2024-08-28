@@ -286,6 +286,21 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
         self.realise(mixer);
     }
 
+    /// Stops all channels.
+    ///
+    /// It is expected that you don't call step after this. But doing so will continue from
+    /// where you left off. However, notes which were playing won't resume.
+    pub fn stop<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
+        for channel_id in &mut self.mixer_channels {
+            if let Some(channel) = channel_id
+                .take()
+                .and_then(|channel_id| mixer.channel(&channel_id))
+            {
+                channel.stop();
+            }
+        }
+    }
+
     fn realise<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
         for (i, (mixer_channel, tracker_channel)) in self
             .mixer_channels
