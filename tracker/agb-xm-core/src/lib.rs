@@ -404,6 +404,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             )
                         }
 
+                        0x9 => PatternEffect::Retrigger(slot.effect_parameter & 0xf),
                         0xA => PatternEffect::FineVolumeSlide(
                             Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
