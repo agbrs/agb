@@ -342,6 +342,8 @@ impl VBlank {
 }
 
 #[must_use]
+/// A basic profiler you can use to find hot functions in your code.
+///
 /// The behaviour of this function is undefined in the sense that it will output
 /// some information in some way that can be interpreted in a way to give some
 /// profiling information. What it outputs, how it outputs it, and how to

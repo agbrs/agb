@@ -14,10 +14,12 @@ struct AffineMatrixData {
 #[derive(Debug, Clone)]
 pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 
-/// An affine matrix that can be used on objects. It is just in time copied to
-/// vram, so you can have as many as you like of these but you can only use up
-/// to 16 in one frame. They are reference counted (Cloning is cheap) and
-/// immutable, if you want to change a matrix you must make a new one and set it
+/// An affine matrix that can be used on objects.
+///
+/// It is just in time copied to vram, so you can have as many as you like
+/// of these but you can only use up to 16 in one frame. They are reference
+/// counted (Cloning is cheap) and immutable, if you want to change a matrix
+/// you must make a new one and set it
 /// on all your objects.
 #[derive(Debug, Clone)]
 pub struct AffineMatrixInstance {

@@ -61,9 +61,10 @@ macro_rules! impl_zst_allocator {
 
 pub(crate) use impl_zst_allocator;
 
-/// This is the allocator for the External Working Ram. This is currently
-/// equivalent to the Global Allocator (where things are allocated if no allocator is provided). This implements the allocator trait, so
-/// is meant to be used in specifying where certain structures should be
+/// This is the allocator for the External Working Ram.
+///
+/// This is currently equivalent to the Global Allocator (where things are allocated if no allocator is provided).
+/// This implements the allocator trait, so is meant to be used in specifying where certain structures should be
 /// allocated.
 ///
 /// ```rust,no_run

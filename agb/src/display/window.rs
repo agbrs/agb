@@ -6,9 +6,11 @@ use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
-/// The windows feature of the Game Boy Advance can selectively display
-/// backgrounds or objects on the screen and can selectively enable and disable
-/// effects. This gives out references and holds changes before they can be committed.
+/// Access to the windows feature of the Game Boy Advance.
+///
+/// The windows feature can selectively display backgrounds or objects on the screen
+/// and can selectively enable and disable effects. This gives out references and
+/// holds changes before they can be committed.
 pub struct Windows<'gba> {
     wins: [MovableWindow; 2],
     out: Window,
