@@ -74,8 +74,9 @@ macro_rules! align_bytes {
     }};
 }
 
-/// Includes sprites found in the referenced aseprite files. Can include
-/// multiple at once and optimises palettes of all included in the single call
+/// Includes sprites found in the referenced aseprite files.
+///
+/// Can include multiple at once and optimises palettes of all included in the single call
 /// together. See [Size] for supported sizes. Returns a reference to [Graphics].
 ///
 /// ```rust,no_run
