@@ -39,6 +39,14 @@ pub enum Jump {
     Combined { pattern: u8, row: u8 },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RetriggerVolumeChange {
+    /// Decrease the volume by one each retrigger
+    DecreaseByOne,
+    /// Don't change it
+    NoChange,
+}
+
 #[derive(Debug, Clone)]
 pub struct Pattern {
     pub length: usize,
@@ -94,7 +102,8 @@ pub enum PatternEffect {
     PitchBend(Num<u32, 8>),
     Jump(Jump),
     SampleOffset(u16),
-    Retrigger(u8),
+    /// Retrigger the note every u8 ticks with the volume change specified
+    Retrigger(RetriggerVolumeChange, u8),
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -126,6 +135,22 @@ impl quote::ToTokens for Jump {
 
         tokens.append_all(quote! {
             agb_tracker::__private::agb_tracker_interop::Jump::#type_bit
+        });
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for RetriggerVolumeChange {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::{quote, TokenStreamExt};
+
+        let type_bit = match self {
+            RetriggerVolumeChange::DecreaseByOne => quote!(DecreaseByOne),
+            RetriggerVolumeChange::NoChange => quote!(NoChange),
+        };
+
+        tokens.append_all(quote! {
+            agb_tracker::__private::agb_tracker_interop::RetriggerVolumeChange::#type_bit
         });
     }
 }
@@ -404,7 +429,9 @@ impl quote::ToTokens for PatternEffect {
                 quote! { Jump(#jump) }
             }
             PatternEffect::SampleOffset(offset) => quote! { SampleOffset(#offset) },
-            PatternEffect::Retrigger(ticks) => quote! { Retrigger(#ticks) },
+            PatternEffect::Retrigger(retrigger_volume_change, ticks) => {
+                quote! { Retrigger(#retrigger_volume_change, #ticks) }
+            }
         };
 
         tokens.append_all(quote! {

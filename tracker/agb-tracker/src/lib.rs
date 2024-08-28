@@ -613,8 +613,18 @@ impl TrackerChannel {
                     self.current_pos = Some(*offset);
                 }
             }
-            PatternEffect::Retrigger(ticks) => {
+            PatternEffect::Retrigger(volume_change, ticks) => {
                 if tick % *ticks as u32 == 0 {
+                    match volume_change {
+                        agb_tracker_interop::RetriggerVolumeChange::DecreaseByOne => {
+                            self.volume = (self.volume - Num::new(1) / 64).max(0.into());
+                            self.current_volume = (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap();
+                        }
+                        agb_tracker_interop::RetriggerVolumeChange::NoChange => {}
+                    }
+
                     self.current_pos = Some(0);
                 }
             }
