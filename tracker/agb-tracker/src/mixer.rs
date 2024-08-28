@@ -17,6 +17,8 @@ pub trait SoundChannel {
     fn restart_point(&mut self, value: impl Into<Num<u32, 8>>) -> &mut Self;
     fn playback(&mut self, playback_speed: impl Into<Num<u32, 8>>) -> &mut Self;
     fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self;
+
+    fn set_pos(&mut self, pos: impl Into<Num<u32, 8>>) -> &mut Self;
 }
 
 pub trait Mixer {

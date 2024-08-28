@@ -171,6 +171,11 @@ impl agb_tracker::SoundChannel for SoundChannel {
         self.panning = panning.into();
         self
     }
+
+    fn set_pos(&mut self, pos: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.pos = pos.into();
+        self
+    }
 }
 
 impl agb_tracker::Mixer for Mixer {

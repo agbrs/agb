@@ -93,6 +93,7 @@ pub enum PatternEffect {
     /// Increase / decrease the pitch by the specified amount immediately
     PitchBend(Num<u32, 8>),
     Jump(Jump),
+    SampleOffset(u16),
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -401,6 +402,7 @@ impl quote::ToTokens for PatternEffect {
             PatternEffect::Jump(jump) => {
                 quote! { Jump(#jump) }
             }
+            PatternEffect::SampleOffset(offset) => quote! { SampleOffset(#offset) },
         };
 
         tokens.append_all(quote! {

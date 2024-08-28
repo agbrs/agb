@@ -324,6 +324,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             )
                         }
                     }
+                    0x9 => PatternEffect::SampleOffset(effect_parameter as u16 * 256),
                     0xB => {
                         let pattern_idx = slot.effect_parameter;
 
