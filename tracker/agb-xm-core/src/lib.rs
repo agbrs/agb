@@ -112,8 +112,10 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                 } else {
                     let instrument_index = (slot.instrument - 1) as usize;
 
-                    if let InstrumentType::Default(ref instrument) =
-                        module.instrument[instrument_index].instr_type
+                    if let Some(InstrumentType::Default(ref instrument)) = module
+                        .instrument
+                        .get(instrument_index)
+                        .map(|instrument| &instrument.instr_type)
                     {
                         let sample_slot = *instrument
                             .sample_for_note
