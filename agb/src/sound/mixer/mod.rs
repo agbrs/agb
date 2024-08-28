@@ -125,9 +125,11 @@ enum SoundPriority {
     Low,
 }
 
-/// The supported frequencies within AGB. These are chosen to work well with
-/// the hardware. Note that the higher the frequency, the better the quality of
-/// the sound but the more CPU time sound mixing will take.
+/// The supported frequencies within AGB.
+///
+/// These are chosen to work well with/ the hardware. Note that the higher
+/// the frequency, the better the quality of the sound but the more CPU time
+///  sound mixing will take.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Frequency {
