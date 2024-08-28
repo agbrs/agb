@@ -99,6 +99,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
         let mut effect_parameters: [u8; 255] = [0; u8::MAX as usize];
         let mut tone_portamento_directions = vec![0; module.get_num_channels()];
         let mut note_and_sample = vec![None; module.get_num_channels()];
+        let mut previous_retriggers: Vec<Option<u8>> = vec![None; module.get_num_channels()];
 
         for row in pattern.iter() {
             // the combined jump for each row
@@ -407,7 +408,23 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                         0x8 => PatternEffect::Panning(
                             Num::new(((slot.effect_parameter & 0xf) as i16) - 8) / 8,
                         ),
-                        0x9 => PatternEffect::Retrigger(slot.effect_parameter & 0xf),
+                        0x9 => {
+                            let retrigger_amount = slot.effect_parameter & 0xf;
+                            let modified_amount = if retrigger_amount == 0 {
+                                if let Some(previous_retrigger) =
+                                    previous_retriggers[channel_number]
+                                {
+                                    previous_retrigger
+                                } else {
+                                    1
+                                }
+                            } else {
+                                previous_retriggers[channel_number] = Some(retrigger_amount);
+                                retrigger_amount
+                            };
+
+                            PatternEffect::Retrigger(modified_amount)
+                        }
                         0xA => PatternEffect::FineVolumeSlide(
                             Num::new((slot.effect_parameter & 0xf) as i16) / 128,
                         ),
@@ -452,7 +469,18 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             eprintln!("Unsupported retrigger effect volume {first}");
                         }
 
-                        PatternEffect::Retrigger(second)
+                        let ticks_between_retriggers = if second == 0 {
+                            if let Some(previous_retrigger) = previous_retriggers[channel_number] {
+                                previous_retrigger
+                            } else {
+                                1
+                            }
+                        } else {
+                            previous_retriggers[channel_number] = Some(second);
+                            second
+                        };
+
+                        PatternEffect::Retrigger(ticks_between_retriggers)
                     }
                     e => {
                         let effect_char = char::from_digit(e as u32, 36)
