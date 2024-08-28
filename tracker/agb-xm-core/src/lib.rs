@@ -439,6 +439,17 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
                             PatternEffect::GlobalVolumeSlide(Num::new(first as i32) / 0x40)
                         }
                     }
+                    // R
+                    0x1B => {
+                        let first = effect_parameter >> 4;
+                        let second = effect_parameter & 0xF;
+
+                        if first != 0 {
+                            eprintln!("Unsupported retrigger effect volume {first}");
+                        }
+
+                        PatternEffect::Retrigger(second)
+                    }
                     e => {
                         let effect_char = char::from_digit(e as u32, 36)
                             .unwrap_or('?')

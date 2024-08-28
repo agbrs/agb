@@ -94,6 +94,7 @@ pub enum PatternEffect {
     PitchBend(Num<u32, 8>),
     Jump(Jump),
     SampleOffset(u16),
+    Retrigger(u8),
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -403,6 +404,7 @@ impl quote::ToTokens for PatternEffect {
                 quote! { Jump(#jump) }
             }
             PatternEffect::SampleOffset(offset) => quote! { SampleOffset(#offset) },
+            PatternEffect::Retrigger(ticks) => quote! { Retrigger(#ticks) },
         };
 
         tokens.append_all(quote! {

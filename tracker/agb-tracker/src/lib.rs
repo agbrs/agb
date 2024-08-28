@@ -613,6 +613,11 @@ impl TrackerChannel {
                     self.current_pos = Some(*offset);
                 }
             }
+            PatternEffect::Retrigger(ticks) => {
+                if tick % *ticks as u32 == 0 {
+                    self.current_pos = Some(0);
+                }
+            }
         }
     }
 
