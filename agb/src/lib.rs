@@ -106,6 +106,15 @@
 /// # use agb::include_background_gfx;
 /// include_background_gfx!(generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
 /// ```
+///
+/// You can also make the exported background a public module which will allow other modules access them. The following
+/// will declare `water_tiles` as a `pub mod` rather than a `mod`.
+///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(pub water_tiles, tiles => "examples/water_tiles.png");
+/// ```
 pub use agb_image_converter::include_background_gfx;
 
 #[doc(hidden)]
