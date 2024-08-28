@@ -10,6 +10,6 @@ exclude = ["mgba/doc/*", "mgba/res/*", "mgba/cinema/*", "mgba/tools/*"]
 
 
 [build-dependencies]
-bindgen = "0.69"
+bindgen = "0.70"
 pkg-config = "0.3"
 cmake = "0.1"
