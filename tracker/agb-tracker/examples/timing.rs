@@ -7,8 +7,7 @@ use agb::sound::mixer::Frequency;
 use agb::Gba;
 use agb_tracker::{include_xm, Track, Tracker};
 
-// Found on: https://modarchive.org/index.php?request=view_by_moduleid&query=36662
-static DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
+static SPECTRUM: Track = include_xm!("examples/tracks/peak_and_drozerix_-_spectrum.xm");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
@@ -23,7 +22,7 @@ fn main(mut gba: Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
 
-    let mut tracker = Tracker::new(&DB_TOFFE);
+    let mut tracker = Tracker::new(&SPECTRUM);
 
     loop {
         let before_mixing_cycles_high = timer2.value();

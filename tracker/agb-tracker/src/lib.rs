@@ -126,6 +126,9 @@ struct TrackerChannel {
     current_speed: Num<u32, 16>,
     current_panning: Num<i32, 8>,
     is_playing: bool,
+
+    // if some, should set the current position to this
+    current_pos: Option<u16>,
 }
 
 #[derive(Default)]
@@ -336,6 +339,10 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 channel.playback(current_speed.change_base());
                 channel.volume(tracker_channel.current_volume.try_change_base().unwrap());
                 channel.panning(tracker_channel.current_panning.try_change_base().unwrap());
+
+                if let Some(offset) = tracker_channel.current_pos.take() {
+                    channel.set_pos(offset as u32);
+                }
 
                 if tracker_channel.is_playing {
                     channel.resume();
@@ -601,6 +608,26 @@ impl TrackerChannel {
             PatternEffect::Jump(jump) => {
                 *current_jump = Some(jump.clone());
             }
+            PatternEffect::SampleOffset(offset) => {
+                if tick == 0 {
+                    self.current_pos = Some(*offset);
+                }
+            }
+            PatternEffect::Retrigger(volume_change, ticks) => {
+                if tick % *ticks as u32 == 0 {
+                    match volume_change {
+                        agb_tracker_interop::RetriggerVolumeChange::DecreaseByOne => {
+                            self.volume = (self.volume - Num::new(1) / 64).max(0.into());
+                            self.current_volume = (self.volume * global_settings.volume)
+                                .try_change_base()
+                                .unwrap();
+                        }
+                        agb_tracker_interop::RetriggerVolumeChange::NoChange => {}
+                    }
+
+                    self.current_pos = Some(0);
+                }
+            }
         }
     }
 
@@ -676,6 +703,10 @@ impl SoundChannel for agb::sound::mixer::SoundChannel {
 
     fn panning(&mut self, panning: impl Into<Num<i16, 8>>) -> &mut Self {
         self.panning(panning)
+    }
+
+    fn set_pos(&mut self, pos: impl Into<Num<u32, 8>>) -> &mut Self {
+        self.set_pos(pos)
     }
 }
 
