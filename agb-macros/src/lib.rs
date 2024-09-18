@@ -103,6 +103,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     quote!(
         #[cfg(not(test))]
         #[export_name = "main"]
+        #[doc(hidden)]
         #(#attrs)*
         pub extern "C" fn #fn_name() -> ! {
             let #mutable #argument_name = unsafe { #argument_type ::new_in_entry() };
@@ -112,6 +113,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #[cfg(test)]
         #[export_name = "main"]
+        #[doc(hidden)]
         #(#attrs)*
         pub extern "C" fn #fn_name() -> ! {
             let mut #argument_name = unsafe { #argument_type ::new_in_entry() };
