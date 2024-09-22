@@ -190,6 +190,7 @@ mod sync;
 pub mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
+pub(crate) mod util;
 
 mod no_game;
 
