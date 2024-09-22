@@ -327,6 +327,8 @@ impl Gba {
 /// You can run the tests using `cargo test`, but it will work better through `mgba-test-runner` by
 /// running something along the lines of `CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test`.
 pub mod test_runner {
+    use util::SyncUnsafeCell;
+
     use super::*;
 
     #[doc(hidden)]
@@ -374,7 +376,7 @@ pub mod test_runner {
         }
     }
 
-    static mut TEST_GBA: Option<Gba> = None;
+    static TEST_GBA: SyncUnsafeCell<Option<Gba>> = SyncUnsafeCell::new(None);
 
     #[doc(hidden)]
     pub fn test_runner(tests: &[&dyn Testable]) {
@@ -385,7 +387,7 @@ pub mod test_runner {
         )
         .unwrap();
 
-        let gba = unsafe { TEST_GBA.as_mut() }.unwrap();
+        let gba = unsafe { &mut *TEST_GBA.get() }.as_mut().unwrap();
 
         for test in tests {
             test.run(gba);
@@ -415,7 +417,7 @@ pub mod test_runner {
 
     #[doc(hidden)]
     pub fn agb_start_tests(gba: Gba, test_main: impl Fn()) -> ! {
-        unsafe { TEST_GBA = Some(gba) };
+        *unsafe { &mut *TEST_GBA.get() } = Some(gba);
         test_main();
         #[allow(clippy::empty_loop)]
         loop {}
