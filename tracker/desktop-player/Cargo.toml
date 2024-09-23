@@ -12,6 +12,6 @@ agb_xm_core = { version = "0.20.2", path = "../agb-xm-core" }
 agb_tracker = { version = "0.20.2", path = "../agb-tracker", default-features = false }
 agb_fixnum = { version = "0.20.2", path = "../../agb-fixnum" }
 
-xmrs = "0.6"
+xmrs = "0.7"
 
 cpal = "0.15"
