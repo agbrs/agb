@@ -5,7 +5,7 @@ authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 
 [dependencies]
-agb = { version = "0.20.5", path = "../../../agb" }
+agb = { version = "0.21.0", path = "../../../agb" }
 
 [profile.dev]
 opt-level = 3

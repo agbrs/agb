@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2024/09/24
+
 ### Added
 
 - Added support for vibrato in `agb-tracker`'s XM format

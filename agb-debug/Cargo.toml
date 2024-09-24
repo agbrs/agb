@@ -1,6 +1,6 @@
 [package]
 name = "agb-debug"
-version = "0.20.5"
+version = "0.21.0"
 edition = "2021"
 authors = ["Gwilym Inzani <email@gwilym.dev>"]
 license = "MPL-2.0"

@@ -1,6 +1,6 @@
 [package]
 name = "agb_tracker_interop"
-version = "0.20.5"
+version = "0.21.0"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -15,4 +15,4 @@ std = []
 [dependencies]
 quote = { version = "1", optional = true }
 proc-macro2 = { version = "1", optional = true }
-agb_fixnum = { version = "0.20.5", path = "../../agb-fixnum" }
+agb_fixnum = { version = "0.21.0", path = "../../agb-fixnum" }
