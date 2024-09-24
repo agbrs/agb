@@ -10,10 +10,13 @@ use xmrs::{module::Module, xm::xmmodule::XmModule};
 #[proc_macro_error]
 #[proc_macro]
 pub fn include_xm(args: TokenStream) -> TokenStream {
-    agb_xm_core(args)
+    agb_xm_core(args, parse_xm)
 }
 
-fn agb_xm_core(args: TokenStream) -> TokenStream {
+fn agb_xm_core(
+    args: TokenStream,
+    load_module: impl Fn(&[u8]) -> Result<Module, Box<dyn Error>>,
+) -> TokenStream {
     let input = match syn::parse::<LitStr>(args) {
         Ok(input) => input,
         Err(err) => return err.to_compile_error().into(),
@@ -26,7 +29,12 @@ fn agb_xm_core(args: TokenStream) -> TokenStream {
 
     let include_path = path.to_string_lossy();
 
-    let module = match load_module_from_file(&path) {
+    let file_content = match fs::read(&path) {
+        Ok(content) => content,
+        Err(e) => abort!(input, e),
+    };
+
+    let module = match load_module(&file_content) {
         Ok(track) => track,
         Err(e) => abort!(input, e),
     };
@@ -43,7 +51,6 @@ fn agb_xm_core(args: TokenStream) -> TokenStream {
     .into()
 }
 
-fn load_module_from_file(xm_path: &Path) -> Result<Module, Box<dyn Error>> {
-    let file_content = fs::read(xm_path)?;
-    Ok(XmModule::load(&file_content)?.to_module())
+fn parse_xm(file_content: &[u8]) -> Result<Module, Box<dyn Error>> {
+    Ok(XmModule::load(file_content)?.to_module())
 }
