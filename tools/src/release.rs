@@ -111,7 +111,7 @@ fn update_to_version(
         &[
             "agb-*/Cargo.toml",
             "agb/Cargo.toml",
-            "tracker/agb-*/Cargo.toml",
+            "tracker/*/Cargo.toml",
             "examples/*/Cargo.toml",
             "book/games/*/Cargo.toml",
             "template/Cargo.toml",
@@ -123,21 +123,28 @@ fn update_to_version(
             .parse::<toml_edit::DocumentMut>()
             .map_err(|_| Error::InvalidToml(cargo_toml_file.to_string_lossy().into_owned()))?;
 
-        if let Some(this_dep) = cargo_toml["dependencies"].get_mut(&project_name) {
-            match this_dep {
-                toml_edit::Item::Value(s @ toml_edit::Value::String(_)) => {
-                    *s = new_version.clone().into()
-                }
-                toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) => {
-                    t["version"] = new_version.clone().into()
-                }
-                toml_edit::Item::None => continue,
-                _ => {
-                    return Err(Error::InvalidToml(format!(
-                        "{:?} while searching dependencies in {}",
-                        this_dep,
-                        cargo_toml_file.to_string_lossy()
-                    )))
+        let to_update = ["dependencies", "build-dependencies"];
+
+        for kind in to_update {
+            if let Some(this_dep) = cargo_toml
+                .get_mut(kind)
+                .and_then(|x| x.get_mut(&project_name))
+            {
+                match this_dep {
+                    toml_edit::Item::Value(s @ toml_edit::Value::String(_)) => {
+                        *s = new_version.clone().into()
+                    }
+                    toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) => {
+                        t["version"] = new_version.clone().into()
+                    }
+                    toml_edit::Item::None => continue,
+                    _ => {
+                        return Err(Error::InvalidToml(format!(
+                            "{:?} while searching dependencies in {}",
+                            this_dep,
+                            cargo_toml_file.to_string_lossy()
+                        )))
+                    }
                 }
             }
         }
