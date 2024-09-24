@@ -1,15 +1,18 @@
-use std::{env, error::Error, fs, path::Path, sync::mpsc};
+use std::{env, fs, path::Path, sync::mpsc};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     SampleFormat, SampleRate,
 };
 use mixer::Mixer;
-use xmrs::{module::Module, xm::xmmodule::XmModule};
+use xmrs::{
+    amiga::amiga_module::AmigaModule, module::Module, s3m::s3m_module::S3mModule,
+    xm::xmmodule::XmModule,
+};
 
 mod mixer;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     let file_path = &args[1];
@@ -60,7 +63,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn load_module_from_file(xm_path: &Path) -> Result<Module, Box<dyn Error>> {
+fn load_module_from_file(xm_path: &Path) -> anyhow::Result<Module> {
     let file_content = fs::read(xm_path)?;
-    Ok(XmModule::load(&file_content)?.to_module())
+
+    match xm_path.extension().and_then(|ex| ex.to_str()) {
+        Some("xm") => Ok(XmModule::load(&file_content)?.to_module()),
+        Some("s3m") => Ok(S3mModule::load(&file_content)?.to_module()),
+        Some("mod") => Ok(AmigaModule::load(&file_content)?.to_module()),
+        ex => anyhow::bail!("Invalid file extension {ex:?}"),
+    }
 }
