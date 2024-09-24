@@ -5,12 +5,27 @@ use proc_macro::TokenStream;
 use proc_macro_error::{abort, proc_macro_error};
 use quote::quote;
 use syn::LitStr;
-use xmrs::{module::Module, xm::xmmodule::XmModule};
+use xmrs::{
+    amiga::amiga_module::AmigaModule, module::Module, s3m::s3m_module::S3mModule,
+    xm::xmmodule::XmModule,
+};
 
 #[proc_macro_error]
 #[proc_macro]
 pub fn include_xm(args: TokenStream) -> TokenStream {
-    agb_xm_core(args, parse_xm)
+    agb_xm_core(args, |content| Ok(XmModule::load(content)?.to_module()))
+}
+
+#[proc_macro_error]
+#[proc_macro]
+pub fn include_s3m(args: TokenStream) -> TokenStream {
+    agb_xm_core(args, |content| Ok(S3mModule::load(content)?.to_module()))
+}
+
+#[proc_macro_error]
+#[proc_macro]
+pub fn include_mod(args: TokenStream) -> TokenStream {
+    agb_xm_core(args, |content| Ok(AmigaModule::load(content)?.to_module()))
 }
 
 fn agb_xm_core(
@@ -49,8 +64,4 @@ fn agb_xm_core(
         }
     }
     .into()
-}
-
-fn parse_xm(file_content: &[u8]) -> Result<Module, Box<dyn Error>> {
-    Ok(XmModule::load(file_content)?.to_module())
 }
