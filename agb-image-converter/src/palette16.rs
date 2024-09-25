@@ -62,12 +62,15 @@ impl Palette16 {
         self.colours.iter()
     }
 
-    fn union_length(&self, other: &Palette16) -> usize {
-        self.colours
+    fn with_transparent(&self, transparent_colour: Colour) -> Self {
+        let mut new_colours = self.colours.clone();
+        let transparent_colour_index = new_colours
             .iter()
-            .chain(&other.colours)
-            .collect::<HashSet<_>>()
-            .len()
+            .position(|&c| c == transparent_colour)
+            .expect("Could not find tranparent colour in palette");
+        new_colours.swap(0, transparent_colour_index);
+
+        Self::from(&new_colours)
     }
 
     fn is_satisfied_by(&self, other: &Palette16) -> bool {
@@ -140,16 +143,17 @@ impl Palette16Optimiser {
     }
 
     pub fn optimise_palettes(&self) -> Result<Palette16OptimisationResults, DoesNotFitError> {
+        let transparent_colour = self
+            .transparent_colour
+            .unwrap_or_else(|| Colour::from_rgb(255, 0, 255, 0));
+
         let palettes_to_optimise = self
             .palettes
             .iter()
             .cloned()
             .map(|mut palette| {
                 // ensure each palette we're creating the covering for has the transparent colour in it
-                palette.add_colour(
-                    self.transparent_colour
-                        .unwrap_or_else(|| Colour::from_rgb(255, 0, 255, 0)),
-                );
+                palette.add_colour(transparent_colour);
                 palette
             })
             .collect::<HashSet<Palette16>>()
@@ -168,7 +172,7 @@ impl Palette16Optimiser {
             .iter()
             .map(|packed_palette| {
                 let colours = packed_palette.unique_symbols(&palettes_to_optimise);
-                Palette16::from(colours)
+                Palette16::from(colours).with_transparent(transparent_colour)
             })
             .collect::<Vec<_>>();
 
@@ -214,8 +218,8 @@ mod test {
     use super::*;
 
     quickcheck! {
-        fn less_than_256_colours_always_fits(palettes: Vec<Palette16>) -> bool {
-            let mut optimiser = Palette16Optimiser::new(None);
+        fn less_than_256_colours_always_fits(palettes: Vec<Palette16>, transparent_colour: Colour) -> bool {
+            let mut optimiser = Palette16Optimiser::new(Some(transparent_colour));
             for palette in palettes.clone().into_iter().take(16) {
                 optimiser.add_palette(palette);
             }
@@ -227,6 +231,10 @@ mod test {
             for (i, palette) in palettes.into_iter().take(16).enumerate() {
                 let optimised_palette = &optimisation_results.optimised_palettes[optimisation_results.assignments[i]];
                 if !palette.is_satisfied_by(optimised_palette) {
+                    return false;
+                }
+
+                if optimised_palette.colour_index(transparent_colour) != 0 {
                     return false;
                 }
             }
