@@ -16,3 +16,4 @@ rustc-hash = { version = "1", default-features = false }
 [dev-dependencies]
 rand = { version = "0.8", default-features = false, features = ["small_rng"] }
 lazy_static = "1.4"
+quickcheck = "1"
