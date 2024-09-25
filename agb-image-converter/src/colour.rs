@@ -1,11 +1,23 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Colour {
     pub r: u8,
     pub g: u8,
     pub b: u8,
     pub a: u8,
+}
+
+impl fmt::Debug for Colour {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)?;
+
+        if self.a != 0xff {
+            write!(f, "{:02x}", self.a)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Colour {
@@ -55,7 +67,7 @@ impl quickcheck::Arbitrary for Colour {
             vec![
                 Colour::from_rgb(0, 0, 0, 0),
                 Colour::from_rgb(self.r, self.g, self.b, 0),
-                self.clone(),
+                *self,
             ]
             .into_iter(),
         )

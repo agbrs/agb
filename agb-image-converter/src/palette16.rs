@@ -164,10 +164,6 @@ impl Palette16Optimiser {
         let packed_palettes =
             pagination_packing::overload_and_remove::<_, _, Vec<_>>(&palettes_to_optimise, 16);
 
-        if packed_palettes.len() > 16 {
-            return Err(DoesNotFitError(packed_palettes.len()));
-        }
-
         let optimised_palettes = packed_palettes
             .iter()
             .map(|packed_palette| {
@@ -175,6 +171,10 @@ impl Palette16Optimiser {
                 Palette16::from(colours).with_transparent(transparent_colour)
             })
             .collect::<Vec<_>>();
+
+        if optimised_palettes.len() > 16 {
+            return Err(DoesNotFitError(packed_palettes.len()));
+        }
 
         let mut assignments = vec![0; self.palettes.len()];
 
