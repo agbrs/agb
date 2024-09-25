@@ -1,5 +1,5 @@
 use crate::colour::Colour;
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt};
 
 const MAX_COLOURS: usize = 256;
 const MAX_COLOURS_PER_PALETTE: usize = 16;
@@ -87,6 +87,20 @@ impl IntoIterator for Palette16 {
     }
 }
 
+impl<'a, T> From<T> for Palette16
+where
+    T: IntoIterator<Item = &'a Colour>,
+{
+    fn from(value: T) -> Self {
+        let mut palette = Palette16::new();
+        for colour in value.into_iter() {
+            palette.add_colour(*colour);
+        }
+
+        palette
+    }
+}
+
 pub(crate) struct Palette16Optimiser {
     palettes: Vec<Palette16>,
     colours: Vec<Colour>,
@@ -125,27 +139,40 @@ impl Palette16Optimiser {
         }
     }
 
-    pub fn optimise_palettes(&self) -> Palette16OptimisationResults {
-        let mut assignments = vec![0; self.palettes.len()];
-        let mut optimised_palettes = vec![];
-
-        let mut unsatisfied_palettes = self
+    pub fn optimise_palettes(&self) -> Result<Palette16OptimisationResults, DoesNotFitError> {
+        let palettes_to_optimise = self
             .palettes
             .iter()
             .cloned()
-            .collect::<HashSet<Palette16>>();
+            .map(|mut palette| {
+                // ensure each palette we're creating the covering for has the transparent colour in it
+                palette.add_colour(
+                    self.transparent_colour
+                        .unwrap_or_else(|| Colour::from_rgb(255, 0, 255, 0)),
+                );
+                palette
+            })
+            .collect::<HashSet<Palette16>>()
+            .into_iter()
+            .map(|palette| palette.colours)
+            .collect::<Vec<_>>();
 
-        while !unsatisfied_palettes.is_empty() {
-            let palette = self.find_maximal_palette_for(&unsatisfied_palettes);
+        let packed_palettes =
+            pagination_packing::overload_and_remove::<_, _, Vec<_>>(&palettes_to_optimise, 16);
 
-            unsatisfied_palettes.retain(|test_palette| !test_palette.is_satisfied_by(&palette));
-
-            optimised_palettes.push(palette);
-
-            if optimised_palettes.len() == MAX_COLOURS / MAX_COLOURS_PER_PALETTE {
-                panic!("Failed to find covering palettes");
-            }
+        if packed_palettes.len() > 16 {
+            return Err(DoesNotFitError(packed_palettes.len()));
         }
+
+        let optimised_palettes = packed_palettes
+            .iter()
+            .map(|packed_palette| {
+                let colours = packed_palette.unique_symbols(&palettes_to_optimise);
+                Palette16::from(colours)
+            })
+            .collect::<Vec<_>>();
+
+        let mut assignments = vec![0; self.palettes.len()];
 
         for (i, overall_palette) in self.palettes.iter().enumerate() {
             assignments[i] = optimised_palettes
@@ -154,60 +181,29 @@ impl Palette16Optimiser {
                 .unwrap();
         }
 
-        Palette16OptimisationResults {
+        Ok(Palette16OptimisationResults {
             optimised_palettes,
             assignments,
             transparent_colour: self.transparent_colour,
-        }
+        })
     }
+}
 
-    fn find_maximal_palette_for(&self, unsatisfied_palettes: &HashSet<Palette16>) -> Palette16 {
-        let mut palette = Palette16::new();
+pub struct DoesNotFitError(pub usize);
 
-        palette.add_colour(
-            self.transparent_colour
-                .unwrap_or_else(|| Colour::from_rgb(255, 0, 255, 0)),
-        );
+impl fmt::Display for DoesNotFitError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Could not fit colours into palette, needed {} bins but can have at most 16",
+            self.0
+        )
+    }
+}
 
-        loop {
-            let mut colour_usage = vec![0; MAX_COLOURS];
-            let mut a_colour_is_used = false;
-
-            for current_palette in unsatisfied_palettes {
-                if palette.union_length(current_palette) > MAX_COLOURS_PER_PALETTE {
-                    continue;
-                }
-
-                for colour in &current_palette.colours {
-                    if palette.colours.contains(colour) {
-                        continue;
-                    }
-
-                    if let Some(colour_index) = self.colours.iter().position(|c| c == colour) {
-                        colour_usage[colour_index] += 1;
-                        a_colour_is_used = true;
-                    }
-                }
-            }
-
-            if !a_colour_is_used {
-                return palette;
-            }
-
-            let best_index = colour_usage
-                .iter()
-                .enumerate()
-                .max_by(|(_, usage1), (_, usage2)| usage1.cmp(usage2))
-                .unwrap()
-                .0;
-
-            let best_colour = self.colours[best_index];
-
-            palette.add_colour(best_colour);
-            if palette.colours.len() == MAX_COLOURS_PER_PALETTE {
-                return palette;
-            }
-        }
+impl fmt::Debug for DoesNotFitError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self}")
     }
 }
 
@@ -218,13 +214,24 @@ mod test {
     use super::*;
 
     quickcheck! {
-        fn less_than_256_colours_always_fits(palettes: Vec<Palette16>) -> () {
+        fn less_than_256_colours_always_fits(palettes: Vec<Palette16>) -> bool {
             let mut optimiser = Palette16Optimiser::new(None);
             for palette in palettes.clone().into_iter().take(16) {
                 optimiser.add_palette(palette);
             }
 
-            optimiser.optimise_palettes();
+            let Ok(optimisation_results) = optimiser.optimise_palettes() else {
+                return false
+            };
+
+            for (i, palette) in palettes.into_iter().take(16).enumerate() {
+                let optimised_palette = &optimisation_results.optimised_palettes[optimisation_results.assignments[i]];
+                if !palette.is_satisfied_by(optimised_palette) {
+                    return false;
+                }
+            }
+
+            true
         }
     }
 

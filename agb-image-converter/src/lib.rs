@@ -244,7 +244,9 @@ fn include_gfx_from_config(
         }
     }
 
-    let optimisation_results = optimiser.optimise_palettes();
+    let optimisation_results = optimiser
+        .optimise_palettes()
+        .expect("Failed to optimised palettes");
     let optimisation_results = palette256.extend_results(&optimisation_results);
 
     let mut image_code = vec![];
@@ -377,7 +379,9 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         }
     }
 
-    let optimised_results = optimiser.optimise_palettes();
+    let optimised_results = optimiser
+        .optimise_palettes()
+        .expect("Failed to optimise palettes");
 
     let (palette_data, tile_data, assignments) = palette_tile_data(&optimised_results, &images);
 
