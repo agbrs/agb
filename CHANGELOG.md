@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for s3m and mod format files to `agb-tracker`.
+
 ## [0.21.0] - 2024/09/24
 
 ### Added

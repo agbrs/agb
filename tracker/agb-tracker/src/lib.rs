@@ -79,6 +79,14 @@ use agb_fixnum::Num;
 #[cfg(feature = "xm")]
 pub use agb_xm::include_xm;
 
+/// Import an S3M file. Only available if you have the `xm` feature enabled (enabled by default).
+#[cfg(feature = "xm")]
+pub use agb_xm::include_s3m;
+
+/// Import a MOD file. Only available if you have the `xm` feature enabled (enabled by default).
+#[cfg(feature = "xm")]
+pub use agb_xm::include_mod;
+
 /// Import a midi file. Only available if you have the `midi` feature enabled (enabled by default).
 /// This is currently experimental, and many types of MIDI file or MIDI features are not supported.
 ///

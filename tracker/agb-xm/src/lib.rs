@@ -5,15 +5,33 @@ use proc_macro::TokenStream;
 use proc_macro_error::{abort, proc_macro_error};
 use quote::quote;
 use syn::LitStr;
-use xmrs::{module::Module, xm::xmmodule::XmModule};
+use xmrs::{
+    amiga::amiga_module::AmigaModule, module::Module, s3m::s3m_module::S3mModule,
+    xm::xmmodule::XmModule,
+};
 
 #[proc_macro_error]
 #[proc_macro]
 pub fn include_xm(args: TokenStream) -> TokenStream {
-    agb_xm_core(args)
+    agb_xm_core(args, |content| Ok(XmModule::load(content)?.to_module()))
 }
 
-fn agb_xm_core(args: TokenStream) -> TokenStream {
+#[proc_macro_error]
+#[proc_macro]
+pub fn include_s3m(args: TokenStream) -> TokenStream {
+    agb_xm_core(args, |content| Ok(S3mModule::load(content)?.to_module()))
+}
+
+#[proc_macro_error]
+#[proc_macro]
+pub fn include_mod(args: TokenStream) -> TokenStream {
+    agb_xm_core(args, |content| Ok(AmigaModule::load(content)?.to_module()))
+}
+
+fn agb_xm_core(
+    args: TokenStream,
+    load_module: impl Fn(&[u8]) -> Result<Module, Box<dyn Error>>,
+) -> TokenStream {
     let input = match syn::parse::<LitStr>(args) {
         Ok(input) => input,
         Err(err) => return err.to_compile_error().into(),
@@ -26,7 +44,12 @@ fn agb_xm_core(args: TokenStream) -> TokenStream {
 
     let include_path = path.to_string_lossy();
 
-    let module = match load_module_from_file(&path) {
+    let file_content = match fs::read(&path) {
+        Ok(content) => content,
+        Err(e) => abort!(input, e),
+    };
+
+    let module = match load_module(&file_content) {
         Ok(track) => track,
         Err(e) => abort!(input, e),
     };
@@ -41,9 +64,4 @@ fn agb_xm_core(args: TokenStream) -> TokenStream {
         }
     }
     .into()
-}
-
-fn load_module_from_file(xm_path: &Path) -> Result<Module, Box<dyn Error>> {
-    let file_content = fs::read(xm_path)?;
-    Ok(XmModule::load(&file_content)?.to_module())
 }
