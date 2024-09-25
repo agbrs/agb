@@ -20,3 +20,6 @@ proc-macro2 = "1"
 quote = "1"
 asefile = "0.3.8"
 fontdue = "0.9"
+
+[dev-dependencies]
+quickcheck = "1"

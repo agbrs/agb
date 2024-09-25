@@ -38,3 +38,26 @@ impl FromStr for Colour {
         Ok(Colour::from_rgb(r, g, b, 255))
     }
 }
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Colour {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        Self::from_rgb(
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+        )
+    }
+
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        Box::new(
+            vec![
+                Colour::from_rgb(0, 0, 0, 0),
+                Colour::from_rgb(self.r, self.g, self.b, 0),
+                self.clone(),
+            ]
+            .into_iter(),
+        )
+    }
+}
