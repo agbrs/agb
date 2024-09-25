@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::BuildHasher};
+use std::collections::BTreeMap;
 
 use crate::{colour::Colour, image_loader::Image};
 
@@ -42,7 +42,7 @@ pub struct DeduplicatedData {
     pub transformation: Transformation,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct Tile {
     data: [Colour; 64],
 }
@@ -99,9 +99,7 @@ pub(crate) fn deduplicate_image(input: &Image, can_flip: bool) -> (Image, Vec<De
     let mut deduplication_data = vec![];
 
     let all_tiles = Tile::split_image(input);
-    let mut existing_tiles = HashMap::new();
-
-    let hasher = std::collections::hash_map::RandomState::new();
+    let mut existing_tiles = BTreeMap::new();
 
     for tile in all_tiles {
         let (tile, transformation) = if can_flip {
@@ -109,22 +107,13 @@ pub(crate) fn deduplicate_image(input: &Image, can_flip: bool) -> (Image, Vec<De
             let hflipped = tile.hflipped();
             let vhflipped = vflipped.hflipped();
 
-            // find the one with the smallest hash
-            let tile_hash = hasher.hash_one(&tile);
-            let vflipped_hash = hasher.hash_one(&vflipped);
-            let hflipped_hash = hasher.hash_one(&hflipped);
-            let vhflipped_hash = hasher.hash_one(&vhflipped);
+            let minimum = (&tile).min(&vflipped).min(&hflipped).min(&vhflipped);
 
-            let minimum = tile_hash
-                .min(vflipped_hash)
-                .min(hflipped_hash)
-                .min(vhflipped_hash);
-
-            if minimum == tile_hash {
+            if minimum == &tile {
                 (tile, Transformation::none())
-            } else if minimum == vflipped_hash {
+            } else if minimum == &vflipped {
                 (vflipped, Transformation::vflipped())
-            } else if minimum == hflipped_hash {
+            } else if minimum == &hflipped {
                 (hflipped, Transformation::hflipped())
             } else {
                 (vhflipped, Transformation::vhflipped())

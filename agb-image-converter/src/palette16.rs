@@ -1,10 +1,13 @@
 use crate::colour::Colour;
-use std::{collections::HashSet, fmt};
+use std::{
+    collections::{BTreeSet, HashSet},
+    fmt,
+};
 
 const MAX_COLOURS: usize = 256;
 const MAX_COLOURS_PER_PALETTE: usize = 16;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub(crate) struct Palette16 {
     colours: Vec<Colour>,
 }
@@ -156,7 +159,7 @@ impl Palette16Optimiser {
                 palette.add_colour(transparent_colour);
                 palette
             })
-            .collect::<HashSet<Palette16>>()
+            .collect::<BTreeSet<Palette16>>()
             .into_iter()
             .map(|palette| palette.colours)
             .collect::<Vec<_>>();

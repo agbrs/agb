@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Colour {
     pub r: u8,
     pub g: u8,

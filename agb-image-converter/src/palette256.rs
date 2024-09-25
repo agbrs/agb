@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use crate::{
     colour::Colour,
@@ -7,13 +7,13 @@ use crate::{
 };
 
 pub struct Palette256 {
-    colours: HashSet<Colour>,
+    colours: BTreeSet<Colour>,
 }
 
 impl Palette256 {
     pub fn new() -> Self {
         Self {
-            colours: HashSet::new(),
+            colours: BTreeSet::new(),
         }
     }
 
@@ -41,8 +41,8 @@ impl Palette256 {
             .cloned()
             .collect();
 
-        let current_colours_set = HashSet::from_iter(optimised_palette_colours.iter().cloned());
-        let new_colours: HashSet<_> = self
+        let current_colours_set = BTreeSet::from_iter(optimised_palette_colours.iter().cloned());
+        let new_colours: BTreeSet<_> = self
             .colours
             .symmetric_difference(&current_colours_set)
             .collect();
