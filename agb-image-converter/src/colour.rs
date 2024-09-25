@@ -1,11 +1,23 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Colour {
     pub r: u8,
     pub g: u8,
     pub b: u8,
     pub a: u8,
+}
+
+impl fmt::Debug for Colour {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)?;
+
+        if self.a != 0xff {
+            write!(f, "{:02x}", self.a)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Colour {
@@ -36,5 +48,28 @@ impl FromStr for Colour {
         let b = u8::from_str_radix(&colour[4..6], 16).unwrap();
 
         Ok(Colour::from_rgb(r, g, b, 255))
+    }
+}
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Colour {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        Self::from_rgb(
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+        )
+    }
+
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        Box::new(
+            vec![
+                Colour::from_rgb(0, 0, 0, 0),
+                Colour::from_rgb(self.r, self.g, self.b, 0),
+                *self,
+            ]
+            .into_iter(),
+        )
     }
 }
