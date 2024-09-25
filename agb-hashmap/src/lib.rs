@@ -1453,4 +1453,19 @@ mod test {
             assert_eq!(format!("{empty:?}"), "{}");
         }
     }
+
+    #[cfg(not(miri))]
+    quickcheck::quickcheck! {
+        fn test_against_btree_map(entries: Vec<(u8, u32)>) -> bool {
+            let std_hashmap = alloc::collections::BTreeMap::from_iter(entries.clone());
+            let agb_hashmap = HashMap::from_iter(entries);
+
+            if std_hashmap.len() != agb_hashmap.len() {
+                return false;
+            }
+
+            std_hashmap.iter().all(|(key, value)| agb_hashmap.get(key) == Some(value)) &&
+            agb_hashmap.iter().all(|(key, value)| std_hashmap.get(key) == Some(value))
+        }
+    }
 }
