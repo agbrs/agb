@@ -220,7 +220,7 @@ mod test {
     quickcheck! {
         fn less_than_256_colours_always_fits(palettes: Vec<Palette16>) -> () {
             let mut optimiser = Palette16Optimiser::new(None);
-            for palette in palettes.into_iter().take(16) {
+            for palette in palettes.clone().into_iter().take(16) {
                 optimiser.add_palette(palette);
             }
 
@@ -233,6 +233,7 @@ mod test {
             let mut palette = Palette16::new();
 
             let size: usize = Arbitrary::arbitrary(g);
+            // never entirely fill the palette, will give at most 15 colours
             let size = size.rem_euclid(16);
 
             for _ in 0..size {
