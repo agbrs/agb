@@ -228,19 +228,28 @@ mod test {
                 return false
             };
 
-            for (i, palette) in palettes.into_iter().take(16).enumerate() {
-                let optimised_palette = &optimisation_results.optimised_palettes[optimisation_results.assignments[i]];
-                if !palette.is_satisfied_by(optimised_palette) {
-                    return false;
-                }
+            check_palette_invariants(palettes.iter().take(16), optimisation_results, transparent_colour)
+        }
+    }
 
-                if optimised_palette.colour_index(transparent_colour) != 0 {
-                    return false;
-                }
+    fn check_palette_invariants<'a>(
+        palettes: impl Iterator<Item = &'a Palette16>,
+        optimisation_results: Palette16OptimisationResults,
+        transparent_colour: Colour,
+    ) -> bool {
+        for (i, palette) in palettes.enumerate() {
+            let optimised_palette =
+                &optimisation_results.optimised_palettes[optimisation_results.assignments[i]];
+            if !palette.is_satisfied_by(optimised_palette) {
+                return false;
             }
 
-            true
+            if optimised_palette.colour_index(transparent_colour) != 0 {
+                return false;
+            }
         }
+
+        true
     }
 
     impl Arbitrary for Palette16 {
