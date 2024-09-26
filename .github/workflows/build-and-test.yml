@@ -17,7 +17,7 @@ env:
 jobs:
   build:
     name: Just CI
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Set CARGO_TARGET_DIR
         run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
