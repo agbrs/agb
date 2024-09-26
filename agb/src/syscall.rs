@@ -6,7 +6,6 @@ use crate::display::affine::AffineMatrixBackground;
 use crate::fixnum::Num;
 
 #[allow(non_snake_case)]
-
 const fn swi_map(thumb_id: u32) -> u32 {
     if cfg!(target_feature = "thumb-mode") {
         thumb_id

@@ -65,7 +65,6 @@ pub struct OamUnmanaged<'gba> {
 /// This will panic if called because when you run out of objects the zip will
 /// have already grabbed the next OamSlot before realising there are no more
 /// objects.
-
 pub struct OamIterator<'oam> {
     index: usize,
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
