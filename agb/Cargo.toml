@@ -24,8 +24,8 @@ agb_fixnum = { version = "0.21.0", path = "../agb-fixnum" }
 agb_hashmap = { version = "0.21.0", path = "../agb-hashmap", features = ["allocator_api"] }
 bilge = "0.2"
 qrcodegen-no-heap = { version = "1.8", optional = true }
-portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core"] }
-once_cell = { version = "1.19.0", default-features = false, features = ["critical-section"] }
+portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
+once_cell = { version = "1.20.1", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
 
 [package.metadata.docs.rs]
