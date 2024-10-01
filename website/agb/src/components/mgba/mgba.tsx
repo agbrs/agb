@@ -8,7 +8,6 @@ import {
 import mGBA, { mGBAEmulator } from "./vendor/mgba";
 import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
-import { useFrameSkip } from "./useFrameSkip.hook";
 import { useController } from "./useController.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
 
@@ -148,7 +147,6 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
         };
     }, [state]);
 
-    useFrameSkip(mgbaModule);
     useController(mgbaModule);
 
     useEffect(() => {
