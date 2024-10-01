@@ -10,10 +10,10 @@ ENV BUILD_DIR=build-wasm
 
 WORKDIR /
 
-RUN git clone https://github.com/thenick775/mgba.git --filter=tree:0 -b feature/wasm
+RUN git clone https://github.com/corwinkuiper/mgba.git --filter=tree:0 -b wasm
 RUN mkdir /mgba/build-wasm
 WORKDIR /mgba/build-wasm
-RUN git checkout 27dede256b6de36303a87d0886f81505a0f30c28
+RUN git checkout 26a2701cef6fcad47c67559fcb7892004f8d489c
 
 
 RUN emcmake cmake .. && make install DESTDIR=install
