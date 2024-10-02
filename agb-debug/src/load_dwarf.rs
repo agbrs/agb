@@ -27,7 +27,7 @@ pub fn load_dwarf(file_content: &[u8]) -> Result<GimliDwarf, LoadDwarfError> {
     let last_non_zero_byte = file_content
         .iter()
         .rposition(|&b| b != 0)
-        .ok_or_else(|| LoadDwarfError::GbaFileEmpty)?;
+        .ok_or(LoadDwarfError::GbaFileEmpty)?;
 
     let file_content = &file_content[..last_non_zero_byte + 1];
 
