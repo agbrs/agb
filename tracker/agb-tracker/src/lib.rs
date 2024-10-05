@@ -719,7 +719,7 @@ impl SoundChannel for agb::sound::mixer::SoundChannel {
 }
 
 #[cfg(feature = "agb")]
-impl<'gba> Mixer for agb::sound::mixer::Mixer<'gba> {
+impl Mixer for agb::sound::mixer::Mixer<'_> {
     type ChannelId = agb::sound::mixer::ChannelId;
     type SoundChannel = agb::sound::mixer::SoundChannel;
 
