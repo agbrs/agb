@@ -305,7 +305,7 @@ pub struct SavePreparedBlock<'a> {
     parent: &'a mut SaveData,
     range: Range<usize>,
 }
-impl<'a> SavePreparedBlock<'a> {
+impl SavePreparedBlock<'_> {
     /// Writes a given buffer into the save media.
     ///
     /// Multiple overlapping writes to the same memory range without a separate

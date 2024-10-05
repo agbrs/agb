@@ -528,7 +528,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
     }
 }
 
-impl<'a, K, V, ALLOCATOR: ClonableAllocator> ExactSizeIterator for Iter<'a, K, V, ALLOCATOR> {}
+impl<K, V, ALLOCATOR: ClonableAllocator> ExactSizeIterator for Iter<'_, K, V, ALLOCATOR> {}
 
 impl<'a, K, V, ALLOCATOR: ClonableAllocator> IntoIterator for &'a HashMap<K, V, ALLOCATOR> {
     type Item = (&'a K, &'a V);

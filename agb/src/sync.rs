@@ -53,7 +53,7 @@ unsafe impl Sync for RawLock {}
 
 /// A guard representing an active lock on an [`RawLock`].
 pub struct RawLockGuard<'a>(&'a RawLock);
-impl<'a> Drop for RawLockGuard<'a> {
+impl Drop for RawLockGuard<'_> {
     fn drop(&mut self) {
         self.0.raw_unlock();
     }
@@ -103,18 +103,18 @@ pub struct LockGuard<'a, T> {
     underlying: &'a Lock<T>,
     ptr: *mut T,
 }
-impl<'a, T> Drop for LockGuard<'a, T> {
+impl<T> Drop for LockGuard<'_, T> {
     fn drop(&mut self) {
         self.underlying.raw.raw_unlock();
     }
 }
-impl<'a, T> Deref for LockGuard<'a, T> {
+impl<T> Deref for LockGuard<'_, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.ptr }
     }
 }
-impl<'a, T> DerefMut for LockGuard<'a, T> {
+impl<T> DerefMut for LockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.ptr }
     }

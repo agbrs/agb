@@ -273,7 +273,7 @@ struct Map<'a, 'b> {
     level: &'a Level,
 }
 
-impl<'a, 'b> Map<'a, 'b> {
+impl Map<'_, '_> {
     pub fn commit_position(&mut self, vram: &mut VRamManager) {
         self.background.set_pos(vram, self.position.floor());
         self.foreground.set_pos(vram, self.position.floor());

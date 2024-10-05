@@ -60,7 +60,7 @@ pub struct BlendLayer<'blend, 'gba> {
     layer: Layer,
 }
 
-impl<'gba> BlendLayer<'_, 'gba> {
+impl BlendLayer<'_, '_> {
     /// Set whether a background is enabled for blending on this layer.
     pub fn set_background_enable(&mut self, background: BackgroundID, enable: bool) -> &mut Self {
         self.blend
