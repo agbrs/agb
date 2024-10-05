@@ -387,7 +387,7 @@ impl<'a, K, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, ALLOCATOR> {
     }
 }
 
-impl<'a, K, ALLOCATOR: ClonableAllocator> ExactSizeIterator for Iter<'a, K, ALLOCATOR> {}
+impl<K, ALLOCATOR: ClonableAllocator> ExactSizeIterator for Iter<'_, K, ALLOCATOR> {}
 
 impl<K> FromIterator<K> for HashSet<K>
 where
