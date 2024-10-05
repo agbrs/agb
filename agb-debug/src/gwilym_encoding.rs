@@ -46,7 +46,7 @@ impl<'a> GwilymDecodeIter<'a> {
     }
 }
 
-impl<'a> Iterator for GwilymDecodeIter<'a> {
+impl Iterator for GwilymDecodeIter<'_> {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
