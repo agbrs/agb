@@ -100,7 +100,7 @@ struct Construction<'a, 'b> {
     background: &'a mut MapLoan<'b, RegularMap>,
 }
 
-impl<'a, 'b> Drop for Construction<'a, 'b> {
+impl Drop for Construction<'_, '_> {
     fn drop(&mut self) {
         self.background.set_visible(false);
     }
