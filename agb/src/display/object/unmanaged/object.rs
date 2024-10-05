@@ -70,7 +70,7 @@ pub struct OamIterator<'oam> {
     frame_data: &'oam UnsafeCell<OamFrameModifyables>,
 }
 
-impl<'oam> OamIterator<'oam> {
+impl OamIterator<'_> {
     /// Sets the next oam slot with the provided `object`.
     ///
     /// Is equivalent to the following:

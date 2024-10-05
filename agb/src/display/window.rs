@@ -31,7 +31,7 @@ pub enum WinIn {
     Win1,
 }
 
-impl<'gba> Windows<'gba> {
+impl Windows<'_> {
     pub(crate) fn new() -> Self {
         let s = Self {
             wins: [MovableWindow::new(0), MovableWindow::new(1)],

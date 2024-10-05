@@ -24,7 +24,7 @@ pub struct Dmas<'gba> {
     pub dma3: Dma,
 }
 
-impl<'gba> Dmas<'gba> {
+impl Dmas<'_> {
     unsafe fn new() -> Self {
         Self {
             phantom: PhantomData,
@@ -137,7 +137,7 @@ where
     phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, T> DmaTransferHandle<'a, T>
+impl<T> DmaTransferHandle<'_, T>
 where
     T: Copy,
 {
@@ -150,7 +150,7 @@ where
     }
 }
 
-impl<'a, T> Drop for DmaTransferHandle<'a, T>
+impl<T> Drop for DmaTransferHandle<'_, T>
 where
     T: Copy,
 {

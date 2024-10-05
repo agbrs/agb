@@ -88,7 +88,7 @@ impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
     }
 }
 
-impl<'bitmap, 'gba> Write for BitmapTextRender<'bitmap, 'gba> {
+impl Write for BitmapTextRender<'_, '_> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for c in s.chars() {
             self.render_char(c);

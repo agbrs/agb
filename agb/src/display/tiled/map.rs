@@ -487,7 +487,7 @@ pub struct MapLoan<'a, T> {
     screenblock_list: &'a RefCell<Bitarray<1>>,
 }
 
-impl<'a, T> Deref for MapLoan<'a, T> {
+impl<T> Deref for MapLoan<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -495,7 +495,7 @@ impl<'a, T> Deref for MapLoan<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for MapLoan<'a, T> {
+impl<T> DerefMut for MapLoan<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map
     }
@@ -526,7 +526,7 @@ impl<'a, T> MapLoan<'a, T> {
     }
 }
 
-impl<'a, T> Drop for MapLoan<'a, T> {
+impl<T> Drop for MapLoan<'_, T> {
     fn drop(&mut self) {
         self.map_list
             .borrow_mut()

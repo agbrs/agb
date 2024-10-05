@@ -135,7 +135,7 @@ pub struct TextWriter<'a, 'b> {
     bg: &'a mut RegularMap,
 }
 
-impl<'a, 'b> Write for TextWriter<'a, 'b> {
+impl Write for TextWriter<'_, '_> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
         for c in text.chars() {
             self.text_renderer.write_char(
@@ -150,7 +150,7 @@ impl<'a, 'b> Write for TextWriter<'a, 'b> {
     }
 }
 
-impl<'a, 'b> TextWriter<'a, 'b> {
+impl TextWriter<'_, '_> {
     pub fn commit(self) {
         self.text_renderer.commit(self.bg, self.vram_manager);
     }

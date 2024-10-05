@@ -134,7 +134,7 @@ impl Line {
     }
 }
 
-impl<'pre> Iterator for Lines<'pre> {
+impl Iterator for Lines<'_> {
     type Item = Line;
 
     fn next(&mut self) -> Option<Self::Item> {
