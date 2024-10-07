@@ -236,8 +236,8 @@ impl ObjectUnmanaged {
     /// Creates an unmanaged object from a sprite in vram.
     pub fn new(sprite: SpriteVram) -> Self {
         let sprite_location = sprite.location();
-        let palette_location = sprite.palette_location();
         let (shape, size) = sprite.size().shape_size();
+        let palette_location = sprite.palette_single();
 
         let mut sprite = Self {
             attributes: Attributes::default(),
@@ -245,8 +245,18 @@ impl ObjectUnmanaged {
             affine_matrix: None,
         };
 
+        if let Some(palette_location) = palette_location {
+            sprite
+                .attributes
+                .set_palette(palette_location.into())
+                .set_colour_mode(super::attributes::ColourMode::Four);
+        } else {
+            sprite
+                .attributes
+                .set_colour_mode(super::attributes::ColourMode::Eight);
+        }
+
         sprite.attributes.set_sprite(sprite_location, shape, size);
-        sprite.attributes.set_palette(palette_location);
 
         sprite
     }
@@ -392,8 +402,14 @@ impl ObjectUnmanaged {
         let (shape, size) = size.shape_size();
 
         self.attributes.set_sprite(sprite.location(), shape, size);
-        self.attributes.set_palette(sprite.palette_location());
-
+        if let Some(palette_location) = sprite.palette_single() {
+            self.attributes
+                .set_palette(palette_location.into())
+                .set_colour_mode(super::attributes::ColourMode::Four);
+        } else {
+            self.attributes
+                .set_colour_mode(super::attributes::ColourMode::Eight);
+        }
         self
     }
 
