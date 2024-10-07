@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{ChangeColour, ObjectTextRender, PaletteVramSingle, Size, TextAlignment},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
@@ -23,13 +23,13 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (mut unmanaged, _sprites) = gba.display.object.get_unmanaged();
+    let mut oam = gba.display.object.get();
 
     let mut palette = [0x0; 16];
     palette[1] = 0xFF_FF;
     palette[2] = 0x00_FF;
     let palette = Palette16::new(palette);
-    let palette = PaletteVram::new(&palette).unwrap();
+    let palette = PaletteVramSingle::new(&palette).unwrap();
 
     let timer = gba.timers.timers();
     let mut timer: agb::timer::Timer = timer.timer2;
@@ -71,10 +71,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut frame = 0;
 
     loop {
-        vblank.wait_for_vblank();
         input.update();
-        let oam = &mut unmanaged.iter();
-        wr.commit(oam);
+        let mut oam_frame = oam.frame();
+        wr.commit(&mut oam_frame);
 
         let start = timer.value();
         if frame % 4 == 0 {
@@ -94,5 +93,9 @@ fn main(mut gba: agb::Gba) -> ! {
             256 * (end.wrapping_sub(start) as u32),
             line_done
         );
+
+        vblank.wait_for_vblank();
+
+        oam_frame.commit();
     }
 }

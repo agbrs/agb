@@ -123,6 +123,9 @@ pub use agb_image_converter::include_font as include_font_inner;
 #[doc(hidden)]
 pub use agb_image_converter::include_colours_inner;
 
+#[doc(hidden)]
+pub use agb_image_converter::include_aseprite_256_inner;
+
 #[macro_export]
 macro_rules! include_font {
     ($font_path: literal, $font_size: literal) => {{
@@ -195,7 +198,6 @@ use display::tiled::VRAM_MANAGER;
 /// Default game
 pub use no_game::no_game;
 
-pub(crate) mod arena;
 mod global_asm;
 
 pub mod external {
@@ -298,6 +300,7 @@ impl Gba {
     /// May only be called a single time. It is not needed to call this due to
     /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
+        unsafe { display::object::SPRITE_LOADER.init() };
         VRAM_MANAGER.initialise();
 
         Self::single_new()

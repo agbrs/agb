@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! # Sprites and objects
 //!
 //! There are two implementations of objects depending on how you want to make
@@ -10,31 +9,25 @@
 
 mod affine;
 mod font;
-mod managed;
 mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, Graphics, PaletteVram, Size, Sprite, SpriteLoader, SpriteVram,
-    Tag, TagMap,
+    include_aseprite, DynamicSprite, Graphics, IntoSpritePaletteVram, IntoSpriteVram, PaletteMulti,
+    PaletteVram, PaletteVramInterface, PaletteVramMulti, PaletteVramSingle, Size, Sprite,
+    SpriteVram, Tag, TagMap,
 };
 
+pub(crate) use sprites::SPRITE_LOADER;
+
 pub use affine::AffineMatrixInstance;
-pub use managed::{OamManaged, Object};
-pub use unmanaged::{
-    AffineMode, GraphicsMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged,
-};
+pub use unmanaged::{AffineMode, GraphicsMode, Oam, OamFrame, Object};
 
 pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 
 use super::DISPLAY_CONTROL;
 
 const OBJECT_ATTRIBUTE_MEMORY: *mut u16 = 0x0700_0000 as *mut u16;
-
-#[deprecated = "use OamManaged directly instead"]
-/// The old name for [`OamManaged`] kept around for easier migration.
-/// This will be removed in a future release.
-pub type ObjectController<'a> = OamManaged<'a>;
 
 pub(super) unsafe fn initilise_oam() {
     for i in 0..128 {

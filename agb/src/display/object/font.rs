@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{sprites::PaletteVramSingle, OamFrame, Object, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -100,7 +100,7 @@ impl TextAlignment {
 
 impl<'font> BufferedRender<'font> {
     #[must_use]
-    fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    fn new(font: &'font Font, sprite_size: Size, palette: PaletteVramSingle) -> Self {
         let config = Configuration::new(sprite_size, palette);
         BufferedRender {
             char_render: WordRender::new(config),
@@ -121,7 +121,7 @@ fn is_private_use(c: char) -> bool {
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, ChangeColour, Size};
+/// use agb::display::object::{ObjectTextRender, PaletteVramSingle, ChangeColour, Size};
 /// use agb::display::palette16::Palette16;
 /// use agb::display::Font;
 ///
@@ -134,7 +134,7 @@ fn is_private_use(c: char) -> bool {
 /// palette[1] = 0xFF_FF;
 /// palette[2] = 0x00_FF;
 /// let palette = Palette16::new(palette);
-/// let palette = PaletteVram::new(&palette).unwrap();
+/// let palette = PaletteVramSingle::new(&palette).unwrap();
 /// let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
 /// let _ = writeln!(writer, "Hello, {}World{}!", ChangeColour::new(2), ChangeColour::new(1));
@@ -208,7 +208,7 @@ impl BufferedRender<'_> {
 /// ```rust,no_run
 /// #![no_std]
 /// #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, TextAlignment, Size};
+/// use agb::display::object::{ObjectTextRender, SinglePaletteVram, TextAlignment, Size};
 /// use agb::display::palette16::Palette16;
 /// use agb::display::{Font, WIDTH};
 ///
@@ -224,7 +224,7 @@ impl BufferedRender<'_> {
 ///     let mut palette = [0x0; 16];
 ///     palette[1] = 0xFF_FF;
 ///     let palette = Palette16::new(palette);
-///     let palette = PaletteVram::new(&palette).unwrap();
+///     let palette = SinglePaletteVram::new(&palette).unwrap();
 ///
 ///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
@@ -251,7 +251,7 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVramSingle) -> Self {
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
             number_of_objects: 0,
@@ -278,9 +278,9 @@ impl Write for ObjectTextRender<'_> {
 
 impl ObjectTextRender<'_> {
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamIterator) {
-        for (object, slot) in self.layout.objects.iter().zip(oam) {
-            slot.set(object);
+    pub fn commit(&mut self, oam: &mut OamFrame) {
+        for object in self.layout.objects.iter() {
+            oam.set(object);
         }
     }
 
@@ -408,7 +408,7 @@ impl ObjectTextRender<'_> {
 struct LayoutCache {
     positions: VecDeque<Vector2D<i16>>,
     line_capacity: VecDeque<usize>,
-    objects: Vec<ObjectUnmanaged>,
+    objects: Vec<Object>,
     objects_are_at_origin: Vector2D<i32>,
     area: Vector2D<i32>,
 }
@@ -434,8 +434,8 @@ impl LayoutCache {
                 .skip(already_done)
                 .map(|(offset, letter)| {
                     let position = offset.change_base() + position;
-                    let mut object = ObjectUnmanaged::new(letter.clone());
-                    object.show().set_position(position);
+                    let mut object = Object::new(letter.clone());
+                    object.set_position(position);
                     object
                 }),
         );

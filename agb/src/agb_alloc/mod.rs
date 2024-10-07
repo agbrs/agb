@@ -3,6 +3,7 @@ use core::ptr::NonNull;
 
 pub(crate) mod block_allocator;
 pub(crate) mod bump_allocator;
+pub(crate) mod single_allocator;
 
 use block_allocator::BlockAllocator;
 

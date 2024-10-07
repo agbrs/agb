@@ -4,10 +4,10 @@ use agb_fixnum::{num, Num, Vector2D};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
-use crate::display::object::{DynamicSprite, PaletteVram, Size, SpriteVram};
+use crate::display::object::{DynamicSprite, PaletteVramSingle, Size, SpriteVram};
 use crate::display::palette16::Palette16;
 use crate::{
-    display::{object::ObjectUnmanaged, HEIGHT, WIDTH},
+    display::{object::Object, HEIGHT, WIDTH},
     include_palette,
     interrupt::VBlank,
 };
@@ -113,7 +113,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 
     // generate palettes
 
-    let palettes: Vec<PaletteVram> = PALETTE
+    let palettes: Vec<PaletteVramSingle> = PALETTE
         .chunks(15)
         .map(|x| {
             core::iter::once(0)
@@ -124,7 +124,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
         })
         .map(|palette| {
             let palette = Palette16::new(palette.try_into().unwrap());
-            PaletteVram::new(&palette).unwrap()
+            PaletteVramSingle::new(&palette).unwrap()
         })
         .collect();
 
@@ -140,7 +140,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 }
 
 pub fn no_game(mut gba: crate::Gba) -> ! {
-    let (mut oam, _) = gba.display.object.get_unmanaged();
+    let mut oam = gba.display.object.get();
 
     let squares = generate_sprites();
 
@@ -188,7 +188,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
     loop {
         time += time_delta;
         time %= 1;
-        let letters: Vec<ObjectUnmanaged> = letter_positons
+        let letters: Vec<Object> = letter_positons
             .iter()
             .enumerate()
             .map(|(idx, position)| {
@@ -196,15 +196,20 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
                 (idx, *position + Vector2D::new(time.sin(), time.cos()) * 10)
             })
             .map(|(idx, pos)| {
-                let mut obj = ObjectUnmanaged::new(squares[idx % squares.len()].clone());
-                obj.show().set_position(pos.floor());
+                let mut obj = Object::new(squares[idx % squares.len()].clone());
+                obj.set_position(pos.floor());
                 obj
             })
             .collect();
 
-        vblank.wait_for_vblank();
-        for (obj, slot) in letters.iter().zip(oam.iter()) {
-            slot.set(obj);
+        let mut frame = oam.frame();
+
+        for obj in letters.iter() {
+            frame.set(obj);
         }
+
+        vblank.wait_for_vblank();
+
+        frame.commit();
     }
 }
