@@ -6,9 +6,40 @@ use super::BYTES_PER_TILE_4BPP;
 
 /// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
-    pub(crate) palette: &'static Palette16,
+    pub(crate) palette: Palette,
     pub(crate) data: &'static [u8],
     pub(crate) size: Size,
+}
+
+#[derive(Clone, Copy)]
+pub enum Palette {
+    Single(&'static Palette16),
+    Multi(&'static MultiPalette),
+}
+
+pub struct MultiPalette {
+    first_index: u32,
+    palettes: &'static [Palette16],
+}
+
+impl MultiPalette {
+    pub const fn new(first_index: u32, palettes: &'static [Palette16]) -> Self {
+        assert!(palettes.len() <= 16);
+        assert!(!palettes.is_empty());
+        assert!(16 - palettes.len() > first_index as usize);
+
+        Self {
+            first_index,
+            palettes,
+        }
+    }
+
+    pub const fn palettes(&self) -> &'static [Palette16] {
+        self.palettes
+    }
+    pub const fn first_index(&self) -> u32 {
+        self.first_index
+    }
 }
 
 impl Sprite {
@@ -21,7 +52,27 @@ impl Sprite {
     #[must_use]
     pub const unsafe fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
         Self {
-            palette,
+            palette: Palette::Single(palette),
+            data,
+            size,
+        }
+    }
+
+    #[doc(hidden)]
+    /// Creates a sprite that uses multiple palettes, this will use 256 colour
+    /// mode, but can use fewer palettes. The palette location in palette vram
+    /// is currently fixed by `first_index`.
+    ///
+    /// # Safety
+    /// The data should be aligned to a 2 byte boundary
+    #[must_use]
+    pub const unsafe fn new_multi(
+        palettes: &'static MultiPalette,
+        data: &'static [u8],
+        size: Size,
+    ) -> Self {
+        Self {
+            palette: Palette::Multi(palettes),
             data,
             size,
         }

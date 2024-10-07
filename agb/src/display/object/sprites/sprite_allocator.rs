@@ -1,4 +1,4 @@
-use core::{alloc::Allocator, ptr::NonNull};
+use core::{alloc::Allocator, cell::Cell, hint::assert_unchecked, ptr::NonNull};
 
 use alloc::{
     boxed::Box,
@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    sprite::{Size, Sprite},
+    sprite::{MultiPalette, Palette, Size, Sprite},
     BYTES_PER_TILE_4BPP,
 };
 
@@ -30,16 +30,104 @@ pub struct SpriteAllocator;
 
 impl_zst_allocator!(SpriteAllocator, SPRITE_ALLOCATOR);
 
-static PALETTE_ALLOCATOR: BlockAllocator = unsafe {
-    BlockAllocator::new(StartEnd {
-        start: || PALETTE_SPRITE,
-        end: || PALETTE_SPRITE + 0x200,
-    })
-};
+struct PaletteAllocator {
+    allocation: Cell<u16>,
+}
+#[derive(Debug)]
+struct MultiPaletteAllocation(u16);
 
-pub struct PaletteAllocator;
+#[derive(Debug)]
+struct SinglePaletteAllocation(u8);
 
-impl_zst_allocator!(PaletteAllocator, PALETTE_ALLOCATOR);
+impl Drop for SinglePaletteAllocation {
+    fn drop(&mut self) {
+        PALETTE_ALLOCATOR.deallocate_single(self);
+    }
+}
+
+impl Drop for MultiPaletteAllocation {
+    fn drop(&mut self) {
+        PALETTE_ALLOCATOR.deallocate_multi(self);
+    }
+}
+
+const PALETTE_VRAM: *mut [Palette16; 16] = PALETTE_SPRITE as *mut _;
+
+impl PaletteAllocator {
+    const fn new() -> Self {
+        Self {
+            allocation: Cell::new(0),
+        }
+    }
+
+    /// For allocating a multi palette
+    fn allocate_multiple(&self, palette: &MultiPalette) -> Option<MultiPaletteAllocation> {
+        unsafe {
+            assert_unchecked(palette.palettes().len() <= 16);
+            assert_unchecked(!palette.palettes().is_empty());
+            assert_unchecked(16 - palette.palettes().len() > palette.first_index() as usize);
+        }
+
+        let claim = (1u32 << palette.palettes().len()) - 1;
+        let claim = claim << palette.first_index();
+        unsafe {
+            assert_unchecked(claim <= u16::MAX as u32);
+        }
+        let claim = claim as u16;
+        let currently_allocated = self.allocation.get();
+        if currently_allocated & claim != 0 {
+            return None;
+        }
+
+        self.allocation.set(currently_allocated | claim);
+
+        // copy the data across
+        unsafe {
+            let p = (&mut (*PALETTE_VRAM)[palette.first_index() as usize]) as *mut Palette16;
+            p.copy_from_nonoverlapping(palette.palettes().as_ptr(), palette.palettes().len());
+        }
+
+        Some(MultiPaletteAllocation(claim))
+    }
+
+    fn allocate_single(&self, palette: &Palette16) -> Option<SinglePaletteAllocation> {
+        let currently_allocated = self.allocation.get();
+
+        for idx in 0..16 {
+            let claim = 1u16 << idx;
+
+            if currently_allocated & claim == 0 {
+                self.allocation.set(currently_allocated | claim);
+                unsafe {
+                    let palette_to_write_to = &mut (*PALETTE_VRAM)[idx] as *mut Palette16;
+                    palette_to_write_to.copy_from_nonoverlapping(palette, 1);
+                }
+                return Some(SinglePaletteAllocation(idx as u8));
+            }
+        }
+
+        None
+    }
+
+    fn deallocate_single(&self, claim: &SinglePaletteAllocation) {
+        assert!(claim.0 < 16);
+
+        let allocation = self.allocation.get();
+
+        self.allocation.set(allocation & !(1 << claim.0));
+    }
+
+    fn deallocate_multi(&self, claim: &MultiPaletteAllocation) {
+        let allocation = self.allocation.get();
+
+        self.allocation.set(allocation & !(claim.0));
+    }
+}
+
+/// Not (yet) multi threaded
+unsafe impl Sync for PaletteAllocator {}
+
+static PALETTE_ALLOCATOR: PaletteAllocator = PaletteAllocator::new();
 
 /// The Sprite Id is a thin wrapper around the pointer to the sprite in
 /// rom and is therefore a unique identifier to a sprite
@@ -58,14 +146,28 @@ impl SpriteId {
 struct PaletteId(usize);
 
 impl PaletteId {
-    fn from_static_palette(palette: &'static Palette16) -> PaletteId {
-        PaletteId(palette as *const _ as usize)
+    fn new(palette: &'static Palette16) -> Self {
+        Self(palette as *const _ as usize)
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+struct MultiPaletteId(usize);
+
+impl MultiPaletteId {
+    fn new(palette: &'static MultiPalette) -> Self {
+        Self(palette as *const _ as usize)
+    }
+}
+
+struct PaletteLoader {
+    static_palette_map: HashMap<PaletteId, Weak<SinglePaletteAllocation>>,
+    static_multi_palette_map: HashMap<MultiPaletteId, Weak<MultiPaletteAllocation>>,
 }
 
 /// This holds loading of static sprites and palettes.
 pub struct SpriteLoader {
-    static_palette_map: HashMap<PaletteId, Weak<PaletteVramData>>,
+    palettes: PaletteLoader,
     static_sprite_map: HashMap<SpriteId, Weak<SpriteVramData>>,
 }
 
@@ -76,51 +178,63 @@ impl Location {
     fn from_sprite_ptr(d: NonNull<u8>) -> Self {
         Self(((d.as_ptr() as usize) - TILE_SPRITE) / BYTES_PER_TILE_4BPP)
     }
-    fn from_palette_ptr(d: NonNull<u8>) -> Self {
-        Self((d.as_ptr() as usize - PALETTE_SPRITE) / Palette16::layout().size())
-    }
-    fn as_palette_ptr(self) -> *mut u8 {
-        (self.0 * Palette16::layout().size() + PALETTE_SPRITE) as *mut u8
-    }
     fn as_sprite_ptr(self) -> *mut u8 {
         (self.0 * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8
     }
 }
 
-#[derive(Debug)]
-struct PaletteVramData {
-    location: Location,
+#[derive(Debug, Clone)]
+/// A palette in vram, this is reference counted so it is cheap to Clone.
+pub enum PaletteVram {
+    /// A single palette designed to be used in 4 bit per pixel mode
+    Single(SinglePaletteVram),
+    /// Multiple palettes designed to be used in 8 bit per pixel / 256 colour mode
+    Multi(MultiPaletteVram),
 }
 
-impl Drop for PaletteVramData {
-    fn drop(&mut self) {
-        unsafe { PALETTE_ALLOCATOR.dealloc(self.location.as_palette_ptr(), Palette16::layout()) }
+impl PaletteVram {
+    /// Creates an instance of a single palette in vram
+    pub fn new(palette: &Palette16) -> Result<Self, LoaderError> {
+        Ok(PaletteVram::Single(SinglePaletteVram::new(palette)?))
+    }
+
+    /// Creates an instance of a single palette in vram
+    pub fn new_multi(palette: &MultiPalette) -> Result<Self, LoaderError> {
+        Ok(PaletteVram::Multi(MultiPaletteVram::new(palette)?))
     }
 }
 
 /// A palette in vram, this is reference counted so it is cheap to Clone.
 #[derive(Debug, Clone)]
-pub struct PaletteVram {
-    data: Rc<PaletteVramData>,
+pub struct SinglePaletteVram {
+    data: Rc<SinglePaletteAllocation>,
 }
 
-impl PaletteVram {
-    /// Attempts to allocate a new palette in sprite vram
-    pub fn new(palette: &Palette16) -> Result<PaletteVram, LoaderError> {
-        let allocated = unsafe { PALETTE_ALLOCATOR.alloc(Palette16::layout()) }
-            .ok_or(LoaderError::PaletteFull)?;
+impl SinglePaletteVram {
+    pub fn new(palette: &Palette16) -> Result<Self, LoaderError> {
+        Ok(Self {
+            data: Rc::new(
+                PALETTE_ALLOCATOR
+                    .allocate_single(palette)
+                    .ok_or(LoaderError::PaletteFull)?,
+            ),
+        })
+    }
+}
 
-        unsafe {
-            allocated
-                .as_ptr()
-                .cast::<u16>()
-                .copy_from_nonoverlapping(palette.colours.as_ptr(), palette.colours.len());
-        }
+#[derive(Debug, Clone)]
+pub struct MultiPaletteVram {
+    data: Rc<MultiPaletteAllocation>,
+}
 
-        Ok(PaletteVram {
-            data: Rc::new(PaletteVramData {
-                location: Location::from_palette_ptr(allocated),
-            }),
+impl MultiPaletteVram {
+    pub fn new(palette: &MultiPalette) -> Result<Self, LoaderError> {
+        Ok(Self {
+            data: Rc::new(
+                PALETTE_ALLOCATOR
+                    .allocate_multiple(palette)
+                    .ok_or(LoaderError::PaletteFull)?,
+            ),
         })
     }
 }
@@ -184,6 +298,12 @@ impl SpriteVram {
             }),
         }
     }
+    pub(crate) fn palette_single(&self) -> Option<u8> {
+        match &self.data.palette {
+            PaletteVram::Single(single_palette_vram) => Some(single_palette_vram.data.0),
+            PaletteVram::Multi(_) => None,
+        }
+    }
 
     pub(crate) fn location(&self) -> u16 {
         self.data.location.0 as u16
@@ -192,45 +312,83 @@ impl SpriteVram {
     pub(crate) fn size(&self) -> Size {
         self.data.size
     }
-
-    pub(crate) fn palette_location(&self) -> u16 {
-        self.data.palette.data.location.0 as u16
-    }
 }
 
-impl SpriteLoader {
-    fn create_sprite_no_insert(
-        palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
-        sprite: &'static Sprite,
-    ) -> Result<(Weak<SpriteVramData>, SpriteVram), LoaderError> {
-        let palette = Self::try_get_vram_palette_asoc(palette_map, sprite.palette)?;
-
-        let sprite = SpriteVram::new(sprite.data, sprite.size, palette)?;
-        Ok((Rc::downgrade(&sprite.data), sprite))
+impl PaletteLoader {
+    fn try_get_vram_palette(&mut self, palette: Palette) -> Result<PaletteVram, LoaderError> {
+        Ok(match palette {
+            Palette::Single(palette) => {
+                PaletteVram::Single(self.try_get_vram_palette_single(palette)?)
+            }
+            Palette::Multi(palette) => {
+                PaletteVram::Multi(self.try_get_vram_palette_multi(palette)?)
+            }
+        })
     }
 
-    fn try_get_vram_palette_asoc(
-        palette_map: &mut HashMap<PaletteId, Weak<PaletteVramData>>,
+    fn try_get_vram_palette_single(
+        &mut self,
         palette: &'static Palette16,
-    ) -> Result<PaletteVram, LoaderError> {
-        let id = PaletteId::from_static_palette(palette);
-        Ok(match palette_map.entry(id) {
+    ) -> Result<SinglePaletteVram, LoaderError> {
+        let id = PaletteId::new(palette);
+        Ok(match self.static_palette_map.entry(id) {
             crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
-                Some(data) => PaletteVram { data },
+                Some(data) => SinglePaletteVram { data },
                 None => {
-                    let pv = PaletteVram::new(palette)?;
+                    let pv = SinglePaletteVram::new(palette)?;
                     entry.insert(Rc::downgrade(&pv.data));
                     pv
                 }
             },
             crate::hash_map::Entry::Vacant(entry) => {
-                let pv = PaletteVram::new(palette)?;
+                let pv = SinglePaletteVram::new(palette)?;
                 entry.insert(Rc::downgrade(&pv.data));
                 pv
             }
         })
     }
 
+    fn try_get_vram_palette_multi(
+        &mut self,
+        palette: &'static MultiPalette,
+    ) -> Result<MultiPaletteVram, LoaderError> {
+        let id = MultiPaletteId::new(palette);
+        Ok(match self.static_multi_palette_map.entry(id) {
+            crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
+                Some(data) => MultiPaletteVram { data },
+                None => {
+                    let pv = MultiPaletteVram::new(palette)?;
+                    entry.insert(Rc::downgrade(&pv.data));
+                    pv
+                }
+            },
+            crate::hash_map::Entry::Vacant(entry) => {
+                let pv = MultiPaletteVram::new(palette)?;
+                entry.insert(Rc::downgrade(&pv.data));
+                pv
+            }
+        })
+    }
+
+    fn create_sprite_no_insert(
+        &mut self,
+        sprite: &'static Sprite,
+    ) -> Result<(Weak<SpriteVramData>, SpriteVram), LoaderError> {
+        let palette = self.try_get_vram_palette(sprite.palette)?;
+
+        let sprite = SpriteVram::new(sprite.data, sprite.size, palette)?;
+        Ok((Rc::downgrade(&sprite.data), sprite))
+    }
+
+    fn garbage_collect(&mut self) {
+        self.static_palette_map
+            .retain(|_, v| Weak::strong_count(v) != 0);
+        self.static_multi_palette_map
+            .retain(|_, v| Weak::strong_count(v) != 0);
+    }
+}
+
+impl SpriteLoader {
     /// Attempts to get a sprite
     pub fn try_get_vram_sprite(
         &mut self,
@@ -244,15 +402,13 @@ impl SpriteLoader {
             crate::hash_map::Entry::Occupied(mut entry) => match entry.get().upgrade() {
                 Some(data) => SpriteVram { data },
                 None => {
-                    let (weak, vram) =
-                        Self::create_sprite_no_insert(&mut self.static_palette_map, sprite)?;
+                    let (weak, vram) = self.palettes.create_sprite_no_insert(sprite)?;
                     entry.insert(weak);
                     vram
                 }
             },
             crate::hash_map::Entry::Vacant(entry) => {
-                let (weak, vram) =
-                    Self::create_sprite_no_insert(&mut self.static_palette_map, sprite)?;
+                let (weak, vram) = self.palettes.create_sprite_no_insert(sprite)?;
                 entry.insert(weak);
                 vram
             }
@@ -260,11 +416,8 @@ impl SpriteLoader {
     }
 
     /// Attempts to allocate a static palette
-    pub fn try_get_vram_palette(
-        &mut self,
-        palette: &'static Palette16,
-    ) -> Result<PaletteVram, LoaderError> {
-        Self::try_get_vram_palette_asoc(&mut self.static_palette_map, palette)
+    pub fn try_get_vram_palette(&mut self, palette: Palette) -> Result<PaletteVram, LoaderError> {
+        self.palettes.try_get_vram_palette(palette)
     }
 
     /// Allocates a sprite to vram, panics if it cannot fit.
@@ -274,14 +427,17 @@ impl SpriteLoader {
     }
 
     /// Allocates a palette to vram, panics if it cannot fit.
-    pub fn get_vram_palette(&mut self, palette: &'static Palette16) -> PaletteVram {
+    pub fn get_vram_palette(&mut self, palette: Palette) -> PaletteVram {
         self.try_get_vram_palette(palette)
             .expect("cannot create sprite")
     }
 
     pub(crate) fn new() -> Self {
         Self {
-            static_palette_map: HashMap::new(),
+            palettes: PaletteLoader {
+                static_palette_map: HashMap::new(),
+                static_multi_palette_map: HashMap::new(),
+            },
             static_sprite_map: HashMap::new(),
         }
     }
@@ -292,8 +448,7 @@ impl SpriteLoader {
     pub fn garbage_collect(&mut self) {
         self.static_sprite_map
             .retain(|_, v| Weak::strong_count(v) != 0);
-        self.static_palette_map
-            .retain(|_, v| Weak::strong_count(v) != 0);
+        self.palettes.garbage_collect();
     }
 }
 

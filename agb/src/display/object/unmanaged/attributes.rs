@@ -153,6 +153,12 @@ impl Attributes {
         self
     }
 
+    pub fn set_colour_mode(&mut self, mode: ColourMode) -> &mut Self {
+        self.a0.set_colour_mode(mode);
+
+        self
+    }
+
     pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
         self.a0.set_graphics_mode(match mode {
             GraphicsMode::Normal => GraphicsModeInternal::Normal,
@@ -197,7 +203,7 @@ enum GraphicsModeInternal {
 
 #[bitsize(1)]
 #[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
-enum ColourMode {
+pub enum ColourMode {
     #[default]
     Four,
     Eight,
