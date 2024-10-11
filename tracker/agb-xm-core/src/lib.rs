@@ -565,11 +565,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
         })
         .collect();
 
-    let patterns_to_play = module
-        .pattern_order
-        .iter()
-        .map(|order| *order as usize)
-        .collect::<Vec<_>>();
+    let patterns_to_play = module.pattern_order.clone();
 
     let envelopes = envelopes
         .iter()
@@ -598,7 +594,7 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
 
         frames_per_tick,
         ticks_per_step: ticks_per_step.into(),
-        repeat: module.restart_position as usize,
+        repeat: module.restart_position,
     }
 }
 
