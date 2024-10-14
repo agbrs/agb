@@ -70,10 +70,11 @@ impl WordRender {
 
         let mut new_sprite = DynamicSprite::new(self.config.sprite_size);
         core::mem::swap(&mut self.working.dynamic, &mut new_sprite);
-        let sprite = new_sprite.to_vram(self.config.palette.clone());
+        // let sprite = new_sprite.to_vram(self.config.palette.clone());
+        todo!();
         self.working.reset();
 
-        Some(sprite)
+        // Some(sprite)
     }
 
     #[must_use]
