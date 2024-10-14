@@ -4,9 +4,9 @@ use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::{Parse, Parser};
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
-use syn::{Expr, ExprLit, Lit, Token};
+use syn::{Expr, ExprLit, Lit, LitInt, Token};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::{iter, path::Path, str};
 
@@ -444,6 +444,212 @@ pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
         static PALETTES: &[Palette16] = &[
             #(#palette_data),*
         ];
+
+        static SPRITES: &[Sprite] = &[
+            #(#sprites),*
+        ];
+
+        static TAGS: TagMap = TagMap::new(
+            &[
+                #(#tags),*
+            ]
+        );
+
+    };
+
+    TokenStream::from(module)
+}
+
+enum PaletteAllocationDirection {
+    Backwards,
+    Forwards,
+}
+
+struct Sprite256Settings {
+    start_offset: u32,
+    direction: PaletteAllocationDirection,
+    filenames: Vec<(PathBuf, LitStr)>,
+}
+
+impl Parse for Sprite256Settings {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut lookahead = input.lookahead1();
+
+        let start_offset = if lookahead.peek(LitInt) {
+            let start_offset = input.parse::<LitInt>()?;
+            let start_offset = start_offset.base10_parse::<u32>()?;
+
+            lookahead = input.lookahead1();
+            start_offset
+        } else {
+            0
+        };
+
+        let direction = if lookahead.peek(syn::Ident) {
+            let direction = input.parse::<syn::Ident>()?;
+            if direction == "forwards" {
+                PaletteAllocationDirection::Forwards
+            } else if direction == "backwards" {
+                PaletteAllocationDirection::Backwards
+            } else {
+                return Err(syn::Error::new_spanned(
+                    direction,
+                    "Direction does not match either 'forwards' or 'backwards'",
+                ));
+            }
+        } else {
+            PaletteAllocationDirection::Backwards
+        };
+
+        let out_dir_path = get_out_dir(&input.to_string());
+        let filenames = Punctuated::<LitStr, syn::Token![,]>::parse_terminated(input)?;
+        let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+
+        let filenames: Vec<(PathBuf, LitStr)> = filenames
+            .iter()
+            .map(|s| {
+                (
+                    Path::new(&root).join(s.value().replace(OUT_DIR_TOKEN, &out_dir_path)),
+                    s.clone(),
+                )
+            })
+            .collect();
+
+        Ok(Sprite256Settings {
+            start_offset,
+            direction,
+            filenames,
+        })
+    }
+}
+
+#[proc_macro]
+pub fn include_aseprite_256_inner(input: TokenStream) -> TokenStream {
+    let settings = parse_macro_input!(input as Sprite256Settings);
+
+    let mut images = Vec::new();
+    let mut tags = Vec::new();
+
+    let mut colours = HashSet::new();
+
+    for (filename, token) in settings.filenames.iter() {
+        let (frames, tag) = aseprite::generate_from_file(filename);
+
+        tags.push((tag, images.len()));
+
+        for frame in frames {
+            let width = frame.width();
+            let height = frame.height();
+            if !valid_sprite_size(width, height) {
+                let msg = format!("File contains sprites with size {}x{} which cannot be represented on the GameBoy Advance", width, height);
+                return syn::Error::new(token.span(), msg).to_compile_error().into();
+            }
+
+            let image = Image::load_from_dyn_image(frame);
+
+            for y in 0..height {
+                for x in 0..width {
+                    let colour = image.colour(x as usize, y as usize);
+                    if !colour.is_transparent() {
+                        colours.insert(colour.to_rgb15());
+                    }
+                }
+            }
+
+            images.push(image);
+        }
+    }
+
+    let mut colours: Vec<_> = colours.iter().copied().collect();
+    colours.sort();
+    let colour_index_lookup: HashMap<_, _> = colours
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, colour)| (colour, index))
+        .collect();
+    let palettes: Vec<_> = colours
+        .chunks(16)
+        .map(|x| {
+            let mut colours = x.to_vec();
+            colours.resize(16, 0);
+            quote! { Palette16::new([#(#colours),*])}
+        })
+        .collect();
+
+    let first_palette: u32 = (16 - palettes.len())
+        .try_into()
+        .expect("Should be representable");
+
+    let sprites = images.iter().map(|image| {
+        let tile_size = 8;
+        let tiles_x = image.width / tile_size;
+        let tiles_y = image.height / tile_size;
+
+        let mut tile_data = Vec::new();
+
+        for y in 0..tiles_y {
+            for x in 0..tiles_x {
+                for inner_y in 0..tile_size / 8 {
+                    for inner_x in 0..tile_size / 8 {
+                        for j in inner_y * 8..inner_y * 8 + 8 {
+                            for i in inner_x * 8..inner_x * 8 + 8 {
+                                let colour = image.colour(x * tile_size + i, y * tile_size + j);
+                                if colour.is_transparent() {
+                                    tile_data.push(0);
+                                } else {
+                                    let index = colour_index_lookup[&colour.to_rgb15()];
+                                    tile_data.push(index as u8 + first_palette as u8 * 16);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let width = image.width;
+        let height = image.height;
+        let data = ByteString(&tile_data);
+
+        quote! {
+            unsafe {
+                    Sprite::new_multi(
+                    &PALETTE,
+                    align_bytes!(u16, #data),
+                    Size::from_width_height(#width, #height)
+                )
+            }
+        }
+    });
+
+    let tags = tags.iter().flat_map(|(tag, num_images)| {
+        tag.iter().map(move |tag| {
+            let start = tag.from_frame() as usize + num_images;
+            let end = tag.to_frame() as usize + num_images;
+            let direction = tag.animation_direction() as usize;
+
+            let name = tag.name();
+            assert!(start <= end, "Tag {name} has start > end");
+
+            quote! {
+                (#name, Tag::new(SPRITES, #start, #end, #direction))
+            }
+        })
+    });
+
+    let include_paths = settings.filenames.iter().map(|(s, _)| {
+        let s = s.as_os_str().to_string_lossy();
+        quote! {
+            const _: &[u8] = include_bytes!(#s);
+        }
+    });
+
+    let module = quote! {
+        #(#include_paths)*
+
+
+        static PALETTE: MultiPalette = MultiPalette::new(#first_palette, &[#(#palettes),*]);
 
         static SPRITES: &[Sprite] = &[
             #(#sprites),*

@@ -23,20 +23,23 @@ pub struct MultiPalette {
 }
 
 impl MultiPalette {
+    #[must_use]
     pub const fn new(first_index: u32, palettes: &'static [Palette16]) -> Self {
         assert!(palettes.len() <= 16);
         assert!(!palettes.is_empty());
-        assert!(16 - palettes.len() > first_index as usize);
+        assert!(16 - palettes.len() >= first_index as usize);
 
         Self {
             first_index,
             palettes,
         }
     }
-
+    #[must_use]
     pub const fn palettes(&self) -> &'static [Palette16] {
         self.palettes
     }
+
+    #[must_use]
     pub const fn first_index(&self) -> u32 {
         self.first_index
     }
@@ -156,7 +159,7 @@ macro_rules! align_bytes {
 ///
 #[macro_export]
 macro_rules! include_aseprite {
-    ($($aseprite_path: expr),*) => {{
+    ($($aseprite_path: expr),*$(,)?) => {{
         #[allow(unused_imports)]
         use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
@@ -166,6 +169,20 @@ macro_rules! include_aseprite {
 
         &Graphics::new(SPRITES, &TAGS)
     }};
+}
+
+#[macro_export]
+macro_rules! include_aseprite_256 {
+    ($($aseprite_path: expr),*$(,)?) => {{
+        #[allow(unused_imports)]
+        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics, MultiPalette};
+        use $crate::display::palette16::Palette16;
+        use $crate::align_bytes;
+
+        $crate::include_aseprite_256_inner!($($aseprite_path),*);
+
+        &Graphics::new(SPRITES, &TAGS)
+    }}
 }
 
 pub use include_aseprite;
@@ -390,8 +407,12 @@ impl Size {
         (self as u16 >> 2, self as u16 & 0b11)
     }
 
-    pub(crate) fn layout(self) -> Layout {
-        Layout::from_size_align(self.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
+    pub(crate) fn layout(self, multi_palette: bool) -> Layout {
+        Layout::from_size_align(
+            self.number_of_tiles() * BYTES_PER_TILE_4BPP * (multi_palette as usize + 1),
+            8,
+        )
+        .unwrap()
     }
 
     #[must_use]

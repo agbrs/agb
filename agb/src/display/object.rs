@@ -15,8 +15,8 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, Graphics, PaletteVram, Size, Sprite, SpriteLoader, SpriteVram,
-    Tag, TagMap,
+    include_aseprite, DynamicSprite, Graphics, MultiPalette, PaletteVram, Size, Sprite,
+    SpriteLoader, SpriteVram, Tag, TagMap,
 };
 
 pub use affine::AffineMatrixInstance;

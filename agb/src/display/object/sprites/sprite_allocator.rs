@@ -65,7 +65,7 @@ impl PaletteAllocator {
         unsafe {
             assert_unchecked(palette.palettes().len() <= 16);
             assert_unchecked(!palette.palettes().is_empty());
-            assert_unchecked(16 - palette.palettes().len() > palette.first_index() as usize);
+            assert_unchecked(16 - palette.palettes().len() >= palette.first_index() as usize);
         }
 
         let claim = (1u32 << palette.palettes().len()) - 1;
@@ -202,6 +202,9 @@ impl PaletteVram {
     pub fn new_multi(palette: &MultiPalette) -> Result<Self, LoaderError> {
         Ok(PaletteVram::Multi(MultiPaletteVram::new(palette)?))
     }
+    fn is_multi(&self) -> bool {
+        matches!(self, PaletteVram::Multi(_))
+    }
 }
 
 /// A palette in vram, this is reference counted so it is cheap to Clone.
@@ -248,7 +251,12 @@ struct SpriteVramData {
 
 impl Drop for SpriteVramData {
     fn drop(&mut self) {
-        unsafe { SPRITE_ALLOCATOR.dealloc(self.location.as_sprite_ptr(), self.size.layout()) }
+        unsafe {
+            SPRITE_ALLOCATOR.dealloc(
+                self.location.as_sprite_ptr(),
+                self.size.layout(self.palette.is_multi()),
+            );
+        }
     }
 }
 
@@ -275,8 +283,8 @@ pub struct SpriteVram {
 
 impl SpriteVram {
     fn new(data: &[u8], size: Size, palette: PaletteVram) -> Result<SpriteVram, LoaderError> {
-        let allocated =
-            unsafe { SPRITE_ALLOCATOR.alloc(size.layout()) }.ok_or(LoaderError::SpriteFull)?;
+        let allocated = unsafe { SPRITE_ALLOCATOR.alloc(size.layout(palette.is_multi())) }
+            .ok_or(LoaderError::SpriteFull)?;
         unsafe {
             allocated
                 .as_ptr()
@@ -467,7 +475,7 @@ pub struct DynamicSprite {
 impl Clone for DynamicSprite {
     fn clone(&self) -> Self {
         let allocation = SpriteAllocator
-            .allocate(self.size.layout())
+            .allocate(self.size.layout(false))
             .expect("cannot allocate dynamic sprite");
 
         let allocation = core::ptr::slice_from_raw_parts_mut(
@@ -490,7 +498,7 @@ impl DynamicSprite {
     /// Creates a new dynamic sprite of a given size
     pub fn try_new(size: Size) -> Result<Self, LoaderError> {
         let allocation = SpriteAllocator
-            .allocate_zeroed(size.layout())
+            .allocate_zeroed(size.layout(false))
             .map_err(|_| LoaderError::SpriteFull)?;
 
         let allocation = core::ptr::slice_from_raw_parts_mut(
@@ -553,9 +561,11 @@ impl DynamicSprite {
     #[must_use]
     /// Tries to copy the sprite to vram to be used to set object sprites.
     /// Panics if it cannot be allocated.
-    pub fn to_vram(self, palette: PaletteVram) -> SpriteVram {
+    pub fn to_vram(self, palette: SinglePaletteVram) -> SpriteVram {
         let data = unsafe { NonNull::new_unchecked(Box::leak(self.data).as_mut_ptr()) };
 
-        unsafe { SpriteVram::from_location_size(data.cast(), self.size, palette) }
+        unsafe {
+            SpriteVram::from_location_size(data.cast(), self.size, PaletteVram::Single(palette))
+        }
     }
 }
