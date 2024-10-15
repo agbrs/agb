@@ -13,6 +13,6 @@ agb_tracker = { version = "0.21.1", path = "../agb-tracker", default-features = 
 agb_fixnum = { version = "0.21.1", path = "../../agb-fixnum" }
 
 anyhow = "1"
-xmrs = "0.8"
+xmrs = "=0.8.1"
 
 cpal = "0.15"
