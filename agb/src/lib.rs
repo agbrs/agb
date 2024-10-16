@@ -125,6 +125,9 @@ pub use agb_image_converter::include_font as include_font_inner;
 #[doc(hidden)]
 pub use agb_image_converter::include_colours_inner;
 
+#[doc(hidden)]
+pub use agb_image_converter::include_aseprite_256_inner;
+
 #[macro_export]
 macro_rules! include_font {
     ($font_path: literal, $font_size: literal) => {{

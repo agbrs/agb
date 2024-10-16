@@ -133,7 +133,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
     for (palette, colour) in (0..PALETTE.len()).map(|x| (x / 15, x % 15)) {
         let mut sprite = DynamicSprite::new(Size::S8x8);
         sprite.clear(colour + 1);
-        sprites.push(sprite.to_vram(palettes[palette].clone()));
+        // sprites.push(sprite.to_vram(palettes[palette].clone()));
     }
 
     sprites.into_boxed_slice()
