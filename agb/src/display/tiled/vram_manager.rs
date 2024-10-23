@@ -30,8 +30,8 @@ const fn layout_of(format: TileFormat) -> Layout {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileFormat {
-    FourBpp = 5,
-    EightBpp = 6,
+    FourBpp = 6,
+    EightBpp = 7,
 }
 
 impl TileFormat {

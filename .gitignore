@@ -3,3 +3,5 @@ target
 *.tiled-session
 website/build
 Cargo.lock
+.idea
+
