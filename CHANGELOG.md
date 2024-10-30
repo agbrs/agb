@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional serde support for agb-hashmap via the `serde` feature flag
+
 ### Fixed
 
 - Fixed build error due to breaking change in `xmrs`.
