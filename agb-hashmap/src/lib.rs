@@ -44,6 +44,9 @@ mod allocate {
     pub(crate) use core::alloc::Allocator;
 }
 
+#[cfg(feature = "serde")]
+mod serde;
+
 use core::{
     borrow::Borrow,
     fmt::Debug,

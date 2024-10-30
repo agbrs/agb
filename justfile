@@ -19,6 +19,10 @@ clippy:
     just _all-crates _clippy
 
 test:
+    # test the workspace
+    cargo test
+    # also need to explicitly hit the serde tests in agb-hashmap
+    (cd agb-hashmap && cargo test --features=serde serde)
     just _test-debug agb
     just _test-debug tracker/agb-tracker
     just _test-multiboot
