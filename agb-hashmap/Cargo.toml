@@ -6,6 +6,7 @@ license = "MPL-2.0"
 description = "A simple no_std hashmap implementation intended for use in the `agb` library"
 repository = "https://github.com/agbrs/agb"
 exclude = ["/benches"]
+keywords = ["no-std", "data-structures"]
 
 [features]
 allocator_api = []
