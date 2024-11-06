@@ -12,7 +12,7 @@ addr2line = { version = "0.24", default-features = false, features = ["rustc-dem
 gimli = { version = "0.31", default-features = false, features = ["endian-reader", "std"] }
 object = { version = "0.36", default-features = false, features = ["read"] }
 
-thiserror = "1"
+thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
 rmp-serde = "1"
