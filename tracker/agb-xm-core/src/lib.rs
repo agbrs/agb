@@ -63,16 +63,17 @@ pub fn parse_module(module: &Module) -> agb_tracker_interop::Track {
             let volume = Num::from_f32(sample.volume);
 
             let sample = match &sample.data {
-                SampleDataType::Depth8(depth8) => depth8
+                SampleDataType::Mono8(depth8) => depth8
                     .iter()
                     .map(|value| *value as u8)
                     .take(sample_len)
                     .collect::<Vec<_>>(),
-                SampleDataType::Depth16(depth16) => depth16
+                SampleDataType::Mono16(depth16) => depth16
                     .iter()
                     .map(|sample| (sample >> 8) as i8 as u8)
                     .take(sample_len)
                     .collect::<Vec<_>>(),
+                _ => panic!("Stereo samples not supported"),
             };
 
             let fadeout = Num::from_f32(instrument.volume_fadeout);
@@ -652,7 +653,7 @@ static AMIGA_FREQUENCIES: &[u32] = &[
     457,
 ];
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct EnvelopeData {
     amounts: Vec<Num<i16, 8>>,
     sustain: Option<usize>,
@@ -684,30 +685,30 @@ impl EnvelopeData {
             let first_point = &e.point[index];
             let second_point = &e.point[index + 1];
 
-            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame);
             let amount = Num::from_f32(amount);
 
             amounts.push(amount);
         }
 
         let sustain = if e.sustain_enabled {
-            Some(
-                Self::envelope_frame_to_gba_frame(e.point[e.sustain_point as usize].frame, bpm)
-                    as usize,
-            )
+            Some(Self::envelope_frame_to_gba_frame(
+                e.point[e.sustain_point].frame,
+                bpm,
+            ))
         } else {
             None
         };
         let (loop_start, loop_end) = if e.loop_enabled {
             (
                 Some(Self::envelope_frame_to_gba_frame(
-                    e.point[e.loop_start_point as usize].frame,
+                    e.point[e.loop_start_point].frame,
                     bpm,
-                ) as usize),
+                )),
                 Some(Self::envelope_frame_to_gba_frame(
-                    e.point[e.loop_end_point as usize].frame,
+                    e.point[e.loop_end_point].frame,
                     bpm,
-                ) as usize),
+                )),
             )
         } else {
             (None, None)
@@ -748,13 +749,13 @@ impl EnvelopeData {
         }
     }
 
-    fn envelope_frame_to_gba_frame(envelope_frame: u16, bpm: u32) -> u16 {
+    fn envelope_frame_to_gba_frame(envelope_frame: usize, bpm: u32) -> usize {
         // FT2 manual says number of ticks / second = BPM * 0.4
         // somehow this works as a good approximation :/
-        (envelope_frame as u32 * 250 / bpm) as u16
+        (envelope_frame as u32 * 250 / bpm) as usize
     }
 
-    fn gba_frame_to_envelope_frame(gba_frame: u16, bpm: u32) -> u16 {
-        (gba_frame as u32 * bpm / 250) as u16
+    fn gba_frame_to_envelope_frame(gba_frame: usize, bpm: u32) -> usize {
+        (gba_frame as u32 * bpm / 250) as usize
     }
 }

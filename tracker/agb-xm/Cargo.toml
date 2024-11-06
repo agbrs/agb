@@ -19,4 +19,4 @@ proc-macro2 = "1"
 quote = "1"
 syn = "2"
 
-xmrs = "=0.8.1"
+xmrs = "=0.8.5"
