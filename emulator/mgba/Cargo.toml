@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 libc = "0.2"
 mgba-sys = { version = "0.1.0", path = "../mgba-sys" }
-thiserror = "1"
+thiserror = "2"
