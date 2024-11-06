@@ -653,7 +653,7 @@ static AMIGA_FREQUENCIES: &[u32] = &[
     457,
 ];
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct EnvelopeData {
     amounts: Vec<Num<i16, 8>>,
     sustain: Option<usize>,
@@ -685,7 +685,7 @@ impl EnvelopeData {
             let first_point = &e.point[index];
             let second_point = &e.point[index + 1];
 
-            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame) / 64.0;
+            let amount = EnvelopePoint::lerp(first_point, second_point, xm_frame);
             let amount = Num::from_f32(amount);
 
             amounts.push(amount);
