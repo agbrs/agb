@@ -14,7 +14,6 @@ use alloc::collections::vec_deque::VecDeque;
 
 extern crate alloc;
 
-use core::iter::Peekable;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
@@ -25,7 +24,8 @@ fn entry(gba: agb::Gba) -> ! {
 
 
 struct MultiLineTextDisplay {
-    block: Peekable<TextBlock<&'static str>>,
+    block: TextBlock<&'static str>,
+    peeked: Option<Option<LetterGroup>>,
     letters: VecDeque<LetterGroup>,
     max_number_of_lines: i32,
     current_line: i32,
@@ -34,33 +34,51 @@ struct MultiLineTextDisplay {
 impl MultiLineTextDisplay {
     fn new(text: TextBlock<&'static str>, max_number_of_lines: i32) -> Self {
         Self {
-            block: text.peekable(),
+            block: text,
+            peeked: None,
             letters: VecDeque::new(),
             max_number_of_lines,
             current_line: 0,
         }
     }
 
+    fn do_work(&mut self) {
+        self.block.do_work(16);
+    }
+
+    fn peek(&'_ mut self) -> Option<&LetterGroup> {
+        self.peeked.get_or_insert_with(|| self.block.next()).as_ref()
+    }
+
+    fn next(&mut self) -> Option<LetterGroup> {
+        match self.peeked.take() {
+            Some(v) => v,
+            None => self.block.next(),
+        }        
+    }
+
     fn is_done(&mut self) -> bool {
-        self.block.peek().is_none()
+        self.peek().is_none()
     }
 
     fn is_showing_all_available_lines(&mut self) -> bool {
-        let Some(next_letter) = self.block.peek() else {
+        let Some(next_letter) = self.peek() else {
             return false;
         };
+        let line = next_letter.line;
         
-        self.current_line + self.max_number_of_lines <= next_letter.line
+        self.current_line + self.max_number_of_lines <= line
     }
 
     fn increase_letters(&mut self) {
-        let Some(next_letter) = self.block.peek() else {
-            
+        let max_line = self.current_line + self.max_number_of_lines ;
+        let Some(next_letter) = self.peek() else {
             return;
         };
 
-        if self.current_line + self.max_number_of_lines > next_letter.line {
-            self.letters.push_back(self.block.next().unwrap());
+        if max_line > next_letter.line {
+            let next = self.next().unwrap();
+            self.letters.push_back(next);
         }
     }
 
@@ -123,6 +141,8 @@ fn main(mut gba: agb::Gba) -> ! {
         input.update();
 
         let start = timer.value();
+
+        multi_line.do_work();
 
         if frame % 2 == 0 {
             multi_line.increase_letters();

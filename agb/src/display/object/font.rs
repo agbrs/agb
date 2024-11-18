@@ -72,10 +72,11 @@ where
         }
     }
 
-    pub fn do_work(&mut self) {
+    pub fn do_work(&mut self, max_buffered_work: usize) {
         self.alignment_iterator
-            .do_work(self.text.as_ref(), &self.config);
-        self.render.do_work(self.text.as_ref(), &self.config);
+            .do_work(self.text.as_ref(), &self.config, max_buffered_work);
+        self.render
+            .do_work(self.text.as_ref(), &self.config, max_buffered_work);
     }
 }
 

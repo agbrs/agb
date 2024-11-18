@@ -19,10 +19,10 @@ impl AlignmentIterator {
         }
     }
 
-    pub fn do_work(&mut self, text: &str, config: &TextConfig) {
+    pub fn do_work(&mut self, text: &str, config: &TextConfig, max_buffered_work: usize) {
         match self {
             AlignmentIterator::Left(alignment_iterator_left) => {
-                alignment_iterator_left.do_work(text, config);
+                alignment_iterator_left.do_work(text, config, max_buffered_work);
             }
         }
     }
@@ -141,8 +141,10 @@ impl AlignmentIteratorLeft {
         true
     }
 
-    pub fn do_work(&mut self, text: &str, config: &TextConfig) {
-        self.do_work_with_work_done(text, config);
+    pub fn do_work(&mut self, text: &str, config: &TextConfig, max_buffered_work: usize) {
+        if self.output_queue.len() < max_buffered_work {
+            self.do_work_with_work_done(text, config);
+        }
     }
 
     pub fn next(&mut self, text: &str, config: &TextConfig) -> Option<LetterPosition> {

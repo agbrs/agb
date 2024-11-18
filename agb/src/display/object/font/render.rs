@@ -96,8 +96,10 @@ impl LetterRender {
         true
     }
 
-    pub fn do_work(&mut self, text: &str, config: &TextConfig) {
-        self.do_work_with_work_done(text, config);
+    pub fn do_work(&mut self, text: &str, config: &TextConfig, max_buffered_work: usize) {
+        if self.letters.len() < max_buffered_work {
+            self.do_work_with_work_done(text, config);
+        }
     }
 
     pub fn next(&mut self, text: &str, config: &TextConfig) -> Option<Letter> {
