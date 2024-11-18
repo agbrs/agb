@@ -25,7 +25,7 @@ pub use unmanaged::{
     AffineMode, GraphicsMode, OamIterator, OamSlot, OamUnmanaged, ObjectUnmanaged,
 };
 
-pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
+pub use font::{Alignment, LetterGroup, TextBlock};
 
 use super::DISPLAY_CONTROL;
 

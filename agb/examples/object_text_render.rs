@@ -3,23 +3,82 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{Alignment, LetterGroup, ObjectUnmanaged, PaletteVram, Size, TextBlock},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
 };
+use alloc::collections::vec_deque::VecDeque;
 
 extern crate alloc;
 
-use core::fmt::Write;
+use core::iter::Peekable;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
+}
+
+
+struct MultiLineTextDisplay {
+    block: Peekable<TextBlock<&'static str>>,
+    letters: VecDeque<LetterGroup>,
+    max_number_of_lines: i32,
+    current_line: i32,
+}
+
+impl MultiLineTextDisplay {
+    fn new(text: TextBlock<&'static str>, max_number_of_lines: i32) -> Self {
+        Self {
+            block: text.peekable(),
+            letters: VecDeque::new(),
+            max_number_of_lines,
+            current_line: 0,
+        }
+    }
+
+    fn is_done(&mut self) -> bool {
+        self.block.peek().is_none()
+    }
+
+    fn is_showing_all_available_lines(&mut self) -> bool {
+        let Some(next_letter) = self.block.peek() else {
+            return false;
+        };
+        
+        self.current_line + self.max_number_of_lines <= next_letter.line
+    }
+
+    fn increase_letters(&mut self) {
+        let Some(next_letter) = self.block.peek() else {
+            
+            return;
+        };
+
+        if self.current_line + self.max_number_of_lines > next_letter.line {
+            self.letters.push_back(self.block.next().unwrap());
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = LetterGroup> + use<'_> {
+        self.letters.iter().map(|x| LetterGroup{ letter: x.letter.clone(), x: x.x, line: x.line - self.current_line})
+    }
+
+    fn pop_line(&mut self) {
+        while let Some(letter) = self.letters.front() {
+            if letter.line == self.current_line {
+                self.letters.pop_front();
+            } else {
+                break;
+            }
+        }
+
+        self.current_line += 1;
+    }
 }
 
 fn main(mut gba: agb::Gba) -> ! {
@@ -37,16 +96,15 @@ fn main(mut gba: agb::Gba) -> ! {
     timer.set_enabled(true);
     timer.set_divider(agb::timer::Divider::Divider256);
 
-    let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
     let start = timer.value();
+    let wr = TextBlock::new(&FONT, 
+        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+        palette,
+        Alignment::Left,
+        (WIDTH - 8) as u32,
+        Size::S16x16,
+    );
 
-    let player_name = "You";
-    let _ = writeln!(
-            wr,
-            "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
-            change2 = ChangeColour::new(2),
-            change1 = ChangeColour::new(1),
-        );
     let end = timer.value();
 
     agb::println!(
@@ -57,42 +115,46 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    let start = timer.value();
-
-    wr.layout((WIDTH, 40), TextAlignment::Justify, 2);
-    let end = timer.value();
-
-    agb::println!(
-        "Layout took {} cycles",
-        256 * (end.wrapping_sub(start) as u32)
-    );
-
-    let mut line_done = false;
     let mut frame = 0;
 
+    let mut multi_line = MultiLineTextDisplay::new(wr, 2);
+
     loop {
-        vblank.wait_for_vblank();
         input.update();
-        let oam = &mut unmanaged.iter();
-        wr.commit(oam);
 
         let start = timer.value();
-        if frame % 4 == 0 {
-            line_done = !wr.next_letter_group();
+
+        if frame % 2 == 0 {
+            multi_line.increase_letters();
         }
-        if line_done && input.is_just_pressed(Button::A) {
-            line_done = false;
-            wr.pop_line();
+
+        if multi_line.is_showing_all_available_lines() && input.is_just_pressed(Button::A) {
+            multi_line.pop_line();
         }
-        wr.update((0, HEIGHT - 40));
+
         let end = timer.value();
-
-        frame += 1;
-
         agb::println!(
-            "Took {} cycles, line done {}",
-            256 * (end.wrapping_sub(start) as u32),
-            line_done
+            "Update took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
         );
+        let start = timer.value();
+
+
+        let mut frame_oam = unmanaged.iter();
+
+        for letter in multi_line.iter() {
+            let mut object = ObjectUnmanaged::new(letter.letter);
+            object.set_position((4 + letter.x, HEIGHT - 32 + letter.line * 16).into()).show();
+            frame_oam.set_next(&object);
+        }
+
+        let end = timer.value();
+        agb::println!(
+            "Draw took {} cycles",
+            256 * (end.wrapping_sub(start) as u32)
+        );
+
+        vblank.wait_for_vblank();
+        frame += 1;
     }
 }
