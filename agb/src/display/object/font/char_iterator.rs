@@ -22,7 +22,7 @@ impl KerningCharIterator {
         text: &str,
         font: &Font,
         configuration: &mut T,
-    ) -> Option<(&'static FontLetter, i32)> {
+    ) -> Option<(char, &'static FontLetter, i32)> {
         let letter_char = self.iterator.next(text, configuration)?;
 
         let letter = font.letter(letter_char);
@@ -33,7 +33,7 @@ impl KerningCharIterator {
         };
         self.previous_letter = Some(letter_char);
 
-        Some((letter, kern))
+        Some((letter_char, letter, kern))
     }
 }
 

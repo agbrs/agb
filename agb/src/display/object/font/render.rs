@@ -56,6 +56,10 @@ impl LetterRender {
     }
 
     fn finish_letter(&mut self, config: &TextConfig) {
+        if self.number_of_letters_in_current_letter == 0 {
+            return;
+        }
+
         let mut letter = DynamicSprite::new(config.sprite_size);
         core::mem::swap(&mut letter, &mut self.working_letter);
         let letter = letter.to_vram(config.palette.clone());
@@ -77,9 +81,9 @@ impl LetterRender {
     }
 
     fn do_work_with_work_done(&mut self, text: &str, config: &TextConfig) -> bool {
-        let Some((letter, kern)) = self
-            .iterator
-            .next(text, config.font, &mut self.render_config)
+        let Some((_, letter, kern)) =
+            self.iterator
+                .next(text, config.font, &mut self.render_config)
         else {
             if self.number_of_letters_in_current_letter != 0 {
                 self.finish_letter(config);

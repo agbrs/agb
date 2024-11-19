@@ -72,11 +72,8 @@ impl AlignmentIteratorLeft {
     }
 
     fn force_new_line(&mut self) {
-        if self.current_line_width == 0 {
-            return;
-        }
-
         self.current_line_count += 1;
+        self.current_line_width = 0;
     }
 
     fn complete_word(&mut self, config: &TextConfig, extra_width: i32) {
@@ -104,19 +101,19 @@ impl AlignmentIteratorLeft {
     }
 
     fn do_work_with_work_done(&mut self, text: &str, config: &TextConfig) -> bool {
-        let Some((letter, kern)) = self
-            .iterator
-            .next(text, config.font, &mut NullCharConfigurator)
+        let Some((character, letter, kern)) =
+            self.iterator
+                .next(text, config.font, &mut NullCharConfigurator)
         else {
             self.complete_word(config, 0);
             return false;
         };
 
         // only support ascii whitespace for word breaks
-        if letter.character.is_ascii_whitespace() {
+        if character.is_ascii_whitespace() {
             // stop the current word
             self.complete_word(config, letter.advance_width as i32);
-            if letter.character == '\n' {
+            if character == '\n' {
                 self.force_new_line();
             }
         } else {
