@@ -14,14 +14,12 @@ use alloc::collections::vec_deque::VecDeque;
 
 extern crate alloc;
 
-
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
 }
-
 
 struct MultiLineTextDisplay {
     block: TextBlock<&'static str>,
@@ -47,14 +45,16 @@ impl MultiLineTextDisplay {
     }
 
     fn peek(&'_ mut self) -> Option<&LetterGroup> {
-        self.peeked.get_or_insert_with(|| self.block.next()).as_ref()
+        self.peeked
+            .get_or_insert_with(|| self.block.next())
+            .as_ref()
     }
 
     fn next(&mut self) -> Option<LetterGroup> {
         match self.peeked.take() {
             Some(v) => v,
             None => self.block.next(),
-        }        
+        }
     }
 
     fn is_done(&mut self) -> bool {
@@ -66,12 +66,12 @@ impl MultiLineTextDisplay {
             return false;
         };
         let line = next_letter.line;
-        
+
         self.current_line + self.max_number_of_lines <= line
     }
 
     fn increase_letters(&mut self) {
-        let max_line = self.current_line + self.max_number_of_lines ;
+        let max_line = self.current_line + self.max_number_of_lines;
         let Some(next_letter) = self.peek() else {
             return;
         };
@@ -83,7 +83,11 @@ impl MultiLineTextDisplay {
     }
 
     fn iter(&self) -> impl Iterator<Item = LetterGroup> + use<'_> {
-        self.letters.iter().map(|x| LetterGroup{ letter: x.letter.clone(), x: x.x, line: x.line - self.current_line})
+        self.letters.iter().map(|x| LetterGroup {
+            letter: x.letter.clone(),
+            x: x.x,
+            line: x.line - self.current_line,
+        })
     }
 
     fn pop_line(&mut self) {
@@ -115,8 +119,9 @@ fn main(mut gba: agb::Gba) -> ! {
     timer.set_divider(agb::timer::Divider::Divider256);
 
     let start = timer.value();
-    let wr = TextBlock::new(&FONT, 
-        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+    let wr = TextBlock::new(
+        &FONT,
+        "Woah!{change2} {player_name}!{change1} こんにちは!\n\nI have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
         palette,
         Alignment::Left,
         (WIDTH - 8) as u32,
@@ -144,11 +149,14 @@ fn main(mut gba: agb::Gba) -> ! {
 
         multi_line.do_work();
 
-        if frame % 2 == 0 {
+        if frame > 16 && frame % 4 == 0 {
             multi_line.increase_letters();
         }
 
-        if multi_line.is_showing_all_available_lines() && input.is_just_pressed(Button::A) {
+        if frame > 16
+            && multi_line.is_showing_all_available_lines()
+            && input.is_just_pressed(Button::A)
+        {
             multi_line.pop_line();
         }
 
@@ -159,12 +167,13 @@ fn main(mut gba: agb::Gba) -> ! {
         );
         let start = timer.value();
 
-
         let mut frame_oam = unmanaged.iter();
 
         for letter in multi_line.iter() {
             let mut object = ObjectUnmanaged::new(letter.letter);
-            object.set_position((4 + letter.x, HEIGHT - 32 + letter.line * 16).into()).show();
+            object
+                .set_position((4 + letter.x, HEIGHT - 32 + letter.line * 16).into())
+                .show();
             frame_oam.set_next(&object);
         }
 
