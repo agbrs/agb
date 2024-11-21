@@ -3,14 +3,13 @@
 
 use agb::{
     display::{
-        object::{Alignment, LetterGroup, ObjectUnmanaged, PaletteVram, Size, TextBlock},
+        object::{Alignment, MultiLineTextDisplay, ObjectUnmanaged, PaletteVram, Size, TextBlock},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
 };
-use alloc::collections::vec_deque::VecDeque;
 
 extern crate alloc;
 
@@ -19,88 +18,6 @@ static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.
 #[agb::entry]
 fn entry(gba: agb::Gba) -> ! {
     main(gba);
-}
-
-struct MultiLineTextDisplay {
-    block: TextBlock<&'static str>,
-    peeked: Option<Option<LetterGroup>>,
-    letters: VecDeque<LetterGroup>,
-    max_number_of_lines: i32,
-    current_line: i32,
-}
-
-impl MultiLineTextDisplay {
-    fn new(text: TextBlock<&'static str>, max_number_of_lines: i32) -> Self {
-        Self {
-            block: text,
-            peeked: None,
-            letters: VecDeque::new(),
-            max_number_of_lines,
-            current_line: 0,
-        }
-    }
-
-    fn do_work(&mut self) {
-        self.block.do_work(16);
-    }
-
-    fn peek(&'_ mut self) -> Option<&LetterGroup> {
-        self.peeked
-            .get_or_insert_with(|| self.block.next())
-            .as_ref()
-    }
-
-    fn next(&mut self) -> Option<LetterGroup> {
-        match self.peeked.take() {
-            Some(v) => v,
-            None => self.block.next(),
-        }
-    }
-
-    fn is_done(&mut self) -> bool {
-        self.peek().is_none()
-    }
-
-    fn is_showing_all_available_lines(&mut self) -> bool {
-        let Some(next_letter) = self.peek() else {
-            return false;
-        };
-        let line = next_letter.line;
-
-        self.current_line + self.max_number_of_lines <= line
-    }
-
-    fn increase_letters(&mut self) {
-        let max_line = self.current_line + self.max_number_of_lines;
-        let Some(next_letter) = self.peek() else {
-            return;
-        };
-
-        if max_line > next_letter.line {
-            let next = self.next().unwrap();
-            self.letters.push_back(next);
-        }
-    }
-
-    fn iter(&self) -> impl Iterator<Item = LetterGroup> + use<'_> {
-        self.letters.iter().map(|x| LetterGroup {
-            letter: x.letter.clone(),
-            x: x.x,
-            line: x.line - self.current_line,
-        })
-    }
-
-    fn pop_line(&mut self) {
-        while let Some(letter) = self.letters.front() {
-            if letter.line == self.current_line {
-                self.letters.pop_front();
-            } else {
-                break;
-            }
-        }
-
-        self.current_line += 1;
-    }
 }
 
 fn main(mut gba: agb::Gba) -> ! {
