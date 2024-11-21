@@ -7,6 +7,10 @@ description = "Library for abstracting over fixed precision numbers. Designed fo
 repository = "https://github.com/agbrs/agb"
 keywords = ["no-std", "no-std::no-alloc"]
 
+[features]
+serde = ["dep:serde"]
+
 [dependencies]
 agb_macros = { version = "0.21.1", path = "../agb-macros" }
 num-traits = { version = "0.2", default-features = false }
+serde = { version = "1", features = ["derive"], default-features = false, optional = true }
