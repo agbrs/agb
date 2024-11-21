@@ -11,12 +11,8 @@ use agb::fixnum::num;
 use agb_fixnum::Num;
 use alloc::vec::Vec;
 
-static GRAPHICS: &Graphics = agb::include_aseprite!(
-    "examples/gfx/objects.aseprite",
-    "examples/gfx/boss.aseprite",
-    "examples/gfx/wide.aseprite",
-    "examples/gfx/tall.aseprite"
-);
+static GRAPHICS: &Graphics =
+    agb::include_aseprite_256!("../../gba-jam-2024/gba-jam-2024/gfx/sprites.aseprite",);
 static SPRITES: &[Sprite] = GRAPHICS.sprites();
 static TAG_MAP: &TagMap = GRAPHICS.tags();
 
