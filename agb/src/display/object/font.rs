@@ -1,4 +1,6 @@
-use alignment::{AlignmentIterator, AlignmentIteratorLeft};
+use alignment::{
+    AlignmentIterator, AlignmentIteratorCenter, AlignmentIteratorLeft, AlignmentIteratorRight,
+};
 use alloc::{boxed::Box, collections::vec_deque::VecDeque};
 use render::LetterRender;
 
@@ -29,6 +31,7 @@ struct Letter {
     sprite: SpriteVram,
 }
 
+#[derive(Debug)]
 struct LetterPosition {
     x: i32,
     line: i32,
@@ -39,10 +42,6 @@ pub enum Alignment {
     Left,
     Center,
     Right,
-    /// None aligned text does not consider alignment at all, it appears left
-    /// aligned but will never line break. This could be useful for UI elements
-    /// that you know are on a single line.
-    None,
 }
 
 impl<T> TextBlock<T>
@@ -68,7 +67,11 @@ where
             text,
             render: LetterRender::new(&config),
             config,
-            alignment_iterator: AlignmentIterator::Left(AlignmentIteratorLeft::new()),
+            alignment_iterator: match alignment {
+                Alignment::Left => AlignmentIterator::Left(AlignmentIteratorLeft::new()),
+                Alignment::Center => AlignmentIterator::Center(AlignmentIteratorCenter::new()),
+                Alignment::Right => AlignmentIterator::Right(AlignmentIteratorRight::new()),
+            },
         }
     }
 
