@@ -419,7 +419,9 @@ impl VRamManager {
         }
     }
 
-    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+    /// Copies the palette to the given palette index
+    pub fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+        assert!(pal_index < 16);
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
         }
