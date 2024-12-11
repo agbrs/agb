@@ -140,7 +140,6 @@ static INTERRUPT_TABLE: SyncUnsafeCell<[InterruptRoot; 14]> = SyncUnsafeCell::ne
     InterruptRoot::new(Interrupt::Gamepak),
 ]);
 
-#[no_mangle]
 #[export_name = "__RUST_INTERRUPT_HANDLER"]
 extern "C" fn interrupt_handler(interrupt: u16) -> u16 {
     for (i, root) in unsafe { &mut *INTERRUPT_TABLE.get() }.iter().enumerate() {
