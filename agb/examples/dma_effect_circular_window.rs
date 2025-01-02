@@ -72,7 +72,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
         let x_pos = pos.x.floor().max(0) as u16;
         let y_pos = pos.y.floor().max(0);
-        let x_adjustment = x_pos << 8 | x_pos;
+        let x_adjustment = (x_pos << 8) | x_pos;
         for (i, value) in circle_poses.iter_mut().enumerate() {
             let i = i as i32;
             if i <= y_pos || i >= y_pos + 64 {

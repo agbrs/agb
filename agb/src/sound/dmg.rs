@@ -180,8 +180,8 @@ impl SweepSettings {
 
     fn as_bits(&self) -> u16 {
         (u16::from(self.number_of_sweep_shifts) & 0b111)
-            | ((1 - self.sound_direction.as_bits()) << 3) // sweep works backwards
-            | (u16::from(self.sweep_time) & 0b111) << 4
+            | ((1 - self.sound_direction.as_bits()) << 3) // sweep works backwards 
+            | ((u16::from(self.sweep_time) & 0b111) << 4)
     }
 }
 
@@ -210,7 +210,7 @@ impl EnvelopeSettings {
     }
 
     fn as_bits(&self) -> u16 {
-        u16::from(self.step_time) << 8
+        (u16::from(self.step_time) << 8)
             | (self.direction.as_bits() << 11)
             | (u16::from(self.initial_volume) << 12)
     }

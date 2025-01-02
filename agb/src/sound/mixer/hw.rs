@@ -93,7 +93,7 @@ pub(super) fn set_sound_control_register_for_mixer() {
     SOUND_CONTROL_X.set(1 << 7);
 
     // Set the sound bias PWM resampling rate to 8bit at 65536Hz (default for most games)
-    SOUND_BIAS.set(SOUND_BIAS.get() | 1 << 14);
+    SOUND_BIAS.set(SOUND_BIAS.get() | (1 << 14));
 }
 
 pub(super) fn set_timer_counter_for_frequency_and_enable(timer: &mut Timer, frequency: i32) {

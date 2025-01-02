@@ -235,10 +235,10 @@ impl MovableWindow {
         self.inner.commit(self.id);
 
         let left_right =
-            (self.rect.position.x as u16) << 8 | (self.rect.position.x + self.rect.size.x) as u16;
+            ((self.rect.position.x as u16) << 8) | (self.rect.position.x + self.rect.size.x) as u16;
 
         let top_bottom =
-            (self.rect.position.y as u16) << 8 | (self.rect.position.y + self.rect.size.y) as u16;
+            ((self.rect.position.y as u16) << 8) | (self.rect.position.y + self.rect.size.y) as u16;
         unsafe {
             REG_HORIZONTAL_BASE.add(self.id).write_volatile(left_right);
             REG_VERTICAL_BASE.add(self.id).write_volatile(top_bottom);
