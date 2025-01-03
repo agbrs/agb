@@ -388,9 +388,10 @@ impl DynamicSprite {
     /// Wipes the sprite
     pub fn clear(&mut self, paletted_pixel: usize) {
         assert!(paletted_pixel < 0x10);
-        let reset =
-            (paletted_pixel | paletted_pixel << 4 | paletted_pixel << 8 | paletted_pixel << 12)
-                as u16;
+        let reset = (paletted_pixel
+            | (paletted_pixel << 4)
+            | (paletted_pixel << 8)
+            | (paletted_pixel << 12)) as u16;
         self.data.fill(reset);
     }
 

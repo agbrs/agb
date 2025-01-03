@@ -54,7 +54,11 @@ impl Bitmap4<'_> {
 
         let c = addr.get(x_in_screen, y_in_screen);
         if x & 0b1 != 0 {
-            addr.set(x_in_screen, y_in_screen, c & 0xff | u16::from(colour) << 8);
+            addr.set(
+                x_in_screen,
+                y_in_screen,
+                c & 0xff | (u16::from(colour) << 8),
+            );
         } else {
             addr.set(x_in_screen, y_in_screen, c & 0xff00 | u16::from(colour));
         }
@@ -117,7 +121,7 @@ impl Bitmap4<'_> {
         let x_in_screen = (x / 2) as usize;
         let y_in_screen = y as usize;
         let c = u16::from(colour);
-        addr.set(x_in_screen, y_in_screen, c << 8 | c);
+        addr.set(x_in_screen, y_in_screen, (c << 8) | c);
     }
 
     /// Fills specified page with color.
@@ -131,7 +135,7 @@ impl Bitmap4<'_> {
 
         for x in 0..(WIDTH / 2) as usize {
             for y in 0..(HEIGHT as usize) {
-                addr.set(x, y, c << 8 | c);
+                addr.set(x, y, (c << 8) | c);
             }
         }
     }

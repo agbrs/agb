@@ -41,7 +41,7 @@ pub fn parse_midi(midi_info: &MidiInfo) -> Track {
 
     for (i, preset) in sf2.get_presets().iter().enumerate() {
         preset_lookup.insert(
-            preset.get_bank_number() << 16 | preset.get_patch_number(),
+            (preset.get_bank_number() << 16) | preset.get_patch_number(),
             i,
         );
     }

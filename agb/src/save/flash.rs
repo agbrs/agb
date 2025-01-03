@@ -106,7 +106,7 @@ pub fn detect_chip_id() -> Result<u16, Error> {
     issue_flash_command(CMD_READ_CHIP_ID);
     let high = unsafe { read_raw_byte(0x0E000001) };
     let low = unsafe { read_raw_byte(0x0E000000) };
-    let id = (high as u16) << 8 | low as u16;
+    let id = ((high as u16) << 8) | low as u16;
     issue_flash_command(CMD_READ_CONTENTS);
     Ok(id)
 }

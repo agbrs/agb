@@ -10,7 +10,7 @@ impl<const N: usize> Bitarray<N> {
 
     pub fn get(&self, index: usize) -> Option<bool> {
         if index < N * 32 {
-            Some((self.a[index / 32] >> (index % 32) & 1) != 0)
+            Some(((self.a[index / 32] >> (index % 32)) & 1) != 0)
         } else {
             None
         }
