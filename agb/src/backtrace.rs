@@ -39,7 +39,9 @@ pub(crate) fn unwind_exception() -> Frames {
         }
 
         let is_thumb = lr & 1 == 1;
-        let instruction_size = if is_thumb { 2 } else { 4 };
+        // note that the thumb instruction size isn't actually 3, but it will
+        // also get rid of the lower bit that marks it as being thumb.
+        let instruction_size = if is_thumb { 3 } else { 4 };
 
         // need to subtract instruction_size here since the link register points
         // to the _next_ instruction to execute, not the one that is being
