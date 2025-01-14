@@ -15,6 +15,7 @@ default = ["backtrace", "testing"]
 backtrace = ["testing", "dep:qrcodegen-no-heap"]
 testing = []
 multiboot = []
+serde = ["agb_fixnum/serde", "agb_hashmap/serde"]
 
 [dependencies]
 bitflags = "2"
