@@ -225,6 +225,11 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     crate::panics_render::render_backtrace(&frames, info);
 
     #[cfg(not(feature = "backtrace"))]
+    if let Some(mut mgba) = mgba::Mgba::new() {
+        let _ = mgba.print(format_args!("{info}"), mgba::DebugLevel::Fatal);
+    }
+
+    #[cfg(not(feature = "backtrace"))]
     loop {
         syscall::halt();
     }
