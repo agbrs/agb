@@ -208,18 +208,31 @@ pub mod external {
 
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
-#[cfg(not(any(test, feature = "testing")))]
+#[cfg(any(test, feature = "testing", feature = "backtrace"))]
 #[panic_handler]
-#[allow(unused_must_use)]
 fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
     avoid_double_panic(info);
 
+    #[cfg(feature = "backtrace")]
+    let frames = backtrace::unwind_exception();
+
+    #[cfg(feature = "testing")]
+    if let Some(mut mgba) = mgba::Mgba::new() {
+        let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
+    }
+
+    #[cfg(feature = "backtrace")]
+    crate::panics_render::render_backtrace(&frames, info);
+
+    #[cfg(not(feature = "backtrace"))]
     if let Some(mut mgba) = mgba::Mgba::new() {
         let _ = mgba.print(format_args!("{info}"), mgba::DebugLevel::Fatal);
     }
 
-    #[allow(clippy::empty_loop)]
-    loop {}
+    #[cfg(not(feature = "backtrace"))]
+    loop {
+        syscall::halt();
+    }
 }
 
 // If we panic during the panic handler, then there isn't much we can do any more. So this code
@@ -353,26 +366,6 @@ pub mod test_runner {
 
             mgba.print(format_args!("[ok]"), mgba::DebugLevel::Info)
                 .unwrap();
-        }
-    }
-
-    #[panic_handler]
-    fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
-        avoid_double_panic(info);
-
-        #[cfg(feature = "backtrace")]
-        let frames = backtrace::unwind_exception();
-
-        if let Some(mut mgba) = mgba::Mgba::new() {
-            let _ = mgba.print(format_args!("[failed]"), mgba::DebugLevel::Error);
-        }
-
-        #[cfg(feature = "backtrace")]
-        crate::panics_render::render_backtrace(&frames, info);
-
-        #[cfg(not(feature = "backtrace"))]
-        loop {
-            syscall::halt();
         }
     }
 

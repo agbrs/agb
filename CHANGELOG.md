@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional serde support for agb-hashmap via the `serde` feature flag
 - Added `set_background_palette` to be able to set a single background palette.
 
+### Changed
+
+- Using neither of the testing and backtrace features will mean there is no panic handler.
+
 ### Fixed
 
 - Fixed build error due to breaking change in `xmrs`.
