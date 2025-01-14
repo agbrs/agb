@@ -49,6 +49,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
         drop(x_scroll_transfer);
         x_scroll_transfer =
-            Some(dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]));
+            Some(unsafe { dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]) });
     }
 }

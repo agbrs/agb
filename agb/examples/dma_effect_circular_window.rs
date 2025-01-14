@@ -96,6 +96,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
 
         drop(circle_transfer);
-        circle_transfer = Some(dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses));
+        circle_transfer =
+            Some(unsafe { dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses) });
     }
 }

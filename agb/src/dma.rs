@@ -77,7 +77,7 @@ impl Dma {
     /// # Examples
     ///
     /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub fn hblank_transfer<'dma, T>(
+    pub unsafe fn hblank_transfer<'dma, T>(
         &'dma mut self,
         location: &DmaControllable<T>,
         values: &[T],
