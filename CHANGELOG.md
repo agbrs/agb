@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed build error due to breaking change in `xmrs`.
+- The backtrace feature works on ARM now.
 
 ## [0.21.1] - 2024/10/02
 

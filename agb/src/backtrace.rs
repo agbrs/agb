@@ -1,71 +1,32 @@
-use core::{arch::asm, ops::Index};
+use core::arch::asm;
 
 use alloc::vec::Vec;
-
-// only works for code compiled as THUMB
-#[repr(C)]
-#[derive(Clone, Default, Debug)]
-struct Context {
-    registers: [u32; 11],
-}
 
 pub struct Frames {
     frames: Vec<u32>,
 }
 
-#[allow(unused)]
-enum Register {
-    R0,
-    R1,
-    R2,
-    R3,
-    R4,
-    R5,
-    R6,
-    FP,
-    SP,
-    LR,
-    PC,
-}
-
-impl Index<Register> for Context {
-    type Output = u32;
-
-    fn index(&self, index: Register) -> &Self::Output {
-        &self.registers[index as usize]
-    }
-}
-
 #[inline(never)]
 pub(crate) fn unwind_exception() -> Frames {
-    let mut context = Context::default();
-
-    unsafe {
-        let context_ptr = (&mut context) as *mut _;
-
+    let mut frame_pointer = unsafe {
+        let mut frame_pointer: u32 = 0;
+        let ptr = &mut frame_pointer as *mut _;
+        #[cfg(target_feature = "thumb-mode")]
         asm!(
             "
-            str r0, [r0, #0x00]
-            str r1, [r0, #0x04]
-            str r2, [r0, #0x08]
-            str r3, [r0, #0x0C]
-            str r4, [r0, #0x10]
-            str r5, [r0, #0x14]
-            str r6, [r0, #0x18]
-            str r7, [r0, #0x1C]
-            mov r7, sp
-            str r7, [r0, #0x20]
-            mov r7, lr
-            str r7, [r0, #0x24]
-            mov r7, pc
-            str r7, [r0, #0x28]
-            ldr r7, [r0, #0x1C]
+            str r7, [r0, 0]
             ",
-            in("r0") context_ptr
+            in("r0") ptr
         );
-    }
-
-    let mut frame_pointer = context[Register::FP];
+        #[cfg(not(target_feature = "thumb-mode"))]
+        asm!(
+            "
+            str r11, [r0, 0]
+            ",
+            in("r0") ptr
+        );
+        frame_pointer
+    };
 
     let mut frames = Vec::new();
 
@@ -77,10 +38,15 @@ pub(crate) fn unwind_exception() -> Frames {
             break;
         }
 
-        // need to subtract 2 here since the link register points to the _next_ instruction
-        // to execute, not the one that is being branched from which is the one we care about
-        // in the stack trace.
-        frames.push(lr - 2);
+        let is_thumb = lr & 1 == 1;
+        // note that the thumb instruction size isn't actually 3, but it will
+        // also get rid of the lower bit that marks it as being thumb.
+        let instruction_size = if is_thumb { 3 } else { 4 };
+
+        // need to subtract instruction_size here since the link register points
+        // to the _next_ instruction to execute, not the one that is being
+        // branched from which is the one we care about in the stack trace.
+        frames.push(lr - instruction_size);
 
         frame_pointer = sp;
     }
