@@ -10,8 +10,8 @@ use agb::{
     display::{
         object::{Graphics, OamManaged, Object, Tag, TagMap},
         tiled::{
-            InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize, TileFormat, TiledMap,
-            VRamManager,
+            BackgroundIterator, InfiniteScrolledMap, PartialUpdateStatus, RegularBackgroundSize,
+            RegularBackgroundTiles, TileFormat, VRamManager,
         },
         Priority, HEIGHT, WIDTH,
     },
@@ -266,20 +266,21 @@ impl<'a> Entity<'a> {
     }
 }
 
-struct Map<'a, 'b> {
-    background: &'a mut InfiniteScrolledMap<'b>,
-    foreground: &'a mut InfiniteScrolledMap<'b>,
+struct Map<'a> {
+    background: &'a mut InfiniteScrolledMap,
+    foreground: &'a mut InfiniteScrolledMap,
     position: Vector2D<FixedNumberType>,
     level: &'a Level,
+    is_visible: bool,
 }
 
-impl Map<'_, '_> {
+impl Map<'_> {
     pub fn commit_position(&mut self, vram: &mut VRamManager) {
         self.background.set_pos(vram, self.position.floor());
         self.foreground.set_pos(vram, self.position.floor());
 
-        self.background.commit(vram);
-        self.foreground.commit(vram);
+        self.background.commit();
+        self.foreground.commit();
     }
 
     pub fn init_background(&mut self, vram: &mut VRamManager) -> PartialUpdateStatus {
@@ -288,6 +289,17 @@ impl Map<'_, '_> {
 
     pub fn init_foreground(&mut self, vram: &mut VRamManager) -> PartialUpdateStatus {
         self.foreground.init_partial(vram, self.position.floor())
+    }
+
+    fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
+        if self.is_visible {
+            self.background.show(bg_iter);
+            self.foreground.show(bg_iter);
+        }
+    }
+
+    fn set_visible(&mut self, visible: bool) {
+        self.is_visible = visible;
     }
 }
 
@@ -597,9 +609,9 @@ impl<'a> Player<'a> {
     }
 }
 
-struct PlayingLevel<'a, 'b> {
+struct PlayingLevel<'a> {
     timer: i32,
-    background: Map<'a, 'b>,
+    background: Map<'a>,
     input: ButtonController,
     player: Player<'a>,
 
@@ -612,12 +624,12 @@ enum UpdateState {
     Complete,
 }
 
-impl<'a, 'b> PlayingLevel<'a, 'b> {
+impl<'a> PlayingLevel<'a> {
     fn open_level(
         level: &'a Level,
         object_control: &'a OamManaged,
-        background: &'a mut InfiniteScrolledMap<'b>,
-        foreground: &'a mut InfiniteScrolledMap<'b>,
+        background: &'a mut InfiniteScrolledMap,
+        foreground: &'a mut InfiniteScrolledMap,
         input: ButtonController,
     ) -> Self {
         let mut e: [enemies::Enemy<'a>; 16] = Default::default();
@@ -649,6 +661,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
                 foreground,
                 level,
                 position: background_position,
+                is_visible: false,
             },
             player: Player::new(object_control, start_pos),
             input,
@@ -657,8 +670,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
     }
 
     fn set_backgrounds_visibility(&mut self, visible: bool) {
-        self.background.background.set_visible(visible);
-        self.background.foreground.set_visible(visible);
+        self.background.set_visible(visible);
     }
 
     fn clear_backgrounds(&mut self, vram: &mut VRamManager) {
@@ -671,7 +683,13 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         self.player.wizard.sprite.set_priority(Priority::P0);
     }
 
-    fn dead_update(&mut self, controller: &'a OamManaged) -> bool {
+    fn dead_update(
+        &mut self,
+        controller: &'a OamManaged,
+        bg_iter: &mut BackgroundIterator<'_>,
+    ) -> bool {
+        self.background.show(bg_iter);
+
         self.timer += 1;
 
         let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
@@ -691,6 +709,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
         sfx_player: &mut SfxPlayer,
         vram: &mut VRamManager,
         controller: &'a OamManaged,
+        bg_iter: &mut BackgroundIterator<'_>,
     ) -> UpdateState {
         self.timer += 1;
         self.input.update();
@@ -722,6 +741,7 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 
         self.background.position = self.get_next_map_position();
         self.background.commit_position(vram);
+        self.background.show(bg_iter);
 
         self.player.wizard.commit_position(self.background.position);
         self.player.hat.commit_position(self.background.position);
@@ -775,51 +795,24 @@ impl<'a, 'b> PlayingLevel<'a, 'b> {
 }
 
 pub fn main(mut agb: agb::Gba) -> ! {
-    let (tiled, mut vram) = agb.display.video.tiled0();
+    let (mut tiled, mut vram) = agb.display.video.tiled();
     vram.set_background_palettes(tile_sheet::PALETTES);
-    let mut splash_screen = tiled.background(
-        Priority::P0,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-    let mut world_display = tiled.background(
-        Priority::P0,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
 
     let tileset = &tile_sheet::background.tiles;
-
-    for y in 0..32u16 {
-        for x in 0..32u16 {
-            world_display.set_tile(
-                &mut vram,
-                (x, y),
-                tileset,
-                tile_sheet::background.tile_settings[level_display::BLANK],
-            );
-        }
-    }
 
     let mut mixer = agb.mixer.mixer(Frequency::Hz10512);
 
     mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
-    world_display.commit(&mut vram);
-    world_display.set_visible(true);
-
     splash_screen::show_splash_screen(
+        &mut tiled,
         splash_screen::SplashScreen::Start,
         &mut sfx,
-        &mut splash_screen,
         &mut vram,
     );
 
     loop {
-        world_display.commit(&mut vram);
-        world_display.set_visible(true);
-
         vram.set_background_palettes(tile_sheet::PALETTES);
 
         let object = agb.display.object.get_managed();
@@ -835,8 +828,8 @@ pub fn main(mut agb: agb::Gba) -> ! {
             sfx.frame();
             vblank.wait_for_vblank();
 
-            level_display::write_level(
-                &mut world_display,
+            let mut bg_iter = tiled.iter();
+            let mut world_display_tiles = level_display::write_level(
                 current_level / 8 + 1,
                 current_level % 8 + 1,
                 tileset,
@@ -844,20 +837,21 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 tile_sheet::background.tile_settings,
             );
 
-            world_display.commit(&mut vram);
-            world_display.set_visible(true);
+            world_display_tiles.commit();
+            world_display_tiles.show(&mut bg_iter);
+            bg_iter.commit(&mut vram);
 
             sfx.frame();
             vblank.wait_for_vblank();
 
             let map_current_level = current_level;
             let mut background = InfiniteScrolledMap::new(
-                tiled.background(
+                RegularBackgroundTiles::new(
                     Priority::P2,
                     RegularBackgroundSize::Background32x64,
                     TileFormat::FourBpp,
                 ),
-                Box::new(|pos: Vector2D<i32>| {
+                Box::new(move |pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
                         tileset,
@@ -870,12 +864,12 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 }),
             );
             let mut foreground = InfiniteScrolledMap::new(
-                tiled.background(
+                RegularBackgroundTiles::new(
                     Priority::P0,
                     RegularBackgroundSize::Background64x32,
                     TileFormat::FourBpp,
                 ),
-                Box::new(|pos: Vector2D<i32>| {
+                Box::new(move |pos: Vector2D<i32>| {
                     let level = &map_tiles::LEVELS[map_current_level as usize];
                     (
                         tileset,
@@ -915,16 +909,25 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             level.set_backgrounds_visibility(true);
 
-            world_display.set_visible(false);
+            world_display_tiles.clear(&mut vram);
 
             loop {
-                match level.update_frame(&mut sfx, &mut vram, &object) {
+                let mut bg_iter = tiled.iter();
+
+                match level.update_frame(&mut sfx, &mut vram, &object, &mut bg_iter) {
                     UpdateState::Normal => {}
                     UpdateState::Dead => {
                         level.dead_start();
-                        while level.dead_update(&object) {
+                        loop {
+                            let mut bg_iter = tiled.iter();
+
+                            if !level.dead_update(&object, &mut bg_iter) {
+                                break;
+                            }
+
                             sfx.frame();
                             vblank.wait_for_vblank();
+                            bg_iter.commit(&mut vram);
                             object.commit();
                         }
                         break;
@@ -937,6 +940,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
                 sfx.frame();
                 vblank.wait_for_vblank();
+                bg_iter.commit(&mut vram);
                 object.commit();
             }
 
@@ -947,9 +951,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
         object.commit();
 
         splash_screen::show_splash_screen(
+            &mut tiled,
             splash_screen::SplashScreen::End,
             &mut sfx,
-            &mut splash_screen,
             &mut vram,
         );
     }

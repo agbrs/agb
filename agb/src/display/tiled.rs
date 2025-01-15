@@ -4,6 +4,7 @@ mod vram_manager;
 
 use core::marker::PhantomData;
 
+pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
 

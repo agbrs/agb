@@ -1,5 +1,10 @@
 use super::sfx::SfxPlayer;
-use agb::display::tiled::{RegularMap, TiledMap, VRamManager};
+use agb::display::{
+    tiled::{
+        RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TiledBackground, VRamManager,
+    },
+    Priority,
+};
 
 agb::include_background_gfx!(splash_screens,
     splash => deduplicate "gfx/splash.png",
@@ -12,11 +17,17 @@ pub enum SplashScreen {
 }
 
 pub fn show_splash_screen(
+    gfx: &mut TiledBackground<'_>,
     which: SplashScreen,
     sfx: &mut SfxPlayer,
-    map: &mut RegularMap,
     vram: &mut VRamManager,
 ) {
+    let mut map = RegularBackgroundTiles::new(
+        Priority::P3,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
     map.set_scroll_pos((0i16, 0i16));
     let tile_data = match which {
         SplashScreen::Start => &splash_screens::splash,
@@ -32,11 +43,13 @@ pub fn show_splash_screen(
 
     map.fill_with(vram, tile_data);
 
-    map.commit(vram);
+    map.commit();
     vram.set_background_palettes(splash_screens::PALETTES);
-    map.set_visible(true);
 
     loop {
+        let mut bg_iter = gfx.iter();
+        map.show(&mut bg_iter);
+
         input.update();
         if input.is_just_pressed(
             agb::input::Button::A
@@ -49,8 +62,8 @@ pub fn show_splash_screen(
 
         sfx.frame();
         vblank.wait_for_vblank();
+        bg_iter.commit(vram);
     }
 
-    map.set_visible(false);
     map.clear(vram);
 }
