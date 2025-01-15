@@ -231,9 +231,9 @@ impl RegularBackgroundTiles {
         };
 
         self.priority as u16
-            | tile_colour_flag << 7
-            | self.screen_base_block() << 8
-            | (self.size.size_flag()) << 0xe
+            | (tile_colour_flag << 7)
+            | (self.screen_base_block() << 8)
+            | (self.size.size_flag() << 0xe)
     }
 
     fn screen_base_block(&self) -> u16 {
