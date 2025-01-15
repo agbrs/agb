@@ -137,7 +137,7 @@ where
     _phantom: PhantomData<&'dma ()>,
 }
 
-impl<'dma, T> DmaTransferHandle<'dma, T>
+impl<T> DmaTransferHandle<'_, T>
 where
     T: Copy,
 {
@@ -151,7 +151,7 @@ where
     }
 }
 
-impl<'dma, T> Drop for DmaTransferHandle<'dma, T>
+impl<T> Drop for DmaTransferHandle<'_, T>
 where
     T: Copy,
 {
