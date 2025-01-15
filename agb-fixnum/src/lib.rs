@@ -658,6 +658,17 @@ pub struct Vector2D<T: Number> {
     pub y: T,
 }
 
+/// A convenience function for constructing a Vector2D
+///
+/// ```
+/// use agb_fixnum::{vec2, Vector2D};
+///
+/// assert_eq!(vec2(3, 5), Vector2D::new(3, 5));
+/// ```
+pub const fn vec2<T: Number>(x: T, y: T) -> Vector2D<T> {
+    Vector2D::new(x, y)
+}
+
 impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     type Output = Vector2D<T>;
     fn add(self, rhs: Vector2D<T>) -> Self::Output {
