@@ -1,3 +1,4 @@
+mod infinite_scrolled_map;
 mod regular_background;
 mod vram_manager;
 
