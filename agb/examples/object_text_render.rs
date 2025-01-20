@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        object::{ChangeColour, ObjectTextRender, PaletteVram, Size, TextAlignment},
+        object::{ChangeColour, ObjectTextRender, SinglePaletteVram, Size, TextAlignment},
         palette16::Palette16,
         Font, HEIGHT, WIDTH,
     },
@@ -29,7 +29,7 @@ fn main(mut gba: agb::Gba) -> ! {
     palette[1] = 0xFF_FF;
     palette[2] = 0x00_FF;
     let palette = Palette16::new(palette);
-    let palette = PaletteVram::new(&palette).unwrap();
+    let palette = SinglePaletteVram::new(&palette).unwrap();
 
     let timer = gba.timers.timers();
     let mut timer: agb::timer::Timer = timer.timer2;

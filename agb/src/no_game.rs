@@ -4,7 +4,7 @@ use agb_fixnum::{num, Num, Vector2D};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
-use crate::display::object::{DynamicSprite, PaletteVram, Size, SpriteVram};
+use crate::display::object::{DynamicSprite, PaletteVram, SinglePaletteVram, Size, SpriteVram};
 use crate::display::palette16::Palette16;
 use crate::{
     display::{object::ObjectUnmanaged, HEIGHT, WIDTH},
@@ -113,7 +113,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 
     // generate palettes
 
-    let palettes: Vec<PaletteVram> = PALETTE
+    let palettes: Vec<SinglePaletteVram> = PALETTE
         .chunks(15)
         .map(|x| {
             core::iter::once(0)
@@ -124,7 +124,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
         })
         .map(|palette| {
             let palette = Palette16::new(palette.try_into().unwrap());
-            PaletteVram::new(&palette).unwrap()
+            SinglePaletteVram::new(&palette).unwrap()
         })
         .collect();
 
@@ -133,7 +133,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
     for (palette, colour) in (0..PALETTE.len()).map(|x| (x / 15, x % 15)) {
         let mut sprite = DynamicSprite::new(Size::S8x8);
         sprite.clear(colour + 1);
-        // sprites.push(sprite.to_vram(palettes[palette].clone()));
+        sprites.push(sprite.to_vram(palettes[palette].clone()));
     }
 
     sprites.into_boxed_slice()

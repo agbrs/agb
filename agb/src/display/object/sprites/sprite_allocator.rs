@@ -1,4 +1,6 @@
-use core::{alloc::Allocator, cell::Cell, hint::assert_unchecked, ptr::NonNull};
+use core::{
+    alloc::Allocator, cell::Cell, hint::assert_unchecked, marker::PhantomData, ptr::NonNull,
+};
 
 use alloc::{
     boxed::Box,
@@ -7,7 +9,7 @@ use alloc::{
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
-    display::palette16::Palette16,
+    display::{object::sprites::BYTES_PER_TILE_8BPP, palette16::Palette16},
     hash_map::HashMap,
 };
 
@@ -467,12 +469,13 @@ impl Default for SpriteLoader {
 }
 
 /// Sprite data that can be used to create sprites in vram.
-pub struct DynamicSprite {
+pub struct DynamicSprite<PaletteKind: PaletteVramInterface> {
     data: Box<[u16], SpriteAllocator>,
     size: Size,
+    palette_kind: PhantomData<PaletteKind>,
 }
 
-impl Clone for DynamicSprite {
+impl<T: PaletteVramInterface> Clone for DynamicSprite<T> {
     fn clone(&self) -> Self {
         let allocation = SpriteAllocator
             .allocate(self.size.layout(false))
@@ -490,11 +493,40 @@ impl Clone for DynamicSprite {
         Self {
             data,
             size: self.size,
+            palette_kind: PhantomData,
         }
     }
 }
 
-impl DynamicSprite {
+pub trait PaletteVramInterface: private::Sealed {
+    const PIXEL_SIZE: usize;
+    fn palette(self) -> PaletteVram;
+}
+
+mod private {
+    use super::{MultiPaletteVram, SinglePaletteVram};
+
+    pub trait Sealed {}
+    impl Sealed for SinglePaletteVram {}
+    impl Sealed for MultiPaletteVram {}
+}
+
+impl PaletteVramInterface for SinglePaletteVram {
+    const PIXEL_SIZE: usize = 16;
+
+    fn palette(self) -> PaletteVram {
+        PaletteVram::Single(self)
+    }
+}
+
+impl PaletteVramInterface for MultiPaletteVram {
+    const PIXEL_SIZE: usize = 256;
+    fn palette(self) -> PaletteVram {
+        PaletteVram::Multi(self)
+    }
+}
+
+impl<T: PaletteVramInterface> DynamicSprite<T> {
     /// Creates a new dynamic sprite of a given size
     pub fn try_new(size: Size) -> Result<Self, LoaderError> {
         let allocation = SpriteAllocator
@@ -508,7 +540,11 @@ impl DynamicSprite {
 
         let data = unsafe { Box::from_raw_in(allocation, SpriteAllocator) };
 
-        Ok(DynamicSprite { data, size })
+        Ok(DynamicSprite {
+            data,
+            size,
+            palette_kind: PhantomData,
+        })
     }
 
     #[must_use]
@@ -521,31 +557,63 @@ impl DynamicSprite {
     /// coordinate is out of range of the sprite or if the paletted pixel is
     /// greater than 4 bits.
     pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: usize) {
-        assert!(paletted_pixel < 0x10);
+        match T::PIXEL_SIZE {
+            16 => {
+                assert!(paletted_pixel < T::PIXEL_SIZE);
 
-        let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
-        assert!(x < sprite_pixel_x, "x too big for sprite size");
-        assert!(y < sprite_pixel_y, "y too big for sprite size");
+                let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
+                assert!(x < sprite_pixel_x, "x too big for sprite size");
+                assert!(y < sprite_pixel_y, "y too big for sprite size");
 
-        let (sprite_tile_x, _) = self.size.to_tiles_width_height();
+                let (sprite_tile_x, _) = self.size.to_tiles_width_height();
 
-        let (adjust_tile_x, adjust_tile_y) = (x / 8, y / 8);
+                let (adjust_tile_x, adjust_tile_y) = (x / 8, y / 8);
 
-        let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
+                let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
 
-        let (x_in_tile, y_in_tile) = (x % 8, y % 8);
+                let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        let half_word_to_modify_in_tile = x_in_tile / 4 + y_in_tile * 2;
+                let half_word_to_modify_in_tile = x_in_tile / 4 + y_in_tile * 2;
 
-        let half_word_to_modify =
-            tile_number_to_modify * BYTES_PER_TILE_4BPP / 2 + half_word_to_modify_in_tile;
-        let mut half_word = self.data[half_word_to_modify];
+                let half_word_to_modify =
+                    tile_number_to_modify * BYTES_PER_TILE_4BPP / 2 + half_word_to_modify_in_tile;
+                let mut half_word = self.data[half_word_to_modify];
 
-        let nibble_to_modify = (x % 4) * 4;
+                let nibble_to_modify = (x % 4) * 4;
 
-        half_word = (half_word & !(0b1111 << nibble_to_modify))
-            | ((paletted_pixel as u16) << nibble_to_modify);
-        self.data[half_word_to_modify] = half_word;
+                half_word = (half_word & !(0b1111 << nibble_to_modify))
+                    | ((paletted_pixel as u16) << nibble_to_modify);
+                self.data[half_word_to_modify] = half_word;
+            }
+            256 => {
+                assert!(paletted_pixel < T::PIXEL_SIZE);
+
+                let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
+                assert!(x < sprite_pixel_x, "x too big for sprite size");
+                assert!(y < sprite_pixel_y, "y too big for sprite size");
+
+                let (sprite_tile_x, _) = self.size.to_tiles_width_height();
+
+                let (adjust_tile_x, adjust_tile_y) = (x / 8, y / 8);
+
+                let tile_number_to_modify = adjust_tile_x + adjust_tile_y * sprite_tile_x;
+
+                let (x_in_tile, y_in_tile) = (x % 8, y % 8);
+
+                let half_word_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 2;
+
+                let half_word_to_modify =
+                    tile_number_to_modify * BYTES_PER_TILE_8BPP / 2 + half_word_to_modify_in_tile;
+                let mut half_word = self.data[half_word_to_modify];
+
+                let byte_to_modify = (x % 2) * 8;
+
+                half_word = (half_word & !(0b11111111 << byte_to_modify))
+                    | ((paletted_pixel as u16) << byte_to_modify);
+                self.data[half_word_to_modify] = half_word;
+            }
+            _ => unreachable!(),
+        }
     }
 
     /// Wipes the sprite
@@ -561,11 +629,9 @@ impl DynamicSprite {
     #[must_use]
     /// Tries to copy the sprite to vram to be used to set object sprites.
     /// Panics if it cannot be allocated.
-    pub fn to_vram(self, palette: SinglePaletteVram) -> SpriteVram {
+    pub fn to_vram(self, palette: T) -> SpriteVram {
         let data = unsafe { NonNull::new_unchecked(Box::leak(self.data).as_mut_ptr()) };
 
-        unsafe {
-            SpriteVram::from_location_size(data.cast(), self.size, PaletteVram::Single(palette))
-        }
+        unsafe { SpriteVram::from_location_size(data.cast(), self.size, palette.palette()) }
     }
 }

@@ -10,7 +10,9 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram};
+use super::{
+    sprites::SinglePaletteVram, OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram,
+};
 
 mod preprocess;
 mod renderer;
@@ -100,7 +102,7 @@ impl TextAlignment {
 
 impl<'font> BufferedRender<'font> {
     #[must_use]
-    fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    fn new(font: &'font Font, sprite_size: Size, palette: SinglePaletteVram) -> Self {
         let config = Configuration::new(sprite_size, palette);
         BufferedRender {
             char_render: WordRender::new(config),
@@ -251,7 +253,7 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(font: &'font Font, sprite_size: Size, palette: SinglePaletteVram) -> Self {
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
             number_of_objects: 0,

@@ -1,12 +1,12 @@
 use crate::display::{
-    object::{DynamicSprite, PaletteVram, Size, SpriteVram},
+    object::{sprites::SinglePaletteVram, DynamicSprite, PaletteVram, Size, SpriteVram},
     Font,
 };
 
 use super::ChangeColour;
 
 struct WorkingLetter {
-    dynamic: DynamicSprite,
+    dynamic: DynamicSprite<SinglePaletteVram>,
     // where to render the letter from x_min to x_max
     x_offset: i32,
 }
@@ -26,12 +26,12 @@ impl WorkingLetter {
 
 pub struct Configuration {
     sprite_size: Size,
-    palette: PaletteVram,
+    palette: SinglePaletteVram,
 }
 
 impl Configuration {
     #[must_use]
-    pub fn new(sprite_size: Size, palette: PaletteVram) -> Self {
+    pub fn new(sprite_size: Size, palette: SinglePaletteVram) -> Self {
         Self {
             sprite_size,
             palette,
@@ -70,11 +70,10 @@ impl WordRender {
 
         let mut new_sprite = DynamicSprite::new(self.config.sprite_size);
         core::mem::swap(&mut self.working.dynamic, &mut new_sprite);
-        // let sprite = new_sprite.to_vram(self.config.palette.clone());
-        todo!();
+        let sprite = new_sprite.to_vram(self.config.palette.clone());
         self.working.reset();
 
-        // Some(sprite)
+        Some(sprite)
     }
 
     #[must_use]
