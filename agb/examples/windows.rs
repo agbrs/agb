@@ -16,7 +16,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (mut gfx, mut vram) = gba.display.video.tiled();
+    let mut gfx = gba.display.video.tiled();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -24,7 +24,7 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map);
     map.commit();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
@@ -79,7 +79,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .set_background_enable(background_id, true)
             .set_blend_enable(true);
 
-        bg_iter.commit(&mut vram);
+        bg_iter.commit();
         window.commit();
         blend.commit();
     }

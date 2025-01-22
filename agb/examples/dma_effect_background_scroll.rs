@@ -7,15 +7,16 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        HEIGHT, example_logo,
+        example_logo,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        HEIGHT,
     },
     interrupt::VBlank,
 };
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (mut gfx, mut vram) = gba.display.video.tiled();
+    let mut gfx = gba.display.video.tiled();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -23,7 +24,7 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map);
     map.commit();
 
     let vblank = VBlank::get();
@@ -45,7 +46,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         vblank.wait_for_vblank();
-        bg_iter.commit(&mut vram);
+        bg_iter.commit();
 
         drop(x_scroll_transfer);
         x_scroll_transfer =

@@ -5,9 +5,10 @@ extern crate alloc;
 
 use agb::{
     display::{
-        HEIGHT, WIDTH, example_logo,
+        example_logo,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         window::WinIn,
+        HEIGHT, WIDTH,
     },
     fixnum::{Num, Rect, Vector2D},
     interrupt::VBlank,
@@ -22,7 +23,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (mut gfx, mut vram) = gba.display.video.tiled();
+    let mut gfx = gba.display.video.tiled();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -33,7 +34,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut dmas = gba.dma.dma();
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map);
     map.commit();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
@@ -83,7 +84,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let background_id = map.show(&mut bg_iter);
 
         vblank.wait_for_vblank();
-        bg_iter.commit(&mut vram);
+        bg_iter.commit();
 
         window
             .win_in(WinIn::Win0)

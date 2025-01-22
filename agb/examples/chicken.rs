@@ -5,7 +5,10 @@ use agb::{
     display::{
         object::{OamManaged, Object, Size, Sprite},
         palette16::Palette16,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting},
+        tiled::{
+            RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
+            VRAM_MANAGER,
+        },
         HEIGHT, WIDTH,
     },
     input::Button,
@@ -46,11 +49,11 @@ fn main(mut gba: agb::Gba) -> ! {
             .unwrap()
     };
 
-    let (mut gfx, mut vram) = gba.display.video.tiled();
+    let mut gfx = gba.display.video.tiled();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    vram.set_background_palette_raw(&MAP_PALETTE);
+    VRAM_MANAGER.set_background_palette_raw(&MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
 
     let mut background = RegularBackgroundTiles::new(
@@ -62,7 +65,6 @@ fn main(mut gba: agb::Gba) -> ! {
     for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
         background.set_tile(
-            &mut vram,
             (i % 32, i / 32),
             &tileset,
             TileSetting::from_raw(tile & ((1 << 10) - 1), tile & !((1 << 10) - 1)),
@@ -139,7 +141,7 @@ fn main(mut gba: agb::Gba) -> ! {
         background.show(&mut bg_iter);
 
         vblank.wait_for_vblank();
-        bg_iter.commit(&mut vram);
+        bg_iter.commit();
         object.commit();
     }
 }
