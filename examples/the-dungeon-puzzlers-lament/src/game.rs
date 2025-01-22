@@ -1,7 +1,7 @@
 use agb::{
     display::{
         object::{
-            OamIterator, ObjectTextRender, ObjectUnmanaged, PaletteVram, Size, SpriteLoader,
+            OamIterator, ObjectTextRender, ObjectUnmanaged, SinglePaletteVram, Size, SpriteLoader,
             SpriteVram, TextAlignment,
         },
         palette16::Palette16,
@@ -41,11 +41,11 @@ struct Lament<'a, 'b> {
     background: &'a mut MapLoan<'b, RegularMap>,
 }
 
-fn generate_text_palette() -> PaletteVram {
+fn generate_text_palette() -> SinglePaletteVram {
     let mut palette = [0x0; 16];
     palette[1] = 0xFF_FF;
     let palette = Palette16::new(palette);
-    PaletteVram::new(&palette).unwrap()
+    SinglePaletteVram::new(&palette).unwrap()
 }
 
 impl<'a, 'b> Lament<'a, 'b> {
