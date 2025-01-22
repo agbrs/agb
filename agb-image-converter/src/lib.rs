@@ -466,8 +466,8 @@ enum PaletteAllocationDirection {
 }
 
 struct Sprite256Settings {
-    start_offset: u32,
-    direction: PaletteAllocationDirection,
+    _start_offset: u32,
+    _direction: PaletteAllocationDirection,
     filenames: Vec<(PathBuf, LitStr)>,
 }
 
@@ -516,8 +516,8 @@ impl Parse for Sprite256Settings {
             .collect();
 
         Ok(Sprite256Settings {
-            start_offset,
-            direction,
+            _start_offset: start_offset,
+            _direction: direction,
             filenames,
         })
     }

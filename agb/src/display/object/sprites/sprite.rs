@@ -17,6 +17,7 @@ pub enum Palette {
     Multi(&'static MultiPalette),
 }
 
+/// A palette for 256 colour mode.
 pub struct MultiPalette {
     first_index: u32,
     palettes: &'static [Palette16],
@@ -24,6 +25,7 @@ pub struct MultiPalette {
 
 impl MultiPalette {
     #[must_use]
+    /// Create a new palette. The first index is the index where the palette starts.
     pub const fn new(first_index: u32, palettes: &'static [Palette16]) -> Self {
         assert!(palettes.len() <= 16);
         assert!(!palettes.is_empty());
@@ -35,11 +37,14 @@ impl MultiPalette {
         }
     }
     #[must_use]
+    /// Gets the palettes, usually for coping to palette vram.
     pub const fn palettes(&self) -> &'static [Palette16] {
         self.palettes
     }
 
     #[must_use]
+    /// Gets the first index of the palette. When copied to palette vram it is
+    /// expected to be copied starting from this index.
     pub const fn first_index(&self) -> u32 {
         self.first_index
     }
@@ -171,6 +176,9 @@ macro_rules! include_aseprite {
     }};
 }
 
+/// Includes sprites found in the referenced aseprite files.
+///
+/// This will optimise to a single multi palette, 256 colour sprites.
 #[macro_export]
 macro_rules! include_aseprite_256 {
     ($($aseprite_path: expr),*$(,)?) => {{

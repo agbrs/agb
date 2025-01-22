@@ -1,5 +1,5 @@
 use crate::display::{
-    object::{sprites::SinglePaletteVram, DynamicSprite, PaletteVram, Size, SpriteVram},
+    object::{sprites::SinglePaletteVram, DynamicSprite, Size, SpriteVram},
     Font,
 };
 

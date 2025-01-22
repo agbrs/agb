@@ -216,6 +216,7 @@ pub struct SinglePaletteVram {
 }
 
 impl SinglePaletteVram {
+    /// Allocates the palette in vram
     pub fn new(palette: &Palette16) -> Result<Self, LoaderError> {
         Ok(Self {
             data: Rc::new(
@@ -227,12 +228,14 @@ impl SinglePaletteVram {
     }
 }
 
+/// A 256 colour palette in vram, this is reference counted so it is cheap to Clone.
 #[derive(Debug, Clone)]
 pub struct MultiPaletteVram {
     data: Rc<MultiPaletteAllocation>,
 }
 
 impl MultiPaletteVram {
+    /// Allocates the palette in vram
     pub fn new(palette: &MultiPalette) -> Result<Self, LoaderError> {
         Ok(Self {
             data: Rc::new(
@@ -498,8 +501,11 @@ impl<T: PaletteVramInterface> Clone for DynamicSprite<T> {
     }
 }
 
+/// A palette in vram. This trait is sealed and cannot be implemented by the user.
 pub trait PaletteVramInterface: private::Sealed {
+    /// The maximum value of a pixel
     const PIXEL_SIZE: usize;
+    /// The palette in vram
     fn palette(self) -> PaletteVram;
 }
 

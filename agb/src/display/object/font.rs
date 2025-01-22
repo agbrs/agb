@@ -10,9 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{
-    sprites::SinglePaletteVram, OamIterator, ObjectUnmanaged, PaletteVram, Size, SpriteVram,
-};
+use super::{sprites::SinglePaletteVram, OamIterator, ObjectUnmanaged, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -123,7 +121,7 @@ fn is_private_use(c: char) -> bool {
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, ChangeColour, Size};
+/// use agb::display::object::{ObjectTextRender, SinglePaletteVram, ChangeColour, Size};
 /// use agb::display::palette16::Palette16;
 /// use agb::display::Font;
 ///
@@ -136,7 +134,7 @@ fn is_private_use(c: char) -> bool {
 /// palette[1] = 0xFF_FF;
 /// palette[2] = 0x00_FF;
 /// let palette = Palette16::new(palette);
-/// let palette = PaletteVram::new(&palette).unwrap();
+/// let palette = SinglePaletteVram::new(&palette).unwrap();
 /// let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
 /// let _ = writeln!(writer, "Hello, {}World{}!", ChangeColour::new(2), ChangeColour::new(1));
@@ -210,7 +208,7 @@ impl BufferedRender<'_> {
 /// ```rust,no_run
 /// #![no_std]
 /// #![no_main]
-/// use agb::display::object::{ObjectTextRender, PaletteVram, TextAlignment, Size};
+/// use agb::display::object::{ObjectTextRender, SinglePaletteVram, TextAlignment, Size};
 /// use agb::display::palette16::Palette16;
 /// use agb::display::{Font, WIDTH};
 ///
@@ -226,7 +224,7 @@ impl BufferedRender<'_> {
 ///     let mut palette = [0x0; 16];
 ///     palette[1] = 0xFF_FF;
 ///     let palette = Palette16::new(palette);
-///     let palette = PaletteVram::new(&palette).unwrap();
+///     let palette = SinglePaletteVram::new(&palette).unwrap();
 ///
 ///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
