@@ -3,7 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
-use super::tiled::{DynamicTile, RegularBackgroundTiles, VRamManager};
+use super::tiled::{DynamicTile, RegularBackgroundTiles};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
@@ -131,19 +131,14 @@ pub struct TextWriter<'a, 'b> {
     foreground_colour: u8,
     background_colour: u8,
     text_renderer: &'a mut TextRenderer<'b>,
-    vram_manager: &'a mut VRamManager,
     bg: &'a mut RegularBackgroundTiles,
 }
 
 impl Write for TextWriter<'_, '_> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
         for c in text.chars() {
-            self.text_renderer.write_char(
-                c,
-                self.vram_manager,
-                self.foreground_colour,
-                self.background_colour,
-            );
+            self.text_renderer
+                .write_char(c, self.foreground_colour, self.background_colour);
         }
 
         Ok(())
@@ -152,7 +147,7 @@ impl Write for TextWriter<'_, '_> {
 
 impl TextWriter<'_, '_> {
     pub fn commit(self) {
-        self.text_renderer.commit(self.bg, self.vram_manager);
+        self.text_renderer.commit(self.bg);
     }
 }
 
@@ -166,26 +161,18 @@ impl<'a, 'b> TextRenderer<'b> {
         foreground_colour: u8,
         background_colour: u8,
         bg: &'a mut RegularBackgroundTiles,
-        vram_manager: &'a mut VRamManager,
     ) -> TextWriter<'a, 'b> {
         TextWriter {
             text_renderer: self,
             foreground_colour,
             background_colour,
             bg,
-            vram_manager,
         }
     }
 
     /// Renders a single character creating as many dynamic tiles as needed.
     /// The foreground and background colour are palette indicies.
-    fn render_letter(
-        &mut self,
-        letter: &FontLetter,
-        vram_manager: &mut VRamManager,
-        foreground_colour: u8,
-        background_colour: u8,
-    ) {
+    fn render_letter(&mut self, letter: &FontLetter, foreground_colour: u8, background_colour: u8) {
         assert!(foreground_colour < 16);
         assert!(background_colour < 16);
 
@@ -238,9 +225,10 @@ impl<'a, 'b> TextRenderer<'b> {
                 }
 
                 if !zero {
-                    let tile = self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
-                        vram_manager.new_dynamic_tile().fill_with(background_colour)
-                    });
+                    let tile = self
+                        .tiles
+                        .entry((tile_x, tile_y))
+                        .or_insert_with(|| DynamicTile::new().fill_with(background_colour));
 
                     for (i, tile_data_line) in tile.tile_data.iter_mut().enumerate() {
                         *tile_data_line |= masks[i];
@@ -251,10 +239,9 @@ impl<'a, 'b> TextRenderer<'b> {
     }
 
     /// Commit the dynamic tiles that contain the text to the background.
-    pub fn commit(&self, bg: &'a mut RegularBackgroundTiles, vram_manager: &'a mut VRamManager) {
+    pub fn commit(&self, bg: &'a mut RegularBackgroundTiles) {
         for ((x, y), tile) in self.tiles.iter() {
             bg.set_tile(
-                vram_manager,
                 (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16),
                 &tile.tile_set(),
                 tile.tile_setting(),
@@ -263,13 +250,7 @@ impl<'a, 'b> TextRenderer<'b> {
     }
 
     /// Write another char into the text, moving the cursor as appropriate.
-    pub fn write_char(
-        &mut self,
-        c: char,
-        vram_manager: &mut VRamManager,
-        foreground_colour: u8,
-        background_colour: u8,
-    ) {
+    pub fn write_char(&mut self, c: char, foreground_colour: u8, background_colour: u8) {
         if c == '\n' {
             self.current_y_pos += self.font.line_height;
             self.current_x_pos = 0;
@@ -281,19 +262,8 @@ impl<'a, 'b> TextRenderer<'b> {
             }
             self.previous_character = Some(c);
 
-            self.render_letter(letter, vram_manager, foreground_colour, background_colour);
+            self.render_letter(letter, foreground_colour, background_colour);
             self.current_x_pos += i32::from(letter.advance_width);
-        }
-    }
-
-    /// Clear the text, removing the tiles from vram and resetting the cursor.
-    pub fn clear(&mut self, vram_manager: &mut VRamManager) {
-        self.current_x_pos = 0;
-        self.current_y_pos = 0;
-        let tiles = core::mem::take(&mut self.tiles);
-
-        for (_, tile) in tiles.into_iter() {
-            vram_manager.remove_dynamic_tile(tile);
         }
     }
 }
@@ -301,12 +271,12 @@ impl<'a, 'b> TextRenderer<'b> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::tiled::{RegularBackgroundTiles, TileFormat};
+    use crate::display::tiled::{RegularBackgroundTiles, TileFormat, VRAM_MANAGER};
     static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {
-        let (mut gfx, mut vram) = gba.display.video.tiled();
+        let mut gfx = gba.display.video.tiled();
 
         let mut bg = RegularBackgroundTiles::new(
             crate::display::Priority::P0,
@@ -314,17 +284,16 @@ mod tests {
             TileFormat::FourBpp,
         );
 
-        vram.set_background_palette_raw(&[
+        VRAM_MANAGER.set_background_palette_raw(&[
             0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
             0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
         ]);
 
-        let background_tile = vram.new_dynamic_tile().fill_with(0);
+        let background_tile = VRAM_MANAGER.new_dynamic_tile().fill_with(0);
 
         for y in 0..20u16 {
             for x in 0..30u16 {
                 bg.set_tile(
-                    &mut vram,
                     (x, y),
                     &background_tile.tile_set(),
                     background_tile.tile_setting(),
@@ -332,34 +301,29 @@ mod tests {
             }
         }
 
-        vram.remove_dynamic_tile(background_tile);
-
         let mut renderer = FONT.render_text((0u16, 3u16));
 
         // Test twice to ensure that clearing works
         for _ in 0..2 {
-            let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(1, 2, &mut bg);
             write!(&mut writer, "Hello, ").unwrap();
 
             // Test changing color
-            let mut writer = renderer.writer(4, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(4, 2, &mut bg);
             writeln!(&mut writer, "World!").unwrap();
             writer.commit();
 
             // Test writing with same renderer after showing background
-            let mut writer = renderer.writer(1, 2, &mut bg, &mut vram);
+            let mut writer = renderer.writer(1, 2, &mut bg);
             writeln!(&mut writer, "This is a font rendering example").unwrap();
             writer.commit();
             bg.commit();
 
             let mut bg_iter = gfx.iter();
             bg.show(&mut bg_iter);
-            bg_iter.commit(&mut vram);
+            bg_iter.commit();
 
             crate::test_runner::assert_image_output("examples/font/font-test-output.png");
-            renderer.clear(&mut vram);
         }
-
-        bg.clear(&mut vram);
     }
 }

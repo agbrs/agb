@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
-pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRamManager};
+pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
@@ -168,7 +168,7 @@ impl BackgroundIterator<'_> {
         index
     }
 
-    pub fn commit(self, vram: &mut VRamManager) {
+    pub fn commit(self) {
         // TODO: Affine
         let video_mode = 0;
         let enabled_backgrounds = (1u16 << self.num_regular) - 1;
@@ -195,6 +195,6 @@ impl BackgroundIterator<'_> {
             bg_y_offset.set(regular_background.scroll_offset.y);
         }
 
-        vram.gc();
+        VRAM_MANAGER.gc();
     }
 }

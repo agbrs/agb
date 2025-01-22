@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 use crate::display;
 
 use super::{
-    BackgroundId, BackgroundIterator, RegularBackgroundTiles, TileSet, TileSetting, VRamManager,
+    BackgroundId, BackgroundIterator, RegularBackgroundTiles, TileSet, TileSetting, VRAM_MANAGER,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,11 +38,7 @@ impl InfiniteScrolledMap {
         }
     }
 
-    pub fn init_partial(
-        &mut self,
-        vram: &mut VRamManager,
-        pos: Vector2D<i32>,
-    ) -> PartialUpdateStatus {
+    pub fn init_partial(&mut self, pos: Vector2D<i32>) -> PartialUpdateStatus {
         self.current_pos = pos;
 
         let x_start = self.current_pos.x.div_floor_stable(8);
@@ -67,7 +63,6 @@ impl InfiniteScrolledMap {
                 let (tileset, tile_setting) = (self.tile)(pos);
 
                 self.map.set_tile(
-                    vram,
                     (x_idx as u16, (y_idx + copy_from as usize) as u16),
                     tileset,
                     tile_setting,
@@ -84,11 +79,7 @@ impl InfiniteScrolledMap {
         }
     }
 
-    pub fn set_pos(
-        &mut self,
-        vram: &mut VRamManager,
-        new_pos: Vector2D<i32>,
-    ) -> PartialUpdateStatus {
+    pub fn set_pos(&mut self, new_pos: Vector2D<i32>) -> PartialUpdateStatus {
         let old_pos = self.current_pos;
 
         let difference = new_pos - old_pos;
@@ -162,7 +153,6 @@ impl InfiniteScrolledMap {
             let (tileset, tile_setting) = (self.tile)(vec2(tile_x, tile_y));
 
             self.map.set_tile(
-                vram,
                 size.tile_pos(vec2(tile_x, tile_y) - self.offset),
                 tileset,
                 tile_setting,
@@ -183,10 +173,6 @@ impl InfiniteScrolledMap {
 
     pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) -> BackgroundId {
         self.map.show(bg_iter)
-    }
-
-    pub fn clear(&mut self, vram: &mut VRamManager) {
-        self.map.clear(vram);
     }
 }
 

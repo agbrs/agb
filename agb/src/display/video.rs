@@ -1,8 +1,4 @@
-use super::{
-    bitmap3::Bitmap3,
-    bitmap4::Bitmap4,
-    tiled::{TiledBackground, VRamManager},
-};
+use super::{bitmap3::Bitmap3, bitmap4::Bitmap4, tiled::TiledBackground};
 
 /// The video struct controls access to the video hardware.
 /// It ensures that only one video mode is active at a time.
@@ -13,17 +9,17 @@ pub struct Video;
 
 impl Video {
     /// Bitmap mode that provides a 16-bit colour framebuffer
-    pub fn bitmap3(&mut self) -> Bitmap3<'_> {
+    pub(crate) fn bitmap3(&mut self) -> Bitmap3<'_> {
         unsafe { Bitmap3::new() }
     }
 
     /// Bitmap 4 provides two 8-bit paletted framebuffers with page switching
-    pub fn bitmap4(&mut self) -> Bitmap4<'_> {
+    pub(crate) fn bitmap4(&mut self) -> Bitmap4<'_> {
         unsafe { Bitmap4::new() }
     }
 
     /// Tiled mode allows for up to 4 backgrounds
-    pub fn tiled(&mut self) -> (TiledBackground<'_>, VRamManager) {
-        (unsafe { TiledBackground::new() }, VRamManager::new())
+    pub fn tiled(&mut self) -> TiledBackground<'_> {
+        unsafe { TiledBackground::new() }
     }
 }

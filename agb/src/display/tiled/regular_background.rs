@@ -11,7 +11,7 @@ use crate::display::{tile_data::TileData, Priority};
 
 use super::{
     BackgroundId, BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile,
-    TileFormat, TileSet, TileSetting, VRamManager, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX,
+    TileFormat, TileSet, TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER,
     VRAM_START,
 };
 
@@ -127,7 +127,6 @@ impl RegularBackgroundTiles {
 
     pub fn set_tile(
         &mut self,
-        vram: &mut VRamManager,
         pos: impl Into<Vector2D<u16>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
@@ -141,10 +140,10 @@ impl RegularBackgroundTiles {
         );
 
         let pos = self.size.gba_offset(pos.into());
-        self.set_tile_at_pos(vram, pos, tileset, tile_setting);
+        self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
-    pub fn fill_with(&mut self, vram: &mut VRamManager, tile_data: &TileData) {
+    pub fn fill_with(&mut self, tile_data: &TileData) {
         assert!(
             tile_data.tile_settings.len() >= 20 * 30,
             "Don't have a full screen's worth of tile data"
@@ -162,32 +161,21 @@ impl RegularBackgroundTiles {
             for x in 0..30 {
                 let tile_id = y * 30 + x;
                 let tile_pos = y * 32 + x;
-                self.set_tile_at_pos(
-                    vram,
-                    tile_pos,
-                    &tile_data.tiles,
-                    tile_data.tile_settings[tile_id],
-                );
+                self.set_tile_at_pos(tile_pos, &tile_data.tiles, tile_data.tile_settings[tile_id]);
             }
         }
     }
 
-    fn set_tile_at_pos(
-        &mut self,
-        vram: &mut VRamManager,
-        pos: usize,
-        tileset: &TileSet<'_>,
-        tile_setting: TileSetting,
-    ) {
+    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
         let old_tile = self.tiles[pos];
         if old_tile != Tile::default() {
-            vram.remove_tile(old_tile.tile_index(self.colours));
+            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.colours));
         }
 
         let tile_index = tile_setting.index();
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
-            let new_tile_idx = vram.add_tile(tileset, tile_index);
+            let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index);
             Tile::new(new_tile_idx, tile_setting)
         } else {
             Tile::default()
@@ -221,10 +209,10 @@ impl RegularBackgroundTiles {
         })
     }
 
-    pub fn clear(&mut self, vram: &mut VRamManager) {
+    pub fn clear(&mut self) {
         for tile in &mut self.tiles {
             if *tile != Tile::default() {
-                vram.remove_tile(tile.tile_index(self.colours));
+                VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
             }
 
             *tile = Tile::default();
@@ -256,13 +244,7 @@ impl RegularBackgroundTiles {
 
 impl Drop for RegularBackgroundTiles {
     fn drop(&mut self) {
+        self.clear();
         unsafe { ScreenblockAllocator.deallocate(self.screenblock_ptr.cast(), self.size.layout()) };
-
-        #[cfg(debug_assertions)]
-        {
-            if self.tiles.iter().any(|&t| t != Tile::default()) {
-                panic!("background tiles were not cleared with .clear() before dropping. Memory leak in vram");
-            }
-        }
     }
 }

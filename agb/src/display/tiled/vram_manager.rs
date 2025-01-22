@@ -1,4 +1,4 @@
-use core::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
@@ -8,6 +8,7 @@ use crate::{
     dma,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
+    util::SyncUnsafeCell,
 };
 
 use super::{TileSetting, CHARBLOCK_SIZE, VRAM_START};
@@ -159,6 +160,11 @@ pub struct DynamicTile<'a> {
 
 impl DynamicTile<'_> {
     #[must_use]
+    pub fn new() -> Self {
+        VRAM_MANAGER.new_dynamic_tile()
+    }
+
+    #[must_use]
     pub fn fill_with(self, colour_index: u8) -> Self {
         let colour_index = u32::from(colour_index);
 
@@ -170,9 +176,7 @@ impl DynamicTile<'_> {
         self.tile_data.fill(value);
         self
     }
-}
 
-impl DynamicTile<'_> {
     #[must_use]
     pub fn tile_set(&self) -> TileSet<'_> {
         let tiles = unsafe {
@@ -194,14 +198,78 @@ impl DynamicTile<'_> {
     }
 }
 
+impl Drop for DynamicTile<'_> {
+    fn drop(&mut self) {
+        VRAM_MANAGER.drop_dynamic_tile(self);
+    }
+}
+
 pub struct VRamManager {
+    inner: SyncUnsafeCell<MaybeUninit<VRamManagerInner>>,
+}
+
+// SAFETY: This is the _only_ one
+pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
+
+impl VRamManager {
+    const unsafe fn new() -> Self {
+        Self {
+            inner: SyncUnsafeCell::new(MaybeUninit::uninit()),
+        }
+    }
+
+    // Should only be called in the Gba struct's constructor to ensure it happens exactly once
+    pub(crate) unsafe fn initialise(&self) {
+        (*self.inner.get()).write(VRamManagerInner::new());
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&mut VRamManagerInner) -> T) -> T {
+        f(unsafe { (*self.inner.get()).assume_init_mut() })
+    }
+}
+
+impl VRamManager {
+    fn drop_dynamic_tile(&self, tile: &DynamicTile<'_>) {
+        self.with(|inner| inner.remove_dynamic_tile(tile));
+    }
+
+    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile<'static> {
+        self.with(VRamManagerInner::new_dynamic_tile)
+    }
+
+    pub(crate) fn remove_tile(&self, index: TileIndex) {
+        self.with(|inner| inner.remove_tile(index));
+    }
+
+    pub(crate) fn add_tile(&self, tile_set: &TileSet<'_>, tile_index: u16) -> TileIndex {
+        self.with(|inner| inner.add_tile(tile_set, tile_index))
+    }
+
+    pub(crate) fn gc(&self) {
+        self.with(VRamManagerInner::gc);
+    }
+
+    pub fn set_background_palette_raw(&self, palette: &[u16]) {
+        self.with(|inner| inner.set_background_palette_raw(palette));
+    }
+
+    pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
+        self.with(|inner| inner.set_background_palette(pal_index, palette));
+    }
+
+    pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
+        self.with(|inner| inner.set_background_palettes(palettes));
+    }
+}
+
+struct VRamManagerInner {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
 
     indices_to_gc: Vec<TileIndex>,
 }
 
-impl VRamManager {
+impl VRamManagerInner {
     pub(crate) fn new() -> Self {
         let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
             HashMap::with_capacity(256);
@@ -224,7 +292,7 @@ impl VRamManager {
     }
 
     #[must_use]
-    pub fn new_dynamic_tile<'a>(&mut self) -> DynamicTile<'a> {
+    pub fn new_dynamic_tile(&mut self) -> DynamicTile<'static> {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -266,8 +334,8 @@ impl VRamManager {
 
     // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
     #[allow(clippy::needless_pass_by_value)]
-    pub fn remove_dynamic_tile(&mut self, dynamic_tile: DynamicTile<'_>) {
-        let pointer = NonNull::new(dynamic_tile.tile_data.as_mut_ptr() as *mut _).unwrap();
+    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile<'_>) {
+        let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
         // TODO: dynamic_tile.format?
