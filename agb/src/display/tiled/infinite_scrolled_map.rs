@@ -3,9 +3,7 @@ use alloc::boxed::Box;
 
 use crate::display;
 
-use super::{
-    BackgroundId, BackgroundIterator, RegularBackgroundTiles, TileSet, TileSetting, VRAM_MANAGER,
-};
+use super::{BackgroundId, BackgroundIterator, RegularBackgroundTiles, TileSet, TileSetting};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PartialUpdateStatus {

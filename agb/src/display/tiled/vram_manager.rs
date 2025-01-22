@@ -198,6 +198,12 @@ impl DynamicTile<'_> {
     }
 }
 
+impl Default for DynamicTile<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for DynamicTile<'_> {
     fn drop(&mut self) {
         VRAM_MANAGER.drop_dynamic_tile(self);
@@ -259,6 +265,48 @@ impl VRamManager {
 
     pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
         self.with(|inner| inner.set_background_palettes(palettes));
+    }
+
+    pub fn replace_tile(
+        &self,
+        source_tile_set: &TileSet<'_>,
+        source_tile: u16,
+        target_tile_set: &TileSet<'_>,
+        target_tile: u16,
+    ) {
+        self.with(|inner| {
+            inner.replace_tile(source_tile_set, source_tile, target_tile_set, target_tile);
+        });
+    }
+
+    #[must_use]
+    pub fn background_palette_colour_dma(
+        &self,
+        pal_index: usize,
+        colour_index: usize,
+    ) -> dma::DmaControllable<u16> {
+        self.with(|inner| inner.background_palette_colour_dma(pal_index, colour_index))
+    }
+
+    pub fn set_background_palette_colour(
+        &mut self,
+        pal_index: usize,
+        colour_index: usize,
+        colour: u16,
+    ) {
+        self.with(|inner| inner.set_background_palette_colour(pal_index, colour_index, colour));
+    }
+
+    /// Gets the index of the colour for a given background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+        self.with(|inner| inner.find_colour_index_16(palette_index, colour))
+    }
+
+    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+        self.with(|inner| inner.find_colour_index_256(colour))
     }
 }
 

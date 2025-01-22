@@ -90,9 +90,7 @@ impl<T, const X: usize, const Y: usize> MemoryMapped2DArray<T, X, Y> {
             array: address as *mut [[T; X]; Y],
         }
     }
-    pub fn get(&self, x: usize, y: usize) -> T {
-        unsafe { (&mut (*self.array)[y][x] as *mut T).read_volatile() }
-    }
+
     pub fn set(&self, x: usize, y: usize, val: T) {
         unsafe { (&mut (*self.array)[y][x] as *mut T).write_volatile(val) }
     }
