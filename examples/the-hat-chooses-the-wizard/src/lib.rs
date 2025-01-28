@@ -298,7 +298,9 @@ impl Map<'_> {
                     .unwrap_or(&0) as usize],
             )
         });
+    }
 
+    fn commit_backgrounds(&mut self) {
         self.background.commit();
         self.foreground.commit();
     }
@@ -889,6 +891,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
                             sfx.frame();
                             vblank.wait_for_vblank();
+                            level.background.commit_backgrounds();
                             bg_iter.commit();
                             object.commit();
                         }
@@ -902,6 +905,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
                 sfx.frame();
                 vblank.wait_for_vblank();
+                level.background.commit_backgrounds();
                 bg_iter.commit();
                 object.commit();
             }
