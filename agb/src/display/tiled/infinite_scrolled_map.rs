@@ -114,7 +114,6 @@ impl InfiniteScrolledMap {
         new_pos: Vector2D<i32>,
         tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
     ) -> PartialUpdateStatus {
-        // step 1: do we actually need to do anything?
         let old_working = old_pos.div_floor_stable(8);
         let new_working = new_pos.div_floor_stable(8);
 
