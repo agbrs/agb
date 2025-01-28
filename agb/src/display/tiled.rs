@@ -30,6 +30,7 @@ impl BackgroundId {
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 
 #[derive(Clone, Copy, Debug, Default)]
+#[repr(align(4))]
 pub struct TileSetting {
     tile_id: u16,
     effect_bits: u16,

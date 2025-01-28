@@ -58,11 +58,11 @@ impl RegularBackgroundSize {
         self.width() * self.height()
     }
 
-    const fn gba_offset(self, pos: Vector2D<u16>) -> usize {
-        let x_mod = pos.x & (self.width() as u16 - 1);
-        let y_mod = pos.y & (self.height() as u16 - 1);
+    const fn gba_offset(self, pos: Vector2D<u32>) -> usize {
+        let x_mod = pos.x & (self.width() as u32 - 1);
+        let y_mod = pos.y & (self.height() as u32 - 1);
 
-        let screenblock = (x_mod / 32) + (y_mod / 32) * (self.width() as u16 / 32);
+        let screenblock = (x_mod / 32) + (y_mod / 32) * (self.width() as u32 / 32);
 
         let pos = screenblock * 32 * 32 + (x_mod % 32 + 32 * (y_mod % 32));
 
@@ -89,7 +89,7 @@ pub struct RegularBackgroundTiles {
     tiles: Vec<Tile>,
     is_dirty: bool,
 
-    scroll: Vector2D<i16>,
+    scroll: Vector2D<i32>,
 
     screenblock_ptr: NonNull<Tile>,
 }
@@ -116,18 +116,18 @@ impl RegularBackgroundTiles {
         }
     }
 
-    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i16>>) {
+    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i32>>) {
         self.scroll = scroll.into();
     }
 
     #[must_use]
-    pub fn scroll_pos(&self) -> Vector2D<i16> {
+    pub fn scroll_pos(&self) -> Vector2D<i32> {
         self.scroll
     }
 
     pub fn set_tile(
         &mut self,
-        pos: impl Into<Vector2D<u16>>,
+        pos: impl Into<Vector2D<u32>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
