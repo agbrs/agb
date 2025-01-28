@@ -58,9 +58,9 @@ impl RegularBackgroundSize {
         self.width() * self.height()
     }
 
-    const fn gba_offset(self, pos: Vector2D<u32>) -> usize {
-        let x_mod = pos.x & (self.width() as u32 - 1);
-        let y_mod = pos.y & (self.height() as u32 - 1);
+    const fn gba_offset(self, pos: Vector2D<i32>) -> usize {
+        let x_mod = (pos.x & (self.width() as i32 - 1)) as u32;
+        let y_mod = (pos.y & (self.height() as i32 - 1)) as u32;
 
         let screenblock = (x_mod / 32) + (y_mod / 32) * (self.width() as u32 / 32);
 
@@ -127,7 +127,7 @@ impl RegularBackgroundTiles {
 
     pub fn set_tile(
         &mut self,
-        pos: impl Into<Vector2D<u32>>,
+        pos: impl Into<Vector2D<i32>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
     ) {
