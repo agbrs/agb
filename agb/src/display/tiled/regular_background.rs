@@ -4,7 +4,7 @@ use core::{
     ptr::NonNull,
 };
 
-use agb_fixnum::{vec2, Vector2D};
+use agb_fixnum::Vector2D;
 use alloc::{vec, vec::Vec};
 
 use crate::display::{tile_data::TileData, Priority};
@@ -71,13 +71,6 @@ impl RegularBackgroundSize {
 
     const fn size_flag(self) -> u16 {
         self as u16
-    }
-
-    pub(crate) const fn tile_pos(self, tile_pos: Vector2D<i32>) -> Vector2D<u16> {
-        vec2(
-            (tile_pos.x as usize & (self.width() - 1)) as u16,
-            (tile_pos.y as usize & (self.height() - 1)) as u16,
-        )
     }
 }
 
