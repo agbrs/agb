@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Optional serde support for agb-hashmap and agb-fixnum via the `serde` feature flag. The flag is also exposed in the agb crate.
 - Added `set_background_palette` to be able to set a single background palette.
+- 256 colour support for sprites.
 
 ### Changed
 
