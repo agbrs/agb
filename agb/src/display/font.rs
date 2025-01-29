@@ -301,10 +301,10 @@ mod tests {
             }
         }
 
-        let mut renderer = FONT.render_text((0u16, 3u16));
-
         // Test twice to ensure that clearing works
         for _ in 0..2 {
+            let mut renderer = FONT.render_text((0u16, 3u16));
+
             let mut writer = renderer.writer(1, 2, &mut bg);
             write!(&mut writer, "Hello, ").unwrap();
 
