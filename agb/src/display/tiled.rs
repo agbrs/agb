@@ -154,11 +154,16 @@ impl TiledBackground<'_> {
     }
 
     pub fn iter(&mut self) -> BackgroundIterator<'_> {
-        BackgroundIterator::default()
+        BackgroundIterator {
+            _phantom: PhantomData,
+            num_regular: 0,
+            regular_backgrounds: Default::default(),
+            num_affine: 0,
+            affine_backgrounds: Default::default(),
+        }
     }
 }
 
-#[derive(Default)]
 pub struct BackgroundIterator<'bg> {
     _phantom: PhantomData<&'bg ()>,
 
