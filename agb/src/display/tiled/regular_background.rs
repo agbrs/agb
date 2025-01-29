@@ -47,11 +47,9 @@ impl RegularBackgroundSize {
         self.num_tiles() * mem::size_of::<Tile>()
     }
 
-    const fn layout(self) -> Layout {
-        match Layout::from_size_align(self.size_in_bytes(), SCREENBLOCK_SIZE) {
-            Ok(layout) => layout,
-            Err(_) => panic!("failed to create layout, should never happen"),
-        }
+    fn layout(self) -> Layout {
+        Layout::from_size_align(self.size_in_bytes(), SCREENBLOCK_SIZE)
+            .expect("failed to create layout, should never happen")
     }
 
     const fn num_tiles(self) -> usize {
@@ -210,6 +208,8 @@ impl RegularBackgroundTiles {
 
             *tile = Tile::default();
         }
+
+        self.is_dirty = true;
     }
 
     #[must_use]

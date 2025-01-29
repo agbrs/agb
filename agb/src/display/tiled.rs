@@ -1,9 +1,14 @@
+mod affine_background;
 mod infinite_scrolled_map;
 mod regular_background;
 mod vram_manager;
 
 use core::marker::PhantomData;
 
+pub use super::affine::AffineMatrixBackground;
+pub use affine_background::{
+    AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
+};
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
@@ -11,7 +16,7 @@ pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
     dma::DmaControllable,
-    fixnum::Vector2D,
+    fixnum::{Num, Vector2D},
     memory_mapped::MemoryMapped,
 };
 
@@ -19,6 +24,9 @@ use super::DISPLAY_CONTROL;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct AffineBackgroundId(pub(crate) u8);
 
 impl BackgroundId {
     #[must_use]
@@ -127,6 +135,13 @@ struct RegularBackgroundData {
     scroll_offset: Vector2D<u16>,
 }
 
+#[derive(Default)]
+struct AffineBackgroundData {
+    bg_ctrl: u16,
+    scroll_offset: Vector2D<Num<i32, 8>>,
+    affine_transform: AffineMatrixBackground,
+}
+
 pub struct TiledBackground<'gba> {
     _phantom: PhantomData<&'gba ()>,
 }
@@ -149,6 +164,9 @@ pub struct BackgroundIterator<'bg> {
 
     num_regular: usize,
     regular_backgrounds: [RegularBackgroundData; 4],
+
+    num_affine: usize,
+    affine_backgrounds: [AffineBackgroundData; 2],
 }
 
 impl BackgroundIterator<'_> {
@@ -160,8 +178,11 @@ impl BackgroundIterator<'_> {
     }
 
     fn next_regular_index(&mut self) -> usize {
-        if self.num_regular == 4 {
-            panic!("Can only have 4 regular backgrounds at once");
+        if self.num_regular + self.num_affine * 2 >= 4 {
+            panic!(
+                "Can only have 4 backgrounds at once, affine counts as 2. regular: {}, affine: {}",
+                self.num_regular, self.num_affine
+            );
         }
 
         let index = self.num_regular;
@@ -169,10 +190,31 @@ impl BackgroundIterator<'_> {
         index
     }
 
+    fn set_next_affine(&mut self, data: AffineBackgroundData) -> AffineBackgroundId {
+        let bg_index = self.next_affine_index();
+
+        self.affine_backgrounds[bg_index - 2] = data;
+        AffineBackgroundId(bg_index as u8)
+    }
+
+    fn next_affine_index(&mut self) -> usize {
+        if self.num_affine * 2 + self.num_regular >= 3 {
+            panic!(
+                "Can only have 4 backgrounds at once, affine counts as 2. regular: {}, affine: {}",
+                self.num_regular, self.num_affine
+            );
+        }
+
+        let index = self.num_affine;
+        self.num_affine += 1;
+
+        index + 2 // first affine BG is bg2
+    }
+
     pub fn commit(self) {
-        // TODO: Affine
-        let video_mode = 0;
-        let enabled_backgrounds = (1u16 << self.num_regular) - 1;
+        let video_mode = self.num_affine as u16;
+        let enabled_backgrounds =
+            ((1u16 << self.num_regular) - 1) | (((1 << self.num_affine) - 1) << 2);
 
         let mut display_control = DISPLAY_CONTROL.get();
 
@@ -194,6 +236,26 @@ impl BackgroundIterator<'_> {
             bg_x_offset.set(regular_background.scroll_offset.x);
             let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 4) };
             bg_y_offset.set(regular_background.scroll_offset.y);
+        }
+
+        for (i, affine_background) in self
+            .affine_backgrounds
+            .iter()
+            .take(self.num_affine)
+            .enumerate()
+        {
+            let i = i + 2;
+
+            let bg_ctrl = unsafe { MemoryMapped::new(0x0400_0008 + i * 2) };
+            bg_ctrl.set(affine_background.bg_ctrl);
+
+            let bg_x_offset = unsafe { MemoryMapped::new(0x0400_0028 + (i - 2) * 16) };
+            bg_x_offset.set(affine_background.scroll_offset.x.to_raw());
+            let bg_y_offset = unsafe { MemoryMapped::new(0x0400_002c + (i - 2) * 16) };
+            bg_y_offset.set(affine_background.scroll_offset.y.to_raw());
+
+            let affine_transform_offset = unsafe { MemoryMapped::new(0x0400_0020 + (i - 2) * 16) };
+            affine_transform_offset.set(affine_background.affine_transform);
         }
 
         VRAM_MANAGER.gc();
