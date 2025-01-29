@@ -67,7 +67,7 @@
 /// #
 /// use agb::{
 ///     display::{
-///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, Tiled0, TiledMap, VRamManager},
+///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackgroundTiles, VRAM_MANAGER},
 ///         Priority,
 ///     },
 ///     include_background_gfx,
@@ -75,25 +75,23 @@
 ///
 /// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
-/// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
+/// # fn load_tileset() {
 /// let tileset = &water_tiles::tiles.tiles;
 ///
-/// vram.set_background_palettes(water_tiles::PALETTES);
+/// VRAM_MANAGER.set_background_palettes(water_tiles::PALETTES);
 ///
-/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
+/// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
 ///
 /// for y in 0..20u16 {
 ///     for x in 0..30u16 {
 ///         bg.set_tile(
-///             &mut vram,
 ///             (x, y),
 ///             tileset,
 ///             water_tiles::tiles.tile_settings[0],
 ///         );
 ///     }
 /// }
-/// bg.commit(&mut vram);
-/// bg.set_visible(true);
+/// bg.commit();
 /// # }
 /// ```
 ///
