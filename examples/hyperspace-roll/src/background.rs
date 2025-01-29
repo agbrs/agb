@@ -2,7 +2,7 @@ use agb::{
     display::{
         tiled::{
             BackgroundIterator, RegularBackgroundSize, RegularBackgroundTiles, TileSet,
-            TileSetting, VRamManager,
+            TileSetting, VRAM_MANAGER,
         },
         Priority,
     },
@@ -19,12 +19,11 @@ include_background_gfx!(backgrounds, "121105",
     descriptions2 => deduplicate "gfx/descriptions2.png",
 );
 
-pub fn load_palettes(vram: &mut VRamManager) {
-    vram.set_background_palettes(backgrounds::PALETTES);
+pub fn load_palettes() {
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 }
 
 pub(crate) fn load_help_text(
-    vram: &mut VRamManager,
     background: &mut RegularBackgroundTiles,
     help_text_line: u16,
     at_tile: (u16, u16),
@@ -35,7 +34,6 @@ pub(crate) fn load_help_text(
         let tile_id = help_text_line * 16 + x;
 
         background.set_tile(
-            vram,
             (x + at_tile.0, at_tile.1),
             &help_tiledata.tiles,
             help_tiledata.tile_settings[tile_id as usize],
@@ -43,11 +41,7 @@ pub(crate) fn load_help_text(
     }
 }
 
-pub(crate) fn load_description(
-    face_id: usize,
-    descriptions_map: &mut RegularBackgroundTiles,
-    vram: &mut VRamManager,
-) {
+pub(crate) fn load_description(face_id: usize, descriptions_map: &mut RegularBackgroundTiles) {
     let description_data = if face_id < 10 {
         &backgrounds::descriptions1
     } else {
@@ -58,7 +52,6 @@ pub(crate) fn load_description(
         for x in 0..8 {
             let tile_id = y * 8 + x + 8 * 11 * (face_id as u16 % 10);
             descriptions_map.set_tile(
-                vram,
                 (x, y),
                 &description_data.tiles,
                 description_data.tile_settings[tile_id as usize],
@@ -68,10 +61,7 @@ pub(crate) fn load_description(
 }
 
 // Expects a 64x32 map
-fn create_background_map(
-    vram: &mut VRamManager,
-    stars_tileset: &TileSet,
-) -> RegularBackgroundTiles {
+fn create_background_map(stars_tileset: &TileSet) -> RegularBackgroundTiles {
     let mut map = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background64x32,
@@ -89,7 +79,7 @@ fn create_background_map(
                 backgrounds::stars.tile_settings[tile_id as usize]
             };
 
-            map.set_tile(vram, (x, y), stars_tileset, tile_setting);
+            map.set_tile((x, y), stars_tileset, tile_setting);
         }
     }
 
@@ -98,16 +88,16 @@ fn create_background_map(
     map
 }
 
-pub fn show_title_screen(vram: &mut VRamManager, sfx: &mut Sfx) -> RegularBackgroundTiles {
+pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackgroundTiles {
     let mut background = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::title.tiles.format(),
     );
     background.set_scroll_pos((0i16, 0));
-    vram.set_background_palettes(backgrounds::PALETTES);
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 
-    background.fill_with(vram, &backgrounds::title);
+    background.fill_with(&backgrounds::title);
     sfx.frame();
 
     background.commit();
@@ -124,9 +114,9 @@ pub struct StarBackground {
 }
 
 impl StarBackground {
-    pub fn new(vram: &'_ mut VRamManager) -> Self {
-        let background1 = create_background_map(vram, &backgrounds::stars.tiles);
-        let background2 = create_background_map(vram, &backgrounds::stars.tiles);
+    pub fn new() -> Self {
+        let background1 = create_background_map(&backgrounds::stars.tiles);
+        let background2 = create_background_map(&backgrounds::stars.tiles);
 
         Self {
             background1,

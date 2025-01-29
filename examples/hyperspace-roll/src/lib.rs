@@ -13,7 +13,7 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::display::object::OamManaged;
-use agb::display::tiled::{TiledBackground, VRamManager};
+use agb::display::tiled::TiledBackground;
 use agb::interrupt::VBlank;
 use agb::sound::mixer::Frequency;
 
@@ -93,7 +93,6 @@ struct Agb<'a> {
     obj: OamManaged<'a>,
     vblank: VBlank,
     star_background: StarBackground,
-    vram: VRamManager,
     sfx: Sfx<'a>,
 }
 
@@ -107,7 +106,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get_managed();
     let vblank = agb::interrupt::VBlank::get();
 
-    let (tiled, mut vram) = gba.display.video.tiled();
+    let tiled = gba.display.video.tiled();
 
     let basic_die = Die {
         faces: [
@@ -120,7 +119,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         ],
     };
 
-    let mut star_background = StarBackground::new(&mut vram);
+    let mut star_background = StarBackground::new();
     star_background.commit();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
@@ -133,7 +132,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
         obj: gfx,
         vblank,
         star_background,
-        vram,
         sfx,
     };
 
@@ -147,7 +145,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.sfx.title_screen();
 
         {
-            let mut title_screen_bg = show_title_screen(&mut agb.vram, &mut agb.sfx);
+            let title_screen_bg = show_title_screen(&mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
             score_display.set_value(Some(save::load_high_score()), &agb.obj);
             agb.obj.commit();
@@ -163,19 +161,17 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
                 let mut bg_iter = agb.tiled.iter();
                 title_screen_bg.show(&mut bg_iter);
-                bg_iter.commit(&mut agb.vram);
+                bg_iter.commit();
 
                 agb.sfx.frame();
             }
-
-            title_screen_bg.clear(&mut agb.vram);
         }
 
         agb.obj.commit();
 
         agb.sfx.frame();
 
-        background::load_palettes(&mut agb.vram);
+        background::load_palettes();
 
         loop {
             dice = customise::customise_screen(&mut agb, dice.clone(), current_level);

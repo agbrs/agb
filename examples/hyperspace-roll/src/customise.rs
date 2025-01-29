@@ -176,7 +176,7 @@ pub(crate) fn customise_screen(
     descriptions_map.set_scroll_pos((-174i16, -52));
 
     help_background.set_scroll_pos((-148i16, -34));
-    crate::background::load_help_text(&mut agb.vram, &mut help_background, 0, (0, 0));
+    crate::background::load_help_text(&mut help_background, 0, (0, 0));
 
     // create the dice
 
@@ -300,11 +300,7 @@ pub(crate) fn customise_screen(
 
                 if (upgrades[cursor.upgrade] as u32) < 17 {
                     if cursor.upgrade != old_upgrade {
-                        load_description(
-                            upgrades[cursor.upgrade] as usize,
-                            &mut descriptions_map,
-                            &mut agb.vram,
-                        );
+                        load_description(upgrades[cursor.upgrade] as usize, &mut descriptions_map);
                     }
 
                     description_map_visible = true;
@@ -371,11 +367,8 @@ pub(crate) fn customise_screen(
 
         agb.star_background.show(&mut bg_iter);
 
-        bg_iter.commit(&mut agb.vram);
+        bg_iter.commit();
     }
-
-    help_background.clear(&mut agb.vram);
-    descriptions_map.clear(&mut agb.vram);
 
     player_dice
 }
