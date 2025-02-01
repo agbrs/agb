@@ -8,7 +8,7 @@ license = "MPL-2.0"
 repository = "https://github.com/agbrs/agb"
 homepage = "https://agbrs.dev"
 exclude = ["/tests", "/examples"]
-keywords = ["game-engines", "embedded"]
+categories = ["game-engines", "embedded"]
 
 [features]
 default = ["backtrace", "testing"]
