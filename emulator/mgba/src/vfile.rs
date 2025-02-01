@@ -67,7 +67,7 @@ trait VFileExtensions: VFile {
         self.seek(SeekFrom::Start(size as u64))?;
 
         let bytes_to_write = stream_length - size as u64;
-        let bytes: Vec<u8> = std::iter::repeat(0).take(bytes_to_write as usize).collect();
+        let bytes: Vec<u8> = std::iter::repeat_n(0, bytes_to_write as usize).collect();
         self.write_all(&bytes)?;
 
         self.seek(SeekFrom::Start(position))?;
