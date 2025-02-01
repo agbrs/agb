@@ -1,6 +1,6 @@
 [package]
 name = "agb_fixnum"
-version = "0.21.1"
+version = "0.21.2"
 edition = "2021"
 license = "MPL-2.0"
 description = "Library for abstracting over fixed precision numbers. Designed for use with the agb library for the Game Boy Advance"
@@ -11,6 +11,6 @@ keywords = ["no-std", "no-std::no-alloc"]
 serde = ["dep:serde"]
 
 [dependencies]
-agb_macros = { version = "0.21.1", path = "../agb-macros" }
+agb_macros = { version = "0.21.2", path = "../agb-macros" }
 num-traits = { version = "0.2", default-features = false }
 serde = { version = "1", features = ["derive"], default-features = false, optional = true }

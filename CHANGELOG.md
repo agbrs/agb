@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2025/02/01
+
 ### Added
 
 - Optional serde support for agb-hashmap and agb-fixnum via the `serde` feature flag. The flag is also exposed in the agb crate.
