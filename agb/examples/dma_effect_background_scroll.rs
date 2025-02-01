@@ -8,39 +8,48 @@ use alloc::boxed::Box;
 use agb::{
     display::{
         example_logo,
-        tiled::{RegularBackgroundSize, TileFormat},
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        HEIGHT,
     },
     interrupt::VBlank,
 };
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let mut gfx = gba.display.video.tiled();
 
-    let mut map = gfx.background(
+    let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    let dma = gba.dma.dma().dma0;
-
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map);
+    map.commit();
 
     let vblank = VBlank::get();
 
-    let offsets: Box<[_]> = (0..160 * 2).collect();
+    let mut dma = gba.dma.dma().dma0;
+    let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
 
     let mut frame = 0;
 
-    loop {
-        let _x_scroll_transfer =
-            unsafe { dma.hblank_transfer(&map.x_scroll_dma(), &offsets[frame..]) };
+    let mut x_scroll_transfer = None;
 
-        vblank.wait_for_vblank();
+    loop {
+        let mut bg_iter = gfx.iter();
+        let background_id = map.show(&mut bg_iter);
+
         frame += 1;
-        if frame > 160 {
+        if frame > offsets.len() - HEIGHT as usize {
             frame = 0;
         }
+
+        vblank.wait_for_vblank();
+        bg_iter.commit();
+
+        drop(x_scroll_transfer);
+        x_scroll_transfer =
+            Some(unsafe { dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]) });
     }
 }

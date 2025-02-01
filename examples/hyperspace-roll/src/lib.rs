@@ -13,10 +13,9 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::display::object::OamManaged;
-use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
-use agb::display::Priority;
+use agb::display::tiled::TiledBackground;
 use agb::interrupt::VBlank;
-use agb::{display, sound::mixer::Frequency};
+use agb::sound::mixer::Frequency;
 
 extern crate alloc;
 use alloc::vec;
@@ -90,10 +89,10 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
+    tiled: TiledBackground<'a>,
     obj: OamManaged<'a>,
     vblank: VBlank,
-    star_background: StarBackground<'a>,
-    vram: VRamManager,
+    star_background: StarBackground,
     sfx: Sfx<'a>,
 }
 
@@ -107,28 +106,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let gfx = gba.display.object.get_managed();
     let vblank = agb::interrupt::VBlank::get();
 
-    let (tiled, mut vram) = gba.display.video.tiled0();
-    let mut background0 = tiled.background(
-        Priority::P0,
-        display::tiled::RegularBackgroundSize::Background64x32,
-        TileFormat::FourBpp,
-    );
-    let mut background1 = tiled.background(
-        Priority::P0,
-        display::tiled::RegularBackgroundSize::Background64x32,
-        TileFormat::FourBpp,
-    );
-    let mut card_descriptions = tiled.background(
-        Priority::P1,
-        display::tiled::RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-
-    let mut help_background = tiled.background(
-        Priority::P1,
-        display::tiled::RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
+    let tiled = gba.display.video.tiled();
 
     let basic_die = Die {
         faces: [
@@ -141,8 +119,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
         ],
     };
 
-    let mut star_background = StarBackground::new(&mut background0, &mut background1, &mut vram);
-    star_background.commit(&mut vram);
+    let mut star_background = StarBackground::new();
+    star_background.commit();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
@@ -150,10 +128,10 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let sfx = Sfx::new(&mut mixer);
 
     let mut agb = Agb {
+        tiled,
         obj: gfx,
         vblank,
         star_background,
-        vram,
         sfx,
     };
 
@@ -167,11 +145,10 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.sfx.title_screen();
 
         {
-            show_title_screen(&mut help_background, &mut agb.vram, &mut agb.sfx);
+            let title_screen_bg = show_title_screen(&mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
             score_display.set_value(Some(save::load_high_score()), &agb.obj);
             agb.obj.commit();
-            agb.star_background.set_visible(false);
 
             let mut input = agb::input::ButtonController::new();
             loop {
@@ -181,31 +158,25 @@ pub fn main(mut gba: agb::Gba) -> ! {
                     break;
                 }
                 agb.vblank.wait_for_vblank();
+
+                let mut bg_iter = agb.tiled.iter();
+                title_screen_bg.show(&mut bg_iter);
+                bg_iter.commit();
+
                 agb.sfx.frame();
             }
         }
 
         agb.obj.commit();
 
-        help_background.set_visible(false);
-        help_background.clear(&mut agb.vram);
-        help_background.commit(&mut agb.vram);
         agb.sfx.frame();
 
-        background::load_palettes(&mut agb.vram);
-        agb.star_background.set_visible(true);
+        background::load_palettes();
 
         loop {
-            dice = customise::customise_screen(
-                &mut agb,
-                dice.clone(),
-                &mut card_descriptions,
-                &mut help_background,
-                current_level,
-            );
+            dice = customise::customise_screen(&mut agb, dice.clone(), current_level);
 
-            let result =
-                battle::battle_screen(&mut agb, dice.clone(), current_level, &mut help_background);
+            let result = battle::battle_screen(&mut agb, dice.clone(), current_level);
             match result {
                 BattleResult::Win => {}
                 BattleResult::Loss => {

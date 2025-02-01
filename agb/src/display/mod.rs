@@ -12,9 +12,7 @@ use self::{
 };
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
-pub mod bitmap3;
-/// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
-pub mod bitmap4;
+pub(crate) mod bitmap3;
 /// Test logo of agb.
 pub mod example_logo;
 pub mod object;

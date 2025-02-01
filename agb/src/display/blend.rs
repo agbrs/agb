@@ -19,7 +19,7 @@ use core::marker::PhantomData;
 
 use crate::{fixnum::Num, memory_mapped::set_bits};
 
-use super::tiled::BackgroundID;
+use super::tiled::BackgroundId;
 
 /// The layers, top layer will be blended into the bottom layer
 #[derive(Clone, Copy, Debug)]
@@ -62,7 +62,7 @@ pub struct BlendLayer<'blend, 'gba> {
 
 impl BlendLayer<'_, '_> {
     /// Set whether a background is enabled for blending on this layer.
-    pub fn set_background_enable(&mut self, background: BackgroundID, enable: bool) -> &mut Self {
+    pub fn set_background_enable(&mut self, background: BackgroundId, enable: bool) -> &mut Self {
         self.blend
             .set_background_enable(self.layer, background, enable);
 
@@ -149,7 +149,7 @@ impl<'gba> Blend<'gba> {
     pub fn set_background_enable(
         &mut self,
         layer: Layer,
-        background: BackgroundID,
+        background: BackgroundId,
         enable: bool,
     ) -> &mut Self {
         let bit_to_modify = (background.0 as usize) + (layer as usize * 8);
@@ -210,11 +210,5 @@ impl<'gba> Blend<'gba> {
             BLEND_ALPHAS.write_volatile(self.blend_weights);
             BLEND_FADES.write_volatile(self.fade_weight);
         }
-    }
-}
-
-impl Drop for Blend<'_> {
-    fn drop(&mut self) {
-        self.reset().commit();
     }
 }

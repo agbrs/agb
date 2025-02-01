@@ -18,6 +18,7 @@ use agb::{
             SpriteLoader, SpriteVram, Tag,
         },
         palette16::Palette16,
+        tiled::VRAM_MANAGER,
     },
     fixnum::{num, Num, Vector2D},
     include_aseprite,
@@ -389,9 +390,9 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let (mut unmanaged, mut sprites) = gba.display.object.get_unmanaged();
     let sprite_cache = SpriteCache::new(&mut sprites);
 
-    let (_background, mut vram) = gba.display.video.tiled0();
+    let _background = gba.display.video.tiled();
 
-    vram.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
+    VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
     let vblank = agb::interrupt::VBlank::get();
 

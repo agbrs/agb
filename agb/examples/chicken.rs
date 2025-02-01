@@ -2,11 +2,13 @@
 #![no_main]
 
 use agb::{
-    display::tiled::{TileFormat, TileSet, TileSetting, TiledMap},
     display::{
         object::{OamManaged, Object, Size, Sprite},
         palette16::Palette16,
-        tiled::RegularBackgroundSize,
+        tiled::{
+            RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
+            VRAM_MANAGER,
+        },
         HEIGHT, WIDTH,
     },
     input::Button,
@@ -47,14 +49,14 @@ fn main(mut gba: agb::Gba) -> ! {
             .unwrap()
     };
 
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let mut gfx = gba.display.video.tiled();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    vram.set_background_palette_raw(&MAP_PALETTE);
+    VRAM_MANAGER.set_background_palette_raw(&MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
 
-    let mut background = gfx.background(
+    let mut background = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -63,15 +65,13 @@ fn main(mut gba: agb::Gba) -> ! {
     for (i, &tile) in MAP_MAP.iter().enumerate() {
         let i = i as u16;
         background.set_tile(
-            &mut vram,
             (i % 32, i / 32),
             &tileset,
-            TileSetting::from_raw(tile),
+            TileSetting::from_raw(tile & ((1 << 10) - 1), tile & !((1 << 10) - 1)),
         );
     }
 
-    background.set_visible(true);
-    background.commit(&mut vram);
+    background.commit();
 
     let object = gba.display.object.get_managed();
 
@@ -105,7 +105,6 @@ fn main(mut gba: agb::Gba) -> ! {
     let terminal_velocity = (1 << 8) / 2;
 
     loop {
-        vblank.wait_for_vblank();
         frame_count += 1;
 
         input.update();
@@ -138,6 +137,11 @@ fn main(mut gba: agb::Gba) -> ! {
         restrict_to_screen(&mut chicken);
         update_chicken_object(&mut chicken, &object, state, frame_count);
 
+        let mut bg_iter = gfx.iter();
+        background.show(&mut bg_iter);
+
+        vblank.wait_for_vblank();
+        bg_iter.commit();
         object.commit();
     }
 }

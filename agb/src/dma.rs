@@ -77,11 +77,11 @@ impl Dma {
     /// # Examples
     ///
     /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub unsafe fn hblank_transfer<'a, T>(
-        &'a self,
+    pub unsafe fn hblank_transfer<'dma, T>(
+        &'dma mut self,
         location: &DmaControllable<T>,
-        values: &'a [T],
-    ) -> DmaTransferHandle<'a, T>
+        values: &[T],
+    ) -> DmaTransferHandle<'dma, T>
     where
         T: Copy,
     {
@@ -89,7 +89,7 @@ impl Dma {
             values.len() >= 160,
             "need to pass at least 160 values for a hblank_transfer"
         );
-        let handle = unsafe { DmaTransferHandle::new(self.number, values) };
+        let handle = DmaTransferHandle::new(self.number, values);
 
         let n_transfers = (size_of::<T>() / 2) as u32;
 
@@ -122,30 +122,31 @@ pub struct DmaControllable<Item> {
 }
 
 impl<Item> DmaControllable<Item> {
-    pub(crate) fn new(memory_location: *mut Item) -> Self {
+    pub(crate) unsafe fn new(memory_location: *mut Item) -> Self {
         Self { memory_location }
     }
 }
 
-pub struct DmaTransferHandle<'a, T>
+pub struct DmaTransferHandle<'dma, T>
 where
     T: Copy,
 {
     number: usize,
     data: Pin<Box<[T]>>,
 
-    phantom: PhantomData<&'a ()>,
+    _phantom: PhantomData<&'dma ()>,
 }
 
 impl<T> DmaTransferHandle<'_, T>
 where
     T: Copy,
 {
-    pub(crate) unsafe fn new(number: usize, data: &[T]) -> Self {
+    pub(crate) fn new(number: usize, data: &[T]) -> Self {
         Self {
             number,
             data: Box::into_pin(data.into()),
-            phantom: PhantomData,
+
+            _phantom: PhantomData,
         }
     }
 }

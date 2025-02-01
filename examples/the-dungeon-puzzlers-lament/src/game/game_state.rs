@@ -1,7 +1,7 @@
 use agb::{
     display::{
         object::{OamIterator, ObjectUnmanaged, SpriteLoader, Tag},
-        tiled::{RegularMap, VRamManager},
+        tiled::RegularBackgroundTiles,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -88,8 +88,8 @@ impl GameState {
         )
     }
 
-    pub fn load_level_background(&self, map: &mut RegularMap, vram_manager: &mut VRamManager) {
-        crate::backgrounds::load_level_background(map, vram_manager, self.level_number);
+    pub fn load_level_background(&self, map: &mut RegularBackgroundTiles) {
+        crate::backgrounds::load_level_background(map, self.level_number);
     }
 
     pub fn force_place(&mut self) {

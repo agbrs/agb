@@ -658,6 +658,17 @@ pub struct Vector2D<T: Number> {
     pub y: T,
 }
 
+/// A convenience function for constructing a Vector2D
+///
+/// ```
+/// use agb_fixnum::{vec2, Vector2D};
+///
+/// assert_eq!(vec2(3, 5), Vector2D::new(3, 5));
+/// ```
+pub const fn vec2<T: Number>(x: T, y: T) -> Vector2D<T> {
+    Vector2D::new(x, y)
+}
+
 impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     type Output = Vector2D<T>;
     fn add(self, rhs: Vector2D<T>) -> Self::Output {
@@ -1024,22 +1035,22 @@ impl<T: Number> Rect<T> {
 impl<T: FixedWidthUnsignedInteger> Rect<T> {
     /// Iterate over the points in a rectangle in row major order.
     /// ```
-    /// # use agb_fixnum::*;
-    /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(2,3));
+    /// use agb_fixnum::{Rect, vec2};
+    /// let r = Rect::new(vec2(1,1), vec2(1,2));
     ///
-    /// let expected_points = vec![(1,1), (2,1), (1,2), (2,2), (1,3), (2,3)];
-    /// let rect_points: Vec<(i32, i32)> = r.iter().collect();
+    /// let expected_points = vec![vec2(1,1), vec2(2,1), vec2(1,2), vec2(2,2), vec2(1,3), vec2(2,3)];
+    /// let rect_points: Vec<_> = r.iter().collect();
     ///
     /// assert_eq!(rect_points, expected_points);
     /// ```
-    pub fn iter(self) -> impl Iterator<Item = (T, T)> {
+    pub fn iter(self) -> impl Iterator<Item = Vector2D<T>> {
         let mut x = self.position.x;
         let mut y = self.position.y;
         core::iter::from_fn(move || {
-            if x >= self.position.x + self.size.x {
+            if x > self.position.x + self.size.x {
                 x = self.position.x;
                 y = y + T::one();
-                if y >= self.position.y + self.size.y {
+                if y > self.position.y + self.size.y {
                     return None;
                 }
             }
@@ -1047,7 +1058,7 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
             let ret_x = x;
             x = x + T::one();
 
-            Some((ret_x, y))
+            Some(vec2(ret_x, y))
         })
     }
 }
@@ -1489,19 +1500,19 @@ mod tests {
 
     #[test]
     fn test_rect_iter() {
-        let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (3_i32, 3_i32).into());
+        let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (2_i32, 2_i32).into());
         assert_eq!(
             rect.iter().collect::<alloc::vec::Vec<_>>(),
             &[
-                (5, 5),
-                (6, 5),
-                (7, 5),
-                (5, 6),
-                (6, 6),
-                (7, 6),
-                (5, 7),
-                (6, 7),
-                (7, 7),
+                vec2(5, 5),
+                vec2(6, 5),
+                vec2(7, 5),
+                vec2(5, 6),
+                vec2(6, 6),
+                vec2(7, 6),
+                vec2(5, 7),
+                vec2(6, 7),
+                vec2(7, 7),
             ]
         );
     }

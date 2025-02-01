@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::display::blend::{BlendMode, Layer};
-use agb::display::tiled::TileFormat;
+use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
 use agb::display::{HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
@@ -16,34 +16,16 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let mut gfx = gba.display.video.tiled();
 
-    let mut map = gfx.background(
+    let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
-    let mut window = gba.display.window.get();
-    window
-        .win_in(WinIn::Win0)
-        .set_background_enable(map.background(), true)
-        .set_position(&Rect::new((10, 10).into(), (64, 64).into()))
-        .enable();
 
-    window
-        .win_out()
-        .enable()
-        .set_background_enable(map.background(), true)
-        .set_blend_enable(true);
-
-    example_logo::display_logo(&mut map, &mut vram);
-
-    let mut blend = gba.display.blend.get();
-
-    blend
-        .set_background_enable(Layer::Top, map.background(), true)
-        .set_backdrop_enable(Layer::Bottom, true)
-        .set_blend_mode(BlendMode::Normal);
+    example_logo::display_logo(&mut map);
+    map.commit();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
@@ -71,13 +53,33 @@ fn main(mut gba: agb::Gba) -> ! {
 
         blend_amount = blend_amount.clamp(0.into(), 1.into());
 
-        blend.set_blend_weight(Layer::Top, blend_amount.try_change_base().unwrap());
+        let mut bg_iter = gfx.iter();
+        let background_id = map.show(&mut bg_iter);
+
+        vblank.wait_for_vblank();
+
+        let mut window = gba.display.window.get();
+        let mut blend = gba.display.blend.get();
+
+        blend
+            .set_background_enable(Layer::Top, background_id, true)
+            .set_backdrop_enable(Layer::Bottom, true)
+            .set_blend_mode(BlendMode::Normal)
+            .set_blend_weight(Layer::Top, blend_amount.try_change_base().unwrap());
 
         window
             .win_in(WinIn::Win0)
-            .set_position(&Rect::new(pos.floor(), (64, 64).into()));
+            .set_background_enable(background_id, true)
+            .set_position(&Rect::new(pos.floor(), (64, 64).into()))
+            .enable();
 
-        vblank.wait_for_vblank();
+        window
+            .win_out()
+            .enable()
+            .set_background_enable(background_id, true)
+            .set_blend_enable(true);
+
+        bg_iter.commit();
         window.commit();
         blend.commit();
     }

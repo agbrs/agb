@@ -3,7 +3,9 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularMap, TileFormat, TiledMap, VRamManager},
+        tiled::{
+            DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
+        },
         Font, Priority,
     },
     include_font, include_wav,
@@ -22,24 +24,21 @@ static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let (gfx, mut vram) = gba.display.video.tiled0();
-    let mut bg = gfx.background(
+    let mut gfx = gba.display.video.tiled();
+    let mut bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    init_background(&mut bg, &mut vram);
+    init_background(&mut bg);
 
     let mut title_renderer = FONT.render_text((0u16, 3u16));
-    let mut writer = title_renderer.writer(1, 0, &mut bg, &mut vram);
+    let mut writer = title_renderer.writer(1, 0, &mut bg);
 
     writeln!(&mut writer, "Let it in by Josh Woodward").unwrap();
 
     writer.commit();
-
-    bg.commit(&mut vram);
-    bg.set_visible(true);
 
     let timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer2;
@@ -57,8 +56,11 @@ fn main(mut gba: Gba) -> ! {
 
     let mut stats_renderer = FONT.render_text((0u16, 6u16));
     loop {
+        let mut bg_iter = gfx.iter();
+        bg.show(&mut bg_iter);
         vblank_provider.wait_for_vblank();
-        bg.commit(&mut vram);
+        bg.commit();
+        bg_iter.commit();
 
         let before_mixing_cycles = timer.value();
         mixer.frame();
@@ -71,7 +73,7 @@ fn main(mut gba: Gba) -> ! {
 
             let percent = (total_cycles * 100) / 280896;
 
-            let mut writer = stats_renderer.writer(1, 0, &mut bg, &mut vram);
+            let mut writer = stats_renderer.writer(1, 0, &mut bg);
             writeln!(&mut writer, "{total_cycles} cycles").unwrap();
             writeln!(&mut writer, "{percent} percent").unwrap();
 
@@ -82,10 +84,10 @@ fn main(mut gba: Gba) -> ! {
     }
 }
 
-fn init_background(bg: &mut RegularMap, vram: &mut VRamManager) {
-    let background_tile = vram.new_dynamic_tile().fill_with(0);
+fn init_background(bg: &mut RegularBackgroundTiles) {
+    let background_tile = DynamicTile::new().fill_with(0);
 
-    vram.set_background_palette_raw(&[
+    VRAM_MANAGER.set_background_palette_raw(&[
         0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     ]);
@@ -93,13 +95,10 @@ fn init_background(bg: &mut RegularMap, vram: &mut VRamManager) {
     for y in 0..20u16 {
         for x in 0..30u16 {
             bg.set_tile(
-                vram,
                 (x, y),
                 &background_tile.tile_set(),
                 background_tile.tile_setting(),
             );
         }
     }
-
-    vram.remove_dynamic_tile(background_tile);
 }
