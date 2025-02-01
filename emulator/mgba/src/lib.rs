@@ -219,9 +219,7 @@ mod tests {
         );
         assert_eq!(
             save_file[128..],
-            std::iter::repeat(0xFF)
-                .take(save_file.len() - 128)
-                .collect::<Vec<u8>>(),
+            std::iter::repeat_n(0xFF, save_file.len() - 128).collect::<Vec<u8>>(),
             "Remanider of save should be 0xFF, all ones"
         );
     }

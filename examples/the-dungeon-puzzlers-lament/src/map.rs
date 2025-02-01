@@ -11,7 +11,7 @@ pub struct Map<'map> {
 
 impl<'map> Map<'map> {
     pub const fn new(width: usize, height: usize, data: &'map [u8]) -> Self {
-        assert!((width * height + 7) / 8 == data.len());
+        assert!((width * height).div_ceil(8) == data.len());
         Self {
             width,
             height,
