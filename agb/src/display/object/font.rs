@@ -208,7 +208,7 @@ impl BufferedRender<'_> {
 /// ```rust,no_run
 /// #![no_std]
 /// #![no_main]
-/// use agb::display::object::{ObjectTextRender, SinglePaletteVram, TextAlignment, Size};
+/// use agb::display::object::{ObjectTextRender, PaletteVramSingle, TextAlignment, Size};
 /// use agb::display::palette16::Palette16;
 /// use agb::display::{Font, WIDTH};
 ///
@@ -218,13 +218,13 @@ impl BufferedRender<'_> {
 ///
 /// #[agb::entry]
 /// fn main(gba: &mut agb::Gba) -> ! {
-///     let (mut unmanaged, _) = gba.display.object.get_unmanaged();
+///     let mut oam = gba.display.object.get();
 ///     let vblank = agb::interrupt::VBlank::get();
 ///
 ///     let mut palette = [0x0; 16];
 ///     palette[1] = 0xFF_FF;
 ///     let palette = Palette16::new(palette);
-///     let palette = SinglePaletteVram::new(&palette).unwrap();
+///     let palette = PaletteVramSingle::new(&palette).unwrap();
 ///
 ///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
@@ -234,9 +234,10 @@ impl BufferedRender<'_> {
 ///     loop {
 ///         writer.next_letter_group();
 ///         writer.update((0, 0));
+///         let mut frame = oam.frame();
+///         writer.commit(&mut frame);
 ///         vblank.wait_for_vblank();
-///         let oam = &mut unmanaged.iter();
-///         writer.commit(oam);
+///         frame.commit();
 ///     }
 /// }
 /// ```

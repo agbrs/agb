@@ -41,58 +41,9 @@ pub struct Oam<'gba> {
     frame: Frame,
 }
 
-/// The iterator over the OAM slots. Dropping this will finalise the frame. To
-/// use, iterate over and write to each slot.
-///
-/// For example, it could look like this:
-///
-/// ```no_run
-/// # #![no_main]
-/// # #![no_std]
-/// use agb::display::object::{OamIterator, ObjectUnmanaged};
-///
-/// fn write_to_oam(oam_iterator: OamIterator, objects: &[ObjectUnmanaged]) {
-///     for (object, slot) in objects.iter().zip(oam_iterator) {
-///         slot.set(&object);
-///     }
-/// }
-/// ```
-///
-/// # Pitfalls
-/// You *must* use each OamSlot you obtain, this can be an issue if instead of
-/// the above you write
-///
-/// ```no_run
-/// # #![no_main]
-/// # #![no_std]
-/// use agb::display::object::{OamIterator, ObjectUnmanaged};
-///
-/// fn write_to_oam(oam_iterator: OamIterator, objects: &[ObjectUnmanaged]) {
-///     for (slot, object) in oam_iterator.zip(objects.iter()) {
-///         slot.set(&object);
-///     }
-/// }
-/// ```
-///
-/// This will panic if called because when you run out of objects the zip will
-/// have already grabbed the next OamSlot before realising there are no more
-/// objects.
 pub struct OamFrame<'oam>(&'oam mut Frame);
 
 impl OamFrame<'_> {
-    /// Sets the next oam slot with the provided `object`.
-    ///
-    /// Is equivalent to the following:
-    /// ```no_run
-    /// # #![no_main]
-    /// # #![no_std]
-    /// # use agb::display::object::{OamIterator, ObjectUnmanaged};
-    /// # fn set_next_example(oam_iterator: &mut OamIterator, object: &ObjectUnmanaged) {
-    /// if let Some(slot) = oam_iterator.next() {
-    ///     slot.set(object);
-    /// }
-    /// # }
-    /// ```
     pub fn set(&mut self, object: &Object) {
         self.set_inner(object);
     }
