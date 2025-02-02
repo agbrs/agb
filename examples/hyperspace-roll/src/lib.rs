@@ -12,7 +12,7 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::display::object::OamManaged;
+use agb::display::object::Oam;
 use agb::display::tiled::TiledBackground;
 use agb::interrupt::VBlank;
 use agb::sound::mixer::Frequency;
@@ -90,7 +90,7 @@ pub struct PlayerDice {
 
 struct Agb<'a> {
     tiled: TiledBackground<'a>,
-    obj: OamManaged<'a>,
+    obj: Oam<'a>,
     vblank: VBlank,
     star_background: StarBackground,
     sfx: Sfx<'a>,
@@ -103,7 +103,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
-    let gfx = gba.display.object.get_managed();
+    let gfx = gba.display.object.get();
     let vblank = agb::interrupt::VBlank::get();
 
     let tiled = gba.display.video.tiled();
@@ -147,8 +147,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         {
             let title_screen_bg = show_title_screen(&mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
-            score_display.set_value(Some(save::load_high_score()), &agb.obj);
-            agb.obj.commit();
+            score_display.set_value(Some(save::load_high_score()));
 
             let mut input = agb::input::ButtonController::new();
             loop {
@@ -157,17 +156,18 @@ pub fn main(mut gba: agb::Gba) -> ! {
                 if input.is_just_pressed(agb::input::Button::all()) {
                     break;
                 }
-                agb.vblank.wait_for_vblank();
 
+                let mut oam_frame = agb.obj.frame();
                 let mut bg_iter = agb.tiled.iter();
+                score_display.show(&mut oam_frame);
                 title_screen_bg.show(&mut bg_iter);
+                agb.vblank.wait_for_vblank();
                 bg_iter.commit();
+                oam_frame.commit();
 
                 agb.sfx.frame();
             }
         }
-
-        agb.obj.commit();
 
         agb.sfx.frame();
 
@@ -180,7 +180,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
             match result {
                 BattleResult::Win => {}
                 BattleResult::Loss => {
-                    agb.obj.commit();
                     agb.sfx.customise();
                     if save::load_high_score() < current_level {
                         save::save_high_score(&mut gba.save, current_level)
