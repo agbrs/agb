@@ -1,10 +1,7 @@
 use crate::TAG_MAP;
 
 use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
-use agb::{
-    display::object::{OamManaged, Tag},
-    fixnum::Vector2D,
-};
+use agb::{display::object::Tag, fixnum::Vector2D};
 
 static SLIME_IDLE: &Tag = TAG_MAP.get("Slime Idle");
 static SLIME_JUMP: &Tag = TAG_MAP.get("Slime Jump");
@@ -22,9 +19,9 @@ enum UpdateState {
 }
 
 #[derive(Default)]
-pub enum Enemy<'a> {
-    Slime(Slime<'a>),
-    Snail(Snail<'a>),
+pub enum Enemy {
+    Slime(Slime),
+    Snail(Snail),
     #[default]
     Empty,
 }
@@ -34,13 +31,13 @@ pub enum EnemyUpdateState {
     KillPlayer,
 }
 
-impl<'a> Enemy<'a> {
-    pub fn new_slime(object: &'a OamManaged, start_pos: Vector2D<FixedNumberType>) -> Self {
-        Enemy::Slime(Slime::new(object, start_pos + (0, 1).into()))
+impl Enemy {
+    pub fn new_slime(start_pos: Vector2D<FixedNumberType>) -> Self {
+        Enemy::Slime(Slime::new(start_pos + (0, 1).into()))
     }
 
-    pub fn new_snail(object: &'a OamManaged, start_pos: Vector2D<FixedNumberType>) -> Self {
-        Enemy::Snail(Snail::new(object, start_pos))
+    pub fn new_snail(start_pos: Vector2D<FixedNumberType>) -> Self {
+        Enemy::Snail(Snail::new(start_pos))
     }
 
     pub fn collides_with_hat(&self, position: Vector2D<FixedNumberType>) -> bool {
@@ -52,7 +49,6 @@ impl<'a> Enemy<'a> {
 
     pub fn update(
         &mut self,
-        controller: &'a OamManaged,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -60,12 +56,8 @@ impl<'a> Enemy<'a> {
         sfx_player: &mut SfxPlayer,
     ) -> EnemyUpdateState {
         let update_state = match self {
-            Enemy::Slime(slime) => {
-                slime.update(controller, level, player_pos, hat_state, timer, sfx_player)
-            }
-            Enemy::Snail(snail) => {
-                snail.update(controller, level, player_pos, hat_state, timer, sfx_player)
-            }
+            Enemy::Slime(slime) => slime.update(level, player_pos, hat_state, timer, sfx_player),
+            Enemy::Snail(snail) => snail.update(level, player_pos, hat_state, timer, sfx_player),
             Enemy::Empty => UpdateState::Nothing,
         };
 
@@ -79,27 +71,23 @@ impl<'a> Enemy<'a> {
         }
     }
 
-    pub fn commit(&mut self, background_offset: Vector2D<FixedNumberType>) {
+    pub fn entity(&mut self) -> Option<&mut Entity> {
         match self {
-            Enemy::Slime(slime) => slime.commit(background_offset),
-            Enemy::Snail(snail) => snail.commit(background_offset),
-            Enemy::Empty => {}
+            Enemy::Slime(slime) => Some(&mut slime.enemy_info.entity),
+            Enemy::Snail(snail) => Some(&mut snail.enemy_info.entity),
+            Enemy::Empty => None,
         }
     }
 }
 
-struct EnemyInfo<'a> {
-    entity: Entity<'a>,
+struct EnemyInfo {
+    entity: Entity,
 }
 
-impl<'a> EnemyInfo<'a> {
-    fn new(
-        object: &'a OamManaged,
-        start_pos: Vector2D<FixedNumberType>,
-        collision: Vector2D<u16>,
-    ) -> Self {
+impl EnemyInfo {
+    fn new(start_pos: Vector2D<FixedNumberType>, collision: Vector2D<u16>) -> Self {
         let mut enemy_info = EnemyInfo {
-            entity: Entity::new(object, collision),
+            entity: Entity::new(collision),
         };
         enemy_info.entity.position = start_pos;
         enemy_info
@@ -117,10 +105,6 @@ impl<'a> EnemyInfo<'a> {
 
         self.entity.update_position(level);
     }
-
-    fn commit(&mut self, background_offset: Vector2D<FixedNumberType>) {
-        self.entity.commit_position(background_offset);
-    }
 }
 
 enum SlimeState {
@@ -129,24 +113,21 @@ enum SlimeState {
     Dying(i32),   // the start frame of the dying animation
 }
 
-pub struct Slime<'a> {
-    enemy_info: EnemyInfo<'a>,
+pub struct Slime {
+    enemy_info: EnemyInfo,
     state: SlimeState,
 }
 
-impl<'a> Slime<'a> {
-    fn new(object: &'a OamManaged, start_pos: Vector2D<FixedNumberType>) -> Self {
-        let slime = Slime {
-            enemy_info: EnemyInfo::new(object, start_pos, (14u16, 14u16).into()),
+impl Slime {
+    fn new(start_pos: Vector2D<FixedNumberType>) -> Self {
+        Slime {
+            enemy_info: EnemyInfo::new(start_pos, (14u16, 14u16).into()),
             state: SlimeState::Idle,
-        };
-
-        slime
+        }
     }
 
     fn update(
         &mut self,
-        controller: &'a OamManaged,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -161,9 +142,8 @@ impl<'a> Slime<'a> {
                 let offset = (timer / 16) as usize;
 
                 let frame = SLIME_IDLE.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
 
                 if (self.enemy_info.entity.position - player_pos).magnitude_squared()
                     < (64 * 64).into()
@@ -201,9 +181,8 @@ impl<'a> Slime<'a> {
                     self.state = SlimeState::Idle;
                 } else {
                     let frame = SLIME_JUMP.animation_sprite(offset);
-                    let sprite = controller.sprite(frame);
 
-                    self.enemy_info.entity.sprite.set_sprite(sprite);
+                    self.enemy_info.entity.sprite.set_sprite(frame);
                 }
 
                 if player_has_collided {
@@ -227,19 +206,14 @@ impl<'a> Slime<'a> {
                 }
 
                 let frame = SLIME_SPLAT.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
             }
         }
 
         self.enemy_info.update(level);
 
         UpdateState::Nothing
-    }
-
-    fn commit(&mut self, background_offset: Vector2D<FixedNumberType>) {
-        self.enemy_info.commit(background_offset);
     }
 }
 
@@ -251,19 +225,17 @@ enum SnailState {
     Death(i32),      // start frame
 }
 
-pub struct Snail<'a> {
-    enemy_info: EnemyInfo<'a>,
+pub struct Snail {
+    enemy_info: EnemyInfo,
     state: SnailState,
 }
 
-impl<'a> Snail<'a> {
-    fn new(object: &'a OamManaged, start_pos: Vector2D<FixedNumberType>) -> Self {
-        let snail = Snail {
-            enemy_info: EnemyInfo::new(object, start_pos, (16u16, 16u16).into()),
+impl Snail {
+    fn new(start_pos: Vector2D<FixedNumberType>) -> Self {
+        Snail {
+            enemy_info: EnemyInfo::new(start_pos, (16u16, 16u16).into()),
             state: SnailState::Idle(0),
-        };
-
-        snail
+        }
     }
 
     pub fn collides_with(&self, position: Vector2D<FixedNumberType>) -> bool {
@@ -272,7 +244,6 @@ impl<'a> Snail<'a> {
 
     fn update(
         &mut self,
-        controller: &'a OamManaged,
         level: &Level,
         player_pos: Vector2D<FixedNumberType>,
         hat_state: HatState,
@@ -298,9 +269,8 @@ impl<'a> Snail<'a> {
                 }
 
                 let frame = SNAIL_IDLE.animation_sprite(0);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
                 if player_has_collided {
                     if hat_state != HatState::WizardTowards {
                         return UpdateState::KillPlayer;
@@ -318,9 +288,8 @@ impl<'a> Snail<'a> {
                 self.enemy_info.entity.velocity = (0, 0).into();
 
                 let frame = SNAIL_EMERGE.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
 
                 if player_has_collided {
                     if hat_state != HatState::WizardTowards {
@@ -340,9 +309,8 @@ impl<'a> Snail<'a> {
                 let offset = (timer - time) as usize / 8;
 
                 let frame = SNAIL_MOVE.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
 
                 if timer % 32 == 0 {
                     let x_vel: FixedNumberType =
@@ -374,9 +342,8 @@ impl<'a> Snail<'a> {
                 }
 
                 let frame = SNAIL_EMERGE.animation_sprite(offset);
-                let sprite = controller.sprite(frame);
 
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
                 self.enemy_info.entity.velocity = (0, 0).into();
 
                 if player_has_collided {
@@ -403,9 +370,7 @@ impl<'a> Snail<'a> {
                     return UpdateState::Remove;
                 };
 
-                let sprite = controller.sprite(frame);
-
-                self.enemy_info.entity.sprite.set_sprite(sprite);
+                self.enemy_info.entity.sprite.set_sprite(frame);
                 self.enemy_info.entity.velocity = (0, 0).into();
             }
         }
@@ -413,9 +378,5 @@ impl<'a> Snail<'a> {
         self.enemy_info.update(level);
 
         UpdateState::Nothing
-    }
-
-    fn commit(&mut self, background_offset: Vector2D<FixedNumberType>) {
-        self.enemy_info.commit(background_offset);
     }
 }
