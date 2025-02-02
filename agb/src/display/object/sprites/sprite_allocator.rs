@@ -127,14 +127,6 @@ impl SpriteLoaderInner {
 
         Ok(SpriteVram::new(sprite, palette))
     }
-
-    /// Remove internal references to sprites that no longer exist in vram. If
-    /// you neglect calling this, memory will leak over time in relation to the
-    /// total number of different sprites used. It will not leak vram.
-    fn garbage_collect(&mut self) {
-        self.garbage_collect_sprites();
-        self.garbage_collect_palettes();
-    }
 }
 
 pub struct SpriteLoader(SyncUnsafeCell<MaybeUninit<SpriteLoaderInner>>);

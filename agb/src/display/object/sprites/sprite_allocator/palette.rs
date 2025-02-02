@@ -120,6 +120,7 @@ static PALETTE_ALLOCATOR: PaletteAllocator = PaletteAllocator::new();
 
 #[derive(Debug)]
 #[repr(align(4))]
+#[expect(dead_code, reason = "the drop implementation is used and is important")]
 enum PaletteAllocation {
     Single(SinglePaletteAllocation),
     Multi(MultiPaletteAllocation),
