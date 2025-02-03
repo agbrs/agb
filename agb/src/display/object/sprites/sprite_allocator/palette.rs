@@ -1,10 +1,9 @@
 use core::{alloc::Allocator, cell::Cell, hint::assert_unchecked, ptr::NonNull};
 
-use alloc::rc::Rc;
-
 use crate::{
     agb_alloc::single_allocator::create_allocator_arena,
     display::{object::PaletteMulti, palette16::Palette16},
+    refcount::{RefCount, RefCountInner},
     ExternalAllocator,
 };
 
@@ -12,12 +11,11 @@ use super::LoaderError;
 
 pub const PALETTE_SPRITE: usize = 0x0500_0200;
 
-struct RcInner<T> {
-    _counts: [usize; 2],
-    _value: T,
-}
-
-create_allocator_arena!(PaletteArena, ExternalAllocator, RcInner<PaletteAllocation>);
+create_allocator_arena!(
+    PaletteArena,
+    ExternalAllocator,
+    RefCountInner<PaletteAllocation>
+);
 
 struct PaletteAllocator {
     allocation: Cell<u16>,
@@ -155,7 +153,7 @@ impl PaletteVramMulti {
 }
 
 #[derive(Clone, Debug)]
-pub struct PaletteVram(Rc<PaletteAllocation, PaletteArena>);
+pub struct PaletteVram(RefCount<PaletteAllocation, PaletteArena>);
 
 impl PaletteVram {
     pub fn new_single(palette: &Palette16) -> Result<Self, LoaderError> {
@@ -164,7 +162,7 @@ impl PaletteVram {
             .ok_or(LoaderError::PaletteFull)?;
         let allocation = PaletteAllocation::Single(allocation);
 
-        Ok(Self(Rc::new_in(allocation, PaletteArena)))
+        Ok(Self(RefCount::new_in(allocation, PaletteArena)))
     }
 
     pub fn new_multi(palette: &PaletteMulti) -> Result<Self, LoaderError> {
@@ -173,12 +171,12 @@ impl PaletteVram {
             .ok_or(LoaderError::PaletteFull)?;
         let allocation = PaletteAllocation::Multi(allocation);
 
-        Ok(Self(Rc::new_in(allocation, PaletteArena)))
+        Ok(Self(RefCount::new_in(allocation, PaletteArena)))
     }
 
     #[must_use]
     pub fn strong_count(&self) -> usize {
-        Rc::strong_count(&self.0)
+        RefCount::count(&self.0)
     }
 
     #[must_use]

@@ -178,6 +178,7 @@ pub use agb_fixnum as fixnum;
 pub use agb_hashmap as hash_map;
 #[cfg(feature = "backtrace")]
 mod panics_render;
+pub(crate) mod refcount;
 /// Simple random number generator
 pub mod rng;
 pub mod save;

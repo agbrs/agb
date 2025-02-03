@@ -1,13 +1,12 @@
 use core::{alloc::Allocator, ptr::NonNull};
 
-use alloc::rc::Rc;
-
 use crate::{
     agb_alloc::{
         block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator,
         single_allocator::create_allocator_arena,
     },
     display::object::{sprites::BYTES_PER_TILE_4BPP, Size, Sprite},
+    refcount::{RefCount, RefCountInner},
     ExternalAllocator,
 };
 
@@ -26,12 +25,11 @@ pub struct SpriteAllocator;
 
 impl_zst_allocator!(SpriteAllocator, SPRITE_ALLOCATOR);
 
-struct RcInner<T> {
-    _counts: [usize; 2],
-    _t: T,
-}
-
-create_allocator_arena!(SpriteArena, ExternalAllocator, RcInner<SpriteVramData>);
+create_allocator_arena!(
+    SpriteArena,
+    ExternalAllocator,
+    RefCountInner<SpriteVramData>
+);
 
 /// A sprite that is currently loaded into vram.
 ///
@@ -98,11 +96,11 @@ struct SpriteVramData {
 }
 
 #[derive(Clone, Debug)]
-pub struct SpriteVramInner(Rc<SpriteVramData, SpriteArena>);
+pub struct SpriteVramInner(RefCount<SpriteVramData, SpriteArena>);
 
 impl SpriteVramInner {
     pub fn strong_count(&self) -> usize {
-        Rc::strong_count(&self.0)
+        RefCount::count(&self.0)
     }
 
     pub fn new(data: &[u8], size: Size, multi: bool) -> Result<SpriteVramInner, LoaderError> {
@@ -114,7 +112,7 @@ impl SpriteVramInner {
                 .copy_from_nonoverlapping(data.as_ptr(), data.len());
         }
 
-        Ok(SpriteVramInner(Rc::new_in(
+        Ok(SpriteVramInner(RefCount::new_in(
             SpriteVramData {
                 sprite_index: SpriteLocation::from_ptr(allocated),
                 multi_palette: multi,
@@ -133,7 +131,7 @@ impl SpriteVramInner {
         size: Size,
         multi_palette: bool,
     ) -> Self {
-        SpriteVramInner(Rc::new_in(
+        SpriteVramInner(RefCount::new_in(
             SpriteVramData {
                 sprite_index,
                 size,
