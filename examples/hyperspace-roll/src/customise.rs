@@ -250,7 +250,7 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Face => {
-                oam_frame.set(&selected_dice);
+                oam_frame.show(&selected_dice);
 
                 cursor.face = move_net_position_lr(cursor.face, lr);
                 cursor.face = move_net_position_ud(cursor.face, ud);
@@ -280,7 +280,7 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Upgrade => {
-                oam_frame.set(&selected_face);
+                oam_frame.show(&selected_face);
 
                 let old_upgrade = cursor.upgrade;
                 cursor.upgrade = (cursor.upgrade as isize + ud as isize)
@@ -333,7 +333,7 @@ pub(crate) fn customise_screen(
         }
 
         for obj in net.iter().chain(dice.iter()).chain(upgrade_objects.iter()) {
-            oam_frame.set(obj);
+            oam_frame.show(obj);
         }
 
         if upgrades.is_empty() {
@@ -342,7 +342,7 @@ pub(crate) fn customise_screen(
 
         select_box.set_sprite(SELECT_BOX.animation_sprite(counter / 10));
 
-        oam_frame.set(&select_box);
+        oam_frame.show(&select_box);
 
         agb.star_background.update();
         let _ = agb::rng::gen();

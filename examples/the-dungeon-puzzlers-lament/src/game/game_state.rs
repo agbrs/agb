@@ -234,7 +234,7 @@ impl GameState {
             let mut arrow_obj = Object::new(arrow_for_direction(*direction).sprite(sprite_idx));
             arrow_obj.set_position(arrow_position);
 
-            oam.set(&arrow_obj);
+            oam.show(&arrow_obj);
         }
     }
 
@@ -245,7 +245,7 @@ impl GameState {
         let mut cursor_obj = Object::new(resources::CURSOR.sprite(0));
         cursor_obj.set_position(self.cursor_state.get_position(is_odd_frame));
 
-        oam.set(&cursor_obj);
+        oam.show(&cursor_obj);
 
         let level = self.level;
 
@@ -265,7 +265,7 @@ impl GameState {
             let mut item_obj = Object::new(item.tag().animation_sprite(frame_index));
             item_obj.set_position(item_position);
 
-            oam.set(&item_obj);
+            oam.show(&item_obj);
         }
 
         for (item_position, item) in level.items.iter().enumerate().filter_map(|(i, item)| {
@@ -288,7 +288,7 @@ impl GameState {
             let mut item_obj = Object::new(item.tag().animation_sprite(frame_index));
             item_obj.set_position(item_position);
 
-            oam.set(&item_obj);
+            oam.show(&item_obj);
         }
 
         for entity in level.entities.iter() {
@@ -297,7 +297,7 @@ impl GameState {
             let mut entity_obj = Object::new(entity.0.shadow_tag().sprite(0));
             entity_obj.set_position(entity_position);
 
-            oam.set(&entity_obj);
+            oam.show(&entity_obj);
         }
     }
 }

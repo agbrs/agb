@@ -205,7 +205,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
         let mut frame = oam.frame();
 
         for obj in letters.iter() {
-            frame.set(obj);
+            frame.show(obj);
         }
 
         vblank.wait_for_vblank();

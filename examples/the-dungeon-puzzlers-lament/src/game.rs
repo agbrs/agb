@@ -337,7 +337,7 @@ impl PauseMenu {
                 indicator.set_position(Vector2D::new(16, HEIGHT / 4 + 20))
             }
         };
-        oam.set(&indicator);
+        oam.show(&indicator);
     }
 }
 

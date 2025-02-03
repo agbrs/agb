@@ -73,7 +73,7 @@ fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
         }
 
         for obj in objs.iter() {
-            frame.set(obj);
+            frame.show(obj);
         }
 
         vblank.wait_for_vblank();
@@ -121,7 +121,7 @@ fn all_tags(gfx: &mut Oam) {
         }
 
         for (obj, _) in objs.iter() {
-            frame.set(obj);
+            frame.show(obj);
         }
 
         vblank.wait_for_vblank();

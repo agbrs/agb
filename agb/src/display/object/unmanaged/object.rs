@@ -44,7 +44,7 @@ pub struct Oam<'gba> {
 pub struct OamFrame<'oam>(&'oam mut Frame);
 
 impl OamFrame<'_> {
-    pub fn set(&mut self, object: &Object) {
+    pub fn show(&mut self, object: &Object) {
         self.set_inner(object);
     }
 
@@ -345,8 +345,8 @@ mod tests {
             let mut frame = gfx.frame();
             let obj = Object::new(BOSS.sprite(2));
 
-            frame.set(&obj);
-            frame.set(&obj);
+            frame.show(&obj);
+            frame.show(&obj);
 
             frame.commit();
         }

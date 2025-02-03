@@ -281,7 +281,7 @@ impl ObjectTextRender<'_> {
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
     pub fn commit(&mut self, oam: &mut OamFrame) {
         for object in self.layout.objects.iter() {
-            oam.set(object);
+            oam.show(object);
         }
     }
 

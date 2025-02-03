@@ -81,13 +81,13 @@ fn draw_bar(
     for sprite_idx in 0..number_of_sprites {
         let mut object = Object::new(sprites[0].clone());
         object.set_position(position + (sprite_idx * 8, 0).into());
-        oam.set(&object);
+        oam.show(&object);
     }
 
     if size_of_last != 0 {
         let mut object = Object::new(sprites[8 - size_of_last as usize].clone());
         object.set_position(position + (number_of_sprites * 8, 0).into());
-        oam.set(&object);
+        oam.show(&object);
     }
 }
 
@@ -118,7 +118,7 @@ fn draw_number(
         let mut obj = Object::new(sprite_cache.numbers[digit as usize].clone());
         obj.set_position(current_position);
 
-        oam.set(&obj);
+        oam.show(&obj);
 
         current_position -= (4, 0).into();
     }
@@ -316,7 +316,7 @@ impl Game {
 
     fn render(&self, oam: &mut OamFrame, sprite_cache: &SpriteCache) {
         for saw in self.saws.iter() {
-            oam.set(&saw.object);
+            oam.show(&saw.object);
         }
 
         for circle in self.circles.iter() {
@@ -327,7 +327,7 @@ impl Game {
 
             object.set_position(circle.position.floor() - (4, 4).into());
 
-            oam.set(&object);
+            oam.show(&object);
         }
     }
 }
