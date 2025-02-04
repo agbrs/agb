@@ -37,9 +37,8 @@ create_allocator_arena!(
 /// reused between objects. When nothing references the sprite it gets
 /// deallocated from vram.
 ///
-/// You can create one of these either via the [DynamicSprite] interface, which
-/// allows you to generate sprites at run time, or via a [SpriteLoader] (or
-/// [OamManaged][super::super::OamManaged]).
+/// You can create one of these either via the [DynamicSprite][super::DynamicSprite] interface, which
+/// allows you to generate sprites at run time, by using the [IntoSpriteVram][super::IntoSpriteVram] trait.
 #[derive(Clone, Debug)]
 pub struct SpriteVram {
     sprite: SpriteVramInner,

@@ -123,8 +123,6 @@ impl Oam<'_> {
 }
 
 #[derive(Debug, Clone)]
-/// An object to be used by the [`OamUnmanaged`] system. Changes made here are
-/// reflected when set to an OamSlot using [`OamSlot::set`].
 pub struct Object {
     attributes: Attributes,
     sprite: SpriteVram,
