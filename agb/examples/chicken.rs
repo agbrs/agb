@@ -86,10 +86,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     chicken
         .object
-        .set_x((chicken.position.x >> 8).try_into().unwrap());
-    chicken
-        .object
-        .set_y((chicken.position.y >> 8).try_into().unwrap());
+        .set_position((chicken.position.x >> 8, chicken.position.y >> 8));
 
     let acceleration = 1 << 4;
     let gravity = 1 << 4;
@@ -170,11 +167,10 @@ fn update_chicken_object(chicken: &'_ mut Character, state: State, frame_count: 
         }
     }
 
-    let x: u16 = (chicken.position.x >> 8).try_into().unwrap();
-    let y: u16 = (chicken.position.y >> 8).try_into().unwrap();
+    let x = chicken.position.x >> 8;
+    let y = chicken.position.y >> 8;
 
-    chicken.object.set_x(x - 4);
-    chicken.object.set_y(y - 4);
+    chicken.object.set_position((x - 4, y - 4));
 }
 
 fn restrict_to_screen(chicken: &mut Character) {

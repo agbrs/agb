@@ -14,8 +14,8 @@ use agb::{
         self,
         affine::AffineMatrix,
         object::{
-            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, OamFrame, Object, Sprite,
-            SpriteVram, Tag,
+            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, OamFrame, Object,
+            ObjectAffine, Sprite, SpriteVram, Tag,
         },
         palette16::Palette16,
         tiled::VRAM_MANAGER,
@@ -30,7 +30,7 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 type Number = Num<i32, 8>;
 
 struct Saw {
-    object: Object,
+    object: ObjectAffine,
     position: Vector2D<Number>,
     angle: Number,
     rotation_speed: Number,
@@ -253,10 +253,9 @@ impl Game {
 
             let angle_affine_matrix = AffineMatrix::from_rotation(saw.angle);
 
-            saw.object.set_affine(
-                AffineMatrixInstance::new(angle_affine_matrix.to_object_wrapping()),
-                AffineMode::Affine,
-            );
+            saw.object.set_affine_matrix(AffineMatrixInstance::new(
+                angle_affine_matrix.to_object_wrapping(),
+            ));
 
             saw.object
                 .set_position(saw.position.floor() - (16, 16).into());
@@ -285,7 +284,11 @@ impl Game {
             let rotation_magnitude =
                 Number::from_raw(rng::gen().abs() % (1 << 8)) % num!(0.02) + num!(0.005);
 
-            let mut saw = Object::new(sprite_cache.saw.clone());
+            let mut saw = ObjectAffine::new(
+                sprite_cache.saw.clone(),
+                AffineMatrixInstance::new(AffineMatrix::identity().to_object_wrapping()),
+                AffineMode::Affine,
+            );
             let position = (300, rng::gen().rem_euclid(display::HEIGHT));
 
             saw.set_position(position);

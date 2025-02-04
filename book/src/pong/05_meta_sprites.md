@@ -25,12 +25,12 @@ let mut paddle_start = Object::new(PADDLE_END.sprite(0));
 let mut paddle_mid = Object::new(PADDLE_MID.sprite(0));
 let mut paddle_end = Object::new(PADDLE_END.sprite(0));
 
-paddle_start.set_x(20).set_y(20);
-paddle_mid.set_x(20).set_y(20 + 16);
-paddle_end.set_x(20).set_y(20 + 16 * 2);
+paddle_start.set_position((20, 20));
+paddle_mid.set_position((20, 20 + 16));
+paddle_end.set_position((20, 20 + 16 * 2));
 ```
 
-If you add this to your program, you'll see the paddle. But wait! The bottom of
+If you add this to your program and show it, you'll see the paddle. But wait! The bottom of
 the paddle is the wrong way around! Fortunately, the GBA can horizontally and vertically flip sprites.
 
 ```rust

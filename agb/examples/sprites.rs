@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::display::{
     affine::AffineMatrix,
-    object::{self, Graphics, Oam, Object, Sprite, TagMap},
+    object::{self, AffineMode, Graphics, Oam, Object, ObjectAffine, Sprite, TagMap},
 };
 use agb::fixnum::num;
 use agb_fixnum::Num;
@@ -31,8 +31,7 @@ fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
 
     for y in 0..9 {
         for x in 0..14 {
-            let mut obj = Object::new(&SPRITES[0]);
-            obj.set_affine(matrix.clone(), object::AffineMode::Affine);
+            let mut obj = ObjectAffine::new(&SPRITES[0], matrix.clone(), AffineMode::Affine);
             obj.set_position((x * 16 + 8, y * 16 + 8));
             objs.push(obj);
         }
@@ -57,7 +56,7 @@ fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
         let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
 
         for obj in objs.iter_mut() {
-            obj.set_affine(matrix.clone(), object::AffineMode::Affine);
+            obj.set_affine_matrix(matrix.clone());
         }
 
         count += 1;

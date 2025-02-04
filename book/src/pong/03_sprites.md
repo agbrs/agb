@@ -71,7 +71,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut ball = Object::new(BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
-    ball.set_x(50).set_y(50);
+    ball.set_position((50, 50));
 
     // Start a frame and add the one object to it
     let mut frame = object.frame();
@@ -121,7 +121,7 @@ loop {
     }
 
     // Set the position of the ball to match our new calculated position
-    ball.set_x(ball_x as u16).set_y(ball_y as u16);
+        ball.set_position((ball_x, ball_y));
 
     // prepare the frame
     let mut frame = object.frame();

@@ -7,14 +7,13 @@ use self::attributes::{
 };
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub struct Attributes {
+pub struct AttributesRegular {
     a0: ObjectAttribute0,
-    a1s: ObjectAttribute1Standard,
-    a1a: ObjectAttribute1Affine,
+    a1: ObjectAttribute1Standard,
     a2: ObjectAttribute2,
 }
 
-impl Default for Attributes {
+impl Default for AttributesRegular {
     fn default() -> Self {
         Self {
             a0: ObjectAttribute0::new(
@@ -25,8 +24,34 @@ impl Default for Attributes {
                 ColourMode::Four,
                 u2::new(0),
             ),
-            a1s: Default::default(),
-            a1a: Default::default(),
+            a1: Default::default(),
+            a2: Default::default(),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct AttributesAffine {
+    a0: ObjectAttribute0,
+    a1: ObjectAttribute1Affine,
+    a2: ObjectAttribute2,
+}
+
+impl AttributesAffine {
+    pub fn new(mode: AffineMode) -> Self {
+        Self {
+            a0: ObjectAttribute0::new(
+                0,
+                match mode {
+                    AffineMode::Affine => ObjectMode::Affine,
+                    AffineMode::AffineDouble => ObjectMode::AffineDouble,
+                },
+                GraphicsModeInternal::Normal,
+                false,
+                ColourMode::Four,
+                u2::new(0),
+            ),
+            a1: Default::default(),
             a2: Default::default(),
         }
     }
@@ -41,13 +66,9 @@ pub enum AffineMode {
     AffineDouble = 3,
 }
 
-impl Attributes {
+impl AttributesRegular {
     pub fn write(self, ptr: *mut u16) {
-        let mode = self.a0.object_mode();
-        let attrs = match mode {
-            ObjectMode::Normal => [self.a0.into(), self.a1s.into(), self.a2.into()],
-            _ => [self.a0.into(), self.a1a.into(), self.a2.into()],
-        };
+        let attrs = [self.a0.into(), self.a1.into(), self.a2.into()];
 
         unsafe {
             ptr.add(0).write_volatile(attrs[0]);
@@ -56,11 +77,99 @@ impl Attributes {
         }
     }
 
-    pub fn is_visible(self) -> bool {
-        self.a0.object_mode() != ObjectMode::Disabled
+    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
+        self.a1.set_horizontal_flip(flip);
+
+        self
     }
 
-    pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
+    pub fn hflip(self) -> bool {
+        self.a1.horizontal_flip()
+    }
+
+    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
+        self.a1.set_vertical_flip(flip);
+
+        self
+    }
+
+    pub fn vflip(self) -> bool {
+        self.a1.vertical_flip()
+    }
+
+    pub fn set_x(&mut self, x: u16) -> &mut Self {
+        self.a1.set_x(u9::new(x.rem_euclid(1 << 9)));
+
+        self
+    }
+
+    pub fn x(self) -> u16 {
+        u16::from(self.a1.x())
+    }
+
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.a2.set_priority(priority);
+
+        self
+    }
+
+    pub fn priority(self) -> Priority {
+        self.a2.priority()
+    }
+
+    pub fn set_y(&mut self, y: u16) -> &mut Self {
+        self.a0.set_y(y as u8);
+
+        self
+    }
+
+    pub fn y(self) -> u16 {
+        u16::from(self.a0.y())
+    }
+
+    pub fn set_palette(&mut self, palette_id: u16) -> &mut Self {
+        self.a2.set_palette_bank(u4::new(palette_id as u8));
+
+        self
+    }
+
+    pub fn set_sprite(&mut self, sprite_id: u16, shape: u16, size: u16) -> &mut Self {
+        self.a2.set_tile_index(u10::new(sprite_id));
+        self.a1.set_size(u2::new(size as u8));
+        self.a0.set_shape(u2::new(shape as u8));
+
+        self
+    }
+
+    pub fn set_colour_mode(&mut self, mode: ColourMode) -> &mut Self {
+        self.a0.set_colour_mode(mode);
+
+        self
+    }
+
+    pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
+        self.a0.set_graphics_mode(match mode {
+            GraphicsMode::Normal => GraphicsModeInternal::Normal,
+            GraphicsMode::AlphaBlending => GraphicsModeInternal::AlphaBlending,
+            GraphicsMode::Window => GraphicsModeInternal::Window,
+        });
+
+        self
+    }
+}
+
+impl AttributesAffine {
+    pub fn write(self, ptr: *mut u16) {
+        let attrs = [self.a0.into(), self.a1.into(), self.a2.into()];
+
+        unsafe {
+            ptr.add(0).write_volatile(attrs[0]);
+            ptr.add(1).write_volatile(attrs[1]);
+            ptr.add(2).write_volatile(attrs[2]);
+        }
+    }
+
+    pub fn set_affine_mode(&mut self, affine_mode: AffineMode) -> &mut Self {
         self.a0.set_object_mode(match affine_mode {
             AffineMode::Affine => ObjectMode::Affine,
             AffineMode::AffineDouble => ObjectMode::AffineDouble,
@@ -69,35 +178,14 @@ impl Attributes {
         self
     }
 
-    pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
-        self.a1s.set_horizontal_flip(flip);
-
-        self
-    }
-
-    pub fn hflip(self) -> bool {
-        self.a1s.horizontal_flip()
-    }
-
-    pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
-        self.a1s.set_vertical_flip(flip);
-
-        self
-    }
-
-    pub fn vflip(self) -> bool {
-        self.a1s.vertical_flip()
-    }
-
     pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.a1a.set_x(u9::new(x.rem_euclid(1 << 9)));
-        self.a1s.set_x(u9::new(x.rem_euclid(1 << 9)));
+        self.a1.set_x(u9::new(x.rem_euclid(1 << 9)));
 
         self
     }
 
     pub fn x(self) -> u16 {
-        u16::from(self.a1a.x())
+        u16::from(self.a1.x())
     }
 
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
@@ -127,15 +215,14 @@ impl Attributes {
     }
 
     pub fn set_affine_matrix(&mut self, affine_matrix_id: u16) -> &mut Self {
-        self.a1a.set_affine_index(u5::new(affine_matrix_id as u8));
+        self.a1.set_affine_index(u5::new(affine_matrix_id as u8));
 
         self
     }
 
     pub fn set_sprite(&mut self, sprite_id: u16, shape: u16, size: u16) -> &mut Self {
         self.a2.set_tile_index(u10::new(sprite_id));
-        self.a1a.set_size(u2::new(size as u8));
-        self.a1s.set_size(u2::new(size as u8));
+        self.a1.set_size(u2::new(size as u8));
         self.a0.set_shape(u2::new(shape as u8));
 
         self
