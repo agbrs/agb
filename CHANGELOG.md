@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer
+
 ## [0.21.3] - 2025/02/01
 
 ## [0.21.2] - 2025/02/01
