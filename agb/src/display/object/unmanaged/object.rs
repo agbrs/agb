@@ -44,7 +44,7 @@ pub struct Oam<'gba> {
 pub struct OamFrame<'oam>(&'oam mut Frame);
 
 impl OamFrame<'_> {
-    pub fn show(&mut self, object: &Object) {
+    fn show(&mut self, object: &Object) {
         self.set_inner(object);
     }
 
@@ -132,6 +132,10 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn show(&self, frame: &mut OamFrame) {
+        frame.show(self);
+    }
+
     #[must_use]
     /// Creates an unmanaged object from a sprite in vram.
     pub fn new(sprite: impl IntoSpriteVram) -> Self {

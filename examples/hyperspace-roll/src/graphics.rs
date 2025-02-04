@@ -167,7 +167,7 @@ impl HealthBar {
 
     pub fn show(&mut self, frame: &mut OamFrame) {
         for obj in self.sprites.iter_mut() {
-            frame.show(obj);
+            obj.show(frame);
         }
     }
 }
@@ -231,7 +231,7 @@ impl FractionDisplay {
 
     pub fn show(&self, oam_frame: &mut OamFrame) {
         for sprite in self.sprites.iter() {
-            oam_frame.show(sprite);
+            sprite.show(oam_frame);
         }
     }
 }
@@ -287,7 +287,7 @@ impl NumberDisplay {
 
     pub fn show(&self, frame: &mut OamFrame) {
         for obj in self.objects.iter() {
-            frame.show(obj);
+            obj.show(frame);
         }
     }
 }

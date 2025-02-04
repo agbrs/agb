@@ -263,7 +263,7 @@ impl Entity {
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            oam.show(&self.sprite);
+            self.sprite.show(oam);
         }
     }
 }

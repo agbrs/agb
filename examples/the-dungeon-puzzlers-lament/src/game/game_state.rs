@@ -231,10 +231,9 @@ impl GameState {
 
             let sprite_idx = if Some(i) == current_turn { 1 } else { 0 };
 
-            let mut arrow_obj = Object::new(arrow_for_direction(*direction).sprite(sprite_idx));
-            arrow_obj.set_position(arrow_position);
-
-            oam.show(&arrow_obj);
+            Object::new(arrow_for_direction(*direction).sprite(sprite_idx))
+                .set_position(arrow_position)
+                .show(oam);
         }
     }
 
@@ -242,10 +241,9 @@ impl GameState {
         let frame_index = self.frame / 32;
         let is_odd_frame = frame_index % 2 == 1;
 
-        let mut cursor_obj = Object::new(resources::CURSOR.sprite(0));
-        cursor_obj.set_position(self.cursor_state.get_position(is_odd_frame));
-
-        oam.show(&cursor_obj);
+        Object::new(resources::CURSOR.sprite(0))
+            .set_position(self.cursor_state.get_position(is_odd_frame))
+            .show(oam);
 
         let level = self.level;
 
@@ -262,10 +260,10 @@ impl GameState {
         if let Some(held) = self.cursor_state.held_item {
             let item = &level.items[held];
             let item_position = placed_position(self.cursor_state.board_position, item);
-            let mut item_obj = Object::new(item.tag().animation_sprite(frame_index));
-            item_obj.set_position(item_position);
 
-            oam.show(&item_obj);
+            Object::new(item.tag().animation_sprite(frame_index))
+                .set_position(item_position)
+                .show(oam);
         }
 
         for (item_position, item) in level.items.iter().enumerate().filter_map(|(i, item)| {
@@ -285,19 +283,17 @@ impl GameState {
 
             Some((item_position, item))
         }) {
-            let mut item_obj = Object::new(item.tag().animation_sprite(frame_index));
-            item_obj.set_position(item_position);
-
-            oam.show(&item_obj);
+            Object::new(item.tag().animation_sprite(frame_index))
+                .set_position(item_position)
+                .show(oam);
         }
 
         for entity in level.entities.iter() {
             let entity_position = entity.1 * 16 + entity.0.map_entity_offset();
 
-            let mut entity_obj = Object::new(entity.0.shadow_tag().sprite(0));
-            entity_obj.set_position(entity_position);
-
-            oam.show(&entity_obj);
+            Object::new(entity.0.shadow_tag().sprite(0))
+                .set_position(entity_position)
+                .show(oam);
         }
     }
 }

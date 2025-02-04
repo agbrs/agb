@@ -180,7 +180,7 @@ impl BattleScreenDisplay {
             .take(current_battle_state.player.shield_count as usize)
         {
             player_shield.set_sprite(SHIELD.sprite(0));
-            oam_frame.show(player_shield);
+            player_shield.show(oam_frame);
         }
 
         for player_shield in self
@@ -190,7 +190,7 @@ impl BattleScreenDisplay {
             .take(current_battle_state.enemy.shield_count as usize)
         {
             player_shield.set_sprite(SHIELD.sprite(0));
-            oam_frame.show(player_shield);
+            player_shield.show(oam_frame);
         }
 
         self.objs.player_healthbar.set_value(
@@ -232,7 +232,7 @@ impl BattleScreenDisplay {
             .zip(self.objs.dice_cooldowns.iter_mut())
         {
             die_obj.set_sprite(FACE_SPRITES.sprite_for_face(current_face));
-            oam_frame.show(die_obj);
+            die_obj.show(oam_frame);
 
             if let Some(cooldown) = cooldown {
                 cooldown_healthbar
@@ -257,7 +257,7 @@ impl BattleScreenDisplay {
         }
 
         for obj in self.misc_sprites.iter() {
-            oam_frame.show(obj);
+            obj.show(oam_frame);
         }
 
         actions_to_apply
@@ -297,7 +297,7 @@ impl EnemyAttackDisplay {
         if let Some(attack) = attack {
             self.face
                 .set_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type()));
-            frame.show(&self.face);
+            self.face.show(frame);
             self.cooldown
                 .set_value((attack.cooldown * 48 / attack.max_cooldown) as usize);
             self.cooldown.show(frame);
@@ -373,7 +373,7 @@ impl AnimationStateHolder {
         match &mut self.state {
             AnimationState::PlayerShoot { bullet, x } => {
                 bullet.set_x(*x as u16).set_y(36);
-                oam_frame.show(bullet);
+                bullet.show(oam_frame);
                 *x += 4;
 
                 if *x > 180 {
@@ -384,7 +384,7 @@ impl AnimationStateHolder {
             }
             AnimationState::PlayerDisrupt { bullet, x } => {
                 bullet.set_x(*x as u16).set_y(36);
-                oam_frame.show(bullet);
+                bullet.show(oam_frame);
 
                 *x += 2;
 
@@ -415,7 +415,7 @@ impl AnimationStateHolder {
             }
             AnimationState::EnemyShoot { bullet, x } => {
                 bullet.set_hflip(true).set_x(*x as u16).set_y(36);
-                oam_frame.show(bullet);
+                bullet.show(oam_frame);
                 *x -= 4;
 
                 if *x < 50 {
@@ -468,7 +468,7 @@ impl AnimationStateHolder {
             }
             AnimationState::PlayerSendBurstShield { bullet, x } => {
                 bullet.set_x(*x as u16).set_y(36);
-                oam_frame.show(bullet);
+                bullet.show(oam_frame);
                 *x += 1;
 
                 if *x > 180 {

@@ -137,7 +137,7 @@ fn main(mut gba: agb::Gba) -> ! {
         background.show(&mut bg_iter);
 
         let mut frame = object.frame();
-        frame.show(&chicken.object);
+        chicken.object.show(&mut frame);
 
         vblank.wait_for_vblank();
 

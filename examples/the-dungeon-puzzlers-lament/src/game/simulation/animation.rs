@@ -150,7 +150,7 @@ pub struct RenderCache {
 
 impl RenderCache {
     pub fn render(&self, oam: &mut OamFrame) {
-        oam.show(&self.object);
+        self.object.show(oam);
     }
 
     pub fn sorting_number(&self) -> i32 {
