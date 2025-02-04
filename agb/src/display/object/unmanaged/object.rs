@@ -11,7 +11,7 @@ use crate::display::{
     Priority,
 };
 
-use super::attributes::{AffineMode, Attributes, GraphicsMode};
+use super::attributes::{AffineMode, AttributesAffine, AttributesRegular, GraphicsMode};
 
 struct Frame {
     sprites: Vec<SpriteVram>,
@@ -44,10 +44,6 @@ pub struct Oam<'gba> {
 pub struct OamFrame<'oam>(&'oam mut Frame);
 
 impl OamFrame<'_> {
-    fn show(&mut self, object: &Object) {
-        self.set_inner(object);
-    }
-
     pub fn commit(self) {
         // get the maximum of sprites and affine matrices to copy as little as possible
         let copy_count = self
@@ -68,23 +64,27 @@ impl OamFrame<'_> {
         }
     }
 
-    fn set_inner(&mut self, object: &Object) {
+    fn show_regular(&mut self, object: &Object) {
         if self.0.object_count >= 128 {
             return;
         }
 
-        let mut attributes = object.attributes;
-
-        if let Some(affine_matrix) = &object.affine_matrix {
-            self.handle_affine(&mut attributes, affine_matrix);
-        }
-        attributes.write(unsafe { self.0.shadow_oam.as_mut_ptr().add(self.0.object_count * 4) });
+        object
+            .attributes
+            .write(unsafe { self.0.shadow_oam.as_mut_ptr().add(self.0.object_count * 4) });
 
         self.0.sprites.push(object.sprite.clone());
         self.0.object_count += 1;
     }
 
-    fn handle_affine(&mut self, attributes: &mut Attributes, affine_matrix: &AffineMatrixVram) {
+    fn show_affine(&mut self, object: &ObjectAffine) {
+        if self.0.object_count >= 128 {
+            return;
+        }
+
+        let mut attributes = object.attributes;
+        let affine_matrix = &object.matrix;
+
         if affine_matrix.frame_count() != self.0.frame_count {
             affine_matrix.set_frame_count(self.0.frame_count);
             assert!(
@@ -97,6 +97,11 @@ impl OamFrame<'_> {
         }
 
         attributes.set_affine_matrix(affine_matrix.location() as u16);
+
+        attributes.write(unsafe { self.0.shadow_oam.as_mut_ptr().add(self.0.object_count * 4) });
+
+        self.0.sprites.push(object.sprite.clone());
+        self.0.object_count += 1;
     }
 }
 
@@ -124,14 +129,13 @@ impl Oam<'_> {
 
 #[derive(Debug, Clone)]
 pub struct Object {
-    attributes: Attributes,
+    attributes: AttributesRegular,
     sprite: SpriteVram,
-    affine_matrix: Option<AffineMatrixVram>,
 }
 
 impl Object {
     pub fn show(&self, frame: &mut OamFrame) {
-        frame.show(self);
+        frame.show_regular(self);
     }
 
     #[must_use]
@@ -144,9 +148,8 @@ impl Object {
         let palette_location = sprite.single_palette_index();
 
         let mut sprite = Self {
-            attributes: Attributes::default(),
+            attributes: AttributesRegular::default(),
             sprite,
-            affine_matrix: None,
         };
 
         if let Some(palette_location) = palette_location {
@@ -165,25 +168,6 @@ impl Object {
             .set_sprite(sprite_location.idx(), shape, size);
 
         sprite
-    }
-
-    #[must_use]
-    /// Checks whether the object is not marked as hidden. Note that it could be
-    /// off screen or completely transparent and still claimed to be visible.
-    pub fn is_visible(&self) -> bool {
-        self.attributes.is_visible()
-    }
-
-    /// Sets the affine matrix and mode
-    pub fn set_affine(
-        &mut self,
-        affine_matrix: AffineMatrixInstance,
-        affine_mode: AffineMode,
-    ) -> &mut Self {
-        self.affine_matrix = Some(affine_matrix.vram());
-        self.attributes.show_affine(affine_mode);
-
-        self
     }
 
     /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.  
@@ -283,6 +267,135 @@ impl Object {
     }
 }
 
+pub struct ObjectAffine {
+    attributes: AttributesAffine,
+    sprite: SpriteVram,
+    matrix: AffineMatrixVram,
+}
+
+impl ObjectAffine {
+    pub fn show(&self, frame: &mut OamFrame) {
+        frame.show_affine(self);
+    }
+
+    #[must_use]
+    /// Creates an unmanaged object from a sprite in vram.
+    pub fn new(
+        sprite: impl IntoSpriteVram,
+        affine_matrix: AffineMatrixInstance,
+        affine_mode: AffineMode,
+    ) -> Self {
+        let sprite = sprite.into();
+
+        let sprite_location = sprite.location();
+        let (shape, size) = sprite.size().shape_size();
+        let palette_location = sprite.single_palette_index();
+
+        let mut sprite = Self {
+            attributes: AttributesAffine::new(affine_mode),
+            sprite,
+            matrix: affine_matrix.vram(),
+        };
+
+        if let Some(palette_location) = palette_location {
+            sprite
+                .attributes
+                .set_palette(palette_location.into())
+                .set_colour_mode(super::attributes::ColourMode::Four);
+        } else {
+            sprite
+                .attributes
+                .set_colour_mode(super::attributes::ColourMode::Eight);
+        }
+
+        sprite
+            .attributes
+            .set_sprite(sprite_location.idx(), shape, size);
+
+        sprite
+    }
+
+    /// Sets the affine mode
+    pub fn set_affine_mode(&mut self, mode: AffineMode) -> &mut Self {
+        self.attributes.set_affine_mode(mode);
+
+        self
+    }
+
+    /// Sets the affine matrix to an instance of a matrix
+    pub fn set_affine_matrix(&mut self, matrix: AffineMatrixInstance) -> &mut Self {
+        self.matrix = matrix.vram();
+
+        self
+    }
+
+    /// Sets the priority of the object relative to the backgrounds priority.  
+    /// Use [priority](Self::priority) to get the value
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.attributes.set_priority(priority);
+
+        self
+    }
+
+    /// Returns the priority of the object  
+    /// Use [set_priority](Self::set_priority) to set the value
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.attributes.priority()
+    }
+
+    /// Sets the position of the object.  
+    /// Use [position](Self::position) to get the value
+    pub fn set_position(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
+        let position = position.into();
+        self.attributes.set_y(position.y.rem_euclid(1 << 9) as u16);
+        self.attributes.set_x(position.x.rem_euclid(1 << 9) as u16);
+
+        self
+    }
+
+    /// Returns the position of the object  
+    /// Use [set_position](Self::set_position) to set the value
+    #[must_use]
+    pub fn position(&self) -> Vector2D<i32> {
+        Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
+    }
+
+    fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
+        let size = sprite.size();
+        let (shape, size) = size.shape_size();
+
+        self.attributes
+            .set_sprite(sprite.location().idx(), shape, size);
+        if let Some(palette_location) = sprite.single_palette_index() {
+            self.attributes
+                .set_palette(palette_location.into())
+                .set_colour_mode(super::attributes::ColourMode::Four);
+        } else {
+            self.attributes
+                .set_colour_mode(super::attributes::ColourMode::Eight);
+        }
+        self
+    }
+
+    /// Sets the current sprite for the object.
+    pub fn set_sprite(&mut self, sprite: impl IntoSpriteVram) -> &mut Self {
+        let sprite = sprite.into();
+        self.set_sprite_attributes(&sprite);
+
+        self.sprite = sprite;
+
+        self
+    }
+
+    /// Sets the graphics mode of the object
+    pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
+        self.attributes.set_graphics_mode(mode);
+
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -307,8 +420,8 @@ mod tests {
             let mut frame = gfx.frame();
             let obj = Object::new(BOSS.sprite(2));
 
-            frame.show(&obj);
-            frame.show(&obj);
+            obj.show(&mut frame);
+            obj.show(&mut frame);
 
             frame.commit();
         }

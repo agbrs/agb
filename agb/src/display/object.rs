@@ -14,7 +14,7 @@ pub use sprites::{
 pub(crate) use sprites::SPRITE_LOADER;
 
 pub use affine::AffineMatrixInstance;
-pub use unmanaged::{AffineMode, GraphicsMode, Oam, OamFrame, Object};
+pub use unmanaged::{AffineMode, GraphicsMode, Oam, OamFrame, Object, ObjectAffine};
 
 pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 
