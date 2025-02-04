@@ -23,7 +23,7 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let mut oam = gba.display.object.get();
+    let mut gfx = gba.display.graphics.get();
 
     let mut palette = [0x0; 16];
     palette[1] = 0xFF_FF;
@@ -68,15 +68,15 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     let mut line_done = false;
-    let mut frame = 0;
+    let mut frame_count = 0;
 
     loop {
         input.update();
-        let mut oam_frame = oam.frame();
-        wr.commit(&mut oam_frame);
+        let mut frame = gfx.frame();
+        wr.commit(&mut frame);
 
         let start = timer.value();
-        if frame % 4 == 0 {
+        if frame_count % 4 == 0 {
             line_done = !wr.next_letter_group();
         }
         if line_done && input.is_just_pressed(Button::A) {
@@ -86,7 +86,7 @@ fn main(mut gba: agb::Gba) -> ! {
         wr.update((0, HEIGHT - 40));
         let end = timer.value();
 
-        frame += 1;
+        frame_count += 1;
 
         agb::println!(
             "Took {} cycles, line done {}",
@@ -96,6 +96,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
         vblank.wait_for_vblank();
 
-        oam_frame.commit();
+        frame.commit();
     }
 }

@@ -11,7 +11,7 @@ use agb::{
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -22,9 +22,9 @@ fn main(mut gba: agb::Gba) -> ! {
     example_logo::display_logo(&mut map);
     map.commit();
 
-    let mut bg_iter = gfx.iter();
-    map.show(&mut bg_iter);
-    bg_iter.commit();
+    let mut frame = gfx.frame();
+    map.show(&mut frame);
+    frame.commit();
 
     loop {
         syscall::halt();

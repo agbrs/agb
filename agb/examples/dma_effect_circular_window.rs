@@ -23,7 +23,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -80,11 +80,11 @@ fn main(mut gba: agb::Gba) -> ! {
             *value = circle[(i - y_pos) as usize - 1] + x_adjustment;
         }
 
-        let mut bg_iter = gfx.iter();
-        let background_id = map.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        let background_id = map.show(&mut frame);
 
         vblank.wait_for_vblank();
-        bg_iter.commit();
+        frame.commit();
 
         window
             .win_in(WinIn::Win0)

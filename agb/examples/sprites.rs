@@ -5,13 +5,14 @@ extern crate alloc;
 
 use agb::display::{
     affine::AffineMatrix,
-    object::{self, AffineMode, Graphics, Oam, Object, ObjectAffine, Sprite, TagMap},
+    object::{self, AffineMode, Object, ObjectAffine, Sprite, TagMap},
+    Graphics,
 };
 use agb::fixnum::num;
 use agb_fixnum::Num;
 use alloc::vec::Vec;
 
-static GRAPHICS: &Graphics = agb::include_aseprite!(
+static GRAPHICS: &object::Graphics = agb::include_aseprite!(
     "examples/gfx/objects.aseprite",
     "examples/gfx/boss.aseprite",
     "examples/gfx/wide.aseprite",
@@ -20,7 +21,7 @@ static GRAPHICS: &Graphics = agb::include_aseprite!(
 static SPRITES: &[Sprite] = GRAPHICS.sprites();
 static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
+fn all_sprites(oam: &mut Graphics, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -80,7 +81,7 @@ fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
     }
 }
 
-fn all_tags(gfx: &mut Oam) {
+fn all_tags(gfx: &mut Graphics) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -130,7 +131,7 @@ fn all_tags(gfx: &mut Oam) {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.object.get();
+    let mut gfx = gba.display.graphics.get();
 
     loop {
         all_tags(&mut gfx);

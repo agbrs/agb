@@ -9,7 +9,7 @@ use agb::display::{
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([
@@ -47,11 +47,11 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     loop {
-        let mut bg_iter = gfx.iter();
-        bg.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
 
         vblank.wait_for_vblank();
         bg.commit();
-        bg_iter.commit();
+        frame.commit();
     }
 }
