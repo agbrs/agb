@@ -376,7 +376,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let mut oam = gba.display.object.get();
     let sprite_cache = SpriteCache::new();
 
-    let _background = gba.display.video.tiled();
+    let mut background = gba.display.video.tiled();
+    background.iter().commit();
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
