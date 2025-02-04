@@ -14,11 +14,12 @@ use agb::{
         self,
         affine::AffineMatrix,
         object::{
-            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, OamFrame, Object,
-            ObjectAffine, Sprite, SpriteVram, Tag,
+            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, Object, ObjectAffine,
+            Sprite, SpriteVram, Tag,
         },
         palette16::Palette16,
         tiled::VRAM_MANAGER,
+        GraphicsFrame,
     },
     fixnum::{num, Num, Vector2D},
     include_aseprite,
@@ -66,7 +67,7 @@ fn draw_bar(
     position: Vector2D<i32>,
     length: usize,
     colour: Colour,
-    oam: &mut OamFrame,
+    frame: &mut GraphicsFrame,
     sprite_cache: &SpriteCache,
 ) {
     let length = length as i32;
@@ -81,20 +82,20 @@ fn draw_bar(
     for sprite_idx in 0..number_of_sprites {
         Object::new(sprites[0].clone())
             .set_position(position + (sprite_idx * 8, 0).into())
-            .show(oam);
+            .show(frame);
     }
 
     if size_of_last != 0 {
         Object::new(sprites[8 - size_of_last as usize].clone())
             .set_position(position + (number_of_sprites * 8, 0).into())
-            .show(oam);
+            .show(frame);
     }
 }
 
 fn draw_number(
     mut number: u32,
     position: Vector2D<i32>,
-    oam: &mut OamFrame,
+    frame: &mut GraphicsFrame,
     direction: DrawDirection,
     sprite_cache: &SpriteCache,
 ) {
@@ -117,7 +118,7 @@ fn draw_number(
     for digit in digits {
         Object::new(sprite_cache.numbers[digit as usize].clone())
             .set_position(current_position)
-            .show(oam);
+            .show(frame);
 
         current_position -= (4, 0).into();
     }
@@ -316,9 +317,9 @@ impl Game {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, sprite_cache: &SpriteCache) {
+    fn render(&self, frame: &mut GraphicsFrame, sprite_cache: &SpriteCache) {
         for saw in self.saws.iter() {
-            saw.object.show(oam);
+            saw.object.show(frame);
         }
 
         for circle in self.circles.iter() {
@@ -327,7 +328,7 @@ impl Game {
                 Colour::Blue => sprite_cache.blue.clone(),
             })
             .set_position(circle.position.floor() - (4, 4).into())
-            .show(oam);
+            .show(frame);
         }
     }
 }
@@ -376,11 +377,8 @@ struct FinalisedSettings {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    let mut oam = gba.display.object.get();
+    let mut gfx = gba.display.graphics.get();
     let sprite_cache = SpriteCache::new();
-
-    let mut background = gba.display.video.tiled();
-    background.iter().commit();
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
@@ -408,18 +406,18 @@ pub fn main(mut gba: agb::Gba) -> ! {
             let max_bar_width = display::WIDTH - 2;
             let bar_width_pixels = (game.energy * max_bar_width) / game.settings.max_energy;
             let bar_width_pixels = (bar_width_pixels + num!(0.5)).floor().max(0) as usize;
-            let mut oam_frame = oam.frame();
+            let mut frame = gfx.frame();
             draw_number(
                 max_score,
                 (display::WIDTH - 5, 2).into(),
-                &mut oam_frame,
+                &mut frame,
                 DrawDirection::Left,
                 &sprite_cache,
             );
             draw_number(
                 game.alive_frames,
                 (2, 2).into(),
-                &mut oam_frame,
+                &mut frame,
                 DrawDirection::Right,
                 &sprite_cache,
             );
@@ -427,14 +425,14 @@ pub fn main(mut gba: agb::Gba) -> ! {
                 (1, 1).into(),
                 bar_width_pixels,
                 game.circles.back().unwrap().colour,
-                &mut oam_frame,
+                &mut frame,
                 &sprite_cache,
             );
 
-            game.render(&mut oam_frame, &sprite_cache);
+            game.render(&mut frame, &sprite_cache);
 
             vblank.wait_for_vblank();
-            oam_frame.commit();
+            frame.commit();
 
             if matches!(state, GameState::Loss) {
                 for _ in 0..30 {

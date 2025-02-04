@@ -15,7 +15,10 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::object::{Graphics, OamFrame, Object, Tag},
+    display::{
+        object::{Graphics, Object, Tag},
+        GraphicsFrame,
+    },
     include_aseprite,
 };
 
@@ -62,7 +65,7 @@ impl Paddle {
         self.end.set_position((x, y + 32));
     }
 
-    fn show(&self, frame: &mut OamFrame) {
+    fn show(&self, frame: &mut GraphicsFrame) {
         self.start.show(frame);
         self.mid.show(frame);
         self.end.show(frame);
@@ -75,7 +78,7 @@ impl Paddle {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     // Get the OAM manager
-    let mut object = gba.display.object.get();
+    let mut gfx = gba.display.graphics.get();
 
     // Create an object with the ball sprite
     let mut ball = Object::new(BALL.sprite(0));
@@ -109,7 +112,7 @@ fn main(mut gba: agb::Gba) -> ! {
         // Set the position of the ball to match our new calculated position
         ball.set_position((ball_x, ball_y));
 
-        let mut frame = object.frame();
+        let mut frame = gfx.frame();
 
         ball.show(&mut frame);
         paddle_a.show(&mut frame);

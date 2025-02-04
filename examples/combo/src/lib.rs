@@ -53,7 +53,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();
     let vblank = agb::interrupt::VBlank::get();
 
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
 
     VRAM_MANAGER.set_background_palettes(games::PALETTES);
 
@@ -92,12 +92,12 @@ fn get_game(gba: &mut agb::Gba) -> Game {
             )
         });
 
-        let mut bg_iter = gfx.iter();
-        bg.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
         vblank.wait_for_vblank();
 
         bg.commit();
-        bg_iter.commit();
+        frame.commit();
         input.update();
 
         if input.is_just_pressed(Button::A) {

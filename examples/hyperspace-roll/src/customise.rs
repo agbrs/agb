@@ -196,8 +196,7 @@ pub(crate) fn customise_screen(
     let mut description_map_visible = true;
 
     loop {
-        let mut bg_iter = agb.tiled.iter();
-        let mut oam_frame = agb.obj.frame();
+        let mut frame = agb.gfx.frame();
 
         counter = counter.wrapping_add(1);
         input.update();
@@ -241,7 +240,7 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Face => {
-                selected_dice.show(&mut oam_frame);
+                selected_dice.show(&mut frame);
 
                 cursor.face = move_net_position_lr(cursor.face, lr);
                 cursor.face = move_net_position_ud(cursor.face, ud);
@@ -269,7 +268,7 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Upgrade => {
-                selected_face.show(&mut oam_frame);
+                selected_face.show(&mut frame);
 
                 let old_upgrade = cursor.upgrade;
                 cursor.upgrade = (cursor.upgrade as isize + ud as isize)
@@ -321,7 +320,7 @@ pub(crate) fn customise_screen(
         }
 
         for obj in net.iter().chain(dice.iter()).chain(upgrade_objects.iter()) {
-            obj.show(&mut oam_frame);
+            obj.show(&mut frame);
         }
 
         if upgrades.is_empty() {
@@ -330,25 +329,25 @@ pub(crate) fn customise_screen(
 
         select_box.set_sprite(SELECT_BOX.animation_sprite(counter / 10));
 
-        select_box.show(&mut oam_frame);
+        select_box.show(&mut frame);
 
         agb.star_background.update();
         let _ = agb::rng::gen();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
         agb.star_background.commit();
-        oam_frame.commit();
+
         descriptions_map.commit();
         help_background.commit();
 
-        help_background.show(&mut bg_iter);
+        help_background.show(&mut frame);
         if description_map_visible {
-            descriptions_map.show(&mut bg_iter);
+            descriptions_map.show(&mut frame);
         }
 
-        agb.star_background.show(&mut bg_iter);
+        agb.star_background.show(&mut frame);
 
-        bg_iter.commit();
+        frame.commit();
     }
 
     player_dice

@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 
 use agb::{
     display::{
-        object::{Graphics, OamFrame, Object, Sprite, Tag, TagMap},
+        object::{Graphics, Object, Sprite, Tag, TagMap},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
         },
-        Priority, HEIGHT, WIDTH,
+        GraphicsFrame, Priority, HEIGHT, WIDTH,
     },
     fixnum::{num, FixedNum, Rect, Vector2D},
     input::{Button, ButtonController, Tri},
@@ -233,25 +233,32 @@ impl Entity {
         (final_distance, has_collided)
     }
 
-    fn show(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>) {
+    fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
         let position = (self.position - offset + Vector2D::new(num!(0.5), num!(0.5))).floor();
         if !(position.x < -8
             || position.x > WIDTH + 8
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            self.sprite.set_position(position - (8, 8).into()).show(oam);
+            self.sprite
+                .set_position(position - (8, 8).into())
+                .show(frame);
         }
     }
 
-    fn show_size(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>, size: Vector2D<i32>) {
+    fn show_size(
+        &mut self,
+        frame: &mut GraphicsFrame,
+        offset: Vector2D<Number>,
+        size: Vector2D<i32>,
+    ) {
         let position = (self.position - offset + Vector2D::new(num!(0.5), num!(0.5))).floor();
         if !(position.x < -8
             || position.x > WIDTH + 8
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            self.sprite.set_position(position - size / 2).show(oam);
+            self.sprite.set_position(position - size / 2).show(frame);
         }
     }
 }
@@ -714,8 +721,8 @@ impl Player {
         self.damage_cooldown = 30;
     }
 
-    fn show(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>) {
-        self.entity.show(oam, offset - self.fudge_factor);
+    fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
+        self.entity.show(frame, offset - self.fudge_factor);
     }
 }
 
@@ -1484,13 +1491,13 @@ impl BossState {
             BossState::NotSpawned => BossInstruction::None,
         }
     }
-    fn show(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>) {
+    fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
         match self {
             BossState::Active(boss) => {
-                boss.show(oam, offset);
+                boss.show(frame, offset);
             }
             BossState::Following(boss) => {
-                boss.show(oam, offset);
+                boss.show(frame, offset);
             }
             BossState::NotSpawned => {}
         }
@@ -1557,8 +1564,8 @@ impl FollowingBoss {
         self.entity.update_position_without_collision();
     }
 
-    fn show(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>) {
-        self.entity.show(oam, offset);
+    fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
+        self.entity.show(frame, offset);
     }
 }
 
@@ -1688,7 +1695,7 @@ impl Boss {
         self.entity.update_position_without_collision();
         instruction
     }
-    fn show(&mut self, oam: &mut OamFrame, offset: Vector2D<Number>) {
+    fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
         let shake = if self.shake_magnitude != 0.into() {
             (
                 Number::from_raw(rng::gen()).rem_euclid(self.shake_magnitude)
@@ -1701,7 +1708,8 @@ impl Boss {
             (0, 0).into()
         };
 
-        self.entity.show_size(oam, offset + shake, (32, 32).into());
+        self.entity
+            .show_size(frame, offset + shake, (32, 32).into());
     }
     fn explode(&self, enemies: &mut Arena<Enemy>) {
         for _ in 0..(6 - self.health) {
@@ -1768,7 +1776,7 @@ impl Game {
         }
     }
 
-    fn advance_frame(&mut self, sfx: &mut sfx::Sfx, oam: &mut OamFrame) -> GameStatus {
+    fn advance_frame(&mut self, sfx: &mut sfx::Sfx, frame: &mut GraphicsFrame) -> GameStatus {
         let mut state = GameStatus::Continue;
 
         match self.move_state {
@@ -1902,11 +1910,11 @@ impl Game {
                 }
                 UpdateInstruction::None => {}
             }
-            enemy.entity.show(oam, this_frame_offset);
+            enemy.entity.show(frame, this_frame_offset);
         }
 
-        self.player.show(oam, this_frame_offset);
-        self.boss.show(oam, this_frame_offset);
+        self.player.show(frame, this_frame_offset);
+        self.boss.show(frame, this_frame_offset);
 
         let background_offset = (this_frame_offset.floor().x, 8).into();
 
@@ -1974,7 +1982,7 @@ impl Game {
                 UpdateInstruction::CreateParticle(_, _) => {}
                 UpdateInstruction::None => {}
             }
-            particle.entity.show(oam, this_frame_offset);
+            particle.entity.show(frame, this_frame_offset);
         }
 
         for i in remove {
@@ -2102,9 +2110,8 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let mut start_at_boss = false;
 
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
-    let mut object = gba.display.object.get();
 
     loop {
         let backdrop = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
@@ -2133,10 +2140,9 @@ fn game_with_level(gba: &mut agb::Gba) {
         start_at_boss = loop {
             sfx.frame();
 
-            let mut bg_iter = gfx.iter();
-            let mut oam_frame = object.frame();
+            let mut frame = gfx.frame();
 
-            match game.advance_frame(&mut sfx, &mut oam_frame) {
+            match game.advance_frame(&mut sfx, &mut frame) {
                 GameStatus::Continue => {}
                 GameStatus::Lost => {
                     break false;
@@ -2146,9 +2152,9 @@ fn game_with_level(gba: &mut agb::Gba) {
                 }
             }
 
-            game.level.background.show(&mut bg_iter);
-            game.level.foreground.show(&mut bg_iter);
-            game.level.clouds.show(&mut bg_iter);
+            game.level.background.show(&mut frame);
+            game.level.foreground.show(&mut frame);
+            game.level.clouds.show(&mut frame);
 
             vblank.wait_for_vblank();
 
@@ -2156,8 +2162,7 @@ fn game_with_level(gba: &mut agb::Gba) {
             game.level.foreground.commit();
             game.level.clouds.commit();
 
-            oam_frame.commit();
-            bg_iter.commit();
+            frame.commit();
 
             let _ = rng::gen(); // advance RNG to make it less predictable between runs
         };
