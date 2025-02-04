@@ -3,13 +3,13 @@ use core::{alloc::Layout, ptr::NonNull};
 use alloc::{alloc::Allocator, vec, vec::Vec};
 
 use crate::{
-    display::{affine::AffineMatrixBackground, tiled::TileFormat, Priority},
+    display::{affine::AffineMatrixBackground, tiled::TileFormat, GraphicsFrame, Priority},
     fixnum::{Num, Vector2D},
 };
 
 use super::{
-    AffineBackgroundData, AffineBackgroundId, BackgroundIterator, ScreenblockAllocator, TileIndex,
-    TileSet, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
+    AffineBackgroundData, AffineBackgroundId, ScreenblockAllocator, TileIndex, TileSet,
+    SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -179,8 +179,8 @@ impl AffineBackgroundTiles {
         self.is_dirty = true;
     }
 
-    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) -> AffineBackgroundId {
-        bg_iter.set_next_affine(AffineBackgroundData {
+    pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
+        frame.bg_frame.set_next_affine(AffineBackgroundData {
             bg_ctrl: self.bg_ctrl(),
             scroll_offset: self.scroll,
             affine_transform: self.transform,

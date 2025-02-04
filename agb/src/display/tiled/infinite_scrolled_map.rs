@@ -1,8 +1,8 @@
 use agb_fixnum::{vec2, Rect, Vector2D};
 
-use crate::display::{HEIGHT, WIDTH};
+use crate::display::{GraphicsFrame, HEIGHT, WIDTH};
 
-use super::{BackgroundId, BackgroundIterator, RegularBackgroundTiles, TileSet, TileSetting};
+use super::{BackgroundId, RegularBackgroundTiles, TileSet, TileSetting};
 
 /// In tiles
 const ONE_MORE_THAN_SCREEN_HEIGHT: i32 = HEIGHT / 8 + 1;
@@ -191,8 +191,8 @@ impl InfiniteScrolledMap {
         self.map.commit();
     }
 
-    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) -> BackgroundId {
-        self.map.show(bg_iter)
+    pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
+        self.map.show(frame)
     }
 }
 

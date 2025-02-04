@@ -7,12 +7,11 @@ use core::{
 use agb_fixnum::Vector2D;
 use alloc::{vec, vec::Vec};
 
-use crate::display::{tile_data::TileData, Priority};
+use crate::display::{tile_data::TileData, GraphicsFrame, Priority};
 
 use super::{
-    BackgroundId, BackgroundIterator, RegularBackgroundData, ScreenblockAllocator, Tile,
-    TileFormat, TileSet, TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER,
-    VRAM_START,
+    BackgroundId, RegularBackgroundData, ScreenblockAllocator, Tile, TileFormat, TileSet,
+    TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -193,8 +192,8 @@ impl RegularBackgroundTiles {
         self.is_dirty = false;
     }
 
-    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) -> BackgroundId {
-        bg_iter.set_next_regular(RegularBackgroundData {
+    pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> BackgroundId {
+        frame.bg_frame.set_next_regular(RegularBackgroundData {
             bg_ctrl: self.bg_ctrl_value(),
             scroll_offset: Vector2D::new(self.scroll.x as u16, self.scroll.y as u16),
         })

@@ -142,7 +142,7 @@ struct AffineBackgroundData {
     affine_transform: AffineMatrixBackground,
 }
 
-pub struct TiledBackground<'gba> {
+pub(crate) struct TiledBackground<'gba> {
     _phantom: PhantomData<&'gba ()>,
 }
 
@@ -153,8 +153,8 @@ impl TiledBackground<'_> {
         }
     }
 
-    pub fn iter(&mut self) -> BackgroundIterator<'_> {
-        BackgroundIterator {
+    pub(crate) fn iter(&mut self) -> BackgroundFrame<'_> {
+        BackgroundFrame {
             _phantom: PhantomData,
             num_regular: 0,
             regular_backgrounds: Default::default(),
@@ -164,7 +164,7 @@ impl TiledBackground<'_> {
     }
 }
 
-pub struct BackgroundIterator<'bg> {
+pub(crate) struct BackgroundFrame<'bg> {
     _phantom: PhantomData<&'bg ()>,
 
     num_regular: usize,
@@ -174,7 +174,7 @@ pub struct BackgroundIterator<'bg> {
     affine_backgrounds: [AffineBackgroundData; 2],
 }
 
-impl BackgroundIterator<'_> {
+impl BackgroundFrame<'_> {
     fn set_next_regular(&mut self, data: RegularBackgroundData) -> BackgroundId {
         let bg_index = self.next_regular_index();
 

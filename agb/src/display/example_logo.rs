@@ -26,7 +26,7 @@ mod tests {
 
     #[test_case]
     fn logo_display(gba: &mut crate::Gba) {
-        let mut gfx = gba.display.video.tiled();
+        let mut gfx = gba.display.graphics.get();
 
         let mut map = RegularBackgroundTiles::new(
             Priority::P0,
@@ -37,9 +37,9 @@ mod tests {
         display_logo(&mut map);
         map.commit();
 
-        let mut bg_iter = gfx.iter();
-        map.show(&mut bg_iter);
-        bg_iter.commit();
+        let mut frame = gfx.frame();
+        map.show(&mut frame);
+        frame.commit();
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
     }

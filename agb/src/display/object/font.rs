@@ -3,14 +3,14 @@ use core::fmt::{Display, Write};
 use agb_fixnum::{Num, Vector2D};
 use alloc::{collections::VecDeque, vec::Vec};
 
-use crate::display::Font;
+use crate::display::{Font, GraphicsFrame};
 
 use self::{
     preprocess::{Line, Preprocessed, PreprocessedElement},
     renderer::{Configuration, WordRender},
 };
 
-use super::{sprites::PaletteVramSingle, OamFrame, Object, Size, SpriteVram};
+use super::{sprites::PaletteVramSingle, Object, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -279,7 +279,7 @@ impl Write for ObjectTextRender<'_> {
 
 impl ObjectTextRender<'_> {
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut OamFrame) {
+    pub fn commit(&mut self, oam: &mut GraphicsFrame) {
         for object in self.layout.objects.iter() {
             object.show(oam);
         }
