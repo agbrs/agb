@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        object::{OamManaged, Object, Size, Sprite},
+        object::{Object, Size, Sprite},
         palette16::Palette16,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
@@ -21,8 +21,8 @@ enum State {
     Flapping,
 }
 
-struct Character<'a> {
-    object: Object<'a>,
+struct Character {
+    object: Object,
     position: Vector2D,
     velocity: Vector2D,
 }
@@ -73,11 +73,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
     background.commit();
 
-    let object = gba.display.object.get_managed();
+    let mut object = gba.display.object.get();
 
-    let sprite = object.sprite(&CHICKEN_SPRITES[0]);
     let mut chicken = Character {
-        object: object.object(sprite),
+        object: Object::new(&CHICKEN_SPRITES[0]),
         position: Vector2D {
             x: (6 * 8) << 8,
             y: ((7 * 8) - 4) << 8,
@@ -91,9 +90,6 @@ fn main(mut gba: agb::Gba) -> ! {
     chicken
         .object
         .set_y((chicken.position.y >> 8).try_into().unwrap());
-    chicken.object.show();
-
-    object.commit();
 
     let acceleration = 1 << 4;
     let gravity = 1 << 4;
@@ -135,23 +131,22 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         restrict_to_screen(&mut chicken);
-        update_chicken_object(&mut chicken, &object, state, frame_count);
+        update_chicken_object(&mut chicken, state, frame_count);
 
         let mut bg_iter = gfx.iter();
         background.show(&mut bg_iter);
 
+        let mut frame = object.frame();
+        chicken.object.show(&mut frame);
+
         vblank.wait_for_vblank();
+
         bg_iter.commit();
-        object.commit();
+        frame.commit();
     }
 }
 
-fn update_chicken_object(
-    chicken: &'_ mut Character<'_>,
-    gfx: &OamManaged,
-    state: State,
-    frame_count: u32,
-) {
+fn update_chicken_object(chicken: &'_ mut Character, state: State, frame_count: u32) {
     if chicken.velocity.x > 1 {
         chicken.object.set_hflip(false);
     } else if chicken.velocity.x < -1 {
@@ -162,16 +157,16 @@ fn update_chicken_object(
             if chicken.velocity.x.abs() > 1 << 4 {
                 chicken
                     .object
-                    .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]));
+                    .set_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 1, 3, 10)]);
             } else {
-                chicken.object.set_sprite(gfx.sprite(&CHICKEN_SPRITES[0]));
+                chicken.object.set_sprite(&CHICKEN_SPRITES[0]);
             }
         }
         State::Upwards => {}
         State::Flapping => {
             chicken
                 .object
-                .set_sprite(gfx.sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]));
+                .set_sprite(&CHICKEN_SPRITES[frame_ranger(frame_count, 4, 5, 5)]);
         }
     }
 

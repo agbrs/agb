@@ -59,24 +59,24 @@ static BALL: &Tag = GRAPHICS.tags().get("Ball");
 This uses the `include_aseprite` macro to include the sprites in the given aseprite file.
 Now, let's put this on screen by firstly creating the object manager and then creating an object, this will also involve the creation of the main entry function using the `entry` macro.
 The signature of this function takes the `Gba` struct and has the never return type, this means Rust will enforce that this function never returns, for now we will achieve this using a busy loop.
-Using the `Gba` struct we get the [`ObjectController` struct](https://docs.rs/agb/latest/agb/display/object/struct.ObjectController.html) which manages loading and unloading sprites and objects.
+Using the `Gba` struct we get the [`Oam` struct](https://docs.rs/agb/latest/agb/display/object/struct.Oam.html) which manages displaying sprites to the screen each frame.
 
 ```rust
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     // Get the object manager
-    let object = gba.display.object.get_managed();
+    let mut object = gba.display.object.get();
 
     // Create an object with the ball sprite
-    let mut ball = object.object_sprite(BALL.sprite(0));
+    let mut ball = Object::new(BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
-    ball.set_x(50).set_y(50).show();
+    ball.set_x(50).set_y(50);
 
-    // Now commit the object controller so this change is reflected on the screen.
-    // This isn't how we will do this in the final version of the code, but will do
-    // for this example.
-    object.commit();
+    // Start a frame and add the one object to it
+    let mut frame = object.frame();
+    frame.show(&ball);
+    frame.commit();
     
     loop {}
 }
@@ -123,15 +123,19 @@ loop {
     // Set the position of the ball to match our new calculated position
     ball.set_x(ball_x as u16).set_y(ball_y as u16);
 
+    // prepare the frame
+    let mut frame = object.frame();
+    frame.show(&ball);
+
     // Wait for vblank, then commit the objects to the screen
     agb::display::busy_wait_for_vblank();
-    object.commit();
+    frame.commit();
 }
 ```
 
 # What we did
 
-In this section, we covered why sprites are important, how to create and manage them using the `ObjectController` in `agb` and make a ball bounce around the screen.
+In this section, we covered why sprites are important, how to create and manage them using the `Oam` in `agb` and make a ball bounce around the screen.
 
 [^hblank]: Timing this can give you some really cool effects allowing you to push the hardware.
   However, `agb` does not by default provide the timing accuracy needed to fully take advantage of this, erring on the side of making it easier to make games rather than squeezing every last drop of performance from the console.

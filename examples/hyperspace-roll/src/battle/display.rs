@@ -1,4 +1,4 @@
-use agb::display::object::{OamManaged, Object};
+use agb::display::object::{OamFrame, Object};
 use agb::fixnum::Vector2D;
 use agb::rng;
 use alloc::vec;
@@ -16,31 +16,31 @@ use crate::{
 
 use super::{Action, CurrentBattleState, EnemyAttackState, MALFUNCTION_COOLDOWN_FRAMES};
 
-struct BattleScreenDisplayObjects<'a> {
-    dice: Vec<Object<'a>>,
-    dice_cooldowns: Vec<HealthBar<'a>>,
-    player_shield: Vec<Object<'a>>,
-    enemy_shield: Vec<Object<'a>>,
+struct BattleScreenDisplayObjects {
+    dice: Vec<Object>,
+    dice_cooldowns: Vec<HealthBar>,
+    player_shield: Vec<Object>,
+    enemy_shield: Vec<Object>,
 
-    player_healthbar: HealthBar<'a>,
-    enemy_healthbar: HealthBar<'a>,
-    player_health: FractionDisplay<'a>,
-    enemy_health: FractionDisplay<'a>,
+    player_healthbar: HealthBar,
+    enemy_healthbar: HealthBar,
+    player_health: FractionDisplay,
+    enemy_health: FractionDisplay,
 
-    enemy_attack_display: Vec<EnemyAttackDisplay<'a>>,
+    enemy_attack_display: Vec<EnemyAttackDisplay>,
 }
 
-pub struct BattleScreenDisplay<'a> {
-    objs: BattleScreenDisplayObjects<'a>,
-    animations: Vec<AnimationStateHolder<'a>>,
+pub struct BattleScreenDisplay {
+    objs: BattleScreenDisplayObjects,
+    animations: Vec<AnimationStateHolder>,
 
-    _misc_sprites: Vec<Object<'a>>,
+    misc_sprites: Vec<Object>,
 }
 
 const HEALTH_BAR_WIDTH: usize = 48;
 
-impl<'a> BattleScreenDisplay<'a> {
-    pub fn new(obj: &'a OamManaged, current_battle_state: &CurrentBattleState) -> Self {
+impl BattleScreenDisplay {
+    pub fn new(current_battle_state: &CurrentBattleState) -> Self {
         let mut misc_sprites = vec![];
         let player_x = 12;
         let player_y = 8;
@@ -53,11 +53,11 @@ impl<'a> BattleScreenDisplay<'a> {
             Ship::PilotedShip
         });
 
-        let mut player_obj = obj.object_sprite(player_sprite);
-        let mut enemy_obj = obj.object_sprite(enemy_sprite);
+        let mut player_obj = Object::new(player_sprite);
+        let mut enemy_obj = Object::new(enemy_sprite);
 
-        player_obj.set_x(player_x).set_y(player_y).set_z(1).show();
-        enemy_obj.set_x(enemy_x).set_y(player_y).set_z(1).show();
+        player_obj.set_x(player_x).set_y(player_y);
+        enemy_obj.set_x(enemy_x).set_y(player_y);
 
         misc_sprites.push(player_obj);
         misc_sprites.push(enemy_obj);
@@ -67,9 +67,9 @@ impl<'a> BattleScreenDisplay<'a> {
             .faces_to_render()
             .enumerate()
             .map(|(i, (face, _))| {
-                let mut die_obj = obj.object_sprite(FACE_SPRITES.sprite_for_face(face));
+                let mut die_obj = Object::new(FACE_SPRITES.sprite_for_face(face));
 
-                die_obj.set_y(120).set_x(i as u16 * 40 + 28).show();
+                die_obj.set_y(120).set_x(i as u16 * 40 + 28);
 
                 die_obj
             })
@@ -78,23 +78,15 @@ impl<'a> BattleScreenDisplay<'a> {
         let dice_cooldowns: Vec<_> = dice
             .iter()
             .enumerate()
-            .map(|(i, _)| {
-                let mut cooldown_bar =
-                    HealthBar::new((i as i32 * 40 + 28, 120 - 8).into(), 24, obj);
-                cooldown_bar.hide();
-                cooldown_bar
-            })
+            .map(|(i, _)| HealthBar::new((i as i32 * 40 + 28, 120 - 8).into(), 24))
             .collect();
 
         let shield_sprite = SHIP_SPRITES.sprite_for_ship(Ship::Shield);
 
         let player_shield: Vec<_> = (0..5)
             .map(|i| {
-                let mut shield_obj = obj.object_sprite(shield_sprite);
-                shield_obj
-                    .set_x(player_x + 18 + 11 * i)
-                    .set_y(player_y)
-                    .hide();
+                let mut shield_obj = Object::new(shield_sprite);
+                shield_obj.set_x(player_x + 18 + 11 * i).set_y(player_y);
 
                 shield_obj
             })
@@ -102,12 +94,11 @@ impl<'a> BattleScreenDisplay<'a> {
 
         let enemy_shield: Vec<_> = (0..5)
             .map(|i| {
-                let mut shield_obj = obj.object_sprite(shield_sprite);
+                let mut shield_obj = Object::new(shield_sprite);
                 shield_obj
                     .set_x(enemy_x - 16 - 11 * i)
                     .set_y(player_y)
-                    .set_hflip(true)
-                    .hide();
+                    .set_hflip(true);
 
                 shield_obj
             })
@@ -115,16 +106,10 @@ impl<'a> BattleScreenDisplay<'a> {
 
         let player_healthbar_x = 18;
         let enemy_healthbar_x = 180;
-        let player_healthbar = HealthBar::new(
-            (player_healthbar_x, player_y - 8).into(),
-            HEALTH_BAR_WIDTH,
-            obj,
-        );
-        let enemy_healthbar = HealthBar::new(
-            (enemy_healthbar_x, player_y - 8).into(),
-            HEALTH_BAR_WIDTH,
-            obj,
-        );
+        let player_healthbar =
+            HealthBar::new((player_healthbar_x, player_y - 8).into(), HEALTH_BAR_WIDTH);
+        let enemy_healthbar =
+            HealthBar::new((enemy_healthbar_x, player_y - 8).into(), HEALTH_BAR_WIDTH);
 
         let player_health_display = FractionDisplay::new(
             (
@@ -133,7 +118,6 @@ impl<'a> BattleScreenDisplay<'a> {
             )
                 .into(),
             3,
-            obj,
         );
         let enemy_health_display = FractionDisplay::new(
             (
@@ -142,20 +126,17 @@ impl<'a> BattleScreenDisplay<'a> {
             )
                 .into(),
             3,
-            obj,
         );
 
         let enemy_attack_display = (0..2)
             .map(|i| {
-                let mut attack_obj = obj
-                    .object_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack));
+                let mut attack_obj =
+                    Object::new(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack));
 
                 let attack_obj_position = Vector2D::new(120, 56 + 32 * i);
-                attack_obj.set_position(attack_obj_position).hide();
+                attack_obj.set_position(attack_obj_position);
 
-                let mut attack_cooldown =
-                    HealthBar::new(attack_obj_position + (32, 8).into(), 48, obj);
-                attack_cooldown.hide();
+                let attack_cooldown = HealthBar::new(attack_obj_position + (32, 8).into(), 48);
 
                 let attack_number_display =
                     NumberDisplay::new(attack_obj_position - (8, -10).into());
@@ -183,61 +164,61 @@ impl<'a> BattleScreenDisplay<'a> {
 
             animations: vec![],
 
-            _misc_sprites: misc_sprites,
+            misc_sprites,
         }
     }
 
     pub fn update(
         &mut self,
-        obj: &'a OamManaged,
         current_battle_state: &CurrentBattleState,
+        oam_frame: &mut OamFrame,
     ) -> Vec<Action> {
-        for (i, player_shield) in self.objs.player_shield.iter_mut().enumerate() {
-            if i < current_battle_state.player.shield_count as usize {
-                player_shield
-                    .show()
-                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
-            } else {
-                player_shield.hide();
-            }
+        for player_shield in self
+            .objs
+            .player_shield
+            .iter_mut()
+            .take(current_battle_state.player.shield_count as usize)
+        {
+            player_shield.set_sprite(SHIELD.sprite(0));
+            player_shield.show(oam_frame);
         }
 
-        for (i, player_shield) in self.objs.enemy_shield.iter_mut().enumerate() {
-            if i < current_battle_state.enemy.shield_count as usize {
-                player_shield
-                    .show()
-                    .set_sprite(obj.sprite(SHIELD.sprite(0)));
-            } else {
-                player_shield.hide();
-            }
+        for player_shield in self
+            .objs
+            .enemy_shield
+            .iter_mut()
+            .take(current_battle_state.enemy.shield_count as usize)
+        {
+            player_shield.set_sprite(SHIELD.sprite(0));
+            player_shield.show(oam_frame);
         }
 
         self.objs.player_healthbar.set_value(
             ((current_battle_state.player.health * HEALTH_BAR_WIDTH as u32)
                 / current_battle_state.player.max_health) as usize,
-            obj,
         );
+        self.objs.player_healthbar.show(oam_frame);
 
         self.objs.enemy_healthbar.set_value(
             ((current_battle_state.enemy.health * HEALTH_BAR_WIDTH as u32)
                 / current_battle_state.enemy.max_health) as usize,
-            obj,
         );
+        self.objs.enemy_healthbar.show(oam_frame);
 
         self.objs.player_health.set_value(
             current_battle_state.player.health as usize,
             current_battle_state.player.max_health as usize,
-            obj,
         );
+        self.objs.player_health.show(oam_frame);
 
         self.objs.enemy_health.set_value(
             current_battle_state.enemy.health as usize,
             current_battle_state.enemy.max_health as usize,
-            obj,
         );
+        self.objs.enemy_health.show(oam_frame);
 
         for (i, attack) in current_battle_state.attacks.iter().enumerate() {
-            self.objs.enemy_attack_display[i].update(attack, obj);
+            self.objs.enemy_attack_display[i].update(attack, oam_frame);
         }
 
         let mut actions_to_apply = vec![];
@@ -250,20 +231,19 @@ impl<'a> BattleScreenDisplay<'a> {
             .zip(current_battle_state.rolled_dice.faces_to_render())
             .zip(self.objs.dice_cooldowns.iter_mut())
         {
-            die_obj.set_sprite(obj.sprite(FACE_SPRITES.sprite_for_face(current_face)));
+            die_obj.set_sprite(FACE_SPRITES.sprite_for_face(current_face));
+            die_obj.show(oam_frame);
 
             if let Some(cooldown) = cooldown {
                 cooldown_healthbar
-                    .set_value((cooldown * 24 / MALFUNCTION_COOLDOWN_FRAMES) as usize, obj);
-                cooldown_healthbar.show();
-            } else {
-                cooldown_healthbar.hide();
+                    .set_value((cooldown * 24 / MALFUNCTION_COOLDOWN_FRAMES) as usize);
+                cooldown_healthbar.show(oam_frame);
             }
         }
 
         let mut animations_to_remove = vec![];
         for (i, animation) in self.animations.iter_mut().enumerate() {
-            match animation.update(&mut self.objs, obj, current_battle_state) {
+            match animation.update(&mut self.objs, current_battle_state, oam_frame) {
                 AnimationUpdateState::RemoveWithAction(a) => {
                     actions_to_apply.push(a);
                     animations_to_remove.push(i);
@@ -276,14 +256,18 @@ impl<'a> BattleScreenDisplay<'a> {
             self.animations.swap_remove(animation_to_remove);
         }
 
+        for obj in self.misc_sprites.iter() {
+            obj.show(oam_frame);
+        }
+
         actions_to_apply
     }
 
-    pub fn add_action(&mut self, action: Action, obj: &'a OamManaged, sfx: &mut Sfx) {
+    pub fn add_action(&mut self, action: Action, sfx: &mut Sfx) {
         play_sound_for_action_start(&action, sfx);
 
         self.animations
-            .push(AnimationStateHolder::for_action(action, obj));
+            .push(AnimationStateHolder::for_action(action));
     }
 }
 
@@ -294,14 +278,14 @@ fn play_sound_for_action_start(action: &Action, sfx: &mut Sfx) {
     }
 }
 
-struct EnemyAttackDisplay<'a> {
-    face: Object<'a>,
-    cooldown: HealthBar<'a>,
-    number: NumberDisplay<'a>,
+struct EnemyAttackDisplay {
+    face: Object,
+    cooldown: HealthBar,
+    number: NumberDisplay,
 }
 
-impl<'a> EnemyAttackDisplay<'a> {
-    pub fn new(face: Object<'a>, cooldown: HealthBar<'a>, number: NumberDisplay<'a>) -> Self {
+impl EnemyAttackDisplay {
+    pub fn new(face: Object, cooldown: HealthBar, number: NumberDisplay) -> Self {
         Self {
             face,
             cooldown,
@@ -309,39 +293,39 @@ impl<'a> EnemyAttackDisplay<'a> {
         }
     }
 
-    pub fn update(&mut self, attack: &Option<EnemyAttackState>, obj: &'a OamManaged) {
+    pub fn update(&mut self, attack: &Option<EnemyAttackState>, frame: &mut OamFrame) {
         if let Some(attack) = attack {
-            self.face.show().set_sprite(
-                obj.sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type())),
-            );
+            self.face
+                .set_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type()));
+            self.face.show(frame);
             self.cooldown
-                .set_value((attack.cooldown * 48 / attack.max_cooldown) as usize, obj);
-            self.cooldown.show();
+                .set_value((attack.cooldown * 48 / attack.max_cooldown) as usize);
+            self.cooldown.show(frame);
 
-            self.number.set_value(attack.value_to_show(), obj);
+            self.number.set_value(attack.value_to_show());
         } else {
-            self.face.hide();
-            self.cooldown.hide();
-            self.number.set_value(None, obj);
+            self.number.set_value(None);
         }
+
+        self.number.show(frame);
     }
 }
 
-enum AnimationState<'a> {
-    PlayerShoot { bullet: Object<'a>, x: i32 },
+enum AnimationState {
+    PlayerShoot { bullet: Object, x: i32 },
     PlayerActivateShield { amount: u32, frame: usize },
-    PlayerDisrupt { bullet: Object<'a>, x: i32 },
+    PlayerDisrupt { bullet: Object, x: i32 },
     PlayerBurstShield { frame: usize },
-    PlayerSendBurstShield { bullet: Object<'a>, x: i32 },
+    PlayerSendBurstShield { bullet: Object, x: i32 },
     PlayerHeal {},
-    EnemyShoot { bullet: Object<'a>, x: i32 },
+    EnemyShoot { bullet: Object, x: i32 },
     EnemyShield { amount: u32, frame: usize },
     EnemyHeal {},
 }
 
-struct AnimationStateHolder<'a> {
+struct AnimationStateHolder {
     action: Action,
-    state: AnimationState<'a>,
+    state: AnimationState,
 }
 
 enum AnimationUpdateState {
@@ -349,28 +333,28 @@ enum AnimationUpdateState {
     Continue,
 }
 
-impl<'a> AnimationStateHolder<'a> {
-    fn for_action(a: Action, obj: &'a OamManaged) -> Self {
+impl AnimationStateHolder {
+    fn for_action(a: Action) -> Self {
         let state = match a {
             Action::PlayerActivateShield { amount, .. } => {
                 AnimationState::PlayerActivateShield { amount, frame: 0 }
             }
             Action::PlayerShoot { .. } => AnimationState::PlayerShoot {
-                bullet: obj.object_sprite(BULLET_SPRITE),
+                bullet: Object::new(BULLET_SPRITE),
                 x: 64,
             },
             Action::PlayerDisrupt { .. } => AnimationState::PlayerDisrupt {
-                bullet: obj.object_sprite(DISRUPT_BULLET),
+                bullet: Object::new(DISRUPT_BULLET),
                 x: 64,
             },
             Action::PlayerHeal { .. } => AnimationState::PlayerHeal {},
             Action::PlayerBurstShield { .. } => AnimationState::PlayerBurstShield { frame: 0 },
             Action::PlayerSendBurstShield { .. } => AnimationState::PlayerSendBurstShield {
-                bullet: obj.object_sprite(BURST_BULLET),
+                bullet: Object::new(BURST_BULLET),
                 x: 64,
             },
             Action::EnemyShoot { .. } => AnimationState::EnemyShoot {
-                bullet: obj.object_sprite(BULLET_SPRITE),
+                bullet: Object::new(BULLET_SPRITE),
                 x: 175,
             },
             Action::EnemyShield { amount, .. } => AnimationState::EnemyShield { amount, frame: 0 },
@@ -382,13 +366,14 @@ impl<'a> AnimationStateHolder<'a> {
 
     fn update(
         &mut self,
-        objs: &mut BattleScreenDisplayObjects<'a>,
-        obj: &'a OamManaged,
+        objs: &mut BattleScreenDisplayObjects,
         current_battle_state: &CurrentBattleState,
+        oam_frame: &mut OamFrame,
     ) -> AnimationUpdateState {
         match &mut self.state {
             AnimationState::PlayerShoot { bullet, x } => {
-                bullet.show().set_x(*x as u16).set_y(36);
+                bullet.set_x(*x as u16).set_y(36);
+                bullet.show(oam_frame);
                 *x += 4;
 
                 if *x > 180 {
@@ -398,7 +383,9 @@ impl<'a> AnimationStateHolder<'a> {
                 }
             }
             AnimationState::PlayerDisrupt { bullet, x } => {
-                bullet.show().set_x(*x as u16).set_y(36);
+                bullet.set_x(*x as u16).set_y(36);
+                bullet.show(oam_frame);
+
                 *x += 2;
 
                 if *x > 180 {
@@ -412,9 +399,7 @@ impl<'a> AnimationStateHolder<'a> {
                 let current_player_shields = current_battle_state.player.shield_count;
                 if current_player_shields < *amount {
                     for i in current_player_shields..*amount {
-                        objs.player_shield[i as usize]
-                            .show()
-                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
+                        objs.player_shield[i as usize].set_sprite(SHIELD.sprite(3 - *frame / 2));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -429,7 +414,8 @@ impl<'a> AnimationStateHolder<'a> {
                 }
             }
             AnimationState::EnemyShoot { bullet, x } => {
-                bullet.show().set_hflip(true).set_x(*x as u16).set_y(36);
+                bullet.set_hflip(true).set_x(*x as u16).set_y(36);
+                bullet.show(oam_frame);
                 *x -= 4;
 
                 if *x < 50 {
@@ -443,9 +429,7 @@ impl<'a> AnimationStateHolder<'a> {
                 let current_enemy_shields = current_battle_state.enemy.shield_count;
                 if current_enemy_shields < *amount {
                     for i in current_enemy_shields..*amount {
-                        objs.enemy_shield[i as usize]
-                            .show()
-                            .set_sprite(obj.sprite(SHIELD.sprite(3 - *frame / 2)));
+                        objs.enemy_shield[i as usize].set_sprite(SHIELD.sprite(3 - *frame / 2));
                     }
                 } else {
                     return AnimationUpdateState::RemoveWithAction(self.action.clone());
@@ -468,7 +452,7 @@ impl<'a> AnimationStateHolder<'a> {
             AnimationState::PlayerBurstShield { frame } => {
                 if *frame < 10 {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.sprite(SHIELD.sprite(*frame / 2)));
+                        shield.set_sprite(SHIELD.sprite(*frame / 2));
                     }
 
                     *frame += 1;
@@ -476,14 +460,15 @@ impl<'a> AnimationStateHolder<'a> {
                     AnimationUpdateState::Continue
                 } else {
                     for shield in objs.player_shield.iter_mut() {
-                        shield.set_sprite(obj.sprite(SHIELD.sprite(0)));
+                        shield.set_sprite(SHIELD.sprite(0));
                     }
 
                     AnimationUpdateState::RemoveWithAction(self.action.clone())
                 }
             }
             AnimationState::PlayerSendBurstShield { bullet, x } => {
-                bullet.show().set_x(*x as u16).set_y(36);
+                bullet.set_x(*x as u16).set_y(36);
+                bullet.show(oam_frame);
                 *x += 1;
 
                 if *x > 180 {

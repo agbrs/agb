@@ -5,7 +5,7 @@ extern crate alloc;
 
 use agb::display::{
     affine::AffineMatrix,
-    object::{self, Graphics, OamManaged, Sprite, TagMap},
+    object::{self, Graphics, Oam, Object, Sprite, TagMap},
 };
 use agb::fixnum::num;
 use agb_fixnum::Num;
@@ -20,7 +20,7 @@ static GRAPHICS: &Graphics = agb::include_aseprite!(
 static SPRITES: &[Sprite] = GRAPHICS.sprites();
 static TAG_MAP: &TagMap = GRAPHICS.tags();
 
-fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
+fn all_sprites(oam: &mut Oam, rotation_speed: Num<i32, 16>) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -31,9 +31,8 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
 
     for y in 0..9 {
         for x in 0..14 {
-            let mut obj = gfx.object_sprite(&SPRITES[0]);
-            obj.set_affine_matrix(matrix.clone());
-            obj.show_affine(object::AffineMode::Affine);
+            let mut obj = Object::new(&SPRITES[0]);
+            obj.set_affine(matrix.clone(), object::AffineMode::Affine);
             obj.set_position((x * 16 + 8, y * 16 + 8));
             objs.push(obj);
         }
@@ -45,7 +44,7 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
     let vblank = agb::interrupt::VBlank::get();
 
     loop {
-        vblank.wait_for_vblank();
+        let mut frame = oam.frame();
         input.update();
 
         if input.is_just_pressed(agb::input::Button::A) {
@@ -58,7 +57,7 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
         let matrix = object::AffineMatrixInstance::new(rotation_matrix.to_object_wrapping());
 
         for obj in objs.iter_mut() {
-            obj.set_affine_matrix(matrix.clone());
+            obj.set_affine(matrix.clone(), object::AffineMode::Affine);
         }
 
         count += 1;
@@ -68,14 +67,21 @@ fn all_sprites(gfx: &OamManaged, rotation_speed: Num<i32, 16>) {
             image %= SPRITES.len();
             for (i, obj) in objs.iter_mut().enumerate() {
                 let this_image = (image + i) % SPRITES.len();
-                obj.set_sprite(gfx.sprite(&SPRITES[this_image]));
+                obj.set_sprite(&SPRITES[this_image]);
             }
         }
-        gfx.commit();
+
+        for obj in objs.iter() {
+            obj.show(&mut frame);
+        }
+
+        vblank.wait_for_vblank();
+
+        frame.commit();
     }
 }
 
-fn all_tags(gfx: &OamManaged) {
+fn all_tags(gfx: &mut Oam) {
     let mut input = agb::input::ButtonController::new();
     let mut objs = Vec::new();
 
@@ -85,8 +91,7 @@ fn all_tags(gfx: &OamManaged) {
         let sprite = v.sprite(0);
         let (size_x, size_y) = sprite.size().to_width_height();
         let (size_x, size_y) = (size_x as i32, size_y as i32);
-        let mut obj = gfx.object_sprite(sprite);
-        obj.show();
+        let mut obj = Object::new(sprite);
         obj.set_position((x * 32 + 16 - size_x / 2, y * 32 + 16 - size_y / 2));
         objs.push((obj, v));
     }
@@ -97,7 +102,7 @@ fn all_tags(gfx: &OamManaged) {
     let vblank = agb::interrupt::VBlank::get();
 
     loop {
-        vblank.wait_for_vblank();
+        let mut frame = gfx.frame();
 
         input.update();
 
@@ -110,20 +115,27 @@ fn all_tags(gfx: &OamManaged) {
         if count % 5 == 0 {
             image += 1;
             for (obj, tag) in objs.iter_mut() {
-                obj.set_sprite(gfx.sprite(tag.animation_sprite(image)));
+                obj.set_sprite(tag.animation_sprite(image));
             }
-            gfx.commit();
         }
+
+        for (obj, _) in objs.iter() {
+            obj.show(&mut frame);
+        }
+
+        vblank.wait_for_vblank();
+
+        frame.commit();
     }
 }
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let gfx = gba.display.object.get_managed();
+    let mut gfx = gba.display.object.get();
 
     loop {
-        all_tags(&gfx);
-        all_sprites(&gfx, num!(0.));
-        all_sprites(&gfx, num!(0.01));
+        all_tags(&mut gfx);
+        all_sprites(&mut gfx, num!(0.));
+        all_sprites(&mut gfx, num!(0.01));
     }
 }

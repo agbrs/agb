@@ -14,8 +14,8 @@ use agb::{
         self,
         affine::AffineMatrix,
         object::{
-            AffineMatrixInstance, AffineMode, Graphics, OamIterator, ObjectUnmanaged, Sprite,
-            SpriteLoader, SpriteVram, Tag,
+            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, OamFrame, Object, Sprite,
+            SpriteVram, Tag,
         },
         palette16::Palette16,
         tiled::VRAM_MANAGER,
@@ -30,7 +30,7 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 type Number = Num<i32, 8>;
 
 struct Saw {
-    object: ObjectUnmanaged,
+    object: Object,
     position: Vector2D<Number>,
     angle: Number,
     rotation_speed: Number,
@@ -66,9 +66,9 @@ fn draw_bar(
     position: Vector2D<i32>,
     length: usize,
     colour: Colour,
-    oam: &mut OamIterator,
+    oam: &mut OamFrame,
     sprite_cache: &SpriteCache,
-) -> Option<()> {
+) {
     let length = length as i32;
     let number_of_sprites = length / 8;
     let size_of_last = length % 8;
@@ -79,31 +79,25 @@ fn draw_bar(
     };
 
     for sprite_idx in 0..number_of_sprites {
-        let mut object = ObjectUnmanaged::new(sprites[0].clone());
-        object
-            .show()
-            .set_position(position + (sprite_idx * 8, 0).into());
-        oam.next()?.set(&object);
+        Object::new(sprites[0].clone())
+            .set_position(position + (sprite_idx * 8, 0).into())
+            .show(oam);
     }
 
     if size_of_last != 0 {
-        let mut object = ObjectUnmanaged::new(sprites[8 - size_of_last as usize].clone());
-        object
-            .show()
-            .set_position(position + (number_of_sprites * 8, 0).into());
-        oam.next()?.set(&object);
+        Object::new(sprites[8 - size_of_last as usize].clone())
+            .set_position(position + (number_of_sprites * 8, 0).into())
+            .show(oam);
     }
-
-    Some(())
 }
 
 fn draw_number(
     mut number: u32,
     position: Vector2D<i32>,
-    oam: &mut OamIterator,
+    oam: &mut OamFrame,
     direction: DrawDirection,
     sprite_cache: &SpriteCache,
-) -> Option<()> {
+) {
     let mut digits = Vec::new();
     if number == 0 {
         digits.push(0);
@@ -121,19 +115,16 @@ fn draw_number(
     };
 
     for digit in digits {
-        let mut obj = ObjectUnmanaged::new(sprite_cache.numbers[digit as usize].clone());
-        obj.show().set_position(current_position);
-
-        oam.next()?.set(&obj);
+        Object::new(sprite_cache.numbers[digit as usize].clone())
+            .set_position(current_position)
+            .show(oam);
 
         current_position -= (4, 0).into();
     }
-
-    Some(())
 }
 
 impl SpriteCache {
-    fn new(loader: &mut SpriteLoader) -> Self {
+    fn new() -> Self {
         static SPRITES: &Graphics = include_aseprite!(
             "gfx/circles.aseprite",
             "gfx/saw.aseprite",
@@ -141,14 +132,10 @@ impl SpriteCache {
             "gfx/bar.aseprite"
         );
 
-        fn generate_sprites(
-            tag: &'static Tag,
-            range: Range<usize>,
-            loader: &mut SpriteLoader,
-        ) -> Box<[SpriteVram]> {
+        fn generate_sprites(tag: &'static Tag, range: Range<usize>) -> Box<[SpriteVram]> {
             range
                 .map(|x| tag.sprite(x))
-                .map(|x| loader.get_vram_sprite(x))
+                .map(IntoSpriteVram::into)
                 .collect::<Vec<_>>()
                 .into_boxed_slice()
         }
@@ -161,13 +148,13 @@ impl SpriteCache {
         static BAR_BLUE: &Tag = SPRITES.tags().get("Blue Bar");
 
         Self {
-            saw: loader.get_vram_sprite(SAW),
-            blue: loader.get_vram_sprite(BLUE_CIRCLE),
-            red: loader.get_vram_sprite(RED_CIRCLE),
-            numbers: generate_sprites(NUMBERS, 0..10, loader),
+            saw: IntoSpriteVram::into(SAW),
+            blue: IntoSpriteVram::into(BLUE_CIRCLE),
+            red: IntoSpriteVram::into(RED_CIRCLE),
+            numbers: generate_sprites(NUMBERS, 0..10),
             bars: [
-                generate_sprites(BAR_RED, 0..8, loader),
-                generate_sprites(BAR_BLUE, 0..8, loader),
+                generate_sprites(BAR_RED, 0..8),
+                generate_sprites(BAR_BLUE, 0..8),
             ],
         }
     }
@@ -266,10 +253,10 @@ impl Game {
 
             let angle_affine_matrix = AffineMatrix::from_rotation(saw.angle);
 
-            saw.object.set_affine_matrix(AffineMatrixInstance::new(
-                angle_affine_matrix.to_object_wrapping(),
-            ));
-            saw.object.show_affine(AffineMode::Affine);
+            saw.object.set_affine(
+                AffineMatrixInstance::new(angle_affine_matrix.to_object_wrapping()),
+                AffineMode::Affine,
+            );
 
             saw.object
                 .set_position(saw.position.floor() - (16, 16).into());
@@ -298,10 +285,15 @@ impl Game {
             let rotation_magnitude =
                 Number::from_raw(rng::gen().abs() % (1 << 8)) % num!(0.02) + num!(0.005);
 
+            let mut saw = Object::new(sprite_cache.saw.clone());
+            let position = (300, rng::gen().rem_euclid(display::HEIGHT));
+
+            saw.set_position(position);
+
             let rotation_speed = rotation_magnitude * rotation_direction;
             let saw = Saw {
-                object: ObjectUnmanaged::new(sprite_cache.saw.clone()),
-                position: (300, rng::gen().rem_euclid(display::HEIGHT)).into(),
+                object: saw,
+                position: position.into(),
                 angle: 0.into(),
                 rotation_speed,
             };
@@ -321,25 +313,19 @@ impl Game {
         }
     }
 
-    fn render(&self, oam: &mut OamIterator, sprite_cache: &SpriteCache) -> Option<()> {
+    fn render(&self, oam: &mut OamFrame, sprite_cache: &SpriteCache) {
         for saw in self.saws.iter() {
-            oam.next()?.set(&saw.object);
+            saw.object.show(oam);
         }
 
         for circle in self.circles.iter() {
-            let mut object = ObjectUnmanaged::new(match circle.colour {
+            Object::new(match circle.colour {
                 Colour::Red => sprite_cache.red.clone(),
                 Colour::Blue => sprite_cache.blue.clone(),
-            });
-
-            object
-                .show()
-                .set_position(circle.position.floor() - (4, 4).into());
-
-            oam.next()?.set(&object);
+            })
+            .set_position(circle.position.floor() - (4, 4).into())
+            .show(oam);
         }
-
-        Some(())
     }
 }
 
@@ -387,10 +373,11 @@ struct FinalisedSettings {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    let (mut unmanaged, mut sprites) = gba.display.object.get_unmanaged();
-    let sprite_cache = SpriteCache::new(&mut sprites);
+    let mut oam = gba.display.object.get();
+    let sprite_cache = SpriteCache::new();
 
-    let _background = gba.display.video.tiled();
+    let mut background = gba.display.video.tiled();
+    background.iter().commit();
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
@@ -418,19 +405,18 @@ pub fn main(mut gba: agb::Gba) -> ! {
             let max_bar_width = display::WIDTH - 2;
             let bar_width_pixels = (game.energy * max_bar_width) / game.settings.max_energy;
             let bar_width_pixels = (bar_width_pixels + num!(0.5)).floor().max(0) as usize;
-            vblank.wait_for_vblank();
-            let oam_frame = &mut unmanaged.iter();
+            let mut oam_frame = oam.frame();
             draw_number(
                 max_score,
                 (display::WIDTH - 5, 2).into(),
-                oam_frame,
+                &mut oam_frame,
                 DrawDirection::Left,
                 &sprite_cache,
             );
             draw_number(
                 game.alive_frames,
                 (2, 2).into(),
-                oam_frame,
+                &mut oam_frame,
                 DrawDirection::Right,
                 &sprite_cache,
             );
@@ -438,11 +424,14 @@ pub fn main(mut gba: agb::Gba) -> ! {
                 (1, 1).into(),
                 bar_width_pixels,
                 game.circles.back().unwrap().colour,
-                oam_frame,
+                &mut oam_frame,
                 &sprite_cache,
             );
 
-            game.render(oam_frame, &sprite_cache);
+            game.render(&mut oam_frame, &sprite_cache);
+
+            vblank.wait_for_vblank();
+            oam_frame.commit();
 
             if matches!(state, GameState::Loss) {
                 for _ in 0..30 {

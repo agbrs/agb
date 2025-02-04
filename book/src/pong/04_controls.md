@@ -43,8 +43,11 @@ loop {
     
     ball.set_x(ball_x as u16).set_y(ball_y as u16);
 
+    let mut frame = object.frame();
+    frame.show(&ball);
+    
     agb::display::busy_wait_for_vblank();
-    object.commit();
+    frame.commit();
 
     // We must call input.update() every frame otherwise it won't update based
     // on the actual button press state.

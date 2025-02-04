@@ -5,7 +5,7 @@
 use core::ops::{Deref, DerefMut};
 
 use agb::{
-    display::object::{OamIterator, ObjectUnmanaged, SpriteLoader},
+    display::object::{OamFrame, Object},
     fixnum::{Num, Vector2D},
 };
 use alloc::vec;
@@ -145,14 +145,12 @@ pub struct RenderCache {
     y: i32,
     item: Item,
     held: bool,
-    object: ObjectUnmanaged,
+    object: Object,
 }
 
 impl RenderCache {
-    pub fn render(&self, oam: &mut OamIterator) {
-        if let Some(slot) = oam.next() {
-            slot.set(&self.object);
-        }
+    pub fn render(&self, oam: &mut OamFrame) {
+        self.object.show(oam);
     }
 
     pub fn sorting_number(&self) -> i32 {
@@ -253,22 +251,16 @@ impl Animation {
         self.ease = ease_in * (Num::new(1) - self.time) + ease_out * self.time;
     }
 
-    pub fn cache_render(
-        &self,
-        sprite_loader: &mut SpriteLoader,
-        animation_frame: usize,
-    ) -> Vec<RenderCache> {
+    pub fn cache_render(&self, animation_frame: usize) -> Vec<RenderCache> {
         let mut cache = Vec::new();
 
         for (_, entity) in self.map.iter() {
             if let Some((attached, attach_progress)) = entity.attached {
-                let mut object = ObjectUnmanaged::new(
-                    sprite_loader.get_vram_sprite(attached.tag().animation_sprite(animation_frame)),
-                );
+                let mut object = Object::new(attached.tag().animation_sprite(animation_frame));
 
                 let pos = (entity.rendered_position + attached_offset() * attach_progress).floor()
                     + attached.map_entity_offset();
-                object.show().set_position(pos);
+                object.set_position(pos);
 
                 cache.push(RenderCache {
                     object,
@@ -284,9 +276,9 @@ impl Animation {
                 entity.entity.shadow_tag().animation_sprite(animation_frame)
             };
 
-            let mut object = ObjectUnmanaged::new(sprite_loader.get_vram_sprite(sprite));
+            let mut object = Object::new(sprite);
             let position = entity.rendered_position.floor() + entity.entity.map_entity_offset();
-            object.show().set_position(position);
+            object.set_position(position);
 
             cache.push(RenderCache {
                 object,

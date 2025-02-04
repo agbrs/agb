@@ -19,7 +19,7 @@ impl Default for Attributes {
         Self {
             a0: ObjectAttribute0::new(
                 0,
-                ObjectMode::Disabled,
+                ObjectMode::Normal,
                 GraphicsModeInternal::Normal,
                 false,
                 ColourMode::Four,
@@ -58,12 +58,6 @@ impl Attributes {
 
     pub fn is_visible(self) -> bool {
         self.a0.object_mode() != ObjectMode::Disabled
-    }
-
-    pub fn show(&mut self) -> &mut Self {
-        self.a0.set_object_mode(ObjectMode::Normal);
-
-        self
     }
 
     pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
@@ -116,12 +110,6 @@ impl Attributes {
         self.a2.priority()
     }
 
-    pub fn hide(&mut self) -> &mut Self {
-        self.a0.set_object_mode(ObjectMode::Disabled);
-
-        self
-    }
-
     pub fn set_y(&mut self, y: u16) -> &mut Self {
         self.a0.set_y(y as u8);
 
@@ -149,6 +137,12 @@ impl Attributes {
         self.a1a.set_size(u2::new(size as u8));
         self.a1s.set_size(u2::new(size as u8));
         self.a0.set_shape(u2::new(shape as u8));
+
+        self
+    }
+
+    pub fn set_colour_mode(&mut self, mode: ColourMode) -> &mut Self {
+        self.a0.set_colour_mode(mode);
 
         self
     }
@@ -197,7 +191,7 @@ enum GraphicsModeInternal {
 
 #[bitsize(1)]
 #[derive(FromBits, Clone, Copy, Debug, PartialEq, Eq, Default)]
-enum ColourMode {
+pub enum ColourMode {
     #[default]
     Four,
     Eight,

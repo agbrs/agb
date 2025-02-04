@@ -6,7 +6,7 @@
 
 use agb::{
     display::{
-        object::{OamIterator, OamUnmanaged, SpriteLoader},
+        object::{Oam, OamFrame},
         tiled::{
             BackgroundIterator, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             TiledBackground,
@@ -36,30 +36,29 @@ mod save;
 struct Agb<'gba> {
     vblank: VBlank,
     input: ButtonController,
-    loader: SpriteLoader,
     sfx: Sfx<'gba>,
-    oam: OamUnmanaged<'gba>,
+    oam: Oam<'gba>,
     gfx: TiledBackground<'gba>,
 }
 
 impl<'gba> Agb<'gba> {
     fn frame<D, U, T, F>(&mut self, data: &mut D, update: U, render: F) -> T
     where
-        U: FnOnce(&mut D, &ButtonController, &mut SpriteLoader, &mut Sfx<'gba>) -> T,
-        F: FnOnce(&D, &mut OamIterator, &mut SpriteLoader, &mut BackgroundIterator<'_>),
+        U: FnOnce(&mut D, &ButtonController, &mut Sfx<'gba>) -> T,
+        F: FnOnce(&D, &mut OamFrame, &mut BackgroundIterator<'_>),
     {
+        let mut bg_iter = self.gfx.iter();
+        let mut frame = self.oam.frame();
+        render(data, &mut frame, &mut bg_iter);
+
         self.vblank.wait_for_vblank();
+        bg_iter.commit();
+        frame.commit();
 
-        self.input.update();
-        {
-            let mut bg_iter = self.gfx.iter();
-            render(data, &mut self.oam.iter(), &mut self.loader, &mut bg_iter);
-
-            bg_iter.commit();
-        }
         self.sfx.frame();
+        self.input.update();
 
-        update(data, &self.input, &mut self.loader, &mut self.sfx)
+        update(data, &self.input, &mut self.sfx)
     }
 }
 
@@ -88,7 +87,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
 
     ui_bg.commit();
 
-    let (unmanaged, sprite_loader) = gba.display.object.get_unmanaged();
+    let oam = gba.display.object.get();
 
     let mut input = agb::input::ButtonController::new();
     input.update();
@@ -103,9 +102,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     let mut g = Agb {
         vblank,
         input,
-        loader: sprite_loader,
         sfx,
-        oam: unmanaged,
+        oam,
         gfx,
     };
 
@@ -120,8 +118,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
             loop {
                 if g.frame(
                     &mut (),
-                    |_, input, _, _| input.is_just_pressed(Button::SELECT),
-                    |_, _, _, bg_iter| {
+                    |_, input, _| input.is_just_pressed(Button::SELECT),
+                    |_, _, bg_iter| {
                         ending_bg.show(bg_iter);
                     },
                 ) {
@@ -135,17 +133,19 @@ pub fn entry(mut gba: agb::Gba) -> ! {
             }
             let mut game = g.frame(
                 &mut (),
-                |_, _, loader, _| Pausable::new(current_level, maximum_level, loader),
-                |_, _, _, _| {},
+                |_, _, _| Pausable::new(current_level, maximum_level),
+                |_, _, bg_iter| {
+                    ui_bg.show(bg_iter);
+                },
             );
 
             loop {
                 if let Some(option) = g.frame(
                     &mut game,
-                    |game, input, loader, sfx| game.update(input, sfx, loader),
-                    |game, oam, loader, bg_iter| {
+                    |game, input, sfx| game.update(input, sfx),
+                    |game, oam, bg_iter| {
                         ui_bg.show(bg_iter);
-                        game.render(loader, oam, bg_iter)
+                        game.render(oam, bg_iter)
                     },
                 ) {
                     match option {

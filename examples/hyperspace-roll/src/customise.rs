@@ -1,6 +1,6 @@
 use agb::{
     display::{
-        object::{OamManaged, Object},
+        object::Object,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         Priority, HEIGHT, WIDTH,
     },
@@ -91,40 +91,34 @@ fn move_net_position_ud(idx: usize, direction: Tri) -> usize {
     }
 }
 
-fn create_dice_display<'a>(gfx: &'a OamManaged, dice: &'_ PlayerDice) -> Vec<Object<'a>> {
+fn create_dice_display(dice: &PlayerDice) -> Vec<Object> {
     let mut objects = Vec::new();
     for (idx, dice) in dice.dice.iter().enumerate() {
-        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(dice.faces[1]));
+        let mut obj = Object::new(FACE_SPRITES.sprite_for_face(dice.faces[1]));
         obj.set_x((idx as i32 * 32 - 24 / 2 + 20) as u16);
         obj.set_y(16 - 24 / 2);
-
-        obj.show();
 
         objects.push(obj);
     }
     objects
 }
 
-fn create_net<'a>(gfx: &'a OamManaged, die: &'_ Die, modified: &[usize]) -> Vec<Object<'a>> {
+fn create_net(die: &Die, modified: &[usize]) -> Vec<Object> {
     let mut objects = Vec::new();
     for (idx, &face) in die.faces.iter().enumerate() {
-        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(face));
+        let mut obj = Object::new(FACE_SPRITES.sprite_for_face(face));
         let (x, y) = screen_position_for_index(idx);
         obj.set_x((x - 24 / 2) as u16);
         obj.set_y((y - 24 / 2) as u16);
-
-        obj.show();
 
         objects.push(obj);
     }
 
     for &m in modified.iter().chain(core::iter::once(&3)) {
-        let mut obj = gfx.object_sprite(MODIFIED_BOX);
+        let mut obj = Object::new(MODIFIED_BOX);
         let (x, y) = screen_position_for_index(m);
         obj.set_x((x - 32 / 2) as u16);
         obj.set_y((y - 32 / 2) as u16);
-
-        obj.show();
 
         objects.push(obj);
     }
@@ -139,15 +133,13 @@ fn upgrade_position(idx: usize) -> (u32, u32) {
     )
 }
 
-fn create_upgrade_objects<'a>(gfx: &'a OamManaged, upgrades: &[Face]) -> Vec<Object<'a>> {
+fn create_upgrade_objects(upgrades: &[Face]) -> Vec<Object> {
     let mut objects = Vec::new();
     for (idx, &upgrade) in upgrades.iter().enumerate() {
-        let mut obj = gfx.object_sprite(FACE_SPRITES.sprite_for_face(upgrade));
+        let mut obj = Object::new(FACE_SPRITES.sprite_for_face(upgrade));
         let (x, y) = upgrade_position(idx);
         obj.set_x((x - 24 / 2) as u16);
         obj.set_y((y - 24 / 2) as u16);
-
-        obj.show();
 
         objects.push(obj);
     }
@@ -180,24 +172,20 @@ pub(crate) fn customise_screen(
 
     // create the dice
 
-    let mut _net = create_net(&agb.obj, &player_dice.dice[0], &[]);
-    let mut _dice = create_dice_display(&agb.obj, &player_dice);
+    let mut net = create_net(&player_dice.dice[0], &[]);
+    let mut dice = create_dice_display(&player_dice);
 
     agb.sfx.frame();
 
     let mut upgrades = crate::level_generation::generate_upgrades(level, &mut || agb.sfx.frame());
-    let mut _upgrade_objects = create_upgrade_objects(&agb.obj, &upgrades);
+    let mut upgrade_objects = create_upgrade_objects(&upgrades);
 
     let mut input = agb::input::ButtonController::new();
 
-    let mut select_box = agb.obj.object_sprite(SELECT_BOX.sprite(0));
+    let mut select_box = Object::new(SELECT_BOX.sprite(0));
 
-    select_box.show();
-
-    let mut selected_dice = agb.obj.object_sprite(SELECTED_BOX);
-    selected_dice.hide();
-    let mut selected_face = agb.obj.object_sprite(SELECTED_BOX);
-    selected_face.hide();
+    let mut selected_dice = Object::new(SELECTED_BOX);
+    let mut selected_face = Object::new(SELECTED_BOX);
     agb.sfx.frame();
 
     let mut counter = 0usize;
@@ -216,6 +204,7 @@ pub(crate) fn customise_screen(
 
     loop {
         let mut bg_iter = agb.tiled.iter();
+        let mut oam_frame = agb.obj.frame();
 
         counter = counter.wrapping_add(1);
         input.update();
@@ -236,14 +225,12 @@ pub(crate) fn customise_screen(
 
         match &mut state {
             CustomiseState::Dice => {
-                selected_dice.hide();
                 let new_dice = (cursor.dice as isize + lr as isize)
                     .rem_euclid(player_dice.dice.len() as isize)
                     as usize;
                 if new_dice != cursor.dice {
                     cursor.dice = new_dice;
-                    _net = create_net(
-                        &agb.obj,
+                    net = create_net(
                         &player_dice.dice[cursor.dice],
                         &modified
                             .iter()
@@ -258,19 +245,19 @@ pub(crate) fn customise_screen(
                 if input.is_just_pressed(Button::A) {
                     selected_dice.set_x((cursor.dice as i32 * 32 - 32 / 2 + 20) as u16);
                     selected_dice.set_y(0);
-                    selected_dice.show();
                     state = CustomiseState::Face;
                     agb.sfx.select();
                 }
             }
             CustomiseState::Face => {
+                selected_dice.show(&mut oam_frame);
+
                 cursor.face = move_net_position_lr(cursor.face, lr);
                 cursor.face = move_net_position_ud(cursor.face, ud);
 
                 let (x, y) = screen_position_for_index(cursor.face);
                 select_box.set_x((x - 32 / 2) as u16);
                 select_box.set_y((y - 32 / 2) as u16);
-                selected_face.hide();
 
                 if input.is_just_pressed(Button::B) {
                     state = CustomiseState::Dice;
@@ -285,7 +272,6 @@ pub(crate) fn customise_screen(
                 {
                     selected_face.set_x((x - 32 / 2) as u16);
                     selected_face.set_y((y - 32 / 2) as u16);
-                    selected_face.show();
 
                     cursor.upgrade += upgrades.len();
 
@@ -294,6 +280,8 @@ pub(crate) fn customise_screen(
                 }
             }
             CustomiseState::Upgrade => {
+                selected_face.show(&mut oam_frame);
+
                 let old_upgrade = cursor.upgrade;
                 cursor.upgrade = (cursor.upgrade as isize + ud as isize)
                     .rem_euclid(upgrades.len() as isize) as usize;
@@ -328,35 +316,40 @@ pub(crate) fn customise_screen(
 
                     player_dice.dice[cursor.dice].faces[cursor.face] = upgrades[cursor.upgrade];
                     upgrades.remove(cursor.upgrade);
-                    _upgrade_objects = create_upgrade_objects(&agb.obj, &upgrades);
+                    upgrade_objects = create_upgrade_objects(&upgrades);
 
-                    _net = create_net(
-                        &agb.obj,
+                    net = create_net(
                         &player_dice.dice[cursor.dice],
                         &modified
                             .iter()
                             .filter_map(|x| (x.dice == cursor.dice).then_some(x.face))
                             .collect::<Vec<usize>>(),
                     );
-                    _dice = create_dice_display(&agb.obj, &player_dice);
+                    dice = create_dice_display(&player_dice);
                     state = CustomiseState::Face;
                     agb.sfx.accept();
                 }
             }
         }
 
+        for obj in net.iter().chain(dice.iter()).chain(upgrade_objects.iter()) {
+            obj.show(&mut oam_frame);
+        }
+
         if upgrades.is_empty() {
             break;
         }
 
-        select_box.set_sprite(agb.obj.sprite(SELECT_BOX.animation_sprite(counter / 10)));
+        select_box.set_sprite(SELECT_BOX.animation_sprite(counter / 10));
+
+        select_box.show(&mut oam_frame);
 
         agb.star_background.update();
         let _ = agb::rng::gen();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
         agb.star_background.commit();
-        agb.obj.commit();
+        oam_frame.commit();
         descriptions_map.commit();
         help_background.commit();
 

@@ -6,9 +6,54 @@ use super::BYTES_PER_TILE_4BPP;
 
 /// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
-    pub(crate) palette: &'static Palette16,
+    pub(crate) palette: Palette,
     pub(crate) data: &'static [u8],
     pub(crate) size: Size,
+}
+
+#[derive(Clone, Copy)]
+pub enum Palette {
+    Single(&'static Palette16),
+    Multi(&'static PaletteMulti),
+}
+
+impl Palette {
+    pub(crate) fn is_multi(self) -> bool {
+        matches!(self, Palette::Multi(_))
+    }
+}
+
+/// A palette for 256 colour mode.
+pub struct PaletteMulti {
+    first_index: u32,
+    palettes: &'static [Palette16],
+}
+
+impl PaletteMulti {
+    #[must_use]
+    /// Create a new palette. The first index is the index where the palette starts.
+    pub const fn new(first_index: u32, palettes: &'static [Palette16]) -> Self {
+        assert!(palettes.len() <= 16);
+        assert!(!palettes.is_empty());
+        assert!(16 - palettes.len() >= first_index as usize);
+
+        Self {
+            first_index,
+            palettes,
+        }
+    }
+    #[must_use]
+    /// Gets the palettes, usually for coping to palette vram.
+    pub const fn palettes(&self) -> &'static [Palette16] {
+        self.palettes
+    }
+
+    #[must_use]
+    /// Gets the first index of the palette. When copied to palette vram it is
+    /// expected to be copied starting from this index.
+    pub const fn first_index(&self) -> u32 {
+        self.first_index
+    }
 }
 
 impl Sprite {
@@ -21,7 +66,27 @@ impl Sprite {
     #[must_use]
     pub const unsafe fn new(palette: &'static Palette16, data: &'static [u8], size: Size) -> Self {
         Self {
-            palette,
+            palette: Palette::Single(palette),
+            data,
+            size,
+        }
+    }
+
+    #[doc(hidden)]
+    /// Creates a sprite that uses multiple palettes, this will use 256 colour
+    /// mode, but can use fewer palettes. The palette location in palette vram
+    /// is currently fixed by `first_index`.
+    ///
+    /// # Safety
+    /// The data should be aligned to a 2 byte boundary
+    #[must_use]
+    pub const unsafe fn new_multi(
+        palettes: &'static PaletteMulti,
+        data: &'static [u8],
+        size: Size,
+    ) -> Self {
+        Self {
+            palette: Palette::Multi(palettes),
             data,
             size,
         }
@@ -105,7 +170,7 @@ macro_rules! align_bytes {
 ///
 #[macro_export]
 macro_rules! include_aseprite {
-    ($($aseprite_path: expr),*) => {{
+    ($($aseprite_path: expr),*$(,)?) => {{
         #[allow(unused_imports)]
         use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
         use $crate::display::palette16::Palette16;
@@ -115,6 +180,23 @@ macro_rules! include_aseprite {
 
         &Graphics::new(SPRITES, &TAGS)
     }};
+}
+
+/// Includes sprites found in the referenced aseprite files.
+///
+/// This will optimise to a single multi palette, 256 colour sprites.
+#[macro_export]
+macro_rules! include_aseprite_256 {
+    ($($aseprite_path: expr),*$(,)?) => {{
+        #[allow(unused_imports)]
+        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics, MultiPalette};
+        use $crate::display::palette16::Palette16;
+        use $crate::align_bytes;
+
+        $crate::include_aseprite_256_inner!($($aseprite_path),*);
+
+        &Graphics::new(SPRITES, &TAGS)
+    }}
 }
 
 pub use include_aseprite;
@@ -339,8 +421,12 @@ impl Size {
         (self as u16 >> 2, self as u16 & 0b11)
     }
 
-    pub(crate) fn layout(self) -> Layout {
-        Layout::from_size_align(self.number_of_tiles() * BYTES_PER_TILE_4BPP, 8).unwrap()
+    pub(crate) fn layout(self, multi_palette: bool) -> Layout {
+        Layout::from_size_align(
+            self.number_of_tiles() * BYTES_PER_TILE_4BPP * (multi_palette as usize + 1),
+            8,
+        )
+        .unwrap()
     }
 
     #[must_use]
