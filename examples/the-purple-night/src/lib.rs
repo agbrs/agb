@@ -240,8 +240,7 @@ impl Entity {
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            self.sprite.set_position(position - (8, 8).into());
-            self.sprite.show(oam);
+            self.sprite.set_position(position - (8, 8).into()).show(oam);
         }
     }
 
@@ -252,8 +251,7 @@ impl Entity {
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            self.sprite.set_position(position - size / 2);
-            self.sprite.show(oam);
+            self.sprite.set_position(position - size / 2).show(oam);
         }
     }
 }
