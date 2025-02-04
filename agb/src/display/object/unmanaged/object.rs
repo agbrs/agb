@@ -174,13 +174,13 @@ impl Object {
         self.attributes.is_visible()
     }
 
-    /// Display the sprite in Affine mode.
-    pub fn show_affine(&mut self, affine_mode: AffineMode) -> &mut Self {
-        assert!(
-            self.affine_matrix.is_some(),
-            "affine matrix must be set before enabling affine matrix!"
-        );
-
+    /// Sets the affine matrix and mode
+    pub fn set_affine(
+        &mut self,
+        affine_matrix: AffineMatrixInstance,
+        affine_mode: AffineMode,
+    ) -> &mut Self {
+        self.affine_matrix = Some(affine_matrix.vram());
         self.attributes.show_affine(affine_mode);
 
         self
@@ -278,14 +278,6 @@ impl Object {
     #[must_use]
     pub fn position(&self) -> Vector2D<i32> {
         Vector2D::new(self.x() as i32, self.y() as i32)
-    }
-
-    /// Sets the affine matrix. This only has an affect in Affine mode.
-    pub fn set_affine_matrix(&mut self, affine_matrix: AffineMatrixInstance) -> &mut Self {
-        let vram = affine_matrix.vram();
-        self.affine_matrix = Some(vram);
-
-        self
     }
 
     fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {

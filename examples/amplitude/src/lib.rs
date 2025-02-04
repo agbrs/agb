@@ -253,10 +253,10 @@ impl Game {
 
             let angle_affine_matrix = AffineMatrix::from_rotation(saw.angle);
 
-            saw.object.set_affine_matrix(AffineMatrixInstance::new(
-                angle_affine_matrix.to_object_wrapping(),
-            ));
-            saw.object.show_affine(AffineMode::Affine);
+            saw.object.set_affine(
+                AffineMatrixInstance::new(angle_affine_matrix.to_object_wrapping()),
+                AffineMode::Affine,
+            );
 
             saw.object
                 .set_position(saw.position.floor() - (16, 16).into());
