@@ -56,8 +56,8 @@ impl BattleScreenDisplay {
         let mut player_obj = Object::new(player_sprite);
         let mut enemy_obj = Object::new(enemy_sprite);
 
-        player_obj.set_x(player_x).set_y(player_y);
-        enemy_obj.set_x(enemy_x).set_y(player_y);
+        player_obj.set_position((player_x, player_y));
+        enemy_obj.set_position((enemy_x, player_y));
 
         misc_sprites.push(player_obj);
         misc_sprites.push(enemy_obj);
@@ -69,7 +69,7 @@ impl BattleScreenDisplay {
             .map(|(i, (face, _))| {
                 let mut die_obj = Object::new(FACE_SPRITES.sprite_for_face(face));
 
-                die_obj.set_y(120).set_x(i as u16 * 40 + 28);
+                die_obj.set_position((120, i as i32 * 40 + 28));
 
                 die_obj
             })
@@ -86,7 +86,7 @@ impl BattleScreenDisplay {
         let player_shield: Vec<_> = (0..5)
             .map(|i| {
                 let mut shield_obj = Object::new(shield_sprite);
-                shield_obj.set_x(player_x + 18 + 11 * i).set_y(player_y);
+                shield_obj.set_position((player_x + 18 + 11 * i, player_y));
 
                 shield_obj
             })
@@ -96,8 +96,7 @@ impl BattleScreenDisplay {
             .map(|i| {
                 let mut shield_obj = Object::new(shield_sprite);
                 shield_obj
-                    .set_x(enemy_x - 16 - 11 * i)
-                    .set_y(player_y)
+                    .set_position((enemy_x - 16 - 11 * i, player_y))
                     .set_hflip(true);
 
                 shield_obj
@@ -372,7 +371,7 @@ impl AnimationStateHolder {
     ) -> AnimationUpdateState {
         match &mut self.state {
             AnimationState::PlayerShoot { bullet, x } => {
-                bullet.set_x(*x as u16).set_y(36);
+                bullet.set_position((*x, 36));
                 bullet.show(oam_frame);
                 *x += 4;
 
@@ -383,7 +382,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::PlayerDisrupt { bullet, x } => {
-                bullet.set_x(*x as u16).set_y(36);
+                bullet.set_position((*x, 36));
                 bullet.show(oam_frame);
 
                 *x += 2;
@@ -414,7 +413,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::EnemyShoot { bullet, x } => {
-                bullet.set_hflip(true).set_x(*x as u16).set_y(36);
+                bullet.set_hflip(true).set_position((*x, 36));
                 bullet.show(oam_frame);
                 *x -= 4;
 
@@ -467,7 +466,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::PlayerSendBurstShield { bullet, x } => {
-                bullet.set_x(*x as u16).set_y(36);
+                bullet.set_position((*x, 36));
                 bullet.show(oam_frame);
                 *x += 1;
 
