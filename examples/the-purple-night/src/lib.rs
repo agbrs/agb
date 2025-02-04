@@ -365,7 +365,7 @@ impl SwordState {
             SwordState::LongSword => 20,
             SwordState::ShortSword => 10,
             SwordState::Dagger => 1,
-            SwordState::Swordless => 0,
+            SwordState::Swordless => 1,
         }
     }
     fn attack_tag(self) -> &'static Tag {
