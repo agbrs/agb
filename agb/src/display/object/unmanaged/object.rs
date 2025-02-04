@@ -231,44 +231,12 @@ impl Object {
         self.attributes.priority()
     }
 
-    /// Sets the x position of the object.  
-    /// Use [x](Self::x) to get the value  
-    /// Use [set_position](Self::set_position) to set both `x` and `y`
-    pub fn set_x(&mut self, x: u16) -> &mut Self {
-        self.attributes.set_x(x);
-
-        self
-    }
-
-    /// Returns the x position of the object  
-    /// Use [set_x](Self::set_x) to set the value
-    #[must_use]
-    pub fn x(&self) -> u16 {
-        self.attributes.x()
-    }
-
-    /// Sets the y position of the object.  
-    /// Use [y](Self::y) to get the value  
-    /// Use [set_position](Self::set_position) to set both `x` and `y`
-    pub fn set_y(&mut self, y: u16) -> &mut Self {
-        self.attributes.set_y(y);
-
-        self
-    }
-
-    /// Returns the y position of the object  
-    /// Use [set_y](Self::set_y) to set the value
-    #[must_use]
-    pub fn y(&self) -> u16 {
-        self.attributes.y()
-    }
-
     /// Sets the position of the object.  
     /// Use [position](Self::position) to get the value
     pub fn set_position(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         let position = position.into();
-        self.set_y(position.y.rem_euclid(1 << 9) as u16);
-        self.set_x(position.x.rem_euclid(1 << 9) as u16);
+        self.attributes.set_y(position.y.rem_euclid(1 << 9) as u16);
+        self.attributes.set_x(position.x.rem_euclid(1 << 9) as u16);
 
         self
     }
@@ -277,7 +245,7 @@ impl Object {
     /// Use [set_position](Self::set_position) to set the value
     #[must_use]
     pub fn position(&self) -> Vector2D<i32> {
-        Vector2D::new(self.x() as i32, self.y() as i32)
+        Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
     }
 
     fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
