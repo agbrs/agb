@@ -1,10 +1,8 @@
-import { MutableRefObject, useEffect } from "react";
+import { RefObject, useEffect } from "react";
 import { mGBAEmulator } from "./vendor/mgba";
 import { GbaKey } from "./bindings";
 
-export function useController(
-  mgbaModule: MutableRefObject<mGBAEmulator | undefined>
-) {
+export function useController(mgbaModule: RefObject<mGBAEmulator | undefined>) {
   useEffect(() => {
     let stopped = false;
 

@@ -16,7 +16,7 @@ WORKDIR /mgba/build-wasm
 RUN git checkout 26a2701cef6fcad47c67559fcb7892004f8d489c
 
 
-RUN emcmake cmake .. && make install DESTDIR=install
+RUN emcmake cmake .. && make -j`nproc` install DESTDIR=install
 
 
 FROM scratch

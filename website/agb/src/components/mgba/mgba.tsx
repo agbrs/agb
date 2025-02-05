@@ -62,7 +62,7 @@ interface SaveGame {
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
   ({ gameUrl, volume, controls, paused }, ref) => {
     const canvas = useRef(null);
-    const mgbaModule = useRef<mGBAEmulator>();
+    const mgbaModule = useRef<mGBAEmulator>(undefined);
 
     const [saveGame, setSaveGame] = useLocalStorage<SaveGame>(
       {},

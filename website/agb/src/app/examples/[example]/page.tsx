@@ -31,21 +31,22 @@ async function loadSourceCode(exampleName: string) {
 export default async function Page({
   params,
 }: {
-  params: { example: string };
+  params: Promise<{ example: string }>;
 }) {
-  const exmaple = getExample(params.example);
-  const source = await loadSourceCode(exmaple.example_name);
+  const { example: exampleParam } = await params;
+  const example = getExample(exampleParam);
+  const source = await loadSourceCode(example.example_name);
 
   return (
     <>
       <ContentBlock color="#9fa6db">
-        <h1>Example: {params.example}</h1>
-        <BackToExampleLink href={`../examples#${params.example}`}>
+        <h1>Example: {exampleParam}</h1>
+        <BackToExampleLink href={`../examples#${exampleParam}`}>
           <strong>&lt;</strong> Back to examples
         </BackToExampleLink>
       </ContentBlock>
       <ContentBlock>
-        <Emulator exampleName={params.example} />
+        <Emulator exampleName={exampleParam} />
       </ContentBlock>
       <ContentBlock>
         <Code language="rust">{source}</Code>
