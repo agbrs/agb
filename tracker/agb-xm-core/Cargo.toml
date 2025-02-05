@@ -1,6 +1,6 @@
 [package]
 name = "agb_xm_core"
-version = "0.21.1"
+version = "0.21.3"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -13,7 +13,7 @@ proc-macro2 = "1"
 quote = "1"
 syn = "2"
 
-agb_tracker_interop = { version = "0.21.1", path = "../agb-tracker-interop", default-features = false }
-agb_fixnum = { version = "0.21.1", path = "../../agb-fixnum" }
+agb_tracker_interop = { version = "0.21.3", path = "../agb-tracker-interop", default-features = false }
+agb_fixnum = { version = "0.21.3", path = "../../agb-fixnum" }
 
 xmrs = { version = "=0.8.5", features = ["std", "import"] }

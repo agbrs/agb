@@ -1141,6 +1141,8 @@ mod test {
                     answer.as_ref()
                 );
             }
+
+            assert!(map.capacity() >= map.len());
         }
     }
 
@@ -1325,6 +1327,43 @@ mod test {
         iter.next();
 
         assert_eq!(iter.size_hint(), (99, Some(99)));
+    }
+
+    #[test]
+    fn clear_should_empty_hashmap() {
+        let mut map = HashMap::new();
+        assert_eq!(map.len(), 0);
+
+        assert!(map.is_empty());
+
+        map.insert(5, 0);
+        map.insert(4, 3);
+
+        assert_eq!(map.len(), 2);
+        assert!(!map.is_empty());
+
+        map.clear();
+
+        assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
+
+        let values = map.values().collect::<Vec<_>>();
+        assert_eq!(values, Vec::<&i32>::new());
+    }
+
+    #[test]
+    fn clear_should_not_decrease_capacity() {
+        let mut map = HashMap::new();
+
+        for i in 0..64 {
+            map.insert(i, i + 1);
+        }
+
+        let before_clear_capacity = map.capacity();
+        assert!(before_clear_capacity >= 64);
+
+        map.clear();
+        assert!(map.capacity() == before_clear_capacity);
     }
 
     // Following test cases copied from the rust source

@@ -3,8 +3,10 @@
 
 use agb::{
     display::{
-        affine::AffineMatrixBackground,
-        tiled::{AffineBackgroundSize, TiledMap},
+        tiled::{
+            AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
+            AffineMatrixBackground, VRAM_MANAGER,
+        },
         Priority,
     },
     fixnum::{num, Num},
@@ -15,23 +17,26 @@ include_background_gfx!(affine_tiles, "3f3f74", water_tiles => 256 "examples/wat
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled1();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = &affine_tiles::water_tiles.tiles;
 
-    vram.set_background_palettes(affine_tiles::PALETTES);
+    VRAM_MANAGER.set_background_palettes(affine_tiles::PALETTES);
 
-    let mut bg = gfx.affine(Priority::P0, AffineBackgroundSize::Background32x32);
+    let mut bg = AffineBackgroundTiles::new(
+        Priority::P0,
+        AffineBackgroundSize::Background32x32,
+        AffineBackgroundWrapBehaviour::NoWrap,
+    );
 
     for y in 0..32u16 {
         for x in 0..32u16 {
-            bg.set_tile(&mut vram, (x, y), tileset, 1);
+            bg.set_tile((x, y), tileset, 1);
         }
     }
 
-    bg.commit(&mut vram);
-    bg.set_visible(true);
+    bg.commit();
 
     let mut rotation = num!(0.);
     let rotation_increase: Num<i32, 16> = num!(0.01);
@@ -60,7 +65,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
         bg.set_transform(transformation);
 
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
         vblank.wait_for_vblank();
-        bg.commit(&mut vram);
+
+        frame.commit();
     }
 }

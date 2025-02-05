@@ -1,7 +1,8 @@
 use agb::{
     display::{
-        object::{OamIterator, ObjectUnmanaged, SpriteLoader, Tag},
-        tiled::{RegularMap, VRamManager},
+        object::{Object, Tag},
+        tiled::RegularBackgroundTiles,
+        GraphicsFrame,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -63,7 +64,7 @@ impl GameState {
         }
     }
 
-    pub fn create_simulation(&self, sfx: &mut Sfx, loader: &mut SpriteLoader) -> Simulation {
+    pub fn create_simulation(&self, sfx: &mut Sfx) -> Simulation {
         Simulation::generate(
             self.item_states
                 .iter()
@@ -84,12 +85,11 @@ impl GameState {
                 .chain(self.level.entities.iter().map(|x| (x.0, x.1))),
             self.level,
             sfx,
-            loader,
         )
     }
 
-    pub fn load_level_background(&self, map: &mut RegularMap, vram_manager: &mut VRamManager) {
-        crate::backgrounds::load_level_background(map, vram_manager, self.level_number);
+    pub fn load_level_background(&self, map: &mut RegularBackgroundTiles) {
+        crate::backgrounds::load_level_background(map, self.level_number);
     }
 
     pub fn force_place(&mut self) {
@@ -211,12 +211,7 @@ impl GameState {
         }
     }
 
-    pub fn render_arrows(
-        &self,
-        loader: &mut SpriteLoader,
-        oam: &mut OamIterator,
-        current_turn: Option<usize>,
-    ) {
+    pub fn render_arrows(&self, frame: &mut GraphicsFrame, current_turn: Option<usize>) {
         let is_odd_frame = if current_turn.is_some() {
             true
         } else {
@@ -224,7 +219,7 @@ impl GameState {
             frame_index % 2 == 1
         };
 
-        for ((i, direction), slot) in self.level.directions.iter().enumerate().zip(oam) {
+        for (i, direction) in self.level.directions.iter().enumerate() {
             let x = (i % 4) as i32;
             let y = (i / 4) as i32;
 
@@ -237,32 +232,23 @@ impl GameState {
 
             let sprite_idx = if Some(i) == current_turn { 1 } else { 0 };
 
-            let mut arrow_obj = ObjectUnmanaged::new(
-                loader.get_vram_sprite(arrow_for_direction(*direction).sprite(sprite_idx)),
-            );
-            arrow_obj.show().set_position(arrow_position);
-
-            slot.set(&arrow_obj);
+            Object::new(arrow_for_direction(*direction).sprite(sprite_idx))
+                .set_position(arrow_position)
+                .show(frame);
         }
     }
 
-    pub fn render(&self, loader: &mut SpriteLoader, mut oam: &mut OamIterator) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         let frame_index = self.frame / 32;
         let is_odd_frame = frame_index % 2 == 1;
 
-        let mut cursor_obj =
-            ObjectUnmanaged::new(loader.get_vram_sprite(resources::CURSOR.sprite(0)));
-        cursor_obj
-            .show()
-            .set_position(self.cursor_state.get_position(is_odd_frame));
-
-        if let Some(slot) = oam.next() {
-            slot.set(&cursor_obj);
-        }
+        Object::new(resources::CURSOR.sprite(0))
+            .set_position(self.cursor_state.get_position(is_odd_frame))
+            .show(frame);
 
         let level = self.level;
 
-        self.render_arrows(loader, oam, None);
+        self.render_arrows(frame, None);
 
         fn placed_position(position: usize, item: &Item) -> Vector2D<i32> {
             let position_x = (position % PLAY_AREA_WIDTH) as i32;
@@ -275,55 +261,40 @@ impl GameState {
         if let Some(held) = self.cursor_state.held_item {
             let item = &level.items[held];
             let item_position = placed_position(self.cursor_state.board_position, item);
-            let mut item_obj = ObjectUnmanaged::new(
-                loader.get_vram_sprite(item.tag().animation_sprite(frame_index)),
-            );
-            item_obj.show().set_position(item_position);
 
-            if let Some(slot) = oam.next() {
-                slot.set(&item_obj);
-            }
+            Object::new(item.tag().animation_sprite(frame_index))
+                .set_position(item_position)
+                .show(frame);
         }
 
-        for ((item_position, item), slot) in level
-            .items
-            .iter()
-            .enumerate()
-            .filter_map(|(i, item)| {
-                let item_position = match self.item_states[i] {
-                    ItemState::Placed(position) => placed_position(position, item),
-                    ItemState::NotPlaced => {
-                        if self.cursor_state.held_item == Some(i) {
-                            return None;
-                        } else {
-                            let x = (i % ITEM_AREA_WIDTH) as i32;
-                            let y = (i / ITEM_AREA_WIDTH) as i32;
+        for (item_position, item) in level.items.iter().enumerate().filter_map(|(i, item)| {
+            let item_position = match self.item_states[i] {
+                ItemState::Placed(position) => placed_position(position, item),
+                ItemState::NotPlaced => {
+                    if self.cursor_state.held_item == Some(i) {
+                        return None;
+                    } else {
+                        let x = (i % ITEM_AREA_WIDTH) as i32;
+                        let y = (i / ITEM_AREA_WIDTH) as i32;
 
-                            ITEM_AREA_TOP_LEFT + (x * 16, y * 16).into()
-                        }
+                        ITEM_AREA_TOP_LEFT + (x * 16, y * 16).into()
                     }
-                };
+                }
+            };
 
-                Some((item_position, item))
-            })
-            .zip(&mut oam)
-        {
-            let mut item_obj = ObjectUnmanaged::new(
-                loader.get_vram_sprite(item.tag().animation_sprite(frame_index)),
-            );
-            item_obj.show().set_position(item_position);
-
-            slot.set(&item_obj);
+            Some((item_position, item))
+        }) {
+            Object::new(item.tag().animation_sprite(frame_index))
+                .set_position(item_position)
+                .show(frame);
         }
 
-        for (entity, slot) in level.entities.iter().zip(&mut oam) {
+        for entity in level.entities.iter() {
             let entity_position = entity.1 * 16 + entity.0.map_entity_offset();
 
-            let mut entity_obj =
-                ObjectUnmanaged::new(loader.get_vram_sprite(entity.0.shadow_tag().sprite(0)));
-            entity_obj.show().set_position(entity_position);
-
-            slot.set(&entity_obj);
+            Object::new(entity.0.shadow_tag().sprite(0))
+                .set_position(entity_position)
+                .show(frame);
         }
     }
 }

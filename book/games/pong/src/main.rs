@@ -15,7 +15,10 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::object::{Graphics, OamManaged, Object, Tag},
+    display::{
+        object::{Graphics, Object, Tag},
+        GraphicsFrame,
+    },
     include_aseprite,
 };
 
@@ -28,21 +31,19 @@ static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
 static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
 static BALL: &Tag = GRAPHICS.tags().get("Ball");
 
-struct Paddle<'obj> {
-    start: Object<'obj>,
-    mid: Object<'obj>,
-    end: Object<'obj>,
+struct Paddle {
+    start: Object,
+    mid: Object,
+    end: Object,
 }
 
-impl<'obj> Paddle<'obj> {
-    fn new(object: &'obj OamManaged<'_>, start_x: i32, start_y: i32) -> Self {
-        let mut paddle_start = object.object_sprite(PADDLE_END.sprite(0));
-        let mut paddle_mid = object.object_sprite(PADDLE_MID.sprite(0));
-        let mut paddle_end = object.object_sprite(PADDLE_END.sprite(0));
+impl Paddle {
+    fn new(start_x: i32, start_y: i32) -> Self {
+        let paddle_start = Object::new(PADDLE_END.sprite(0));
+        let paddle_mid = Object::new(PADDLE_MID.sprite(0));
+        let mut paddle_end = Object::new(PADDLE_END.sprite(0));
 
-        paddle_start.show();
-        paddle_mid.show();
-        paddle_end.set_vflip(true).show();
+        paddle_end.set_vflip(true);
 
         let mut paddle = Self {
             start: paddle_start,
@@ -63,6 +64,12 @@ impl<'obj> Paddle<'obj> {
         self.mid.set_position((x, y + 16));
         self.end.set_position((x, y + 32));
     }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        self.start.show(frame);
+        self.mid.show(frame);
+        self.end.show(frame);
+    }
 }
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
@@ -71,20 +78,16 @@ impl<'obj> Paddle<'obj> {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     // Get the OAM manager
-    let object = gba.display.object.get_managed();
+    let mut gfx = gba.display.graphics.get();
 
     // Create an object with the ball sprite
-    let mut ball = object.object_sprite(BALL.sprite(0));
+    let mut ball = Object::new(BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
-    ball.set_x(50).set_y(50).show();
+    ball.set_position((50, 50));
 
-    // Now commit the object controller so this change is reflected on the screen,
-    // this should normally be done in vblank but it'll work just fine here for now
-    object.commit();
-
-    let mut _paddle_a = Paddle::new(&object, 8, 8);
-    let mut _paddle_b = Paddle::new(&object, 240 - 16 - 8, 8);
+    let paddle_a = Paddle::new(8, 8);
+    let paddle_b = Paddle::new(240 - 16 - 8, 8);
 
     let mut ball_x = 50;
     let mut ball_y = 50;
@@ -107,10 +110,17 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         // Set the position of the ball to match our new calculated position
-        ball.set_x(ball_x as u16).set_y(ball_y as u16);
+        ball.set_position((ball_x, ball_y));
+
+        let mut frame = gfx.frame();
+
+        ball.show(&mut frame);
+        paddle_a.show(&mut frame);
+        paddle_b.show(&mut frame);
 
         // Wait for vblank, then commit the objects to the screen
         agb::display::busy_wait_for_vblank();
-        object.commit();
+
+        frame.commit();
     }
 }

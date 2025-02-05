@@ -1,4 +1,4 @@
-use core::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
@@ -8,19 +8,18 @@ use crate::{
     dma,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
+    util::SyncUnsafeCell,
 };
 
-use super::TileSetting;
-
-const TILE_RAM_START: usize = 0x0600_0000;
+use super::{TileSetting, CHARBLOCK_SIZE, VRAM_START};
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
 static TILE_ALLOCATOR: BlockAllocator = unsafe {
     BlockAllocator::new(StartEnd {
-        start: || TILE_RAM_START + 8 * 8,
-        end: || TILE_RAM_START + 0x8000,
+        start: || VRAM_START + 8 * 8,
+        end: || VRAM_START + CHARBLOCK_SIZE * 2,
     })
 };
 
@@ -161,6 +160,11 @@ pub struct DynamicTile<'a> {
 
 impl DynamicTile<'_> {
     #[must_use]
+    pub fn new() -> Self {
+        VRAM_MANAGER.new_dynamic_tile()
+    }
+
+    #[must_use]
     pub fn fill_with(self, colour_index: u8) -> Self {
         let colour_index = u32::from(colour_index);
 
@@ -172,14 +176,12 @@ impl DynamicTile<'_> {
         self.tile_data.fill(value);
         self
     }
-}
 
-impl DynamicTile<'_> {
     #[must_use]
     pub fn tile_set(&self) -> TileSet<'_> {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
-                TILE_RAM_START as *mut u8,
+                VRAM_START as *mut u8,
                 1024 * TileFormat::FourBpp.tile_size(),
             )
         };
@@ -189,21 +191,133 @@ impl DynamicTile<'_> {
 
     #[must_use]
     pub fn tile_setting(&self) -> TileSetting {
-        let difference = self.tile_data.as_ptr() as usize - TILE_RAM_START;
+        let difference = self.tile_data.as_ptr() as usize - VRAM_START;
         let tile_id = (difference / TileFormat::FourBpp.tile_size()) as u16;
 
         TileSetting::new(tile_id, false, false, 0)
     }
 }
 
+impl Default for DynamicTile<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for DynamicTile<'_> {
+    fn drop(&mut self) {
+        VRAM_MANAGER.drop_dynamic_tile(self);
+    }
+}
+
 pub struct VRamManager {
+    inner: SyncUnsafeCell<MaybeUninit<VRamManagerInner>>,
+}
+
+// SAFETY: This is the _only_ one
+pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
+
+impl VRamManager {
+    const unsafe fn new() -> Self {
+        Self {
+            inner: SyncUnsafeCell::new(MaybeUninit::uninit()),
+        }
+    }
+
+    // Should only be called in the Gba struct's constructor to ensure it happens exactly once
+    pub(crate) unsafe fn initialise(&self) {
+        (*self.inner.get()).write(VRamManagerInner::new());
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&mut VRamManagerInner) -> T) -> T {
+        f(unsafe { (*self.inner.get()).assume_init_mut() })
+    }
+}
+
+impl VRamManager {
+    fn drop_dynamic_tile(&self, tile: &DynamicTile<'_>) {
+        self.with(|inner| inner.remove_dynamic_tile(tile));
+    }
+
+    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile<'static> {
+        self.with(VRamManagerInner::new_dynamic_tile)
+    }
+
+    pub(crate) fn remove_tile(&self, index: TileIndex) {
+        self.with(|inner| inner.remove_tile(index));
+    }
+
+    pub(crate) fn add_tile(&self, tile_set: &TileSet<'_>, tile_index: u16) -> TileIndex {
+        self.with(|inner| inner.add_tile(tile_set, tile_index))
+    }
+
+    pub(crate) fn gc(&self) {
+        self.with(VRamManagerInner::gc);
+    }
+
+    pub fn set_background_palette_raw(&self, palette: &[u16]) {
+        self.with(|inner| inner.set_background_palette_raw(palette));
+    }
+
+    pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
+        self.with(|inner| inner.set_background_palette(pal_index, palette));
+    }
+
+    pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
+        self.with(|inner| inner.set_background_palettes(palettes));
+    }
+
+    pub fn replace_tile(
+        &self,
+        source_tile_set: &TileSet<'_>,
+        source_tile: u16,
+        target_tile_set: &TileSet<'_>,
+        target_tile: u16,
+    ) {
+        self.with(|inner| {
+            inner.replace_tile(source_tile_set, source_tile, target_tile_set, target_tile);
+        });
+    }
+
+    #[must_use]
+    pub fn background_palette_colour_dma(
+        &self,
+        pal_index: usize,
+        colour_index: usize,
+    ) -> dma::DmaControllable<u16> {
+        self.with(|inner| inner.background_palette_colour_dma(pal_index, colour_index))
+    }
+
+    pub fn set_background_palette_colour(
+        &mut self,
+        pal_index: usize,
+        colour_index: usize,
+        colour: u16,
+    ) {
+        self.with(|inner| inner.set_background_palette_colour(pal_index, colour_index, colour));
+    }
+
+    /// Gets the index of the colour for a given background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+        self.with(|inner| inner.find_colour_index_16(palette_index, colour))
+    }
+
+    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+        self.with(|inner| inner.find_colour_index_256(colour))
+    }
+}
+
+struct VRamManagerInner {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
 
     indices_to_gc: Vec<TileIndex>,
 }
 
-impl VRamManager {
+impl VRamManagerInner {
     pub(crate) fn new() -> Self {
         let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
             HashMap::with_capacity(256);
@@ -216,17 +330,17 @@ impl VRamManager {
     }
 
     fn index_from_reference(reference: TileReference, format: TileFormat) -> TileIndex {
-        let difference = reference.0.as_ptr() as usize - TILE_RAM_START;
+        let difference = reference.0.as_ptr() as usize - VRAM_START;
         TileIndex::new(difference / format.tile_size(), format)
     }
 
     fn reference_from_index(index: TileIndex) -> TileReference {
-        let ptr = (index.raw_index() as usize * index.format().tile_size()) + TILE_RAM_START;
+        let ptr = (index.raw_index() as usize * index.format().tile_size()) + VRAM_START;
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }
 
     #[must_use]
-    pub fn new_dynamic_tile<'a>(&mut self) -> DynamicTile<'a> {
+    pub fn new_dynamic_tile(&mut self) -> DynamicTile<'static> {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -238,7 +352,7 @@ impl VRamManager {
         let key = index.refcount_key();
 
         let tiles = unsafe {
-            slice::from_raw_parts_mut(TILE_RAM_START as *mut u8, 1024 * tile_format.tile_size())
+            slice::from_raw_parts_mut(VRAM_START as *mut u8, 1024 * tile_format.tile_size())
         };
 
         let tile_set = TileSet::new(tiles, tile_format);
@@ -268,8 +382,8 @@ impl VRamManager {
 
     // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
     #[allow(clippy::needless_pass_by_value)]
-    pub fn remove_dynamic_tile(&mut self, dynamic_tile: DynamicTile<'_>) {
-        let pointer = NonNull::new(dynamic_tile.tile_data.as_mut_ptr() as *mut _).unwrap();
+    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile<'_>) {
+        let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
         // TODO: dynamic_tile.format?
@@ -437,11 +551,13 @@ impl VRamManager {
         assert!(pal_index < 16);
         assert!(colour_index < 16);
 
-        dma::DmaControllable::new(unsafe {
-            PALETTE_BACKGROUND
-                .as_ptr()
-                .add(16 * pal_index + colour_index)
-        })
+        unsafe {
+            dma::DmaControllable::new(
+                PALETTE_BACKGROUND
+                    .as_ptr()
+                    .add(16 * pal_index + colour_index),
+            )
+        }
     }
 
     /// Sets a single colour for a given background palette. Takes effect immediately

@@ -4,12 +4,14 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 extern crate alloc;
-use alloc::boxed::Box;
 
 use agb::{
     display::{
         tile_data::TileData,
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, TileFormat},
+        tiled::{
+            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
+            VRAM_MANAGER,
+        },
         Priority,
     },
     fixnum::{Num, Vector2D},
@@ -51,34 +53,15 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();
     let vblank = agb::interrupt::VBlank::get();
 
-    let (tile, mut vram) = gba.display.video.tiled0();
+    let mut gfx = gba.display.graphics.get();
 
-    vram.set_background_palettes(games::PALETTES);
+    VRAM_MANAGER.set_background_palettes(games::PALETTES);
 
-    let mut bg = InfiniteScrolledMap::new(
-        tile.background(
-            Priority::P0,
-            RegularBackgroundSize::Background32x32,
-            TileFormat::EightBpp,
-        ),
-        Box::new(|pos| {
-            let y = pos.y.rem_euclid(20);
-            let x = pos.x.rem_euclid(30);
-
-            let game = (pos.x).rem_euclid(GAMES.len() as i32 * 30) as usize / 30;
-            let tile_id = (y * 30 + x) as usize;
-            (
-                &GAMES[game].tiles.tiles,
-                GAMES[game].tiles.tile_settings[tile_id],
-            )
-        }),
-    );
-
-    bg.init(&mut vram, (0, 0).into(), &mut || {});
-
-    bg.set_pos(&mut vram, (0, 0).into());
-    bg.commit(&mut vram);
-    bg.set_visible(true);
+    let mut bg = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::EightBpp,
+    ));
 
     let mut position: Vector2D<Num<i32, 8>> = (0, 0).into();
     let mut game_idx = 0;
@@ -97,20 +80,30 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
         position.x += (Num::new(game_idx * 30 * 8) - position.x) / 8;
 
-        bg.set_pos(&mut vram, position.floor());
+        bg.set_pos(position.floor(), |pos| {
+            let y = pos.y.rem_euclid(20);
+            let x = pos.x.rem_euclid(30);
 
+            let game = (pos.x).rem_euclid(GAMES.len() as i32 * 30) as usize / 30;
+            let tile_id = (y * 30 + x) as usize;
+            (
+                &GAMES[game].tiles.tiles,
+                GAMES[game].tiles.tile_settings[tile_id],
+            )
+        });
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
         vblank.wait_for_vblank();
-        bg.commit(&mut vram);
+
+        bg.commit();
+        frame.commit();
         input.update();
 
         if input.is_just_pressed(Button::A) {
             break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize].game;
         }
     };
-
-    bg.set_visible(false);
-    bg.clear(&mut vram);
-    bg.commit(&mut vram);
 
     game
 }

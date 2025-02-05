@@ -1,5 +1,5 @@
 use agb::{
-    display::tiled::{RegularMap, VRamManager},
+    display::tiled::{RegularBackgroundTiles, VRAM_MANAGER},
     include_background_gfx,
 };
 
@@ -14,11 +14,11 @@ mod tilemaps {
     include!(concat!(env!("OUT_DIR"), "/tilemaps.rs"));
 }
 
-pub fn load_palettes(vram_manager: &mut VRamManager) {
-    vram_manager.set_background_palettes(backgrounds::PALETTES);
+pub fn load_palettes() {
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 }
 
-pub fn load_ui(map: &mut RegularMap, vram_manager: &mut VRamManager) {
+pub fn load_ui(map: &mut RegularBackgroundTiles) {
     let ui_tileset = &backgrounds::ui.tiles;
 
     for y in 0..20u16 {
@@ -26,16 +26,12 @@ pub fn load_ui(map: &mut RegularMap, vram_manager: &mut VRamManager) {
             let tile_pos = y * 30 + x;
             let tile_setting = tilemaps::UI_BACKGROUND_MAP[tile_pos as usize];
 
-            map.set_tile(vram_manager, (x, y), ui_tileset, tile_setting);
+            map.set_tile((x, y), ui_tileset, tile_setting);
         }
     }
 }
 
-pub fn load_level_background(
-    map: &mut RegularMap,
-    vram_manager: &mut VRamManager,
-    level_number: usize,
-) {
+pub fn load_level_background(map: &mut RegularBackgroundTiles, level_number: usize) {
     let level_map = &tilemaps::LEVELS_MAP[level_number];
 
     let level_tileset = &backgrounds::level.tiles;
@@ -45,11 +41,11 @@ pub fn load_level_background(
             let tile_pos = y * 22 + x;
             let tile_setting = level_map[tile_pos as usize];
 
-            map.set_tile(vram_manager, (x, y), level_tileset, tile_setting);
+            map.set_tile((x, y), level_tileset, tile_setting);
         }
     }
 }
 
-pub fn load_ending_page(map: &mut RegularMap, vram_manager: &mut VRamManager) {
-    map.fill_with(vram_manager, &backgrounds::ending);
+pub fn load_ending_page(map: &mut RegularBackgroundTiles) {
+    map.fill_with(&backgrounds::ending);
 }

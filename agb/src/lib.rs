@@ -67,7 +67,7 @@
 /// #
 /// use agb::{
 ///     display::{
-///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, Tiled0, TiledMap, VRamManager},
+///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackgroundTiles, VRAM_MANAGER},
 ///         Priority,
 ///     },
 ///     include_background_gfx,
@@ -75,25 +75,23 @@
 ///
 /// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
 ///
-/// # fn load_tileset(mut gfx: Tiled0, mut vram: VRamManager) {
+/// # fn load_tileset() {
 /// let tileset = &water_tiles::tiles.tiles;
 ///
-/// vram.set_background_palettes(water_tiles::PALETTES);
+/// VRAM_MANAGER.set_background_palettes(water_tiles::PALETTES);
 ///
-/// let mut bg = gfx.background(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
+/// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
 ///
 /// for y in 0..20u16 {
 ///     for x in 0..30u16 {
 ///         bg.set_tile(
-///             &mut vram,
 ///             (x, y),
 ///             tileset,
 ///             water_tiles::tiles.tile_settings[0],
 ///         );
 ///     }
 /// }
-/// bg.commit(&mut vram);
-/// bg.set_visible(true);
+/// bg.commit();
 /// # }
 /// ```
 ///
@@ -124,6 +122,9 @@ pub use agb_image_converter::include_font as include_font_inner;
 
 #[doc(hidden)]
 pub use agb_image_converter::include_colours_inner;
+
+#[doc(hidden)]
+pub use agb_image_converter::include_aseprite_256_inner;
 
 #[macro_export]
 macro_rules! include_font {
@@ -160,7 +161,6 @@ mod agb_alloc;
 mod agbabi;
 #[cfg(feature = "backtrace")]
 mod backtrace;
-mod bitarray;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
 /// Provides access to the GBA's direct memory access (DMA) which is used for advanced effects
@@ -178,6 +178,7 @@ pub use agb_fixnum as fixnum;
 pub use agb_hashmap as hash_map;
 #[cfg(feature = "backtrace")]
 mod panics_render;
+pub(crate) mod refcount;
 /// Simple random number generator
 pub mod rng;
 pub mod save;
@@ -194,10 +195,10 @@ pub(crate) mod util;
 
 mod no_game;
 
+use display::tiled::VRAM_MANAGER;
 /// Default game
 pub use no_game::no_game;
 
-pub(crate) mod arena;
 mod global_asm;
 
 pub mod external {
@@ -279,9 +280,6 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
 pub struct Gba {
     /// Manages access to the Game Boy Advance's display hardware
     pub display: display::Display,
-    /// Manages access to the Game Boy Advance's beeps and boops sound hardware as part of the
-    /// original Game Boy's sound chip (the DMG).
-    pub sound: sound::dmg::Sound,
     /// Manages access to the Game Boy Advance's direct sound mixer for playing raw wav files.
     pub mixer: sound::mixer::MixerController,
     /// Manages access to the Game Boy Advance cartridge's save chip.
@@ -300,13 +298,15 @@ impl Gba {
     /// May only be called a single time. It is not needed to call this due to
     /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
+        unsafe { display::object::SPRITE_LOADER.init() };
+        VRAM_MANAGER.initialise();
+
         Self::single_new()
     }
 
     const unsafe fn single_new() -> Self {
         Self {
             display: display::Display::new(),
-            sound: sound::dmg::Sound::new(),
             mixer: sound::mixer::MixerController::new(),
             save: save::SaveManager::new(),
             timers: timer::TimerController::new(),

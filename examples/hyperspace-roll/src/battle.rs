@@ -3,7 +3,9 @@ use crate::sfx::Sfx;
 use crate::{
     graphics::SELECT_BOX, level_generation::generate_attack, Agb, EnemyAttackType, Face, PlayerDice,
 };
-use agb::display::tiled::{RegularMap, TiledMap};
+use agb::display::object::Object;
+use agb::display::tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat};
+use agb::display::Priority;
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -484,19 +486,21 @@ pub(crate) fn battle_screen(
     agb: &mut Agb,
     player_dice: PlayerDice,
     current_level: u32,
-    help_background: &mut RegularMap,
 ) -> BattleResult {
     agb.sfx.battle();
     agb.sfx.frame();
 
+    let mut help_background = RegularBackgroundTiles::new(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
     help_background.set_scroll_pos((-16i16, -97i16));
-    crate::background::load_help_text(&mut agb.vram, help_background, 1, (0, 0));
-    crate::background::load_help_text(&mut agb.vram, help_background, 2, (0, 1));
+    crate::background::load_help_text(&mut help_background, 1, (0, 0));
+    crate::background::load_help_text(&mut help_background, 2, (0, 1));
 
-    let obj = &agb.obj;
-
-    let mut select_box_obj = agb.obj.object_sprite(SELECT_BOX.sprite(0));
-    select_box_obj.show();
+    let mut select_box_obj = Object::new(SELECT_BOX.sprite(0));
 
     let num_dice = player_dice.dice.len();
 
@@ -525,7 +529,7 @@ pub(crate) fn battle_screen(
         current_level,
     };
 
-    let mut battle_screen_display = BattleScreenDisplay::new(obj, &current_battle_state);
+    let mut battle_screen_display = BattleScreenDisplay::new(&current_battle_state);
     agb.sfx.frame();
 
     let mut selected_die = 0usize;
@@ -533,18 +537,20 @@ pub(crate) fn battle_screen(
     let mut counter = 0usize;
 
     loop {
+        let mut frame = agb.gfx.frame();
+
         counter = counter.wrapping_add(1);
 
-        for action_to_apply in battle_screen_display.update(obj, &current_battle_state) {
+        for action_to_apply in battle_screen_display.update(&current_battle_state, &mut frame) {
             if let Some(action_to_return) =
                 current_battle_state.apply_action(action_to_apply, &mut agb.sfx)
             {
-                battle_screen_display.add_action(action_to_return, obj, &mut agb.sfx);
+                battle_screen_display.add_action(action_to_return, &mut agb.sfx);
             }
         }
 
         for action in current_battle_state.update() {
-            battle_screen_display.add_action(action, obj, &mut agb.sfx);
+            battle_screen_display.add_action(action, &mut agb.sfx);
         }
 
         current_battle_state.update_dice();
@@ -578,39 +584,40 @@ pub(crate) fn battle_screen(
 
         if input.is_just_pressed(Button::START) {
             for action in current_battle_state.accept_rolls() {
-                battle_screen_display.add_action(action, obj, &mut agb.sfx);
+                battle_screen_display.add_action(action, &mut agb.sfx);
             }
             agb.sfx.roll_multi();
         }
 
         select_box_obj
-            .set_y(120 - 4)
-            .set_x(selected_die as u16 * 40 + 28 - 4)
-            .set_sprite(agb.obj.sprite(SELECT_BOX.animation_sprite(counter / 10)));
+            .set_position((120 - 4, selected_die as u16 * 40 + 28 - 4))
+            .set_sprite(SELECT_BOX.animation_sprite(counter / 10));
+
+        select_box_obj.show(&mut frame);
 
         agb.star_background.update();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
-        help_background.commit(&mut agb.vram);
-        help_background.set_visible(true);
+        help_background.commit();
+        help_background.show(&mut frame);
 
         if current_battle_state.enemy.health == 0 {
             agb.sfx.ship_explode();
-            help_background.set_visible(false);
-            crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
-            crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
+
+            help_background.clear();
             return BattleResult::Win;
         }
 
         if current_battle_state.player.health == 0 {
             agb.sfx.ship_explode();
-            help_background.set_visible(false);
-            crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 0));
-            crate::background::load_help_text(&mut agb.vram, help_background, 3, (0, 1));
+
+            help_background.clear();
             return BattleResult::Loss;
         }
 
-        agb.obj.commit();
-        agb.star_background.commit(&mut agb.vram);
+        agb.star_background.show(&mut frame);
+        agb.star_background.commit();
+
+        frame.commit();
     }
 }

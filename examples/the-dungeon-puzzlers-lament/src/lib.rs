@@ -6,9 +6,8 @@
 
 use agb::{
     display::{
-        object::{OamIterator, OamUnmanaged, SpriteLoader},
-        tiled::{RegularBackgroundSize, TileFormat, TiledMap, VRamManager},
-        Priority,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        Graphics, GraphicsFrame, Priority,
     },
     input::{Button, ButtonController},
     interrupt::VBlank,
@@ -33,38 +32,26 @@ mod save;
 struct Agb<'gba> {
     vblank: VBlank,
     input: ButtonController,
-    loader: SpriteLoader,
     sfx: Sfx<'gba>,
-    vram: VRamManager,
-    oam: OamUnmanaged<'gba>,
+    gfx: Graphics<'gba>,
 }
 
 impl<'gba> Agb<'gba> {
     fn frame<D, U, T, F>(&mut self, data: &mut D, update: U, render: F) -> T
     where
-        U: FnOnce(
-            &mut D,
-            &ButtonController,
-            &mut SpriteLoader,
-            &mut Sfx<'gba>,
-            &mut VRamManager,
-        ) -> T,
-        F: FnOnce(&D, &mut OamIterator, &mut SpriteLoader),
+        U: FnOnce(&mut D, &ButtonController, &mut Sfx<'gba>) -> T,
+        F: FnOnce(&D, &mut GraphicsFrame),
     {
-        self.vblank.wait_for_vblank();
-        self.input.update();
-        {
-            render(data, &mut self.oam.iter(), &mut self.loader);
-        }
-        self.sfx.frame();
+        let mut frame = self.gfx.frame();
+        render(data, &mut frame);
 
-        update(
-            data,
-            &self.input,
-            &mut self.loader,
-            &mut self.sfx,
-            &mut self.vram,
-        )
+        self.vblank.wait_for_vblank();
+        frame.commit();
+
+        self.sfx.frame();
+        self.input.update();
+
+        update(data, &self.input, &mut self.sfx)
     }
 }
 
@@ -73,34 +60,25 @@ pub fn entry(mut gba: agb::Gba) -> ! {
 
     let _ = save::init_save(&mut gba);
 
-    let (tiled, mut vram) = gba.display.video.tiled0();
-    let mut ui_bg = tiled.background(
+    let gfx = gba.display.graphics.get();
+    let mut ui_bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    let mut level_bg = tiled.background(
-        Priority::P1,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-
-    let mut ending_bg = tiled.background(
+    let mut ending_bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
-    backgrounds::load_ending_page(&mut ending_bg, &mut vram);
-    ending_bg.commit(&mut vram);
+    backgrounds::load_ending_page(&mut ending_bg);
+    ending_bg.commit();
 
-    backgrounds::load_palettes(&mut vram);
-    backgrounds::load_ui(&mut ui_bg, &mut vram);
+    backgrounds::load_palettes();
+    backgrounds::load_ui(&mut ui_bg);
 
-    ui_bg.commit(&mut vram);
-    ui_bg.set_visible(true);
-
-    let (unmanaged, sprite_loader) = gba.display.object.get_unmanaged();
+    ui_bg.commit();
 
     let mut input = agb::input::ButtonController::new();
     input.update();
@@ -115,10 +93,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     let mut g = Agb {
         vblank,
         input,
-        loader: sprite_loader,
         sfx,
-        vram,
-        oam: unmanaged,
+        gfx,
     };
 
     let saved_level = save::load_max_level() as usize;
@@ -128,20 +104,18 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     loop {
         if current_level >= level::Level::num_levels() {
             current_level = 0;
-            ui_bg.set_visible(false);
-            level_bg.set_visible(false);
-            ending_bg.set_visible(true);
+
             loop {
                 if g.frame(
                     &mut (),
-                    |_, input, _, _, _| input.is_just_pressed(Button::SELECT),
-                    |_, _, _| {},
+                    |_, input, _| input.is_just_pressed(Button::SELECT),
+                    |_, frame| {
+                        ending_bg.show(frame);
+                    },
                 ) {
                     break;
                 }
             }
-            ui_bg.set_visible(true);
-            ending_bg.set_visible(false);
         } else {
             if current_level > maximum_level {
                 maximum_level = current_level;
@@ -149,17 +123,20 @@ pub fn entry(mut gba: agb::Gba) -> ! {
             }
             let mut game = g.frame(
                 &mut (),
-                |_, _, loader, _, _| {
-                    Pausable::new(current_level, maximum_level, &mut level_bg, loader)
+                |_, _, _| Pausable::new(current_level, maximum_level),
+                |_, frame| {
+                    ui_bg.show(frame);
                 },
-                |_, _, _| {},
             );
 
             loop {
                 if let Some(option) = g.frame(
                     &mut game,
-                    |game, input, loader, sfx, vram| game.update(input, sfx, loader, vram),
-                    |game, oam, loader| game.render(loader, oam),
+                    |game, input, sfx| game.update(input, sfx),
+                    |game, frame| {
+                        ui_bg.show(frame);
+                        game.render(frame)
+                    },
                 ) {
                     match option {
                         game::UpdateResult::MenuSelection(PauseSelection::Restart) => break,

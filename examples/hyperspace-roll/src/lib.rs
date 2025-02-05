@@ -12,11 +12,8 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::display::object::OamManaged;
-use agb::display::tiled::{TileFormat, TiledMap, VRamManager};
-use agb::display::Priority;
-use agb::interrupt::VBlank;
-use agb::{display, sound::mixer::Frequency};
+use agb::sound::mixer::Frequency;
+use agb::{display::Graphics, interrupt::VBlank};
 
 extern crate alloc;
 use alloc::vec;
@@ -90,10 +87,9 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
-    obj: OamManaged<'a>,
+    gfx: Graphics<'a>,
     vblank: VBlank,
-    star_background: StarBackground<'a>,
-    vram: VRamManager,
+    star_background: StarBackground,
     sfx: Sfx<'a>,
 }
 
@@ -104,31 +100,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
         save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
-    let gfx = gba.display.object.get_managed();
+    let gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
-
-    let (tiled, mut vram) = gba.display.video.tiled0();
-    let mut background0 = tiled.background(
-        Priority::P0,
-        display::tiled::RegularBackgroundSize::Background64x32,
-        TileFormat::FourBpp,
-    );
-    let mut background1 = tiled.background(
-        Priority::P0,
-        display::tiled::RegularBackgroundSize::Background64x32,
-        TileFormat::FourBpp,
-    );
-    let mut card_descriptions = tiled.background(
-        Priority::P1,
-        display::tiled::RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-
-    let mut help_background = tiled.background(
-        Priority::P1,
-        display::tiled::RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
 
     let basic_die = Die {
         faces: [
@@ -141,8 +114,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
         ],
     };
 
-    let mut star_background = StarBackground::new(&mut background0, &mut background1, &mut vram);
-    star_background.commit(&mut vram);
+    let mut star_background = StarBackground::new();
+    star_background.commit();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();
@@ -150,10 +123,9 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let sfx = Sfx::new(&mut mixer);
 
     let mut agb = Agb {
-        obj: gfx,
+        gfx,
         vblank,
         star_background,
-        vram,
         sfx,
     };
 
@@ -167,11 +139,9 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.sfx.title_screen();
 
         {
-            show_title_screen(&mut help_background, &mut agb.vram, &mut agb.sfx);
+            let title_screen_bg = show_title_screen(&mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
-            score_display.set_value(Some(save::load_high_score()), &agb.obj);
-            agb.obj.commit();
-            agb.star_background.set_visible(false);
+            score_display.set_value(Some(save::load_high_score()));
 
             let mut input = agb::input::ButtonController::new();
             loop {
@@ -180,36 +150,28 @@ pub fn main(mut gba: agb::Gba) -> ! {
                 if input.is_just_pressed(agb::input::Button::all()) {
                     break;
                 }
+
+                let mut frame = agb.gfx.frame();
+                score_display.show(&mut frame);
+                title_screen_bg.show(&mut frame);
                 agb.vblank.wait_for_vblank();
+                frame.commit();
+
                 agb.sfx.frame();
             }
         }
 
-        agb.obj.commit();
-
-        help_background.set_visible(false);
-        help_background.clear(&mut agb.vram);
-        help_background.commit(&mut agb.vram);
         agb.sfx.frame();
 
-        background::load_palettes(&mut agb.vram);
-        agb.star_background.set_visible(true);
+        background::load_palettes();
 
         loop {
-            dice = customise::customise_screen(
-                &mut agb,
-                dice.clone(),
-                &mut card_descriptions,
-                &mut help_background,
-                current_level,
-            );
+            dice = customise::customise_screen(&mut agb, dice.clone(), current_level);
 
-            let result =
-                battle::battle_screen(&mut agb, dice.clone(), current_level, &mut help_background);
+            let result = battle::battle_screen(&mut agb, dice.clone(), current_level);
             match result {
                 BattleResult::Win => {}
                 BattleResult::Loss => {
-                    agb.obj.commit();
                     agb.sfx.customise();
                     if save::load_high_score() < current_level {
                         save::save_high_score(&mut gba.save, current_level)

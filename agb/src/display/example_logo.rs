@@ -1,47 +1,46 @@
-use super::tiled::{RegularMap, TiledMap, VRamManager};
+use super::tiled::{RegularBackgroundTiles, VRAM_MANAGER};
 
 crate::include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/test_logo.png");
 crate::include_background_gfx!(crate, agb_logo_basic, test_logo => deduplicate "gfx/test_logo_basic.png");
 
-pub fn display_logo(map: &mut RegularMap, vram: &mut VRamManager) {
-    vram.set_background_palettes(agb_logo::PALETTES);
+pub fn display_logo(map: &mut RegularBackgroundTiles) {
+    VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
-    map.fill_with(vram, &agb_logo::test_logo);
-
-    map.commit(vram);
-    map.set_visible(true);
+    map.fill_with(&agb_logo::test_logo);
 }
 
-pub fn display_logo_basic(map: &mut RegularMap, vram: &mut VRamManager) {
-    vram.set_background_palettes(agb_logo_basic::PALETTES);
+pub fn display_logo_basic(map: &mut RegularBackgroundTiles) {
+    VRAM_MANAGER.set_background_palettes(agb_logo_basic::PALETTES);
 
-    map.fill_with(vram, &agb_logo_basic::test_logo);
-
-    map.commit(vram);
-    map.set_visible(true);
+    map.fill_with(&agb_logo_basic::test_logo);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::display::{tiled::RegularBackgroundSize, Priority};
+    use crate::display::{
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles},
+        Priority,
+    };
 
     use super::*;
 
     #[test_case]
     fn logo_display(gba: &mut crate::Gba) {
-        let (gfx, mut vram) = gba.display.video.tiled0();
+        let mut gfx = gba.display.graphics.get();
 
-        let mut map = gfx.background(
+        let mut map = RegularBackgroundTiles::new(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
             agb_logo::test_logo.tiles.format(),
         );
 
-        display_logo(&mut map, &mut vram);
+        display_logo(&mut map);
+        map.commit();
+
+        let mut frame = gfx.frame();
+        map.show(&mut frame);
+        frame.commit();
 
         crate::test_runner::assert_image_output("gfx/test_logo.png");
-
-        map.clear(&mut vram);
-        vram.gc();
     }
 }

@@ -1,86 +1,13 @@
-use alloc::boxed::Box;
+use agb_fixnum::{vec2, Rect, Vector2D};
 
-use super::{
-    BackgroundID, BackgroundSizePrivate, MapLoan, RegularMap, TileSet, TileSetting, TiledMap,
-    VRamManager,
-};
+use crate::display::{GraphicsFrame, HEIGHT, WIDTH};
 
-use crate::{
-    display::{self, Priority},
-    fixnum::{Rect, Vector2D},
-};
+use super::{BackgroundId, RegularBackgroundTiles, TileSet, TileSetting};
 
-/// The infinite scrolled map allows you to create a game space larger than a single GBA background.
-/// The abstraction allows only for static tiles, but it is possible to animate the tiles if needed.
-///
-/// When you create a new infinite scrolled map, you need to provide a background which it will render itself
-/// onto and a function which takes a `Vector2D<i32>` position and returns which tile should be rendered there.
-///
-/// The passed function should handle being out of bounds, as the scrolled map does buffer around the edges slightly.
-///
-/// Note that nothing is copied to video memory until you call [`.commit()`](`InfiniteScrolledMap::commit`), and you
-/// must call [`.clear()`](`InfiniteScrolledMap::clear`) before dropping the infinite scrolled map or you will leak video RAM.
-///
-/// # Example
-///
-/// ```rust,no_run
-/// # #![no_std]
-/// # #![no_main]
-/// extern crate alloc;
-///
-/// use alloc::boxed::Box;
-///
-/// use agb::display::tiled::{
-///     InfiniteScrolledMap,
-///     TileSetting,
-///     RegularBackgroundSize,
-///     TileSet,
-///     TileFormat,
-/// };
-/// use agb::display::Priority;
-///
-/// mod tilemap {
-///    pub static BACKGROUND_MAP: &[usize] = &[ // Probably load this from a file
-/// # 0, 1, 2];
-///    pub const WIDTH: i32 = // set it to some width
-/// # 12;
-/// }
-///
-/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
-///
-/// # fn foo(mut gba: agb::Gba) {
-/// let (gfx, mut vram) = gba.display.video.tiled0();
-///
-/// let tile_data = &water_tiles::tiles;
-///
-/// let mut backdrop = InfiniteScrolledMap::new(
-///     gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
-///     Box::new(|pos| {
-///         (
-///             &tile_data.tiles,
-///             tile_data.tile_settings[*tilemap::BACKGROUND_MAP
-///                     .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-///                     .unwrap_or(&0)]
-///         )
-///     }),
-/// );
-///
-/// // ...
-///
-/// backdrop.set_pos(&mut vram, (3, 5).into());
-/// backdrop.commit(&mut vram);
-/// backdrop.set_visible(true);
-/// # }
-/// ```
-pub struct InfiniteScrolledMap<'a> {
-    map: MapLoan<'a, RegularMap>,
-    tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
-
-    current_pos: Vector2D<i32>,
-    offset: Vector2D<i32>,
-
-    copied_up_to: i32,
-}
+/// In tiles
+const ONE_MORE_THAN_SCREEN_HEIGHT: i32 = HEIGHT / 8 + 1;
+/// In tiles
+const ONE_MORE_THAN_SCREEN_WIDTH: i32 = WIDTH / 8 + 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PartialUpdateStatus {
@@ -88,377 +15,222 @@ pub enum PartialUpdateStatus {
     Continue,
 }
 
-impl<'a> InfiniteScrolledMap<'a> {
-    /// Creates a new infinite scrolled map wrapping the provided background using the given function to
-    /// position tiles.
-    ///
-    /// This will not actually render anything until either [`.init()`](`InfiniteScrolledMap::init`) or
-    /// [`.init_partial()`](`InfiniteScrolledMap::init_partial`) is called to set up VRam and this is then
-    /// [`committed`](`InfiniteScrolledMap::commit`).
+#[derive(Clone, Copy)]
+enum Position {
+    Current(Vector2D<i32>),
+    Working {
+        position: Vector2D<i32>,
+        work_done: u32,
+    },
+    None,
+}
+
+impl Position {
+    fn get(self) -> Option<Vector2D<i32>> {
+        match self {
+            Position::Current(pos) => Some(pos),
+            Position::Working { position: pos, .. } => Some(pos * 8),
+            Position::None => None,
+        }
+    }
+}
+
+pub struct InfiniteScrolledMap {
+    map: RegularBackgroundTiles,
+
+    current_pos: Position,
+}
+
+impl InfiniteScrolledMap {
     #[must_use]
-    pub fn new(
-        map: MapLoan<'a, RegularMap>,
-        tile: Box<dyn Fn(Vector2D<i32>) -> (&'a TileSet<'a>, TileSetting) + 'a>,
-    ) -> Self {
+    pub fn new(map: RegularBackgroundTiles) -> Self {
         Self {
             map,
-            tile,
-            current_pos: (0, 0).into(),
-            offset: (0, 0).into(),
-            copied_up_to: 0,
+
+            current_pos: Position::None,
         }
     }
 
-    /// Initialises the map and fills it, calling the between_updates occasionally to allow you to ensure that
-    /// music keeps playing without interruption.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # extern crate alloc;
-    /// #
-    /// # use alloc::boxed::Box;
-    /// #
-    /// # use agb::display::tiled::{
-    /// #    InfiniteScrolledMap,
-    /// #    TileSetting,
-    /// #    RegularBackgroundSize,
-    /// #    TileSet,
-    /// #    TileFormat,
-    /// # };
-    /// # use agb::display::Priority;
-    /// #
-    /// # mod tilemap {
-    /// #   pub static BACKGROUND_MAP: &[usize] = &[0, 1, 2];
-    /// #   pub const WIDTH: i32 = 12;
-    /// #   pub static MAP_TILES: &[u8] = &[0];
-    /// # }
-    /// #
-    /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
-    /// #
-    /// # fn foo(mut gba: agb::Gba) {
-    /// # let (gfx, mut vram) = gba.display.video.tiled0();
-    /// #
-    /// # let tile_data = &water_tiles::tiles;
-    /// #
-    /// # let mut backdrop = InfiniteScrolledMap::new(
-    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
-    /// #    Box::new(|pos| {
-    /// #        (
-    /// #            &tile_data.tiles,
-    /// #            tile_data.tile_settings[
-    /// #                *tilemap::BACKGROUND_MAP
-    /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-    /// #                     .unwrap_or(&0)]
-    /// #        )
-    /// #    }),
-    /// # );
-    /// #
-    /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// let start_position = agb::fixnum::Vector2D::new(10, 10);
-    /// backdrop.init(&mut vram, start_position, &mut || {
-    ///     vblank.wait_for_vblank();
-    ///     mixer.frame();
-    /// });
-    /// # }
-    /// ```
-    pub fn init(
+    fn do_initial_case(
         &mut self,
-        vram: &mut VRamManager,
-        pos: Vector2D<i32>,
-        between_updates: &mut impl FnMut(),
-    ) {
-        while self.init_partial(vram, pos) != PartialUpdateStatus::Done {
-            between_updates();
-        }
-    }
-
-    /// Does a partial initialisation of the background, rendering 2 rows.
-    /// This is because initialisation can take quite a while, so you will need to call
-    /// this method a few times to ensure that you update the entire frame.
-    ///
-    /// Returns [`PartialUpdateStatus::Done`] if complete, and [`PartialUpdateStatus::Continue`]
-    /// if you need to call this a few more times to fully update the screen.
-    ///
-    /// It is recommended you use [`.init()`](`InfiniteScrolledMap::init`) instead of this method
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # extern crate alloc;
-    /// #
-    /// # use alloc::boxed::Box;
-    /// #
-    /// # use agb::display::tiled::{
-    /// #    InfiniteScrolledMap,
-    /// #    TileSetting,
-    /// #    RegularBackgroundSize,
-    /// #    TileSet,
-    /// #    TileFormat,
-    /// #    PartialUpdateStatus,
-    /// # };
-    /// # use agb::display::Priority;
-    /// #
-    /// # mod tilemap {
-    /// #   pub static BACKGROUND_MAP: &[usize] = &[0, 1, 2];
-    /// #   pub const WIDTH: i32 = 12;
-    /// #   pub static MAP_TILES: &[u8] = &[0];
-    /// # }
-    /// #
-    /// # agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
-    /// #
-    /// # fn foo(mut gba: agb::Gba) {
-    /// # let (gfx, mut vram) = gba.display.video.tiled0();
-    /// #
-    /// # let tile_data = &water_tiles::tiles;
-    /// #
-    /// # let mut backdrop = InfiniteScrolledMap::new(
-    /// #    gfx.background(Priority::P2, RegularBackgroundSize::Background32x32, TileFormat::FourBpp),
-    /// #    Box::new(|pos| {
-    /// #        (
-    /// #            &tile_data.tiles,
-    /// #            tile_data.tile_settings[
-    /// #                *tilemap::BACKGROUND_MAP
-    /// #                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-    /// #                     .unwrap_or(&0)]
-    /// #        )
-    /// #    }),
-    /// # );
-    /// #
-    /// # let vblank = agb::interrupt::VBlank::get();
-    /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// let start_position = agb::fixnum::Vector2D::new(10, 10);
-    /// while backdrop.init_partial(&mut vram, start_position) == PartialUpdateStatus::Continue {
-    ///     vblank.wait_for_vblank();
-    ///     mixer.frame();
-    /// }
-    /// # }
-    /// ```
-    pub fn init_partial(
-        &mut self,
-        vram: &mut VRamManager,
-        pos: Vector2D<i32>,
+        new_pos: Vector2D<i32>,
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
     ) -> PartialUpdateStatus {
-        self.current_pos = pos;
+        let working = new_pos.div_floor_stable(8);
 
-        let x_start = div_floor(self.current_pos.x, 8);
-        let y_start = div_floor(self.current_pos.y, 8);
+        let current_work_done = match self.current_pos {
+            Position::Current(_) => unreachable!("Should never call do_initial_case with current"),
+            Position::Working {
+                position: original_working,
+                work_done,
+            } => {
+                if original_working != working {
+                    0
+                } else {
+                    work_done
+                }
+            }
+            Position::None => 0,
+        };
 
-        let x_end = div_ceil(self.current_pos.x + display::WIDTH, 8) + 1;
-        let y_end = div_ceil(self.current_pos.y + display::HEIGHT, 8) + 1;
+        const ROWS_TO_COPY_IN_ONE_CALL: u32 = 2;
 
-        let offset = self.current_pos - (x_start * 8, y_start * 8).into();
-
-        self.map.set_scroll_pos((offset.x as i16, offset.y as i16));
-        self.offset = (x_start, y_start).into();
-
-        let copy_from = self.copied_up_to;
-        const ROWS_TO_COPY: i32 = 2;
-
-        for (y_idx, y) in
-            ((y_start + copy_from)..(y_end.min(y_start + copy_from + ROWS_TO_COPY))).enumerate()
-        {
-            for (x_idx, x) in (x_start..x_end).enumerate() {
-                let pos = (x, y).into();
-                let (tileset, tile_setting) = (self.tile)(pos);
-
-                self.map.set_tile(
-                    vram,
-                    (x_idx as u16, (y_idx + copy_from as usize) as u16),
-                    tileset,
-                    tile_setting,
-                );
+        for y in current_work_done..(current_work_done + ROWS_TO_COPY_IN_ONE_CALL) {
+            for x in 0..(WIDTH / 8 + 1) {
+                let pos = working + vec2(x, y as i32);
+                let (tileset, tile_setting) = tile(pos);
+                self.map.set_tile(pos, tileset, tile_setting);
             }
         }
 
-        if copy_from + ROWS_TO_COPY >= y_end - y_start {
-            self.copied_up_to = 0;
-            PartialUpdateStatus::Done
-        } else {
-            self.copied_up_to = copy_from + ROWS_TO_COPY;
+        if current_work_done + ROWS_TO_COPY_IN_ONE_CALL < ONE_MORE_THAN_SCREEN_HEIGHT as u32 {
+            self.current_pos = Position::Working {
+                position: working,
+                work_done: current_work_done + ROWS_TO_COPY_IN_ONE_CALL,
+            };
+
             PartialUpdateStatus::Continue
+        } else {
+            self.current_pos = Position::Current(new_pos);
+            PartialUpdateStatus::Done
         }
     }
 
-    /// Set the top left corner of the map. You may need to call this method multiple times if
-    /// [`PartialUpdateStatus::Continue`] is returned.
-    pub fn set_pos(
+    fn update_rectangle(
         &mut self,
-        vram: &mut VRamManager,
+        rectangle: Rect<i32>,
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+    ) {
+        for pos in rectangle.iter() {
+            let (tileset, tile_setting) = tile(pos);
+
+            self.map.set_tile(pos, tileset, tile_setting);
+        }
+    }
+
+    fn incremental_update(
+        &mut self,
+        old_pos: Vector2D<i32>,
         new_pos: Vector2D<i32>,
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
     ) -> PartialUpdateStatus {
-        let old_pos = self.current_pos;
+        let old_working = old_pos.div_floor_stable(8);
+        let new_working = new_pos.div_floor_stable(8);
 
-        let difference = new_pos - old_pos;
-
-        if difference.x.abs() > 10 * 8 || difference.y.abs() > 10 * 8 {
-            return self.init_partial(vram, new_pos);
+        if old_working == new_working {
+            return PartialUpdateStatus::Done;
         }
 
-        self.current_pos = new_pos;
-
-        let old_tile_x = div_floor(old_pos.x, 8);
-        let old_tile_y = div_floor(old_pos.y, 8);
-
-        let new_tile_x = div_floor(new_pos.x, 8);
-        let new_tile_y = div_floor(new_pos.y, 8);
-
-        let difference_tile_x = new_tile_x - old_tile_x;
-        let difference_tile_y = new_tile_y - old_tile_y;
-
-        let size = self.map.size();
-
-        let vertical_rect_to_update: Rect<i32> = if difference_tile_x != 0 {
-            // need to update the x line
-            // calculate which direction we need to update
-            let direction = difference.x.signum();
-
-            // either need to update 20 or 21 tiles depending on whether the y coordinate is a perfect multiple
-            let y_tiles_to_update = 22;
-
-            let line_to_update = if direction < 0 {
-                // moving to the left, so need to update the left most position
-                new_tile_x
-            } else {
-                // moving to the right, so need to update the right most position
-                new_tile_x + 31 // TODO is this correct?
-            };
-
-            Rect::new(
-                (line_to_update, new_tile_y - 1).into(),
-                (-difference_tile_x, y_tiles_to_update).into(),
-            )
-            .abs()
-        } else {
-            Rect::new((0i32, 0).into(), (0i32, 0).into())
-        };
-
-        let horizontal_rect_to_update: Rect<i32> = if difference_tile_y != 0 {
-            // need to update the y line
-            // calculate which direction we need to update
-            let direction = difference.y.signum();
-
-            // either need to update 30 or 31 tiles depending on whether the x coordinate is a perfect multiple
-            let x_tiles_to_update: i32 = 32;
-
-            let line_to_update = if direction < 0 {
-                // moving up so need to update the top
-                new_tile_y
-            } else {
-                // moving down so need to update the bottom
-                new_tile_y + 21 // TODO is this correct?
-            };
-
-            Rect::new(
-                (new_tile_x - 1, line_to_update).into(),
-                (x_tiles_to_update, -difference_tile_y).into(),
-            )
-            .abs()
-        } else {
-            Rect::new((0i32, 0).into(), (0i32, 0).into())
-        };
-
-        for (tile_x, tile_y) in vertical_rect_to_update
-            .iter()
-            .chain(horizontal_rect_to_update.iter())
-        {
-            let (tileset, tile_setting) = (self.tile)((tile_x, tile_y).into());
-
-            self.map.set_tile(
-                vram,
-                (
-                    size.tile_pos_x(tile_x - self.offset.x),
-                    size.tile_pos_y(tile_y - self.offset.y),
+        if old_working.x > new_working.x {
+            self.update_rectangle(
+                Rect::new(
+                    new_working,
+                    vec2(old_working.x - new_working.x, ONE_MORE_THAN_SCREEN_HEIGHT),
                 ),
-                tileset,
-                tile_setting,
+                &tile,
             );
         }
 
-        let current_scroll = self.map.scroll_pos();
-        let new_scroll = current_scroll + (difference.x as i16, difference.y as i16).into();
+        if old_working.x < new_working.x {
+            self.update_rectangle(
+                Rect::new(
+                    old_working + vec2(ONE_MORE_THAN_SCREEN_WIDTH, 0),
+                    vec2(new_working.x - old_working.x, ONE_MORE_THAN_SCREEN_HEIGHT),
+                ),
+                &tile,
+            );
+        }
 
-        self.map.set_scroll_pos(new_scroll);
+        if old_working.y > new_working.y {
+            self.update_rectangle(
+                Rect::new(
+                    new_working,
+                    vec2(ONE_MORE_THAN_SCREEN_WIDTH, old_working.y - new_working.y),
+                ),
+                &tile,
+            );
+        }
+
+        if old_working.y < new_working.y {
+            self.update_rectangle(
+                Rect::new(
+                    old_working + vec2(0, ONE_MORE_THAN_SCREEN_HEIGHT),
+                    vec2(ONE_MORE_THAN_SCREEN_WIDTH, new_working.y - old_working.y),
+                ),
+                &tile,
+            );
+        }
+
+        self.current_pos = Position::Current(new_pos);
 
         PartialUpdateStatus::Done
     }
 
-    /// Sets wether the map is visible  
-    /// Use [is_visible](Self::is_visible) to get the value
-    pub fn set_visible(&mut self, visible: bool) {
-        self.map.set_visible(visible);
+    pub fn set_pos(
+        &mut self,
+        new_pos: Vector2D<i32>,
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+    ) -> PartialUpdateStatus {
+        self.map.set_scroll_pos(new_pos);
+
+        // if the current pos is so far away from the new pos, we may as well start again
+        if let Some(current_pos) = self.current_pos.get() {
+            let distance = (current_pos - new_pos).abs();
+            if distance.x >= WIDTH || distance.y >= HEIGHT {
+                self.current_pos = Position::None;
+            }
+        }
+
+        match self.current_pos {
+            Position::Current(old_pos) => self.incremental_update(old_pos, new_pos, tile),
+            Position::Working { .. } | Position::None => self.do_initial_case(new_pos, tile),
+        }
     }
 
-    /// Checks whether the map is not marked as hidden  
-    /// Use [set_visible](Self::set_visible) to set the value
-    #[must_use]
-    pub fn is_visible(&self) -> bool {
-        self.map.is_visible()
+    pub fn commit(&mut self) {
+        self.map.commit();
     }
 
-    /// Sets the map priority  
-    /// This require to call [commit](Self::commit) in order to apply the value  
-    /// Use [priority](Self::priority) to get the value
-    pub fn set_priority(&mut self, priority: Priority) {
-        self.map.set_priority(priority);
-    }
-
-    /// Returns the latest map priority set  
-    /// This will only be the currently applied priority if you called [commit](Self::commit) before calling this function  
-    /// Use [set_priority](Self::set_priority) to set the value
-    #[must_use]
-    pub fn priority(&self) -> Priority {
-        self.map.priority()
-    }
-
-    /// Copies data to vram. Needs to be called during vblank if possible
-    pub fn commit(&mut self, vram: &mut VRamManager) {
-        self.map.commit(vram);
-    }
-
-    /// Clears the underlying map. You must call this before the scrolled map goes out of scope
-    /// or you will leak VRam.
-    pub fn clear(&mut self, vram: &mut VRamManager) {
-        self.map.clear(vram);
-    }
-
-    #[must_use]
-    pub const fn background(&self) -> BackgroundID {
-        self.map.background()
-    }
-
-    /// Returns the underlying map back. The map will not be cleared.
-    #[must_use]
-    pub fn into_inner(self) -> MapLoan<'a, RegularMap> {
-        self.map
+    pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
+        self.map.show(frame)
     }
 }
 
-fn div_floor(x: i32, y: i32) -> i32 {
-    if x > 0 && y < 0 {
-        (x - 1) / y - 1
-    } else if x < 0 && y > 0 {
-        (x + 1) / y - 1
-    } else {
-        x / y
+// Can remove once div_floor and div_ceil are stable
+trait IntDivRoundingExt<Denominator> {
+    fn div_floor_stable(self, other: Denominator) -> Self;
+}
+
+impl IntDivRoundingExt<i32> for i32 {
+    fn div_floor_stable(self, other: Self) -> Self {
+        if self > 0 && other < 0 {
+            (self - 1) / other - 1
+        } else if self < 0 && other > 0 {
+            (self + 1) / other - 1
+        } else {
+            self / other
+        }
     }
 }
 
-fn div_ceil(x: i32, y: i32) -> i32 {
-    if x > 0 && y > 0 {
-        (x - 1) / y + 1
-    } else if x < 0 && y < 0 {
-        (x + 1) / y + 1
-    } else {
-        x / y
+impl IntDivRoundingExt<i32> for Vector2D<i32> {
+    fn div_floor_stable(self, other: i32) -> Self {
+        vec2(
+            self.x.div_floor_stable(other),
+            self.y.div_floor_stable(other),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_case]
+    fn div_floor_stable(_: &mut crate::Gba) {
+        assert_eq!(12.div_floor_stable(5), 2);
+        assert_eq!((-12).div_floor_stable(5), -3);
+        assert_eq!(12.div_floor_stable(-5), -3);
+        assert_eq!((-12).div_floor_stable(-5), 2);
     }
 }

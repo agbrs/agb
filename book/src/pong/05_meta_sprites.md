@@ -21,16 +21,16 @@ Let's just write that and we'll get to neatening it up later.
 
 ```rust
 // outside the game loop
-let mut paddle_start = object.object_sprite(PADDLE_END.sprite(0));
-let mut paddle_mid = object.object_sprite(PADDLE_MID.sprite(0));
-let mut paddle_end = object.object_sprite(PADDLE_END.sprite(0));
+let mut paddle_start = Object::new(PADDLE_END.sprite(0));
+let mut paddle_mid = Object::new(PADDLE_MID.sprite(0));
+let mut paddle_end = Object::new(PADDLE_END.sprite(0));
 
-paddle_start.set_x(20).set_y(20).show();
-paddle_mid.set_x(20).set_y(20 + 16).show();
-paddle_end.set_x(20).set_y(20 + 16 * 2).show();
+paddle_start.set_position((20, 20));
+paddle_mid.set_position((20, 20 + 16));
+paddle_end.set_position((20, 20 + 16 * 2));
 ```
 
-If you add this to your program, you'll see the paddle. But wait! The bottom of
+If you add this to your program and show it, you'll see the paddle. But wait! The bottom of
 the paddle is the wrong way around! Fortunately, the GBA can horizontally and vertically flip sprites.
 
 ```rust
@@ -42,25 +42,23 @@ Now the paddle will display correctly. It's rather awkward to use, however, havi
 ```rust
 // change our imports to include what we will use
 use agb::{
-    display::object::{Graphics, Object, OamManaged, Tag},
+    display::object::{Graphics, Object, Tag, OamFrame},
     include_aseprite,
 };
 
-struct Paddle<'obj> {
-    start: Object<'obj>,
-    mid: Object<'obj>,
-    end: Object<'obj>,
+struct Paddle {
+    start: Object,
+    mid: Object,
+    end: Object,
 }
 
-impl<'obj> Paddle<'obj> {
-    fn new(object: &'obj OamManaged<'_>, start_x: i32, start_y: i32) -> Self {
-        let mut paddle_start = object.object_sprite(PADDLE_END.sprite(0));
-        let mut paddle_mid = object.object_sprite(PADDLE_MID.sprite(0));
-        let mut paddle_end = object.object_sprite(PADDLE_END.sprite(0));
+impl Paddle {
+    fn new(start_x: i32, start_y: i32) -> Self {
+        let paddle_start = Object::new(PADDLE_END.sprite(0));
+        let paddle_mid = Object::new(PADDLE_MID.sprite(0));
+        let mut paddle_end = Object::new(PADDLE_END.sprite(0));
 
-        paddle_start.show();
-        paddle_mid.show();
-        paddle_end.set_vflip(true).show();
+        paddle_end.set_vflip(true);
 
         let mut paddle = Self {
             start: paddle_start,
@@ -81,16 +79,24 @@ impl<'obj> Paddle<'obj> {
         self.mid.set_position((x, y + 16));
         self.end.set_position((x, y + 32));
     }
+
+    fn show(&self, frame: &mut OamFrame) {
+        self.start.show(frame);
+        self.mid.show(frame);
+        self.end.show(frame);
+    }
 }
 ```
 
-Here we've made a struct to hold our paddle objects and added a convenient `new` and `set_position` function and methods to help us use it. Now we can easily create two paddles (one on each side of the screen).
+Here we've made a struct to hold our paddle objects and added a convenient
+`new`, `set_position`, and `show` function and methods to help us use it. Now we
+can easily create two paddles (one on each side of the screen).
 
 
 ```rust
 // outside the loop
-let mut paddle_a = Paddle::new(&object, 8, 8); // the left paddle
-let mut paddle_b = Paddle::new(&object, 240 - 16 - 8, 8); // the right paddle
+let mut paddle_a = Paddle::new(8, 8); // the left paddle
+let mut paddle_b = Paddle::new(240 - 16 - 8, 8); // the right paddle
 ```
 
 # What we did

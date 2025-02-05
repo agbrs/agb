@@ -1,5 +1,6 @@
 use core::cell::UnsafeCell;
 
+#[derive(Default)]
 pub struct SyncUnsafeCell<T>(UnsafeCell<T>);
 
 unsafe impl<T> Sync for SyncUnsafeCell<T> {}

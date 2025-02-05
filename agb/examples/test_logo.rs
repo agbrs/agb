@@ -1,22 +1,32 @@
 #![no_std]
 #![no_main]
 
-use agb::display::{
-    example_logo,
-    tiled::{RegularBackgroundSize, TileFormat},
+use agb::{
+    display::{
+        example_logo,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+    },
+    syscall,
 };
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let (gfx, mut vram) = gba.display.video.tiled0();
+    let mut gfx = gba.display.graphics.get();
 
-    let mut map = gfx.background(
+    let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    example_logo::display_logo(&mut map, &mut vram);
+    example_logo::display_logo(&mut map);
+    map.commit();
 
-    loop {}
+    let mut frame = gfx.frame();
+    map.show(&mut frame);
+    frame.commit();
+
+    loop {
+        syscall::halt();
+    }
 }

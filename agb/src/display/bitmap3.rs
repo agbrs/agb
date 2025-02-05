@@ -1,8 +1,7 @@
 use crate::memory_mapped::MemoryMapped2DArray;
 
-use super::{
-    set_graphics_mode, set_graphics_settings, DisplayMode, GraphicsSettings, HEIGHT, WIDTH,
-};
+use super::{tiled::DisplayControlRegister, DISPLAY_CONTROL, HEIGHT, WIDTH};
+use bilge::prelude::*;
 
 use core::marker::PhantomData;
 
@@ -10,14 +9,18 @@ const BITMAP_MODE_3: MemoryMapped2DArray<u16, { WIDTH as usize }, { HEIGHT as us
     unsafe { MemoryMapped2DArray::new(0x600_0000) };
 
 #[non_exhaustive]
-pub struct Bitmap3<'gba> {
+pub(crate) struct Bitmap3<'gba> {
     phantom: PhantomData<&'gba ()>,
 }
 
 impl Bitmap3<'_> {
     pub(crate) unsafe fn new() -> Self {
-        set_graphics_mode(DisplayMode::Bitmap3);
-        set_graphics_settings(GraphicsSettings::LAYER_BG2);
+        let mut current_graphics = DisplayControlRegister::default();
+        current_graphics.set_video_mode(u3::new(3));
+        current_graphics.set_enabled_backgrounds(u4::new(1u8 << 2));
+
+        DISPLAY_CONTROL.set(current_graphics);
+
         Bitmap3 {
             phantom: PhantomData,
         }
@@ -29,13 +32,6 @@ impl Bitmap3<'_> {
         let x = x.try_into().unwrap();
         let y = y.try_into().unwrap();
         BITMAP_MODE_3.set(x, y, colour);
-    }
-
-    #[must_use]
-    pub fn read_point(&self, x: i32, y: i32) -> u16 {
-        let x = x.try_into().unwrap();
-        let y = y.try_into().unwrap();
-        BITMAP_MODE_3.get(x, y)
     }
 
     pub fn clear(&mut self, colour: u16) {

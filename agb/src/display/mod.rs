@@ -1,20 +1,17 @@
 use crate::memory_mapped::MemoryMapped;
 
 use bilge::prelude::*;
-use bitflags::bitflags;
 
-use video::Video;
+use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
 use self::{
     blend::Blend,
-    object::{initilise_oam, OamManaged, OamUnmanaged, SpriteLoader},
+    object::{initilise_oam, Oam, OamFrame},
     window::Windows,
 };
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
-pub mod bitmap3;
-/// Graphics mode 4. Bitmap 4 provides two 8-bit paletted framebuffers with page switching.
-pub mod bitmap4;
+pub(crate) mod bitmap3;
 /// Test logo of agb.
 pub mod example_logo;
 pub mod object;
@@ -24,8 +21,6 @@ pub mod palette16;
 pub mod tile_data;
 /// Graphics mode 0. Four regular backgrounds.
 pub mod tiled;
-/// Giving out graphics mode.
-pub mod video;
 
 pub mod affine;
 pub mod blend;
@@ -34,71 +29,61 @@ pub mod window;
 pub mod font;
 pub use font::{Font, FontLetter};
 
-const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
+const DISPLAY_CONTROL: MemoryMapped<DisplayControlRegister> =
+    unsafe { MemoryMapped::new(0x0400_0000) };
 pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
-
-bitflags! {
-    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-    struct GraphicsSettings: u16 {
-        const PAGE_SELECT = 1 << 0x4;
-        const OAM_HBLANK = 1 << 0x5;
-        const SPRITE1_D = 1 << 0x6;
-        const SCREEN_BLANK = 1 << 0x7;
-        const LAYER_BG0 = 1 << 0x8;
-        const LAYER_BG1 = 1 << 0x9;
-        const LAYER_BG2 = 1 << 0xA;
-        const LAYER_BG3 = 1  << 0xB;
-        const LAYER_OBJ = 1 << 0xC;
-        const WINDOW0 = 1 << 0xD;
-        const WINDOW1 = 1 << 0xE;
-        const WINDOW_OBJECT = 1 << 0xF;
-    }
-}
 
 /// Width of the Gameboy advance screen in pixels
 pub const WIDTH: i32 = 240;
 /// Height of the Gameboy advance screen in pixels
 pub const HEIGHT: i32 = 160;
 
-#[allow(dead_code)]
-enum DisplayMode {
-    Tiled0 = 0,
-    Tiled1 = 1,
-    Tiled2 = 2,
-    Bitmap3 = 3,
-    Bitmap4 = 4,
-    Bitmap5 = 5,
-}
-
 #[non_exhaustive]
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
-    pub video: Video,
-    pub object: ObjectDistribution,
     pub window: WindowDist,
     pub blend: BlendDist,
+    pub graphics: GraphicsDist,
 }
 
 #[non_exhaustive]
-pub struct ObjectDistribution;
+pub struct GraphicsDist;
 
-impl ObjectDistribution {
-    pub fn get_unmanaged(&mut self) -> (OamUnmanaged<'_>, SpriteLoader) {
+impl GraphicsDist {
+    pub fn get(&mut self) -> Graphics<'_> {
         unsafe { initilise_oam() };
-        (OamUnmanaged::new(), SpriteLoader::new())
+        Graphics::new(Oam::new(), unsafe { TiledBackground::new() })
+    }
+}
+
+pub struct Graphics<'gba> {
+    oam: Oam<'gba>,
+    tiled: TiledBackground<'gba>,
+}
+
+impl<'gba> Graphics<'gba> {
+    fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>) -> Self {
+        Self { oam, tiled }
     }
 
-    pub fn get_managed(&mut self) -> OamManaged<'_> {
-        unsafe { initilise_oam() };
-        OamManaged::new()
+    pub fn frame(&mut self) -> GraphicsFrame<'_> {
+        GraphicsFrame {
+            oam_frame: self.oam.frame(),
+            bg_frame: self.tiled.iter(),
+        }
     }
+}
 
-    /// The old name for [`get_managed`][ObjectDistribution::get_managed] kept around for easier migration.
-    /// This will be removed in a future release.
-    #[deprecated = "use get_managed to get the managed oam instead"]
-    pub fn get(&mut self) -> OamManaged<'_> {
-        self.get_managed()
+pub struct GraphicsFrame<'frame> {
+    pub(crate) oam_frame: OamFrame<'frame>,
+    pub(crate) bg_frame: BackgroundFrame<'frame>,
+}
+
+impl GraphicsFrame<'_> {
+    pub fn commit(self) {
+        self.oam_frame.commit();
+        self.bg_frame.commit();
     }
 }
 
@@ -123,32 +108,11 @@ impl BlendDist {
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            video: Video,
-            object: ObjectDistribution,
+            graphics: GraphicsDist,
             window: WindowDist,
             blend: BlendDist,
         }
     }
-}
-
-unsafe fn set_graphics_mode(mode: DisplayMode) {
-    let current = DISPLAY_CONTROL.get();
-    let current = current & (!0b111);
-    let s = current | (mode as u16 & 0b111);
-
-    // disable blank screen
-    let s = s & !(1 << 7);
-
-    DISPLAY_CONTROL.set(s);
-}
-
-unsafe fn set_graphics_settings(settings: GraphicsSettings) {
-    let current = DISPLAY_CONTROL.get();
-    // preserve display mode
-    let current = current & 0b111;
-    let s = settings.bits() | current;
-
-    DISPLAY_CONTROL.set(s);
 }
 
 /// Waits until vblank using a busy wait loop, this should almost never be used.

@@ -1,12 +1,12 @@
 use agb::{
     display::{
         object::{
-            OamIterator, ObjectTextRender, ObjectUnmanaged, PaletteVram, Size, SpriteLoader,
-            SpriteVram, TextAlignment,
+            IntoSpriteVram, Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram,
+            TextAlignment,
         },
         palette16::Palette16,
-        tiled::{MapLoan, RegularMap, TiledMap, VRamManager},
-        HEIGHT,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        GraphicsFrame, Priority, HEIGHT,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -31,25 +31,25 @@ mod simulation;
 
 mod numbers;
 
-struct Game<'a, 'b> {
-    phase: GamePhase<'a, 'b>,
+struct Game {
+    phase: GamePhase,
 }
 
-struct Lament<'a, 'b> {
+struct Lament {
     level: usize,
     writer: RefCell<ObjectTextRender<'static>>,
-    background: &'a mut MapLoan<'b, RegularMap>,
+    background: RegularBackgroundTiles,
 }
 
-fn generate_text_palette() -> PaletteVram {
+fn generate_text_palette() -> PaletteVramSingle {
     let mut palette = [0x0; 16];
     palette[1] = 0xFF_FF;
     let palette = Palette16::new(palette);
-    PaletteVram::new(&palette).unwrap()
+    PaletteVramSingle::new(&palette).unwrap()
 }
 
-impl<'a, 'b> Lament<'a, 'b> {
-    fn new(level: usize, background: &'a mut MapLoan<'b, RegularMap>) -> Self {
+impl Lament {
+    fn new(level: usize) -> Self {
         let palette = generate_text_palette();
 
         let mut writer = ObjectTextRender::new(&super::resources::FONT, Size::S16x16, palette);
@@ -73,183 +73,158 @@ impl<'a, 'b> Lament<'a, 'b> {
         Self {
             level,
             writer: RefCell::new(writer),
-            background,
+            background: RegularBackgroundTiles::new(
+                Priority::P1,
+                RegularBackgroundSize::Background32x32,
+                TileFormat::FourBpp,
+            ),
         }
     }
 
-    fn update(self, input: &ButtonController, vram_manager: &mut VRamManager) -> GamePhase<'a, 'b> {
+    fn update(mut self, input: &ButtonController) -> GamePhase {
         {
             let mut writer = self.writer.borrow_mut();
             writer.next_letter_group();
             writer.update(Vector2D::new(16, HEIGHT / 4));
+
+            self.background.commit();
         }
         if input.is_just_pressed(Button::A) {
-            GamePhase::Construction(Construction::new(self.level, self.background, vram_manager))
+            GamePhase::Construction(Construction::new(self.level))
         } else {
             GamePhase::Lament(self)
         }
     }
 
-    fn render(&self, oam: &mut OamIterator) {
-        self.writer.borrow_mut().commit(oam);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.writer.borrow_mut().commit(frame);
+        self.background.show(frame);
     }
 }
 
-struct Construction<'a, 'b> {
+struct Construction {
     game: GameState,
-    background: &'a mut MapLoan<'b, RegularMap>,
+    background: RegularBackgroundTiles,
 }
 
-impl Drop for Construction<'_, '_> {
-    fn drop(&mut self) {
-        self.background.set_visible(false);
-    }
-}
-
-impl<'a, 'b> Construction<'a, 'b> {
-    fn new(
-        level: usize,
-        background: &'a mut MapLoan<'b, RegularMap>,
-        vram_manager: &mut VRamManager,
-    ) -> Self {
+impl Construction {
+    fn new(level: usize) -> Self {
         let game = GameState::new(level);
-        game.load_level_background(background, vram_manager);
-        background.commit(vram_manager);
-        background.set_visible(true);
+        let mut background = RegularBackgroundTiles::new(
+            Priority::P1,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
+
+        game.load_level_background(&mut background);
+        background.commit();
+
         Self { background, game }
     }
 
-    fn update(
-        mut self,
-        input: &ButtonController,
-        sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
-    ) -> GamePhase<'a, 'b> {
+    fn update(mut self, input: &ButtonController, sfx: &mut Sfx) -> GamePhase {
         self.game.step(input, sfx);
         if input.is_just_pressed(Button::START) {
             self.game.force_place();
-            GamePhase::Execute(Execute::new(self, sfx, loader))
+            GamePhase::Execute(Execute::new(self, sfx))
         } else {
             GamePhase::Construction(self)
         }
     }
 
-    fn render(&self, oam: &mut OamIterator, loader: &mut SpriteLoader) {
-        self.game.render(loader, oam);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.game.render(frame);
+        self.background.show(frame);
     }
 }
 
-impl<'a, 'b> Execute<'a, 'b> {
-    fn new(construction: Construction<'a, 'b>, sfx: &mut Sfx, loader: &mut SpriteLoader) -> Self {
+impl Execute {
+    fn new(construction: Construction, sfx: &mut Sfx) -> Self {
         Self {
-            simulation: construction.game.create_simulation(sfx, loader),
+            simulation: construction.game.create_simulation(sfx),
             construction,
         }
     }
 
-    fn update(
-        mut self,
-        input: &ButtonController,
-        sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
-    ) -> GamePhase<'a, 'b> {
+    fn update(mut self, input: &ButtonController, sfx: &mut Sfx) -> GamePhase {
         if input.is_just_pressed(Button::START) {
             return GamePhase::Construction(self.construction);
         }
 
-        match self.simulation.update(loader, sfx) {
+        match self.simulation.update(sfx) {
             simulation::Outcome::Continue => GamePhase::Execute(self),
             simulation::Outcome::Loss => GamePhase::Construction(self.construction),
             simulation::Outcome::Win => GamePhase::NextLevel,
         }
     }
 
-    fn render(&self, loader: &mut SpriteLoader, oam: &mut OamIterator) {
-        self.simulation.render(oam);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.simulation.render(frame);
         self.construction
             .game
-            .render_arrows(loader, oam, Some(self.simulation.current_turn()));
+            .render_arrows(frame, Some(self.simulation.current_turn()));
+        self.construction.background.show(frame);
     }
 }
 
-struct Execute<'a, 'b> {
+struct Execute {
     simulation: Simulation,
-    construction: Construction<'a, 'b>,
+    construction: Construction,
 }
 
 #[derive(Default)]
-enum GamePhase<'a, 'b> {
+enum GamePhase {
     #[default]
     Empty,
-    Lament(Lament<'a, 'b>),
-    Construction(Construction<'a, 'b>),
-    Execute(Execute<'a, 'b>),
+    Lament(Lament),
+    Construction(Construction),
+    Execute(Execute),
     NextLevel,
 }
 
-impl GamePhase<'_, '_> {
-    fn update(
-        &mut self,
-        input: &ButtonController,
-        sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
-        vram_manger: &mut VRamManager,
-    ) {
+impl GamePhase {
+    fn update(&mut self, input: &ButtonController, sfx: &mut Sfx) {
         *self = match core::mem::take(self) {
-            GamePhase::Lament(lament) => lament.update(input, vram_manger),
-            GamePhase::Construction(construction) => construction.update(input, sfx, loader),
-            GamePhase::Execute(execute) => execute.update(input, sfx, loader),
+            GamePhase::Lament(lament) => lament.update(input),
+            GamePhase::Construction(construction) => construction.update(input, sfx),
+            GamePhase::Execute(execute) => execute.update(input, sfx),
             GamePhase::NextLevel => GamePhase::NextLevel,
             GamePhase::Empty => panic!("bad state"),
         }
     }
 
-    fn render(&self, loader: &mut SpriteLoader, oam: &mut OamIterator) {
+    fn render(&self, frame: &mut GraphicsFrame) {
         match self {
             GamePhase::Empty => panic!("bad state"),
-            GamePhase::Lament(lament) => lament.render(oam),
-            GamePhase::Construction(construction) => construction.render(oam, loader),
-            GamePhase::Execute(execute) => execute.render(loader, oam),
+            GamePhase::Lament(lament) => lament.render(frame),
+            GamePhase::Construction(construction) => construction.render(frame),
+            GamePhase::Execute(execute) => execute.render(frame),
             GamePhase::NextLevel => {}
         }
     }
 }
 
-impl<'a, 'b> Game<'a, 'b> {
-    pub fn new(level: usize, background: &'a mut MapLoan<'b, RegularMap>) -> Self {
+impl Game {
+    pub fn new(level: usize) -> Self {
         Self {
-            phase: GamePhase::Lament(Lament::new(level, background)),
+            phase: GamePhase::Lament(Lament::new(level)),
         }
     }
 
-    pub fn update(
-        &mut self,
-        input: &ButtonController,
-        sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
-        vram_manager: &mut VRamManager,
-    ) -> bool {
-        self.phase.update(input, sfx, loader, vram_manager);
+    pub fn update(&mut self, input: &ButtonController, sfx: &mut Sfx) -> bool {
+        self.phase.update(input, sfx);
         matches!(self.phase, GamePhase::NextLevel)
     }
 
-    pub fn render(&self, loader: &mut SpriteLoader, oam: &mut OamIterator) {
-        self.phase.render(loader, oam)
-    }
-
-    pub fn set_background_visibility(&mut self, visible: bool) {
-        match &mut self.phase {
-            GamePhase::Construction(construction) => construction.background.set_visible(visible),
-            GamePhase::Execute(execute) => execute.construction.background.set_visible(visible),
-            _ => {}
-        }
+    pub fn render(&self, frame: &mut GraphicsFrame) {
+        self.phase.render(frame)
     }
 }
 
-pub struct Pausable<'a, 'b> {
+pub struct Pausable {
     paused: Paused,
     menu: PauseMenu,
-    game: Game<'a, 'b>,
+    game: Game,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -300,7 +275,7 @@ impl PauseMenu {
         t
     }
 
-    fn new(loader: &mut SpriteLoader, maximum_level: usize, current_level: usize) -> Self {
+    fn new(maximum_level: usize, current_level: usize) -> Self {
         PauseMenu {
             option_text: RefCell::new([
                 Self::text_at_position(format_args!("Restart"), Vector2D::new(32, HEIGHT / 4)),
@@ -310,7 +285,7 @@ impl PauseMenu {
                 ),
             ]),
             selection: PauseSelectionInner::Restart,
-            indicator_sprite: loader.get_vram_sprite(ARROW_RIGHT.sprite(0)),
+            indicator_sprite: IntoSpriteVram::into(ARROW_RIGHT.sprite(0)),
             selected_level: current_level,
             maximum_level,
         }
@@ -351,21 +326,18 @@ impl PauseMenu {
         }
     }
 
-    fn render(&self, oam: &mut OamIterator) {
+    fn render(&self, frame: &mut GraphicsFrame) {
         for text in self.option_text.borrow_mut().iter_mut() {
-            text.commit(oam);
+            text.commit(frame);
         }
-        let mut indicator = ObjectUnmanaged::new(self.indicator_sprite.clone());
-        indicator.show();
+        let mut indicator = Object::new(self.indicator_sprite.clone());
         match self.selection {
             PauseSelectionInner::Restart => indicator.set_position(Vector2D::new(16, HEIGHT / 4)),
             PauseSelectionInner::LevelSelect => {
                 indicator.set_position(Vector2D::new(16, HEIGHT / 4 + 20))
             }
         };
-        if let Some(slot) = oam.next() {
-            slot.set(&indicator);
-        }
+        indicator.show(frame);
     }
 }
 
@@ -374,39 +346,24 @@ pub enum UpdateResult {
     NextLevel,
 }
 
-impl<'a, 'b> Pausable<'a, 'b> {
-    pub fn new(
-        level: usize,
-        maximum_level: usize,
-        background: &'a mut MapLoan<'b, RegularMap>,
-        loader: &mut SpriteLoader,
-    ) -> Self {
+impl Pausable {
+    pub fn new(level: usize, maximum_level: usize) -> Self {
         Self {
             paused: Paused::Playing,
-            game: Game::new(level, background),
-            menu: PauseMenu::new(loader, maximum_level, level),
+            game: Game::new(level),
+            menu: PauseMenu::new(maximum_level, level),
         }
     }
 
-    pub fn update(
-        &mut self,
-        input: &ButtonController,
-        sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
-        vram_manager: &mut VRamManager,
-    ) -> Option<UpdateResult> {
+    pub fn update(&mut self, input: &ButtonController, sfx: &mut Sfx) -> Option<UpdateResult> {
         if input.is_just_pressed(Button::SELECT)
             || (matches!(self.paused, Paused::Paused) && input.is_just_pressed(Button::B))
         {
             self.paused = self.paused.change();
-            match self.paused {
-                Paused::Paused => self.game.set_background_visibility(false),
-                Paused::Playing => self.game.set_background_visibility(true),
-            }
         }
 
         if !matches!(self.paused, Paused::Paused) {
-            if self.game.update(input, sfx, loader, vram_manager) {
+            if self.game.update(input, sfx) {
                 Some(UpdateResult::NextLevel)
             } else {
                 None
@@ -416,11 +373,11 @@ impl<'a, 'b> Pausable<'a, 'b> {
         }
     }
 
-    pub fn render(&self, loader: &mut SpriteLoader, oam: &mut OamIterator) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         if matches!(self.paused, Paused::Paused) {
-            self.menu.render(oam);
+            self.menu.render(frame);
         } else {
-            self.game.render(loader, oam);
+            self.game.render(frame);
         }
     }
 }

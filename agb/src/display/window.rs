@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
-use super::{tiled::BackgroundID, DISPLAY_CONTROL, HEIGHT, WIDTH};
+use super::{tiled::BackgroundId, DISPLAY_CONTROL, HEIGHT, WIDTH};
 
 /// Access to the windows feature of the Game Boy Advance.
 ///
@@ -71,10 +71,12 @@ impl Windows<'_> {
         self.out.commit(2);
         self.obj.commit(3);
 
-        let enabled_bits = ((self.obj.is_enabled() as u16) << 2)
-            | ((self.wins[1].is_enabled() as u16) << 1)
-            | (self.wins[0].is_enabled() as u16);
-        DISPLAY_CONTROL.set_bits(enabled_bits, 3, 0xD);
+        let mut display_control_register = DISPLAY_CONTROL.get();
+        display_control_register.set_obj_window_display(self.obj.is_enabled());
+        display_control_register.set_window0_display(self.wins[0].is_enabled());
+        display_control_register.set_window1_display(self.wins[1].is_enabled());
+
+        DISPLAY_CONTROL.set(display_control_register);
     }
 }
 
@@ -143,7 +145,7 @@ impl Window {
     /// Sets whether the given background will be rendered inside this window,
     /// must call [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundID, enable: bool) -> &mut Self {
+    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
         self.set_bit(back.0 as usize, enable);
 
         self
@@ -219,7 +221,7 @@ impl MovableWindow {
     /// Sets whether the given background will be rendered inside this window,
     /// must call [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundID, enable: bool) -> &mut Self {
+    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
         self.inner.set_background_enable(back, enable);
         self
     }
@@ -276,6 +278,6 @@ impl MovableWindow {
     /// [`set_position`](Self::set_position).
     #[must_use]
     pub fn horizontal_position_dma(&self) -> dma::DmaControllable<u16> {
-        dma::DmaControllable::new(unsafe { REG_HORIZONTAL_BASE.add(self.id) })
+        unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id)) }
     }
 }

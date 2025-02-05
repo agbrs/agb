@@ -1,5 +1,5 @@
 export CARGO_TARGET_DIR := env_var_or_default('CARGO_TARGET_DIR', justfile_directory() + "/target")
-CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all -Aclippy::empty-loop"
+CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all"
 
 podman_command := "podman"
 

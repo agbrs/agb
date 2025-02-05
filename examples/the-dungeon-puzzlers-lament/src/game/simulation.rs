@@ -1,5 +1,5 @@
 use agb::{
-    display::object::{OamIterator, SpriteLoader},
+    display::GraphicsFrame,
     fixnum::{Num, Vector2D},
 };
 use alloc::vec::Vec;
@@ -36,7 +36,6 @@ impl Simulation {
         entities_to_add: impl Iterator<Item = (Item, Vector2D<i32>)>,
         level: &'static Level,
         sfx: &mut Sfx,
-        loader: &mut SpriteLoader,
     ) -> Simulation {
         let mut entities = EntityMapMaker::new();
         let mut animation = Animation::default();
@@ -60,7 +59,7 @@ impl Simulation {
             render_cache: Vec::new(),
         };
 
-        simulation.cache_render(loader);
+        simulation.cache_render();
 
         simulation
     }
@@ -69,26 +68,26 @@ impl Simulation {
         self.move_idx.saturating_sub(1)
     }
 
-    pub fn render(&self, oam: &mut OamIterator) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         for item in self.render_cache.iter() {
-            item.render(oam);
+            item.render(frame);
         }
     }
 
-    pub fn cache_render(&mut self, sprite_loader: &mut SpriteLoader) {
-        self.render_cache = self.animation.cache_render(sprite_loader, self.frame / 16);
+    pub fn cache_render(&mut self) {
+        self.render_cache = self.animation.cache_render(self.frame / 16);
         self.render_cache
             .sort_unstable_by_key(|x| x.sorting_number());
     }
 
-    pub fn update(&mut self, sprite_loader: &mut SpriteLoader, sfx: &mut Sfx) -> Outcome {
+    pub fn update(&mut self, sfx: &mut Sfx) -> Outcome {
         self.animation.increase_progress(Num::new(1) / 16);
 
         self.frame = self.frame.wrapping_add(1);
 
         let animation_result = self.animation.update(sfx);
 
-        self.cache_render(sprite_loader);
+        self.cache_render();
 
         if animation_result {
             if self.outcome != Outcome::Continue {
