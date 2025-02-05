@@ -10,9 +10,12 @@ use alloc::{vec, vec::Vec};
 use crate::display::{tile_data::TileData, GraphicsFrame, Priority};
 
 use super::{
-    BackgroundId, RegularBackgroundData, ScreenblockAllocator, Tile, TileFormat, TileSet,
-    TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
+    BackgroundControlRegister, BackgroundId, RegularBackgroundData, ScreenblockAllocator, Tile,
+    TileFormat, TileSet, TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER,
+    VRAM_START,
 };
+
+use bilge::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -64,10 +67,6 @@ impl RegularBackgroundSize {
         let pos = screenblock * 32 * 32 + (x_mod % 32 + 32 * (y_mod % 32));
 
         pos as usize
-    }
-
-    const fn size_flag(self) -> u16 {
-        self as u16
     }
 }
 
@@ -216,16 +215,15 @@ impl RegularBackgroundTiles {
         self.size
     }
 
-    fn bg_ctrl_value(&self) -> u16 {
-        let tile_colour_flag: u16 = match self.colours {
-            TileFormat::FourBpp => 0,
-            TileFormat::EightBpp => 1,
-        };
+    fn bg_ctrl_value(&self) -> BackgroundControlRegister {
+        let mut background_control_register = BackgroundControlRegister::default();
 
-        self.priority as u16
-            | (tile_colour_flag << 7)
-            | (self.screen_base_block() << 8)
-            | (self.size.size_flag() << 0xe)
+        background_control_register.set_tile_format(self.colours.into());
+        background_control_register.set_priority(self.priority.into());
+        background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
+        background_control_register.set_screen_size(self.size.into());
+
+        background_control_register
     }
 
     fn screen_base_block(&self) -> u16 {

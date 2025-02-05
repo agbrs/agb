@@ -22,7 +22,7 @@ use crate::{
     memory_mapped::MemoryMapped,
 };
 
-use super::DISPLAY_CONTROL;
+use super::{Priority, DISPLAY_CONTROL};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
@@ -44,6 +44,90 @@ struct DisplayControlRegister {
     window0_display: bool,
     window1_display: bool,
     obj_window_display: bool,
+}
+
+#[bitsize(1)]
+#[derive(Clone, Copy, FromBits, Default)]
+enum BackgroundControlTileFormat {
+    #[default]
+    FourBpp = 0,
+    EightBpp = 1,
+}
+
+impl From<TileFormat> for BackgroundControlTileFormat {
+    fn from(value: TileFormat) -> Self {
+        match value {
+            TileFormat::FourBpp => Self::FourBpp,
+            TileFormat::EightBpp => Self::EightBpp,
+        }
+    }
+}
+
+#[bitsize(1)]
+#[derive(Clone, Copy, FromBits, Default)]
+enum BackgroundControlAffineOverflowBehaviour {
+    #[default]
+    Transparent = 0,
+    Wraparound = 1,
+}
+
+impl From<AffineBackgroundWrapBehaviour> for BackgroundControlAffineOverflowBehaviour {
+    fn from(value: AffineBackgroundWrapBehaviour) -> Self {
+        match value {
+            AffineBackgroundWrapBehaviour::NoWrap => Self::Transparent,
+            AffineBackgroundWrapBehaviour::Wrap => Self::Wraparound,
+        }
+    }
+}
+
+#[bitsize(2)]
+#[derive(Clone, Copy, FromBits, Default)]
+struct BackgroundControlScreenSize(u2);
+
+impl From<RegularBackgroundSize> for BackgroundControlScreenSize {
+    fn from(value: RegularBackgroundSize) -> Self {
+        Self::new(u2::new(value as u8))
+    }
+}
+
+impl From<AffineBackgroundSize> for BackgroundControlScreenSize {
+    fn from(value: AffineBackgroundSize) -> Self {
+        Self::new(u2::new(value as u8))
+    }
+}
+
+#[bitsize(2)]
+#[derive(Clone, Copy, FromBits, Default)]
+enum BackgroundControlPriority {
+    #[default]
+    P0,
+    P1,
+    P2,
+    P3,
+}
+
+impl From<Priority> for BackgroundControlPriority {
+    fn from(value: Priority) -> Self {
+        match value {
+            Priority::P0 => Self::P0,
+            Priority::P1 => Self::P1,
+            Priority::P2 => Self::P2,
+            Priority::P3 => Self::P3,
+        }
+    }
+}
+
+#[bitsize(16)]
+#[derive(Clone, Copy, FromBits, Default)]
+struct BackgroundControlRegister {
+    priority: BackgroundControlPriority,
+    char_base_block: u2,
+    _zero: u2,
+    mosaic: bool,
+    tile_format: BackgroundControlTileFormat,
+    screen_base_block: u5,
+    overflow_behaviour: BackgroundControlAffineOverflowBehaviour,
+    screen_size: BackgroundControlScreenSize,
 }
 
 impl BackgroundId {
@@ -149,13 +233,13 @@ impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 #[derive(Default)]
 struct RegularBackgroundData {
-    bg_ctrl: u16,
+    bg_ctrl: BackgroundControlRegister,
     scroll_offset: Vector2D<u16>,
 }
 
 #[derive(Default)]
 struct AffineBackgroundData {
-    bg_ctrl: u16,
+    bg_ctrl: BackgroundControlRegister,
     scroll_offset: Vector2D<Num<i32, 8>>,
     affine_transform: AffineMatrixBackground,
 }
