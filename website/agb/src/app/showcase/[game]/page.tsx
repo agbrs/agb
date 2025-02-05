@@ -25,13 +25,23 @@ function getGame(slug: string) {
   return game;
 }
 
-export function generateMetadata({ params }: { params: { game: string } }) {
-  const game = getGame(params.game);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ game: string }>;
+}) {
+  const { game: gameParam } = await params;
+  const game = getGame(gameParam);
   return { title: game.name };
 }
 
-export default function Page({ params }: { params: { game: string } }) {
-  const game = getGame(params.game);
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ game: string }>;
+}) {
+  const { game: gameParam } = await params;
+  const game = getGame(gameParam);
   return <Display game={game} />;
 }
 
