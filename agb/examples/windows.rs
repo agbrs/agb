@@ -1,10 +1,9 @@
 #![no_std]
 #![no_main]
 
-use agb::display::blend::Layer;
 use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
-use agb::display::{HEIGHT, WIDTH};
+use agb::display::{BlendLayer, HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
 use agb::interrupt::VBlank;
 
@@ -59,9 +58,11 @@ fn main(mut gba: agb::Gba) -> ! {
         let blend = frame.blend();
         blend
             .alpha()
-            .set_layer_alpha(Layer::Top, blend_amount.try_change_base().unwrap());
-        blend.layer(Layer::Top).enable_background(background_id);
-        blend.layer(Layer::Bottom).enable_backdrop();
+            .set_layer_alpha(BlendLayer::Top, blend_amount.try_change_base().unwrap());
+        blend
+            .layer(BlendLayer::Top)
+            .enable_background(background_id);
+        blend.layer(BlendLayer::Bottom).enable_backdrop();
 
         vblank.wait_for_vblank();
 

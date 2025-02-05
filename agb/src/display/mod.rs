@@ -2,7 +2,6 @@ use crate::memory_mapped::MemoryMapped;
 
 use bilge::prelude::*;
 
-use blend::Blend;
 use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
 use self::{
@@ -23,7 +22,7 @@ pub mod tile_data;
 pub mod tiled;
 
 pub mod affine;
-pub mod blend;
+mod blend;
 pub mod window;
 
 pub mod font;
@@ -33,6 +32,10 @@ const DISPLAY_CONTROL: MemoryMapped<DisplayControlRegister> =
     unsafe { MemoryMapped::new(0x0400_0000) };
 pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
+
+pub use blend::{
+    Blend, BlendAlphaEffect, BlendFadeEffect, BlendObjectTransparency, Layer as BlendLayer,
+};
 
 /// Width of the Gameboy advance screen in pixels
 pub const WIDTH: i32 = 240;
