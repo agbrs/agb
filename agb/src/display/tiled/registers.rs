@@ -7,7 +7,7 @@ use super::{
 };
 
 #[bitsize(16)]
-#[derive(FromBits)]
+#[derive(FromBits, Clone, Copy, Default)]
 pub(crate) struct DisplayControlRegister {
     pub video_mode: u3,
     _reserved: u1,
