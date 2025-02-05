@@ -19,7 +19,7 @@ impl Bitmap3<'_> {
         current_graphics.set_video_mode(u3::new(3));
         current_graphics.set_enabled_backgrounds(u4::new(1u8 << 2));
 
-        DISPLAY_CONTROL.set(current_graphics.into());
+        DISPLAY_CONTROL.set(current_graphics);
 
         Bitmap3 {
             phantom: PhantomData,

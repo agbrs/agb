@@ -2,7 +2,7 @@ use crate::memory_mapped::MemoryMapped;
 
 use bilge::prelude::*;
 
-use tiled::{BackgroundFrame, TiledBackground};
+use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
 use self::{
     blend::Blend,
@@ -29,7 +29,8 @@ pub mod window;
 pub mod font;
 pub use font::{Font, FontLetter};
 
-const DISPLAY_CONTROL: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0000) };
+const DISPLAY_CONTROL: MemoryMapped<DisplayControlRegister> =
+    unsafe { MemoryMapped::new(0x0400_0000) };
 pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 

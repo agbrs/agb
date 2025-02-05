@@ -13,13 +13,13 @@ pub(crate) struct DisplayControlRegister {
     _reserved: u1,
     _display_frame_select: u1,
     hblank_interval_free: bool,
-    obj_character_mapping: bool,
-    forced_blank: bool,
+    pub obj_character_mapping: bool,
+    pub forced_blank: bool,
     pub enabled_backgrounds: u4,
-    obj_display: bool,
-    window0_display: bool,
-    window1_display: bool,
-    obj_window_display: bool,
+    pub obj_display: bool,
+    pub window0_display: bool,
+    pub window1_display: bool,
+    pub obj_window_display: bool,
 }
 
 #[bitsize(1)]

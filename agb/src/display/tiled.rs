@@ -226,11 +226,12 @@ impl BackgroundFrame<'_> {
         let enabled_backgrounds =
             ((1u16 << self.num_regular) - 1) | (((1 << self.num_affine) - 1) << 2);
 
-        let mut display_control_register = DisplayControlRegister::from(DISPLAY_CONTROL.get());
+        let mut display_control_register = DISPLAY_CONTROL.get();
         display_control_register.set_video_mode(u3::new(video_mode as u8));
         display_control_register.set_enabled_backgrounds(u4::new(enabled_backgrounds as u8));
+        display_control_register.set_forced_blank(false);
 
-        DISPLAY_CONTROL.set(display_control_register.into());
+        DISPLAY_CONTROL.set(display_control_register);
 
         for (i, regular_background) in self
             .regular_backgrounds

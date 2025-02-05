@@ -71,10 +71,12 @@ impl Windows<'_> {
         self.out.commit(2);
         self.obj.commit(3);
 
-        let enabled_bits = ((self.obj.is_enabled() as u16) << 2)
-            | ((self.wins[1].is_enabled() as u16) << 1)
-            | (self.wins[0].is_enabled() as u16);
-        DISPLAY_CONTROL.set_bits(enabled_bits, 3, 0xD);
+        let mut display_control_register = DISPLAY_CONTROL.get();
+        display_control_register.set_obj_window_display(self.obj.is_enabled());
+        display_control_register.set_window0_display(self.wins[0].is_enabled());
+        display_control_register.set_window1_display(self.wins[1].is_enabled());
+
+        DISPLAY_CONTROL.set(display_control_register);
     }
 }
 
