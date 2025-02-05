@@ -2,10 +2,10 @@ use crate::memory_mapped::MemoryMapped;
 
 use bilge::prelude::*;
 
+use blend::Blend;
 use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
 use self::{
-    blend::Blend,
     object::{initilise_oam, Oam, OamFrame},
     window::Windows,
 };
@@ -43,7 +43,6 @@ pub const HEIGHT: i32 = 160;
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
     pub window: WindowDist,
-    pub blend: BlendDist,
     pub graphics: GraphicsDist,
 }
 
@@ -71,6 +70,7 @@ impl<'gba> Graphics<'gba> {
         GraphicsFrame {
             oam_frame: self.oam.frame(),
             bg_frame: self.tiled.iter(),
+            blend: Blend::new(),
         }
     }
 }
@@ -78,12 +78,18 @@ impl<'gba> Graphics<'gba> {
 pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,
     pub(crate) bg_frame: BackgroundFrame<'frame>,
+    blend: Blend<'frame>,
 }
 
-impl GraphicsFrame<'_> {
+impl<'frame> GraphicsFrame<'frame> {
     pub fn commit(self) {
         self.oam_frame.commit();
         self.bg_frame.commit();
+        self.blend.commit();
+    }
+
+    pub fn blend(&mut self) -> &mut Blend<'frame> {
+        &mut self.blend
     }
 }
 
@@ -96,21 +102,11 @@ impl WindowDist {
     }
 }
 
-#[non_exhaustive]
-pub struct BlendDist;
-
-impl BlendDist {
-    pub fn get(&mut self) -> Blend<'_> {
-        Blend::new()
-    }
-}
-
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
             graphics: GraphicsDist,
             window: WindowDist,
-            blend: BlendDist,
         }
     }
 }
