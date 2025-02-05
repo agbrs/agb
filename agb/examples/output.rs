@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use agb::syscall;
 use portable_atomic::{AtomicU32, Ordering};
 
 static COUNT: AtomicU32 = AtomicU32::new(0);
@@ -14,5 +15,7 @@ fn main(_gba: agb::Gba) -> ! {
             COUNT.store(cur_count + 1, Ordering::SeqCst);
         })
     };
-    loop {}
+    loop {
+        syscall::halt();
+    }
 }
