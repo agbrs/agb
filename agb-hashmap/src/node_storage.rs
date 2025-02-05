@@ -19,10 +19,8 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     pub(crate) fn with_size_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
-        let mut nodes = MyVec::with_capacity_in(capacity, alloc);
-        for _ in 0..capacity {
-            nodes.push(Node::new());
-        }
+        let mut nodes = MyVec::new_in(alloc);
+        nodes.resize_with(capacity, || Node::new());
 
         Self {
             nodes,

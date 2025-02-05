@@ -1,6 +1,6 @@
-use core::{alloc::Layout, ptr::NonNull};
-
 use alloc::{alloc::Allocator, vec, vec::Vec};
+use bilge::prelude::*;
+use core::{alloc::Layout, ptr::NonNull};
 
 use crate::{
     display::{affine::AffineMatrixBackground, tiled::TileFormat, GraphicsFrame, Priority},
@@ -8,8 +8,8 @@ use crate::{
 };
 
 use super::{
-    AffineBackgroundData, AffineBackgroundId, ScreenblockAllocator, TileIndex, TileSet,
-    SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
+    AffineBackgroundData, AffineBackgroundId, BackgroundControlRegister, ScreenblockAllocator,
+    TileIndex, TileSet, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -187,11 +187,15 @@ impl AffineBackgroundTiles {
         })
     }
 
-    fn bg_ctrl(&self) -> u16 {
-        self.priority as u16
-            | (self.screen_base_block() << 8)
-            | ((self.wrap_behaviour as u16) << 0xd)
-            | ((self.size as u16) << 0xe)
+    fn bg_ctrl(&self) -> BackgroundControlRegister {
+        let mut background_control_register = BackgroundControlRegister::default();
+
+        background_control_register.set_priority(self.priority.into());
+        background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
+        background_control_register.set_overflow_behaviour(self.wrap_behaviour.into());
+        background_control_register.set_screen_size(self.size.into());
+
+        background_control_register
     }
 
     fn screen_base_block(&self) -> u16 {

@@ -29,7 +29,9 @@ pub(super) unsafe fn initilise_oam() {
         ptr.write_volatile(0b10 << 8);
     }
 
-    DISPLAY_CONTROL.set_bits(1, 1, 0x6);
-    DISPLAY_CONTROL.set_bits(1, 1, 0xC);
-    DISPLAY_CONTROL.set_bits(0, 1, 0x7);
+    let mut display_control = DISPLAY_CONTROL.get();
+    display_control.set_obj_character_mapping(true);
+    display_control.set_obj_display(true);
+
+    DISPLAY_CONTROL.set(display_control);
 }

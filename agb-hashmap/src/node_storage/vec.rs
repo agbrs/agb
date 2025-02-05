@@ -14,8 +14,8 @@ mod inner {
     pub(crate) struct MyVec<T, A: Allocator = Global>(Vec<T>, A);
 
     impl<T, A: Allocator> MyVec<T, A> {
-        pub(crate) fn with_capacity_in(capacity: usize, allocator: A) -> Self {
-            Self(Vec::with_capacity(capacity), allocator)
+        pub(crate) fn new_in(allocator: A) -> Self {
+            Self(Vec::new(), allocator)
         }
 
         pub(crate) fn allocator(&self) -> &A {
@@ -45,8 +45,8 @@ mod inner {
     pub(crate) struct MyVec<T, A: Allocator = Global>(Vec<T, A>);
 
     impl<T, A: Allocator> MyVec<T, A> {
-        pub(crate) fn with_capacity_in(capacity: usize, allocator: A) -> Self {
-            Self(Vec::with_capacity_in(capacity, allocator))
+        pub(crate) fn new_in(allocator: A) -> Self {
+            Self(Vec::new_in(allocator))
         }
     }
 
