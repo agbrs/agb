@@ -218,7 +218,7 @@ impl BufferedRender<'_> {
 ///
 /// #[agb::entry]
 /// fn main(gba: &mut agb::Gba) -> ! {
-///     let mut oam = gba.display.object.get();
+///     let mut gfx = gba.display.graphics.get();
 ///     let vblank = agb::interrupt::VBlank::get();
 ///
 ///     let mut palette = [0x0; 16];
@@ -234,7 +234,7 @@ impl BufferedRender<'_> {
 ///     loop {
 ///         writer.next_letter_group();
 ///         writer.update((0, 0));
-///         let mut frame = oam.frame();
+///         let mut frame = gfx.frame();
 ///         writer.commit(&mut frame);
 ///         vblank.wait_for_vblank();
 ///         frame.commit();
