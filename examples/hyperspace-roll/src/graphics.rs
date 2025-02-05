@@ -1,5 +1,8 @@
 use agb::{
-    display::object::{OamFrame, Object, Sprite, Tag},
+    display::{
+        object::{Object, Sprite, Tag},
+        GraphicsFrame,
+    },
     fixnum::Vector2D,
 };
 use alloc::vec::Vec;
@@ -165,7 +168,7 @@ impl HealthBar {
         }
     }
 
-    pub fn show(&mut self, frame: &mut OamFrame) {
+    pub fn show(&mut self, frame: &mut GraphicsFrame) {
         for obj in self.sprites.iter_mut() {
             obj.show(frame);
         }
@@ -229,7 +232,7 @@ impl FractionDisplay {
         }
     }
 
-    pub fn show(&self, oam_frame: &mut OamFrame) {
+    pub fn show(&self, oam_frame: &mut GraphicsFrame) {
         for sprite in self.sprites.iter() {
             sprite.show(oam_frame);
         }
@@ -285,7 +288,7 @@ impl NumberDisplay {
         }
     }
 
-    pub fn show(&self, frame: &mut OamFrame) {
+    pub fn show(&self, frame: &mut GraphicsFrame) {
         for obj in self.objects.iter() {
             obj.show(frame);
         }

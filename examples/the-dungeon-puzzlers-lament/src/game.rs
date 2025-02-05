@@ -1,12 +1,12 @@
 use agb::{
     display::{
         object::{
-            IntoSpriteVram, OamFrame, Object, ObjectTextRender, PaletteVramSingle, Size,
-            SpriteVram, TextAlignment,
+            IntoSpriteVram, Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram,
+            TextAlignment,
         },
         palette16::Palette16,
-        tiled::{BackgroundIterator, RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-        Priority, HEIGHT,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        GraphicsFrame, Priority, HEIGHT,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -96,9 +96,9 @@ impl Lament {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
-        self.writer.borrow_mut().commit(oam);
-        self.background.show(bg_iter);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.writer.borrow_mut().commit(frame);
+        self.background.show(frame);
     }
 }
 
@@ -132,9 +132,9 @@ impl Construction {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
-        self.game.render(oam);
-        self.background.show(bg_iter);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.game.render(frame);
+        self.background.show(frame);
     }
 }
 
@@ -158,12 +158,12 @@ impl Execute {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
-        self.simulation.render(oam);
+    fn render(&self, frame: &mut GraphicsFrame) {
+        self.simulation.render(frame);
         self.construction
             .game
-            .render_arrows(oam, Some(self.simulation.current_turn()));
-        self.construction.background.show(bg_iter);
+            .render_arrows(frame, Some(self.simulation.current_turn()));
+        self.construction.background.show(frame);
     }
 }
 
@@ -193,12 +193,12 @@ impl GamePhase {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
+    fn render(&self, frame: &mut GraphicsFrame) {
         match self {
             GamePhase::Empty => panic!("bad state"),
-            GamePhase::Lament(lament) => lament.render(oam, bg_iter),
-            GamePhase::Construction(construction) => construction.render(oam, bg_iter),
-            GamePhase::Execute(execute) => execute.render(oam, bg_iter),
+            GamePhase::Lament(lament) => lament.render(frame),
+            GamePhase::Construction(construction) => construction.render(frame),
+            GamePhase::Execute(execute) => execute.render(frame),
             GamePhase::NextLevel => {}
         }
     }
@@ -216,8 +216,8 @@ impl Game {
         matches!(self.phase, GamePhase::NextLevel)
     }
 
-    pub fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
-        self.phase.render(oam, bg_iter)
+    pub fn render(&self, frame: &mut GraphicsFrame) {
+        self.phase.render(frame)
     }
 }
 
@@ -326,9 +326,9 @@ impl PauseMenu {
         }
     }
 
-    fn render(&self, oam: &mut OamFrame, _bg_iter: &mut BackgroundIterator) {
+    fn render(&self, frame: &mut GraphicsFrame) {
         for text in self.option_text.borrow_mut().iter_mut() {
-            text.commit(oam);
+            text.commit(frame);
         }
         let mut indicator = Object::new(self.indicator_sprite.clone());
         match self.selection {
@@ -337,7 +337,7 @@ impl PauseMenu {
                 indicator.set_position(Vector2D::new(16, HEIGHT / 4 + 20))
             }
         };
-        indicator.show(oam);
+        indicator.show(frame);
     }
 }
 
@@ -373,11 +373,11 @@ impl Pausable {
         }
     }
 
-    pub fn render(&self, oam: &mut OamFrame, bg_iter: &mut BackgroundIterator) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         if matches!(self.paused, Paused::Paused) {
-            self.menu.render(oam, bg_iter);
+            self.menu.render(frame);
         } else {
-            self.game.render(oam, bg_iter);
+            self.game.render(frame);
         }
     }
 }

@@ -8,7 +8,7 @@ use crate::display::{
         affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance, IntoSpriteVram,
         OBJECT_ATTRIBUTE_MEMORY,
     },
-    Priority,
+    GraphicsFrame, Priority,
 };
 
 use super::attributes::{AffineMode, AttributesAffine, AttributesRegular, GraphicsMode};
@@ -35,13 +35,13 @@ impl Frame {
 
 /// This handles the unmanaged oam system which gives more control to the OAM slots.
 /// This is utilised by calling the iter function and writing objects to those slots.
-pub struct Oam<'gba> {
+pub(crate) struct Oam<'gba> {
     phantom: PhantomData<&'gba ()>,
     previous_frame_sprites: Vec<SpriteVram>,
     frame: Frame,
 }
 
-pub struct OamFrame<'oam>(&'oam mut Frame);
+pub(crate) struct OamFrame<'oam>(&'oam mut Frame);
 
 impl OamFrame<'_> {
     pub fn commit(self) {
@@ -107,7 +107,7 @@ impl OamFrame<'_> {
 
 impl Oam<'_> {
     /// Returns the OamSlot iterator for this frame.
-    pub fn frame(&mut self) -> OamFrame<'_> {
+    pub(crate) fn frame(&mut self) -> OamFrame<'_> {
         self.frame.frame_count = self.frame.frame_count.wrapping_add(1);
         self.frame.affine_matrix_count = 0;
         self.frame.object_count = 0;
@@ -134,8 +134,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn show(&self, frame: &mut OamFrame) {
-        frame.show_regular(self);
+    pub fn show(&self, frame: &mut GraphicsFrame) {
+        frame.oam_frame.show_regular(self);
     }
 
     #[must_use]
@@ -274,8 +274,8 @@ pub struct ObjectAffine {
 }
 
 impl ObjectAffine {
-    pub fn show(&self, frame: &mut OamFrame) {
-        frame.show_affine(self);
+    pub fn show(&self, frame: &mut GraphicsFrame) {
+        frame.oam_frame.show_affine(self);
     }
 
     #[must_use]
@@ -414,7 +414,7 @@ mod tests {
 
         static BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
-        let mut gfx = gba.display.object.get();
+        let mut gfx = gba.display.graphics.get();
 
         {
             let mut frame = gfx.frame();

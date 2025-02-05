@@ -1,10 +1,9 @@
 use agb::{
     display::{
         tiled::{
-            BackgroundIterator, RegularBackgroundSize, RegularBackgroundTiles, TileSet,
-            TileSetting, VRAM_MANAGER,
+            RegularBackgroundSize, RegularBackgroundTiles, TileSet, TileSetting, VRAM_MANAGER,
         },
-        Priority,
+        GraphicsFrame, Priority,
     },
     include_background_gfx, rng,
 };
@@ -149,8 +148,8 @@ impl StarBackground {
         self.background2.commit();
     }
 
-    pub fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
-        self.background1.show(bg_iter);
-        self.background2.show(bg_iter);
+    pub fn show(&self, frame: &mut GraphicsFrame) {
+        self.background1.show(frame);
+        self.background2.show(frame);
     }
 }

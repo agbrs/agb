@@ -1,5 +1,5 @@
 use agb::{
-    display::object::OamFrame,
+    display::GraphicsFrame,
     fixnum::{Num, Vector2D},
 };
 use alloc::vec::Vec;
@@ -68,9 +68,9 @@ impl Simulation {
         self.move_idx.saturating_sub(1)
     }
 
-    pub fn render(&self, oam: &mut OamFrame) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         for item in self.render_cache.iter() {
-            item.render(oam);
+            item.render(frame);
         }
     }
 

@@ -12,10 +12,8 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::display::object::Oam;
-use agb::display::tiled::TiledBackground;
-use agb::interrupt::VBlank;
 use agb::sound::mixer::Frequency;
+use agb::{display::Graphics, interrupt::VBlank};
 
 extern crate alloc;
 use alloc::vec;
@@ -89,8 +87,7 @@ pub struct PlayerDice {
 }
 
 struct Agb<'a> {
-    tiled: TiledBackground<'a>,
-    obj: Oam<'a>,
+    gfx: Graphics<'a>,
     vblank: VBlank,
     star_background: StarBackground,
     sfx: Sfx<'a>,
@@ -103,10 +100,8 @@ pub fn main(mut gba: agb::Gba) -> ! {
         save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
-    let gfx = gba.display.object.get();
+    let gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
-
-    let tiled = gba.display.video.tiled();
 
     let basic_die = Die {
         faces: [
@@ -128,8 +123,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let sfx = Sfx::new(&mut mixer);
 
     let mut agb = Agb {
-        tiled,
-        obj: gfx,
+        gfx,
         vblank,
         star_background,
         sfx,
@@ -157,13 +151,11 @@ pub fn main(mut gba: agb::Gba) -> ! {
                     break;
                 }
 
-                let mut oam_frame = agb.obj.frame();
-                let mut bg_iter = agb.tiled.iter();
-                score_display.show(&mut oam_frame);
-                title_screen_bg.show(&mut bg_iter);
+                let mut frame = agb.gfx.frame();
+                score_display.show(&mut frame);
+                title_screen_bg.show(&mut frame);
                 agb.vblank.wait_for_vblank();
-                bg_iter.commit();
-                oam_frame.commit();
+                frame.commit();
 
                 agb.sfx.frame();
             }

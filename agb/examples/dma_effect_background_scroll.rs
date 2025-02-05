@@ -16,7 +16,7 @@ use agb::{
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -32,24 +32,25 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut dma = gba.dma.dma().dma0;
     let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
 
-    let mut frame = 0;
+    let mut frame_count = 0;
 
     let mut x_scroll_transfer = None;
 
     loop {
-        let mut bg_iter = gfx.iter();
-        let background_id = map.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        let background_id = map.show(&mut frame);
 
-        frame += 1;
-        if frame > offsets.len() - HEIGHT as usize {
-            frame = 0;
+        frame_count += 1;
+        if frame_count > offsets.len() - HEIGHT as usize {
+            frame_count = 0;
         }
 
         vblank.wait_for_vblank();
-        bg_iter.commit();
+        frame.commit();
 
         drop(x_scroll_transfer);
-        x_scroll_transfer =
-            Some(unsafe { dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame..]) });
+        x_scroll_transfer = Some(unsafe {
+            dma.hblank_transfer(&background_id.x_scroll_dma(), &offsets[frame_count..])
+        });
     }
 }

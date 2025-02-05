@@ -49,7 +49,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .unwrap()
     };
 
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
@@ -72,8 +72,6 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 
     background.commit();
-
-    let mut object = gba.display.object.get();
 
     let mut chicken = Character {
         object: Object::new(&CHICKEN_SPRITES[0]),
@@ -130,15 +128,12 @@ fn main(mut gba: agb::Gba) -> ! {
         restrict_to_screen(&mut chicken);
         update_chicken_object(&mut chicken, state, frame_count);
 
-        let mut bg_iter = gfx.iter();
-        background.show(&mut bg_iter);
-
-        let mut frame = object.frame();
+        let mut frame = gfx.frame();
+        background.show(&mut frame);
         chicken.object.show(&mut frame);
 
         vblank.wait_for_vblank();
 
-        bg_iter.commit();
         frame.commit();
     }
 }

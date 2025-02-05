@@ -17,7 +17,7 @@ include_background_gfx!(affine_tiles, "3f3f74", water_tiles => 256 "examples/wat
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = &affine_tiles::water_tiles.tiles;
@@ -65,10 +65,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
         bg.set_transform(transformation);
 
-        let mut bg_iter = gfx.iter();
-        bg.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
         vblank.wait_for_vblank();
 
-        bg_iter.commit();
+        frame.commit();
     }
 }

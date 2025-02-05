@@ -3,11 +3,11 @@ use crate::memory_mapped::MemoryMapped;
 use bilge::prelude::*;
 use bitflags::bitflags;
 
-use video::Video;
+use tiled::{BackgroundFrame, TiledBackground};
 
 use self::{
     blend::Blend,
-    object::{initilise_oam, Oam},
+    object::{initilise_oam, Oam, OamFrame},
     window::Windows,
 };
 
@@ -22,8 +22,6 @@ pub mod palette16;
 pub mod tile_data;
 /// Graphics mode 0. Four regular backgrounds.
 pub mod tiled;
-/// Giving out graphics mode.
-pub mod video;
 
 pub mod affine;
 pub mod blend;
@@ -72,19 +70,48 @@ enum DisplayMode {
 #[non_exhaustive]
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
-    pub video: Video,
-    pub object: ObjectDistribution,
     pub window: WindowDist,
     pub blend: BlendDist,
+    pub graphics: GraphicsDist,
 }
 
 #[non_exhaustive]
-pub struct ObjectDistribution;
+pub struct GraphicsDist;
 
-impl ObjectDistribution {
-    pub fn get(&mut self) -> Oam<'_> {
+impl GraphicsDist {
+    pub fn get(&mut self) -> Graphics<'_> {
         unsafe { initilise_oam() };
-        Oam::new()
+        Graphics::new(Oam::new(), unsafe { TiledBackground::new() })
+    }
+}
+
+pub struct Graphics<'gba> {
+    oam: Oam<'gba>,
+    tiled: TiledBackground<'gba>,
+}
+
+impl<'gba> Graphics<'gba> {
+    fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>) -> Self {
+        Self { oam, tiled }
+    }
+
+    pub fn frame(&mut self) -> GraphicsFrame<'_> {
+        GraphicsFrame {
+            oam_frame: self.oam.frame(),
+            bg_frame: self.tiled.iter(),
+        }
+    }
+}
+
+pub struct GraphicsFrame<'frame> {
+    pub(crate) oam_frame: OamFrame<'frame>,
+    pub(crate) bg_frame: BackgroundFrame<'frame>,
+}
+
+impl GraphicsFrame<'_> {
+    pub fn commit(self) {
+        self.oam_frame.commit();
+        self.bg_frame.commit();
     }
 }
 
@@ -109,8 +136,7 @@ impl BlendDist {
 impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
-            video: Video,
-            object: ObjectDistribution,
+            graphics: GraphicsDist,
             window: WindowDist,
             blend: BlendDist,
         }

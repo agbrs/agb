@@ -1,4 +1,5 @@
-use agb::display::object::{OamFrame, Object};
+use agb::display::object::Object;
+use agb::display::GraphicsFrame;
 use agb::fixnum::Vector2D;
 use agb::rng;
 use alloc::vec;
@@ -170,7 +171,7 @@ impl BattleScreenDisplay {
     pub fn update(
         &mut self,
         current_battle_state: &CurrentBattleState,
-        oam_frame: &mut OamFrame,
+        frame: &mut GraphicsFrame,
     ) -> Vec<Action> {
         for player_shield in self
             .objs
@@ -179,7 +180,7 @@ impl BattleScreenDisplay {
             .take(current_battle_state.player.shield_count as usize)
         {
             player_shield.set_sprite(SHIELD.sprite(0));
-            player_shield.show(oam_frame);
+            player_shield.show(frame);
         }
 
         for player_shield in self
@@ -189,35 +190,35 @@ impl BattleScreenDisplay {
             .take(current_battle_state.enemy.shield_count as usize)
         {
             player_shield.set_sprite(SHIELD.sprite(0));
-            player_shield.show(oam_frame);
+            player_shield.show(frame);
         }
 
         self.objs.player_healthbar.set_value(
             ((current_battle_state.player.health * HEALTH_BAR_WIDTH as u32)
                 / current_battle_state.player.max_health) as usize,
         );
-        self.objs.player_healthbar.show(oam_frame);
+        self.objs.player_healthbar.show(frame);
 
         self.objs.enemy_healthbar.set_value(
             ((current_battle_state.enemy.health * HEALTH_BAR_WIDTH as u32)
                 / current_battle_state.enemy.max_health) as usize,
         );
-        self.objs.enemy_healthbar.show(oam_frame);
+        self.objs.enemy_healthbar.show(frame);
 
         self.objs.player_health.set_value(
             current_battle_state.player.health as usize,
             current_battle_state.player.max_health as usize,
         );
-        self.objs.player_health.show(oam_frame);
+        self.objs.player_health.show(frame);
 
         self.objs.enemy_health.set_value(
             current_battle_state.enemy.health as usize,
             current_battle_state.enemy.max_health as usize,
         );
-        self.objs.enemy_health.show(oam_frame);
+        self.objs.enemy_health.show(frame);
 
         for (i, attack) in current_battle_state.attacks.iter().enumerate() {
-            self.objs.enemy_attack_display[i].update(attack, oam_frame);
+            self.objs.enemy_attack_display[i].update(attack, frame);
         }
 
         let mut actions_to_apply = vec![];
@@ -231,18 +232,18 @@ impl BattleScreenDisplay {
             .zip(self.objs.dice_cooldowns.iter_mut())
         {
             die_obj.set_sprite(FACE_SPRITES.sprite_for_face(current_face));
-            die_obj.show(oam_frame);
+            die_obj.show(frame);
 
             if let Some(cooldown) = cooldown {
                 cooldown_healthbar
                     .set_value((cooldown * 24 / MALFUNCTION_COOLDOWN_FRAMES) as usize);
-                cooldown_healthbar.show(oam_frame);
+                cooldown_healthbar.show(frame);
             }
         }
 
         let mut animations_to_remove = vec![];
         for (i, animation) in self.animations.iter_mut().enumerate() {
-            match animation.update(&mut self.objs, current_battle_state, oam_frame) {
+            match animation.update(&mut self.objs, current_battle_state, frame) {
                 AnimationUpdateState::RemoveWithAction(a) => {
                     actions_to_apply.push(a);
                     animations_to_remove.push(i);
@@ -256,7 +257,7 @@ impl BattleScreenDisplay {
         }
 
         for obj in self.misc_sprites.iter() {
-            obj.show(oam_frame);
+            obj.show(frame);
         }
 
         actions_to_apply
@@ -292,7 +293,7 @@ impl EnemyAttackDisplay {
         }
     }
 
-    pub fn update(&mut self, attack: &Option<EnemyAttackState>, frame: &mut OamFrame) {
+    pub fn update(&mut self, attack: &Option<EnemyAttackState>, frame: &mut GraphicsFrame) {
         if let Some(attack) = attack {
             self.face
                 .set_sprite(ENEMY_ATTACK_SPRITES.sprite_for_attack(attack.attack_type()));
@@ -367,12 +368,13 @@ impl AnimationStateHolder {
         &mut self,
         objs: &mut BattleScreenDisplayObjects,
         current_battle_state: &CurrentBattleState,
-        oam_frame: &mut OamFrame,
+        frame: &mut GraphicsFrame,
     ) -> AnimationUpdateState {
         match &mut self.state {
             AnimationState::PlayerShoot { bullet, x } => {
                 bullet.set_position((*x, 36));
-                bullet.show(oam_frame);
+                bullet.show(frame);
+
                 *x += 4;
 
                 if *x > 180 {
@@ -383,7 +385,7 @@ impl AnimationStateHolder {
             }
             AnimationState::PlayerDisrupt { bullet, x } => {
                 bullet.set_position((*x, 36));
-                bullet.show(oam_frame);
+                bullet.show(frame);
 
                 *x += 2;
 
@@ -414,7 +416,8 @@ impl AnimationStateHolder {
             }
             AnimationState::EnemyShoot { bullet, x } => {
                 bullet.set_hflip(true).set_position((*x, 36));
-                bullet.show(oam_frame);
+                bullet.show(frame);
+
                 *x -= 4;
 
                 if *x < 50 {
@@ -467,7 +470,8 @@ impl AnimationStateHolder {
             }
             AnimationState::PlayerSendBurstShield { bullet, x } => {
                 bullet.set_position((*x, 36));
-                bullet.show(oam_frame);
+                bullet.show(frame);
+
                 *x += 1;
 
                 if *x > 180 {

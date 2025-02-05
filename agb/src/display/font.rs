@@ -276,7 +276,7 @@ mod tests {
 
     #[test_case]
     fn font_display(gba: &mut crate::Gba) {
-        let mut gfx = gba.display.video.tiled();
+        let mut gfx = gba.display.graphics.get();
 
         let mut bg = RegularBackgroundTiles::new(
             crate::display::Priority::P0,
@@ -319,9 +319,9 @@ mod tests {
             writer.commit();
             bg.commit();
 
-            let mut bg_iter = gfx.iter();
-            bg.show(&mut bg_iter);
-            bg_iter.commit();
+            let mut frame = gfx.frame();
+            bg.show(&mut frame);
+            frame.commit();
 
             crate::test_runner::assert_image_output("examples/font/font-test-output.png");
         }

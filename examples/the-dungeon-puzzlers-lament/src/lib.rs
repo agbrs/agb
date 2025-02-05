@@ -6,12 +6,8 @@
 
 use agb::{
     display::{
-        object::{Oam, OamFrame},
-        tiled::{
-            BackgroundIterator, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
-            TiledBackground,
-        },
-        Priority,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        Graphics, GraphicsFrame, Priority,
     },
     input::{Button, ButtonController},
     interrupt::VBlank,
@@ -37,22 +33,19 @@ struct Agb<'gba> {
     vblank: VBlank,
     input: ButtonController,
     sfx: Sfx<'gba>,
-    oam: Oam<'gba>,
-    gfx: TiledBackground<'gba>,
+    gfx: Graphics<'gba>,
 }
 
 impl<'gba> Agb<'gba> {
     fn frame<D, U, T, F>(&mut self, data: &mut D, update: U, render: F) -> T
     where
         U: FnOnce(&mut D, &ButtonController, &mut Sfx<'gba>) -> T,
-        F: FnOnce(&D, &mut OamFrame, &mut BackgroundIterator<'_>),
+        F: FnOnce(&D, &mut GraphicsFrame),
     {
-        let mut bg_iter = self.gfx.iter();
-        let mut frame = self.oam.frame();
-        render(data, &mut frame, &mut bg_iter);
+        let mut frame = self.gfx.frame();
+        render(data, &mut frame);
 
         self.vblank.wait_for_vblank();
-        bg_iter.commit();
         frame.commit();
 
         self.sfx.frame();
@@ -67,7 +60,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
 
     let _ = save::init_save(&mut gba);
 
-    let gfx = gba.display.video.tiled();
+    let gfx = gba.display.graphics.get();
     let mut ui_bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
@@ -87,8 +80,6 @@ pub fn entry(mut gba: agb::Gba) -> ! {
 
     ui_bg.commit();
 
-    let oam = gba.display.object.get();
-
     let mut input = agb::input::ButtonController::new();
     input.update();
 
@@ -103,7 +94,6 @@ pub fn entry(mut gba: agb::Gba) -> ! {
         vblank,
         input,
         sfx,
-        oam,
         gfx,
     };
 
@@ -119,8 +109,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
                 if g.frame(
                     &mut (),
                     |_, input, _| input.is_just_pressed(Button::SELECT),
-                    |_, _, bg_iter| {
-                        ending_bg.show(bg_iter);
+                    |_, frame| {
+                        ending_bg.show(frame);
                     },
                 ) {
                     break;
@@ -134,8 +124,8 @@ pub fn entry(mut gba: agb::Gba) -> ! {
             let mut game = g.frame(
                 &mut (),
                 |_, _, _| Pausable::new(current_level, maximum_level),
-                |_, _, bg_iter| {
-                    ui_bg.show(bg_iter);
+                |_, frame| {
+                    ui_bg.show(frame);
                 },
             );
 
@@ -143,9 +133,9 @@ pub fn entry(mut gba: agb::Gba) -> ! {
                 if let Some(option) = g.frame(
                     &mut game,
                     |game, input, sfx| game.update(input, sfx),
-                    |game, oam, bg_iter| {
-                        ui_bg.show(bg_iter);
-                        game.render(oam, bg_iter)
+                    |game, frame| {
+                        ui_bg.show(frame);
+                        game.render(frame)
                     },
                 ) {
                     match option {

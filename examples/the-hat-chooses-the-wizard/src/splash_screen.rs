@@ -1,9 +1,7 @@
 use super::sfx::SfxPlayer;
 use agb::display::{
-    tiled::{
-        RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TiledBackground, VRAM_MANAGER,
-    },
-    Priority,
+    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+    Graphics, Priority,
 };
 
 agb::include_background_gfx!(splash_screens,
@@ -16,7 +14,7 @@ pub enum SplashScreen {
     End,
 }
 
-pub fn show_splash_screen(gfx: &mut TiledBackground<'_>, which: SplashScreen, sfx: &mut SfxPlayer) {
+pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut SfxPlayer) {
     let mut map = RegularBackgroundTiles::new(
         Priority::P3,
         RegularBackgroundSize::Background32x32,
@@ -42,8 +40,8 @@ pub fn show_splash_screen(gfx: &mut TiledBackground<'_>, which: SplashScreen, sf
     VRAM_MANAGER.set_background_palettes(splash_screens::PALETTES);
 
     loop {
-        let mut bg_iter = gfx.iter();
-        map.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        map.show(&mut frame);
 
         input.update();
         if input.is_just_pressed(
@@ -57,7 +55,7 @@ pub fn show_splash_screen(gfx: &mut TiledBackground<'_>, which: SplashScreen, sf
 
         sfx.frame();
         vblank.wait_for_vblank();
-        bg_iter.commit();
+        frame.commit();
     }
 
     map.clear();

@@ -8,12 +8,12 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, OamFrame, Object, Tag, TagMap},
+        object::{Graphics, Object, Tag, TagMap},
         tiled::{
-            BackgroundIterator, InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles,
-            TileFormat, VRAM_MANAGER,
+            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
+            VRAM_MANAGER,
         },
-        Priority, HEIGHT, WIDTH,
+        GraphicsFrame, Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
@@ -255,7 +255,7 @@ impl Entity {
         unit_vector * low
     }
 
-    fn show(&mut self, background_position: Vector2D<FixedNumberType>, oam: &mut OamFrame) {
+    fn show(&mut self, background_position: Vector2D<FixedNumberType>, frame: &mut GraphicsFrame) {
         let position = (self.position - background_position).floor();
         self.sprite.set_position(position - (8, 8).into());
         if !(position.x < -8
@@ -263,7 +263,7 @@ impl Entity {
             || position.y < -8
             || position.y > HEIGHT + 8)
         {
-            self.sprite.show(oam);
+            self.sprite.show(frame);
         }
     }
 }
@@ -307,10 +307,10 @@ impl Map<'_> {
         self.foreground.commit();
     }
 
-    fn show(&self, bg_iter: &mut BackgroundIterator<'_>) {
+    fn show(&self, frame: &mut GraphicsFrame) {
         if self.is_visible {
-            self.background.show(bg_iter);
-            self.foreground.show(bg_iter);
+            self.background.show(frame);
+            self.foreground.show(frame);
         }
     }
 
@@ -762,20 +762,20 @@ impl<'a> PlayingLevel<'a> {
         target_position.into()
     }
 
-    fn display(&mut self, oam: &mut OamFrame, bg: &mut BackgroundIterator) {
-        self.background.show(bg);
+    fn display(&mut self, frame: &mut GraphicsFrame) {
+        self.background.show(frame);
 
-        self.player.hat.show(self.background.position, oam);
-        self.player.wizard.show(self.background.position, oam);
+        self.player.hat.show(self.background.position, frame);
+        self.player.wizard.show(self.background.position, frame);
 
         for enemy in self.enemies.iter_mut().flat_map(|x| x.entity()) {
-            enemy.show(self.background.position, oam);
+            enemy.show(self.background.position, frame);
         }
     }
 }
 
 pub fn main(mut agb: agb::Gba) -> ! {
-    let mut tiled = agb.display.video.tiled();
+    let mut gfx = agb.display.graphics.get();
     VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
 
     let tileset = &tile_sheet::background.tiles;
@@ -784,12 +784,10 @@ pub fn main(mut agb: agb::Gba) -> ! {
     mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
-    splash_screen::show_splash_screen(&mut tiled, splash_screen::SplashScreen::Start, &mut sfx);
+    splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::Start, &mut sfx);
 
     loop {
         VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
-
-        let mut object = agb.display.object.get();
 
         let vblank = agb::interrupt::VBlank::get();
         let mut current_level = 0;
@@ -802,7 +800,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
             sfx.frame();
             vblank.wait_for_vblank();
 
-            let mut bg_iter = tiled.iter();
+            let mut frame = gfx.frame();
             let mut world_display_tiles = level_display::write_level(
                 current_level / 8 + 1,
                 current_level % 8 + 1,
@@ -811,8 +809,8 @@ pub fn main(mut agb: agb::Gba) -> ! {
             );
 
             world_display_tiles.commit();
-            world_display_tiles.show(&mut bg_iter);
-            bg_iter.commit();
+            world_display_tiles.show(&mut frame);
+            frame.commit();
 
             sfx.frame();
             vblank.wait_for_vblank();
@@ -853,14 +851,12 @@ pub fn main(mut agb: agb::Gba) -> ! {
                             if !level.dead_update() {
                                 break;
                             }
-                            let mut bg_iter = tiled.iter();
-                            let mut oam_frame = object.frame();
-                            level.display(&mut oam_frame, &mut bg_iter);
+                            let mut frame = gfx.frame();
+                            level.display(&mut frame);
                             sfx.frame();
                             vblank.wait_for_vblank();
                             level.background.commit_backgrounds();
-                            bg_iter.commit();
-                            oam_frame.commit();
+                            frame.commit();
                         }
                         break;
                     }
@@ -870,22 +866,19 @@ pub fn main(mut agb: agb::Gba) -> ! {
                     }
                 }
 
-                let mut bg_iter = tiled.iter();
-                let mut oam_frame = object.frame();
-                level.display(&mut oam_frame, &mut bg_iter);
+                let mut frame = gfx.frame();
+                level.display(&mut frame);
 
                 sfx.frame();
                 vblank.wait_for_vblank();
                 level.background.commit_backgrounds();
-                bg_iter.commit();
-                oam_frame.commit();
+                frame.commit();
             }
 
             level.set_backgrounds_visibility(false);
-            object.frame().commit();
         }
 
-        splash_screen::show_splash_screen(&mut tiled, splash_screen::SplashScreen::End, &mut sfx);
+        splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::End, &mut sfx);
     }
 }
 

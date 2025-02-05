@@ -16,7 +16,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
@@ -53,8 +53,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
         blend_amount = blend_amount.clamp(0.into(), 1.into());
 
-        let mut bg_iter = gfx.iter();
-        let background_id = map.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        let background_id = map.show(&mut frame);
 
         vblank.wait_for_vblank();
 
@@ -79,7 +79,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .set_background_enable(background_id, true)
             .set_blend_enable(true);
 
-        bg_iter.commit();
+        frame.commit();
         window.commit();
         blend.commit();
     }

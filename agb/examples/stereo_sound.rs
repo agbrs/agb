@@ -24,7 +24,7 @@ static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let mut bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
@@ -56,11 +56,11 @@ fn main(mut gba: Gba) -> ! {
 
     let mut stats_renderer = FONT.render_text((0u16, 6u16));
     loop {
-        let mut bg_iter = gfx.iter();
-        bg.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
         vblank_provider.wait_for_vblank();
         bg.commit();
-        bg_iter.commit();
+        frame.commit();
 
         let before_mixing_cycles = timer.value();
         mixer.frame();

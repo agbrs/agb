@@ -537,12 +537,11 @@ pub(crate) fn battle_screen(
     let mut counter = 0usize;
 
     loop {
-        let mut bg_iter = agb.tiled.iter();
-        let mut oam_frame = agb.obj.frame();
+        let mut frame = agb.gfx.frame();
 
         counter = counter.wrapping_add(1);
 
-        for action_to_apply in battle_screen_display.update(&current_battle_state, &mut oam_frame) {
+        for action_to_apply in battle_screen_display.update(&current_battle_state, &mut frame) {
             if let Some(action_to_return) =
                 current_battle_state.apply_action(action_to_apply, &mut agb.sfx)
             {
@@ -594,14 +593,13 @@ pub(crate) fn battle_screen(
             .set_position((120 - 4, selected_die as u16 * 40 + 28 - 4))
             .set_sprite(SELECT_BOX.animation_sprite(counter / 10));
 
-        select_box_obj.show(&mut oam_frame);
+        select_box_obj.show(&mut frame);
 
         agb.star_background.update();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
-        oam_frame.commit();
         help_background.commit();
-        help_background.show(&mut bg_iter);
+        help_background.show(&mut frame);
 
         if current_battle_state.enemy.health == 0 {
             agb.sfx.ship_explode();
@@ -617,9 +615,9 @@ pub(crate) fn battle_screen(
             return BattleResult::Loss;
         }
 
-        agb.star_background.show(&mut bg_iter);
+        agb.star_background.show(&mut frame);
         agb.star_background.commit();
 
-        bg_iter.commit();
+        frame.commit();
     }
 }

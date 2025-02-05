@@ -5,7 +5,7 @@
 use core::ops::{Deref, DerefMut};
 
 use agb::{
-    display::object::{OamFrame, Object},
+    display::{object::Object, GraphicsFrame},
     fixnum::{Num, Vector2D},
 };
 use alloc::vec;
@@ -149,8 +149,8 @@ pub struct RenderCache {
 }
 
 impl RenderCache {
-    pub fn render(&self, oam: &mut OamFrame) {
-        self.object.show(oam);
+    pub fn render(&self, frame: &mut GraphicsFrame) {
+        self.object.show(frame);
     }
 
     pub fn sorting_number(&self) -> i32 {

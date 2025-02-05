@@ -1,7 +1,8 @@
 use agb::{
     display::{
-        object::{OamFrame, Object, Tag},
+        object::{Object, Tag},
         tiled::RegularBackgroundTiles,
+        GraphicsFrame,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -210,7 +211,7 @@ impl GameState {
         }
     }
 
-    pub fn render_arrows(&self, oam: &mut OamFrame, current_turn: Option<usize>) {
+    pub fn render_arrows(&self, frame: &mut GraphicsFrame, current_turn: Option<usize>) {
         let is_odd_frame = if current_turn.is_some() {
             true
         } else {
@@ -233,21 +234,21 @@ impl GameState {
 
             Object::new(arrow_for_direction(*direction).sprite(sprite_idx))
                 .set_position(arrow_position)
-                .show(oam);
+                .show(frame);
         }
     }
 
-    pub fn render(&self, oam: &mut OamFrame) {
+    pub fn render(&self, frame: &mut GraphicsFrame) {
         let frame_index = self.frame / 32;
         let is_odd_frame = frame_index % 2 == 1;
 
         Object::new(resources::CURSOR.sprite(0))
             .set_position(self.cursor_state.get_position(is_odd_frame))
-            .show(oam);
+            .show(frame);
 
         let level = self.level;
 
-        self.render_arrows(oam, None);
+        self.render_arrows(frame, None);
 
         fn placed_position(position: usize, item: &Item) -> Vector2D<i32> {
             let position_x = (position % PLAY_AREA_WIDTH) as i32;
@@ -263,7 +264,7 @@ impl GameState {
 
             Object::new(item.tag().animation_sprite(frame_index))
                 .set_position(item_position)
-                .show(oam);
+                .show(frame);
         }
 
         for (item_position, item) in level.items.iter().enumerate().filter_map(|(i, item)| {
@@ -285,7 +286,7 @@ impl GameState {
         }) {
             Object::new(item.tag().animation_sprite(frame_index))
                 .set_position(item_position)
-                .show(oam);
+                .show(frame);
         }
 
         for entity in level.entities.iter() {
@@ -293,7 +294,7 @@ impl GameState {
 
             Object::new(entity.0.shadow_tag().sprite(0))
                 .set_position(entity_position)
-                .show(oam);
+                .show(frame);
         }
     }
 }

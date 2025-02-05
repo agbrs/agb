@@ -26,7 +26,8 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
             let mut gba = unsafe { crate::Gba::new_in_entry() };
 
             gba.dma.dma().dma3.disable();
-            let mut gfx = gba.display.video.bitmap3();
+            // SAFETY: Again, not fine, but we're crashing anyway so we can clobber VRam if we need to
+            let mut gfx = unsafe { Bitmap3::new() };
             gfx.clear(0xFFFF);
 
             let qrcode_string_data = if WEBSITE.is_empty() {

@@ -17,7 +17,7 @@ static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     VRAM_MANAGER.set_background_palette_raw(&[
@@ -51,29 +51,29 @@ fn main(mut gba: agb::Gba) -> ! {
 
     writer.commit();
 
-    let mut bg_iter = gfx.iter();
-    bg.show(&mut bg_iter);
+    let mut frame = gfx.frame();
+    bg.show(&mut frame);
 
     bg.commit();
-    bg_iter.commit();
+    frame.commit();
 
-    let mut frame = 0;
+    let mut frame_count = 0;
 
     loop {
-        let mut bg_iter = gfx.iter();
+        let mut frame = gfx.frame();
 
         let mut renderer = FONT.render_text((4u16, 0u16));
         let mut writer = renderer.writer(1, 2, &mut bg);
 
-        writeln!(&mut writer, "Frame {frame}").unwrap();
+        writeln!(&mut writer, "Frame {frame_count}").unwrap();
         writer.commit();
 
-        frame += 1;
+        frame_count += 1;
 
         bg.commit();
-        bg.show(&mut bg_iter);
+        bg.show(&mut frame);
 
         vblank.wait_for_vblank();
-        bg_iter.commit();
+        frame.commit();
     }
 }

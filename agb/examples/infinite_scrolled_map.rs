@@ -15,7 +15,7 @@ include_background_gfx!(big_map, "2ce8f4", big_map => deduplicate "examples/big_
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     let mut input = ButtonController::new();
@@ -46,11 +46,11 @@ fn main(mut gba: agb::Gba) -> ! {
             )
         });
 
-        let mut bg_iter = gfx.iter();
-        infinite_scrolled.show(&mut bg_iter);
+        let mut frame = gfx.frame();
+        infinite_scrolled.show(&mut frame);
 
         vblank.wait_for_vblank();
         infinite_scrolled.commit();
-        bg_iter.commit();
+        frame.commit();
     }
 }

@@ -13,7 +13,7 @@ include_background_gfx!(water_tiles, water_tiles => "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.video.tiled();
+    let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
     let tileset = &water_tiles::water_tiles.tiles;
@@ -34,9 +34,9 @@ fn main(mut gba: agb::Gba) -> ! {
 
     bg.commit();
 
-    let mut bg_iter = gfx.iter();
-    bg.show(&mut bg_iter);
-    bg_iter.commit();
+    let mut frame = gfx.frame();
+    bg.show(&mut frame);
+    frame.commit();
 
     let mut i = 0;
     loop {
