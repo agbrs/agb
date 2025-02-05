@@ -13,6 +13,8 @@ pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
 
+use bilge::prelude::*;
+
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
     dma::DmaControllable,
@@ -27,6 +29,22 @@ pub struct BackgroundId(pub(crate) u8);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct AffineBackgroundId(pub(crate) u8);
+
+#[bitsize(16)]
+#[derive(FromBits)]
+struct DisplayControlRegister {
+    video_mode: u3,
+    _reserved: u1,
+    _display_frame_select: u1,
+    hblank_interval_free: bool,
+    obj_character_mapping: bool,
+    forced_blank: bool,
+    enabled_backgrounds: u4,
+    obj_display: bool,
+    window0_display: bool,
+    window1_display: bool,
+    obj_window_display: bool,
+}
 
 impl BackgroundId {
     #[must_use]
@@ -221,12 +239,11 @@ impl BackgroundFrame<'_> {
         let enabled_backgrounds =
             ((1u16 << self.num_regular) - 1) | (((1 << self.num_affine) - 1) << 2);
 
-        let mut display_control = DISPLAY_CONTROL.get();
+        let mut display_control_register = DisplayControlRegister::from(DISPLAY_CONTROL.get());
+        display_control_register.set_video_mode(u3::new(video_mode as u8));
+        display_control_register.set_enabled_backgrounds(u4::new(enabled_backgrounds as u8));
 
-        display_control &= 0b1111000001111000;
-        display_control |= video_mode | (enabled_backgrounds << 8);
-
-        DISPLAY_CONTROL.set(display_control);
+        DISPLAY_CONTROL.set(display_control_register.into());
 
         for (i, regular_background) in self
             .regular_backgrounds
