@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
-if [ "$1" == "" ]; then
-    echo "Must pass an argument (the rust file to execute)"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <empty temp directory> <rust file>"
     exit 1
 fi
 
-OUT_DIR=$(mktemp -d --tmpdir playagbrsdev.XXXXXXXXX)
-cp "$1" "$OUT_DIR/main.rs"
+OUT_DIR="$1"
+cp "$2" "$OUT_DIR/main.rs"
 chmod -R 777 "$OUT_DIR"
 timeout 30s \
     docker run \
