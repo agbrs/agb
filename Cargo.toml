@@ -47,3 +47,7 @@ exclude = [
 
     "template",
 ]
+
+[profile.release.package.backtrace]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
