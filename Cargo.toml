@@ -29,6 +29,7 @@ members = [
     "emulator/test-runner",
     "emulator/screenshot-generator",
     "website/backtrace",
+    "website/play",
 ]
 
 exclude = [
