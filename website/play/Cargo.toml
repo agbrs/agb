@@ -8,3 +8,5 @@ axum = "0.8.1"
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["full"] }
 tower = "0.5.2"
+tracing = "0.1.41"
+uuid = { version = "1.13.1", features = ["v4"] }
