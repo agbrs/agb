@@ -15,5 +15,3 @@ timeout 30s \
         --cap-drop=ALL --net=none --memory=256m --memory-swap=512m --pids-limit=512 --oom-score-adj=1000 \
         --rm -v "$OUT_DIR:/out" -i \
         agb-build:latest
-
-echo "$OUT_DIR/agb.gba.gz"
