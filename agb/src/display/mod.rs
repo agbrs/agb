@@ -81,17 +81,17 @@ impl<'gba> Graphics<'gba> {
 pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,
     pub(crate) bg_frame: BackgroundFrame<'frame>,
-    blend: Blend<'frame>,
+    blend: Blend,
 }
 
-impl<'frame> GraphicsFrame<'frame> {
+impl GraphicsFrame<'_> {
     pub fn commit(self) {
         self.oam_frame.commit();
         self.bg_frame.commit();
         self.blend.commit();
     }
 
-    pub fn blend(&mut self) -> &mut Blend<'frame> {
+    pub fn blend(&mut self) -> &mut Blend {
         &mut self.blend
     }
 }

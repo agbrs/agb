@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 mod registers;
 
 use registers::{BlendControlAlpha, BlendControlBrightness, BlendControlRegister};
@@ -21,50 +19,44 @@ pub enum Layer {
     Bottom = 1,
 }
 
-pub struct Blend<'frame> {
-    _phantom: PhantomData<&'frame ()>,
-
+pub struct Blend {
     blend_control: registers::BlendControlRegister,
     alpha: registers::BlendControlAlpha,
     brightness: registers::BlendControlBrightness,
 }
 
-impl<'frame> Blend<'frame> {
+impl Blend {
     pub(crate) fn new() -> Self {
         Self {
-            _phantom: PhantomData,
-
             blend_control: Default::default(),
             alpha: Default::default(),
             brightness: Default::default(),
         }
     }
 
-    pub fn layer<'blend>(&'blend mut self, layer: Layer) -> BlendLayer<'blend, 'frame> {
+    pub fn layer<'blend>(&'blend mut self, layer: Layer) -> BlendLayer<'blend> {
         BlendLayer { blend: self, layer }
     }
 
-    pub fn alpha<'blend>(&'blend mut self) -> BlendAlphaEffect<'blend, 'frame> {
+    pub fn alpha<'blend>(&'blend mut self) -> BlendAlphaEffect<'blend> {
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
         BlendAlphaEffect { blend: self }
     }
 
-    pub fn brighten<'blend>(&'blend mut self) -> BlendFadeEffect<'blend, 'frame> {
+    pub fn brighten<'blend>(&'blend mut self) -> BlendFadeEffect<'blend> {
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
         BlendFadeEffect { blend: self }
     }
 
-    pub fn darken<'blend>(&'blend mut self) -> BlendFadeEffect<'blend, 'frame> {
+    pub fn darken<'blend>(&'blend mut self) -> BlendFadeEffect<'blend> {
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
         BlendFadeEffect { blend: self }
     }
 
-    pub fn object_transparency<'blend>(
-        &'blend mut self,
-    ) -> BlendObjectTransparency<'blend, 'frame> {
+    pub fn object_transparency<'blend>(&'blend mut self) -> BlendObjectTransparency<'blend> {
         self.blend_control
             .set_colour_effect(registers::Effect::None);
         BlendObjectTransparency { blend: self }
@@ -124,12 +116,12 @@ impl<'frame> Blend<'frame> {
     }
 }
 
-pub struct BlendLayer<'blend, 'frame> {
-    blend: &'blend mut Blend<'frame>,
+pub struct BlendLayer<'blend> {
+    blend: &'blend mut Blend,
     layer: Layer,
 }
 
-impl BlendLayer<'_, '_> {
+impl BlendLayer<'_> {
     /// Enables a background for blending on this layer
     pub fn enable_background(&mut self, background: BackgroundId) -> &mut Self {
         self.blend.set_background_enable(self.layer, background);
@@ -147,11 +139,11 @@ impl BlendLayer<'_, '_> {
     }
 }
 
-pub struct BlendAlphaEffect<'blend, 'frame> {
-    blend: &'blend mut Blend<'frame>,
+pub struct BlendAlphaEffect<'blend> {
+    blend: &'blend mut Blend,
 }
 
-impl BlendAlphaEffect<'_, '_> {
+impl BlendAlphaEffect<'_> {
     pub fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer alpha must be <= 1");
         self.blend.set_layer_alpha(layer, value);
@@ -159,11 +151,11 @@ impl BlendAlphaEffect<'_, '_> {
     }
 }
 
-pub struct BlendFadeEffect<'blend, 'frame> {
-    blend: &'blend mut Blend<'frame>,
+pub struct BlendFadeEffect<'blend> {
+    blend: &'blend mut Blend,
 }
 
-impl BlendFadeEffect<'_, '_> {
+impl BlendFadeEffect<'_> {
     pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer fade must be <= 1");
         self.blend.set_fade(value);
@@ -177,11 +169,11 @@ impl BlendFadeEffect<'_, '_> {
     }
 }
 
-pub struct BlendObjectTransparency<'blend, 'frame> {
-    blend: &'blend mut Blend<'frame>,
+pub struct BlendObjectTransparency<'blend> {
+    blend: &'blend mut Blend,
 }
 
-impl BlendObjectTransparency<'_, '_> {
+impl BlendObjectTransparency<'_> {
     pub fn set_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Object alpha must be <= 1");
         self.blend.set_layer_alpha(Layer::Top, value);
