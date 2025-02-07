@@ -73,7 +73,11 @@ struct Builder {
 
 impl Builder {
     fn build(&self, rust_code: &str) -> Result<Vec<u8>, CompileError> {
+        let span = tracing::info_span!("compile code").entered();
+
         let id = Uuid::new_v4();
+        span.record("id", id.to_string());
+
         let temp_folder =
             TempFolder::new(id, &self.temp_path).map_err(|_| CompileError::UnknownError)?;
 
