@@ -13,7 +13,7 @@ ENV \
     CARGO_HOME=/home/appuser/cargo \
     PATH=$PATH:/home/appuser/cargo/bin
 
-RUN su appuser -c "cargo build"
+RUN su appuser -c "cargo add agb_tracker && cargo build"
 
 COPY --chown=appuser:appgroup ./execute.sh /agb/execute.sh
 

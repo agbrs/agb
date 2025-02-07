@@ -2,11 +2,12 @@ use std::{
     fs, io,
     ops::Deref,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
-use tokio::{net::TcpListener, process::Command};
+use tokio::net::TcpListener;
 use uuid::Uuid;
 
 #[tokio::main]
@@ -29,18 +30,30 @@ async fn compile(
     State(builder): State<Builder>,
     Json(arguments): Json<CompileArguments>,
 ) -> Result<Vec<u8>, (StatusCode, Json<CompileResponse>)> {
-    builder.build(&arguments.code).await.map_err(|e| match e {
-        CompileError::CompileFail(output) => (
-            StatusCode::BAD_REQUEST,
-            Json(CompileResponse { error: output }),
-        ),
-        CompileError::UnknownError => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(CompileResponse {
-                error: "Unknown error occurred".to_string(),
-            }),
-        ),
-    })
+    tokio::task::spawn_blocking(move || builder.build(&arguments.code))
+        .await
+        .map_err(|join_error| {
+            tracing::error!(error = join_error.to_string(), "Build panicked");
+
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(CompileResponse {
+                    error: "Unknown error occurred".to_string(),
+                }),
+            )
+        })?
+        .map_err(|e| match e {
+            CompileError::CompileFail(output) => (
+                StatusCode::BAD_REQUEST,
+                Json(CompileResponse { error: output }),
+            ),
+            CompileError::UnknownError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(CompileResponse {
+                    error: "Unknown error occurred".to_string(),
+                }),
+            ),
+        })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,8 +72,7 @@ struct Builder {
 }
 
 impl Builder {
-    #[tracing::instrument]
-    async fn build(&self, rust_code: &str) -> Result<Vec<u8>, CompileError> {
+    fn build(&self, rust_code: &str) -> Result<Vec<u8>, CompileError> {
         let id = Uuid::new_v4();
         let temp_folder =
             TempFolder::new(id, &self.temp_path).map_err(|_| CompileError::UnknownError)?;
@@ -75,7 +87,7 @@ impl Builder {
             .args(["-R", "777"])
             .arg(temp_folder.as_os_str());
 
-        if let Err(e) = permissions_command.status().await {
+        if let Err(e) = permissions_command.status() {
             tracing::error!(
                 error = e.to_string(),
                 "Failed to set permissions for temp folder {}",
@@ -103,7 +115,7 @@ impl Builder {
             .arg(format!("{}:/out", temp_folder.display()))
             .args(["-i", "agb-build:latest"]);
 
-        match launch_command.output().await {
+        match launch_command.output() {
             Ok(output) => {
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
