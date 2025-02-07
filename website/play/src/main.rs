@@ -8,10 +8,30 @@ use std::{
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
+use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // axum logs rejections from built-in extractors with the `axum::rejection`
+                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                format!(
+                    "{}=debug,tower_http=debug,axum::rejection=trace",
+                    env!("CARGO_CRATE_NAME")
+                )
+                .into()
+            }),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+                .compact(),
+        )
+        .init();
+
     let state = Builder {
         temp_path: PathBuf::from("/tmp/agb-build"),
     };
@@ -21,7 +41,7 @@ async fn main() {
         .with_state(state);
 
     let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     axum::serve(listener, app).await.unwrap();
 }
@@ -73,10 +93,9 @@ struct Builder {
 
 impl Builder {
     fn build(&self, rust_code: &str) -> Result<Vec<u8>, CompileError> {
-        let span = tracing::info_span!("compile code").entered();
+        let id: Uuid = Uuid::new_v4();
 
-        let id = Uuid::new_v4();
-        span.record("id", id.to_string());
+        let _span = tracing::info_span!("compile code", id = id.to_string()).entered();
 
         let temp_folder =
             TempFolder::new(id, &self.temp_path).map_err(|_| CompileError::UnknownError)?;
@@ -129,7 +148,7 @@ impl Builder {
                 }
             }
             Err(e) => {
-                tracing::error!(error = e.to_string(), "Failed to launch docker");
+                tracing::error!(error = e.to_string(), "Failed to launch docker: {e}");
                 return Err(CompileError::UnknownError);
             }
         };
@@ -142,6 +161,8 @@ impl Builder {
             );
             CompileError::UnknownError
         })?;
+
+        tracing::info!("Built rom with size {}kb", result.len() / 1000);
 
         Ok(result)
     }
