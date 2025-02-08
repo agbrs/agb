@@ -57,6 +57,4 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
         vblank.wait_for_vblank();
         frame.commit();
     }
-
-    map.clear();
 }

@@ -20,6 +20,7 @@ use agb::{
     sound::mixer::Frequency,
 };
 
+use level_display::LevelDisplay;
 use sfx::SfxPlayer;
 
 mod enemies;
@@ -769,6 +770,8 @@ pub fn main(mut agb: agb::Gba) -> ! {
     let tileset = &tile_sheet::background.tiles;
     let mut mixer = agb.mixer.mixer(Frequency::Hz10512);
 
+    let mut level_display = LevelDisplay::new(tileset, tile_sheet::background.tile_settings);
+
     mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
@@ -785,19 +788,14 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 break;
             }
 
-            sfx.frame();
-            vblank.wait_for_vblank();
-
             let mut frame = gfx.frame();
-            let mut world_display_tiles = level_display::write_level(
-                current_level / 8 + 1,
-                current_level % 8 + 1,
+            level_display.write_level(
                 tileset,
                 tile_sheet::background.tile_settings,
+                current_level / 8 + 1,
+                current_level % 8 + 1,
             );
-
-            world_display_tiles.commit();
-            world_display_tiles.show(&mut frame);
+            level_display.show(&mut frame);
             frame.commit();
 
             sfx.frame();
@@ -826,8 +824,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 vblank.wait_for_vblank();
                 sfx.frame();
             }
-
-            world_display_tiles.clear();
 
             loop {
                 match level.update_frame(&mut sfx) {
