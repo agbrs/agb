@@ -133,6 +133,7 @@ build-site-examples: build-release
     for EXAMPLE_NAME in $EXAMPLES; do
         EXAMPLE="${EXAMPLE_NAME%.rs}"
         just gbafix "$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE" --output="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba"
+        cp "agb/examples/$EXAMPLE_NAME" "website/agb/src/roms/examples/$EXAMPLE_NAME"
         gzip -9 -c $CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba > website/agb/src/roms/examples/$EXAMPLE.gba.gz
         just generate-screenshot --rom="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba" --frames=10 --output=website/agb/src/roms/examples/$EXAMPLE.png
         EXAMPLE_IMAGE_IMPORTS="$EXAMPLE_IMAGE_IMPORTS import $EXAMPLE from './$EXAMPLE.png';"
@@ -143,8 +144,16 @@ build-site-examples: build-release
     echo "$EXAMPLE_IMAGE_IMPORTS" > website/agb/src/roms/examples/examples.ts
     echo "$EXAMPLE_DEFINITIONS" >> website/agb/src/roms/examples/examples.ts
 
+build-site-dependencies: build-combo-rom-site build-site-examples build-book
 
-setup-app-build: build-mgba-wasm build-combo-rom-site build-website-backtrace build-site-examples
+package-site-dependencies: build-site-dependencies
+    mkdir -p target
+    tar -cf target/site-deps.tar.gz book/book website/agb/src/roms/examples website/agb/src/roms/combo.gba.gz
+
+unpackage-site-dependencies:
+    tar -xvf target/site-deps.tar.gz
+
+setup-app-build: build-mgba-wasm build-website-backtrace unpackage-site-dependencies
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
 
 build-site-app: setup-app-build
@@ -153,7 +162,7 @@ build-site-app: setup-app-build
 serve-site-dev: setup-app-build
     (cd website/agb && npm run dev)
 
-build-site: build-site-app build-book
+build-site: build-site-app
     rm -rf website/build
     cp website/agb/out website/build -r
     cp book/book website/build/book -r

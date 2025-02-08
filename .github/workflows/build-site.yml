@@ -8,9 +8,44 @@ on:
     branches: [master]
 
 jobs:
+  prepare_last_release:
+    name: Prepare last release
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set CARGO_TARGET_DIR
+        run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install build-essential libelf-dev zip libasound-dev -y
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: "0.4.13"
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout latest release
+        run: cp justfile ../justfile && git switch --detach $(git describe --tags --abbrev=0) && mv ../justfile justfile
+      - name: Prepare web dependencies
+        run: just package-site-dependencies
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-deps
+          path: "target/site-deps.tar.gz"
   build:
     name: Build website
     runs-on: ubuntu-24.04
+    needs: prepare_last_release
     steps:
       - name: Set CARGO_TARGET_DIR
         run: echo "CARGO_TARGET_DIR=$HOME/target" >> $GITHUB_ENV
@@ -19,8 +54,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Checkout latest released version's book
-        run: git restore --source $(git describe --tags --abbrev=0) book
+      - name: Download site dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: site-deps
+          path: target/
       - name: Cache
         uses: actions/cache@v4
         with:
@@ -32,10 +70,6 @@ jobs:
             ~/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}--npm--${{ hashFiles('**/package-lock.json') }}
       - uses: extractions/setup-just@v2
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v2
-        with:
-          mdbook-version: "0.4.13"
       - name: Setup wasm
         run: just setup-cargo-wasm
       - name: Build website

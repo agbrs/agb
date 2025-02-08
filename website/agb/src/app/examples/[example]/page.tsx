@@ -23,7 +23,7 @@ function getExample(sluggedExample: string) {
 }
 
 async function loadSourceCode(exampleName: string) {
-  const source = await fs.readFile(`../../agb/examples/${exampleName}.rs`);
+  const source = await fs.readFile(`src/roms/examples/${exampleName}.rs`);
 
   return source.toString();
 }
