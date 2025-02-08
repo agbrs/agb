@@ -1,11 +1,4 @@
-import {
-  FC,
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Mgba, MgbaHandle } from "./mgba";
 import {
   BindingsControl,
@@ -62,7 +55,7 @@ const StartButtonWrapper = styled.button`
 interface MgbaWrapperProps {
   gameUrl: URL;
   isPlaying?: boolean;
-  setIsPlaying?: (isPlaying: boolean) => void;
+  onPlayIsClicked?: (isPlaying: boolean) => void;
 }
 
 export function MgbaStandalone(props: MgbaWrapperProps) {
@@ -74,13 +67,11 @@ export function MgbaStandalone(props: MgbaWrapperProps) {
 }
 
 export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
-  ({ gameUrl, isPlaying = true, setIsPlaying }, ref) => {
+  ({ gameUrl, isPlaying = true, onPlayIsClicked }, ref) => {
     const [{ volume, bindings }, setState] = useLocalStorage(
       { volume: 1.0, bindings: DefaultBindingsSet() },
       "agbrswebplayer"
     );
-
-    const [mgbaId, setMgbaId] = useState(0);
 
     function setVolume(newVolume: number) {
       return setState({ volume: newVolume, bindings });
@@ -129,7 +120,9 @@ export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
             paused={paused}
           />
         ) : (
-          <StartButton onClick={() => setIsPlaying && setIsPlaying(true)} />
+          <StartButton
+            onClick={() => onPlayIsClicked && onPlayIsClicked(true)}
+          />
         )}
       </>
     );
