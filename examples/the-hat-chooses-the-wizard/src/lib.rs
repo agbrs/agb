@@ -273,7 +273,6 @@ struct Map<'a> {
     foreground: &'a mut InfiniteScrolledMap,
     position: Vector2D<FixedNumberType>,
     level: &'a Level,
-    is_visible: bool,
 }
 
 impl Map<'_> {
@@ -308,14 +307,8 @@ impl Map<'_> {
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
-        if self.is_visible {
-            self.background.show(frame);
-            self.foreground.show(frame);
-        }
-    }
-
-    fn set_visible(&mut self, visible: bool) {
-        self.is_visible = visible;
+        self.background.show(frame);
+        self.foreground.show(frame);
     }
 }
 
@@ -660,16 +653,11 @@ impl<'a> PlayingLevel<'a> {
                 foreground,
                 level,
                 position: background_position,
-                is_visible: false,
             },
             player: Player::new(start_pos),
             input,
             enemies: e,
         }
-    }
-
-    fn set_backgrounds_visibility(&mut self, visible: bool) {
-        self.background.set_visible(visible);
     }
 
     fn dead_start(&mut self) {
@@ -839,8 +827,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 sfx.frame();
             }
 
-            level.set_backgrounds_visibility(true);
-
             world_display_tiles.clear();
 
             loop {
@@ -875,8 +861,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 level.background.commit_backgrounds();
                 frame.commit();
             }
-
-            level.set_backgrounds_visibility(false);
         }
 
         splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::End, &mut sfx);
