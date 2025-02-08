@@ -20,6 +20,7 @@ use agb::{
     sound::mixer::Frequency,
 };
 
+use level_display::LevelDisplay;
 use sfx::SfxPlayer;
 
 mod enemies;
@@ -273,7 +274,6 @@ struct Map<'a> {
     foreground: &'a mut InfiniteScrolledMap,
     position: Vector2D<FixedNumberType>,
     level: &'a Level,
-    is_visible: bool,
 }
 
 impl Map<'_> {
@@ -308,14 +308,8 @@ impl Map<'_> {
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
-        if self.is_visible {
-            self.background.show(frame);
-            self.foreground.show(frame);
-        }
-    }
-
-    fn set_visible(&mut self, visible: bool) {
-        self.is_visible = visible;
+        self.background.show(frame);
+        self.foreground.show(frame);
     }
 }
 
@@ -660,16 +654,11 @@ impl<'a> PlayingLevel<'a> {
                 foreground,
                 level,
                 position: background_position,
-                is_visible: false,
             },
             player: Player::new(start_pos),
             input,
             enemies: e,
         }
-    }
-
-    fn set_backgrounds_visibility(&mut self, visible: bool) {
-        self.background.set_visible(visible);
     }
 
     fn dead_start(&mut self) {
@@ -781,6 +770,8 @@ pub fn main(mut agb: agb::Gba) -> ! {
     let tileset = &tile_sheet::background.tiles;
     let mut mixer = agb.mixer.mixer(Frequency::Hz10512);
 
+    let mut level_display = LevelDisplay::new(tileset, tile_sheet::background.tile_settings);
+
     mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
@@ -797,19 +788,14 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 break;
             }
 
-            sfx.frame();
-            vblank.wait_for_vblank();
-
             let mut frame = gfx.frame();
-            let mut world_display_tiles = level_display::write_level(
-                current_level / 8 + 1,
-                current_level % 8 + 1,
+            level_display.write_level(
                 tileset,
                 tile_sheet::background.tile_settings,
+                current_level / 8 + 1,
+                current_level % 8 + 1,
             );
-
-            world_display_tiles.commit();
-            world_display_tiles.show(&mut frame);
+            level_display.show(&mut frame);
             frame.commit();
 
             sfx.frame();
@@ -834,13 +820,10 @@ pub fn main(mut agb: agb::Gba) -> ! {
             );
 
             for _ in 0..20 {
-                sfx.frame();
+                level.background.commit_position();
                 vblank.wait_for_vblank();
+                sfx.frame();
             }
-
-            level.set_backgrounds_visibility(true);
-
-            world_display_tiles.clear();
 
             loop {
                 match level.update_frame(&mut sfx) {
@@ -874,8 +857,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 level.background.commit_backgrounds();
                 frame.commit();
             }
-
-            level.set_backgrounds_visibility(false);
         }
 
         splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::End, &mut sfx);
