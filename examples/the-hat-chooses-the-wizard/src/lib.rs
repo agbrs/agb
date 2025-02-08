@@ -834,8 +834,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
             );
 
             for _ in 0..20 {
-                sfx.frame();
+                level.background.commit_position();
                 vblank.wait_for_vblank();
+                sfx.frame();
             }
 
             level.set_backgrounds_visibility(true);
