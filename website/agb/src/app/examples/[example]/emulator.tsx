@@ -79,7 +79,7 @@ export function Emulator({ exampleName }: { exampleName: string }) {
       <MgbaWrapper
         gameUrl={example}
         onLogMessage={(category, level, message) => {
-          if (category === "GBA BIOS") return;
+          if (category === "GBA BIOS" || category === "GBA DMA") return;
           setLogs((logs) => [...logs, { category, level, message }]);
         }}
       />
