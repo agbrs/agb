@@ -34,29 +34,29 @@ impl Blend {
         }
     }
 
-    pub fn layer<'blend>(&'blend mut self, layer: Layer) -> BlendLayer<'blend> {
+    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_> {
         BlendLayer { blend: self, layer }
     }
 
-    pub fn alpha<'blend>(&'blend mut self) -> BlendAlphaEffect<'blend> {
+    pub fn alpha(&mut self) -> BlendAlphaEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
         BlendAlphaEffect { blend: self }
     }
 
-    pub fn brighten<'blend>(&'blend mut self) -> BlendFadeEffect<'blend> {
+    pub fn brighten(&mut self) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
         BlendFadeEffect { blend: self }
     }
 
-    pub fn darken<'blend>(&'blend mut self) -> BlendFadeEffect<'blend> {
+    pub fn darken(&mut self) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
         BlendFadeEffect { blend: self }
     }
 
-    pub fn object_transparency<'blend>(&'blend mut self) -> BlendObjectTransparency<'blend> {
+    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::None);
         BlendObjectTransparency { blend: self }
