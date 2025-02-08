@@ -1,10 +1,9 @@
 #![no_std]
 #![no_main]
 
-use agb::display::blend::{BlendMode, Layer};
 use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
-use agb::display::{HEIGHT, WIDTH};
+use agb::display::{BlendLayer, HEIGHT, WIDTH};
 use agb::fixnum::{num, Num, Rect, Vector2D};
 use agb::interrupt::VBlank;
 
@@ -56,16 +55,18 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut frame = gfx.frame();
         let background_id = map.show(&mut frame);
 
+        let blend = frame.blend();
+        blend
+            .alpha()
+            .set_layer_alpha(BlendLayer::Top, blend_amount.try_change_base().unwrap());
+        blend
+            .layer(BlendLayer::Top)
+            .enable_background(background_id);
+        blend.layer(BlendLayer::Bottom).enable_backdrop();
+
         vblank.wait_for_vblank();
 
         let mut window = gba.display.window.get();
-        let mut blend = gba.display.blend.get();
-
-        blend
-            .set_background_enable(Layer::Top, background_id, true)
-            .set_backdrop_enable(Layer::Bottom, true)
-            .set_blend_mode(BlendMode::Normal)
-            .set_blend_weight(Layer::Top, blend_amount.try_change_base().unwrap());
 
         window
             .win_in(WinIn::Win0)
@@ -81,6 +82,5 @@ fn main(mut gba: agb::Gba) -> ! {
 
         frame.commit();
         window.commit();
-        blend.commit();
     }
 }

@@ -1,25 +1,14 @@
-//! This controls the blending modes on the GBA.
-//!
-//! For now a description of how blending can be used is found on [the tonc page
-//! for graphic
-//! effects](https://www.coranac.com/tonc/text/gfx.htm#ssec-bld-gba). See the
-//! [Blend] struct for all the functions to manage blend effects. You acquire
-//! the Blend struct through the [Display][super::Display] struct.
-//! ```no_run
-//! # #![no_main]
-//! # #![no_std]
-//! # fn blend(mut gba: agb::Gba) {
-//! let mut blend = gba.display.blend.get();
-//! // ...
-//! # }
-//! ```
-//! where `gba` is a mutable [Gba][crate::Gba] struct.
+mod registers;
 
-use core::marker::PhantomData;
-
-use crate::{fixnum::Num, memory_mapped::set_bits};
+use registers::{BlendControlAlpha, BlendControlBrightness, BlendControlRegister};
 
 use super::tiled::BackgroundId;
+use crate::{fixnum::Num, memory_mapped::MemoryMapped};
+
+const BLEND_CONTROL: MemoryMapped<BlendControlRegister> = unsafe { MemoryMapped::new(0x0400_0050) };
+const BLEND_ALPHA: MemoryMapped<BlendControlAlpha> = unsafe { MemoryMapped::new(0x0400_0052) };
+const BLEND_BRIGHTNESS: MemoryMapped<BlendControlBrightness> =
+    unsafe { MemoryMapped::new(0x0400_0054) };
 
 /// The layers, top layer will be blended into the bottom layer
 #[derive(Clone, Copy, Debug)]
@@ -30,185 +19,164 @@ pub enum Layer {
     Bottom = 1,
 }
 
-/// The different blend modes available on the GBA
-#[derive(Clone, Copy, Debug)]
-pub enum BlendMode {
-    // No blending
-    Off = 0,
-    // Additive blending, use the [Blend::set_blend_weight] function to use this
-    Normal = 0b01,
-    // Brighten, use the [Blend::set_fade] to use this
-    FadeToWhite = 0b10,
-    // Darken, use the [Blend::set_fade] to use this
-    FadeToBlack = 0b11,
+pub struct Blend {
+    blend_control: registers::BlendControlRegister,
+    alpha: registers::BlendControlAlpha,
+    brightness: registers::BlendControlBrightness,
 }
 
-/// Manages the blending, won't cause anything to change unless [Blend::commit]
-/// is called.
-pub struct Blend<'gba> {
-    targets: u16,
-    blend_weights: u16,
-    fade_weight: u16,
-    phantom: PhantomData<&'gba ()>,
-}
-
-/// When making many modifications to a layer, it is convenient to operate on
-/// that layer directly. This is created by the [Blend::layer] function and
-/// operates on that layer.
-pub struct BlendLayer<'blend, 'gba> {
-    blend: &'blend mut Blend<'gba>,
-    layer: Layer,
-}
-
-impl BlendLayer<'_, '_> {
-    /// Set whether a background is enabled for blending on this layer.
-    pub fn set_background_enable(&mut self, background: BackgroundId, enable: bool) -> &mut Self {
-        self.blend
-            .set_background_enable(self.layer, background, enable);
-
-        self
-    }
-
-    /// Set whether objects are enabled for blending on this layer.
-    pub fn set_object_enable(&mut self, enable: bool) -> &mut Self {
-        self.blend.set_object_enable(self.layer, enable);
-
-        self
-    }
-
-    /// Set whether the backdrop contributes to the blend on this layer.
-    /// The backdrop is transparent colour, the colour rendered when nothing is
-    /// in it's place.
-    pub fn set_backdrop_enable(&mut self, enable: bool) -> &mut Self {
-        self.blend.set_backdrop_enable(self.layer, enable);
-
-        self
-    }
-
-    /// Set the weight for the blend on this layer.
-    pub fn set_blend_weight(&mut self, value: Num<u8, 4>) -> &mut Self {
-        self.blend.set_blend_weight(self.layer, value);
-
-        self
-    }
-}
-
-const BLEND_CONTROL: *mut u16 = 0x0400_0050 as *mut _;
-const BLEND_ALPHAS: *mut u16 = 0x0400_0052 as *mut _;
-
-const BLEND_FADES: *mut u16 = 0x0400_0054 as *mut _;
-
-impl<'gba> Blend<'gba> {
+impl Blend {
     pub(crate) fn new() -> Self {
-        let blend = Self {
-            targets: 0,
-            blend_weights: 0,
-            fade_weight: 0,
-            phantom: PhantomData,
-        };
-        blend.commit();
-
-        blend
+        Self {
+            blend_control: Default::default(),
+            alpha: Default::default(),
+            brightness: Default::default(),
+        }
     }
 
-    /// Reset the targets to all disabled, the targets control which layers are
-    /// enabled for blending.
-    pub fn reset_targets(&mut self) -> &mut Self {
-        self.targets = 0;
-
-        self
-    }
-
-    /// Reset the blend weights
-    pub fn reset_weights(&mut self) -> &mut Self {
-        self.blend_weights = 0;
-
-        self
-    }
-
-    /// Reset the brighten and darken weights
-    pub fn reset_fades(&mut self) -> &mut Self {
-        self.fade_weight = 0;
-
-        self
-    }
-
-    /// Reset targets, blend weights, and fades
-    pub fn reset(&mut self) -> &mut Self {
-        self.reset_targets().reset_fades().reset_weights()
-    }
-
-    /// Creates a layer object whose functions work only on that layer,
-    /// convenient when performing multiple operations on that layer without the
-    /// need of specifying the layer every time.
-    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_, 'gba> {
+    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_> {
         BlendLayer { blend: self, layer }
     }
 
-    /// Set whether a background is enabled for blending on a particular layer.
-    pub fn set_background_enable(
+    pub fn alpha(&mut self) -> BlendAlphaEffect<'_> {
+        self.blend_control
+            .set_colour_effect(registers::Effect::Alpha);
+        BlendAlphaEffect { blend: self }
+    }
+
+    pub fn brighten(&mut self) -> BlendFadeEffect<'_> {
+        self.blend_control
+            .set_colour_effect(registers::Effect::Increase);
+        BlendFadeEffect { blend: self }
+    }
+
+    pub fn darken(&mut self) -> BlendFadeEffect<'_> {
+        self.blend_control
+            .set_colour_effect(registers::Effect::Decrease);
+        BlendFadeEffect { blend: self }
+    }
+
+    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
+        self.blend_control
+            .set_colour_effect(registers::Effect::None);
+        BlendObjectTransparency { blend: self }
+    }
+
+    fn set_background_enable(&mut self, layer: Layer, background_id: BackgroundId) {
+        self.with_target(layer, |mut target| {
+            target.enable_background(background_id);
+            target
+        });
+    }
+
+    fn set_object_enable(&mut self, layer: Layer) {
+        self.with_target(layer, |mut target| {
+            target.enable_object();
+            target
+        });
+    }
+
+    fn set_backdrop_enable(&mut self, layer: Layer) {
+        self.with_target(layer, |mut target| {
+            target.enable_backdrop();
+            target
+        });
+    }
+
+    fn with_target(
         &mut self,
         layer: Layer,
-        background: BackgroundId,
-        enable: bool,
-    ) -> &mut Self {
-        let bit_to_modify = (background.0 as usize) + (layer as usize * 8);
-        self.targets = set_bits(self.targets, enable as u16, 1, bit_to_modify);
-
-        self
-    }
-
-    /// Set whether objects are enabled for blending on a particular layer
-    pub fn set_object_enable(&mut self, layer: Layer, enable: bool) -> &mut Self {
-        let bit_to_modify = 0x4 + (layer as usize * 8);
-        self.targets = set_bits(self.targets, enable as u16, 1, bit_to_modify);
-
-        self
-    }
-
-    /// Set whether the backdrop contributes to the blend on a particular layer.
-    /// The backdrop is transparent colour, the colour rendered when nothing is
-    /// in it's place.
-    pub fn set_backdrop_enable(&mut self, layer: Layer, enable: bool) -> &mut Self {
-        let bit_to_modify = 0x5 + (layer as usize * 8);
-        self.targets = set_bits(self.targets, enable as u16, 1, bit_to_modify);
-
-        self
-    }
-
-    /// Set the weight for the blend on a particular layer.
-    pub fn set_blend_weight(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
-        self.blend_weights = set_bits(
-            self.blend_weights,
-            value.to_raw() as u16,
-            5,
-            (layer as usize) * 8,
-        );
-
-        self
-    }
-
-    /// Set the fade of brighten or darken
-    pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
-        self.fade_weight = value.to_raw() as u16;
-
-        self
-    }
-
-    /// Set the current blend mode
-    pub fn set_blend_mode(&mut self, blend_mode: BlendMode) -> &mut Self {
-        self.targets = set_bits(self.targets, blend_mode as u16, 2, 0x6);
-
-        self
-    }
-
-    /// Commits the current state, should be called near after a call to wait
-    /// for next vblank.
-    pub fn commit(&self) {
-        unsafe {
-            BLEND_CONTROL.write_volatile(self.targets);
-            BLEND_ALPHAS.write_volatile(self.blend_weights);
-            BLEND_FADES.write_volatile(self.fade_weight);
+        f: impl FnOnce(registers::BlendTarget) -> registers::BlendTarget,
+    ) {
+        match layer {
+            Layer::Top => self
+                .blend_control
+                .set_first_target(f(self.blend_control.first_target())),
+            Layer::Bottom => self
+                .blend_control
+                .set_second_target(f(self.blend_control.second_target())),
         }
+    }
+
+    fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) {
+        match layer {
+            Layer::Top => self.alpha.set_first_blend(value),
+            Layer::Bottom => self.alpha.set_second_blend(value),
+        }
+    }
+
+    fn set_fade(&mut self, value: Num<u8, 4>) {
+        self.brightness.set(value);
+    }
+
+    pub(crate) fn commit(self) {
+        BLEND_CONTROL.set(self.blend_control);
+        BLEND_ALPHA.set(self.alpha);
+        BLEND_BRIGHTNESS.set(self.brightness);
+    }
+}
+
+pub struct BlendLayer<'blend> {
+    blend: &'blend mut Blend,
+    layer: Layer,
+}
+
+impl BlendLayer<'_> {
+    /// Enables a background for blending on this layer
+    pub fn enable_background(&mut self, background: BackgroundId) -> &mut Self {
+        self.blend.set_background_enable(self.layer, background);
+        self
+    }
+
+    pub fn enable_object(&mut self) -> &mut Self {
+        self.blend.set_object_enable(self.layer);
+        self
+    }
+
+    pub fn enable_backdrop(&mut self) -> &mut Self {
+        self.blend.set_backdrop_enable(self.layer);
+        self
+    }
+}
+
+pub struct BlendAlphaEffect<'blend> {
+    blend: &'blend mut Blend,
+}
+
+impl BlendAlphaEffect<'_> {
+    pub fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
+        assert!(value <= 1.into(), "Layer alpha must be <= 1");
+        self.blend.set_layer_alpha(layer, value);
+        self
+    }
+}
+
+pub struct BlendFadeEffect<'blend> {
+    blend: &'blend mut Blend,
+}
+
+impl BlendFadeEffect<'_> {
+    pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
+        assert!(value <= 1.into(), "Layer fade must be <= 1");
+        self.blend.set_fade(value);
+        self
+    }
+
+    pub fn set_object_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
+        assert!(value <= 1.into(), "Object alpha must be <= 1");
+        self.blend.set_layer_alpha(Layer::Top, value);
+        self
+    }
+}
+
+pub struct BlendObjectTransparency<'blend> {
+    blend: &'blend mut Blend,
+}
+
+impl BlendObjectTransparency<'_> {
+    pub fn set_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
+        assert!(value <= 1.into(), "Object alpha must be <= 1");
+        self.blend.set_layer_alpha(Layer::Top, value);
+        self
     }
 }
