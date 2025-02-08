@@ -11,6 +11,7 @@ import { useOnKeyUp } from "./useOnKeyUp.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
 import { useAvoidItchIoScrolling } from "./useAvoidItchIoScrolling";
 import { Slider } from "./Slider";
+import { LogLevel } from "./vendor/mgba";
 
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
@@ -56,6 +57,7 @@ interface MgbaWrapperProps {
   gameUrl: URL;
   isPlaying?: boolean;
   onPlayIsClicked?: (isPlaying: boolean) => void;
+  onLogMessage?: (category: string, level: LogLevel, message: string) => void;
 }
 
 export function MgbaStandalone(props: MgbaWrapperProps) {
@@ -67,7 +69,7 @@ export function MgbaStandalone(props: MgbaWrapperProps) {
 }
 
 export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
-  ({ gameUrl, isPlaying = true, onPlayIsClicked }, ref) => {
+  ({ gameUrl, isPlaying = true, onPlayIsClicked, onLogMessage }, ref) => {
     const [{ volume, bindings }, setState] = useLocalStorage(
       { volume: 1.0, bindings: DefaultBindingsSet() },
       "agbrswebplayer"
@@ -118,6 +120,7 @@ export const MgbaWrapper = forwardRef<MgbaHandle, MgbaWrapperProps>(
             volume={volume}
             controls={bindings.Actual}
             paused={paused}
+            onLogMessage={onLogMessage}
           />
         ) : (
           <StartButton
