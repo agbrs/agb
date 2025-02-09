@@ -79,13 +79,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     background.commit();
 
-    let mut chicken = Chicken {
-        left_ground_frames: 0,
-        state: State::Ground,
-        object: Object::new(IDLE),
-        position: Vector::from((6 * 8, 7 * 8)) - (0, 4).into(),
-        velocity: (0, 0).into(),
-    };
+    let mut chicken = Chicken::new(vec2(6, 7));
 
     let mut frame_count = 0usize;
 
@@ -104,6 +98,16 @@ fn main(mut gba: agb::Gba) -> ! {
 }
 
 impl Chicken {
+    fn new(tile: Vector2D<i32>) -> Self {
+        Self {
+            left_ground_frames: 0,
+            state: State::Ground,
+            object: Object::new(IDLE),
+            position: (tile * 8 - (0, 4).into()).change_base(),
+            velocity: (0, 0).into(),
+        }
+    }
+
     fn update(&mut self, frame_count: usize, input: &ButtonController, frame: &mut GraphicsFrame) {
         if self.state != State::Ground {
             self.left_ground_frames += 1;
