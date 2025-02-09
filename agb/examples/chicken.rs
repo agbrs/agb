@@ -167,44 +167,38 @@ impl Chicken {
         }
     }
 
-    fn update_collision(&mut self) {
-        let mut new_pos = self.position;
+    fn handle_collision_component(
+        velocity: &mut Number,
+        position: &mut Number,
+        collidable: &dyn Fn(i32) -> bool,
+    ) {
+        let potential = *position + *velocity;
+        let potential_external = potential + velocity.to_raw().signum() * 4;
 
-        let directions = [(1, 0), (0, 1)].map(|(x, y)| vec2(x, y));
-        let size = vec2(4, 4);
+        let target_tile = potential_external.floor() / 8;
 
-        // While you can use vector maths to solve collisions, you may fare
-        // better just handling the 4 cases seperately. It'll certainly be more
-        // efficient, a lot of these will be multiplying by zero.
-
-        for &direction in directions.iter() {
-            let velocity_component = self.velocity.hadamard(direction.change_base());
-            let potential = new_pos + velocity_component;
-            let velocity_sign = vec2(
-                velocity_component.x.to_raw().signum(),
-                velocity_component.y.to_raw().signum(),
-            );
-            let potential_size = potential + velocity_sign.hadamard(size).change_base();
-            let target_tile = potential_size.floor() / 8;
-
-            if !tile_is_collidable(target_tile) {
-                new_pos = potential;
-            } else {
-                let center_of_target_tile = target_tile * 8 + vec2(4, 4);
-                let center_of_tile_with_chicken = center_of_target_tile - velocity_sign * 8;
-                // use center tile position in the axis we're processing and the new position of the axis we're not processing
-                let target_position = center_of_tile_with_chicken
-                    .hadamard(direction)
-                    .change_base()
-                    + new_pos.hadamard(direction.swap().change_base());
-                new_pos = target_position;
-                self.velocity = self.velocity.hadamard(direction.swap().change_base());
-            }
+        if !collidable(target_tile) {
+            *position = potential;
+        } else {
+            let center_of_target_tile = target_tile * 8 + 4;
+            let center_of_tile_with_chicken =
+                center_of_target_tile - velocity.to_raw().signum() * 8;
+            *position = center_of_tile_with_chicken.into();
+            *velocity = 0.into();
         }
+    }
+
+    fn update_collision(&mut self) {
+        Self::handle_collision_component(&mut self.velocity.x, &mut self.position.x, &|x| {
+            tile_is_collidable(vec2(x, self.position.y.floor() / 8))
+        });
+        Self::handle_collision_component(&mut self.velocity.y, &mut self.position.y, &|y| {
+            tile_is_collidable(vec2(self.position.x.floor() / 8, y))
+        });
 
         self.state = State::Ground;
 
-        if !tile_is_collidable((new_pos + (0, 5).into()).floor() / 8) {
+        if !tile_is_collidable((self.position + (0, 5).into()).floor() / 8) {
             if self.velocity.y < 0.into() {
                 self.state = State::Upwards;
                 self.velocity.y += GRAVITY;
@@ -216,8 +210,6 @@ impl Chicken {
                 }
             }
         }
-
-        self.position = new_pos;
     }
 }
 
