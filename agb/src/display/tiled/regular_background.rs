@@ -5,14 +5,14 @@ use core::{
 };
 
 use agb_fixnum::Vector2D;
-use alloc::{vec, vec::Vec};
+use alloc::{rc::Rc, vec};
 
 use crate::display::{GraphicsFrame, Priority, tile_data::TileData};
 
 use super::{
-    BackgroundControlRegister, BackgroundId, RegularBackgroundData, SCREENBLOCK_SIZE,
-    ScreenblockAllocator, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting,
-    VRAM_MANAGER, VRAM_START,
+    BackgroundControlRegister, BackgroundId, RegularBackgroundCommitData, RegularBackgroundData,
+    SCREENBLOCK_SIZE, ScreenblockAllocator, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet,
+    TileSetting, VRAM_MANAGER, VRAM_START,
 };
 
 use bilge::prelude::*;
@@ -75,7 +75,7 @@ pub struct RegularBackgroundTiles {
     size: RegularBackgroundSize,
     colours: TileFormat,
 
-    tiles: Vec<Tile>,
+    tiles: Rc<[Tile]>,
     is_dirty: bool,
 
     scroll: Vector2D<i32>,
@@ -96,7 +96,7 @@ impl RegularBackgroundTiles {
             size,
             colours,
 
-            tiles: vec![Tile::default(); size.num_tiles()],
+            tiles: vec![Tile::default(); size.num_tiles()].into(),
             is_dirty: true,
 
             scroll: Vector2D::default(),
@@ -175,31 +175,30 @@ impl RegularBackgroundTiles {
             return;
         }
 
-        self.tiles[pos] = new_tile;
+        Rc::make_mut(&mut self.tiles)[pos] = new_tile;
         self.is_dirty = true;
     }
 
-    pub fn commit(&mut self) {
-        if self.is_dirty {
-            unsafe {
-                self.screenblock_ptr
-                    .as_ptr()
-                    .copy_from_nonoverlapping(self.tiles.as_ptr(), self.size.num_tiles());
-            }
-        }
-
-        self.is_dirty = false;
-    }
-
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> BackgroundId {
+        let commit_data = if self.is_dirty {
+            Some(RegularBackgroundCommitData {
+                destination: self.screenblock_ptr,
+                tiles: Rc::clone(&self.tiles),
+                count: self.size.num_tiles(),
+            })
+        } else {
+            None
+        };
+
         frame.bg_frame.set_next_regular(RegularBackgroundData {
             bg_ctrl: self.bg_ctrl_value(),
             scroll_offset: Vector2D::new(self.scroll.x as u16, self.scroll.y as u16),
+            commit_data,
         })
     }
 
-    pub fn clear(&mut self) {
-        for tile in &mut self.tiles {
+    fn clear(&mut self) {
+        for tile in Rc::make_mut(&mut self.tiles) {
             if *tile != Tile::default() {
                 VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
             }

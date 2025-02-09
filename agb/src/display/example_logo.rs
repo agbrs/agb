@@ -35,7 +35,6 @@ mod tests {
         );
 
         display_logo(&mut map);
-        map.commit();
 
         let mut frame = gfx.frame();
         map.show(&mut frame);

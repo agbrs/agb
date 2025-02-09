@@ -4,12 +4,13 @@ mod registers;
 mod regular_background;
 mod vram_manager;
 
-use core::marker::PhantomData;
+use core::{marker::PhantomData, ptr::NonNull};
 
 pub use super::affine::AffineMatrixBackground;
 pub use affine_background::{
     AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
 };
+use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
@@ -134,10 +135,17 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
+struct RegularBackgroundCommitData {
+    destination: NonNull<Tile>,
+    tiles: Rc<[Tile]>,
+    count: usize,
+}
+
 #[derive(Default)]
 struct RegularBackgroundData {
     bg_ctrl: BackgroundControlRegister,
     scroll_offset: Vector2D<u16>,
+    commit_data: Option<RegularBackgroundCommitData>,
 }
 
 #[derive(Default)]
@@ -221,7 +229,7 @@ impl BackgroundFrame<'_> {
         index + 2 // first affine BG is bg2
     }
 
-    pub fn commit(self) {
+    pub fn commit(mut self) {
         let video_mode = self.num_affine as u16;
         let enabled_backgrounds =
             ((1u16 << self.num_regular) - 1) | (((1 << self.num_affine) - 1) << 2);
@@ -235,7 +243,7 @@ impl BackgroundFrame<'_> {
 
         for (i, regular_background) in self
             .regular_backgrounds
-            .iter()
+            .iter_mut()
             .take(self.num_regular)
             .enumerate()
         {
@@ -246,6 +254,15 @@ impl BackgroundFrame<'_> {
             bg_x_offset.set(regular_background.scroll_offset.x);
             let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 4) };
             bg_y_offset.set(regular_background.scroll_offset.y);
+
+            if let Some(commit_data) = regular_background.commit_data.take() {
+                unsafe {
+                    commit_data
+                        .destination
+                        .as_ptr()
+                        .copy_from_nonoverlapping(commit_data.tiles.as_ptr(), commit_data.count);
+                }
+            }
         }
 
         for (i, affine_background) in self
