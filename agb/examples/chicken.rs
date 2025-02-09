@@ -202,7 +202,9 @@ impl Chicken {
 
         self.state = State::Ground;
 
-        if !tile_is_collidable((self.position + (0, 5).into()).floor() / 8) {
+        if !tile_is_collidable(
+            (self.position + vec2(0.into(), Number::new(4) + Number::from_raw(1))).floor() / 8,
+        ) {
             if self.velocity.y < 0.into() {
                 self.state = State::Upwards;
                 self.velocity.y += GRAVITY;
