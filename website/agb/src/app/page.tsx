@@ -93,7 +93,7 @@ function MgbaWithControllerSides() {
               gameUrl={COMBO_GAME}
               ref={mgba}
               isPlaying={playEmulator}
-              setIsPlaying={setIsPlaying}
+              onPlayIsClicked={setIsPlaying}
             />
           </GameDisplayWindow>
           <GameSide>
