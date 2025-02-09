@@ -19,8 +19,24 @@ fn main() -> MyError {
 
 fn have_submodule() -> MyError {
     if !Path::new("mgba/src").exists() {
-        let _ = Command::new("git")
-            .args(["submodule", "update", "--init", "mgba"])
+        Command::new("curl")
+            .args([
+                "-L",
+                "https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.2.tar.gz",
+                "-o",
+                "mgba.tar.gz",
+            ])
+            .status()?;
+        Command::new("mkdir").args(["-p", "mgba"]).status()?;
+        Command::new("tar")
+            .args([
+                "-C",
+                "mgba",
+                "-xvf",
+                "mgba.tar.gz",
+                "--strip-components",
+                "1",
+            ])
             .status()?;
     }
 
