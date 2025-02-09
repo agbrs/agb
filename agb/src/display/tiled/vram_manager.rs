@@ -249,6 +249,10 @@ impl VRamManager {
         self.with(|inner| inner.remove_tile(index));
     }
 
+    pub(crate) fn increase_reference(&self, index: TileIndex) {
+        self.with(|inner| inner.increase_reference(index));
+    }
+
     pub(crate) fn add_tile(&self, tile_set: &TileSet<'_>, tile_index: u16) -> TileIndex {
         self.with(|inner| inner.add_tile(tile_set, tile_index))
     }
@@ -433,6 +437,11 @@ impl VRamManagerInner {
         }
 
         self.indices_to_gc.push(tile_index);
+    }
+
+    fn increase_reference(&mut self, tile_index: TileIndex) {
+        let key = tile_index.refcount_key();
+        self.reference_counts[key].increment_reference_count();
     }
 
     pub(crate) fn gc(&mut self) {

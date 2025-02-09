@@ -50,7 +50,6 @@ fn main(mut gba: agb::Gba) -> ! {
         infinite_scrolled.show(&mut frame);
 
         vblank.wait_for_vblank();
-        infinite_scrolled.commit();
         frame.commit();
     }
 }

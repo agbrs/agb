@@ -51,7 +51,6 @@ fn main(mut gba: agb::Gba) -> ! {
         bg.show(&mut frame);
 
         vblank.wait_for_vblank();
-        bg.commit();
         frame.commit();
     }
 }

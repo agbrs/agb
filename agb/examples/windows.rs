@@ -24,7 +24,6 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     example_logo::display_logo(&mut map);
-    map.commit();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());

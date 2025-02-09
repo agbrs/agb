@@ -70,17 +70,31 @@ impl RegularBackgroundSize {
     }
 }
 
+pub(crate) struct RegularBackgroundScreenblock {
+    ptr: NonNull<u8>,
+    size: RegularBackgroundSize,
+}
+
+impl RegularBackgroundScreenblock {
+    pub unsafe fn copy_tiles(&self, tiles: &Tiles) {
+        unsafe {
+            self.ptr
+                .as_ptr()
+                .cast::<Tile>()
+                .copy_from_nonoverlapping(tiles.tiles.as_ptr(), self.size.num_tiles());
+        }
+    }
+}
+
 pub struct RegularBackgroundTiles {
     priority: Priority,
-    size: RegularBackgroundSize,
-    colours: TileFormat,
 
-    tiles: Rc<[Tile]>,
+    tiles: Tiles,
+    screenblock: Rc<RegularBackgroundScreenblock>,
+
     is_dirty: bool,
 
     scroll: Vector2D<i32>,
-
-    screenblock_ptr: NonNull<Tile>,
 }
 
 impl RegularBackgroundTiles {
@@ -93,15 +107,19 @@ impl RegularBackgroundTiles {
 
         Self {
             priority,
-            size,
-            colours,
 
-            tiles: vec![Tile::default(); size.num_tiles()].into(),
+            tiles: Tiles {
+                tiles: vec![Tile::default(); size.num_tiles()].into(),
+                colours,
+            },
             is_dirty: true,
 
             scroll: Vector2D::default(),
 
-            screenblock_ptr,
+            screenblock: Rc::new(RegularBackgroundScreenblock {
+                ptr: screenblock_ptr,
+                size,
+            }),
         }
     }
 
@@ -122,13 +140,13 @@ impl RegularBackgroundTiles {
     ) {
         assert_eq!(
             tileset.format(),
-            self.colours,
+            self.tiles.colours,
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tileset.format(),
-            self.colours
+            self.tiles.colours
         );
 
-        let pos = self.size.gba_offset(pos.into());
+        let pos = self.screenblock.size.gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
@@ -140,10 +158,10 @@ impl RegularBackgroundTiles {
 
         assert_eq!(
             tile_data.tiles.format(),
-            self.colours,
+            self.tiles.colours,
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tile_data.tiles.format(),
-            self.colours
+            self.tiles.colours
         );
 
         for y in 0..20 {
@@ -156,9 +174,9 @@ impl RegularBackgroundTiles {
     }
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
-        let old_tile = self.tiles[pos];
+        let old_tile = self.tiles.tiles[pos];
         if old_tile != Tile::default() {
-            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.colours));
+            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours));
         }
 
         let tile_index = tile_setting.index();
@@ -175,16 +193,15 @@ impl RegularBackgroundTiles {
             return;
         }
 
-        Rc::make_mut(&mut self.tiles)[pos] = new_tile;
+        self.tiles.tiles_mut()[pos] = new_tile;
         self.is_dirty = true;
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> BackgroundId {
         let commit_data = if self.is_dirty {
             Some(RegularBackgroundCommitData {
-                destination: self.screenblock_ptr,
-                tiles: Rc::clone(&self.tiles),
-                count: self.size.num_tiles(),
+                tiles: self.tiles.clone(),
+                screenblock: Rc::clone(&self.screenblock),
             })
         } else {
             None
@@ -197,43 +214,72 @@ impl RegularBackgroundTiles {
         })
     }
 
-    fn clear(&mut self) {
-        for tile in Rc::make_mut(&mut self.tiles) {
-            if *tile != Tile::default() {
-                VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
-            }
-
-            *tile = Tile::default();
-        }
-
-        self.is_dirty = true;
-    }
-
     #[must_use]
     pub fn size(&self) -> RegularBackgroundSize {
-        self.size
+        self.screenblock.size
     }
 
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
         let mut background_control_register = BackgroundControlRegister::default();
 
-        background_control_register.set_tile_format(self.colours.into());
+        background_control_register.set_tile_format(self.tiles.colours.into());
         background_control_register.set_priority(self.priority.into());
         background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
-        background_control_register.set_screen_size(self.size.into());
+        background_control_register.set_screen_size(self.size().into());
 
         background_control_register
     }
 
     fn screen_base_block(&self) -> u16 {
-        let screenblock_location = self.screenblock_ptr.as_ptr() as usize;
+        let screenblock_location = self.screenblock.ptr.as_ptr() as usize;
         ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
     }
 }
 
-impl Drop for RegularBackgroundTiles {
+impl Drop for RegularBackgroundScreenblock {
     fn drop(&mut self) {
-        self.clear();
-        unsafe { ScreenblockAllocator.deallocate(self.screenblock_ptr.cast(), self.size.layout()) };
+        unsafe { ScreenblockAllocator.deallocate(self.ptr.cast(), self.size.layout()) };
+    }
+}
+
+pub(crate) struct Tiles {
+    tiles: Rc<[Tile]>,
+    colours: TileFormat,
+}
+
+impl Drop for Tiles {
+    fn drop(&mut self) {
+        if Rc::strong_count(&self.tiles) == 1 {
+            for tile in self.tiles.iter() {
+                if *tile != Tile::default() {
+                    VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
+                }
+            }
+        }
+    }
+}
+
+impl Clone for Tiles {
+    fn clone(&self) -> Self {
+        Self {
+            tiles: Rc::clone(&self.tiles),
+            colours: self.colours,
+        }
+    }
+}
+
+impl Tiles {
+    fn tiles_mut(&mut self) -> &mut [Tile] {
+        if Rc::strong_count(&self.tiles) > 1 {
+            // the make_mut below is going to cause us to increase the reference count, so we should
+            // mark every tile here as referenced again in the VRAM_MANAGER.
+            for tile in self.tiles.iter() {
+                if *tile != Tile::default() {
+                    VRAM_MANAGER.increase_reference(tile.tile_index(self.colours));
+                }
+            }
+        }
+
+        Rc::make_mut(&mut self.tiles)
     }
 }

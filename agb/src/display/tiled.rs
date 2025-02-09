@@ -4,7 +4,7 @@ mod registers;
 mod regular_background;
 mod vram_manager;
 
-use core::{marker::PhantomData, ptr::NonNull};
+use core::marker::PhantomData;
 
 pub use super::affine::AffineMatrixBackground;
 pub use affine_background::{
@@ -12,6 +12,7 @@ pub use affine_background::{
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
+use regular_background::{RegularBackgroundScreenblock, Tiles};
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
 
@@ -136,9 +137,8 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 struct RegularBackgroundCommitData {
-    destination: NonNull<Tile>,
-    tiles: Rc<[Tile]>,
-    count: usize,
+    tiles: Tiles,
+    screenblock: Rc<RegularBackgroundScreenblock>,
 }
 
 #[derive(Default)]
@@ -257,10 +257,7 @@ impl BackgroundFrame<'_> {
 
             if let Some(commit_data) = regular_background.commit_data.take() {
                 unsafe {
-                    commit_data
-                        .destination
-                        .as_ptr()
-                        .copy_from_nonoverlapping(commit_data.tiles.as_ptr(), commit_data.count);
+                    commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
             }
         }
