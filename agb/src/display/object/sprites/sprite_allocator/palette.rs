@@ -124,38 +124,54 @@ enum PaletteAllocation {
     Multi(MultiPaletteAllocation),
 }
 
+/// A palette containing 16 colours that is currently allocated to vram. To use
+/// this palette will require 4 bits per pixel.
 #[derive(Clone, Debug)]
 pub struct PaletteVramSingle(PaletteVram);
 
 impl PaletteVramSingle {
+    /// Gets the general PaletteVram that represents this palette. This is
+    /// common to both single and multi palettes.
     #[must_use]
     pub fn palette(self) -> PaletteVram {
         self.0
     }
 
+    /// Allocates a palette into vram from a palette. Generally this is only
+    /// useful for a dynamic palette as it performs no deduplication.
     pub fn new(palette: &Palette16) -> Result<Self, LoaderError> {
         PaletteVram::new_single(palette).map(Self)
     }
 }
 
+/// A palette that can contain more than 16 colours allocated to vram. To use
+/// this palette will require 8 bits per pixel.
 #[derive(Clone, Debug)]
 pub struct PaletteVramMulti(PaletteVram);
 
 impl PaletteVramMulti {
+    /// Gets the general palette that represents this palette. This is common to
+    /// both single and multi palettes.
     #[must_use]
     pub fn palette(self) -> PaletteVram {
         self.0
     }
 
+    /// Allocates a palette into vram from a palette. Generally this is only
+    /// useful for a dynamic palette as it performs no deduplication.
     pub fn new(palette: &PaletteMulti) -> Result<Self, LoaderError> {
         PaletteVram::new_multi(palette).map(Self)
     }
 }
 
+/// A single or multi palette allocated to vram. This is reference counted and
+/// cheap to clone.
 #[derive(Clone, Debug)]
 pub struct PaletteVram(RefCount<PaletteAllocation, PaletteArena>);
 
 impl PaletteVram {
+    /// Allocates a palette to vram. Generally this is only
+    /// useful for a dynamic palette as it performs no deduplication.
     pub fn new_single(palette: &Palette16) -> Result<Self, LoaderError> {
         let allocation = PALETTE_ALLOCATOR
             .allocate_single(palette)
@@ -165,6 +181,8 @@ impl PaletteVram {
         Ok(Self(RefCount::new_in(allocation, PaletteArena)))
     }
 
+    /// Allocates a palette to vram. Generally this is only
+    /// useful for a dynamic palette as it performs no deduplication.
     pub fn new_multi(palette: &PaletteMulti) -> Result<Self, LoaderError> {
         let allocation = PALETTE_ALLOCATOR
             .allocate_multiple(palette)
@@ -175,12 +193,12 @@ impl PaletteVram {
     }
 
     #[must_use]
-    pub fn strong_count(&self) -> usize {
+    pub(crate) fn strong_count(&self) -> usize {
         RefCount::count(&self.0)
     }
 
     #[must_use]
-    pub fn is_multi(&self) -> bool {
+    pub(crate) fn is_multi(&self) -> bool {
         match &*self.0 {
             PaletteAllocation::Single(_) => false,
             PaletteAllocation::Multi(_) => true,
@@ -188,7 +206,7 @@ impl PaletteVram {
     }
 
     #[must_use]
-    pub fn single_palette_index(&self) -> Option<u8> {
+    pub(crate) fn single_palette_index(&self) -> Option<u8> {
         match &*self.0 {
             PaletteAllocation::Single(p) => Some(p.0),
             PaletteAllocation::Multi(_) => None,

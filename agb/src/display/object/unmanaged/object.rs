@@ -127,6 +127,7 @@ impl Oam<'_> {
     }
 }
 
+/// An object that can be shown on the screen
 #[derive(Debug, Clone)]
 pub struct Object {
     attributes: AttributesRegular,
@@ -134,6 +135,7 @@ pub struct Object {
 }
 
 impl Object {
+    /// Show the object on the current frame
     pub fn show(&self, frame: &mut GraphicsFrame) {
         frame.oam_frame.show_regular(self);
     }
@@ -267,6 +269,7 @@ impl Object {
     }
 }
 
+/// An affine object, an object that can be transformed by an affine matrix (scaled, rotated, etc.).
 pub struct ObjectAffine {
     attributes: AttributesAffine,
     sprite: SpriteVram,
@@ -274,6 +277,7 @@ pub struct ObjectAffine {
 }
 
 impl ObjectAffine {
+    /// Show the affine object on the screen
     pub fn show(&self, frame: &mut GraphicsFrame) {
         frame.oam_frame.show_affine(self);
     }
