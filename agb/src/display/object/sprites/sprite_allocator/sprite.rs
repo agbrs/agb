@@ -47,22 +47,22 @@ pub struct SpriteVram {
 
 impl SpriteVram {
     #[must_use]
-    pub fn new(sprite: SpriteVramInner, palette: PaletteVram) -> Self {
+    pub(crate) fn new(sprite: SpriteVramInner, palette: PaletteVram) -> Self {
         Self { sprite, palette }
     }
 
     #[must_use]
-    pub fn location(&self) -> SpriteLocation {
+    pub(crate) fn location(&self) -> SpriteLocation {
         self.sprite.0.sprite_index
     }
 
     #[must_use]
-    pub fn size(&self) -> Size {
+    pub(crate) fn size(&self) -> Size {
         self.sprite.0.size
     }
 
     #[must_use]
-    pub fn single_palette_index(&self) -> Option<u8> {
+    pub(crate) fn single_palette_index(&self) -> Option<u8> {
         self.palette.single_palette_index()
     }
 }

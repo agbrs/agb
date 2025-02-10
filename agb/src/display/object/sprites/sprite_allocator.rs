@@ -156,17 +156,24 @@ impl SpriteLoader {
 
 pub static SPRITE_LOADER: SpriteLoader = SpriteLoader(SyncUnsafeCell::new(MaybeUninit::uninit()));
 
+/// Something that can be made into a palette in vram
 pub trait IntoSpritePaletteVram: Sized {
+    /// Makes the palette in vram, panicing if not possible
     fn into(self) -> PaletteVram {
         self.try_into().expect("could not create palette in vram")
     }
+    /// Attempts to create the palette in vram
     fn try_into(self) -> Result<PaletteVram, LoaderError>;
 }
 
+/// Something that can be made into a sprite in vram
 pub trait IntoSpriteVram: Sized {
+    /// Makes the sprite in vram, panicing if not possible
     fn into(self) -> SpriteVram {
         self.try_into().expect("could not create sprite in vram")
     }
+
+    /// Attempts to create the sprite in vram
     fn try_into(self) -> Result<SpriteVram, LoaderError>;
 }
 
