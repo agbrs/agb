@@ -1,3 +1,0 @@
-[submodule "emulator/mgba-sys/mgba"]
-	path = emulator/mgba-sys/mgba
-	url = https://github.com/mgba-emu/mgba.git
