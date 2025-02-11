@@ -1,19 +1,9 @@
 "use client";
 
+import { Game } from "@/components/mgba/mgba";
 import MgbaWrapper from "@/components/mgba/mgbaWrapper";
-import { Examples } from "@/roms/examples/examples";
-import { slugify } from "@/sluggify";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
-
-function gameUrl(exampleName: string) {
-  const example = Examples.find((x) => slugify(x.example_name) === exampleName);
-  if (!example) {
-    throw new Error(`cannot find example ${exampleName}`);
-  }
-
-  return example.url;
-}
 
 interface LogEntry {
   category: string;
@@ -70,14 +60,13 @@ function LogDisplay({ messages }: { messages: LogEntry[] }) {
   );
 }
 
-export function Emulator({ exampleName }: { exampleName: string }) {
-  const example = useMemo(() => gameUrl(exampleName), [exampleName]);
+export function Emulator({ game }: Game) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   return (
     <>
       <MgbaWrapper
-        gameUrl={example}
+        game={game}
         onLogMessage={(category, level, message) => {
           if (category === "GBA BIOS" || category === "GBA DMA") return;
           setLogs((logs) => [...logs, { category, level, message }]);

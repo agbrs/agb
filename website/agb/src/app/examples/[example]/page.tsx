@@ -1,9 +1,9 @@
 import { Examples } from "@/roms/examples/examples";
 import { slugify } from "@/sluggify";
-import { Emulator } from "./emulator";
 import { ContentBlock } from "@/components/contentBlock";
 import * as fs from "node:fs/promises";
-import { BackToExampleLink, Code } from "./styles";
+import { BackToExampleLink } from "./styles";
+import { Example } from "./example";
 
 export async function generateStaticParams() {
   return Examples.map((example) => ({
@@ -45,12 +45,7 @@ export default async function Page({
           <strong>&lt;</strong> Back to examples
         </BackToExampleLink>
       </ContentBlock>
-      <ContentBlock>
-        <Emulator exampleName={exampleParam} />
-      </ContentBlock>
-      <ContentBlock>
-        <Code language="rust">{source}</Code>
-      </ContentBlock>
+      <Example exampleSlug={exampleParam} sourceCode={source} />
       <ContentBlock color="#f5755e">
         <></>
       </ContentBlock>
