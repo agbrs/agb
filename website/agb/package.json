@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "15.1.6",
+    "next": "15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-syntax-highlighter": "^15.5.0",
@@ -23,7 +23,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/styled-components": "^5.1.34",
     "eslint": "^9.0.0",
-    "eslint-config-next": "15.1.6",
+    "eslint-config-next": "15.1.7",
     "typescript": "^5"
   }
 }
