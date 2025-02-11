@@ -127,7 +127,7 @@ build-site-examples: build-release
     mkdir -p website/agb/src/roms/examples
 
     EXAMPLES="$(cd agb/examples; ls *.rs)"
-    EXAMPLE_DEFINITIONS="export const Examples: {url: URL, example_name: string, screenshot: StaticImageData }[] = [" > website/agb/src/roms/examples/examples.ts
+    EXAMPLE_DEFINITIONS="export const Examples: {url: string, example_name: string, screenshot: StaticImageData }[] = [" > website/agb/src/roms/examples/examples.ts
     EXAMPLE_IMAGE_IMPORTS="import { StaticImageData } from 'next/image';";
 
     for EXAMPLE_NAME in $EXAMPLES; do
@@ -137,7 +137,7 @@ build-site-examples: build-release
         gzip -9 -c $CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba > website/agb/src/roms/examples/$EXAMPLE.gba.gz
         just generate-screenshot --rom="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba" --frames=10 --output=website/agb/src/roms/examples/$EXAMPLE.png
         EXAMPLE_IMAGE_IMPORTS="$EXAMPLE_IMAGE_IMPORTS import $EXAMPLE from './$EXAMPLE.png';"
-        EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS {url: new URL('./$EXAMPLE.gba.gz', import.meta.url), example_name: '$EXAMPLE', screenshot: $EXAMPLE},"
+        EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS {url: './$EXAMPLE.gba.gz', example_name: '$EXAMPLE', screenshot: $EXAMPLE},"
     done
 
     EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS ];"
