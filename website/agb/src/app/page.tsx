@@ -90,7 +90,7 @@ function MgbaWithControllerSides() {
           </GameSide>
           <GameDisplayWindow>
             <MgbaWrapper
-              gameUrl={COMBO_GAME}
+              game={COMBO_GAME}
               ref={mgba}
               isPlaying={playEmulator}
               onPlayIsClicked={setIsPlaying}
