@@ -40,7 +40,7 @@ async fn main() {
         .route("/build", post(compile))
         .with_state(state);
 
-    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:5409").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     axum::serve(listener, app).await.unwrap();
