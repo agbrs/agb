@@ -20,6 +20,7 @@ import {
   foldKeymap,
   indentOnInput,
   syntaxHighlighting,
+  indentUnit,
 } from "@codemirror/language";
 import { lintKeymap } from "@codemirror/lint";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
@@ -111,6 +112,7 @@ function defaultExtensions() {
       indentWithTab,
     ]),
     rust(),
+    indentUnit.of("    "),
     theme,
   ];
 }
