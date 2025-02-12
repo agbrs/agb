@@ -24,6 +24,10 @@ function gameUrl(exampleName: string) {
   return example.url;
 }
 
+const FullHeightEditor = styled(Editor)`
+  height: 100%;
+`;
+
 const RunButton = styled.button``;
 
 const Container = styled(Resizable)`
@@ -73,7 +77,7 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
 
   return (
     <Container
-      left={<Editor defaultContent={sourceCode} ref={codeRef} />}
+      left={<FullHeightEditor defaultContent={sourceCode} ref={codeRef} />}
       right={
         <Flex $v>
           <RunButton disabled={isPending} onClick={buildTransition}>

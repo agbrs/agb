@@ -66,11 +66,18 @@ interface EditorProps {
   defaultContent?: string;
   onChange?: (text: EditorText) => void;
   ref?: Ref<EditorRef> | undefined;
+  className?: string;
 }
 
 const theme = EditorView.theme({
   "&": {
     fontSize: "12px",
+    minHeight: "100%",
+    height: "100%",
+  },
+  "& > .cm-scroller": {
+    minHeight: "100%",
+    height: "100%",
   },
 });
 
@@ -112,6 +119,7 @@ export function Editor({
   defaultContent = "",
   onChange,
   ref,
+  className,
 }: EditorProps): ReactNode {
   const element = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<EditorView | null>(null);
@@ -152,5 +160,5 @@ export function Editor({
     toString: () => view?.state.doc.toString() ?? "",
   }));
 
-  return <div ref={element}></div>;
+  return <div className={className} ref={element}></div>;
 }
