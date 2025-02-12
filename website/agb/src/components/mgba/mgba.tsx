@@ -13,6 +13,7 @@ import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
 import { useController } from "./useController.hook";
 import { useLocalStorage } from "./useLocalStorage.hook";
+import { ControlMode, useKeyBindings } from "./useKeyBindings.hook";
 
 export interface Game {
   game: URL | string | ArrayBuffer;
@@ -42,6 +43,7 @@ interface MgbaProps extends Game {
   volume?: number;
   controls: KeyBindings;
   paused: boolean;
+  controlMode?: ControlMode;
   onLogMessage?: (category: string, level: LogLevel, message: string) => void;
   ref?: Ref<MgbaHandle> | undefined;
 }
@@ -97,6 +99,7 @@ interface MgbaInnerProps {
   paused: boolean;
   onLogMessage?: (category: string, level: LogLevel, message: string) => void;
   ref?: Ref<MgbaHandle> | undefined;
+  controlMode?: ControlMode;
 }
 
 function MgbaInner({
@@ -106,9 +109,10 @@ function MgbaInner({
   controls,
   paused,
   onLogMessage,
+  controlMode = "always",
   ref,
 }: MgbaInnerProps) {
-  const canvas = useRef(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
   const mgbaModule = useRef<mGBAEmulator>(undefined);
 
   const [saveGame, setSaveGame] = useLocalStorage<SaveGame>(
@@ -181,6 +185,7 @@ function MgbaInner({
       setState(MgbaState.Initialising);
 
       const mModule = await mGBA({ canvas: canvas.current });
+      (mModule as any).doNotCaptureKeyboard = true;
       mgbaModule.current = mModule;
       await mModule.FSInit();
       await mModule.FSSync();
@@ -200,21 +205,6 @@ function MgbaInner({
 
   useEffect(() => {
     if (!gameLoaded) return;
-
-    const controlEntries = Object.entries(controls);
-
-    for (const [key, value] of controlEntries) {
-      const binding =
-        value === "Enter"
-          ? "Return"
-          : value.toLowerCase().replace("arrow", "").replace("key", "");
-
-      mgbaModule.current?.bindKey(binding, key);
-    }
-  }, [controls, gameLoaded]);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
     mgbaModule.current?.setVolume(volume ?? 1.0);
   }, [gameLoaded, volume]);
 
@@ -228,6 +218,8 @@ function MgbaInner({
     }
   }, [gameLoaded, paused]);
 
+  useKeyBindings(mgbaModule, canvas, controls, controlMode);
+
   useImperativeHandle(ref, () => {
     return {
       restart: () => mgbaModule.current?.quickReload(),
@@ -237,7 +229,7 @@ function MgbaInner({
     };
   });
 
-  return <MgbaCanvas ref={canvas} />;
+  return <MgbaCanvas tabIndex={-1} ref={canvas} />;
 }
 
 export function Mgba({
@@ -246,6 +238,7 @@ export function Mgba({
   controls,
   paused,
   onLogMessage,
+  controlMode,
   ref,
 }: MgbaProps) {
   const [isPending, startTransition] = useTransition();
@@ -280,6 +273,7 @@ export function Mgba({
       controls={controls}
       paused={paused}
       onLogMessage={onLogMessage}
+      controlMode={controlMode}
       ref={ref}
     />
   );

@@ -12,6 +12,7 @@ import { useLocalStorage } from "./useLocalStorage.hook";
 import { useAvoidItchIoScrolling } from "./useAvoidItchIoScrolling";
 import { Slider } from "./Slider";
 import { LogLevel } from "./vendor/mgba";
+import { ControlMode } from "./useKeyBindings.hook";
 
 const BindingsDialog = styled.dialog`
   border-radius: 5px;
@@ -58,6 +59,7 @@ interface MgbaWrapperProps extends Game {
   onPlayIsClicked?: (isPlaying: boolean) => void;
   onLogMessage?: (category: string, level: LogLevel, message: string) => void;
   ref?: Ref<MgbaHandle> | undefined;
+  controlMode?: ControlMode;
 }
 
 export function MgbaStandalone(props: MgbaWrapperProps) {
@@ -73,6 +75,7 @@ export function MgbaWrapper({
   isPlaying = true,
   onPlayIsClicked,
   onLogMessage,
+  controlMode,
   ref,
 }: MgbaWrapperProps) {
   const [{ volume, bindings }, setState] = useLocalStorage(
@@ -126,6 +129,7 @@ export function MgbaWrapper({
           controls={bindings.Actual}
           paused={paused}
           onLogMessage={onLogMessage}
+          controlMode={controlMode}
         />
       ) : (
         <StartButton onClick={() => onPlayIsClicked && onPlayIsClicked(true)} />

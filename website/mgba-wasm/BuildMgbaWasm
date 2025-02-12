@@ -1,4 +1,4 @@
-FROM docker.io/emscripten/emsdk:3.1.46 as builder
+FROM docker.io/emscripten/emsdk:3.1.53 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends make cmake git && \
@@ -13,7 +13,7 @@ WORKDIR /
 RUN git clone https://github.com/corwinkuiper/mgba.git --filter=tree:0 -b wasm
 RUN mkdir /mgba/build-wasm
 WORKDIR /mgba/build-wasm
-RUN git checkout 69eef6b7a1ab7c6853f4bc5d73429e0ffad405f0
+RUN git checkout b25666a472375a209cfe947a1b64c7739eee925b
 
 
 RUN emcmake cmake .. && make -j`nproc` install DESTDIR=install
