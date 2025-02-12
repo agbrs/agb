@@ -361,7 +361,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     /// The internal representation of the fixed point number
-    pub fn to_raw(self) -> I {
+    pub const fn to_raw(self) -> I {
         self.0
     }
 

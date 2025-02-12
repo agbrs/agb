@@ -39,3 +39,5 @@ jobs:
           asset_name: examples.zip
           tag: ${{ github.ref }}
           overwrite: true
+      - name: Build the example games
+        run: just 

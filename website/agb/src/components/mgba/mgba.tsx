@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import mGBA, { mGBAEmulator } from "./vendor/mgba";
+import mGBA, { mGBAEmulator, LogLevel } from "./vendor/mgba";
 import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
 import { useController } from "./useController.hook";
@@ -16,6 +16,7 @@ interface MgbaProps {
   volume?: number;
   controls: KeyBindings;
   paused: boolean;
+  onLogMessage?: (category: string, level: LogLevel, message: string) => void;
 }
 
 enum MgbaState {
@@ -60,7 +61,7 @@ interface SaveGame {
 }
 
 export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
-  ({ gameUrl, volume, controls, paused }, ref) => {
+  ({ gameUrl, volume, controls, paused, onLogMessage }, ref) => {
     const canvas = useRef(null);
     const mgbaModule = useRef<mGBAEmulator>(undefined);
 
@@ -72,6 +73,19 @@ export const Mgba = forwardRef<MgbaHandle, MgbaProps>(
 
     const [state, setState] = useState(MgbaState.Uninitialised);
     const [gameLoaded, setGameLoaded] = useState(false);
+
+    useEffect(() => {
+      if (state !== MgbaState.Initialised) return;
+
+      function logListener(category: string, level: LogLevel, message: string) {
+        if (onLogMessage) onLogMessage(category, level, message);
+      }
+      mgbaModule.current?.addLogListener(logListener);
+
+      return () => {
+        mgbaModule.current?.removeLogListener(logListener);
+      };
+    }, [onLogMessage, state]);
 
     useEffect(() => {
       function beforeUnload() {
