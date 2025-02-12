@@ -185,7 +185,7 @@ function MgbaInner({
       setState(MgbaState.Initialising);
 
       const mModule = await mGBA({ canvas: canvas.current });
-      (mModule as any).doNotCaptureKeyboard = true;
+      mModule.toggleInput(false);
       mgbaModule.current = mModule;
       await mModule.FSInit();
       await mModule.FSSync();

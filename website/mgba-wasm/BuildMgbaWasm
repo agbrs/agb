@@ -13,7 +13,7 @@ WORKDIR /
 RUN git clone https://github.com/corwinkuiper/mgba.git --filter=tree:0 -b wasm
 RUN mkdir /mgba/build-wasm
 WORKDIR /mgba/build-wasm
-RUN git checkout b25666a472375a209cfe947a1b64c7739eee925b
+RUN git checkout 3e29f3ae39f59faeb1d69e03e2f9ea1d5e176a1e
 
 
 RUN emcmake cmake .. && make -j`nproc` install DESTDIR=install
