@@ -24,7 +24,7 @@ import {
 } from "@codemirror/language";
 import { lintKeymap } from "@codemirror/lint";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState, StateEffect, Text } from "@codemirror/state";
+import { EditorState, Extension, StateEffect, Text } from "@codemirror/state";
 import {
   crosshairCursor,
   drawSelection,
@@ -68,6 +68,7 @@ interface EditorProps {
   onChange?: (text: EditorText) => void;
   ref?: Ref<EditorRef> | undefined;
   className?: string;
+  extensions?: Extension[];
 }
 
 const theme = EditorView.theme({
@@ -122,18 +123,19 @@ export function Editor({
   onChange,
   ref,
   className,
+  extensions,
 }: EditorProps): ReactNode {
   const element = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<EditorView | null>(null);
 
-  const extensions = useMemo(() => {
+  const allExtensions = useMemo(() => {
     const updateListener = EditorView.updateListener.of((vu: ViewUpdate) => {
       if (vu.docChanged && onChange) {
         onChange(new EditorText(vu.state.doc));
       }
     });
-    return [...defaultExtensions(), updateListener];
-  }, [onChange]);
+    return [...(extensions ?? []), ...defaultExtensions(), updateListener];
+  }, [onChange, extensions]);
 
   useEffect(() => {
     if (!element.current) return;
@@ -141,7 +143,7 @@ export function Editor({
 
     const editorView = new EditorView({
       doc: defaultContent,
-      extensions,
+      extensions: allExtensions,
       parent: element.current,
     });
 
@@ -155,8 +157,8 @@ export function Editor({
 
   useEffect(() => {
     if (!view) return;
-    view.dispatch({ effects: StateEffect.reconfigure.of(extensions) });
-  }, [extensions, view]);
+    view.dispatch({ effects: StateEffect.reconfigure.of(allExtensions) });
+  }, [allExtensions, view]);
 
   useImperativeHandle(ref, () => ({
     toString: () => view?.state.doc.toString() ?? "",

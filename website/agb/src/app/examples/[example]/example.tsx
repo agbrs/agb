@@ -2,13 +2,14 @@
 
 import { Emulator } from "./emulator";
 import { Editor, EditorRef } from "@/components/editor/editor";
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { slugify } from "@/sluggify";
 import { Examples } from "@/roms/examples/examples";
 import { styled } from "styled-components";
 import { Game } from "@/components/mgba/mgba";
 import { Flex } from "@/components/flex";
 import { Resizable } from "@/components/resizable";
+import { keymap } from "@codemirror/view";
 
 export interface ExampleProps {
   exampleSlug: string;
@@ -42,29 +43,29 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
 
   const [isPending, startTransition] = useTransition();
 
-  async function build() {
-    if (!codeRef.current) return;
+  const buildTransition = useCallback(() => {
+    async function build() {
+      if (!codeRef.current) return;
 
-    const code = codeRef.current.toString();
+      const code = codeRef.current.toString();
 
-    const response = await fetch("http://localhost:5409/build", {
-      method: "post",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ code }),
-    });
+      const response = await fetch("http://localhost:5409/build", {
+        method: "post",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code }),
+      });
 
-    const decompressedStream = (await response.blob())
-      .stream()
-      .pipeThrough(new DecompressionStream("gzip"));
-    const game = await new Response(decompressedStream).arrayBuffer();
+      const decompressedStream = (await response.blob())
+        .stream()
+        .pipeThrough(new DecompressionStream("gzip"));
+      const game = await new Response(decompressedStream).arrayBuffer();
 
-    return game;
-  }
+      return game;
+    }
 
-  function buildTransition() {
     startTransition(async () => {
       try {
         const game = await build();
@@ -73,11 +74,32 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
         });
       } catch {}
     });
-  }
+  }, []);
+
+  const buildExtension = useMemo(
+    () => [
+      keymap.of([
+        {
+          key: "Ctrl-Enter",
+          run: () => {
+            buildTransition();
+            return true;
+          },
+        },
+      ]),
+    ],
+    [buildTransition]
+  );
 
   return (
     <Container
-      left={<FullHeightEditor defaultContent={sourceCode} ref={codeRef} />}
+      left={
+        <FullHeightEditor
+          defaultContent={sourceCode}
+          ref={codeRef}
+          extensions={buildExtension}
+        />
+      }
       right={
         <Flex $v>
           <RunButton disabled={isPending} onClick={buildTransition}>
