@@ -2,9 +2,8 @@ import { Examples } from "@/roms/examples/examples";
 import { slugify } from "@/sluggify";
 import { ContentBlock } from "@/components/contentBlock";
 import * as fs from "node:fs/promises";
-import { BackToExampleLink } from "./styles";
+import { BackToExampleLink, Header, HeightRestricted } from "./styles";
 import { Example } from "./example";
-import styled from "styled-components";
 
 export async function generateStaticParams() {
   return Examples.map((example) => ({
@@ -39,17 +38,14 @@ export default async function Page({
   const source = await loadSourceCode(example.example_name);
 
   return (
-    <>
-      <ContentBlock color="#9fa6db">
-        <h1>Example: {exampleParam}</h1>
+    <HeightRestricted>
+      <ContentBlock color="#9fa6db" margin={0}>
+        <Header>Example: {exampleParam}</Header>
         <BackToExampleLink href={`../examples#${exampleParam}`}>
           <strong>&lt;</strong> Back to examples
         </BackToExampleLink>
       </ContentBlock>
       <Example exampleSlug={exampleParam} sourceCode={source} />
-      <ContentBlock color="#f5755e">
-        <></>
-      </ContentBlock>
-    </>
+    </HeightRestricted>
   );
 }

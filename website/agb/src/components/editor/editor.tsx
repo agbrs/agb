@@ -71,7 +71,6 @@ interface EditorProps {
 const theme = EditorView.theme({
   "&": {
     fontSize: "12px",
-    height: "700px",
   },
 });
 

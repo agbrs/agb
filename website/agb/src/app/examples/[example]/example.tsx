@@ -1,6 +1,5 @@
 "use client";
 
-import { ContentBlock } from "@/components/contentBlock";
 import { Emulator } from "./emulator";
 import { Editor, EditorRef } from "@/components/editor/editor";
 import { useRef, useState, useTransition } from "react";
@@ -9,6 +8,7 @@ import { Examples } from "@/roms/examples/examples";
 import { styled } from "styled-components";
 import { Game } from "@/components/mgba/mgba";
 import { Flex } from "@/components/flex";
+import { Resizable } from "@/components/resizable";
 
 export interface ExampleProps {
   exampleSlug: string;
@@ -26,13 +26,19 @@ function gameUrl(exampleName: string) {
 
 const RunButton = styled.button``;
 
+const Container = styled(Resizable)`
+  height: 100%;
+  min-height: 0;
+  padding: 8px;
+`;
+
 export function Example({ exampleSlug, sourceCode }: ExampleProps) {
   const [game, setGame] = useState<Game["game"]>(() => gameUrl(exampleSlug));
   const codeRef = useRef<EditorRef>(null);
 
   const [isPending, startTransition] = useTransition();
 
-  async function buildAndRun() {
+  async function build() {
     if (!codeRef.current) return;
 
     const code = codeRef.current.toString();
@@ -54,31 +60,28 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
     return game;
   }
 
+  function buildTransition() {
+    startTransition(async () => {
+      try {
+        const game = await build();
+        startTransition(() => {
+          if (game) setGame(game);
+        });
+      } catch {}
+    });
+  }
+
   return (
-    <ContentBlock uncentered>
-      <Flex $gapC="16px">
-        <Flex $grow={1} $v>
-          <RunButton
-            disabled={isPending}
-            onClick={() => {
-              startTransition(async () => {
-                try {
-                  const game = await buildAndRun();
-                  startTransition(() => {
-                    if (game) setGame(game);
-                  });
-                } catch {}
-              });
-            }}
-          >
+    <Container
+      left={<Editor defaultContent={sourceCode} ref={codeRef} />}
+      right={
+        <Flex $v>
+          <RunButton disabled={isPending} onClick={buildTransition}>
             Build and Run
           </RunButton>
-          <Editor defaultContent={sourceCode} ref={codeRef} />
+          {game && <Emulator game={game} />}
         </Flex>
-        <Flex $grow={1}>
-          <div>{game && <Emulator game={game} />}</div>
-        </Flex>
-      </Flex>
-    </ContentBlock>
+      }
+    />
   );
 }
