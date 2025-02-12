@@ -106,7 +106,7 @@ export function MgbaWrapper({
     buttonRelease: (key: GbaKey) => mgbaRef.current?.buttonRelease(key),
   }));
 
-  useAvoidItchIoScrolling();
+  useAvoidItchIoScrolling(controlMode === "always");
 
   return (
     <>
