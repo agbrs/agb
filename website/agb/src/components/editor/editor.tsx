@@ -68,6 +68,13 @@ interface EditorProps {
   ref?: Ref<EditorRef> | undefined;
 }
 
+const theme = EditorView.theme({
+  "&": {
+    fontSize: "12px",
+    height: "700px",
+  },
+});
+
 function defaultExtensions() {
   return [
     lineNumbers(),
@@ -98,6 +105,7 @@ function defaultExtensions() {
       indentWithTab,
     ]),
     rust(),
+    theme,
   ];
 }
 

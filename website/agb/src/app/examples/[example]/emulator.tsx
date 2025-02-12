@@ -71,6 +71,7 @@ export function Emulator({ game }: Game) {
           if (category === "GBA BIOS" || category === "GBA DMA") return;
           setLogs((logs) => [...logs, { category, level, message }]);
         }}
+        controlMode="focus"
       />
       <LogDisplay messages={logs} />
     </>

@@ -4,6 +4,7 @@ import { ContentBlock } from "@/components/contentBlock";
 import * as fs from "node:fs/promises";
 import { BackToExampleLink } from "./styles";
 import { Example } from "./example";
+import styled from "styled-components";
 
 export async function generateStaticParams() {
   return Examples.map((example) => ({

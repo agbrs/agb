@@ -8,6 +8,7 @@ import { slugify } from "@/sluggify";
 import { Examples } from "@/roms/examples/examples";
 import { styled } from "styled-components";
 import { Game } from "@/components/mgba/mgba";
+import { Flex } from "@/components/flex";
 
 export interface ExampleProps {
   exampleSlug: string;
@@ -54,31 +55,30 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
   }
 
   return (
-    <>
-      {game && (
-        <ContentBlock>
-          <Emulator game={game} />
-        </ContentBlock>
-      )}
-
-      <ContentBlock>
-        <RunButton
-          disabled={isPending}
-          onClick={() => {
-            startTransition(async () => {
-              try {
-                const game = await buildAndRun();
-                startTransition(() => {
-                  if (game) setGame(game);
-                });
-              } catch {}
-            });
-          }}
-        >
-          Build and Run
-        </RunButton>
-        <Editor defaultContent={sourceCode} ref={codeRef} />
-      </ContentBlock>
-    </>
+    <ContentBlock uncentered>
+      <Flex $gapC="16px">
+        <Flex $grow={1} $v>
+          <RunButton
+            disabled={isPending}
+            onClick={() => {
+              startTransition(async () => {
+                try {
+                  const game = await buildAndRun();
+                  startTransition(() => {
+                    if (game) setGame(game);
+                  });
+                } catch {}
+              });
+            }}
+          >
+            Build and Run
+          </RunButton>
+          <Editor defaultContent={sourceCode} ref={codeRef} />
+        </Flex>
+        <Flex $grow={1}>
+          <div>{game && <Emulator game={game} />}</div>
+        </Flex>
+      </Flex>
+    </ContentBlock>
   );
 }
