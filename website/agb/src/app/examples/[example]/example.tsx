@@ -10,6 +10,7 @@ import { Game } from "@/components/mgba/mgba";
 import { Flex } from "@/components/flex";
 import { Resizable } from "@/components/resizable";
 import { keymap } from "@codemirror/view";
+import { Ansi } from "@/components/ansi";
 
 export interface ExampleProps {
   exampleSlug: string;
@@ -37,8 +38,15 @@ const Container = styled(Resizable)`
   padding: 8px;
 `;
 
+const ErrorDisplay = styled.div`
+  overflow-y: scroll;
+  width: 100%;
+  font-size: 12px;
+`;
+
 export function Example({ exampleSlug, sourceCode }: ExampleProps) {
   const [game, setGame] = useState<Game["game"]>(() => gameUrl(exampleSlug));
+  const [error, setError] = useState("");
   const codeRef = useRef<EditorRef>(null);
 
   const [isPending, startTransition] = useTransition();
@@ -58,21 +66,30 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
         body: JSON.stringify({ code }),
       });
 
-      const decompressedStream = (await response.blob())
-        .stream()
-        .pipeThrough(new DecompressionStream("gzip"));
-      const game = await new Response(decompressedStream).arrayBuffer();
+      if (response.status !== 200) {
+        const json = await response.json();
+        startTransition(() => {
+          setError(json["error"] ?? "");
+        });
+      } else {
+        const decompressedStream = (await response.blob())
+          .stream()
+          .pipeThrough(new DecompressionStream("gzip"));
+        const game = await new Response(decompressedStream).arrayBuffer();
 
-      return game;
+        startTransition(() => {
+          setError("");
+          setGame(game);
+        });
+      }
     }
 
     startTransition(async () => {
       try {
-        const game = await build();
-        startTransition(() => {
-          if (game) setGame(game);
-        });
-      } catch {}
+        await build();
+      } catch (e) {
+        setError(`Could not build due to unknown failure: ${e}`);
+      }
     });
   }, []);
 
@@ -105,7 +122,12 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
           <RunButton disabled={isPending} onClick={buildTransition}>
             Build and Run
           </RunButton>
-          {game && <Emulator game={game} />}
+          {!!error || (game && <Emulator game={game} />)}
+          {error && (
+            <ErrorDisplay>
+              <Ansi text={error} />
+            </ErrorDisplay>
+          )}
         </Flex>
       }
     />
