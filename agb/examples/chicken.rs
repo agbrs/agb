@@ -10,10 +10,10 @@ use agb::{
         },
         GraphicsFrame, HEIGHT, WIDTH,
     },
+    fixnum::{num, vec2, Num, Vector2D},
     include_aseprite,
     input::{Button, ButtonController},
 };
-use agb_fixnum::{num, vec2, Num, Vector2D};
 
 const ACCELERATION: Number = Number::from_raw(1 << 4);
 const GRAVITY: Number = Number::from_raw(1 << 4);

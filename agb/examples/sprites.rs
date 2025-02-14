@@ -8,8 +8,7 @@ use agb::display::{
     object::{self, AffineMode, Object, ObjectAffine, Sprite, TagMap},
     Graphics,
 };
-use agb::fixnum::num;
-use agb_fixnum::Num;
+use agb::fixnum::{num, Num};
 use alloc::vec::Vec;
 
 static GRAPHICS: &object::Graphics = agb::include_aseprite!(
