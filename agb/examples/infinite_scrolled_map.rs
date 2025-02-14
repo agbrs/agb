@@ -6,10 +6,10 @@ use agb::{
         tiled::{InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER},
         Priority,
     },
+    fixnum::vec2,
     include_background_gfx,
     input::ButtonController,
 };
-use agb_fixnum::vec2;
 
 include_background_gfx!(big_map, "2ce8f4", big_map => deduplicate "examples/big_map.png");
 
