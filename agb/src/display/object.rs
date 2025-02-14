@@ -1,4 +1,5 @@
 //! # Sprites and objects
+#![deny(missing_docs)]
 
 mod affine;
 mod font;
