@@ -44,6 +44,8 @@ const ErrorDisplay = styled.div`
   font-size: 12px;
 `;
 
+const BUILD_URL = process.env.NEXT_PUBLIC_PLAYGROUND_URL;
+
 export function Example({ exampleSlug, sourceCode }: ExampleProps) {
   const [game, setGame] = useState<Game["game"]>(() => gameUrl(exampleSlug));
   const [error, setError] = useState("");
@@ -57,7 +59,7 @@ export function Example({ exampleSlug, sourceCode }: ExampleProps) {
 
       const code = codeRef.current.toString();
 
-      const response = await fetch("http://localhost:5409/build", {
+      const response = await fetch(`${BUILD_URL}/build`, {
         method: "post",
         headers: {
           Accept: "application/json",
