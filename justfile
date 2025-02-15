@@ -209,6 +209,12 @@ _all-crates target:
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
 
+build-playground-image:
+    (cd website/play/docker && ./build-initial-image.sh)
+
+build-playground-api:
+    (cd website/play && cargo build --release)
+
 _test-release crate:
     (cd "{{crate}}" && cargo test --release)
 _test-release-arm crate:
