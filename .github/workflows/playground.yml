@@ -43,10 +43,12 @@ jobs:
             ~/.cargo/git
             ~/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Add rustup target
+        run: rustup target add x86_64-unknown-linux-musl
       - name: Build playground
         run: just build-playground-api
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: playground
-          path: "target/release/play"
+          path: "target/release/x86_64-unknown-linux-musl/play"

@@ -213,7 +213,7 @@ build-playground-image:
     (cd website/play/docker && ./build-initial-image.sh)
 
 build-playground-api:
-    (cd website/play && cargo build --release)
+    (cd website/play && cargo build --release --target=x86_64-unknown-linux-musl)
 
 _test-release crate:
     (cd "{{crate}}" && cargo test --release)
