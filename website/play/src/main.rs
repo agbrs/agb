@@ -5,9 +5,16 @@ use std::{
     process::Command,
 };
 
-use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
+use axum::{
+    extract::State,
+    http::{header::CONTENT_TYPE, HeaderValue, Method, StatusCode},
+    routing::post,
+    Json, Router,
+};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
 use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
@@ -38,6 +45,17 @@ async fn main() {
 
     let app = Router::new()
         .route("/build", post(compile))
+        .layer(
+            ServiceBuilder::new().layer(
+                CorsLayer::new()
+                    .allow_methods([Method::POST])
+                    .allow_origin(
+                        ["https://agbrs.dev:443", "http://localhost:3000"]
+                            .map(|x| x.parse::<HeaderValue>().unwrap()),
+                    )
+                    .allow_headers([CONTENT_TYPE]),
+            ),
+        )
         .with_state(state);
 
     let listener = TcpListener::bind("127.0.0.1:5409").await.unwrap();
