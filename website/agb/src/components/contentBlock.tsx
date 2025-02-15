@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, ReactNode } from "react";
+import { ReactNode } from "react";
 import styled from "styled-components";
 
 const Section = styled.section<{ $color: string }>`
@@ -22,25 +22,29 @@ export const CenteredBlock = styled.div`
   ${CENTERED_CSS}
 `;
 
-const InnerBlock = styled.div<{ $centered?: boolean }>`
+const InnerBlock = styled.div<{ $centered?: boolean; $margin: number }>`
   ${(props) => props.$centered && CENTERED_CSS}
 
-  margin-top: 40px;
-  margin-bottom: 40px;
+  margin-top: ${(props) => props.$margin}px;
+  margin-bottom: ${(props) => props.$margin}px;
 `;
 
 export function ContentBlock({
   color = "",
   children,
   uncentered = false,
+  margin = 40,
 }: {
   color?: string;
   uncentered?: boolean;
   children: ReactNode;
+  margin?: number;
 }) {
   return (
     <Section $color={color}>
-      <InnerBlock $centered={!uncentered}>{children}</InnerBlock>
+      <InnerBlock $centered={!uncentered} $margin={margin}>
+        {children}
+      </InnerBlock>
     </Section>
   );
 }

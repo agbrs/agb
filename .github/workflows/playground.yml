@@ -1,0 +1,54 @@
+name: Playground
+
+on:
+  merge_group:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build_container_image:
+    name: Build container image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: extractions/setup-just@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout examples from the latest released agb
+        run: git restore --source $(git describe --tags --abbrev=0) agb/examples
+      - name: Build image
+        run: just build-playground-image
+      - name: Save image
+        run: docker save agb-build:latest | zstd -9 -o agb-playground.tar.zstd
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-image
+          path: "agb-playground.tar.zstd"
+  build_app:
+    name: Build playground api
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: extractions/setup-just@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Add rustup target
+        run: rustup target add x86_64-unknown-linux-musl
+      - name: Build playground
+        run: just build-playground-api
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: playground
+          path: "target/release/x86_64-unknown-linux-musl/play"
