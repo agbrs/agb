@@ -7,14 +7,14 @@ use std::{
 
 use axum::{
     extract::State,
-    http::{header::CONTENT_TYPE, HeaderValue, Method, StatusCode},
+    http::{header::CONTENT_TYPE, Method, StatusCode},
     routing::post,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
@@ -49,10 +49,7 @@ async fn main() {
             ServiceBuilder::new().layer(
                 CorsLayer::new()
                     .allow_methods([Method::POST])
-                    .allow_origin(
-                        ["https://agbrs.dev:443", "http://localhost:3000"]
-                            .map(|x| x.parse::<HeaderValue>().unwrap()),
-                    )
+                    .allow_origin(Any)
                     .allow_headers([CONTENT_TYPE]),
             ),
         )
