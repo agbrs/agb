@@ -31,6 +31,7 @@ async function generateGameName({ game }: Game): Promise<string> {
   }
 
   const crypto = window.crypto.subtle;
+  if (!crypto) return "abcdefg";
   const buffer = await crypto.digest("SHA-1", game);
   const hashArray = Array.from(new Uint8Array(buffer));
   const hashHex = hashArray
@@ -256,7 +257,8 @@ export function Mgba({
             generateGameName({ game }),
           ]);
           startTransition(() => setGameData({ game: gameData, gameName }));
-        } catch {
+        } catch (e) {
+          console.error(e);
           startTransition(() => setGameData(null));
         }
       });
