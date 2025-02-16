@@ -1,8 +1,10 @@
 "use client";
 
-import { Game } from "@/components/mgba/mgba";
+import { GbaKey } from "@/components/mgba/bindings";
+import { Game, MgbaHandle } from "@/components/mgba/mgba";
 import MgbaWrapper from "@/components/mgba/mgbaWrapper";
-import { useState } from "react";
+import { MobileController } from "@/components/mobileController/mobileController";
+import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 interface LogEntry {
@@ -62,10 +64,21 @@ function LogDisplay({ messages }: { messages: LogEntry[] }) {
 
 export function Emulator({ game }: Game) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const mgba = useRef<MgbaHandle>(null);
+
+  const mgbaHandle = useMemo(
+    () => ({
+      restart: () => mgba.current?.restart(),
+      buttonPress: (key: GbaKey) => mgba.current?.buttonPress(key),
+      buttonRelease: (key: GbaKey) => mgba.current?.buttonRelease(key),
+    }),
+    []
+  );
 
   return (
     <>
       <MgbaWrapper
+        ref={mgba}
         game={game}
         onLogMessage={(category, level, message) => {
           if (category === "GBA BIOS" || category === "GBA DMA") return;
@@ -73,6 +86,7 @@ export function Emulator({ game }: Game) {
         }}
         controlMode="focus"
       />
+      <MobileController mgba={mgbaHandle} />
       <LogDisplay messages={logs} />
     </>
   );
