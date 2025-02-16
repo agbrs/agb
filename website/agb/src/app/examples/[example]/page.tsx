@@ -4,6 +4,7 @@ import { ContentBlock } from "@/components/contentBlock";
 import * as fs from "node:fs/promises";
 import { BackToExampleLink, Header, HeightRestricted } from "./styles";
 import { Example } from "./example";
+import { Viewport } from "next";
 
 export async function generateStaticParams() {
   return Examples.map((example) => ({
@@ -21,6 +22,10 @@ function getExample(sluggedExample: string) {
 
   return example;
 }
+
+export const viewport: Viewport = {
+  interactiveWidget: "resizes-content",
+};
 
 async function loadSourceCode(exampleName: string) {
   const source = await fs.readFile(`src/roms/examples/${exampleName}.rs`);
