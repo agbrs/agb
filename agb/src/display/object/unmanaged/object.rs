@@ -402,27 +402,23 @@ impl ObjectAffine {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        display::object::{Graphics, Tag},
-        include_aseprite,
-    };
+    use crate::include_aseprite;
 
     use super::*;
 
     #[test_case]
     fn object_usage(gba: &mut crate::Gba) {
-        static GRAPHICS: &Graphics = include_aseprite!(
+        include_aseprite!(
+            sprites,
             "../examples/the-purple-night/gfx/objects.aseprite",
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
-
-        static BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
         let mut gfx = gba.display.graphics.get();
 
         {
             let mut frame = gfx.frame();
-            let obj = Object::new(BOSS.sprite(2));
+            let obj = Object::new(sprites::BOSS.sprite(2));
 
             obj.show(&mut frame);
             obj.show(&mut frame);

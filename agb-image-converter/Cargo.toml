@@ -21,6 +21,7 @@ quote = "1"
 asefile = "0.3.8"
 fontdue = "0.9"
 pagination-packing = "2.1.0"
+snafu = "0.8.5"
 
 [dev-dependencies]
 quickcheck = "1"
