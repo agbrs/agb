@@ -95,7 +95,7 @@ impl SpriteIndexed {
                 (0..8)
                     .flat_map(move |y| (0..4).map(move |x| (x, y)))
                     .map(move |(x, y)| {
-                        let idx = tile_x + x * 2 + (tile_y * 8 + y) * self.size.0;
+                        let idx = tile_x * 8 + x * 2 + (tile_y * 8 + y) * self.size.0;
                         self.data[idx as usize] | (self.data[idx as usize + 1] << 4)
                     })
             })
