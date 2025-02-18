@@ -15,21 +15,16 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{
-        object::{Graphics, Object, Tag},
-        GraphicsFrame,
-    },
+    display::{object::Object, GraphicsFrame},
     include_aseprite,
 };
 
 // Import the sprites in to this static. This holds the sprite
 // and palette data in a way that is manageable by agb.
-static GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
-
-// We define some easy ways of referencing the sprites
-static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
-static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
-static BALL: &Tag = GRAPHICS.tags().get("Ball");
+include_aseprite!(
+    mod sprites,
+    "gfx/sprites.aseprite"
+);
 
 struct Paddle {
     start: Object,
@@ -39,9 +34,9 @@ struct Paddle {
 
 impl Paddle {
     fn new(start_x: i32, start_y: i32) -> Self {
-        let paddle_start = Object::new(PADDLE_END.sprite(0));
-        let paddle_mid = Object::new(PADDLE_MID.sprite(0));
-        let mut paddle_end = Object::new(PADDLE_END.sprite(0));
+        let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
+        let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
+        let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
 
         paddle_end.set_vflip(true);
 
@@ -81,7 +76,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.graphics.get();
 
     // Create an object with the ball sprite
-    let mut ball = Object::new(BALL.sprite(0));
+    let mut ball = Object::new(sprites::BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
     ball.set_position((50, 50));

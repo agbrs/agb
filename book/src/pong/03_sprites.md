@@ -41,19 +41,14 @@ This contains 5 `16x16px` sprites: the end cap for the paddle, the center part o
 The aseprite file defines tags for these sprites: "Paddle End," "Paddle Mid," and "Ball."
 
 ```rust
-use agb::{
-    include_aseprite,
-    display::object::{Graphics, Tag}
-};
+use agb::include_aseprite;
 
 // Import the sprites in to this static. This holds the sprite 
 // and palette data in a way that is manageable by agb.
-static GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
-
-// We define some easy ways of referencing the sprites
-static PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
-static PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
-static BALL: &Tag = GRAPHICS.tags().get("Ball");
+include_aseprite!(
+    mod sprites,
+    "gfx/sprites.aseprite"
+);
 ```
 
 This uses the `include_aseprite` macro to include the sprites in the given aseprite file.
@@ -68,14 +63,14 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut object = gba.display.object.get();
 
     // Create an object with the ball sprite
-    let mut ball = Object::new(BALL.sprite(0));
+    let mut ball = Object::new(sprites::BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
     ball.set_position((50, 50));
 
     // Start a frame and add the one object to it
     let mut frame = object.frame();
-    frame.show(&ball);
+    ball.show(&mut frame);
     frame.commit();
     
     loop {}
@@ -121,11 +116,11 @@ loop {
     }
 
     // Set the position of the ball to match our new calculated position
-        ball.set_position((ball_x, ball_y));
+    ball.set_position((ball_x, ball_y));
 
     // prepare the frame
     let mut frame = object.frame();
-    frame.show(&ball);
+    ball.show(&mut frame);
 
     // Wait for vblank, then commit the objects to the screen
     agb::display::busy_wait_for_vblank();

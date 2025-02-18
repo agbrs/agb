@@ -1,9 +1,6 @@
 use agb::{
     display::{
-        object::{
-            IntoSpriteVram, Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram,
-            TextAlignment,
-        },
+        object::{Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram, TextAlignment},
         palette16::Palette16,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         GraphicsFrame, Priority, HEIGHT,
@@ -42,10 +39,13 @@ struct Lament {
 }
 
 fn generate_text_palette() -> PaletteVramSingle {
-    let mut palette = [0x0; 16];
-    palette[1] = 0xFF_FF;
-    let palette = Palette16::new(palette);
-    PaletteVramSingle::new(&palette).unwrap()
+    static PALETTE: Palette16 = const {
+        let mut palette = [0x0; 16];
+        palette[1] = 0xFF_FF;
+
+        Palette16::new(palette)
+    };
+    (&PALETTE).into()
 }
 
 impl Lament {
@@ -285,7 +285,7 @@ impl PauseMenu {
                 ),
             ]),
             selection: PauseSelectionInner::Restart,
-            indicator_sprite: IntoSpriteVram::into(ARROW_RIGHT.sprite(0)),
+            indicator_sprite: ARROW_RIGHT.sprite(0).into(),
             selected_level: current_level,
             maximum_level,
         }

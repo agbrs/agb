@@ -21,9 +21,9 @@ Let's just write that and we'll get to neatening it up later.
 
 ```rust
 // outside the game loop
-let mut paddle_start = Object::new(PADDLE_END.sprite(0));
-let mut paddle_mid = Object::new(PADDLE_MID.sprite(0));
-let mut paddle_end = Object::new(PADDLE_END.sprite(0));
+let mut paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
+let mut paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
+let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
 
 paddle_start.set_position((20, 20));
 paddle_mid.set_position((20, 20 + 16));
@@ -40,12 +40,6 @@ paddle_end.set_vflip(true);
 Now the paddle will display correctly. It's rather awkward to use, however, having to set all these positions correctly. Therefore we should encapsulate the logic of this object.
 
 ```rust
-// change our imports to include what we will use
-use agb::{
-    display::object::{Graphics, Object, Tag, OamFrame},
-    include_aseprite,
-};
-
 struct Paddle {
     start: Object,
     mid: Object,
@@ -54,9 +48,9 @@ struct Paddle {
 
 impl Paddle {
     fn new(start_x: i32, start_y: i32) -> Self {
-        let paddle_start = Object::new(PADDLE_END.sprite(0));
-        let paddle_mid = Object::new(PADDLE_MID.sprite(0));
-        let mut paddle_end = Object::new(PADDLE_END.sprite(0));
+        let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
+        let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
+        let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
 
         paddle_end.set_vflip(true);
 

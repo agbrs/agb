@@ -141,14 +141,21 @@ macro_rules! align_bytes {
 
 /// Includes sprites found in the referenced aseprite files.
 ///
-/// Can include multiple at once and optimises palettes of all included in the single call
-/// together. See [Size] for supported sizes. Returns a reference to [Graphics].
+/// Can include multiple at once and optimises palettes of all included in the
+/// single call together. See [Size] for supported sizes.
+///
+/// This generates a module given by the first argument, you can control the
+/// visibility of the module using the normal means. The generated module
+/// exports each Tag in the aseprite file as a static, the static will be all
+/// caps and have spaces and dashes converted to underscores.
+///
 ///
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::{display::object::Graphics, include_aseprite};
-/// static GRAPHICS: &Graphics = include_aseprite!(
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
@@ -162,8 +169,9 @@ macro_rules! align_bytes {
 /// ```rust,ignore
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::{display::object::Graphics, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
 ///     "$OUT_DIR/generated_sprite.aseprite"
 /// );
 /// ```

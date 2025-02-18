@@ -2,12 +2,15 @@ use core::{alloc::Allocator, cell::Cell, hint::assert_unchecked, ptr::NonNull};
 
 use crate::{
     agb_alloc::single_allocator::create_allocator_arena,
-    display::{object::PaletteMulti, palette16::Palette16},
+    display::{
+        object::{sprites::sprite::Palette, PaletteMulti},
+        palette16::Palette16,
+    },
     refcount::{RefCount, RefCountInner},
     ExternalAllocator,
 };
 
-use super::{IntoSpritePaletteVram, LoaderError};
+use super::{LoaderError, SPRITE_LOADER};
 
 pub const PALETTE_SPRITE: usize = 0x0500_0200;
 
@@ -154,7 +157,9 @@ impl PaletteVramSingle {
     /// Allocates the palette sharing an existing allocation where possible
     pub fn new(palette: &'static Palette16) -> Self {
         unsafe {
-            IntoSpritePaletteVram::into(palette)
+            SPRITE_LOADER
+                .palette(Palette::Single(palette))
+                .expect("palette unallocatable")
                 .single()
                 .unwrap_unchecked()
         }
@@ -189,7 +194,9 @@ impl PaletteVramMulti {
     /// Allocates the palette sharing an existing allocation where possible
     pub fn new(palette: &'static PaletteMulti) -> Self {
         unsafe {
-            IntoSpritePaletteVram::into(palette)
+            SPRITE_LOADER
+                .palette(Palette::Multi(palette))
+                .expect("palette unallocatable")
                 .multi()
                 .unwrap_unchecked()
         }

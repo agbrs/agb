@@ -13,9 +13,7 @@ use agb::{
     display::{
         self,
         affine::AffineMatrix,
-        object::{
-            AffineMatrixInstance, AffineMode, IntoSpriteVram, Object, ObjectAffine, SpriteVram, Tag,
-        },
+        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
         palette16::Palette16,
         tiled::VRAM_MANAGER,
         GraphicsFrame,
@@ -134,16 +132,15 @@ impl SpriteCache {
 
         fn generate_sprites(tag: &'static Tag, range: Range<usize>) -> Box<[SpriteVram]> {
             range
-                .map(|x| tag.sprite(x))
-                .map(IntoSpriteVram::into)
+                .map(|x| tag.sprite(x).into())
                 .collect::<Vec<_>>()
                 .into_boxed_slice()
         }
 
         Self {
-            saw: IntoSpriteVram::into(sprites::SAW.sprite(0)),
-            blue: IntoSpriteVram::into(sprites::BLUE.sprite(0)),
-            red: IntoSpriteVram::into(sprites::RED.sprite(0)),
+            saw: sprites::SAW.sprite(0).into(),
+            blue: sprites::BLUE.sprite(0).into(),
+            red: sprites::RED.sprite(0).into(),
             numbers: generate_sprites(&sprites::NUMBERS, 0..10),
             bars: [
                 generate_sprites(&sprites::RED_BAR, 0..8),
