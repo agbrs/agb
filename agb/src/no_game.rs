@@ -124,7 +124,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
         })
         .map(|palette| {
             let palette = Palette16::new(palette.try_into().unwrap());
-            PaletteVramSingle::new(&palette).unwrap()
+            PaletteVramSingle::try_allocate_new(&palette).unwrap()
         })
         .collect();
 
