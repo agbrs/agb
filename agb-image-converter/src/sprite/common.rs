@@ -5,14 +5,18 @@ use image::{DynamicImage, GenericImageView};
 use snafu::{ensure, Snafu};
 use syn::{parse::Parse, LitStr, Token};
 
-use crate::{aseprite, colour::Colour, palette16::Palette16};
+use crate::{aseprite, colour::Colour, get_out_dir, palette16::Palette16, OUT_DIR_TOKEN};
 
 pub const TRANSPARENT_COLOUR: Colour = Colour::from_rgb(255, 0, 255, 0);
 
 impl Parse for Input {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let files = input.parse_terminated(<LitStr as Parse>::parse, Token![,])?;
-        let files = files.iter().map(LitStr::value).collect();
+        let files = files
+            .iter()
+            .map(LitStr::value)
+            .map(|x| x.replace(OUT_DIR_TOKEN, &get_out_dir(&x)))
+            .collect();
 
         Ok(Input { files })
     }
