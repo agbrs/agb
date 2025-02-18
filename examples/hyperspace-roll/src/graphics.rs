@@ -9,29 +9,29 @@ use alloc::vec::Vec;
 
 use crate::{EnemyAttackType, Face, Ship};
 
-static SPRITES: &agb::display::object::Graphics = agb::include_aseprite!(
+agb::include_aseprite!(mod sprites,
     "gfx/dice-faces.aseprite",
     "gfx/ships.aseprite",
     "gfx/small-sprites.aseprite"
 );
 pub static FACE_SPRITES: &FaceSprites = {
-    static S_SHOOT: &Sprite = SPRITES.tags().get("shoot").sprite(0);
-    static S_SHIELD: &Sprite = SPRITES.tags().get("shield").sprite(0);
-    static S_MALFUNCTION: &Sprite = SPRITES.tags().get("malfunction").sprite(0);
-    static S_HEAL: &Sprite = SPRITES.tags().get("player_heal").sprite(0);
-    static S_BYPASS: &Sprite = SPRITES.tags().get("shield bypass").sprite(0);
-    static S_DOUBLE_SHOT: &Sprite = SPRITES.tags().get("double shoot").sprite(0);
-    static S_TRIPLE_SHOT: &Sprite = SPRITES.tags().get("triple shoot").sprite(0);
-    static S_BLANK: &Sprite = SPRITES.tags().get("blank").sprite(0);
-    static S_DISRUPT: &Sprite = SPRITES.tags().get("disruption").sprite(0);
-    static S_MALFUNCTION_SHOOT: &Sprite = SPRITES.tags().get("malfunction shot").sprite(0);
-    static S_DOUBLE_SHIELD: &Sprite = SPRITES.tags().get("double shield").sprite(0);
-    static S_TRIPLE_SHIELD: &Sprite = SPRITES.tags().get("triple shield").sprite(0);
-    static S_DOUBLE_SHIELD_VALUE: &Sprite = SPRITES.tags().get("double shield value").sprite(0);
-    static S_DOUBLE_SHOT_VALUE: &Sprite = SPRITES.tags().get("double shoot power").sprite(0);
-    static S_TRIPLE_SHOT_VALUE: &Sprite = SPRITES.tags().get("triple shoot power").sprite(0);
-    static S_BURST_SHIELD: &Sprite = SPRITES.tags().get("burst shield").sprite(0);
-    static S_INVERT: &Sprite = SPRITES.tags().get("swap shield and shoot").sprite(0);
+    static S_SHOOT: &Sprite = sprites::SHOOT.sprite(0);
+    static S_SHIELD: &Sprite = sprites::SHIELD.sprite(0);
+    static S_MALFUNCTION: &Sprite = sprites::MALFUNCTION.sprite(0);
+    static S_HEAL: &Sprite = sprites::PLAYER_HEAL.sprite(0);
+    static S_BYPASS: &Sprite = sprites::SHIELD_BYPASS.sprite(0);
+    static S_DOUBLE_SHOT: &Sprite = sprites::DOUBLE_SHOOT.sprite(0);
+    static S_TRIPLE_SHOT: &Sprite = sprites::TRIPLE_SHOOT.sprite(0);
+    static S_BLANK: &Sprite = sprites::BLANK.sprite(0);
+    static S_DISRUPT: &Sprite = sprites::DISRUPTION.sprite(0);
+    static S_MALFUNCTION_SHOOT: &Sprite = sprites::MALFUNCTION_SHOT.sprite(0);
+    static S_DOUBLE_SHIELD: &Sprite = sprites::DOUBLE_SHIELD.sprite(0);
+    static S_TRIPLE_SHIELD: &Sprite = sprites::TRIPLE_SHIELD.sprite(0);
+    static S_DOUBLE_SHIELD_VALUE: &Sprite = sprites::DOUBLE_SHIELD_VALUE.sprite(0);
+    static S_DOUBLE_SHOT_VALUE: &Sprite = sprites::DOUBLE_SHOOT_POWER.sprite(0);
+    static S_TRIPLE_SHOT_VALUE: &Sprite = sprites::TRIPLE_SHOOT_POWER.sprite(0);
+    static S_BURST_SHIELD: &Sprite = sprites::BURST_SHIELD.sprite(0);
+    static S_INVERT: &Sprite = sprites::SWAP_SHIELD_AND_SHOOT.sprite(0);
 
     &FaceSprites {
         sprites: [
@@ -56,28 +56,28 @@ pub static FACE_SPRITES: &FaceSprites = {
     }
 };
 pub static ENEMY_ATTACK_SPRITES: &EnemyAttackSprites = {
-    static S_SHOOT: &Sprite = SPRITES.tags().get("enemy shoot").sprite(0);
-    static S_SHIELD: &Sprite = SPRITES.tags().get("enemy shield").sprite(0);
-    static S_HEAL: &Sprite = SPRITES.tags().get("enemy heal").sprite(0);
+    static S_SHOOT: &Sprite = sprites::ENEMY_SHOOT.sprite(0);
+    static S_SHIELD: &Sprite = sprites::ENEMY_SHIELD.sprite(0);
+    static S_HEAL: &Sprite = sprites::ENEMY_HEAL.sprite(0);
 
     &EnemyAttackSprites {
         sprites: [S_SHOOT, S_SHIELD, S_HEAL],
     }
 };
-pub static SELECT_BOX: &Tag = SPRITES.tags().get("selection");
-pub static SELECTED_BOX: &Sprite = SPRITES.tags().get("selected").sprite(0);
-pub static MODIFIED_BOX: &Sprite = SPRITES.tags().get("modified").sprite(0);
+pub static SELECT_BOX: &Tag = &sprites::SELECTION;
+pub static SELECTED_BOX: &Sprite = sprites::SELECTED.sprite(0);
+pub static MODIFIED_BOX: &Sprite = sprites::MODIFIED.sprite(0);
 
-pub static BULLET_SPRITE: &Sprite = SPRITES.tags().get("bullet").sprite(0);
-pub static DISRUPT_BULLET: &Sprite = SPRITES.tags().get("disrupt bullet").sprite(0);
-pub static BURST_BULLET: &Sprite = SPRITES.tags().get("burst shield bullet").sprite(0);
-pub static SHIELD: &Tag = SPRITES.tags().get("ship shield");
+pub static BULLET_SPRITE: &Sprite = sprites::BULLET.sprite(0);
+pub static DISRUPT_BULLET: &Sprite = sprites::DISRUPT_BULLET.sprite(0);
+pub static BURST_BULLET: &Sprite = sprites::BURST_SHIELD_BULLET.sprite(0);
+pub static SHIELD: &Tag = &sprites::SHIP_SHIELD;
 
 pub static SHIP_SPRITES: &ShipSprites = {
-    static S_PLAYER: &Sprite = SPRITES.tags().get("player").sprite(0);
-    static S_DRONE: &Sprite = SPRITES.tags().get("drone").sprite(0);
-    static S_PILOTED_SHIP: &Sprite = SPRITES.tags().get("piloted ship").sprite(0);
-    static S_SHIELD: &Sprite = SPRITES.tags().get("ship shield").sprite(0);
+    static S_PLAYER: &Sprite = sprites::PLAYER.sprite(0);
+    static S_DRONE: &Sprite = sprites::DRONE.sprite(0);
+    static S_PILOTED_SHIP: &Sprite = sprites::PILOTED_SHIP.sprite(0);
+    static S_SHIELD: &Sprite = SHIELD.sprite(0);
 
     &ShipSprites {
         sprites: [S_PLAYER, S_DRONE, S_PILOTED_SHIP, S_SHIELD],
@@ -108,19 +108,17 @@ impl ShipSprites {
 
 pub struct SmallSprites;
 
-static NUMBERS: &Tag = SPRITES.tags().get("numbers");
-static RED_BAR: &Tag = SPRITES.tags().get("red bar");
 impl SmallSprites {
     pub fn number(&self, i: u32) -> &'static Sprite {
-        NUMBERS.sprite(i as usize)
+        sprites::NUMBERS.sprite(i as usize)
     }
 
     pub fn slash(&self) -> &'static Sprite {
-        NUMBERS.sprite(10)
+        sprites::NUMBERS.sprite(10)
     }
 
     pub fn red_bar(&self, i: usize) -> &'static Sprite {
-        RED_BAR.sprite(i)
+        sprites::RED_BAR.sprite(i)
     }
 }
 

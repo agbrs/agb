@@ -1,16 +1,7 @@
-use crate::TAG_MAP;
-
 use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
-use agb::{display::object::Tag, fixnum::Vector2D};
+use agb::fixnum::Vector2D;
 
-static SLIME_IDLE: &Tag = TAG_MAP.get("Slime Idle");
-static SLIME_JUMP: &Tag = TAG_MAP.get("Slime Jump");
-static SLIME_SPLAT: &Tag = TAG_MAP.get("Slime splat");
-
-static SNAIL_EMERGE: &Tag = TAG_MAP.get("Snail Emerge");
-static SNAIL_MOVE: &Tag = TAG_MAP.get("Snail Move");
-static SNAIL_DEATH: &Tag = TAG_MAP.get("Snail Death");
-static SNAIL_IDLE: &Tag = TAG_MAP.get("Snail Idle");
+use crate::sprites;
 
 enum UpdateState {
     Nothing,
@@ -141,7 +132,7 @@ impl Slime {
             SlimeState::Idle => {
                 let offset = (timer / 16) as usize;
 
-                let frame = SLIME_IDLE.animation_sprite(offset);
+                let frame = sprites::SLIME_IDLE.animation_sprite(offset);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
 
@@ -180,7 +171,7 @@ impl Slime {
                     self.enemy_info.entity.velocity = (0, 0).into();
                     self.state = SlimeState::Idle;
                 } else {
-                    let frame = SLIME_JUMP.animation_sprite(offset);
+                    let frame = sprites::SLIME_JUMP.animation_sprite(offset);
 
                     self.enemy_info.entity.sprite.set_sprite(frame);
                 }
@@ -205,7 +196,7 @@ impl Slime {
                     return UpdateState::Remove;
                 }
 
-                let frame = SLIME_SPLAT.animation_sprite(offset);
+                let frame = sprites::SLIME_SPLAT.animation_sprite(offset);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
             }
@@ -268,7 +259,7 @@ impl Snail {
                     }
                 }
 
-                let frame = SNAIL_IDLE.animation_sprite(0);
+                let frame = sprites::SNAIL_IDLE.animation_sprite(0);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
                 if player_has_collided {
@@ -287,7 +278,7 @@ impl Snail {
                 }
                 self.enemy_info.entity.velocity = (0, 0).into();
 
-                let frame = SNAIL_EMERGE.animation_sprite(offset);
+                let frame = sprites::SNAIL_EMERGE.animation_sprite(offset);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
 
@@ -308,7 +299,7 @@ impl Snail {
 
                 let offset = (timer - time) as usize / 8;
 
-                let frame = SNAIL_MOVE.animation_sprite(offset);
+                let frame = sprites::SNAIL_MOVE.animation_sprite(offset);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
 
@@ -341,7 +332,7 @@ impl Snail {
                     self.state = SnailState::Idle(timer);
                 }
 
-                let frame = SNAIL_EMERGE.animation_sprite(offset);
+                let frame = sprites::SNAIL_EMERGE.animation_sprite(offset);
 
                 self.enemy_info.entity.sprite.set_sprite(frame);
                 self.enemy_info.entity.velocity = (0, 0).into();
@@ -361,11 +352,11 @@ impl Snail {
 
                 let offset = (timer - time) as usize / 4;
                 let frame = if offset < 5 {
-                    SNAIL_EMERGE.animation_sprite(5 - offset)
+                    sprites::SNAIL_EMERGE.animation_sprite(5 - offset)
                 } else if offset == 5 {
-                    SNAIL_IDLE.animation_sprite(0)
+                    sprites::SNAIL_IDLE.animation_sprite(0)
                 } else if offset < 5 + 7 {
-                    SNAIL_DEATH.animation_sprite(offset - 5)
+                    sprites::SNAIL_DEATH.animation_sprite(offset - 5)
                 } else {
                     return UpdateState::Remove;
                 };
