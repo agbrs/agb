@@ -187,16 +187,16 @@ macro_rules! include_aseprite {
 /// This will optimise to a single multi palette, 256 colour sprites.
 #[macro_export]
 macro_rules! include_aseprite_256 {
-    ($($aseprite_path: expr),*$(,)?) => {{
-        #[allow(unused_imports)]
-        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics, MultiPalette};
-        use $crate::display::palette16::Palette16;
-        use $crate::align_bytes;
+    ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
+        $v mod $module {
+            #[allow(unused_imports)]
+            use $crate::display::object::{Size, Sprite, Tag, PaletteMulti};
+            use $crate::display::palette16::Palette16;
+            use $crate::align_bytes;
 
-        $crate::include_aseprite_256_inner!($($aseprite_path),*);
-
-        &Graphics::new(SPRITES, &TAGS)
-    }}
+            $crate::include_aseprite_256_inner!($($aseprite_path),*);
+        }
+    }
 }
 
 pub use include_aseprite;
