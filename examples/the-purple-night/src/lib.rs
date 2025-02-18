@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 
 use agb::{
     display::{
-        object::{Graphics, Object, Sprite, Tag, TagMap},
+        object::{Object, Sprite, Tag},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
@@ -28,30 +28,29 @@ use agb::{
 };
 use generational_arena::Arena;
 
-static GRAPHICS: &Graphics = agb::include_aseprite!("gfx/objects.aseprite", "gfx/boss.aseprite");
-static TAG_MAP: &TagMap = GRAPHICS.tags();
+agb::include_aseprite!(mod sprites, "gfx/objects.aseprite", "gfx/boss.aseprite");
 
-static LONG_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - longsword");
-static LONG_SWORD_WALK: &Tag = TAG_MAP.get("Walk - longsword");
-static LONG_SWORD_JUMP: &Tag = TAG_MAP.get("Jump - longsword");
-static LONG_SWORD_ATTACK: &Tag = TAG_MAP.get("Attack - longsword");
-static LONG_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("Jump attack - longsword");
+static LONG_SWORD_IDLE: &Tag = &sprites::IDLE___LONGSWORD;
+static LONG_SWORD_WALK: &Tag = &sprites::WALK___LONGSWORD;
+static LONG_SWORD_JUMP: &Tag = &sprites::JUMP___LONGSWORD;
+static LONG_SWORD_ATTACK: &Tag = &sprites::ATTACK___LONGSWORD;
+static LONG_SWORD_JUMP_ATTACK: &Tag = &sprites::JUMP_ATTACK___LONGSWORD;
 
-static SHORT_SWORD_IDLE: &Tag = TAG_MAP.get("Idle - shortsword");
-static SHORT_SWORD_WALK: &Tag = TAG_MAP.get("Walk - shortsword");
-static SHORT_SWORD_JUMP: &Tag = TAG_MAP.get("jump - shortsword");
-static SHORT_SWORD_ATTACK: &Tag = TAG_MAP.get("attack - shortsword");
-static SHORT_SWORD_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - shortsword");
+static SHORT_SWORD_IDLE: &Tag = &sprites::IDLE___SHORTSWORD;
+static SHORT_SWORD_WALK: &Tag = &sprites::WALK___SHORTSWORD;
+static SHORT_SWORD_JUMP: &Tag = &sprites::JUMP___SHORTSWORD;
+static SHORT_SWORD_ATTACK: &Tag = &sprites::ATTACK___SHORTSWORD;
+static SHORT_SWORD_JUMP_ATTACK: &Tag = &sprites::JUMP_ATTACK___SHORTSWORD;
 
-static KNIFE_IDLE: &Tag = TAG_MAP.get("idle - knife");
-static KNIFE_WALK: &Tag = TAG_MAP.get("walk - knife");
-static KNIFE_JUMP: &Tag = TAG_MAP.get("jump - knife");
-static KNIFE_ATTACK: &Tag = TAG_MAP.get("attack - knife");
-static KNIFE_JUMP_ATTACK: &Tag = TAG_MAP.get("jump attack - knife");
+static KNIFE_IDLE: &Tag = &sprites::IDLE___KNIFE;
+static KNIFE_WALK: &Tag = &sprites::WALK___KNIFE;
+static KNIFE_JUMP: &Tag = &sprites::JUMP___KNIFE;
+static KNIFE_ATTACK: &Tag = &sprites::ATTACK___KNIFE;
+static KNIFE_JUMP_ATTACK: &Tag = &sprites::JUMP_ATTACK___KNIFE;
 
-static SWORDLESS_IDLE: &Tag = TAG_MAP.get("idle swordless");
-static SWORDLESS_WALK: &Tag = TAG_MAP.get("walk swordless");
-static SWORDLESS_JUMP: &Tag = TAG_MAP.get("jump swordless");
+static SWORDLESS_IDLE: &Tag = &sprites::IDLE_SWORDLESS;
+static SWORDLESS_WALK: &Tag = &sprites::WALK_SWORDLESS;
+static SWORDLESS_JUMP: &Tag = &sprites::JUMP_SWORDLESS;
 static SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
 static SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
@@ -772,8 +771,6 @@ impl BatData {
             .unwrap_or(false);
         let should_damage = entity.collider().touches(player.entity.collider());
 
-        static BAT_IDLE: &Tag = TAG_MAP.get("bat");
-
         match &mut self.bat_state {
             BatState::Idle => {
                 self.sprite_offset += 1;
@@ -785,7 +782,7 @@ impl BatData {
                     sfx.bat_flap();
                 }
 
-                let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 8);
+                let sprite = sprites::BAT.sprite(self.sprite_offset as usize / 8);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -819,7 +816,7 @@ impl BatData {
                     self.sprite_offset = 0;
                 }
 
-                let sprite = BAT_IDLE.sprite(self.sprite_offset as usize / 2);
+                let sprite = sprites::BAT.sprite(self.sprite_offset as usize / 2);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -844,8 +841,7 @@ impl BatData {
                 }
             }
             BatState::Dead => {
-                static BAT_DEAD: &Tag = TAG_MAP.get("bat dead");
-                let sprite = BAT_DEAD.sprite(0);
+                let sprite = sprites::BAT_DEAD.sprite(0);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -909,9 +905,7 @@ impl SlimeData {
                     self.sprite_offset = 0;
                 }
 
-                static IDLE: &Tag = TAG_MAP.get("slime idle");
-
-                let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
+                let sprite = sprites::SLIME_IDLE.sprite(self.sprite_offset as usize / 16);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -948,9 +942,7 @@ impl SlimeData {
                         sfx.slime_boing();
                     }
 
-                    static CHASE: &Tag = TAG_MAP.get("Slime jump");
-
-                    let sprite = CHASE.sprite(frame as usize);
+                    let sprite = sprites::SLIME_JUMP.sprite(frame as usize);
 
                     entity.sprite.set_sprite(sprite);
 
@@ -978,8 +970,7 @@ impl SlimeData {
             }
             SlimeState::Dead(count) => {
                 if *count < 5 * 4 {
-                    static DEATH: &Tag = TAG_MAP.get("Slime death");
-                    let sprite = DEATH.sprite(*count as usize / 4);
+                    let sprite = sprites::SLIME_DEATH.sprite(*count as usize / 4);
 
                     entity.sprite.set_sprite(sprite);
                     *count += 1;
@@ -1029,8 +1020,6 @@ impl MiniFlameData {
 
         self.sprite_offset += 1;
 
-        static ANGRY: &Tag = TAG_MAP.get("angry boss");
-
         match &mut self.state {
             MiniFlameState::Idle(frames) => {
                 *frames -= 1;
@@ -1045,7 +1034,8 @@ impl MiniFlameData {
                         entity.velocity = resulting_direction.normalise() * Number::new(2);
                     }
                 } else {
-                    let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 8);
+                    let sprite =
+                        sprites::ANGRY_BOSS.animation_sprite(self.sprite_offset as usize / 8);
                     entity.sprite.set_sprite(sprite);
 
                     entity.velocity = (0.into(), Number::new(-1) / Number::new(4)).into();
@@ -1092,7 +1082,7 @@ impl MiniFlameData {
                     self.state = MiniFlameState::Idle(90);
                 }
 
-                let sprite = ANGRY.animation_sprite(self.sprite_offset as usize / 2);
+                let sprite = sprites::ANGRY_BOSS.animation_sprite(self.sprite_offset as usize / 2);
                 entity.sprite.set_sprite(sprite);
             }
             MiniFlameState::Dead => {
@@ -1101,9 +1091,8 @@ impl MiniFlameData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                static DEATH: &Tag = TAG_MAP.get("angry boss dead");
-
-                let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 12);
+                let sprite =
+                    sprites::ANGRY_BOSS_DEAD.animation_sprite(self.sprite_offset as usize / 12);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1160,9 +1149,7 @@ impl EmuData {
                     self.sprite_offset = 0;
                 }
 
-                static IDLE: &Tag = TAG_MAP.get("emu - idle");
-
-                let sprite = IDLE.sprite(self.sprite_offset as usize / 16);
+                let sprite = sprites::EMU___IDLE.sprite(self.sprite_offset as usize / 16);
                 entity.sprite.set_sprite(sprite);
 
                 if (entity.position.y - player.entity.position.y).abs() < 10.into() {
@@ -1206,9 +1193,7 @@ impl EmuData {
                     sfx.emu_step();
                 }
 
-                static WALK: &Tag = TAG_MAP.get("emu-walk");
-
-                let sprite = WALK.sprite(self.sprite_offset as usize / 2);
+                let sprite = sprites::EMU_WALK.sprite(self.sprite_offset as usize / 2);
                 entity.sprite.set_sprite(sprite);
 
                 let gravity: Number = 1.into();
@@ -1260,9 +1245,7 @@ impl EmuData {
                     instruction = UpdateInstruction::Remove;
                 }
 
-                static DEATH: &Tag = TAG_MAP.get("emu - die");
-
-                let sprite = DEATH.animation_sprite(self.sprite_offset as usize / 4);
+                let sprite = sprites::EMU___DIE.animation_sprite(self.sprite_offset as usize / 4);
                 entity.sprite.set_sprite(sprite);
 
                 self.sprite_offset += 1;
@@ -1293,15 +1276,11 @@ impl EnemyData {
     }
 
     fn sprite(&self) -> &'static Sprite {
-        static SLIME: &Tag = TAG_MAP.get("slime idle");
-        static BAT: &Tag = TAG_MAP.get("bat");
-        static MINI_FLAME: &Tag = TAG_MAP.get("angry boss");
-        static EMU: &Tag = TAG_MAP.get("emu - idle");
         match self {
-            EnemyData::Slime(_) => SLIME.sprite(0),
-            EnemyData::Bat(_) => BAT.sprite(0),
-            EnemyData::MiniFlame(_) => MINI_FLAME.sprite(0),
-            EnemyData::Emu(_) => EMU.sprite(0),
+            EnemyData::Slime(_) => sprites::SLIME_IDLE.sprite(0),
+            EnemyData::Bat(_) => sprites::BAT.sprite(0),
+            EnemyData::MiniFlame(_) => sprites::ANGRY_BOSS.sprite(0),
+            EnemyData::Emu(_) => sprites::EMU___IDLE.sprite(0),
         }
     }
 
@@ -1373,8 +1352,7 @@ impl ParticleData {
                     return UpdateInstruction::Remove;
                 }
 
-                static DUST: &Tag = TAG_MAP.get("dust");
-                let sprite = DUST.sprite(*frame as usize / 3);
+                let sprite = sprites::DUST.sprite(*frame as usize / 3);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1386,8 +1364,7 @@ impl ParticleData {
                     return UpdateInstruction::Remove; // have played the animation 6 times
                 }
 
-                static HEALTH: &Tag = TAG_MAP.get("Heath");
-                let sprite = HEALTH.animation_sprite(*frame as usize / 3);
+                let sprite = sprites::HEATH.animation_sprite(*frame as usize / 3);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1411,8 +1388,7 @@ impl ParticleData {
                 UpdateInstruction::None
             }
             ParticleData::BossHealer(frame, target) => {
-                static HEALTH: &Tag = TAG_MAP.get("Heath");
-                let sprite = HEALTH.animation_sprite(*frame as usize / 3);
+                let sprite = sprites::HEATH.animation_sprite(*frame as usize / 3);
 
                 entity.sprite.set_sprite(sprite);
 
@@ -1555,9 +1531,7 @@ impl FollowingBoss {
             self.timer / 16
         };
 
-        static BOSS: &Tag = TAG_MAP.get("happy boss");
-
-        let sprite = BOSS.animation_sprite(frame as usize);
+        let sprite = sprites::HAPPY_BOSS.animation_sprite(frame as usize);
 
         self.entity.sprite.set_sprite(sprite);
 
@@ -1686,9 +1660,7 @@ impl Boss {
         self.timer += 1;
         let frame = self.timer / animation_rate;
 
-        static BOSS: &Tag = TAG_MAP.get("Boss");
-
-        let sprite = BOSS.animation_sprite(frame as usize);
+        let sprite = sprites::BOSS.animation_sprite(frame as usize);
 
         self.entity.sprite.set_sprite(sprite);
 
