@@ -29,7 +29,7 @@ fn main(mut gba: agb::Gba) -> ! {
     palette[1] = 0xFF_FF;
     palette[2] = 0x00_FF;
     let palette = Palette16::new(palette);
-    let palette = PaletteVramSingle::new(&palette).unwrap();
+    let palette = PaletteVramSingle::try_allocate_new(&palette).unwrap();
 
     let timer = gba.timers.timers();
     let mut timer: agb::timer::Timer = timer.timer2;

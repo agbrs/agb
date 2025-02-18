@@ -409,7 +409,7 @@ mod tests {
     #[test_case]
     fn object_usage(gba: &mut crate::Gba) {
         include_aseprite!(
-            sprites,
+            mod sprites,
             "../examples/the-purple-night/gfx/objects.aseprite",
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
