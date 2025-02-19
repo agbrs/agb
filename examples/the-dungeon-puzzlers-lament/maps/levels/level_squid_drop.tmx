@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="10">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="5">
  <properties>
   <property name="DIRECTIONS" value="DDDRRRRRRRRRRRRU"/>
   <property name="ITEMS" value="SQUID_UP,SQUID_DOWN,SWITCH,SPIKES,DOOR,KEY"/>
   <property name="NAME" value="We used to have treasure in there"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Ground" width="11" height="10">
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
 0,0,0,1,4,8,3,2,3,9,0,
 0,0,0,46,11,12,14,16,14,38,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Puzzle">
+ <objectgroup id="2" name="Object Layer 1">
   <object id="1" name="HERO" x="22.9531" y="73.3414">
    <point/>
   </object>
@@ -31,23 +31,6 @@
    <point/>
   </object>
   <object id="4" name="STAIRS" x="118.953" y="89.3414">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup id="3" name="Solution">
-  <object id="5" name="KEY" x="21.5058" y="84.4549">
-   <point/>
-  </object>
-  <object id="6" name="DOOR" x="135.307" y="103.048">
-   <point/>
-  </object>
-  <object id="7" name="SQUID_DOWN" x="88.4872" y="40.3233">
-   <point/>
-  </object>
-  <object id="8" name="SPIKES" x="86.6951" y="106.185">
-   <point/>
-  </object>
-  <object id="9" name="SWITCH" x="73.03" y="105.513">
    <point/>
   </object>
  </objectgroup>

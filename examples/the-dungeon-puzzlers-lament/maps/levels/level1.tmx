@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="5">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="4">
  <properties>
   <property name="DIRECTIONS" value="RRRRRR"/>
   <property name="ITEMS" value="KEY"/>
   <property name="NAME" value="Keys open doors"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Ground" width="11" height="10">
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Puzzle">
+ <objectgroup id="2" name="Object Layer 1">
   <object id="1" name="STAIRS" x="134.443" y="72.9947">
    <point/>
   </object>
@@ -28,11 +28,6 @@
    <point/>
   </object>
   <object id="3" name="DOOR" x="103.261" y="72.1311">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup id="3" name="Solution">
-  <object id="4" name="KEY" x="71.5373" y="71.5373">
    <point/>
   </object>
  </objectgroup>

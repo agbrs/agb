@@ -8,7 +8,6 @@ use agb::{
     display::{object::Object, GraphicsFrame},
     fixnum::{Num, Vector2D},
 };
-use alloc::vec;
 use alloc::vec::Vec;
 use slotmap::SecondaryMap;
 
@@ -27,15 +26,11 @@ struct AnimationEntity {
     attached: Option<(Item, Num<i32, 10>)>,
 }
 
-struct MovePoints {
-    sound_effect: Option<SoundEffect>,
-    points: Vec<Vector2D<Num<i32, 10>>>,
-}
-
 #[derive(Default)]
 struct ToPlay {
-    move_points: SecondaryMap<EntityKey, MovePoints>,
+    moves: Vec<Move>,
     attach_progress: Vec<AttachProgress>,
+    fakeout: Vec<FakeOutMove>,
     detatch: Vec<Detatch>,
     attach: Vec<Attach>,
     change: Vec<Change>,
@@ -55,45 +50,9 @@ impl ToPlay {
     ) {
         match instruction {
             AnimationInstruction::Move(e, p, s) => {
-                let move_points =
-                    self.move_points
-                        .entry(e)
-                        .unwrap()
-                        .or_insert_with(|| MovePoints {
-                            sound_effect: s,
-                            points: map
-                                .get(e)
-                                .map(|x| vec![x.start_position])
-                                .unwrap_or_default(),
-                        });
-                move_points.points.push(convert_to_real_space(p));
-                if let Some(sound_effect) = s {
-                    move_points.sound_effect.get_or_insert(sound_effect);
-                }
+                self.moves.push(Move(e, convert_to_real_space(p), s));
             }
-            AnimationInstruction::FakeOutMove(e, d, s) => {
-                let move_points =
-                    self.move_points
-                        .entry(e)
-                        .unwrap()
-                        .or_insert_with(|| MovePoints {
-                            sound_effect: s,
-                            points: map
-                                .get(e)
-                                .map(|x| vec![x.start_position])
-                                .unwrap_or_default(),
-                        });
-
-                if let Some(sound_effect) = s {
-                    move_points.sound_effect.get_or_insert(sound_effect);
-                }
-
-                let &most_recent_position = move_points.points.last().unwrap();
-                move_points
-                    .points
-                    .push(most_recent_position + convert_to_real_space(d.into()) / 2);
-                move_points.points.push(most_recent_position);
-            }
+            AnimationInstruction::FakeOutMove(e, d, s) => self.fakeout.push(FakeOutMove(e, d, s)),
             AnimationInstruction::Detatch(e, nk, s) => self.detatch.push(Detatch(e, nk, s)),
             AnimationInstruction::Attach(e, o, s) => {
                 if let Some(entity_to_attach) = map.get(o) {
@@ -157,13 +116,7 @@ impl RenderCache {
         let mut score = 0;
         if matches!(
             self.item,
-            Item::Stairs
-                | Item::Switch
-                | Item::SwitchPressed
-                | Item::SpikesDown
-                | Item::SpikesUp
-                | Item::Ice
-                | Item::Teleporter
+            Item::Stairs | Item::Switch | Item::SwitchPressed | Item::SpikesDown | Item::SpikesUp
         ) {
             score += 100000;
         }
@@ -193,6 +146,12 @@ impl Map {
             entity.start_position = destination;
         }
     }
+
+    fn set_entity_to_start_location(&mut self, entity: EntityKey) {
+        if let Some(entity) = self.map.get_mut(entity) {
+            entity.rendered_position = entity.start_position;
+        }
+    }
 }
 
 impl Deref for Map {
@@ -206,31 +165,6 @@ impl Deref for Map {
 impl DerefMut for Map {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map
-    }
-}
-
-fn lerp_points<N: Copy + core::ops::Mul<Num<i32, 10>, Output = N> + core::ops::Add<Output = N>>(
-    points: &[N],
-    t: Num<i32, 10>,
-) -> N {
-    let number_of_points = points.len() as i32;
-    let slope_for_spike_fn = number_of_points - 1;
-
-    let relevant_points_pair_idx = (t * slope_for_spike_fn).floor();
-
-    let spike_function_for_first = t * -slope_for_spike_fn + relevant_points_pair_idx + 1;
-    let spike_function_for_second = t * slope_for_spike_fn - relevant_points_pair_idx;
-    let first_point_idx = relevant_points_pair_idx as usize;
-
-    let &first = points
-        .get(first_point_idx)
-        .expect("Maybe input to lerp is out of range?");
-    let second = points.get(first_point_idx + 1);
-
-    if let Some(&second) = second {
-        first * spike_function_for_first + second * spike_function_for_second
-    } else {
-        first
     }
 }
 
@@ -292,14 +226,23 @@ impl Animation {
     }
 
     pub fn update(&mut self, sfx: &mut Sfx) -> bool {
-        if !self.to_play.move_points.is_empty() || !self.to_play.attach_progress.is_empty() {
+        if !self.to_play.moves.is_empty()
+            || !self.to_play.fakeout.is_empty()
+            || !self.to_play.attach_progress.is_empty()
+        {
             if self.time >= 1.into() {
                 // finalise animations
-                for m in self.to_play.move_points.drain() {
+                for m in self.to_play.moves.drain(0..) {
                     let entity = m.0;
-                    let &destination = m.1.points.last().unwrap();
+                    let destination = m.1;
 
                     self.map.set_entity_start_location(entity, destination);
+                }
+
+                for m in self.to_play.fakeout.drain(0..) {
+                    let entity = m.0;
+
+                    self.map.set_entity_to_start_location(entity);
                 }
 
                 for m in self.to_play.attach_progress.drain(0..) {
@@ -314,11 +257,34 @@ impl Animation {
                 }
             } else {
                 // play moves and fakeouts
-                for (entity, move_points) in self.to_play.move_points.iter_mut() {
-                    sfx.play_sound_effect(move_points.sound_effect.take());
+                for m in self.to_play.moves.iter_mut() {
+                    let entity = m.0;
+                    let destination = m.1;
+
+                    sfx.play_sound_effect(m.2.take());
 
                     if let Some(entity) = self.map.get_mut(entity) {
-                        let location = lerp_points(&move_points.points, self.ease);
+                        let location = entity.start_position * (Num::<i32, 10>::new(1) - self.ease)
+                            + destination * self.ease;
+
+                        entity.rendered_position = location;
+                    }
+                }
+
+                for m in self.to_play.fakeout.iter_mut() {
+                    let entity = m.0;
+                    let direction = m.1;
+                    let direction = convert_to_real_space(direction.into());
+
+                    sfx.play_sound_effect(m.2.take());
+
+                    let go_to = direction / 2;
+
+                    let start = (self.ease * 2 - 1).abs();
+                    let end_multiplier = -start + 1;
+
+                    if let Some(entity) = self.map.get_mut(entity) {
+                        let location = entity.start_position + go_to * end_multiplier;
 
                         entity.rendered_position = location;
                     }
@@ -360,13 +326,9 @@ impl Animation {
                             attached: None,
                         },
                     );
-                    self.to_play.move_points.insert(
-                        new_key,
-                        MovePoints {
-                            sound_effect: None,
-                            points: vec![position, destination_position],
-                        },
-                    );
+                    self.to_play
+                        .moves
+                        .push(Move(new_key, destination_position, None));
                 }
             }
         } else if !self.to_play.attach.is_empty() {
@@ -415,6 +377,8 @@ impl Animation {
     }
 }
 
+struct Move(EntityKey, Vector2D<Num<i32, 10>>, Option<SoundEffect>);
+struct FakeOutMove(EntityKey, Direction, Option<SoundEffect>);
 struct Detatch(EntityKey, EntityKey, Option<SoundEffect>);
 struct Attach(EntityKey, Item, EntityKey, Option<SoundEffect>);
 struct AttachProgress(EntityKey, Option<SoundEffect>);

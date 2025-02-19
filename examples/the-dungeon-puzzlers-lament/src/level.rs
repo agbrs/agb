@@ -2,7 +2,7 @@ use agb::{display::object::Tag, fixnum::Vector2D};
 
 use crate::{game::Direction, map::Map, resources};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Item {
     Sword,
     Slime,
@@ -18,15 +18,6 @@ pub enum Item {
     SpikesDown,
     SquidUp,
     SquidDown,
-    Ice,
-    MovableBlock,
-    Glove,
-    Teleporter,
-    Hole,
-    RotatorRight,
-    RotatorLeft,
-    RotatorUp,
-    RotatorDown,
 }
 
 impl Item {
@@ -46,15 +37,6 @@ impl Item {
             Item::SpikesDown => resources::SPIKES_OFF,
             Item::SquidUp => resources::SQUID_UP_SHADOW,
             Item::SquidDown => resources::SQUID_DOWN_SHADOW,
-            Item::Ice => resources::ICE,
-            Item::MovableBlock => resources::ROCK_SHADOW,
-            Item::Glove => resources::POW_GLOVE_SHADOW,
-            Item::Teleporter => resources::TELEPORTER_SHADOW,
-            Item::Hole => resources::HOLE,
-            Item::RotatorRight => resources::ROTATOR_RIGHT_SHADOW,
-            Item::RotatorLeft => resources::ROTATOR_LEFT_SHADOW,
-            Item::RotatorUp => resources::ROTATOR_UP_SHADOW,
-            Item::RotatorDown => resources::ROTATOR_DOWN_SHADOW,
         }
     }
 
@@ -74,15 +56,6 @@ impl Item {
             Item::SpikesDown => resources::SPIKES_OFF,
             Item::SquidUp => resources::SQUID_UP,
             Item::SquidDown => resources::SQUID_DOWN,
-            Item::Ice => resources::ICE,
-            Item::MovableBlock => resources::ROCK,
-            Item::Glove => resources::POW_GLOVE,
-            Item::Teleporter => resources::TELEPORTER,
-            Item::Hole => resources::HOLE,
-            Item::RotatorRight => resources::ROTATOR_RIGHT,
-            Item::RotatorLeft => resources::ROTATOR_LEFT,
-            Item::RotatorUp => resources::ROTATOR_UP,
-            Item::RotatorDown => resources::ROTATOR_DOWN,
         }
     }
 
@@ -105,15 +78,6 @@ impl Item {
             Item::SpikesDown => ZERO,
             Item::SquidUp => STANDARD,
             Item::SquidDown => STANDARD,
-            Item::Ice => ZERO,
-            Item::MovableBlock => ZERO,
-            Item::Glove => STANDARD,
-            Item::Teleporter => ZERO,
-            Item::Hole => ZERO,
-            Item::RotatorRight => STANDARD,
-            Item::RotatorLeft => STANDARD,
-            Item::RotatorUp => STANDARD,
-            Item::RotatorDown => STANDARD,
         }
     }
 }
@@ -123,19 +87,15 @@ pub struct Entity(pub Item, pub Vector2D<i32>);
 pub struct Level {
     pub map: Map<'static>,
     pub entities: &'static [Entity],
-    #[cfg(test)]
-    pub solution: &'static [Entity],
     pub directions: &'static [Direction],
     pub items: &'static [Item],
     pub name: &'static str,
 }
 
 impl Level {
-    #[allow(unused_variables)]
     const fn new(
         map: Map<'static>,
         entities: &'static [Entity],
-        solution: &'static [Entity],
         directions: &'static [Direction],
         items: &'static [Item],
         name: &'static str,
@@ -143,8 +103,6 @@ impl Level {
         Self {
             map,
             entities,
-            #[cfg(test)]
-            solution,
             directions,
             items,
             name,

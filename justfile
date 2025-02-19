@@ -70,7 +70,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy fmt-check test miri build-release test-release doctest-agb test-games build-roms build-book check-docs
+ci: build-debug clippy fmt-check test miri build-release test-release doctest-agb build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -170,12 +170,6 @@ build-site: build-site-app
 _run-tool +tool:
     (cd tools && cargo build)
     "$CARGO_TARGET_DIR/debug/tools" {{tool}}
-
-test-games:
-    just test-game the-dungeon-puzzlers-lament
-
-test-game game:
-    (cd "examples/{{game}}" && CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test)
 
 _build-rom folder name:
     #!/usr/bin/env bash

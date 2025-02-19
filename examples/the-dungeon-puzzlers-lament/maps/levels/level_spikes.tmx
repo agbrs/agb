@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="8">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="6">
  <properties>
   <property name="DIRECTIONS" value="RRRRRRDDRR"/>
   <property name="ITEMS" value="DOOR_SWITCHED_OPEN,SWITCH"/>
   <property name="NAME" value="Be careful of the spikes"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Ground" width="11" height="10">
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Puzzle">
+ <objectgroup id="2" name="Object Layer 1">
   <object id="1" name="HERO" x="38.5701" y="73.6808">
    <point/>
   </object>
@@ -34,14 +34,6 @@
    <point/>
   </object>
   <object id="5" name="SPIKES" x="103.768" y="108.323">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup id="3" name="Solution">
-  <object id="6" name="DOOR_SWITCHED_OPEN" x="119.178" y="74.1501">
-   <point/>
-  </object>
-  <object id="7" name="SWITCH" x="103.272" y="73.254">
    <point/>
   </object>
  </objectgroup>
