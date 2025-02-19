@@ -22,7 +22,7 @@ impl<'map> Map<'map> {
     pub const fn get(&self, index: Vector2D<i32>) -> MapElement {
         let (x, y) = (index.x, index.y);
 
-        if x > self.width as i32 || x < 0 || y > self.height as i32 || y < 0 {
+        if x > self.width as i32 || y > self.height as i32 {
             MapElement::Wall
         } else {
             let position = x as usize + y as usize * self.width;

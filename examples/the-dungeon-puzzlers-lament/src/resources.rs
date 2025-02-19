@@ -49,22 +49,6 @@ named_tag!(
         SQUID_DOWN,
         SQUID_UP_SHADOW,
         SQUID_DOWN_SHADOW,
-        ICE,
-        ROCK,
-        ROCK_SHADOW,
-        POW_GLOVE,
-        POW_GLOVE_SHADOW,
-        TELEPORTER,
-        TELEPORTER_SHADOW,
-        HOLE,
-        ROTATOR_RIGHT,
-        ROTATOR_UP,
-        ROTATOR_LEFT,
-        ROTATOR_DOWN,
-        ROTATOR_RIGHT_SHADOW,
-        ROTATOR_UP_SHADOW,
-        ROTATOR_LEFT_SHADOW,
-        ROTATOR_DOWN_SHADOW,
     ]
 );
 

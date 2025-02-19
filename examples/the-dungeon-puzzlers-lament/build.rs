@@ -5,7 +5,6 @@ use std::{
     io::{BufWriter, Write},
     str::FromStr,
 };
-use tiled::{Map, ObjectLayer, TileLayer};
 
 use proc_macro2::TokenStream;
 
@@ -29,24 +28,6 @@ const LEVEL_NAMES: &[&str] = &[
     "level_spikes3",
     "level_around",
     "level_squidprogramming",
-    "a_familiar_sight",
-    "block_push_1",
-    "just_rocks",
-    "squid_rock",
-    "ice_ice",
-    "block_push_2",
-    "glove_key",
-    "block_push_3",
-    "teleporter_1",
-    "squid_teleport",
-    "teleporter_2",
-    "slime_teleporter",
-    "another_ice",
-    "another_ice_2",
-    "another_ice_3",
-    "another_ice_4",
-    "hole_introduction",
-    "rotator_1",
 ];
 
 fn main() {
@@ -57,18 +38,7 @@ fn main() {
     let ui_map = load_tmx(&mut tile_loader, "maps/UI.tmx");
     let ui_tiles = export_ui_tiles(&ui_map, quote!(ui));
 
-    const DPL_LEVELS_ENVIRONMENT_VARIABLE: &str = "DPL_LEVELS";
-
-    println!(
-        "cargo:rerun-if-env-changed={}",
-        DPL_LEVELS_ENVIRONMENT_VARIABLE
-    );
-
-    let levels: Vec<String> = env::var(DPL_LEVELS_ENVIRONMENT_VARIABLE)
-        .map(|x| x.split(',').map(|x| x.trim().to_string()).collect())
-        .unwrap_or(LEVEL_NAMES.iter().map(|x| x.to_string()).collect());
-
-    let levels = levels
+    let levels = LEVEL_NAMES
         .iter()
         .map(|level| load_level(&mut tile_loader, &format!("maps/levels/{level}.tmx")))
         .collect::<Vec<_>>();
@@ -130,15 +100,6 @@ enum Entity {
     SpikesDown,
     SquidUp,
     SquidDown,
-    Ice,
-    MovableBlock,
-    Glove,
-    Teleporter,
-    Hole,
-    RotatorUp,
-    RotatorDown,
-    RotatorLeft,
-    RotatorRight,
 }
 
 impl FromStr for Entity {
@@ -162,15 +123,6 @@ impl FromStr for Entity {
             "SPIKES_DOWN" => SpikesDown,
             "SQUID_UP" => SquidUp,
             "SQUID_DOWN" => SquidDown,
-            "ICE" => Ice,
-            "BLOCK" => MovableBlock,
-            "GLOVE" => Glove,
-            "TELEPORTER" => Teleporter,
-            "HOLE" => Hole,
-            "ROTATOR_LEFT" => RotatorLeft,
-            "ROTATOR_RIGHT" => RotatorRight,
-            "ROTATOR_UP" => RotatorUp,
-            "ROTATOR_DOWN" => RotatorDown,
             _ => return Err(()),
         })
     }
@@ -195,15 +147,6 @@ impl quote::ToTokens for Entity {
             SpikesDown => quote!(Item::SpikesDown),
             SquidUp => quote!(Item::SquidUp),
             SquidDown => quote!(Item::SquidDown),
-            Ice => quote!(Item::Ice),
-            MovableBlock => quote!(Item::MovableBlock),
-            Glove => quote!(Item::Glove),
-            Teleporter => quote!(Item::Teleporter),
-            Hole => quote!(Item::Hole),
-            RotatorUp => quote!(Item::RotatorUp),
-            RotatorDown => quote!(Item::RotatorDown),
-            RotatorLeft => quote!(Item::RotatorLeft),
-            RotatorRight => quote!(Item::RotatorRight),
         })
     }
 }
@@ -260,7 +203,6 @@ impl quote::ToTokens for EntityWithPosition {
 struct Level {
     starting_items: Vec<Entity>,
     fixed_positions: Vec<EntityWithPosition>,
-    solution_positions: Vec<EntityWithPosition>,
     directions: Vec<Direction>,
     wall_bitmap: Vec<u8>,
     name: String,
@@ -270,7 +212,6 @@ impl quote::ToTokens for Level {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let wall_bitmap = &self.wall_bitmap;
         let fixed_positions = &self.fixed_positions;
-        let solution_positions = &self.solution_positions;
         let directions = &self.directions;
         let starting_items = &self.starting_items;
         let name = &self.name;
@@ -279,7 +220,6 @@ impl quote::ToTokens for Level {
             Level::new(
                 Map::new(11, 10, &[#(#wall_bitmap),*]),
                 &[#(#fixed_positions),*],
-                &[#(#solution_positions),*],
                 &[#(#directions),*],
                 &[#(#starting_items),*],
                 #name,
@@ -288,10 +228,10 @@ impl quote::ToTokens for Level {
     }
 }
 
-fn extract_objects_from_layer(
-    objects: ObjectLayer<'_>,
-) -> impl Iterator<Item = EntityWithPosition> + '_ {
-    objects.objects().map(|obj| {
+fn export_level(map: &tiled::Map) -> Level {
+    let objects = map.get_layer(1).unwrap().as_object_layer().unwrap();
+
+    let fixed_positions = objects.objects().map(|obj| {
         let entity: Entity = obj
             .name
             .parse()
@@ -301,20 +241,7 @@ fn extract_objects_from_layer(
         let y = (obj.y / 16.0) as i32;
 
         EntityWithPosition(entity, (x, y))
-    })
-}
-
-fn export_level(map: &tiled::Map) -> Level {
-    let objects = map
-        .get_object_layer("Puzzle")
-        .expect("The puzzle object layer should exist");
-
-    let fixed_positions = extract_objects_from_layer(objects);
-
-    let solution_positions = extract_objects_from_layer(
-        map.get_object_layer("Solution")
-            .expect("Should have an object layer called 'Solution'"),
-    );
+    });
 
     let Some(tiled::PropertyValue::StringValue(starting_items)) = map.properties.get("ITEMS")
     else {
@@ -369,7 +296,6 @@ fn export_level(map: &tiled::Map) -> Level {
     Level {
         starting_items: starting_items.collect(),
         fixed_positions: fixed_positions.collect(),
-        solution_positions: solution_positions.collect(),
         directions: directions.collect(),
         wall_bitmap: bool_to_bit(&are_walls.collect::<Vec<_>>()),
         name: level_name.clone(),
@@ -377,9 +303,7 @@ fn export_level(map: &tiled::Map) -> Level {
 }
 
 fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
-    let map_tiles = map
-        .get_tile_layer("Ground")
-        .expect("The ground layer should exist");
+    let map_tiles = map.get_layer(0).unwrap().as_tile_layer().unwrap();
 
     let width = map_tiles.width().unwrap() * 2;
     let height = map_tiles.height().unwrap() * 2;
@@ -462,23 +386,4 @@ fn bool_to_bit(bools: &[bool]) -> Vec<u8> {
 fn check_bool_to_bit() {
     let bools = [true, false, false, false, true, true, true, true];
     assert_eq!(bool_to_bit(&bools), [0b11110001]);
-}
-
-trait TiledMapExtensions {
-    fn get_object_layer(&self, name: &str) -> Option<ObjectLayer>;
-    fn get_tile_layer(&self, name: &str) -> Option<TileLayer>;
-}
-
-impl TiledMapExtensions for Map {
-    fn get_object_layer(&self, name: &str) -> Option<ObjectLayer> {
-        self.layers()
-            .find(|x| x.name == name)
-            .and_then(|x| x.as_object_layer())
-    }
-
-    fn get_tile_layer(&self, name: &str) -> Option<TileLayer> {
-        self.layers()
-            .find(|x| x.name == name)
-            .and_then(|x| x.as_tile_layer())
-    }
 }

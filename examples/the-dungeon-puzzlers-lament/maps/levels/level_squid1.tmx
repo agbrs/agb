@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="8">
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="5">
  <properties>
   <property name="DIRECTIONS" value="RRRRRRRRR"/>
   <property name="ITEMS" value="SWORD,SQUID_DOWN,HERO"/>
   <property name="NAME" value="Squids keep stealing the treasure. Why did I put them here again?"/>
  </properties>
  <tileset firstgid="1" source="../level16.tsx"/>
- <layer id="1" name="Ground" width="11" height="10">
+ <layer id="1" name="Tile Layer 1" width="11" height="10">
   <data encoding="csv">
 0,0,0,0,1,8,2,6,9,0,0,
 0,0,0,0,46,11,11,11,38,0,0,
@@ -20,7 +20,7 @@
 0,0,0,0,0,19,23,27,0,0,0
 </data>
  </layer>
- <objectgroup id="2" name="Puzzle">
+ <objectgroup id="2" name="Object Layer 1">
   <object id="1" name="DOOR" x="118.616" y="89.6423">
    <point/>
   </object>
@@ -31,17 +31,6 @@
    <point/>
   </object>
   <object id="4" name="KEY" x="102.502" y="52.8962">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup id="4" name="Solution">
-  <object id="5" name="HERO" x="71.2378" y="86.023">
-   <point/>
-  </object>
-  <object id="6" name="SWORD" x="87.3671" y="86.6951">
-   <point/>
-  </object>
-  <object id="7" name="SQUID_DOWN" x="103.72" y="36.963">
    <point/>
   </object>
  </objectgroup>
