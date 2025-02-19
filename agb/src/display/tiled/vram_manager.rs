@@ -391,6 +391,7 @@ impl VRamManagerInner {
         self.remove_tile(tile_index);
     }
 
+    #[inline(never)]
     pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
         let reference = self
             .tile_set_to_vram
