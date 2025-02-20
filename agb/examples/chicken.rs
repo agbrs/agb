@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        object::{Graphics, Object, Sprite, Tag},
+        object::{Object, Sprite},
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
             VRAM_MANAGER,
@@ -221,10 +221,9 @@ impl Chicken {
 
 // Below is the data for the sprites
 
-static CHICKEN: &Graphics = include_aseprite!("examples/gfx/chicken.aseprite");
-static IDLE: &Sprite = CHICKEN.tags().get("Idle").sprite(0);
-static WALK: &Tag = CHICKEN.tags().get("Walk");
-static JUMP: &Tag = CHICKEN.tags().get("Jump");
+include_aseprite!(mod sprites, "examples/gfx/chicken.aseprite");
+use sprites::{JUMP, WALK};
+static IDLE: &Sprite = sprites::IDLE.sprite(0);
 
 static MAP_TILES: [u8; 8 * 17 * 4] = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

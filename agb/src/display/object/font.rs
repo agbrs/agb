@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{sprites::PaletteVramSingle, Object, Size, SpriteVram};
+use super::{sprites::PaletteVramSingle, IntoSpritePaletteVram, Object, Size, SpriteVram};
 
 mod preprocess;
 mod renderer;
@@ -252,7 +252,11 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVramSingle) -> Self {
+    pub fn new(font: &'font Font, sprite_size: Size, palette: impl IntoSpritePaletteVram) -> Self {
+        let palette = palette
+            .into()
+            .single()
+            .expect("Only supports single palettes");
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
             number_of_objects: 0,
@@ -279,9 +283,9 @@ impl Write for ObjectTextRender<'_> {
 
 impl ObjectTextRender<'_> {
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut GraphicsFrame) {
+    pub fn commit(&mut self, frame: &mut GraphicsFrame) {
         for object in self.layout.objects.iter() {
-            object.show(oam);
+            object.show(frame);
         }
     }
 

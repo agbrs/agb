@@ -7,9 +7,9 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, Graphics, IntoSpritePaletteVram, IntoSpriteVram, PaletteMulti,
+    include_aseprite, DynamicSprite, IntoSpritePaletteVram, IntoSpriteVram, PaletteMulti,
     PaletteVram, PaletteVramInterface, PaletteVramMulti, PaletteVramSingle, Size, Sprite,
-    SpriteVram, Tag, TagMap,
+    SpriteVram, Tag,
 };
 
 pub(crate) use sprites::SPRITE_LOADER;

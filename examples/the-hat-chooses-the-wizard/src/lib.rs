@@ -8,7 +8,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        object::{Graphics, Object, Tag, TagMap},
+        object::Object,
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
@@ -104,16 +104,7 @@ mod map_tiles {
 
 agb::include_background_gfx!(tile_sheet, "2ce8f4", background => deduplicate "gfx/tile_sheet.png");
 
-static GRAPHICS: &Graphics = agb::include_aseprite!("gfx/sprites.aseprite");
-static TAG_MAP: &TagMap = GRAPHICS.tags();
-
-static WALKING: &Tag = TAG_MAP.get("Walking");
-static JUMPING: &Tag = TAG_MAP.get("Jumping");
-static FALLING: &Tag = TAG_MAP.get("Falling");
-static PLAYER_DEATH: &Tag = TAG_MAP.get("Player Death");
-static HAT_SPIN_1: &Tag = TAG_MAP.get("HatSpin");
-static HAT_SPIN_2: &Tag = TAG_MAP.get("HatSpin2");
-static HAT_SPIN_3: &Tag = TAG_MAP.get("HatSpin3");
+agb::include_aseprite!(mod sprites, "gfx/sprites.aseprite");
 
 type FixedNumberType = FixedNum<10>;
 
@@ -126,7 +117,7 @@ pub struct Entity {
 
 impl Entity {
     pub fn new(collision_mask: Vector2D<u16>) -> Self {
-        let mut dummy_object = Object::new(WALKING.sprite(0));
+        let mut dummy_object = Object::new(sprites::WALKING.sprite(0));
         dummy_object.set_priority(Priority::P1);
         Entity {
             sprite: dummy_object,
@@ -373,8 +364,8 @@ impl Player {
         let mut wizard = Entity::new((6_u16, 14_u16).into());
         let mut hat = Entity::new((6_u16, 6_u16).into());
 
-        wizard.sprite.set_sprite(HAT_SPIN_1.sprite(0));
-        hat.sprite.set_sprite(HAT_SPIN_1.sprite(0));
+        wizard.sprite.set_sprite(sprites::HATSPIN.sprite(0));
+        hat.sprite.set_sprite(sprites::HATSPIN.sprite(0));
 
         wizard.position = start_position;
         hat.position = start_position - (0, 10).into();
@@ -472,7 +463,7 @@ impl Player {
                 let offset = (ping_pong(timer / 16, 4)) as usize;
                 self.wizard_frame = offset as u8;
 
-                let frame = WALKING.animation_sprite(offset);
+                let frame = sprites::WALKING.animation_sprite(offset);
 
                 self.wizard.sprite.set_sprite(frame);
             }
@@ -481,7 +472,7 @@ impl Player {
                 // going up
                 self.wizard_frame = 5;
 
-                let frame = JUMPING.animation_sprite(0);
+                let frame = sprites::JUMPING.animation_sprite(0);
 
                 self.wizard.sprite.set_sprite(frame);
             } else if self.wizard.velocity.y > FixedNumberType::new(1) / 16 {
@@ -495,7 +486,7 @@ impl Player {
 
                 self.wizard_frame = 0;
 
-                let frame = FALLING.animation_sprite(offset);
+                let frame = sprites::FALLING.animation_sprite(offset);
 
                 self.wizard.sprite.set_sprite(frame);
             }
@@ -506,9 +497,9 @@ impl Player {
         }
 
         let hat_base_tile = match self.num_recalls {
-            0 => HAT_SPIN_1,
-            1 => HAT_SPIN_2,
-            _ => HAT_SPIN_3,
+            0 => &sprites::HATSPIN,
+            1 => &sprites::HATSPIN2,
+            _ => &sprites::HATSPIN3,
         };
 
         let hat_resting_position = match self.wizard_frame {
@@ -669,7 +660,7 @@ impl<'a> PlayingLevel<'a> {
     fn dead_update(&mut self) -> bool {
         self.timer += 1;
 
-        let frame = PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
+        let frame = sprites::PLAYER_DEATH.animation_sprite(self.timer as usize / 8);
 
         self.player.wizard.velocity += (0.into(), FixedNumberType::new(1) / 32).into();
         self.player.wizard.position += self.player.wizard.velocity;

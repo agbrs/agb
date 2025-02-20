@@ -1,8 +1,7 @@
+use snafu::Snafu;
+
 use crate::colour::Colour;
-use std::{
-    collections::{BTreeSet, HashSet},
-    fmt,
-};
+use std::collections::{BTreeSet, HashSet};
 
 const MAX_COLOURS: usize = 256;
 const MAX_COLOURS_PER_PALETTE: usize = 16;
@@ -176,7 +175,9 @@ impl Palette16Optimiser {
             .collect::<Vec<_>>();
 
         if optimised_palettes.len() > 16 {
-            return Err(DoesNotFitError(packed_palettes.len()));
+            return Err(DoesNotFitError {
+                count: packed_palettes.len(),
+            });
         }
 
         let mut assignments = vec![0; self.palettes.len()];
@@ -196,22 +197,12 @@ impl Palette16Optimiser {
     }
 }
 
-pub struct DoesNotFitError(pub usize);
-
-impl fmt::Display for DoesNotFitError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Could not fit colours into palette, needed {} bins but can have at most 16",
-            self.0
-        )
-    }
-}
-
-impl fmt::Debug for DoesNotFitError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self}")
-    }
+#[derive(Debug, Snafu)]
+#[snafu(display(
+    "Could not fit colours into palette, needed {count} bins but can have at most 16"
+))]
+pub struct DoesNotFitError {
+    count: usize,
 }
 
 #[cfg(test)]
