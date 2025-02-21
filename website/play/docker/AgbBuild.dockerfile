@@ -1,4 +1,4 @@
-FROM rust:1.84.1-bullseye
+FROM rust:1.85.0-bullseye
 
 RUN cargo install agb-gbafix
 
