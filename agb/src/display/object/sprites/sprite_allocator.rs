@@ -156,54 +156,48 @@ impl SpriteLoader {
 
 pub static SPRITE_LOADER: SpriteLoader = SpriteLoader(SyncUnsafeCell::new(MaybeUninit::uninit()));
 
-/// Something that can be made into a palette in vram
-pub trait IntoSpritePaletteVram: Sized {
-    /// Makes the palette in vram, panicing if not possible
-    fn into(self) -> PaletteVram {
-        self.try_into().expect("could not create palette in vram")
+impl From<&'static Palette16> for PaletteVram {
+    fn from(value: &'static Palette16) -> Self {
+        PaletteVram::new_single(value).expect("out of palette space")
     }
-    /// Attempts to create the palette in vram
-    fn try_into(self) -> Result<PaletteVram, LoaderError>;
 }
 
-/// Something that can be made into a sprite in vram
-pub trait IntoSpriteVram: Sized {
-    /// Makes the sprite in vram, panicing if not possible
-    fn into(self) -> SpriteVram {
-        self.try_into().expect("could not create sprite in vram")
+impl From<&'static Palette16> for PaletteVramSingle {
+    fn from(value: &'static Palette16) -> Self {
+        PaletteVramSingle::new(value)
     }
-
-    /// Attempts to create the sprite in vram
-    fn try_into(self) -> Result<SpriteVram, LoaderError>;
 }
 
-impl IntoSpritePaletteVram for &'static Palette16 {
-    fn try_into(self) -> Result<PaletteVram, LoaderError> {
-        unsafe { SPRITE_LOADER.palette(Palette::Single(self)) }
+impl TryFrom<PaletteVram> for PaletteVramSingle {
+    type Error = PaletteVram;
+
+    fn try_from(value: PaletteVram) -> Result<Self, Self::Error> {
+        value.single()
     }
 }
-impl IntoSpritePaletteVram for PaletteVram {
-    fn try_into(self) -> Result<PaletteVram, LoaderError> {
-        Ok(self)
+
+impl TryFrom<PaletteVram> for PaletteVramMulti {
+    type Error = PaletteVram;
+
+    fn try_from(value: PaletteVram) -> Result<Self, Self::Error> {
+        value.multi()
     }
 }
-impl IntoSpritePaletteVram for &PaletteVram {
-    fn try_into(self) -> Result<PaletteVram, LoaderError> {
-        Ok(self.clone())
+
+impl From<PaletteVramSingle> for PaletteVram {
+    fn from(value: PaletteVramSingle) -> Self {
+        value.palette()
     }
 }
-impl IntoSpritePaletteVram for &'static PaletteMulti {
-    fn try_into(self) -> Result<PaletteVram, LoaderError> {
-        unsafe { SPRITE_LOADER.palette(Palette::Multi(self)) }
+
+impl From<PaletteVramMulti> for PaletteVram {
+    fn from(value: PaletteVramMulti) -> Self {
+        value.palette()
     }
 }
-impl IntoSpriteVram for &'static Sprite {
-    fn try_into(self) -> Result<SpriteVram, LoaderError> {
-        unsafe { SPRITE_LOADER.sprite(self) }
-    }
-}
-impl IntoSpriteVram for SpriteVram {
-    fn try_into(self) -> Result<SpriteVram, LoaderError> {
-        Ok(self)
+
+impl From<&'static Sprite> for SpriteVram {
+    fn from(value: &'static Sprite) -> Self {
+        unsafe { SPRITE_LOADER.sprite(value) }.expect("have space for sprites")
     }
 }

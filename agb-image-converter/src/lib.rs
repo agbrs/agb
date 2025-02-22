@@ -4,11 +4,10 @@ use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::{Parse, Parser};
 use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
-use syn::{Expr, ExprLit, Lit, LitInt, Token};
+use syn::{Expr, ExprLit, Lit, Token};
 
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use std::{iter, path::Path, str};
+use std::collections::HashMap;
+use std::{path::Path, str};
 
 use quote::{format_ident, quote, ToTokens};
 
@@ -25,6 +24,8 @@ mod rust_generator;
 use image_loader::Image;
 
 use colour::Colour;
+
+mod sprite;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Colours {
@@ -328,342 +329,12 @@ pub fn include_colours_inner(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn include_aseprite_inner(input: TokenStream) -> TokenStream {
-    let out_dir_path = get_out_dir(&input.to_string());
-
-    let parser = Punctuated::<LitStr, syn::Token![,]>::parse_terminated;
-    let parsed = match parser.parse(input) {
-        Ok(e) => e,
-        Err(e) => return e.to_compile_error().into(),
-    };
-
-    let transparent_colour = Colour::from_rgb(255, 0, 255, 0);
-
-    let mut optimiser = palette16::Palette16Optimiser::new(Some(transparent_colour));
-    let mut images = Vec::new();
-    let mut tags = Vec::new();
-
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-
-    let filenames: Vec<PathBuf> = parsed
-        .iter()
-        .map(|s| s.value())
-        .map(|s| s.replace(OUT_DIR_TOKEN, &out_dir_path))
-        .map(|s| Path::new(&root).join(&*s))
-        .collect();
-
-    for filename in filenames.iter() {
-        let (frames, tag) = aseprite::generate_from_file(filename);
-
-        tags.push((tag, images.len()));
-
-        for frame in frames {
-            let width = frame.width();
-            let height = frame.height();
-            assert!(
-                valid_sprite_size(width, height),
-                "File {} contains sprites with size {}x{} which cannot be represented on the GameBoy Advance",
-                filename.display(),
-                width,
-                height
-            );
-
-            let image = Image::load_from_dyn_image(frame);
-            add_to_optimiser(
-                &mut optimiser,
-                &image,
-                width as usize,
-                height as usize,
-                Some(transparent_colour),
-            );
-            images.push(image);
-        }
-    }
-
-    let optimised_results = optimiser
-        .optimise_palettes()
-        .expect("Failed to optimise palettes");
-
-    let (palette_data, tile_data, assignments) = palette_tile_data(&optimised_results, &images);
-
-    let palette_data = palette_data.iter().map(|colours| {
-        quote! {
-            Palette16::new([
-                #(#colours),*
-            ])
-        }
-    });
-
-    let mut pre = 0;
-    let sprites = images
-        .iter()
-        .zip(assignments.iter())
-        .map(|(f, assignment)| {
-            let start: usize = pre;
-            let end: usize = pre + (f.width / 8) * (f.height / 8) * 32;
-            let data = ByteString(&tile_data[start..end]);
-            pre = end;
-            let width = f.width;
-            let height = f.height;
-            quote! {
-                unsafe {
-                        Sprite::new(
-                        &PALETTES[#assignment],
-                        align_bytes!(u16, #data),
-                        Size::from_width_height(#width, #height)
-                    )
-                }
-            }
-        });
-
-    let tags = tags.iter().flat_map(|(tag, num_images)| {
-        tag.iter().map(move |tag| {
-            let start = tag.from_frame() as usize + num_images;
-            let end = tag.to_frame() as usize + num_images;
-            let direction = tag.animation_direction() as usize;
-
-            let name = tag.name();
-            assert!(start <= end, "Tag {name} has start > end");
-
-            quote! {
-                (#name, Tag::new(SPRITES, #start, #end, #direction))
-            }
-        })
-    });
-
-    let include_paths = filenames.iter().map(|s| {
-        let s = s.as_os_str().to_string_lossy();
-        quote! {
-            const _: &[u8] = include_bytes!(#s);
-        }
-    });
-
-    let module = quote! {
-        #(#include_paths)*
-
-
-        static PALETTES: &[Palette16] = &[
-            #(#palette_data),*
-        ];
-
-        static SPRITES: &[Sprite] = &[
-            #(#sprites),*
-        ];
-
-        static TAGS: TagMap = TagMap::new(
-            &[
-                #(#tags),*
-            ]
-        );
-
-    };
-
-    TokenStream::from(module)
-}
-
-enum PaletteAllocationDirection {
-    Backwards,
-    Forwards,
-}
-
-struct Sprite256Settings {
-    _start_offset: u32,
-    _direction: PaletteAllocationDirection,
-    filenames: Vec<(PathBuf, LitStr)>,
-}
-
-impl Parse for Sprite256Settings {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut lookahead = input.lookahead1();
-
-        let start_offset = if lookahead.peek(LitInt) {
-            let start_offset = input.parse::<LitInt>()?;
-            let start_offset = start_offset.base10_parse::<u32>()?;
-
-            lookahead = input.lookahead1();
-            start_offset
-        } else {
-            0
-        };
-
-        let direction = if lookahead.peek(syn::Ident) {
-            let direction = input.parse::<syn::Ident>()?;
-            if direction == "forwards" {
-                PaletteAllocationDirection::Forwards
-            } else if direction == "backwards" {
-                PaletteAllocationDirection::Backwards
-            } else {
-                return Err(syn::Error::new_spanned(
-                    direction,
-                    "Direction does not match either 'forwards' or 'backwards'",
-                ));
-            }
-        } else {
-            PaletteAllocationDirection::Backwards
-        };
-
-        let out_dir_path = get_out_dir(&input.to_string());
-        let filenames = Punctuated::<LitStr, syn::Token![,]>::parse_terminated(input)?;
-        let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-
-        let filenames: Vec<(PathBuf, LitStr)> = filenames
-            .iter()
-            .map(|s| {
-                (
-                    Path::new(&root).join(s.value().replace(OUT_DIR_TOKEN, &out_dir_path)),
-                    s.clone(),
-                )
-            })
-            .collect();
-
-        Ok(Sprite256Settings {
-            _start_offset: start_offset,
-            _direction: direction,
-            filenames,
-        })
-    }
+    sprite::include_regular(input)
 }
 
 #[proc_macro]
 pub fn include_aseprite_256_inner(input: TokenStream) -> TokenStream {
-    let settings = parse_macro_input!(input as Sprite256Settings);
-
-    let mut images = Vec::new();
-    let mut tags = Vec::new();
-
-    let mut colours = HashSet::new();
-
-    for (filename, token) in settings.filenames.iter() {
-        let (frames, tag) = aseprite::generate_from_file(filename);
-
-        tags.push((tag, images.len()));
-
-        for frame in frames {
-            let width = frame.width();
-            let height = frame.height();
-            if !valid_sprite_size(width, height) {
-                let msg = format!("File contains sprites with size {}x{} which cannot be represented on the GameBoy Advance", width, height);
-                return syn::Error::new(token.span(), msg).to_compile_error().into();
-            }
-
-            let image = Image::load_from_dyn_image(frame);
-
-            for y in 0..height {
-                for x in 0..width {
-                    let colour = image.colour(x as usize, y as usize);
-                    if !colour.is_transparent() {
-                        colours.insert(colour.to_rgb15());
-                    }
-                }
-            }
-
-            images.push(image);
-        }
-    }
-
-    let mut colours: Vec<_> = colours.iter().copied().collect();
-    colours.sort();
-    let colour_index_lookup: HashMap<_, _> = colours
-        .iter()
-        .copied()
-        .enumerate()
-        .map(|(index, colour)| (colour, index))
-        .collect();
-    let palettes: Vec<_> = colours
-        .chunks(16)
-        .map(|x| {
-            let mut colours = x.to_vec();
-            colours.resize(16, 0);
-            quote! { Palette16::new([#(#colours),*])}
-        })
-        .collect();
-
-    let first_palette: u32 = (16 - palettes.len())
-        .try_into()
-        .expect("Should be representable");
-
-    let sprites = images.iter().map(|image| {
-        let tile_size = 8;
-        let tiles_x = image.width / tile_size;
-        let tiles_y = image.height / tile_size;
-
-        let mut tile_data = Vec::new();
-
-        for y in 0..tiles_y {
-            for x in 0..tiles_x {
-                for inner_y in 0..tile_size / 8 {
-                    for inner_x in 0..tile_size / 8 {
-                        for j in inner_y * 8..inner_y * 8 + 8 {
-                            for i in inner_x * 8..inner_x * 8 + 8 {
-                                let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                                if colour.is_transparent() {
-                                    tile_data.push(0);
-                                } else {
-                                    let index = colour_index_lookup[&colour.to_rgb15()];
-                                    tile_data.push(index as u8 + first_palette as u8 * 16);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let width = image.width;
-        let height = image.height;
-        let data = ByteString(&tile_data);
-
-        quote! {
-            unsafe {
-                    Sprite::new_multi(
-                    &PALETTE,
-                    align_bytes!(u16, #data),
-                    Size::from_width_height(#width, #height)
-                )
-            }
-        }
-    });
-
-    let tags = tags.iter().flat_map(|(tag, num_images)| {
-        tag.iter().map(move |tag| {
-            let start = tag.from_frame() as usize + num_images;
-            let end = tag.to_frame() as usize + num_images;
-            let direction = tag.animation_direction() as usize;
-
-            let name = tag.name();
-            assert!(start <= end, "Tag {name} has start > end");
-
-            quote! {
-                (#name, Tag::new(SPRITES, #start, #end, #direction))
-            }
-        })
-    });
-
-    let include_paths = settings.filenames.iter().map(|(s, _)| {
-        let s = s.as_os_str().to_string_lossy();
-        quote! {
-            const _: &[u8] = include_bytes!(#s);
-        }
-    });
-
-    let module = quote! {
-        #(#include_paths)*
-
-
-        static PALETTE: MultiPalette = MultiPalette::new(#first_palette, &[#(#palettes),*]);
-
-        static SPRITES: &[Sprite] = &[
-            #(#sprites),*
-        ];
-
-        static TAGS: TagMap = TagMap::new(
-            &[
-                #(#tags),*
-            ]
-        );
-
-    };
-
-    TokenStream::from(module)
+    sprite::include_multi(input)
 }
 
 fn convert_image(
@@ -717,44 +388,6 @@ fn add_to_optimiser(
             palette_optimiser.add_palette(palette);
         }
     }
-}
-
-fn palette_tile_data(
-    optimiser: &Palette16OptimisationResults,
-    images: &[Image],
-) -> (Vec<Vec<u16>>, Vec<u8>, Vec<usize>) {
-    let palette_data: Vec<Vec<u16>> = optimiser
-        .optimised_palettes
-        .iter()
-        .map(|palette| {
-            palette
-                .clone()
-                .into_iter()
-                .map(|colour| colour.to_rgb15())
-                .chain(iter::repeat(0))
-                .take(16)
-                .collect()
-        })
-        .collect();
-
-    let mut tile_data = Vec::new();
-
-    for (image_idx, image) in images.iter().enumerate() {
-        add_image_to_tile_data(
-            &mut tile_data,
-            image,
-            optimiser,
-            image_idx,
-            true,
-            &(0..images.len()).collect::<Vec<_>>(),
-        );
-    }
-
-    let tile_data = collapse_to_4bpp(&tile_data);
-
-    let assignments = optimiser.assignments.clone();
-
-    (palette_data, tile_data, assignments)
 }
 
 fn collapse_to_4bpp(tile_data: &[u8]) -> Vec<u8> {
@@ -889,24 +522,6 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         #rendered
     })
     .into()
-}
-
-fn valid_sprite_size(width: u32, height: u32) -> bool {
-    match (width, height) {
-        (8, 8) => true,
-        (16, 16) => true,
-        (32, 32) => true,
-        (64, 64) => true,
-        (16, 8) => true,
-        (32, 8) => true,
-        (32, 16) => true,
-        (64, 32) => true,
-        (8, 16) => true,
-        (8, 32) => true,
-        (16, 32) => true,
-        (32, 64) => true,
-        (_, _) => false,
-    }
 }
 
 const OUT_DIR_TOKEN: &str = "$OUT_DIR";

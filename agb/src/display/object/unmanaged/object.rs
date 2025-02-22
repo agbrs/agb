@@ -5,7 +5,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 
 use crate::display::{
     object::{
-        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance, IntoSpriteVram,
+        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance,
         OBJECT_ATTRIBUTE_MEMORY,
     },
     GraphicsFrame, Priority,
@@ -142,34 +142,38 @@ impl Object {
 
     #[must_use]
     /// Creates an unmanaged object from a sprite in vram.
-    pub fn new(sprite: impl IntoSpriteVram) -> Self {
-        let sprite = sprite.into();
+    pub fn new(sprite: impl Into<SpriteVram>) -> Self {
+        fn new(sprite: SpriteVram) -> Object {
+            let sprite_location = sprite.location();
+            let (shape, size) = sprite.size().shape_size();
+            let palette_location = sprite.single_palette_index();
 
-        let sprite_location = sprite.location();
-        let (shape, size) = sprite.size().shape_size();
-        let palette_location = sprite.single_palette_index();
+            let mut object = Object {
+                attributes: AttributesRegular::default(),
+                sprite,
+            };
 
-        let mut sprite = Self {
-            attributes: AttributesRegular::default(),
-            sprite,
-        };
+            if let Some(palette_location) = palette_location {
+                object
+                    .attributes
+                    .set_palette(palette_location.into())
+                    .set_colour_mode(super::attributes::ColourMode::Four);
+            } else {
+                object
+                    .attributes
+                    .set_colour_mode(super::attributes::ColourMode::Eight);
+            }
 
-        if let Some(palette_location) = palette_location {
-            sprite
+            object
                 .attributes
-                .set_palette(palette_location.into())
-                .set_colour_mode(super::attributes::ColourMode::Four);
-        } else {
-            sprite
-                .attributes
-                .set_colour_mode(super::attributes::ColourMode::Eight);
+                .set_sprite(sprite_location.idx(), shape, size);
+
+            object
         }
 
-        sprite
-            .attributes
-            .set_sprite(sprite_location.idx(), shape, size);
+        let sprite = sprite.into();
 
-        sprite
+        new(sprite)
     }
 
     /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.  
@@ -252,7 +256,7 @@ impl Object {
     }
 
     /// Sets the current sprite for the object.
-    pub fn set_sprite(&mut self, sprite: impl IntoSpriteVram) -> &mut Self {
+    pub fn set_sprite(&mut self, sprite: impl Into<SpriteVram>) -> &mut Self {
         let sprite = sprite.into();
         self.set_sprite_attributes(&sprite);
 
@@ -285,38 +289,45 @@ impl ObjectAffine {
     #[must_use]
     /// Creates an unmanaged object from a sprite in vram.
     pub fn new(
-        sprite: impl IntoSpriteVram,
+        sprite: impl Into<SpriteVram>,
         affine_matrix: AffineMatrixInstance,
         affine_mode: AffineMode,
     ) -> Self {
+        fn new(
+            sprite: SpriteVram,
+            affine_matrix: AffineMatrixInstance,
+            affine_mode: AffineMode,
+        ) -> ObjectAffine {
+            let sprite_location = sprite.location();
+            let (shape, size) = sprite.size().shape_size();
+            let palette_location = sprite.single_palette_index();
+
+            let mut object = ObjectAffine {
+                attributes: AttributesAffine::new(affine_mode),
+                sprite,
+                matrix: affine_matrix.vram(),
+            };
+
+            if let Some(palette_location) = palette_location {
+                object
+                    .attributes
+                    .set_palette(palette_location.into())
+                    .set_colour_mode(super::attributes::ColourMode::Four);
+            } else {
+                object
+                    .attributes
+                    .set_colour_mode(super::attributes::ColourMode::Eight);
+            }
+
+            object
+                .attributes
+                .set_sprite(sprite_location.idx(), shape, size);
+
+            object
+        }
         let sprite = sprite.into();
 
-        let sprite_location = sprite.location();
-        let (shape, size) = sprite.size().shape_size();
-        let palette_location = sprite.single_palette_index();
-
-        let mut sprite = Self {
-            attributes: AttributesAffine::new(affine_mode),
-            sprite,
-            matrix: affine_matrix.vram(),
-        };
-
-        if let Some(palette_location) = palette_location {
-            sprite
-                .attributes
-                .set_palette(palette_location.into())
-                .set_colour_mode(super::attributes::ColourMode::Four);
-        } else {
-            sprite
-                .attributes
-                .set_colour_mode(super::attributes::ColourMode::Eight);
-        }
-
-        sprite
-            .attributes
-            .set_sprite(sprite_location.idx(), shape, size);
-
-        sprite
+        new(sprite, affine_matrix, affine_mode)
     }
 
     /// Sets the affine mode
@@ -383,7 +394,7 @@ impl ObjectAffine {
     }
 
     /// Sets the current sprite for the object.
-    pub fn set_sprite(&mut self, sprite: impl IntoSpriteVram) -> &mut Self {
+    pub fn set_sprite(&mut self, sprite: impl Into<SpriteVram>) -> &mut Self {
         let sprite = sprite.into();
         self.set_sprite_attributes(&sprite);
 
@@ -402,27 +413,23 @@ impl ObjectAffine {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        display::object::{Graphics, Tag},
-        include_aseprite,
-    };
+    use crate::include_aseprite;
 
     use super::*;
 
     #[test_case]
     fn object_usage(gba: &mut crate::Gba) {
-        static GRAPHICS: &Graphics = include_aseprite!(
+        include_aseprite!(
+            mod sprites,
             "../examples/the-purple-night/gfx/objects.aseprite",
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
-
-        static BOSS: &Tag = GRAPHICS.tags().get("Boss");
 
         let mut gfx = gba.display.graphics.get();
 
         {
             let mut frame = gfx.frame();
-            let obj = Object::new(BOSS.sprite(2));
+            let obj = Object::new(sprites::BOSS.sprite(2));
 
             obj.show(&mut frame);
             obj.show(&mut frame);

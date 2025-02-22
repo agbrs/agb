@@ -21,7 +21,7 @@ impl fmt::Debug for Colour {
 }
 
 impl Colour {
-    pub fn from_rgb(r: u8, g: u8, b: u8, a: u8) -> Self {
+    pub const fn from_rgb(r: u8, g: u8, b: u8, a: u8) -> Self {
         Colour { r, g, b, a }
     }
 

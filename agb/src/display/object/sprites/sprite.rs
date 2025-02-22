@@ -1,4 +1,4 @@
-use core::{alloc::Layout, slice};
+use core::alloc::Layout;
 
 use crate::display::palette16::Palette16;
 
@@ -141,14 +141,21 @@ macro_rules! align_bytes {
 
 /// Includes sprites found in the referenced aseprite files.
 ///
-/// Can include multiple at once and optimises palettes of all included in the single call
-/// together. See [Size] for supported sizes. Returns a reference to [Graphics].
+/// Can include multiple at once and optimises palettes of all included in the
+/// single call together. See [Size] for supported sizes.
+///
+/// This generates a module given by the first argument, you can control the
+/// visibility of the module using the normal means. The generated module
+/// exports each Tag in the aseprite file as a static, the static will be all
+/// caps and have spaces and dashes converted to underscores.
+///
 ///
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::{display::object::Graphics, include_aseprite};
-/// static GRAPHICS: &Graphics = include_aseprite!(
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
 ///     "examples/gfx/boss.aseprite",
 ///     "examples/gfx/objects.aseprite"
 /// );
@@ -162,24 +169,25 @@ macro_rules! align_bytes {
 /// ```rust,ignore
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::{display::object::Graphics, include_aseprite};
-/// const GRAPHICS: &Graphics = include_aseprite!(
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
 ///     "$OUT_DIR/generated_sprite.aseprite"
 /// );
 /// ```
 ///
 #[macro_export]
 macro_rules! include_aseprite {
-    ($($aseprite_path: expr),*$(,)?) => {{
-        #[allow(unused_imports)]
-        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics};
-        use $crate::display::palette16::Palette16;
-        use $crate::align_bytes;
+    ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
+        $v mod $module {
+            #[allow(unused_imports)]
+            use $crate::display::object::{Size, Sprite, Tag};
+            use $crate::display::palette16::Palette16;
+            use $crate::align_bytes;
 
-        $crate::include_aseprite_inner!($($aseprite_path),*);
-
-        &Graphics::new(SPRITES, &TAGS)
-    }};
+            $crate::include_aseprite_inner!($($aseprite_path),*);
+        }
+    };
 }
 
 /// Includes sprites found in the referenced aseprite files.
@@ -187,138 +195,19 @@ macro_rules! include_aseprite {
 /// This will optimise to a single multi palette, 256 colour sprites.
 #[macro_export]
 macro_rules! include_aseprite_256 {
-    ($($aseprite_path: expr),*$(,)?) => {{
-        #[allow(unused_imports)]
-        use $crate::display::object::{Size, Sprite, Tag, TagMap, Graphics, MultiPalette};
-        use $crate::display::palette16::Palette16;
-        use $crate::align_bytes;
+    ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
+        $v mod $module {
+            #[allow(unused_imports)]
+            use $crate::display::object::{Size, Sprite, Tag, PaletteMulti};
+            use $crate::display::palette16::Palette16;
+            use $crate::align_bytes;
 
-        $crate::include_aseprite_256_inner!($($aseprite_path),*);
-
-        &Graphics::new(SPRITES, &TAGS)
-    }}
+            $crate::include_aseprite_256_inner!($($aseprite_path),*);
+        }
+    }
 }
 
 pub use include_aseprite;
-
-/// Stores sprite and tag data returned by [include_aseprite].
-pub struct Graphics {
-    sprites: &'static [Sprite],
-    tag_map: &'static TagMap,
-}
-
-impl Graphics {
-    #[doc(hidden)]
-    /// Creates graphics data from sprite data and a tag_map. This is used
-    /// internally by [include_aseprite] and would be otherwise difficult to
-    /// use.
-    #[must_use]
-    pub const fn new(sprites: &'static [Sprite], tag_map: &'static TagMap) -> Self {
-        Self { sprites, tag_map }
-    }
-    #[must_use]
-    /// Gets the tag map from the aseprite files. This allows reference to
-    /// sprite sequences by name.
-    pub const fn tags(&self) -> &TagMap {
-        self.tag_map
-    }
-    /// Gets a big list of the sprites themselves. Using tags is often easier.
-    #[must_use]
-    pub const fn sprites(&self) -> &[Sprite] {
-        self.sprites
-    }
-}
-
-/// Stores aseprite tags. Can be used to refer to animation sequences by name.
-/// ```rust,no_run
-/// # #![no_std]
-/// # #![no_main]
-/// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-/// static GRAPHICS: &Graphics = include_aseprite!(
-///     "examples/gfx/boss.aseprite",
-///     "examples/gfx/objects.aseprite"
-/// );
-///
-/// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
-/// ```
-/// This being the whole animation associated with the walk sequence of the emu.
-/// See [Tag] for details on how to use this.
-pub struct TagMap {
-    tags: &'static [(&'static str, Tag)],
-}
-
-const fn const_byte_compare(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-
-    let mut i = 0;
-    while i < a.len() {
-        if a[i] != b[i] {
-            return false;
-        }
-        i += 1;
-    }
-    true
-}
-
-impl TagMap {
-    #[doc(hidden)]
-    /// Creates a new tag map from (name, Tag) pairs. Used internally by
-    /// [include_aseprite] and should not really be used outside of it.
-    #[must_use]
-    pub const fn new(tags: &'static [(&'static str, Tag)]) -> TagMap {
-        Self { tags }
-    }
-
-    #[doc(hidden)]
-    /// Attempts to get a tag. Generally should not be used.
-    #[must_use]
-    pub const fn try_get(&'static self, tag: &str) -> Option<&'static Tag> {
-        let mut i = 0;
-        while i < self.tags.len() {
-            let s = self.tags[i].0;
-            if const_byte_compare(s.as_bytes(), tag.as_bytes()) {
-                return Some(&self.tags[i].1);
-            }
-
-            i += 1;
-        }
-
-        None
-    }
-
-    /// Gets a tag associated with the name. A tag in aseprite refers to a
-    /// sequence of sprites with some metadata for how to animate it. You should
-    /// call this in a constant context so it is evaluated at compile time. It
-    /// is inefficient to call this elsewhere.
-    /// ```rust,no_run
-    /// # #![no_std]
-    /// # #![no_main]
-    /// # use agb::{display::object::{Graphics, Tag}, include_aseprite};
-    /// static GRAPHICS: &Graphics = include_aseprite!(
-    ///     "examples/gfx/boss.aseprite",
-    ///     "examples/gfx/objects.aseprite"
-    /// );
-    ///
-    /// static EMU_WALK: &Tag = GRAPHICS.tags().get("emu-walk");
-    /// ```
-    ///
-    /// See [Tag] for more details.
-    #[must_use]
-    pub const fn get(&'static self, tag: &str) -> &'static Tag {
-        let t = self.try_get(tag);
-        match t {
-            Some(t) => t,
-            None => panic!("The requested tag does not exist"),
-        }
-    }
-
-    /// Takes an iterator over all the tags in the map. Not generally useful.
-    pub fn values(&self) -> impl Iterator<Item = &'static Tag> {
-        self.tags.iter().map(|x| &x.1)
-    }
-}
 
 #[derive(Clone, Copy)]
 enum Direction {
@@ -340,8 +229,7 @@ impl Direction {
 
 /// A sequence of sprites from aseprite.
 pub struct Tag {
-    sprites: *const Sprite,
-    len: usize,
+    sprites: &'static [Sprite],
     direction: Direction,
 }
 
@@ -351,16 +239,13 @@ impl Tag {
     /// The individual sprites that make up the animation themselves.
     #[must_use]
     pub fn sprites(&self) -> &'static [Sprite] {
-        unsafe { slice::from_raw_parts(self.sprites, self.len) }
+        self.sprites
     }
 
     /// A single sprite referred to by index in the animation sequence.
     #[must_use]
     pub const fn sprite(&self, idx: usize) -> &'static Sprite {
-        if idx >= self.len {
-            panic!("out of bounds access to sprite");
-        }
-        unsafe { &*self.sprites.add(idx) }
+        &self.sprites[idx]
     }
 
     /// A sprite that follows the animation sequence. For instance, in aseprite
@@ -374,10 +259,10 @@ impl Tag {
     #[inline]
     #[must_use]
     pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
-        let len_sub_1 = self.len - 1;
+        let len_sub_1 = self.sprites.len() - 1;
         match self.direction {
-            Direction::Forward => self.sprite(idx % self.len),
-            Direction::Backward => self.sprite(len_sub_1 - (idx % self.len)),
+            Direction::Forward => self.sprite(idx % self.sprites.len()),
+            Direction::Backward => self.sprite(len_sub_1 - (idx % self.sprites.len())),
             Direction::PingPong => self.sprite(
                 (((idx + len_sub_1) % (len_sub_1 * 2)) as isize - len_sub_1 as isize)
                     .unsigned_abs(),
@@ -389,12 +274,9 @@ impl Tag {
     /// Creates a new sprite from it's constituent parts. Used internally by
     /// [include_aseprite] and should generally not be used elsewhere.
     #[must_use]
-    pub const fn new(sprites: &'static [Sprite], from: usize, to: usize, direction: usize) -> Self {
-        assert!(from <= to);
-        assert!(to < sprites.len());
+    pub const fn new(sprites: &'static [Sprite], direction: usize) -> Self {
         Self {
-            sprites: &sprites[from] as *const Sprite,
-            len: to - from + 1,
+            sprites,
             direction: Direction::from_usize(direction),
         }
     }

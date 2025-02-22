@@ -13,10 +13,7 @@ use agb::{
     display::{
         self,
         affine::AffineMatrix,
-        object::{
-            AffineMatrixInstance, AffineMode, Graphics, IntoSpriteVram, Object, ObjectAffine,
-            Sprite, SpriteVram, Tag,
-        },
+        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
         palette16::Palette16,
         tiled::VRAM_MANAGER,
         GraphicsFrame,
@@ -126,7 +123,7 @@ fn draw_number(
 
 impl SpriteCache {
     fn new() -> Self {
-        static SPRITES: &Graphics = include_aseprite!(
+        include_aseprite!(mod sprites,
             "gfx/circles.aseprite",
             "gfx/saw.aseprite",
             "gfx/numbers.aseprite",
@@ -135,27 +132,19 @@ impl SpriteCache {
 
         fn generate_sprites(tag: &'static Tag, range: Range<usize>) -> Box<[SpriteVram]> {
             range
-                .map(|x| tag.sprite(x))
-                .map(IntoSpriteVram::into)
+                .map(|x| tag.sprite(x).into())
                 .collect::<Vec<_>>()
                 .into_boxed_slice()
         }
 
-        static NUMBERS: &Tag = SPRITES.tags().get("numbers");
-        static BLUE_CIRCLE: &Sprite = SPRITES.tags().get("Blue").sprite(0);
-        static RED_CIRCLE: &Sprite = SPRITES.tags().get("Red").sprite(0);
-        static SAW: &Sprite = SPRITES.tags().get("Saw").sprite(0);
-        static BAR_RED: &Tag = SPRITES.tags().get("Red Bar");
-        static BAR_BLUE: &Tag = SPRITES.tags().get("Blue Bar");
-
         Self {
-            saw: IntoSpriteVram::into(SAW),
-            blue: IntoSpriteVram::into(BLUE_CIRCLE),
-            red: IntoSpriteVram::into(RED_CIRCLE),
-            numbers: generate_sprites(NUMBERS, 0..10),
+            saw: sprites::SAW.sprite(0).into(),
+            blue: sprites::BLUE.sprite(0).into(),
+            red: sprites::RED.sprite(0).into(),
+            numbers: generate_sprites(&sprites::NUMBERS, 0..10),
             bars: [
-                generate_sprites(BAR_RED, 0..8),
-                generate_sprites(BAR_BLUE, 0..8),
+                generate_sprites(&sprites::RED_BAR, 0..8),
+                generate_sprites(&sprites::BLUE_BAR, 0..8),
             ],
         }
     }

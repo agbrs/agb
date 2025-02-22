@@ -44,7 +44,7 @@ loop {
     ball.set_position((ball_x, ball_y));
 
     let mut frame = object.frame();
-    frame.show(&ball);
+    ball.show(&mut frame);
     
     agb::display::busy_wait_for_vblank();
     frame.commit();

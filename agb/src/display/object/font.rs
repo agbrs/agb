@@ -134,7 +134,7 @@ fn is_private_use(c: char) -> bool {
 /// palette[1] = 0xFF_FF;
 /// palette[2] = 0x00_FF;
 /// let palette = Palette16::new(palette);
-/// let palette = PaletteVramSingle::new(&palette).unwrap();
+/// let palette = PaletteVramSingle::try_allocate_new(&palette).unwrap();
 /// let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
 /// let _ = writeln!(writer, "Hello, {}World{}!", ChangeColour::new(2), ChangeColour::new(1));
@@ -224,7 +224,7 @@ impl BufferedRender<'_> {
 ///     let mut palette = [0x0; 16];
 ///     palette[1] = 0xFF_FF;
 ///     let palette = Palette16::new(palette);
-///     let palette = PaletteVramSingle::new(&palette).unwrap();
+///     let palette = PaletteVramSingle::try_allocate_new(&palette).unwrap();
 ///
 ///     let mut writer = ObjectTextRender::new(&EXAMPLE_FONT, Size::S16x16, palette);
 ///
@@ -252,7 +252,12 @@ impl<'font> ObjectTextRender<'font> {
     /// Creates a new text renderer with a given font, sprite size, and palette.
     /// You must ensure that the sprite size can accomodate the letters from the
     /// font otherwise it will panic at render time.
-    pub fn new(font: &'font Font, sprite_size: Size, palette: PaletteVramSingle) -> Self {
+    pub fn new(
+        font: &'font Font,
+        sprite_size: Size,
+        palette: impl Into<PaletteVramSingle>,
+    ) -> Self {
+        let palette = palette.into();
         Self {
             buffer: BufferedRender::new(font, sprite_size, palette),
             number_of_objects: 0,
@@ -279,9 +284,9 @@ impl Write for ObjectTextRender<'_> {
 
 impl ObjectTextRender<'_> {
     /// Commits work already done to screen. You can commit to multiple places in the same frame.
-    pub fn commit(&mut self, oam: &mut GraphicsFrame) {
+    pub fn commit(&mut self, frame: &mut GraphicsFrame) {
         for object in self.layout.objects.iter() {
-            object.show(oam);
+            object.show(frame);
         }
     }
 
