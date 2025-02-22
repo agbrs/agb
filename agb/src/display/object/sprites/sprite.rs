@@ -156,9 +156,10 @@ macro_rules! align_bytes {
 /// use agb::include_aseprite;
 /// include_aseprite!(
 ///     mod sprites,
-///     "examples/gfx/boss.aseprite",
-///     "examples/gfx/objects.aseprite"
+///     "examples/gfx/chicken.aseprite"
 /// );
+///
+/// use sprites::{JUMP, WALK, IDLE};
 /// ```
 /// The tags from the aseprite file are included so you can refer to sprites by
 /// name in code. You should ensure tags are unique as this is not enforced by
@@ -193,6 +194,18 @@ macro_rules! include_aseprite {
 /// Includes sprites found in the referenced aseprite files.
 ///
 /// This will optimise to a single multi palette, 256 colour sprites.
+///
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::include_aseprite_256;
+/// include_aseprite_256!(
+///     mod sprites,
+///     "examples/gfx/chicken.aseprite"
+/// );
+///
+/// use sprites::{JUMP, WALK, IDLE};
+/// ```
 #[macro_export]
 macro_rules! include_aseprite_256 {
     ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
