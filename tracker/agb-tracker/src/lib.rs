@@ -666,7 +666,7 @@ impl TrackerChannel {
 
 #[cfg(all(test, feature = "agb"))]
 #[agb::entry]
-fn main(gba: agb::Gba) -> ! {
+fn main(_gba: agb::Gba) -> ! {
     loop {
         agb::syscall::halt();
     }
