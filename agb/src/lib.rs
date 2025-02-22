@@ -403,7 +403,7 @@ pub mod test_runner {
 
     #[cfg(test)]
     #[entry]
-    fn agb_test_main(gba: Gba) -> ! {
+    fn agb_test_main(_gba: Gba) -> ! {
         #[allow(clippy::empty_loop)]
         loop {} // full implementation provided by the #[entry]
     }
