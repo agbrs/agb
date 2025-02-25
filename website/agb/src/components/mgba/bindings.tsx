@@ -1,7 +1,7 @@
-import { FC, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 
-function DefaultBindings(): KeyBindings {
+function defaultBindings(): KeyBindings {
   return {
     A: "Z",
     B: "X",
@@ -16,10 +16,26 @@ function DefaultBindings(): KeyBindings {
   };
 }
 
-export function DefaultBindingsSet(): Bindings {
+function defaultActualBindings(): KeyBindings {
   return {
-    Actual: DefaultBindings(),
-    Displayed: DefaultBindings(),
+    A: "KeyZ",
+    B: "KeyX",
+    L: "KeyA",
+    R: "KeyS",
+    Start: "Enter",
+    Select: "ShiftLeft",
+    Up: "ArrowUp",
+    Down: "ArrowDown",
+    Left: "ArrowLeft",
+    Right: "ArrowRight",
+  };
+}
+
+export function DefaultBindingsSet(): Bindings {
+  const actual = defaultActualBindings();
+  return {
+    Actual: actual,
+    Displayed: defaultBindings(),
   };
 }
 
@@ -86,7 +102,7 @@ export function BindingsControl({
 }) {
   const [buttonToChange, setButtonToChange] = useState<GbaKey | null>(null);
 
-  function setKey(key: string) {
+  function setKey(key: React.KeyboardEvent) {
     if (buttonToChange === null) return;
 
     const nextBindings = {
@@ -94,8 +110,8 @@ export function BindingsControl({
       Actual: { ...bindings.Actual },
     };
 
-    nextBindings.Displayed[buttonToChange] = toHumanName(key).toUpperCase();
-    nextBindings.Actual[buttonToChange] = key;
+    nextBindings.Displayed[buttonToChange] = toHumanName(key.key).toUpperCase();
+    nextBindings.Actual[buttonToChange] = key.code;
 
     setButtonToChange(null);
     setBindings(nextBindings);
@@ -108,7 +124,7 @@ export function BindingsControl({
   }
 
   return (
-    <ButtonWrapper onKeyUp={(evt: React.KeyboardEvent) => setKey(evt.key)}>
+    <ButtonWrapper onKeyUp={(evt: React.KeyboardEvent) => setKey(evt)}>
       {BindingsOrder.map((x) => (
         <SelectButton
           onClick={() => onSelectButtonClick(x)}

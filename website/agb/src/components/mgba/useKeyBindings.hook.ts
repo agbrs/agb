@@ -33,14 +33,14 @@ export function useKeyBindings(
     }
 
     function keyDown(key: KeyboardEvent) {
-      const gbaKey = reverseBindings.get(key.key);
+      const gbaKey = reverseBindings.get(key.code);
       if (gbaKey) {
         mgbaModule.current?.buttonPress(gbaKey);
       }
     }
 
     function keyUp(key: KeyboardEvent) {
-      const gbaKey = reverseBindings.get(key.key);
+      const gbaKey = reverseBindings.get(key.code);
       if (gbaKey) {
         mgbaModule.current?.buttonUnpress(gbaKey);
       }
