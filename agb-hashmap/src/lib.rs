@@ -301,6 +301,9 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
         self.len() == 0
     }
 
+    /// # Panics
+    ///
+    /// Panics if the `new_size` is smaller than the current size
     fn resize(&mut self, new_size: usize) {
         assert!(
             new_size >= self.nodes.backing_vec_size(),
@@ -353,6 +356,9 @@ where
         }
     }
 
+    /// # Safety
+    ///
+    /// - `key` must not currently be in the hash map
     unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
         if self.nodes.capacity() <= self.len() {
             self.resize(self.nodes.backing_vec_size() * 2);
@@ -706,6 +712,9 @@ mod entries {
     }
 
     impl<'a, K: 'a, V: 'a, ALLOCATOR: ClonableAllocator> VacantEntry<'a, K, V, ALLOCATOR> {
+        /// # Safety
+        ///
+        /// - The entry `key` must not exist in the hashmap `map`
         pub(crate) unsafe fn new(
             key: K,
             hash: HashType,
@@ -967,6 +976,8 @@ impl core::ops::Add<i32> for HashType {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::missing_panics_doc)]
+
     use core::{cell::RefCell, hash::Hasher};
 
     use alloc::vec::Vec;

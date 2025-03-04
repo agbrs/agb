@@ -34,11 +34,17 @@ impl<K, V> Node<K, V> {
         }
     }
 
+    /// # Safety
+    /// - Self actually has a value
     pub(crate) unsafe fn value_ref_unchecked(&self) -> &V {
+        // SAFETY: Has a value
         unsafe { self.value.assume_init_ref() }
     }
 
+    /// # Safety
+    /// - Self actually has a value
     pub(crate) unsafe fn value_mut_unchecked(&mut self) -> &mut V {
+        // SAFETY: Has a value
         unsafe { self.value.assume_init_mut() }
     }
 
@@ -64,7 +70,10 @@ impl<K, V> Node<K, V> {
         }
     }
 
+    /// # Safety
+    /// - Self actually has a value
     pub(crate) unsafe fn key_value_ref_unchecked(&self) -> (&K, &V) {
+        // SAFETY: Self has a value
         unsafe { (self.key.assume_init_ref(), self.value.assume_init_ref()) }
     }
 
@@ -98,14 +107,20 @@ impl<K, V> Node<K, V> {
         }
     }
 
+    /// # Safety
+    /// - Self has a value
     pub(crate) unsafe fn replace_value_unchecked(&mut self, value: V) -> V {
+        // SAFETY: Self has a value
         unsafe {
             let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
             old_value.assume_init()
         }
     }
 
+    /// # Safety
+    /// - Self has a value
     pub(crate) unsafe fn replace_unchecked(&mut self, key: K, value: V) -> (K, V) {
+        // SAFETY: Self has a value
         unsafe {
             let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
             let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
@@ -118,6 +133,8 @@ impl<K, V> Node<K, V> {
         self.distance_to_initial_bucket += 1;
     }
 
+    /// # Panics
+    /// - The current distance is 0
     pub(crate) fn decrement_distance(&mut self) {
         self.distance_to_initial_bucket -= 1;
 
