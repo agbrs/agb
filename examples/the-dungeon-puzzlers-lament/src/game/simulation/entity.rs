@@ -539,7 +539,7 @@ impl Entity {
             _ => panic!("this entity can't pick up things"),
         };
 
-        let existing = core::mem::replace(holding, Some(Box::new(item)));
+        let existing = holding.replace(Box::new(item));
         existing.map(|x| *x)
     }
 
