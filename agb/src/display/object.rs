@@ -7,8 +7,8 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    include_aseprite, DynamicSprite, PaletteMulti, PaletteVram, PaletteVramInterface,
-    PaletteVramMulti, PaletteVramSingle, Size, Sprite, SpriteVram, Tag,
+    DynamicSprite, PaletteMulti, PaletteVram, PaletteVramInterface, PaletteVramMulti,
+    PaletteVramSingle, Size, Sprite, SpriteVram, Tag, include_aseprite,
 };
 
 pub(crate) use sprites::SPRITE_LOADER;
@@ -25,8 +25,10 @@ const OBJECT_ATTRIBUTE_MEMORY: *mut u16 = 0x0700_0000 as *mut u16;
 
 pub(super) unsafe fn initilise_oam() {
     for i in 0..128 {
-        let ptr = (OBJECT_ATTRIBUTE_MEMORY).add(i * 4);
-        ptr.write_volatile(0b10 << 8);
+        unsafe {
+            let ptr = (OBJECT_ATTRIBUTE_MEMORY).add(i * 4);
+            ptr.write_volatile(0b10 << 8);
+        }
     }
 
     let mut display_control = DISPLAY_CONTROL.get();

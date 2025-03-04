@@ -12,7 +12,7 @@ mod test {
         use crate::Gba;
         use alloc::vec;
 
-        extern "C" {
+        unsafe extern "C" {
             fn __agbabi_memset(dest: *mut u8, n: usize, v: u8);
             fn __aeabi_memset4(dest: *mut u32, n: usize, v: u8);
         }
@@ -121,7 +121,7 @@ mod test {
 
         use crate::Gba;
 
-        extern "C" {
+        unsafe extern "C" {
             fn __agbabi_memcpy(dest: *mut u8, src: *const u8, n: usize);
             fn __aeabi_memcpy4(dest: *mut u32, src: *const u32, n: usize);
         }
@@ -176,11 +176,21 @@ mod test {
 
                         for (i, &v) in output.iter().enumerate() {
                             if i < offset_output {
-                                assert_eq!(v, 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v, 0,
+                                    "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else if i < offset_output + size {
-                                assert_eq!(v, (i - offset_output + offset_input) as u8, "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v,
+                                    (i - offset_output + offset_input) as u8,
+                                    "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else {
-                                assert_eq!(v, 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v, 0,
+                                    "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             }
                         }
                     }
@@ -212,11 +222,21 @@ mod test {
 
                         for (i, &v) in output.iter().enumerate() {
                             if i < offset_output {
-                                assert_eq!(v, 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v, 0,
+                                    "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else if i < offset_output + size {
-                                assert_eq!(v, (i - offset_output + offset_input) as u32, "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v,
+                                    (i - offset_output + offset_input) as u32,
+                                    "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else {
-                                assert_eq!(v, 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    v, 0,
+                                    "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             }
                         }
                     }
@@ -255,11 +275,21 @@ mod test {
 
                         for i in 0..input_bytes.len() {
                             if i < offset_output * 4 {
-                                assert_eq!(output_bytes[i], 0, "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    output_bytes[i], 0,
+                                    "underrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else if i < offset_output * 4 + size * 4 {
-                                assert_eq!(output_bytes[i], input_bytes[i - offset_output * 4 + offset_input * 4], "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    output_bytes[i],
+                                    input_bytes[i - offset_output * 4 + offset_input * 4],
+                                    "incorrect copy, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             } else {
-                                assert_eq!(output_bytes[i], 0, "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}");
+                                assert_eq!(
+                                    output_bytes[i], 0,
+                                    "overrun, size: {size}, input offset: {offset_input}, output offset: {offset_output}, i: {i}"
+                                );
                             }
                         }
                     }

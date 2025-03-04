@@ -54,7 +54,7 @@ macro_rules! impl_zst_allocator {
             }
 
             unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
-                $name_of_static.deallocate(ptr, layout)
+                unsafe { $name_of_static.deallocate(ptr, layout) }
             }
         }
     };
@@ -122,7 +122,7 @@ static __IWRAM_ALLOC: BlockAllocator = unsafe {
 };
 
 fn iwram_data_end() -> usize {
-    extern "C" {
+    unsafe extern "C" {
         static __iwram_end: u8;
     }
 
@@ -132,7 +132,7 @@ fn iwram_data_end() -> usize {
 }
 
 fn data_end() -> usize {
-    extern "C" {
+    unsafe extern "C" {
         static __ewram_data_end: u8;
     }
 
@@ -260,15 +260,15 @@ mod test {
         let next_action = |rng: &mut crate::rng::RandomNumberGenerator, stored: &[Vec<u8>]| {
             if stored.len() >= MAX_VEC_LENGTH {
                 Action::Remove {
-                    index: (rng.gen() as usize) % stored.len(),
+                    index: (rng.next_i32() as usize) % stored.len(),
                 }
-            } else if stored.is_empty() || rng.gen() as usize % 4 != 0 {
+            } else if stored.is_empty() || rng.next_i32() as usize % 4 != 0 {
                 Action::Add {
-                    size: rng.gen() as usize % 32,
+                    size: rng.next_i32() as usize % 32,
                 }
             } else {
                 Action::Remove {
-                    index: (rng.gen() as usize) % stored.len(),
+                    index: (rng.next_i32() as usize) % stored.len(),
                 }
             }
         };

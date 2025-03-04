@@ -6,13 +6,13 @@ use alloc::vec::Vec;
 use critical_section::{CriticalSection, Mutex};
 
 use super::hw::LeftOrRight;
-use super::{hw, Frequency};
+use super::{Frequency, hw};
 use super::{SoundChannel, SoundPriority};
 
 use crate::InternalAllocator;
 use crate::{
     fixnum::Num,
-    interrupt::{add_interrupt_handler, InterruptHandler},
+    interrupt::{InterruptHandler, add_interrupt_handler},
     timer::Divider,
     timer::Timer,
 };
@@ -33,7 +33,7 @@ macro_rules! add_mono_fn {
 }
 
 // Defined in mixer.s
-extern "C" {
+unsafe extern "C" {
     fn agb_rs__mixer_add_stereo(
         sound_data: *const u8,
         sound_buffer: *mut Num<i16, 4>,
@@ -681,7 +681,9 @@ mod test {
 
         assert_eq!(
             buffer,
-            &[50, 100, 0, 1000, -180, 550, 80, -1200, 190, 50, 100, 0, 1000, -180, 550, 80]
+            &[
+                50, 100, 0, 1000, -180, 550, 80, -1200, 190, 50, 100, 0, 1000, -180, 550, 80
+            ]
         );
         assert_eq!(result, num!(7.0));
     }

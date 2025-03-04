@@ -30,7 +30,7 @@ impl RandomNumberGenerator {
     }
 
     /// Returns the next value for the random number generator
-    pub fn gen(&mut self) -> i32 {
+    pub fn next_i32(&mut self) -> i32 {
         let result = (self.state[0].wrapping_add(self.state[3]))
             .rotate_left(7)
             .wrapping_mul(9);
@@ -60,11 +60,11 @@ static GLOBAL_RNG: AtomicU128 = AtomicU128::new(unsafe {
 
 /// Using a global random number generator, provides the next random number
 #[must_use]
-pub fn gen() -> i32 {
+pub fn next_i32() -> i32 {
     let data: u128 = GLOBAL_RNG.load(Ordering::SeqCst);
     let data_u32: [u32; 4] = unsafe { core::mem::transmute(data) };
     let mut rng = RandomNumberGenerator { state: data_u32 };
-    let value = rng.gen();
+    let value = rng.next_i32();
     GLOBAL_RNG.store(
         unsafe { core::mem::transmute::<[u32; 4], u128>(rng.state) },
         Ordering::SeqCst,
@@ -83,7 +83,7 @@ mod test {
 
         let mut rng = RandomNumberGenerator::new();
         for _ in 0..500 {
-            values[(rng.gen().rem_euclid(16)) as usize] += 1;
+            values[(rng.next_i32().rem_euclid(16)) as usize] += 1;
         }
 
         for (i, &value) in values.iter().enumerate() {
@@ -99,7 +99,7 @@ mod test {
         let mut values: [u32; 16] = Default::default();
 
         for _ in 0..500 {
-            values[super::gen().rem_euclid(16) as usize] += 1;
+            values[super::next_i32().rem_euclid(16) as usize] += 1;
         }
 
         for (i, &value) in values.iter().enumerate() {

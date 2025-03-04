@@ -139,7 +139,7 @@ impl<T> DerefMut for LockGuard<'_, T> {
 #[doc(hidden)]
 #[deprecated]
 #[allow(dead_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[inline(always)]
 pub unsafe extern "C" fn __sync_synchronize() {}
 
