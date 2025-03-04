@@ -101,7 +101,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     quote!(
-        #[export_name = "main"]
+        #[unsafe(export_name = "main")]
         #[doc(hidden)]
         #(#attrs)*
         pub extern "C" fn #fn_name() -> ! {
