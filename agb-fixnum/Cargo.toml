@@ -1,7 +1,7 @@
 [package]
 name = "agb_fixnum"
 version = "0.21.3"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 description = "Library for abstracting over fixed precision numbers. Designed for use with the agb library for the Game Boy Advance"
 repository = "https://github.com/agbrs/agb"

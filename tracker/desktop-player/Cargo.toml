@@ -1,7 +1,7 @@
 [package]
 name = "desktop-player"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 license = "MPL-2.0"
 description = "A way to play XM files on desktop as they would on the gba without needing a test ROM"

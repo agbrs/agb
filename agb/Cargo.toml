@@ -2,7 +2,7 @@
 name = "agb"
 version = "0.21.3"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Inzani <gw@ilym.me>"]
-edition = "2021"
+edition = "2024"
 description = "Library for Game Boy Advance Development"
 license = "MPL-2.0"
 repository = "https://github.com/agbrs/agb"
