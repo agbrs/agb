@@ -255,10 +255,6 @@ impl VRamManager {
         self.with(VRamManagerInner::gc);
     }
 
-    pub fn set_background_palette_raw(&self, palette: &[u16]) {
-        self.with(|inner| inner.set_background_palette_raw(palette));
-    }
-
     pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
         self.with(|inner| inner.set_background_palette(pal_index, palette));
     }
@@ -522,15 +518,6 @@ impl VRamManagerInner {
                     tmp4 = out(reg) _,
                 ),
             }
-        }
-    }
-
-    /// Copies raw palettes to the background palette without any checks.
-    pub fn set_background_palette_raw(&mut self, palette: &[u16]) {
-        unsafe {
-            PALETTE_BACKGROUND
-                .as_ptr()
-                .copy_from_nonoverlapping(palette.as_ptr(), palette.len());
         }
     }
 

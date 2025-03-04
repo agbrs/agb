@@ -3,6 +3,7 @@
 
 use agb::{
     display::{
+        palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
         },
@@ -99,10 +100,13 @@ fn main(mut gba: Gba) -> ! {
 fn init_background(bg: &mut RegularBackgroundTiles) {
     let background_tile = DynamicTile::new().fill_with(0);
 
-    VRAM_MANAGER.set_background_palette_raw(&[
-        0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
-        0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    ]);
+    VRAM_MANAGER.set_background_palette(
+        0,
+        &Palette16::new([
+            0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
+            0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        ]),
+    );
 
     for y in 0..20u16 {
         for x in 0..30u16 {

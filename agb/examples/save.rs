@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::{
-    display::{object::Object, tiled::VRAM_MANAGER, HEIGHT, WIDTH},
+    display::{object::Object, palette16::Palette16, tiled::VRAM_MANAGER, HEIGHT, WIDTH},
     include_aseprite,
     input::ButtonController,
     save::{Error, SaveManager},
@@ -70,7 +70,10 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut save = Save::new(&mut gba.save).expect("able to read save data");
     let mut button = ButtonController::new();
 
-    VRAM_MANAGER.set_background_palette_raw(&[0xFFFF]);
+    VRAM_MANAGER.set_background_palette(
+        0,
+        &Palette16::new([0xffff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    );
 
     loop {
         let mut frame = gfx.frame();
