@@ -1,8 +1,8 @@
 use std::{env, fs, path::Path, sync::mpsc};
 
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
     SampleFormat, SampleRate,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use mixer::Mixer;
 use xmrs::{

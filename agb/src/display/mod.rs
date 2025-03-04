@@ -5,7 +5,7 @@ use bilge::prelude::*;
 use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
 use self::{
-    object::{initilise_oam, Oam, OamFrame},
+    object::{Oam, OamFrame, initilise_oam},
     window::Windows,
 };
 

@@ -2,14 +2,14 @@
 #![no_main]
 
 use agb::{
-    display::{object::Object, palette16::Palette16, tiled::VRAM_MANAGER, HEIGHT, WIDTH},
+    display::{HEIGHT, WIDTH, object::Object, palette16::Palette16, tiled::VRAM_MANAGER},
     include_aseprite,
     input::ButtonController,
     save::{Error, SaveManager},
 };
 
 extern crate alloc;
-use agb_fixnum::{vec2, Num, Vector2D};
+use agb_fixnum::{Num, Vector2D, vec2};
 
 include_aseprite!(
     mod sprites,

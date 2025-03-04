@@ -7,12 +7,12 @@ use core::{
 use agb_fixnum::Vector2D;
 use alloc::{vec, vec::Vec};
 
-use crate::display::{tile_data::TileData, GraphicsFrame, Priority};
+use crate::display::{GraphicsFrame, Priority, tile_data::TileData};
 
 use super::{
-    BackgroundControlRegister, BackgroundId, RegularBackgroundData, ScreenblockAllocator, Tile,
-    TileFormat, TileSet, TileSetting, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER,
-    VRAM_START,
+    BackgroundControlRegister, BackgroundId, RegularBackgroundData, SCREENBLOCK_SIZE,
+    ScreenblockAllocator, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting,
+    VRAM_MANAGER, VRAM_START,
 };
 
 use bilge::prelude::*;

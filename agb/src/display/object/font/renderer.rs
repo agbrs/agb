@@ -1,6 +1,6 @@
 use crate::display::{
-    object::{sprites::PaletteVramSingle, DynamicSprite, Size, SpriteVram},
     Font,
+    object::{DynamicSprite, Size, SpriteVram, sprites::PaletteVramSingle},
 };
 
 use super::ChangeColour;

@@ -1,13 +1,13 @@
 use core::{alloc::Allocator, cell::Cell, hint::assert_unchecked, ptr::NonNull};
 
 use crate::{
+    ExternalAllocator,
     agb_alloc::single_allocator::create_allocator_arena,
     display::{
-        object::{sprites::sprite::Palette, PaletteMulti},
+        object::{PaletteMulti, sprites::sprite::Palette},
         palette16::Palette16,
     },
     refcount::{RefCount, RefCountInner},
-    ExternalAllocator,
 };
 
 use super::{LoaderError, SPRITE_LOADER};

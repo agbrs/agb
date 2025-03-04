@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{Result, anyhow, bail, ensure};
 use std::{collections::HashMap, io::Write};
 
 const GBA_HEADER_SIZE: usize = 192;

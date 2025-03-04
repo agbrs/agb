@@ -1,6 +1,6 @@
 use crate::memory_mapped::MemoryMapped2DArray;
 
-use super::{tiled::DisplayControlRegister, DISPLAY_CONTROL, HEIGHT, WIDTH};
+use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::DisplayControlRegister};
 use bilge::prelude::*;
 
 use core::marker::PhantomData;

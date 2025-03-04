@@ -2,8 +2,8 @@ mod gwilym_encoding;
 mod load_dwarf;
 
 use addr2line::gimli;
-pub use gwilym_encoding::{gwilym_decode, GwilymDecodeError};
-pub use load_dwarf::{load_dwarf, GimliDwarf, LoadDwarfError};
+pub use gwilym_encoding::{GwilymDecodeError, gwilym_decode};
+pub use load_dwarf::{GimliDwarf, LoadDwarfError, load_dwarf};
 use thiserror::Error;
 
 pub use addr2line;

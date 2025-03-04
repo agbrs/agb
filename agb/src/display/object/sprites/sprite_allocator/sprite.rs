@@ -1,16 +1,16 @@
 use core::{alloc::Allocator, ptr::NonNull};
 
 use crate::{
+    ExternalAllocator,
     agb_alloc::{
         block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator,
         single_allocator::create_allocator_arena,
     },
-    display::object::{sprites::BYTES_PER_TILE_4BPP, Size, Sprite},
+    display::object::{Size, Sprite, sprites::BYTES_PER_TILE_4BPP},
     refcount::{RefCount, RefCountInner},
-    ExternalAllocator,
 };
 
-use super::{palette::PaletteVram, LoaderError};
+use super::{LoaderError, palette::PaletteVram};
 
 pub const TILE_SPRITE: usize = 0x06010000;
 

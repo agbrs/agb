@@ -4,11 +4,11 @@ use agb_fixnum::Vector2D;
 use alloc::{boxed::Box, vec, vec::Vec};
 
 use crate::display::{
-    object::{
-        affine::AffineMatrixVram, sprites::SpriteVram, AffineMatrixInstance,
-        OBJECT_ATTRIBUTE_MEMORY,
-    },
     GraphicsFrame, Priority,
+    object::{
+        AffineMatrixInstance, OBJECT_ATTRIBUTE_MEMORY, affine::AffineMatrixVram,
+        sprites::SpriteVram,
+    },
 };
 
 use super::attributes::{AffineMode, AttributesAffine, AttributesRegular, GraphicsMode};

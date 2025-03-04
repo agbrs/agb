@@ -117,7 +117,7 @@ pub enum Waveform {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Jump {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let type_bit = match self {
             Jump::Position { pattern } => {
@@ -142,7 +142,7 @@ impl quote::ToTokens for Jump {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for RetriggerVolumeChange {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let type_bit = match self {
             RetriggerVolumeChange::DecreaseByOne => quote!(DecreaseByOne),
@@ -158,7 +158,7 @@ impl quote::ToTokens for RetriggerVolumeChange {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Track {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let Track {
             samples,
@@ -206,7 +206,7 @@ impl quote::ToTokens for Track {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Envelope {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let Envelope {
             amount,
@@ -274,7 +274,7 @@ impl quote::ToTokens for ByteString<'_> {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Sample {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let Sample {
             data,
@@ -316,7 +316,7 @@ impl quote::ToTokens for Sample {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for PatternSlot {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let PatternSlot {
             speed,
@@ -341,7 +341,7 @@ impl quote::ToTokens for PatternSlot {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Pattern {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let Pattern {
             length,
@@ -361,7 +361,7 @@ impl quote::ToTokens for Pattern {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for PatternEffect {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let type_bit = match self {
             PatternEffect::None => quote! { None },
@@ -443,7 +443,7 @@ impl quote::ToTokens for PatternEffect {
 #[cfg(feature = "quote")]
 impl quote::ToTokens for Waveform {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::{quote, TokenStreamExt};
+        use quote::{TokenStreamExt, quote};
 
         let name = match self {
             Waveform::Sine => quote!(Sine),

@@ -53,12 +53,14 @@ pub fn release(matches: &clap::ArgMatches) -> Result<(), Error> {
         update_to_version(&root_directory, toml_file, version)?;
     }
 
-    assert!(Command::new("just")
-        .arg("ci")
-        .current_dir(&root_directory)
-        .status()
-        .map_err(|_| Error::JustCiFailed)?
-        .success());
+    assert!(
+        Command::new("just")
+            .arg("ci")
+            .current_dir(&root_directory)
+            .status()
+            .map_err(|_| Error::JustCiFailed)?
+            .success()
+    );
 
     let changelog_text = update_changelog(&root_directory, version)?;
 
@@ -143,7 +145,7 @@ fn update_to_version(
                             "{:?} while searching dependencies in {}",
                             this_dep,
                             cargo_toml_file.to_string_lossy()
-                        )))
+                        )));
                     }
                 }
             }

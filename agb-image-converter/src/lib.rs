@@ -3,13 +3,13 @@ use palette256::Palette256;
 use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::{Parse, Parser};
-use syn::{parse_macro_input, punctuated::Punctuated, LitStr};
 use syn::{Expr, ExprLit, Lit, Token};
+use syn::{LitStr, parse_macro_input, punctuated::Punctuated};
 
 use std::collections::HashMap;
 use std::{path::Path, str};
 
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 
 mod aseprite;
 mod colour;
@@ -73,7 +73,7 @@ impl Parse for BackgroundGfxOption {
                     return Err(syn::Error::new_spanned(
                         num_colours,
                         "Number of colours must be 16 or 256",
-                    ))
+                    ));
                 }
             }
         } else {

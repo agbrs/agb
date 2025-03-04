@@ -3,8 +3,8 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER},
         Priority,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER},
     },
     include_background_gfx,
 };

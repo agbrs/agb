@@ -7,7 +7,7 @@ use std::{
     sync::Mutex,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use clap::Parser;
 use image_compare::compare_image;
 use mgba::{LogLevel, Logger, MCore, MemoryBacked, VFile};

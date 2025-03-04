@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
-use super::{tiled::BackgroundId, DISPLAY_CONTROL, HEIGHT, WIDTH};
+use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 
 /// Access to the windows feature of the Game Boy Advance.
 ///

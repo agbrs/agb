@@ -2,10 +2,10 @@ use std::{error::Error, path::Path};
 
 use asefile::AnimationDirection;
 use image::{DynamicImage, GenericImageView};
-use snafu::{ensure, Snafu};
-use syn::{parse::Parse, LitStr, Token};
+use snafu::{Snafu, ensure};
+use syn::{LitStr, Token, parse::Parse};
 
-use crate::{aseprite, colour::Colour, get_out_dir, palette16::Palette16, OUT_DIR_TOKEN};
+use crate::{OUT_DIR_TOKEN, aseprite, colour::Colour, get_out_dir, palette16::Palette16};
 
 pub const TRANSPARENT_COLOUR: Colour = Colour::from_rgb(255, 0, 255, 0);
 

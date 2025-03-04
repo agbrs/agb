@@ -7,9 +7,8 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        example_logo,
+        HEIGHT, example_logo,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-        HEIGHT,
     },
     interrupt::VBlank,
 };

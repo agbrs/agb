@@ -26,9 +26,7 @@ pub use agb_macros::num as num_inner;
 /// ```
 #[macro_export]
 macro_rules! num {
-    ($value:literal) => {{
-        $crate::Num::new_from_parts($crate::num_inner!($value))
-    }};
+    ($value:literal) => {{ $crate::Num::new_from_parts($crate::num_inner!($value)) }};
 }
 
 /// A trait for everything required to use as the internal representation of the
@@ -997,18 +995,10 @@ impl<T: Number> Rect<T> {
         }
 
         fn max<E: Number>(x: E, y: E) -> E {
-            if x > y {
-                x
-            } else {
-                y
-            }
+            if x > y { x } else { y }
         }
         fn min<E: Number>(x: E, y: E) -> E {
-            if x > y {
-                y
-            } else {
-                x
-            }
+            if x > y { y } else { x }
         }
 
         let top_left: Vector2D<T> = (

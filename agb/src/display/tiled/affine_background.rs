@@ -3,13 +3,13 @@ use bilge::prelude::*;
 use core::{alloc::Layout, ptr::NonNull};
 
 use crate::{
-    display::{affine::AffineMatrixBackground, tiled::TileFormat, GraphicsFrame, Priority},
+    display::{GraphicsFrame, Priority, affine::AffineMatrixBackground, tiled::TileFormat},
     fixnum::{Num, Vector2D},
 };
 
 use super::{
-    AffineBackgroundData, AffineBackgroundId, BackgroundControlRegister, ScreenblockAllocator,
-    TileIndex, TileSet, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, VRAM_MANAGER, VRAM_START,
+    AffineBackgroundData, AffineBackgroundId, BackgroundControlRegister, SCREENBLOCK_SIZE,
+    ScreenblockAllocator, TRANSPARENT_TILE_INDEX, TileIndex, TileSet, VRAM_MANAGER, VRAM_START,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -7,7 +7,7 @@ use std::{
     time::SystemTime,
 };
 
-use agb_debug::{address_info, AddressInfo, Location};
+use agb_debug::{AddressInfo, Location, address_info};
 use clap::Parser;
 use colored::Colorize;
 
@@ -83,7 +83,9 @@ fn print_line_of_code(
         .unwrap_or(SystemTime::UNIX_EPOCH);
 
     if modification_time > elf_modification_time {
-        eprintln!("Warning: File {filename} modified more recently than the binary, line info may be incorrect");
+        eprintln!(
+            "Warning: File {filename} modified more recently than the binary, line info may be incorrect"
+        );
     }
 
     let mut content = String::new();

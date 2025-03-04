@@ -1,7 +1,7 @@
 use crate::deduplicator::{DeduplicatedData, Transformation};
 use crate::palette16::Palette16OptimisationResults;
+use crate::{ByteString, image_loader::Image};
 use crate::{add_image_256_to_tile_data, add_image_to_tile_data, collapse_to_4bpp};
-use crate::{image_loader::Image, ByteString};
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};

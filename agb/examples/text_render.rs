@@ -3,11 +3,11 @@
 
 use agb::{
     display::{
+        Font, Priority,
         palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
         },
-        Font, Priority,
     },
     include_font,
 };

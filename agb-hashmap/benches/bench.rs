@@ -9,7 +9,7 @@
 
 extern crate test;
 
-use test::{black_box, Bencher};
+use test::{Bencher, black_box};
 
 use agb_hashmap::HashMap;
 use std::sync::atomic::{self, AtomicUsize};
@@ -251,7 +251,7 @@ bench_suite!(
 macro_rules! clone_bench {
     ($maptype:ident) => {
         use super::DropType;
-        use test::{black_box, Bencher};
+        use test::{Bencher, black_box};
 
         #[bench]
         fn clone_small(b: &mut Bencher) {
