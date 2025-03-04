@@ -1,12 +1,12 @@
 use std::error::Error;
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::{colour::Colour, palette16::Palette16, ByteString, Palette16Optimiser};
+use crate::{ByteString, Palette16Optimiser, colour::Colour, palette16::Palette16};
 
-use super::common::{Input, PreOptimisation, Tag, TRANSPARENT_COLOUR};
+use super::common::{Input, PreOptimisation, TRANSPARENT_COLOUR, Tag};
 
 pub fn include_regular(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as Input);

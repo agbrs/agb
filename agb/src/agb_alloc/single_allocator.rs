@@ -64,9 +64,8 @@ macro_rules! create_allocator_arena {
         pub struct $name;
 
         impl $name {
-            fn allocator(
-            ) -> &'static $crate::agb_alloc::single_allocator::SingleAllocator<$underlying, $t>
-            {
+            fn allocator()
+            -> &'static $crate::agb_alloc::single_allocator::SingleAllocator<$underlying, $t> {
                 static ALLOCATOR: $crate::agb_alloc::single_allocator::SingleAllocator<
                     $underlying,
                     $t,
@@ -84,7 +83,7 @@ macro_rules! create_allocator_arena {
             }
 
             unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: core::alloc::Layout) {
-                Self::allocator().deallocate(ptr, layout)
+                unsafe { Self::allocator().deallocate(ptr, layout) }
             }
         }
     };

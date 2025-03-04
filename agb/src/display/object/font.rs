@@ -10,7 +10,7 @@ use self::{
     renderer::{Configuration, WordRender},
 };
 
-use super::{sprites::PaletteVramSingle, Object, Size, SpriteVram};
+use super::{Object, Size, SpriteVram, sprites::PaletteVramSingle};
 
 mod preprocess;
 mod renderer;

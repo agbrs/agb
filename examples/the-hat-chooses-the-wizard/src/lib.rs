@@ -8,12 +8,12 @@ extern crate alloc;
 
 use agb::{
     display::{
+        GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::Object,
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
         },
-        GraphicsFrame, Priority, HEIGHT, WIDTH,
     },
     fixnum::{FixedNum, Vector2D},
     input::{self, Button, ButtonController},
@@ -352,11 +352,7 @@ struct Player {
 fn ping_pong(i: i32, n: i32) -> i32 {
     let cycle = 2 * (n - 1);
     let i = i % cycle;
-    if i >= n {
-        cycle - i
-    } else {
-        i
-    }
+    if i >= n { cycle - i } else { i }
 }
 
 impl Player {

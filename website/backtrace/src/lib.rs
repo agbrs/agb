@@ -1,4 +1,4 @@
-use agb_debug::{addr2line::Context, load_dwarf, Addr2LineContext};
+use agb_debug::{Addr2LineContext, addr2line::Context, load_dwarf};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

@@ -51,8 +51,8 @@ pub struct Timers<'gba> {
 impl Timers<'_> {
     pub(crate) unsafe fn new() -> Self {
         Self {
-            timer2: Timer::new(2),
-            timer3: Timer::new(3),
+            timer2: unsafe { Timer::new(2) },
+            timer3: unsafe { Timer::new(3) },
 
             phantom: PhantomData,
         }

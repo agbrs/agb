@@ -207,7 +207,7 @@ pub struct DoesNotFitError {
 
 #[cfg(test)]
 mod test {
-    use quickcheck::{quickcheck, Arbitrary};
+    use quickcheck::{Arbitrary, quickcheck};
 
     use super::*;
 

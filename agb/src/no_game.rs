@@ -1,13 +1,13 @@
 //! The no game screen is what is displayed if there isn't a game made yet.
 
-use agb_fixnum::{num, Num, Vector2D};
+use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
 use crate::display::object::{DynamicSprite, PaletteVramSingle, Size, SpriteVram};
 use crate::display::palette16::Palette16;
 use crate::{
-    display::{object::Object, HEIGHT, WIDTH},
+    display::{HEIGHT, WIDTH, object::Object},
     include_palette,
     interrupt::VBlank,
 };

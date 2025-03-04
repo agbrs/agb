@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use clap::{arg, value_parser};
 
 use std::{
@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use agb_gbafix::{write_gba_file, GbaHeader, PaddingBehaviour};
+use agb_gbafix::{GbaHeader, PaddingBehaviour, write_gba_file};
 
 fn main() -> Result<()> {
     let matches = clap::Command::new("agb-gbafix")

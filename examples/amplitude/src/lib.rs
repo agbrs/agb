@@ -11,14 +11,13 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        self,
+        self, GraphicsFrame,
         affine::AffineMatrix,
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
         palette16::Palette16,
         tiled::VRAM_MANAGER,
-        GraphicsFrame,
     },
-    fixnum::{num, Num, Vector2D},
+    fixnum::{Num, Vector2D, num},
     include_aseprite,
     input::{Button, ButtonController},
     rng,
@@ -266,20 +265,20 @@ impl Game {
         self.frame_since_last_saw -= 1;
         if self.frame_since_last_saw <= 0 {
             self.frame_since_last_saw = self.settings.frames_between_saws;
-            let mut rotation_direction = rng::gen().signum();
+            let mut rotation_direction = rng::next_i32().signum();
             if rotation_direction == 0 {
                 rotation_direction = 1;
             }
 
             let rotation_magnitude =
-                Number::from_raw(rng::gen().abs() % (1 << 8)) % num!(0.02) + num!(0.005);
+                Number::from_raw(rng::next_i32().abs() % (1 << 8)) % num!(0.02) + num!(0.005);
 
             let mut saw = ObjectAffine::new(
                 sprite_cache.saw.clone(),
                 AffineMatrixInstance::new(AffineMatrix::identity().to_object_wrapping()),
                 AffineMode::Affine,
             );
-            let position = (300, rng::gen().rem_euclid(display::HEIGHT));
+            let position = (300, rng::next_i32().rem_euclid(display::HEIGHT));
 
             saw.set_position(position);
 

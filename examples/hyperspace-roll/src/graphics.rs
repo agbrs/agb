@@ -1,7 +1,7 @@
 use agb::{
     display::{
-        object::{Object, Sprite, Tag},
         GraphicsFrame,
+        object::{Object, Sprite, Tag},
     },
     fixnum::Vector2D,
 };

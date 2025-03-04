@@ -1,12 +1,12 @@
 use std::path::Path;
 
-use agb_midi_core::{parse_midi, MidiInfo};
+use agb_midi_core::{MidiInfo, parse_midi};
 use proc_macro::TokenStream;
 use proc_macro_error::{abort, proc_macro_error};
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
     LitStr, Token,
+    parse::{Parse, ParseStream},
 };
 
 #[proc_macro_error]

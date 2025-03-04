@@ -4,8 +4,8 @@ mod sprite_allocator;
 const BYTES_PER_TILE_4BPP: usize = 32;
 const BYTES_PER_TILE_8BPP: usize = 16;
 
-pub use sprite::{include_aseprite, PaletteMulti, Size, Sprite, Tag};
+pub use sprite::{PaletteMulti, Size, Sprite, Tag, include_aseprite};
 pub use sprite_allocator::{
     DynamicSprite, PaletteVram, PaletteVramInterface, PaletteVramMulti, PaletteVramSingle,
-    SpriteVram, SPRITE_LOADER,
+    SPRITE_LOADER, SpriteVram,
 };

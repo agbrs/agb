@@ -7,12 +7,12 @@ extern crate alloc;
 
 use agb::{
     display::{
+        Priority,
         tile_data::TileData,
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
         },
-        Priority,
     },
     fixnum::{Num, Vector2D},
     include_background_gfx,
@@ -65,7 +65,8 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     let mut position: Vector2D<Num<i32, 8>> = (0, 0).into();
     let mut game_idx = 0;
-    let game = loop {
+
+    loop {
         let lr: agb::input::Tri = (
             input.is_just_pressed(Button::LEFT),
             input.is_just_pressed(Button::RIGHT),
@@ -103,9 +104,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         if input.is_just_pressed(Button::A) {
             break GAMES[game_idx.rem_euclid(GAMES.len() as i32) as usize].game;
         }
-    };
-
-    game
+    }
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {

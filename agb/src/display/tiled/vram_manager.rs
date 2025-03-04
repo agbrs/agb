@@ -11,7 +11,7 @@ use crate::{
     util::SyncUnsafeCell,
 };
 
-use super::{TileSetting, CHARBLOCK_SIZE, VRAM_START};
+use super::{CHARBLOCK_SIZE, TileSetting, VRAM_START};
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
@@ -226,7 +226,9 @@ impl VRamManager {
 
     // Should only be called in the Gba struct's constructor to ensure it happens exactly once
     pub(crate) unsafe fn initialise(&self) {
-        (*self.inner.get()).write(VRamManagerInner::new());
+        unsafe {
+            (*self.inner.get()).write(VRamManagerInner::new());
+        }
     }
 
     fn with<T>(&self, f: impl FnOnce(&mut VRamManagerInner) -> T) -> T {

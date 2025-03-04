@@ -95,7 +95,7 @@ publish *args: (_run-tool "publish" args)
 release +args: (_run-tool "release" args)
 
 miri:
-    (cd agb-hashmap && cargo miri test)
+    (cd agb-hashmap && cargo miri test --lib)
 
 setup-cargo-wasm:
     cargo install wasm-pack

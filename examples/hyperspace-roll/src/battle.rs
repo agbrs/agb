@@ -1,11 +1,11 @@
 use crate::level_generation::generate_enemy_health;
 use crate::sfx::Sfx;
 use crate::{
-    graphics::SELECT_BOX, level_generation::generate_attack, Agb, EnemyAttackType, Face, PlayerDice,
+    Agb, EnemyAttackType, Face, PlayerDice, graphics::SELECT_BOX, level_generation::generate_attack,
 };
+use agb::display::Priority;
 use agb::display::object::Object;
 use agb::display::tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat};
-use agb::display::Priority;
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -87,7 +87,7 @@ impl RolledDice {
             .iter_mut()
             .zip(player_dice.dice.iter())
             .for_each(|(die_state, player_die)| match die_state {
-                DieState::Rolling(ref mut timeout, ref mut face, previous_face) => {
+                DieState::Rolling(timeout, face, previous_face) => {
                     if *timeout == 0 {
                         let mut number_of_rolls = 0;
                         *die_state = DieState::Rolled(RolledDie::new(loop {
@@ -107,7 +107,7 @@ impl RolledDice {
                         *timeout -= 1;
                     }
                 }
-                DieState::Rolled(ref mut rolled_die) => rolled_die.update(),
+                DieState::Rolled(rolled_die) => rolled_die.update(),
             });
     }
 

@@ -3,15 +3,15 @@
 
 use agb::{
     display::{
+        GraphicsFrame, HEIGHT, WIDTH,
         object::{Object, Sprite},
         palette16::Palette16,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
             VRAM_MANAGER,
         },
-        GraphicsFrame, HEIGHT, WIDTH,
     },
-    fixnum::{num, vec2, Num, Vector2D},
+    fixnum::{Num, Vector2D, num, vec2},
     include_aseprite,
     input::{Button, ButtonController},
 };

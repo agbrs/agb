@@ -1,7 +1,7 @@
 use agb::external::portable_atomic::{AtomicU32, Ordering};
 use agb::{
-    save::{Error, SaveManager},
     Gba,
+    save::{Error, SaveManager},
 };
 
 static MAXIMUM_LEVEL: AtomicU32 = AtomicU32::new(0);

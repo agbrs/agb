@@ -15,7 +15,7 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{object::Object, GraphicsFrame},
+    display::{GraphicsFrame, object::Object},
     include_aseprite,
 };
 

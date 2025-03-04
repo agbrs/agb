@@ -67,13 +67,15 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
         let package = package.as_resolved().unwrap();
 
         for dep in &package.dependencies {
-            assert!(in_progress
-                .get(dep)
-                .unwrap()
-                .borrow_mut()
-                .wait()
-                .map_err(|_| Error::PublishCrate)?
-                .success());
+            assert!(
+                in_progress
+                    .get(dep)
+                    .unwrap()
+                    .borrow_mut()
+                    .wait()
+                    .map_err(|_| Error::PublishCrate)?
+                    .success()
+            );
         }
 
         println!("Publishing {}", package.name);
@@ -89,11 +91,13 @@ pub fn publish(matches: &ArgMatches) -> Result<(), Error> {
     }
 
     for (_, in_progress) in in_progress {
-        assert!(in_progress
-            .borrow_mut()
-            .wait()
-            .map_err(|_| Error::PublishCrate)?
-            .success());
+        assert!(
+            in_progress
+                .borrow_mut()
+                .wait()
+                .map_err(|_| Error::PublishCrate)?
+                .success()
+        );
     }
 
     Ok(())

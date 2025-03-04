@@ -5,7 +5,7 @@
 use core::ops::{Deref, DerefMut};
 
 use agb::{
-    display::{object::Object, GraphicsFrame},
+    display::{GraphicsFrame, object::Object},
     fixnum::{Num, Vector2D},
 };
 use alloc::vec::Vec;

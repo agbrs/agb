@@ -1,7 +1,7 @@
 use agb::{hash_map::HashMap, rng};
 use alloc::vec::Vec;
 
-use crate::{battle::EnemyAttack, Face};
+use crate::{Face, battle::EnemyAttack};
 
 pub struct GeneratedAttack {
     pub attack: EnemyAttack,
@@ -24,7 +24,7 @@ fn roll_dice(number_of_dice: u32, bits_per_dice: u32) -> u32 {
         let bit_mask = 1u32.wrapping_shl(bits_per_dice).wrapping_sub(1);
 
         for _ in 0..number_of_random_values {
-            let n = agb::rng::gen() as u32;
+            let n = agb::rng::next_i32() as u32;
             for idx in 0..(32 / bits_per_dice) {
                 count += (n >> (bits_per_dice * idx)) & bit_mask;
             }
@@ -60,7 +60,7 @@ fn default_roll(width: u32) -> i32 {
 }
 
 pub fn generate_attack(current_level: u32) -> Option<GeneratedAttack> {
-    if (rng::gen().rem_euclid(1024) as u32) < current_level * 2 {
+    if (rng::next_i32().rem_euclid(1024) as u32) < current_level * 2 {
         Some(GeneratedAttack {
             attack: generate_enemy_attack(current_level),
             cooldown: generate_cooldown(current_level),
@@ -75,21 +75,21 @@ pub fn generate_enemy_health(current_level: u32) -> u32 {
 }
 
 fn generate_enemy_attack(current_level: u32) -> EnemyAttack {
-    let attack_id = rng::gen().rem_euclid(10) as u32;
+    let attack_id = rng::next_i32().rem_euclid(10) as u32;
 
     if attack_id < 7 {
-        EnemyAttack::Shoot(rng::gen().rem_euclid(current_level.div_ceil(3) as i32) as u32 + 1)
+        EnemyAttack::Shoot(rng::next_i32().rem_euclid(current_level.div_ceil(3) as i32) as u32 + 1)
     } else if attack_id < 9 {
         EnemyAttack::Shield(
-            (rng::gen().rem_euclid(current_level.div_ceil(5) as i32) as u32 + 1).min(5),
+            (rng::next_i32().rem_euclid(current_level.div_ceil(5) as i32) as u32 + 1).min(5),
         )
     } else {
-        EnemyAttack::Heal(rng::gen().rem_euclid(current_level.div_ceil(2) as i32) as u32)
+        EnemyAttack::Heal(rng::next_i32().rem_euclid(current_level.div_ceil(2) as i32) as u32)
     }
 }
 
 fn generate_cooldown(current_level: u32) -> u32 {
-    rng::gen().rem_euclid((5 * 60 - current_level as i32 * 10).max(1)) as u32 + 2 * 60
+    rng::next_i32().rem_euclid((5 * 60 - current_level as i32 * 10).max(1)) as u32 + 2 * 60
 }
 
 pub fn generate_upgrades(level: u32, call: &mut dyn FnMut()) -> Vec<Face> {
@@ -124,14 +124,14 @@ pub fn generate_upgrades(level: u32, call: &mut dyn FnMut()) -> Vec<Face> {
             + upgrade_values.get(&potential_upgrade).unwrap()
     };
 
-    let max_upgrade_value = 15 + (rng::gen().rem_euclid(level as i32 * 5));
+    let max_upgrade_value = 15 + (rng::next_i32().rem_euclid(level as i32 * 5));
     let mut attempts = 0;
 
     while upgrades.len() != 3 {
         call();
 
         attempts += 1;
-        let next = potential_upgrades[rng::gen() as usize % potential_upgrades.len()];
+        let next = potential_upgrades[rng::next_i32() as usize % potential_upgrades.len()];
         let number_of_malfunctions = upgrades
             .iter()
             .chain(core::iter::once(&next))

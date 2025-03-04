@@ -6,7 +6,7 @@ use core::ops::Neg;
 
 use agb::fixnum::Vector2D;
 use alloc::{boxed::Box, vec::Vec};
-use slotmap::{new_key_type, SlotMap};
+use slotmap::{SlotMap, new_key_type};
 
 use crate::{
     level::{self},

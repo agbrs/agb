@@ -1,7 +1,7 @@
 use core::{borrow::Borrow, mem};
 
 use crate::allocate::{Allocator, Global};
-use crate::{node::Node, number_before_resize, ClonableAllocator, HashType};
+use crate::{ClonableAllocator, HashType, node::Node, number_before_resize};
 
 mod vec;
 use vec::MyVec;
@@ -16,6 +16,9 @@ pub(crate) struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
+    /// # Panics
+    ///
+    /// - `capacity` is not a power of 2
     pub(crate) fn with_size_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         assert!(capacity.is_power_of_two(), "Capacity must be a power of 2");
 
@@ -113,6 +116,9 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         }
     }
 
+    /// # Panics
+    ///
+    /// - `location` doesn't actually point to anything
     pub(crate) fn remove_from_location(&mut self, location: usize) -> V {
         let mut current_location = location;
         self.number_of_items -= 1;
@@ -171,15 +177,20 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         new_node_storage
     }
 
+    /// # Safety
+    /// - `location` must be valid and currently storing something equal to `key`
     pub(crate) unsafe fn replace_at_location_unchecked(
         &mut self,
         location: usize,
         key: K,
         value: V,
     ) -> V {
-        self.node_at_unchecked_mut(location)
-            .replace_unchecked(key, value)
-            .1
+        // SAFETY: by method call
+        unsafe {
+            self.node_at_unchecked_mut(location)
+                .replace_unchecked(key, value)
+                .1
+        }
     }
 
     pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut Node<K, V>> {
@@ -194,12 +205,18 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         &mut self.nodes[at]
     }
 
+    /// # Safety
+    /// - `at` must be a location where there actually is something
     pub(crate) unsafe fn node_at_unchecked(&self, at: usize) -> &Node<K, V> {
-        self.nodes.get_unchecked(at)
+        // SAFETY: `at` is a location where there actually is something
+        unsafe { self.nodes.get_unchecked(at) }
     }
 
+    /// # Safety
+    /// - `at` must be a location where there actually is something
     pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
-        self.nodes.get_unchecked_mut(at)
+        // SAFETY: `at` is a location where there actually is something
+        unsafe { self.nodes.get_unchecked_mut(at) }
     }
 
     pub(crate) fn clear(&mut self) {

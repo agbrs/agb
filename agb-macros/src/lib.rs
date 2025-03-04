@@ -2,7 +2,7 @@
 use proc_macro::TokenStream;
 
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{FnArg, Ident, ItemFn, Pat, ReturnType, Token, Type, Visibility};
 
 use std::collections::hash_map::DefaultHasher;
@@ -46,7 +46,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
             &format!(
                 "#[agb::entry] must have signature [unsafe] fn (mut agb::Gba) -> !, but got {} arguments",
                 arguments.len()
-            )
+            ),
         );
     }
 
@@ -69,7 +69,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
                     return token_stream_with_string_error(
                         input,
                         "Expected first argument to #[agb::entry] to be a basic identifier",
-                    )
+                    );
                 }
             },
         ),
@@ -77,7 +77,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
             return token_stream_with_string_error(
                 input,
                 "Expected first argument to #[agb::entry] to not be self",
-            )
+            );
         }
     };
 

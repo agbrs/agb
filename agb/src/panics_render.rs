@@ -4,10 +4,10 @@ use alloc::{collections::TryReserveError, format, vec::Vec};
 use qrcodegen_no_heap::DataTooLong;
 
 use crate::{
-    backtrace,
-    display::{bitmap3::Bitmap3, busy_wait_for_vblank, HEIGHT, WIDTH},
+    ExternalAllocator, backtrace,
+    display::{HEIGHT, WIDTH, bitmap3::Bitmap3, busy_wait_for_vblank},
     dma::dma3_exclusive,
-    mgba, syscall, ExternalAllocator,
+    mgba, syscall,
 };
 
 mod text;

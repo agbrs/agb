@@ -2,9 +2,9 @@
 #![no_main]
 
 use agb::display::{
+    Priority,
     palette16::Palette16,
     tiled::{DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
-    Priority,
 };
 
 #[agb::entry]

@@ -36,7 +36,7 @@ impl TryFrom<mgba_sys::mLogLevel> for LogLevel {
             _ => {
                 return Err(LogLevelIsNotValid {
                     provided_log_level: value,
-                })
+                });
             }
         })
     }
@@ -111,7 +111,7 @@ type VaArgs = *mut mgba_sys::__va_list_tag;
 #[cfg(windows)]
 type VaArgs = mgba_sys::va_list;
 
-extern "C" {
+unsafe extern "C" {
     fn vsnprintf(
         s: *mut libc::c_char,
         n: libc::size_t,

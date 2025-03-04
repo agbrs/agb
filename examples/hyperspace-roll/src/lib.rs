@@ -27,7 +27,7 @@ mod level_generation;
 mod save;
 mod sfx;
 
-use background::{show_title_screen, StarBackground};
+use background::{StarBackground, show_title_screen};
 use battle::BattleResult;
 use graphics::NumberDisplay;
 use sfx::Sfx;
@@ -76,7 +76,7 @@ pub struct Die {
 impl Die {
     /// roll this die (potentially using the custom probabilities, should we implement that) and return which face index is showing
     fn roll(&self) -> Face {
-        let n = agb::rng::gen().rem_euclid(6);
+        let n = agb::rng::next_i32().rem_euclid(6);
         self.faces[n as usize]
     }
 }
@@ -145,7 +145,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
             let mut input = agb::input::ButtonController::new();
             loop {
-                let _ = agb::rng::gen();
+                let _ = agb::rng::next_i32();
                 input.update();
                 if input.is_just_pressed(agb::input::Button::all()) {
                     break;

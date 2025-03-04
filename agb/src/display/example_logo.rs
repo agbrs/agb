@@ -18,8 +18,8 @@ pub fn display_logo_basic(map: &mut RegularBackgroundTiles) {
 #[cfg(test)]
 mod tests {
     use crate::display::{
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles},
         Priority,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles},
     };
 
     use super::*;

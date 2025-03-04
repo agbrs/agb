@@ -1,7 +1,7 @@
 use super::sfx::SfxPlayer;
 use agb::display::{
-    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     Graphics, Priority,
+    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
 };
 
 agb::include_background_gfx!(splash_screens,

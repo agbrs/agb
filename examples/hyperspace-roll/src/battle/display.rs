@@ -1,5 +1,5 @@
-use agb::display::object::Object;
 use agb::display::GraphicsFrame;
+use agb::display::object::Object;
 use agb::fixnum::Vector2D;
 use agb::rng;
 use alloc::vec;
@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 use crate::graphics::{BURST_BULLET, DISRUPT_BULLET, SHIELD};
 use crate::sfx::Sfx;
 use crate::{
-    graphics::{
-        FractionDisplay, HealthBar, NumberDisplay, BULLET_SPRITE, ENEMY_ATTACK_SPRITES,
-        FACE_SPRITES, SHIP_SPRITES,
-    },
     EnemyAttackType, Ship,
+    graphics::{
+        BULLET_SPRITE, ENEMY_ATTACK_SPRITES, FACE_SPRITES, FractionDisplay, HealthBar,
+        NumberDisplay, SHIP_SPRITES,
+    },
 };
 
 use super::{Action, CurrentBattleState, EnemyAttackState, MALFUNCTION_COOLDOWN_FRAMES};
@@ -48,7 +48,7 @@ impl BattleScreenDisplay {
         let enemy_x = 167;
 
         let player_sprite = SHIP_SPRITES.sprite_for_ship(Ship::Player);
-        let enemy_sprite = SHIP_SPRITES.sprite_for_ship(if rng::gen() % 2 == 0 {
+        let enemy_sprite = SHIP_SPRITES.sprite_for_ship(if rng::next_i32() % 2 == 0 {
             Ship::Drone
         } else {
             Ship::PilotedShip

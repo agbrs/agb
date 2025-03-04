@@ -1,7 +1,7 @@
 use core::fmt::Write;
 
 use crate::{
-    display::{bitmap3::Bitmap3, Font, HEIGHT, WIDTH},
+    display::{Font, HEIGHT, WIDTH, bitmap3::Bitmap3},
     fixnum::Vector2D,
 };
 

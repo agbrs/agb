@@ -3,13 +3,13 @@
 
 use agb::{
     display::{
+        Priority,
         tiled::{
             AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
             AffineMatrixBackground, VRAM_MANAGER,
         },
-        Priority,
     },
-    fixnum::{num, Num},
+    fixnum::{Num, num},
     include_background_gfx,
 };
 

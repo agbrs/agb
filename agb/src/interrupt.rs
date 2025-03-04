@@ -140,7 +140,7 @@ static INTERRUPT_TABLE: SyncUnsafeCell<[InterruptRoot; 14]> = SyncUnsafeCell::ne
     InterruptRoot::new(Interrupt::Gamepak),
 ]);
 
-#[export_name = "__RUST_INTERRUPT_HANDLER"]
+#[unsafe(export_name = "__RUST_INTERRUPT_HANDLER")]
 extern "C" fn interrupt_handler(interrupt: u16) -> u16 {
     for (i, root) in unsafe { &mut *INTERRUPT_TABLE.get() }.iter().enumerate() {
         if (1 << i) & interrupt != 0 {
@@ -164,7 +164,7 @@ unsafe fn create_interrupt_inner(
 ) -> Pin<Box<InterruptInner>> {
     let c = Box::new(c);
     let c: &dyn Fn(CriticalSection) = Box::leak(c);
-    let c: &dyn Fn(CriticalSection) = core::mem::transmute(c);
+    let c: &dyn Fn(CriticalSection) = unsafe { core::mem::transmute(c) };
     Box::pin(InterruptInner {
         next: Cell::new(core::ptr::null()),
         root,
@@ -279,7 +279,7 @@ pub unsafe fn add_interrupt_handler(
 
         InterruptHandler { _inner: inner }
     }
-    let root = interrupt_to_root(interrupt) as *const _;
+    let root = unsafe { interrupt_to_root(interrupt) } as *const _;
     let inner = unsafe { create_interrupt_inner(handler, root) };
     do_with_inner(interrupt, inner)
 }

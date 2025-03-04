@@ -3,7 +3,7 @@ use agb::{
     include_wav,
     sound::mixer::{Mixer, SoundChannel},
 };
-use agb_tracker::{include_xm, Track, Tracker};
+use agb_tracker::{Track, Tracker, include_xm};
 
 static MUSIC: Track = include_xm!("sfx/gwilym-theme2.xm");
 

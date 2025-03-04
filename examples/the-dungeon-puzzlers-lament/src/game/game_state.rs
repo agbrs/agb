@@ -1,8 +1,8 @@
 use agb::{
     display::{
+        GraphicsFrame,
         object::{Object, Tag},
         tiled::RegularBackgroundTiles,
-        GraphicsFrame,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},

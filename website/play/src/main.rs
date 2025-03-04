@@ -6,10 +6,10 @@ use std::{
 };
 
 use axum::{
-    extract::State,
-    http::{header::CONTENT_TYPE, Method, StatusCode},
-    routing::post,
     Json, Router,
+    extract::State,
+    http::{Method, StatusCode, header::CONTENT_TYPE},
+    routing::post,
 };
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;

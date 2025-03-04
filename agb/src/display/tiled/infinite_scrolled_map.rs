@@ -1,4 +1,4 @@
-use agb_fixnum::{vec2, Rect, Vector2D};
+use agb_fixnum::{Rect, Vector2D, vec2};
 
 use crate::display::{GraphicsFrame, HEIGHT, WIDTH};
 

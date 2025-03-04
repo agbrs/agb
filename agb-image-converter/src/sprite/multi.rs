@@ -3,9 +3,9 @@ use std::{
     error::Error,
 };
 
-use crate::{colour::Colour, ByteString};
+use crate::{ByteString, colour::Colour};
 use proc_macro::TokenStream;
-use quote::{format_ident, ToTokens};
+use quote::{ToTokens, format_ident};
 use snafu::prelude::*;
 use syn::parse_macro_input;
 

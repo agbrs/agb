@@ -3,8 +3,8 @@
 
 use agb::{
     display::{
-        tiled::{InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER},
         Priority,
+        tiled::{InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER},
     },
     fixnum::vec2,
     include_background_gfx,

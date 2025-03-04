@@ -1,8 +1,8 @@
 use core::{hash::Hash, marker::PhantomData};
 use serde::{
+    Deserialize, Serialize,
     de::{MapAccess, SeqAccess, Visitor},
     ser::SerializeMap,
-    Deserialize, Serialize,
 };
 
 use crate::{ClonableAllocator, HashMap, HashSet};

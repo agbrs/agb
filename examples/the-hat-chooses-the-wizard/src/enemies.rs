@@ -1,4 +1,4 @@
-use super::{sfx::SfxPlayer, Entity, FixedNumberType, HatState, Level};
+use super::{Entity, FixedNumberType, HatState, Level, sfx::SfxPlayer};
 use agb::fixnum::Vector2D;
 
 use crate::sprites;

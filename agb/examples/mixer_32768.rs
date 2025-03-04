@@ -2,16 +2,16 @@
 #![no_main]
 
 use agb::{
+    Gba,
     display::{
+        Font, Priority,
         palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
         },
-        Font, Priority,
     },
     include_font, include_wav,
     sound::mixer::{Frequency, SoundChannel},
-    Gba,
 };
 
 use core::fmt::Write;

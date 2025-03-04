@@ -94,7 +94,7 @@ impl<'a> SfxPlayer<'a> {
 
     fn play_random(&mut self, effect: &[&'static [u8]]) {
         self.mixer.play_sound(SoundChannel::new(
-            effect[agb::rng::gen() as usize % effect.len()],
+            effect[agb::rng::next_i32() as usize % effect.len()],
         ));
     }
 

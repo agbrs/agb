@@ -3,14 +3,14 @@ use core::{alloc::Allocator, marker::PhantomData, ptr::NonNull};
 use alloc::boxed::Box;
 
 use crate::display::object::{
-    sprites::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP},
     Size,
+    sprites::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP},
 };
 
 use super::{
+    LoaderError,
     palette::{PaletteVram, PaletteVramMulti, PaletteVramSingle},
     sprite::{SpriteAllocator, SpriteLocation, SpriteVram, SpriteVramInner},
-    LoaderError,
 };
 
 /// Sprite data that can be used to create sprites in vram.

@@ -298,15 +298,18 @@ impl Gba {
     /// May only be called a single time. It is not needed to call this due to
     /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
-        unsafe { display::object::SPRITE_LOADER.init() };
-        VRAM_MANAGER.initialise();
+        unsafe {
+            display::object::SPRITE_LOADER.init();
 
-        Self::single_new()
+            VRAM_MANAGER.initialise();
+
+            Self::single_new()
+        }
     }
 
     const unsafe fn single_new() -> Self {
         Self {
-            display: display::Display::new(),
+            display: unsafe { display::Display::new() },
             mixer: sound::mixer::MixerController::new(),
             save: save::SaveManager::new(),
             timers: timer::TimerController::new(),
@@ -428,7 +431,7 @@ pub mod test_runner {
 
 #[inline(never)]
 pub(crate) fn program_counter_before_interrupt() -> u32 {
-    extern "C" {
+    unsafe extern "C" {
         static mut agb_rs__program_counter: u32;
     }
     unsafe { agb_rs__program_counter }
@@ -465,7 +468,7 @@ mod test {
         }
     }
 
-    #[link_section = ".ewram"]
+    #[unsafe(link_section = ".ewram")]
     static mut EWRAM_TEST: u32 = 5;
     #[test_case]
     fn ewram_static_test(_gba: &mut Gba) {
@@ -484,7 +487,7 @@ mod test {
         }
     }
 
-    #[link_section = ".iwram"]
+    #[unsafe(link_section = ".iwram")]
     static mut IWRAM_EXPLICIT: u32 = 9;
     #[test_case]
     fn iwram_explicit_test(_gba: &mut Gba) {

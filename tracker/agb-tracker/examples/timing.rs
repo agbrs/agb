@@ -3,9 +3,9 @@
 
 extern crate alloc;
 
-use agb::sound::mixer::Frequency;
 use agb::Gba;
-use agb_tracker::{include_xm, Track, Tracker};
+use agb::sound::mixer::Frequency;
+use agb_tracker::{Track, Tracker, include_xm};
 
 static SPECTRUM: Track = include_xm!("examples/tracks/peak_and_drozerix_-_spectrum.xm");
 

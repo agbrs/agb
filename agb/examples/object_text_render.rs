@@ -3,9 +3,9 @@
 
 use agb::{
     display::{
+        Font, HEIGHT, WIDTH,
         object::{ChangeColour, ObjectTextRender, PaletteVramSingle, Size, TextAlignment},
         palette16::Palette16,
-        Font, HEIGHT, WIDTH,
     },
     include_font,
     input::Button,
@@ -42,11 +42,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let player_name = "You";
     let _ = writeln!(
-            wr,
-            "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
-            change2 = ChangeColour::new(2),
-            change1 = ChangeColour::new(1),
-        );
+        wr,
+        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+        change2 = ChangeColour::new(2),
+        change1 = ChangeColour::new(1),
+    );
     let end = timer.value();
 
     agb::println!(
