@@ -35,11 +35,11 @@ impl<K, V> Node<K, V> {
     }
 
     pub(crate) unsafe fn value_ref_unchecked(&self) -> &V {
-        self.value.assume_init_ref()
+        unsafe { self.value.assume_init_ref() }
     }
 
     pub(crate) unsafe fn value_mut_unchecked(&mut self) -> &mut V {
-        self.value.assume_init_mut()
+        unsafe { self.value.assume_init_mut() }
     }
 
     pub(crate) fn key_ref(&self) -> Option<&K> {
@@ -65,7 +65,7 @@ impl<K, V> Node<K, V> {
     }
 
     pub(crate) unsafe fn key_value_ref_unchecked(&self) -> (&K, &V) {
-        (self.key.assume_init_ref(), self.value.assume_init_ref())
+        unsafe { (self.key.assume_init_ref(), self.value.assume_init_ref()) }
     }
 
     pub(crate) fn key_value_mut(&mut self) -> Option<(&K, &mut V)> {
@@ -99,15 +99,19 @@ impl<K, V> Node<K, V> {
     }
 
     pub(crate) unsafe fn replace_value_unchecked(&mut self, value: V) -> V {
-        let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
-        old_value.assume_init()
+        unsafe {
+            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
+            old_value.assume_init()
+        }
     }
 
     pub(crate) unsafe fn replace_unchecked(&mut self, key: K, value: V) -> (K, V) {
-        let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
-        let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
+        unsafe {
+            let old_key = mem::replace(&mut self.key, MaybeUninit::new(key));
+            let old_value = mem::replace(&mut self.value, MaybeUninit::new(value));
 
-        (old_key.assume_init(), old_value.assume_init())
+            (old_key.assume_init(), old_value.assume_init())
+        }
     }
 
     pub(crate) fn increment_distance(&mut self) {

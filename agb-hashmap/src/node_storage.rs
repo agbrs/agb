@@ -1,7 +1,7 @@
 use core::{borrow::Borrow, mem};
 
 use crate::allocate::{Allocator, Global};
-use crate::{node::Node, number_before_resize, ClonableAllocator, HashType};
+use crate::{ClonableAllocator, HashType, node::Node, number_before_resize};
 
 mod vec;
 use vec::MyVec;
@@ -177,9 +177,11 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         key: K,
         value: V,
     ) -> V {
-        self.node_at_unchecked_mut(location)
-            .replace_unchecked(key, value)
-            .1
+        unsafe {
+            self.node_at_unchecked_mut(location)
+                .replace_unchecked(key, value)
+                .1
+        }
     }
 
     pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut Node<K, V>> {
@@ -195,11 +197,11 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
     }
 
     pub(crate) unsafe fn node_at_unchecked(&self, at: usize) -> &Node<K, V> {
-        self.nodes.get_unchecked(at)
+        unsafe { self.nodes.get_unchecked(at) }
     }
 
     pub(crate) unsafe fn node_at_unchecked_mut(&mut self, at: usize) -> &mut Node<K, V> {
-        self.nodes.get_unchecked_mut(at)
+        unsafe { self.nodes.get_unchecked_mut(at) }
     }
 
     pub(crate) fn clear(&mut self) {
