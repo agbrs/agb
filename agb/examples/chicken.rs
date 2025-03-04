@@ -4,6 +4,7 @@
 use agb::{
     display::{
         object::{Object, Sprite},
+        palette16::Palette16,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
             VRAM_MANAGER,
@@ -59,7 +60,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
-    VRAM_MANAGER.set_background_palette_raw(&MAP_PALETTE);
+    VRAM_MANAGER.set_background_palette(0, &MAP_PALETTE);
     let tileset = TileSet::new(&MAP_TILES, TileFormat::FourBpp);
 
     let mut background = RegularBackgroundTiles::new(
@@ -351,4 +352,5 @@ static MAP_MAP: [u16; 1024] = [
     0x0000, 0x0000, 0x0000, 0x0000,
 ];
 
-static MAP_PALETTE: [u16; 2] = [0x0000, 0x6A2F];
+static MAP_PALETTE: Palette16 =
+    Palette16::new([0x0000, 0x6A2F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);

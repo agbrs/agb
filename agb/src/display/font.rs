@@ -271,7 +271,11 @@ impl<'a, 'b> TextRenderer<'b> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::tiled::{RegularBackgroundTiles, TileFormat, VRAM_MANAGER};
+    use crate::display::{
+        palette16::Palette16,
+        tiled::{RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+    };
+
     static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
 
     #[test_case]
@@ -284,10 +288,13 @@ mod tests {
             TileFormat::FourBpp,
         );
 
-        VRAM_MANAGER.set_background_palette_raw(&[
-            0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
-            0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-        ]);
+        VRAM_MANAGER.set_background_palette(
+            0,
+            &Palette16::new([
+                0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000,
+                0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+            ]),
+        );
 
         let background_tile = VRAM_MANAGER.new_dynamic_tile().fill_with(0);
 
