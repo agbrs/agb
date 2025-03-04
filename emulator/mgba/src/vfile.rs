@@ -150,7 +150,7 @@ mod vfile_extern {
         F: FnOnce(&mut dyn super::VFile) -> T,
     {
         let vf = vf.cast::<super::VFileInner<V>>();
-        let vf = &mut *vf;
+        let vf = unsafe { &mut *vf };
         f(&mut vf.file)
     }
 
