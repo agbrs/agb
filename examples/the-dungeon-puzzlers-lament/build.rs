@@ -1,4 +1,4 @@
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use std::{
     env,
     fs::File,
@@ -191,8 +191,8 @@ struct EntityWithPosition(Entity, (i32, i32));
 
 impl quote::ToTokens for EntityWithPosition {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let pos_x = self.1 .0;
-        let pos_y = self.1 .1;
+        let pos_x = self.1.0;
+        let pos_y = self.1.1;
         let location = quote!(Vector2D::new(#pos_x, #pos_y));
         let item = &self.0;
 

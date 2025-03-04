@@ -1,11 +1,11 @@
 use crate::level_generation::generate_enemy_health;
 use crate::sfx::Sfx;
 use crate::{
-    graphics::SELECT_BOX, level_generation::generate_attack, Agb, EnemyAttackType, Face, PlayerDice,
+    Agb, EnemyAttackType, Face, PlayerDice, graphics::SELECT_BOX, level_generation::generate_attack,
 };
+use agb::display::Priority;
 use agb::display::object::Object;
 use agb::display::tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat};
-use agb::display::Priority;
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;

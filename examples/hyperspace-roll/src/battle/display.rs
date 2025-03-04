@@ -1,5 +1,5 @@
-use agb::display::object::Object;
 use agb::display::GraphicsFrame;
+use agb::display::object::Object;
 use agb::fixnum::Vector2D;
 use agb::rng;
 use alloc::vec;
@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 use crate::graphics::{BURST_BULLET, DISRUPT_BULLET, SHIELD};
 use crate::sfx::Sfx;
 use crate::{
-    graphics::{
-        FractionDisplay, HealthBar, NumberDisplay, BULLET_SPRITE, ENEMY_ATTACK_SPRITES,
-        FACE_SPRITES, SHIP_SPRITES,
-    },
     EnemyAttackType, Ship,
+    graphics::{
+        BULLET_SPRITE, ENEMY_ATTACK_SPRITES, FACE_SPRITES, FractionDisplay, HealthBar,
+        NumberDisplay, SHIP_SPRITES,
+    },
 };
 
 use super::{Action, CurrentBattleState, EnemyAttackState, MALFUNCTION_COOLDOWN_FRAMES};

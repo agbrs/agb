@@ -1,8 +1,8 @@
 use agb::{
     display::{
+        HEIGHT, Priority, WIDTH,
         object::Object,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-        Priority, HEIGHT, WIDTH,
     },
     input::{Button, Tri},
 };
@@ -10,9 +10,9 @@ use agb::{
 use alloc::vec::Vec;
 
 use crate::{
-    background::load_description,
-    graphics::{FACE_SPRITES, MODIFIED_BOX, SELECTED_BOX, SELECT_BOX},
     Agb, Die, Face, PlayerDice,
+    background::load_description,
+    graphics::{FACE_SPRITES, MODIFIED_BOX, SELECT_BOX, SELECTED_BOX},
 };
 
 enum CustomiseState {

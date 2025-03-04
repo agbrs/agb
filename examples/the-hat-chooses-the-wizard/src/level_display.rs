@@ -1,6 +1,6 @@
 use agb::display::{
+    GraphicsFrame, HEIGHT, Priority, WIDTH,
     tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting},
-    GraphicsFrame, Priority, HEIGHT, WIDTH,
 };
 
 const LEVEL_START: usize = 12 * 28;

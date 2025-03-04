@@ -1,7 +1,7 @@
 use agb::{hash_map::HashMap, rng};
 use alloc::vec::Vec;
 
-use crate::{battle::EnemyAttack, Face};
+use crate::{Face, battle::EnemyAttack};
 
 pub struct GeneratedAttack {
     pub attack: EnemyAttack,

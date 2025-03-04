@@ -1,9 +1,9 @@
 use agb::{
     display::{
+        GraphicsFrame, Priority,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileSet, TileSetting, VRAM_MANAGER,
         },
-        GraphicsFrame, Priority,
     },
     include_background_gfx, rng,
 };

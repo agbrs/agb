@@ -11,14 +11,13 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        self,
+        self, GraphicsFrame,
         affine::AffineMatrix,
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
         palette16::Palette16,
         tiled::VRAM_MANAGER,
-        GraphicsFrame,
     },
-    fixnum::{num, Num, Vector2D},
+    fixnum::{Num, Vector2D, num},
     include_aseprite,
     input::{Button, ButtonController},
     rng,

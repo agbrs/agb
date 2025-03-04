@@ -14,14 +14,14 @@ use alloc::vec::Vec;
 
 use agb::{
     display::{
+        GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::{Object, Sprite, Tag},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
         },
-        GraphicsFrame, Priority, HEIGHT, WIDTH,
     },
-    fixnum::{num, FixedNum, Rect, Vector2D},
+    fixnum::{FixedNum, Rect, Vector2D, num},
     input::{Button, ButtonController, Tri},
     rng,
     sound::mixer::Frequency,
@@ -2154,11 +2154,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
 fn ping_pong(i: u16, n: u16) -> u16 {
     let cycle = 2 * (n - 1);
     let i = i % cycle;
-    if i >= n {
-        cycle - i
-    } else {
-        i
-    }
+    if i >= n { cycle - i } else { i }
 }
 
 fn interpolate_colour(initial: u16, destination: u16, time_so_far: u16, total_time: u16) -> u16 {

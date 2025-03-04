@@ -27,7 +27,7 @@ mod level_generation;
 mod save;
 mod sfx;
 
-use background::{show_title_screen, StarBackground};
+use background::{StarBackground, show_title_screen};
 use battle::BattleResult;
 use graphics::NumberDisplay;
 use sfx::Sfx;

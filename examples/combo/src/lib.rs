@@ -7,12 +7,12 @@ extern crate alloc;
 
 use agb::{
     display::{
+        Priority,
         tile_data::TileData,
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
             VRAM_MANAGER,
         },
-        Priority,
     },
     fixnum::{Num, Vector2D},
     include_background_gfx,

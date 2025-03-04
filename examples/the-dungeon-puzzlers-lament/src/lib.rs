@@ -6,8 +6,8 @@
 
 use agb::{
     display::{
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         Graphics, GraphicsFrame, Priority,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
     },
     input::{Button, ButtonController},
     interrupt::VBlank,

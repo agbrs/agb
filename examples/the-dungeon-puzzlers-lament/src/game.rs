@@ -1,9 +1,9 @@
 use agb::{
     display::{
+        GraphicsFrame, HEIGHT, Priority,
         object::{Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram, TextAlignment},
         palette16::Palette16,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-        GraphicsFrame, Priority, HEIGHT,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
