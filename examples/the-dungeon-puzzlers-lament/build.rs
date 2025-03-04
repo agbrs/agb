@@ -277,7 +277,7 @@ fn export_level(map: &tiled::Map) -> Level {
         let tile_x = id % 11;
         let tile_y = id / 11;
 
-        let is_wall = tiles
+        tiles
             .get_tile(tile_x, tile_y)
             .map(|tile| {
                 let tileset = tile.get_tileset();
@@ -288,9 +288,7 @@ fn export_level(map: &tiled::Map) -> Level {
                     .map(|user_type| user_type == "WALL")
                     .unwrap_or(false)
             })
-            .unwrap_or(true);
-
-        is_wall
+            .unwrap_or(true)
     });
 
     Level {

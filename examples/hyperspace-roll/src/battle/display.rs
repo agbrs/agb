@@ -48,7 +48,7 @@ impl BattleScreenDisplay {
         let enemy_x = 167;
 
         let player_sprite = SHIP_SPRITES.sprite_for_ship(Ship::Player);
-        let enemy_sprite = SHIP_SPRITES.sprite_for_ship(if rng::gen() % 2 == 0 {
+        let enemy_sprite = SHIP_SPRITES.sprite_for_ship(if rng::next_i32() % 2 == 0 {
             Ship::Drone
         } else {
             Ship::PilotedShip

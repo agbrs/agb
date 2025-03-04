@@ -118,14 +118,14 @@ impl<'a> Sfx<'a> {
     }
 
     pub fn roll(&mut self) {
-        let roll_sound_to_use = rng::gen().rem_euclid(DICE_ROLLS.len() as i32);
+        let roll_sound_to_use = rng::next_i32().rem_euclid(DICE_ROLLS.len() as i32);
         let sound_channel = SoundChannel::new(DICE_ROLLS[roll_sound_to_use as usize]);
 
         self.mixer.play_sound(sound_channel);
     }
 
     pub fn roll_multi(&mut self) {
-        let roll_sound_to_use = rng::gen().rem_euclid(MULTI_ROLLS.len() as i32);
+        let roll_sound_to_use = rng::next_i32().rem_euclid(MULTI_ROLLS.len() as i32);
         let sound_channel = SoundChannel::new(MULTI_ROLLS[roll_sound_to_use as usize]);
 
         self.mixer.play_sound(sound_channel);

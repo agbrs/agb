@@ -69,12 +69,12 @@ fn create_background_map(stars_tileset: &TileSet) -> RegularBackgroundTiles {
 
     for x in 0..64u16 {
         for y in 0..32u16 {
-            let blank = rng::gen().rem_euclid(32) < 30;
+            let blank = rng::next_i32().rem_euclid(32) < 30;
 
             let tile_setting = if blank {
                 TileSetting::BLANK
             } else {
-                let tile_id = rng::gen().rem_euclid(64) as u16;
+                let tile_id = rng::next_i32().rem_euclid(64) as u16;
                 backgrounds::stars.tile_settings[tile_id as usize]
             };
 
@@ -82,7 +82,7 @@ fn create_background_map(stars_tileset: &TileSet) -> RegularBackgroundTiles {
         }
     }
 
-    map.set_scroll_pos((0i16, rng::gen().rem_euclid(8) as i16));
+    map.set_scroll_pos((0i16, rng::next_i32().rem_euclid(8) as i16));
 
     map
 }

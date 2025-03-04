@@ -332,7 +332,7 @@ pub(crate) fn customise_screen(
         select_box.show(&mut frame);
 
         agb.star_background.update();
-        let _ = agb::rng::gen();
+        let _ = agb::rng::next_i32();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
         agb.star_background.commit();

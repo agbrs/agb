@@ -87,7 +87,7 @@ impl RolledDice {
             .iter_mut()
             .zip(player_dice.dice.iter())
             .for_each(|(die_state, player_die)| match die_state {
-                DieState::Rolling(ref mut timeout, ref mut face, previous_face) => {
+                DieState::Rolling(timeout, face, previous_face) => {
                     if *timeout == 0 {
                         let mut number_of_rolls = 0;
                         *die_state = DieState::Rolled(RolledDie::new(loop {
@@ -107,7 +107,7 @@ impl RolledDice {
                         *timeout -= 1;
                     }
                 }
-                DieState::Rolled(ref mut rolled_die) => rolled_die.update(),
+                DieState::Rolled(rolled_die) => rolled_die.update(),
             });
     }
 

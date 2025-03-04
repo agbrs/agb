@@ -1045,7 +1045,7 @@ impl MiniFlameData {
                     self.sprite_offset = 0;
                     self.state = MiniFlameState::Dead;
 
-                    if rng::gen() % 4 == 0 {
+                    if rng::next_i32() % 4 == 0 {
                         instruction = UpdateInstruction::CreateParticle(
                             ParticleData::new_health(),
                             entity.position,
@@ -1068,7 +1068,7 @@ impl MiniFlameData {
                     self.sprite_offset = 0;
                     self.state = MiniFlameState::Dead;
 
-                    if rng::gen() % 4 == 0 {
+                    if rng::next_i32() % 4 == 0 {
                         instruction = UpdateInstruction::CreateParticle(
                             ParticleData::new_health(),
                             entity.position,
@@ -1573,7 +1573,7 @@ impl Boss {
         Self {
             entity,
             health: 5,
-            target_location: rng::gen().rem_euclid(5) as u8,
+            target_location: rng::next_i32().rem_euclid(5) as u8,
             state: BossActiveState::Damaged(60),
             timer: 0,
             screen_coords,
@@ -1670,9 +1670,9 @@ impl Boss {
     fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
         let shake = if self.shake_magnitude != 0.into() {
             (
-                Number::from_raw(rng::gen()).rem_euclid(self.shake_magnitude)
+                Number::from_raw(rng::next_i32()).rem_euclid(self.shake_magnitude)
                     - self.shake_magnitude / 2,
-                Number::from_raw(rng::gen()).rem_euclid(self.shake_magnitude)
+                Number::from_raw(rng::next_i32()).rem_euclid(self.shake_magnitude)
                     - self.shake_magnitude / 2,
             )
                 .into()
@@ -1685,8 +1685,8 @@ impl Boss {
     }
     fn explode(&self, enemies: &mut Arena<Enemy>) {
         for _ in 0..(6 - self.health) {
-            let x_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
-            let y_offset: Number = Number::from_raw(rng::gen()).rem_euclid(2.into()) - 1;
+            let x_offset: Number = Number::from_raw(rng::next_i32()).rem_euclid(2.into()) - 1;
+            let y_offset: Number = Number::from_raw(rng::next_i32()).rem_euclid(2.into()) - 1;
             let mut flame = Enemy::new(EnemyData::MiniFlame(MiniFlameData::new()));
             flame.entity.position = self.entity.position;
             flame.entity.velocity = (x_offset, y_offset).into();
@@ -1696,7 +1696,7 @@ impl Boss {
 
     fn get_next_target_location(&self) -> u8 {
         loop {
-            let a = rng::gen().rem_euclid(5) as u8;
+            let a = rng::next_i32().rem_euclid(5) as u8;
             if a != self.target_location {
                 break a;
             }
@@ -1830,8 +1830,8 @@ impl Game {
         if self.shake_time > 0 {
             let size = self.shake_time.min(4) as i32;
             let offset: Vector2D<Number> = (
-                Number::from_raw(rng::gen()) % size - Number::new(size) / 2,
-                Number::from_raw(rng::gen()) % size - Number::new(size) / 2,
+                Number::from_raw(rng::next_i32()) % size - Number::new(size) / 2,
+                Number::from_raw(rng::next_i32()) % size - Number::new(size) / 2,
             )
                 .into();
             this_frame_offset += offset;
@@ -2136,7 +2136,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
             frame.commit();
 
-            let _ = rng::gen(); // advance RNG to make it less predictable between runs
+            let _ = rng::next_i32(); // advance RNG to make it less predictable between runs
         };
     }
 }
