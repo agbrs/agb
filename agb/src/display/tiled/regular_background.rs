@@ -1,8 +1,4 @@
-use core::{
-    alloc::{Allocator, Layout},
-    mem,
-    ptr::NonNull,
-};
+use core::{alloc::Layout, mem};
 
 use agb_fixnum::Vector2D;
 use alloc::{rc::Rc, vec};
@@ -11,11 +7,14 @@ use crate::display::{GraphicsFrame, Priority, tile_data::TileData};
 
 use super::{
     BackgroundControlRegister, BackgroundId, RegularBackgroundCommitData, RegularBackgroundData,
-    SCREENBLOCK_SIZE, ScreenblockAllocator, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet,
-    TileSetting, VRAM_MANAGER, VRAM_START,
+    SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting, VRAM_MANAGER,
 };
 
+pub(crate) use screenblock::RegularBackgroundScreenblock;
+
 use bilge::prelude::*;
+
+mod screenblock;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -67,34 +66,6 @@ impl RegularBackgroundSize {
         let pos = screenblock * 32 * 32 + (x_mod % 32 + 32 * (y_mod % 32));
 
         pos as usize
-    }
-}
-
-pub(crate) struct RegularBackgroundScreenblock {
-    ptr: NonNull<u8>,
-    size: RegularBackgroundSize,
-}
-
-impl RegularBackgroundScreenblock {
-    fn new(size: RegularBackgroundSize) -> Self {
-        let screenblock_ptr = ScreenblockAllocator
-            .allocate(size.layout())
-            .expect("Not enough space to allocate for background")
-            .cast();
-
-        Self {
-            ptr: screenblock_ptr,
-            size,
-        }
-    }
-
-    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles) {
-        unsafe {
-            self.ptr
-                .as_ptr()
-                .cast::<Tile>()
-                .copy_from_nonoverlapping(tiles.tiles.as_ptr(), self.size.num_tiles());
-        }
     }
 }
 
@@ -150,7 +121,7 @@ impl RegularBackgroundTiles {
             self.tiles.colours
         );
 
-        let pos = self.screenblock.size.gba_offset(pos.into());
+        let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
@@ -220,7 +191,7 @@ impl RegularBackgroundTiles {
 
     #[must_use]
     pub fn size(&self) -> RegularBackgroundSize {
-        self.screenblock.size
+        self.screenblock.size()
     }
 
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
@@ -228,21 +199,11 @@ impl RegularBackgroundTiles {
 
         background_control_register.set_tile_format(self.tiles.colours.into());
         background_control_register.set_priority(self.priority.into());
-        background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
+        background_control_register
+            .set_screen_base_block(u5::new(self.screenblock.screen_base_block() as u8));
         background_control_register.set_screen_size(self.size().into());
 
         background_control_register
-    }
-
-    fn screen_base_block(&self) -> u16 {
-        let screenblock_location = self.screenblock.ptr.as_ptr() as usize;
-        ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
-    }
-}
-
-impl Drop for RegularBackgroundScreenblock {
-    fn drop(&mut self) {
-        unsafe { ScreenblockAllocator.deallocate(self.ptr.cast(), self.size.layout()) };
     }
 }
 
