@@ -29,7 +29,7 @@ impl RegularBackgroundScreenblock {
             self.ptr
                 .as_ptr()
                 .cast::<Tile>()
-                .copy_from_nonoverlapping(tiles.tiles.as_ptr(), self.size.num_tiles());
+                .copy_from_nonoverlapping(tiles.as_ptr(), self.size.num_tiles());
         }
     }
 

@@ -1,9 +1,11 @@
 use core::{alloc::Layout, mem};
 
-use agb_fixnum::Vector2D;
-use alloc::{rc::Rc, vec};
+use alloc::rc::Rc;
 
-use crate::display::{GraphicsFrame, Priority, tile_data::TileData};
+use crate::{
+    display::{GraphicsFrame, Priority, tile_data::TileData},
+    fixnum::Vector2D,
+};
 
 use super::{
     BackgroundControlRegister, BackgroundId, RegularBackgroundCommitData, RegularBackgroundData,
@@ -11,10 +13,12 @@ use super::{
 };
 
 pub(crate) use screenblock::RegularBackgroundScreenblock;
+pub(crate) use tiles::Tiles;
 
 use bilge::prelude::*;
 
 mod screenblock;
+mod tiles;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -86,10 +90,7 @@ impl RegularBackgroundTiles {
         Self {
             priority,
 
-            tiles: Tiles {
-                tiles: vec![Tile::default(); size.num_tiles()].into(),
-                colours,
-            },
+            tiles: Tiles::new(size, colours),
             is_dirty: true,
 
             scroll: Vector2D::default(),
@@ -115,10 +116,10 @@ impl RegularBackgroundTiles {
     ) {
         assert_eq!(
             tileset.format(),
-            self.tiles.colours,
+            self.tiles.colours(),
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tileset.format(),
-            self.tiles.colours
+            self.tiles.colours()
         );
 
         let pos = self.screenblock.size().gba_offset(pos.into());
@@ -133,10 +134,10 @@ impl RegularBackgroundTiles {
 
         assert_eq!(
             tile_data.tiles.format(),
-            self.tiles.colours,
+            self.tiles.colours(),
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tile_data.tiles.format(),
-            self.tiles.colours
+            self.tiles.colours()
         );
 
         for y in 0..20 {
@@ -149,9 +150,9 @@ impl RegularBackgroundTiles {
     }
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
-        let old_tile = self.tiles.tiles[pos];
+        let old_tile = self.tiles.get(pos);
         if old_tile != Tile::default() {
-            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours));
+            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours()));
         }
 
         let tile_index = tile_setting.index();
@@ -197,55 +198,13 @@ impl RegularBackgroundTiles {
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
         let mut background_control_register = BackgroundControlRegister::default();
 
-        background_control_register.set_tile_format(self.tiles.colours.into());
+        background_control_register.set_tile_format(self.tiles.colours().into());
         background_control_register.set_priority(self.priority.into());
         background_control_register
             .set_screen_base_block(u5::new(self.screenblock.screen_base_block() as u8));
         background_control_register.set_screen_size(self.size().into());
 
         background_control_register
-    }
-}
-
-pub(crate) struct Tiles {
-    tiles: Rc<[Tile]>,
-    colours: TileFormat,
-}
-
-impl Drop for Tiles {
-    fn drop(&mut self) {
-        if Rc::strong_count(&self.tiles) == 1 {
-            for tile in self.tiles.iter() {
-                if *tile != Tile::default() {
-                    VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
-                }
-            }
-        }
-    }
-}
-
-impl Clone for Tiles {
-    fn clone(&self) -> Self {
-        Self {
-            tiles: Rc::clone(&self.tiles),
-            colours: self.colours,
-        }
-    }
-}
-
-impl Tiles {
-    fn tiles_mut(&mut self) -> &mut [Tile] {
-        if Rc::strong_count(&self.tiles) > 1 {
-            // the make_mut below is going to cause us to increase the reference count, so we should
-            // mark every tile here as referenced again in the VRAM_MANAGER.
-            for tile in self.tiles.iter() {
-                if *tile != Tile::default() {
-                    VRAM_MANAGER.increase_reference(tile.tile_index(self.colours));
-                }
-            }
-        }
-
-        Rc::make_mut(&mut self.tiles)
     }
 }
 
