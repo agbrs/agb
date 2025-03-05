@@ -76,6 +76,18 @@ pub(crate) struct RegularBackgroundScreenblock {
 }
 
 impl RegularBackgroundScreenblock {
+    fn new(size: RegularBackgroundSize) -> Self {
+        let screenblock_ptr = ScreenblockAllocator
+            .allocate(size.layout())
+            .expect("Not enough space to allocate for background")
+            .cast();
+
+        Self {
+            ptr: screenblock_ptr,
+            size,
+        }
+    }
+
     pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles) {
         unsafe {
             self.ptr
@@ -100,11 +112,6 @@ pub struct RegularBackgroundTiles {
 impl RegularBackgroundTiles {
     #[must_use]
     pub fn new(priority: Priority, size: RegularBackgroundSize, colours: TileFormat) -> Self {
-        let screenblock_ptr = ScreenblockAllocator
-            .allocate(size.layout())
-            .expect("Not enough space to allocate for background")
-            .cast();
-
         Self {
             priority,
 
@@ -116,10 +123,7 @@ impl RegularBackgroundTiles {
 
             scroll: Vector2D::default(),
 
-            screenblock: Rc::new(RegularBackgroundScreenblock {
-                ptr: screenblock_ptr,
-                size,
-            }),
+            screenblock: Rc::new(RegularBackgroundScreenblock::new(size)),
         }
     }
 
