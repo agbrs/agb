@@ -24,7 +24,9 @@ The enforcement section is based on the [django project's](https://www.djangopro
 
 In the agb community we strive to go the extra step to look out for each other. Don’t just aim to be technically unimpeachable, try to be your best self. In particular, avoid flirting with offensive or sensitive issues, particularly if they’re off-topic; this all too often leads to unnecessary fights, hurt feelings, and damaged trust; worse, it can drive people away from the community entirely.
 
-And if someone takes issue with something you said or did, resist the urge to be defensive. Just stop doing what it was they complained about and apologize. Even if you feel you were misinterpreted or unfairly accused, chances are good there was something you could’ve communicated better — remember that it’s your responsibility to make your fellow gba developers comfortable. Everyone wants to get along and we are all here first and foremost because we want to talk about cool technology. You will find that people will be eager to assume good intent and forgive as long as you earn their trust.
+And if someone takes issue with something you said or did, resist the urge to be defensive. Just stop doing what it was they complained about and apologize. Even if you feel you were misinterpreted or unfairly accused, chances are good there was something you could've communicated better — remember that it’s your responsibility to make your fellow gba developers comfortable. Everyone wants to get along and we are all here first and foremost because we want to talk about cool technology. You will find that people will be eager to assume good intent and forgive as long as you earn their trust.
+
+Just as we encourage offering sincere apologies when mistakes are made, we also ask that community members accept apologies when they are given in good faith. Holding grudges or repeatedly bringing up past mistakes can create an unwelcoming environment and prevent growth. We recognize that not every harm can be immediately repaired, but fostering a culture of understanding and resolution helps keep our community constructive and welcoming.
 
 ## Enforcement
 
