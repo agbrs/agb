@@ -76,7 +76,7 @@ pub(crate) struct RegularBackgroundScreenblock {
 }
 
 impl RegularBackgroundScreenblock {
-    pub unsafe fn copy_tiles(&self, tiles: &Tiles) {
+    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles) {
         unsafe {
             self.ptr
                 .as_ptr()
@@ -283,3 +283,6 @@ impl Tiles {
         Rc::make_mut(&mut self.tiles)
     }
 }
+
+#[cfg(test)]
+mod test;
