@@ -335,10 +335,6 @@ pub(crate) fn customise_screen(
         let _ = agb::rng::next_i32();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
-        agb.star_background.commit();
-
-        descriptions_map.commit();
-        help_background.commit();
 
         help_background.show(&mut frame);
         if description_map_visible {

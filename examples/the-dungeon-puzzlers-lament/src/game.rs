@@ -81,13 +81,11 @@ impl Lament {
         }
     }
 
-    fn update(mut self, input: &ButtonController) -> GamePhase {
+    fn update(self, input: &ButtonController) -> GamePhase {
         {
             let mut writer = self.writer.borrow_mut();
             writer.next_letter_group();
             writer.update(Vector2D::new(16, HEIGHT / 4));
-
-            self.background.commit();
         }
         if input.is_just_pressed(Button::A) {
             GamePhase::Construction(Construction::new(self.level))
@@ -117,7 +115,6 @@ impl Construction {
         );
 
         game.load_level_background(&mut background);
-        background.commit();
 
         Self { background, game }
     }

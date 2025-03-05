@@ -60,7 +60,6 @@ fn main(mut gba: Gba) -> ! {
         let mut frame = gfx.frame();
         bg.show(&mut frame);
         vblank_provider.wait_for_vblank();
-        bg.commit();
         frame.commit();
 
         let before_mixing_cycles = timer.value();

@@ -9,6 +9,7 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use clap::Parser;
+use image::GenericImage;
 use image_compare::compare_image;
 use mgba::{LogLevel, Logger, MCore, MemoryBacked, VFile};
 
@@ -83,7 +84,39 @@ impl TestRunner {
                                         mark_this_test_as_soft_failed = true;
                                     }
                                 }
-                                Err(e) => eprintln!("{}", e),
+                                Err(e) => {
+                                    eprintln!("\n{}\nWriting new image and failing the testts", e);
+                                    mark_tests_as_soft_failed = true;
+                                    mark_this_test_as_soft_failed = true;
+
+                                    let video_buffer = self.mgba.video_buffer();
+                                    let mut output_image = image::DynamicImage::new(
+                                        image_compare::WIDTH as u32,
+                                        image_compare::HEIGHT as u32,
+                                        image::ColorType::Rgb8,
+                                    );
+
+                                    for y in 0..image_compare::HEIGHT {
+                                        for x in 0..image_compare::WIDTH {
+                                            output_image.put_pixel(
+                                                x as u32,
+                                                y as u32,
+                                                image::Rgba(
+                                                    video_buffer[y * image_compare::WIDTH + x]
+                                                        .to_le_bytes(),
+                                                ),
+                                            );
+                                        }
+                                    }
+
+                                    if let Err(e) =
+                                        output_image.save(image_path).with_context(|| {
+                                            format!("Failed to write to path {image_path}")
+                                        })
+                                    {
+                                        eprintln!("{e}");
+                                    }
+                                }
                             }
                         } else if debug_message.ends_with("...") {
                             eprint!("{}", debug_message);

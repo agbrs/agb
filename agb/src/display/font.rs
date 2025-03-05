@@ -324,7 +324,6 @@ mod tests {
             let mut writer = renderer.writer(1, 2, &mut bg);
             writeln!(&mut writer, "This is a font rendering example").unwrap();
             writer.commit();
-            bg.commit();
 
             let mut frame = gfx.frame();
             bg.show(&mut frame);

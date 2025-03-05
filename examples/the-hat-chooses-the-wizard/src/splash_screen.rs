@@ -36,7 +36,6 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
 
     map.fill_with(tile_data);
 
-    map.commit();
     VRAM_MANAGER.set_background_palettes(splash_screens::PALETTES);
 
     loop {

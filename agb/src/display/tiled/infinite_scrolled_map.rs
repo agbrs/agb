@@ -187,10 +187,6 @@ impl InfiniteScrolledMap {
         }
     }
 
-    pub fn commit(&mut self) {
-        self.map.commit();
-    }
-
     pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
         self.map.show(frame)
     }

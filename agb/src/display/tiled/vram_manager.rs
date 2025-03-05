@@ -130,6 +130,8 @@ impl TileReferenceCount {
     }
 
     fn increment_reference_count(&mut self) {
+        debug_assert!(self.tile_in_tile_set.is_some());
+
         self.reference_count += 1;
     }
 
@@ -138,6 +140,8 @@ impl TileReferenceCount {
             self.reference_count > 0,
             "Trying to decrease the reference count below 0",
         );
+
+        debug_assert!(self.tile_in_tile_set.is_some());
 
         self.reference_count -= 1;
         self.reference_count
@@ -247,6 +251,10 @@ impl VRamManager {
 
     pub(crate) fn remove_tile(&self, index: TileIndex) {
         self.with(|inner| inner.remove_tile(index));
+    }
+
+    pub(crate) fn increase_reference(&self, index: TileIndex) {
+        self.with(|inner| inner.increase_reference(index));
     }
 
     pub(crate) fn add_tile(&self, tile_set: &TileSet<'_>, tile_index: u16) -> TileIndex {
@@ -397,8 +405,8 @@ impl VRamManagerInner {
 
         if let Entry::Occupied(reference) = reference {
             let tile_index = Self::index_from_reference(*reference.get(), tile_set.format);
-            let key = tile_index.refcount_key();
-            self.reference_counts[key].increment_reference_count();
+            self.increase_reference(tile_index);
+
             return tile_index;
         }
 
@@ -435,12 +443,22 @@ impl VRamManagerInner {
         self.indices_to_gc.push(tile_index);
     }
 
+    fn increase_reference(&mut self, tile_index: TileIndex) {
+        let key = tile_index.refcount_key();
+        self.reference_counts[key].increment_reference_count();
+    }
+
     pub(crate) fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
             let key = tile_index.refcount_key();
             if self.reference_counts[key].current_count() > 0 {
                 continue; // it has since been added back
             }
+
+            let Some(tile_ref) = self.reference_counts[key].tile_in_tile_set.as_ref() else {
+                // already been deleted
+                continue;
+            };
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
@@ -449,11 +467,6 @@ impl VRamManagerInner {
                     layout_of(tile_index.format()),
                 );
             }
-
-            let tile_ref = self.reference_counts[key]
-                .tile_in_tile_set
-                .as_ref()
-                .unwrap();
 
             self.tile_set_to_vram.remove(tile_ref);
             self.reference_counts[key].clear();

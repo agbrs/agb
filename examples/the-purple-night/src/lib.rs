@@ -70,14 +70,10 @@ struct Level {
 
 impl Level {
     fn load_level(
-        mut backdrop: InfiniteScrolledMap,
-        mut foreground: InfiniteScrolledMap,
-        mut clouds: InfiniteScrolledMap,
+        backdrop: InfiniteScrolledMap,
+        foreground: InfiniteScrolledMap,
+        clouds: InfiniteScrolledMap,
     ) -> Self {
-        backdrop.commit();
-        foreground.commit();
-        clouds.commit();
-
         let slime_spawns = tilemap::SLIME_SPAWNS_X
             .iter()
             .enumerate()
@@ -2129,10 +2125,6 @@ fn game_with_level(gba: &mut agb::Gba) {
             game.level.clouds.show(&mut frame);
 
             vblank.wait_for_vblank();
-
-            game.level.background.commit();
-            game.level.foreground.commit();
-            game.level.clouds.commit();
 
             frame.commit();
 

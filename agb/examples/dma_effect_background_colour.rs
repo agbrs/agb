@@ -24,7 +24,6 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     example_logo::display_logo_basic(&mut map);
-    map.commit();
 
     let vblank = VBlank::get();
 

@@ -58,7 +58,6 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut frame = gfx.frame();
     bg.show(&mut frame);
 
-    bg.commit();
     frame.commit();
 
     let mut frame_count = 0;
@@ -74,7 +73,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
         frame_count += 1;
 
-        bg.commit();
         bg.show(&mut frame);
 
         vblank.wait_for_vblank();

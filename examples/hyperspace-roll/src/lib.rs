@@ -114,8 +114,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         ],
     };
 
-    let mut star_background = StarBackground::new();
-    star_background.commit();
+    let star_background = StarBackground::new();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     mixer.enable();

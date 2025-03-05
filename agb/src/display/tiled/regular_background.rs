@@ -1,21 +1,24 @@
-use core::{
-    alloc::{Allocator, Layout},
-    mem,
-    ptr::NonNull,
+use core::{alloc::Layout, mem};
+
+use alloc::rc::Rc;
+
+use crate::{
+    display::{GraphicsFrame, Priority, tile_data::TileData},
+    fixnum::Vector2D,
 };
-
-use agb_fixnum::Vector2D;
-use alloc::{vec, vec::Vec};
-
-use crate::display::{GraphicsFrame, Priority, tile_data::TileData};
 
 use super::{
-    BackgroundControlRegister, BackgroundId, RegularBackgroundData, SCREENBLOCK_SIZE,
-    ScreenblockAllocator, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting,
-    VRAM_MANAGER, VRAM_START,
+    BackgroundControlRegister, BackgroundId, RegularBackgroundCommitData, RegularBackgroundData,
+    SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting, VRAM_MANAGER,
 };
 
+pub(crate) use screenblock::RegularBackgroundScreenblock;
+pub(crate) use tiles::Tiles;
+
 use bilge::prelude::*;
+
+mod screenblock;
+mod tiles;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -72,36 +75,27 @@ impl RegularBackgroundSize {
 
 pub struct RegularBackgroundTiles {
     priority: Priority,
-    size: RegularBackgroundSize,
-    colours: TileFormat,
 
-    tiles: Vec<Tile>,
+    tiles: Tiles,
+    screenblock: Rc<RegularBackgroundScreenblock>,
+
     is_dirty: bool,
 
     scroll: Vector2D<i32>,
-
-    screenblock_ptr: NonNull<Tile>,
 }
 
 impl RegularBackgroundTiles {
     #[must_use]
     pub fn new(priority: Priority, size: RegularBackgroundSize, colours: TileFormat) -> Self {
-        let screenblock_ptr = ScreenblockAllocator
-            .allocate(size.layout())
-            .expect("Not enough space to allocate for background")
-            .cast();
-
         Self {
             priority,
-            size,
-            colours,
 
-            tiles: vec![Tile::default(); size.num_tiles()],
+            tiles: Tiles::new(size, colours),
             is_dirty: true,
 
             scroll: Vector2D::default(),
 
-            screenblock_ptr,
+            screenblock: Rc::new(RegularBackgroundScreenblock::new(size)),
         }
     }
 
@@ -122,13 +116,13 @@ impl RegularBackgroundTiles {
     ) {
         assert_eq!(
             tileset.format(),
-            self.colours,
+            self.tiles.colours(),
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tileset.format(),
-            self.colours
+            self.tiles.colours()
         );
 
-        let pos = self.size.gba_offset(pos.into());
+        let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
@@ -140,10 +134,10 @@ impl RegularBackgroundTiles {
 
         assert_eq!(
             tile_data.tiles.format(),
-            self.colours,
+            self.tiles.colours(),
             "Cannot set a {:?} colour tile on a {:?} colour background",
             tile_data.tiles.format(),
-            self.colours
+            self.tiles.colours()
         );
 
         for y in 0..20 {
@@ -156,9 +150,9 @@ impl RegularBackgroundTiles {
     }
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
-        let old_tile = self.tiles[pos];
+        let old_tile = self.tiles.get(pos);
         if old_tile != Tile::default() {
-            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.colours));
+            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours()));
         }
 
         let tile_index = tile_setting.index();
@@ -175,66 +169,44 @@ impl RegularBackgroundTiles {
             return;
         }
 
-        self.tiles[pos] = new_tile;
+        self.tiles.tiles_mut()[pos] = new_tile;
         self.is_dirty = true;
-    }
-
-    pub fn commit(&mut self) {
-        if self.is_dirty {
-            unsafe {
-                self.screenblock_ptr
-                    .as_ptr()
-                    .copy_from_nonoverlapping(self.tiles.as_ptr(), self.size.num_tiles());
-            }
-        }
-
-        self.is_dirty = false;
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> BackgroundId {
+        let commit_data = if self.is_dirty {
+            Some(RegularBackgroundCommitData {
+                tiles: self.tiles.clone(),
+                screenblock: Rc::clone(&self.screenblock),
+            })
+        } else {
+            None
+        };
+
         frame.bg_frame.set_next_regular(RegularBackgroundData {
             bg_ctrl: self.bg_ctrl_value(),
             scroll_offset: Vector2D::new(self.scroll.x as u16, self.scroll.y as u16),
+            commit_data,
         })
-    }
-
-    pub fn clear(&mut self) {
-        for tile in &mut self.tiles {
-            if *tile != Tile::default() {
-                VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
-            }
-
-            *tile = Tile::default();
-        }
-
-        self.is_dirty = true;
     }
 
     #[must_use]
     pub fn size(&self) -> RegularBackgroundSize {
-        self.size
+        self.screenblock.size()
     }
 
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
         let mut background_control_register = BackgroundControlRegister::default();
 
-        background_control_register.set_tile_format(self.colours.into());
+        background_control_register.set_tile_format(self.tiles.colours().into());
         background_control_register.set_priority(self.priority.into());
-        background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
-        background_control_register.set_screen_size(self.size.into());
+        background_control_register
+            .set_screen_base_block(u5::new(self.screenblock.screen_base_block() as u8));
+        background_control_register.set_screen_size(self.size().into());
 
         background_control_register
     }
-
-    fn screen_base_block(&self) -> u16 {
-        let screenblock_location = self.screenblock_ptr.as_ptr() as usize;
-        ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
-    }
 }
 
-impl Drop for RegularBackgroundTiles {
-    fn drop(&mut self) {
-        self.clear();
-        unsafe { ScreenblockAllocator.deallocate(self.screenblock_ptr.cast(), self.size.layout()) };
-    }
-}
+#[cfg(test)]
+mod test;

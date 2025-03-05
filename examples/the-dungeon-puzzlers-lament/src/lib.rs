@@ -73,12 +73,9 @@ pub fn entry(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
     backgrounds::load_ending_page(&mut ending_bg);
-    ending_bg.commit();
 
     backgrounds::load_palettes();
     backgrounds::load_ui(&mut ui_bg);
-
-    ui_bg.commit();
 
     let mut input = agb::input::ButtonController::new();
     input.update();

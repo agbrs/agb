@@ -41,8 +41,6 @@ fn main(mut gba: Gba) -> ! {
 
     writer.commit();
 
-    bg.commit();
-
     let timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer2;
     let mut timer2 = timer_controller.timer3;
@@ -64,7 +62,6 @@ fn main(mut gba: Gba) -> ! {
         let mut frame = gfx.frame();
         bg.show(&mut frame);
         vblank_provider.wait_for_vblank();
-        bg.commit();
         frame.commit();
 
         let before_mixing_cycles_high = timer2.value();

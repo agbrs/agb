@@ -20,7 +20,6 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     example_logo::display_logo(&mut map);
-    map.commit();
 
     let mut frame = gfx.frame();
     map.show(&mut frame);

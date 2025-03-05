@@ -99,8 +99,6 @@ pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackgroundTiles {
     background.fill_with(&backgrounds::title);
     sfx.frame();
 
-    background.commit();
-
     background
 }
 
@@ -141,11 +139,6 @@ impl StarBackground {
 
         self.background1_timer -= 1;
         self.background2_timer -= 1;
-    }
-
-    pub fn commit(&mut self) {
-        self.background1.commit();
-        self.background2.commit();
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame) {

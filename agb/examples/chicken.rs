@@ -78,8 +78,6 @@ fn main(mut gba: agb::Gba) -> ! {
         );
     }
 
-    background.commit();
-
     let mut chicken = Chicken::new(vec2(6, 7));
 
     let mut frame_count = 0usize;

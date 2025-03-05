@@ -32,8 +32,6 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    bg.commit();
-
     let mut frame = gfx.frame();
     bg.show(&mut frame);
     frame.commit();
