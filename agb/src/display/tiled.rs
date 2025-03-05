@@ -7,12 +7,13 @@ mod vram_manager;
 use core::marker::PhantomData;
 
 pub use super::affine::AffineMatrixBackground;
+use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
     AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
-use regular_background::{RegularBackgroundScreenblock, Tiles};
+use regular_background::RegularBackgroundScreenblock;
 pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
 pub use vram_manager::{DynamicTile, TileFormat, TileIndex, TileSet, VRAM_MANAGER};
 
@@ -137,7 +138,7 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 struct RegularBackgroundCommitData {
-    tiles: Tiles,
+    tiles: regular_background::Tiles,
     screenblock: Rc<RegularBackgroundScreenblock>,
 }
 
@@ -148,11 +149,17 @@ struct RegularBackgroundData {
     commit_data: Option<RegularBackgroundCommitData>,
 }
 
+struct AffineBackgroundCommitData {
+    tiles: affine_background::Tiles,
+    screenblock: Rc<AffineBackgroundScreenBlock>,
+}
+
 #[derive(Default)]
 struct AffineBackgroundData {
     bg_ctrl: BackgroundControlRegister,
     scroll_offset: Vector2D<Num<i32, 8>>,
     affine_transform: AffineMatrixBackground,
+    commit_data: Option<AffineBackgroundCommitData>,
 }
 
 pub(crate) struct TiledBackground<'gba> {
@@ -269,7 +276,7 @@ impl BackgroundFrame<'_> {
 
         for (i, affine_background) in self
             .affine_backgrounds
-            .iter()
+            .iter_mut()
             .take(self.num_affine)
             .enumerate()
         {
@@ -285,6 +292,12 @@ impl BackgroundFrame<'_> {
 
             let affine_transform_offset = unsafe { MemoryMapped::new(0x0400_0020 + (i - 2) * 16) };
             affine_transform_offset.set(affine_background.affine_transform);
+
+            if let Some(commit_data) = affine_background.commit_data.take() {
+                unsafe {
+                    commit_data.screenblock.copy_tiles(&commit_data.tiles);
+                }
+            }
         }
     }
 }

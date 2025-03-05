@@ -1,6 +1,6 @@
-use alloc::{alloc::Allocator, vec, vec::Vec};
+use alloc::rc::Rc;
 use bilge::prelude::*;
-use core::{alloc::Layout, ptr::NonNull};
+use core::alloc::Layout;
 
 use crate::{
     display::{GraphicsFrame, Priority, affine::AffineMatrixBackground, tiled::TileFormat},
@@ -8,9 +8,16 @@ use crate::{
 };
 
 use super::{
-    AffineBackgroundData, AffineBackgroundId, BackgroundControlRegister, SCREENBLOCK_SIZE,
-    ScreenblockAllocator, TRANSPARENT_TILE_INDEX, TileIndex, TileSet, VRAM_MANAGER, VRAM_START,
+    AffineBackgroundCommitData, AffineBackgroundData, AffineBackgroundId,
+    BackgroundControlRegister, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, TileIndex, TileSet,
+    VRAM_MANAGER,
 };
+
+mod screenblock;
+mod tiles;
+
+pub(crate) use screenblock::AffineBackgroundScreenBlock;
+pub(crate) use tiles::Tiles;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -59,14 +66,13 @@ impl AffineBackgroundSize {
 
 pub struct AffineBackgroundTiles {
     priority: Priority,
-    size: AffineBackgroundSize,
 
-    // Affine backgrounds only store the tile id
-    tiles: Vec<u8>,
+    tiles: Tiles,
+    screenblock: Rc<AffineBackgroundScreenBlock>,
+
     is_dirty: bool,
 
     scroll: Vector2D<Num<i32, 8>>,
-    screenblock_ptr: NonNull<u8>,
 
     transform: AffineMatrixBackground,
     wrap_behaviour: AffineBackgroundWrapBehaviour,
@@ -79,21 +85,15 @@ impl AffineBackgroundTiles {
         size: AffineBackgroundSize,
         wrap_behaviour: AffineBackgroundWrapBehaviour,
     ) -> Self {
-        let screenblock_ptr = ScreenblockAllocator
-            .allocate(size.layout())
-            .expect("Not enough space to allocate affine background")
-            .cast();
-
         Self {
             priority,
-            size,
 
-            tiles: vec![0; size.num_tiles()],
+            tiles: Tiles::new(size),
             is_dirty: true,
 
             scroll: Vector2D::default(),
 
-            screenblock_ptr,
+            screenblock: Rc::new(AffineBackgroundScreenBlock::new(size)),
 
             transform: AffineMatrixBackground::default(),
             wrap_behaviour,
@@ -121,7 +121,7 @@ impl AffineBackgroundTiles {
             "Can only use 256 colour tiles in an affine background"
         );
 
-        let pos = self.size.gba_offset(pos.into());
+        let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_index);
     }
 
@@ -130,7 +130,7 @@ impl AffineBackgroundTiles {
     }
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) {
-        let old_tile = self.tiles[pos];
+        let old_tile = self.tiles.get(pos);
         if old_tile != 0 {
             VRAM_MANAGER.remove_tile(TileIndex::EightBpp(old_tile as u16));
         }
@@ -151,39 +151,25 @@ impl AffineBackgroundTiles {
             return;
         }
 
-        self.tiles[pos] = new_tile;
-        self.is_dirty = true;
-    }
-
-    pub fn commit(&mut self) {
-        if self.is_dirty {
-            unsafe {
-                self.screenblock_ptr
-                    .as_ptr()
-                    .copy_from_nonoverlapping(self.tiles.as_ptr(), self.size.num_tiles());
-            }
-        }
-
-        self.is_dirty = false;
-    }
-
-    pub fn clear(&mut self) {
-        for tile in &mut self.tiles {
-            if *tile != 0 {
-                VRAM_MANAGER.remove_tile(TileIndex::EightBpp(*tile as u16));
-            }
-
-            *tile = 0;
-        }
-
+        self.tiles.tiles_mut()[pos] = new_tile;
         self.is_dirty = true;
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
+        let commit_data = if self.is_dirty {
+            Some(AffineBackgroundCommitData {
+                tiles: self.tiles.clone(),
+                screenblock: Rc::clone(&self.screenblock),
+            })
+        } else {
+            None
+        };
+
         frame.bg_frame.set_next_affine(AffineBackgroundData {
             bg_ctrl: self.bg_ctrl(),
             scroll_offset: self.scroll,
             affine_transform: self.transform,
+            commit_data,
         })
     }
 
@@ -191,29 +177,16 @@ impl AffineBackgroundTiles {
         let mut background_control_register = BackgroundControlRegister::default();
 
         background_control_register.set_priority(self.priority.into());
-        background_control_register.set_screen_base_block(u5::new(self.screen_base_block() as u8));
+        background_control_register
+            .set_screen_base_block(u5::new(self.screenblock.screen_base_block() as u8));
         background_control_register.set_overflow_behaviour(self.wrap_behaviour.into());
-        background_control_register.set_screen_size(self.size.into());
+        background_control_register.set_screen_size(self.screenblock.size().into());
 
         background_control_register
     }
 
-    fn screen_base_block(&self) -> u16 {
-        let screenblock_location = self.screenblock_ptr.as_ptr() as usize;
-        ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
-    }
-
     #[must_use]
     pub fn size(&self) -> AffineBackgroundSize {
-        self.size
-    }
-}
-
-impl Drop for AffineBackgroundTiles {
-    fn drop(&mut self) {
-        self.clear();
-        unsafe {
-            ScreenblockAllocator.deallocate(self.screenblock_ptr.cast(), self.size.layout());
-        }
+        self.screenblock.size()
     }
 }
