@@ -53,8 +53,6 @@ impl LevelDisplay {
             self.map
                 .set_tile((i as i32, 0), tileset, tile_settings[tile]);
         }
-
-        self.map.commit();
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame) {

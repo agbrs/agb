@@ -598,25 +598,21 @@ pub(crate) fn battle_screen(
         agb.star_background.update();
         agb.sfx.frame();
         agb.vblank.wait_for_vblank();
-        help_background.commit();
         help_background.show(&mut frame);
 
         if current_battle_state.enemy.health == 0 {
             agb.sfx.ship_explode();
 
-            help_background.clear();
             return BattleResult::Win;
         }
 
         if current_battle_state.player.health == 0 {
             agb.sfx.ship_explode();
 
-            help_background.clear();
             return BattleResult::Loss;
         }
 
         agb.star_background.show(&mut frame);
-        agb.star_background.commit();
 
         frame.commit();
     }

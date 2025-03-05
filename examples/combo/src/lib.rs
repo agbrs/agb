@@ -97,7 +97,6 @@ fn get_game(gba: &mut agb::Gba) -> Game {
         bg.show(&mut frame);
         vblank.wait_for_vblank();
 
-        bg.commit();
         frame.commit();
         input.update();
 

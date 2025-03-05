@@ -293,11 +293,6 @@ impl Map<'_> {
         });
     }
 
-    fn commit_backgrounds(&mut self) {
-        self.background.commit();
-        self.foreground.commit();
-    }
-
     fn show(&self, frame: &mut GraphicsFrame) {
         self.background.show(frame);
         self.foreground.show(frame);
@@ -825,7 +820,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                             level.display(&mut frame);
                             sfx.frame();
                             vblank.wait_for_vblank();
-                            level.background.commit_backgrounds();
                             frame.commit();
                         }
                         break;
@@ -841,7 +835,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
                 sfx.frame();
                 vblank.wait_for_vblank();
-                level.background.commit_backgrounds();
                 frame.commit();
             }
         }
