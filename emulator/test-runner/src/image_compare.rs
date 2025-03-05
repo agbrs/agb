@@ -12,8 +12,8 @@ impl ComparisonResult {
     }
 }
 
-const WIDTH: usize = 240;
-const HEIGHT: usize = 160;
+pub const WIDTH: usize = 240;
+pub const HEIGHT: usize = 160;
 
 fn convert_rgba_to_nearest_gba_colour(c: [u8; 4]) -> [u8; 4] {
     let mut n = c;
