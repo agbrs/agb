@@ -27,12 +27,9 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
         SplashScreen::End => &splash_screens::thanks_for_playing,
     };
 
-    let vblank = agb::interrupt::VBlank::get();
-
     let mut input = agb::input::ButtonController::new();
 
     sfx.frame();
-    vblank.wait_for_vblank();
 
     map.fill_with(tile_data);
 
@@ -53,7 +50,6 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
         }
 
         sfx.frame();
-        vblank.wait_for_vblank();
         frame.commit();
     }
 }

@@ -597,7 +597,6 @@ pub(crate) fn battle_screen(
 
         agb.star_background.update();
         agb.sfx.frame();
-        agb.vblank.wait_for_vblank();
         help_background.show(&mut frame);
 
         if current_battle_state.enemy.health == 0 {

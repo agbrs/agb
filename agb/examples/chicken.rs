@@ -57,7 +57,6 @@ fn tile_is_collidable(tile: Vector2D<i32>) -> bool {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.graphics.get();
-    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     VRAM_MANAGER.set_background_palette(0, &MAP_PALETTE);
@@ -91,7 +90,6 @@ fn main(mut gba: agb::Gba) -> ! {
         background.show(&mut frame);
         chicken.update(frame_count, &input, &mut frame);
 
-        vblank.wait_for_vblank();
         frame.commit();
     }
 }

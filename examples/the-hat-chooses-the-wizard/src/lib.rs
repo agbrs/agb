@@ -762,7 +762,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
     loop {
         VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
 
-        let vblank = agb::interrupt::VBlank::get();
         let mut current_level = 0;
 
         loop {
@@ -781,7 +780,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
             frame.commit();
 
             sfx.frame();
-            vblank.wait_for_vblank();
 
             let mut background = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
                 Priority::P2,
@@ -803,7 +801,9 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             for _ in 0..20 {
                 level.background.commit_position();
-                vblank.wait_for_vblank();
+                let mut frame = gfx.frame();
+                level_display.show(&mut frame);
+                frame.commit();
                 sfx.frame();
             }
 
@@ -819,7 +819,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                             let mut frame = gfx.frame();
                             level.display(&mut frame);
                             sfx.frame();
-                            vblank.wait_for_vblank();
                             frame.commit();
                         }
                         break;
@@ -834,7 +833,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
                 level.display(&mut frame);
 
                 sfx.frame();
-                vblank.wait_for_vblank();
                 frame.commit();
             }
         }

@@ -236,7 +236,6 @@ impl BufferedRender<'_> {
 ///         writer.update((0, 0));
 ///         let mut frame = gfx.frame();
 ///         writer.commit(&mut frame);
-///         vblank.wait_for_vblank();
 ///         frame.commit();
 ///     }
 /// }

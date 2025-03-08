@@ -24,8 +24,6 @@ static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
-    let vblank_provider = agb::interrupt::VBlank::get();
-
     let mut gfx = gba.display.graphics.get();
     let mut bg = RegularBackgroundTiles::new(
         Priority::P0,
@@ -60,7 +58,6 @@ fn main(mut gba: Gba) -> ! {
     loop {
         let mut frame = gfx.frame();
         bg.show(&mut frame);
-        vblank_provider.wait_for_vblank();
         frame.commit();
 
         let before_mixing_cycles = timer.value();

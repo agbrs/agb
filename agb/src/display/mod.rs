@@ -1,4 +1,4 @@
-use crate::memory_mapped::MemoryMapped;
+use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
 
 use bilge::prelude::*;
 
@@ -55,18 +55,19 @@ pub struct GraphicsDist;
 impl GraphicsDist {
     pub fn get(&mut self) -> Graphics<'_> {
         unsafe { initilise_oam() };
-        Graphics::new(Oam::new(), unsafe { TiledBackground::new() })
+        Graphics::new(Oam::new(), unsafe { TiledBackground::new() }, VBlank::get())
     }
 }
 
 pub struct Graphics<'gba> {
     oam: Oam<'gba>,
     tiled: TiledBackground<'gba>,
+    vblank: VBlank,
 }
 
 impl<'gba> Graphics<'gba> {
-    fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>) -> Self {
-        Self { oam, tiled }
+    fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>, vblank: VBlank) -> Self {
+        Self { oam, tiled, vblank }
     }
 
     pub fn frame(&mut self) -> GraphicsFrame<'_> {
@@ -74,6 +75,7 @@ impl<'gba> Graphics<'gba> {
             oam_frame: self.oam.frame(),
             bg_frame: self.tiled.iter(),
             blend: Blend::new(),
+            vblank: &self.vblank,
         }
     }
 }
@@ -82,10 +84,13 @@ pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,
     pub(crate) bg_frame: BackgroundFrame<'frame>,
     blend: Blend,
+    vblank: &'frame VBlank,
 }
 
 impl GraphicsFrame<'_> {
     pub fn commit(self) {
+        self.vblank.wait_for_vblank();
+
         self.oam_frame.commit();
         self.bg_frame.commit();
         self.blend.commit();

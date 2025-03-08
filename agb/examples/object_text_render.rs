@@ -54,7 +54,6 @@ fn main(mut gba: agb::Gba) -> ! {
         256 * (end.wrapping_sub(start) as u32)
     );
 
-    let vblank = agb::interrupt::VBlank::get();
     let mut input = agb::input::ButtonController::new();
 
     let start = timer.value();
@@ -93,8 +92,6 @@ fn main(mut gba: agb::Gba) -> ! {
             256 * (end.wrapping_sub(start) as u32),
             line_done
         );
-
-        vblank.wait_for_vblank();
 
         frame.commit();
     }

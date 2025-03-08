@@ -2067,9 +2067,6 @@ impl Game {
 }
 
 fn game_with_level(gba: &mut agb::Gba) {
-    let vblank = agb::interrupt::VBlank::get();
-    vblank.wait_for_vblank();
-
     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     mixer.enable();
 
@@ -2123,8 +2120,6 @@ fn game_with_level(gba: &mut agb::Gba) {
             game.level.background.show(&mut frame);
             game.level.foreground.show(&mut frame);
             game.level.clouds.show(&mut frame);
-
-            vblank.wait_for_vblank();
 
             frame.commit();
 

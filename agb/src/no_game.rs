@@ -9,7 +9,6 @@ use crate::display::palette16::Palette16;
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
     include_palette,
-    interrupt::VBlank,
 };
 
 static PALETTE: &[u16] = &include_palette!("gfx/pastel.png");
@@ -183,8 +182,6 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
     let mut time: Num<i32, 8> = num!(0.);
     let time_delta: Num<i32, 8> = num!(0.025);
 
-    let vblank = VBlank::get();
-
     loop {
         time += time_delta;
         time %= 1;
@@ -207,8 +204,6 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
         for obj in letters.iter() {
             obj.show(&mut frame);
         }
-
-        vblank.wait_for_vblank();
 
         frame.commit();
     }

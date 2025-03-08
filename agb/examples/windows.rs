@@ -5,7 +5,6 @@ use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{BlendLayer, HEIGHT, WIDTH};
 use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
 use agb::fixnum::{Num, Rect, Vector2D, num};
-use agb::interrupt::VBlank;
 
 type FNum = Num<i32, 8>;
 
@@ -30,8 +29,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut blend_amount: Num<i32, 8> = num!(0.5);
     let mut blend_velocity: Num<i32, 8> = Num::new(1) / 128;
-
-    let vblank = VBlank::get();
 
     loop {
         pos += velocity;
@@ -62,8 +59,6 @@ fn main(mut gba: agb::Gba) -> ! {
             .layer(BlendLayer::Top)
             .enable_background(background_id);
         blend.layer(BlendLayer::Bottom).enable_backdrop();
-
-        vblank.wait_for_vblank();
 
         let mut window = gba.display.window.get();
 
