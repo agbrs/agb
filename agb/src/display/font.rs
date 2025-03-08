@@ -3,6 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 mod align;
+mod layout;
 
 use super::tiled::{DynamicTile, RegularBackgroundTiles, TileEffect};
 
