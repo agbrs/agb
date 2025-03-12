@@ -240,11 +240,8 @@ impl<'a> TextRenderer {
     /// Commit the dynamic tiles that contain the text to the background.
     pub fn commit(&self, bg: &'a mut RegularBackgroundTiles) {
         for ((x, y), tile) in self.tiles.iter() {
-            bg.set_tile_dynamic(
-                (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16),
-                &tile,
-                TileEffect::default(),
-            );
+            let tile_pos = (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16);
+            bg.set_tile_dynamic(tile_pos, tile, TileEffect::default());
         }
     }
 

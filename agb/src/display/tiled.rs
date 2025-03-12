@@ -80,6 +80,24 @@ impl TileSetting {
         &mut self.tile_effect
     }
 
+    #[must_use]
+    pub const fn hflip(mut self, should_flip: bool) -> Self {
+        self.tile_effect().hflip(should_flip);
+        self
+    }
+
+    #[must_use]
+    pub const fn vflip(mut self, should_flip: bool) -> Self {
+        self.tile_effect().vflip(should_flip);
+        self
+    }
+
+    #[must_use]
+    pub const fn palette(mut self, palette_id: u8) -> Self {
+        self.tile_effect().palette(palette_id);
+        self
+    }
+
     fn index(self) -> u16 {
         self.tile_id
     }
