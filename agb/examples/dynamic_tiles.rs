@@ -4,7 +4,10 @@
 use agb::display::{
     Priority,
     palette16::Palette16,
-    tiled::{DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+    tiled::{
+        DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
+        VRAM_MANAGER,
+    },
 };
 
 #[agb::entry]
@@ -38,11 +41,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 *bit = value;
             }
 
-            bg.set_tile(
-                (x as u16, y as u16),
-                &dynamic_tile.tile_set(),
-                dynamic_tile.tile_setting(),
-            );
+            bg.set_tile_dynamic((x as u16, y as u16), &dynamic_tile, TileEffect::default());
         }
     }
 

@@ -3,7 +3,7 @@ use core::fmt::{Error, Write};
 use crate::fixnum::Vector2D;
 use crate::hash_map::HashMap;
 
-use super::tiled::{DynamicTile, RegularBackgroundTiles};
+use super::tiled::{DynamicTile, RegularBackgroundTiles, TileEffect};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
@@ -240,10 +240,10 @@ impl<'a> TextRenderer {
     /// Commit the dynamic tiles that contain the text to the background.
     pub fn commit(&self, bg: &'a mut RegularBackgroundTiles) {
         for ((x, y), tile) in self.tiles.iter() {
-            bg.set_tile(
+            bg.set_tile_dynamic(
                 (self.tile_pos.x + *x as u16, self.tile_pos.y + *y as u16),
-                &tile.tile_set(),
-                tile.tile_setting(),
+                &tile,
+                TileEffect::default(),
             );
         }
     }
@@ -272,7 +272,7 @@ mod tests {
     use super::*;
     use crate::display::{
         palette16::Palette16,
-        tiled::{RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackgroundTiles, TileEffect, TileFormat, VRAM_MANAGER},
     };
 
     static FONT: Font = crate::include_font!("examples/font/yoster.ttf", 12);
@@ -299,11 +299,7 @@ mod tests {
 
         for y in 0..20u16 {
             for x in 0..30u16 {
-                bg.set_tile(
-                    (x, y),
-                    &background_tile.tile_set(),
-                    background_tile.tile_setting(),
-                );
+                bg.set_tile_dynamic((x, y), &background_tile, TileEffect::default());
             }
         }
 

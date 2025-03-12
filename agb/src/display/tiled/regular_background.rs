@@ -8,8 +8,9 @@ use crate::{
 };
 
 use super::{
-    BackgroundControlRegister, BackgroundId, RegularBackgroundCommitData, RegularBackgroundData,
-    SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileFormat, TileSet, TileSetting, VRAM_MANAGER,
+    BackgroundControlRegister, BackgroundId, DynamicTile, RegularBackgroundCommitData,
+    RegularBackgroundData, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileEffect, TileFormat,
+    TileSet, TileSetting, VRAM_MANAGER,
 };
 
 pub(crate) use screenblock::RegularBackgroundScreenblock;
@@ -124,6 +125,27 @@ impl RegularBackgroundTiles {
 
         let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_setting);
+    }
+
+    pub fn set_tile_dynamic(
+        &mut self,
+        pos: impl Into<Vector2D<i32>>,
+        tile: &DynamicTile,
+        effect: TileEffect,
+    ) {
+        assert_eq!(
+            self.tiles.colours(),
+            TileFormat::FourBpp,
+            "Cannot set a dynamic tile on a {:?} colour background",
+            self.tiles.colours()
+        );
+
+        let pos = self.screenblock.size().gba_offset(pos.into());
+        self.set_tile_at_pos(
+            pos,
+            &tile.tile_set(),
+            TileSetting::new(tile.tile_id(), effect),
+        );
     }
 
     pub fn fill_with(&mut self, tile_data: &TileData) {

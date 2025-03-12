@@ -11,7 +11,7 @@ use crate::{
     util::SyncUnsafeCell,
 };
 
-use super::{CHARBLOCK_SIZE, TileSetting, VRAM_START};
+use super::{CHARBLOCK_SIZE, VRAM_START};
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
@@ -182,7 +182,7 @@ impl DynamicTile {
     }
 
     #[must_use]
-    pub fn tile_set(&self) -> TileSet<'_> {
+    pub(crate) fn tile_set(&self) -> TileSet<'_> {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
                 VRAM_START as *mut u8,
@@ -194,11 +194,9 @@ impl DynamicTile {
     }
 
     #[must_use]
-    pub fn tile_setting(&self) -> TileSetting {
+    pub(crate) fn tile_id(&self) -> u16 {
         let difference = self.tile_data.as_ptr() as usize - VRAM_START;
-        let tile_id = (difference / TileFormat::FourBpp.tile_size()) as u16;
-
-        TileSetting::new(tile_id, false, false, 0)
+        (difference / TileFormat::FourBpp.tile_size()) as u16
     }
 }
 
