@@ -7,7 +7,6 @@ use super::tiled::{DynamicTile, RegularBackgroundTiles};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
-/// Does not support any unicode features.
 /// For usage see the `text_render.rs` example
 pub struct FontLetter {
     pub(crate) character: char,
