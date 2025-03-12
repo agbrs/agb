@@ -16,6 +16,7 @@
 
 use agb::{
     display::{GraphicsFrame, object::Object},
+    fixnum::{Vector2D, vec2},
     include_aseprite,
 };
 
@@ -33,7 +34,7 @@ struct Paddle {
 }
 
 impl Paddle {
-    fn new(start_x: i32, start_y: i32) -> Self {
+    fn new(pos: Vector2D<i32>) -> Self {
         let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
         let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
         let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
@@ -46,18 +47,18 @@ impl Paddle {
             end: paddle_end,
         };
 
-        paddle.set_position(start_x, start_y);
+        paddle.set_position(pos);
 
         paddle
     }
 
-    fn set_position(&mut self, x: i32, y: i32) {
+    fn set_position(&mut self, pos: Vector2D<i32>) {
         // new! use of the `set_position` method. This is a helper feature using
         // agb's vector types. For now we can just use it to avoid adding them
         // separately
-        self.start.set_position((x, y));
-        self.mid.set_position((x, y + 16));
-        self.end.set_position((x, y + 32));
+        self.start.set_position(pos);
+        self.mid.set_position(pos + vec2(0, 16));
+        self.end.set_position(pos + vec2(0, 32));
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
@@ -82,31 +83,27 @@ fn main(mut gba: agb::Gba) -> ! {
     // Place this at some point on the screen, (50, 50) for example
     ball.set_position((50, 50));
 
-    let paddle_a = Paddle::new(8, 8);
-    let paddle_b = Paddle::new(240 - 16 - 8, 8);
+    let paddle_a = Paddle::new(vec2(8, 8));
+    let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
 
-    let mut ball_x = 50;
-    let mut ball_y = 50;
-    let mut x_velocity = 1;
-    let mut y_velocity = 1;
+    let mut ball_pos = vec2(50, 50);
+    let mut ball_velocity = vec2(1, 1);
 
     loop {
-        // This will calculate the new position and enforce the position
-        // of the ball remains within the screen
-        ball_x = (ball_x + x_velocity).clamp(0, agb::display::WIDTH - 16);
-        ball_y = (ball_y + y_velocity).clamp(0, agb::display::HEIGHT - 16);
+        // Move the ball
+        ball_pos += ball_velocity;
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
-        if ball_x == 0 || ball_x == agb::display::WIDTH - 16 {
-            x_velocity = -x_velocity;
+        if ball_pos.x <= 0 || ball_pos.x >= agb::display::WIDTH - 16 {
+            ball_velocity.x *= -1;
         }
 
-        if ball_y == 0 || ball_y == agb::display::HEIGHT - 16 {
-            y_velocity = -y_velocity;
+        if ball_pos.y <= 0 || ball_pos.y >= agb::display::HEIGHT - 16 {
+            ball_velocity.y *= -1;
         }
 
         // Set the position of the ball to match our new calculated position
-        ball.set_position((ball_x, ball_y));
+        ball.set_position(ball_pos);
 
         let mut frame = gfx.frame();
 
