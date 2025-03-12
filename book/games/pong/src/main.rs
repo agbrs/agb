@@ -16,7 +16,7 @@
 
 use agb::{
     display::{GraphicsFrame, object::Object},
-    fixnum::{Vector2D, vec2},
+    fixnum::{Rect, Vector2D, vec2},
     include_aseprite,
 };
 
@@ -66,6 +66,10 @@ impl Paddle {
         self.mid.show(frame);
         self.end.show(frame);
     }
+
+    fn collision_rect(&self) -> Rect<i32> {
+        Rect::new(self.start.position(), vec2(16, 16 * 3))
+    }
 }
 
 // The main function must take 0 arguments and never return. The agb::entry decorator
@@ -90,17 +94,39 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut ball_velocity = vec2(1, 1);
 
     loop {
-        // Move the ball
-        ball_pos += ball_velocity;
+        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
+        // edge of the map or a paddle.
+        let potential_ball_pos = ball_pos + ball_velocity;
+
+        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+        if paddle_a.collision_rect().touches(ball_rect) {
+            ball_velocity.x *= -1;
+
+            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
+            if ball_pos.x < paddle_a.collision_rect().position.x + 16 {
+                ball_velocity.y *= -1;
+            }
+        }
+
+        if paddle_b.collision_rect().touches(ball_rect) {
+            ball_velocity.x *= -1;
+
+            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
+            if ball_pos.x > paddle_b.collision_rect().position.x {
+                ball_velocity.y *= -1;
+            }
+        }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
-        if ball_pos.x <= 0 || ball_pos.x >= agb::display::WIDTH - 16 {
+        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
             ball_velocity.x *= -1;
         }
 
-        if ball_pos.y <= 0 || ball_pos.y >= agb::display::HEIGHT - 16 {
+        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
             ball_velocity.y *= -1;
         }
+
+        ball_pos += ball_velocity;
 
         // Set the position of the ball to match our new calculated position
         ball.set_position(ball_pos);

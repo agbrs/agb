@@ -67,3 +67,57 @@ You can change the `set_position()` method on `Paddle` to take a `Vector2D<i32>`
 ### Mini exercise
 
 You will also need to update the `new()` function and the calls to `Paddle::new`.
+
+# Collision handling
+
+We now want to handle collision between the paddle and the ball.
+We will assume that the ball and the paddle both have axis-aligned bounding boxes, which will make collision checks very easy.
+
+`agb`'s fixnum library provides a `Rect` type which will allow us to detect this collision.
+
+Lets add a simple method to the `Paddle` impl which returns the collision rectangle for it:
+
+```rust
+    fn collision_rect(&self) -> Rect<i32> {
+        Rect::new(self.start.position(), vec2(16, 16 * 3))
+    }
+```
+
+And then we can get the ball's collision rectangle in a similar way.
+We can now implement collision between the ball and the paddle like so:
+
+```rust
+        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
+        // edge of the map or a paddle.
+        let potential_ball_pos = ball_pos + ball_velocity;
+
+        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+        if paddle_a.collision_rect().touches(ball_rect) {
+            ball_velocity.x *= -1;
+
+            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
+            if ball_pos.x < paddle_a.collision_rect().position.x + 16 {
+                ball_velocity.y *= -1;
+            }
+        }
+
+        if paddle_b.collision_rect().touches(ball_rect) {
+            ball_velocity.x *= -1;
+
+            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
+            if ball_pos.x > paddle_b.collision_rect().position.x {
+                ball_velocity.y *= -1;
+            }
+        }
+
+        // We check if the ball reaches the edge of the screen and reverse it's direction
+        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
+            ball_velocity.x *= -1;
+        }
+
+        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
+            ball_velocity.y *= -1;
+        }
+
+        ball_pos += ball_velocity;
+```
