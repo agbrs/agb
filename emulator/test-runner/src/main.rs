@@ -125,20 +125,21 @@ impl TestRunner {
                                 Timer::Start(_) => panic!("test completed with invalid timing"),
                                 Timer::Total(c) => c,
                             };
+                            let seconds = cycles as f64 / (16.78 * 1_000_000.0);
+                            let seconds_rounded = (seconds * 100.).round() / 100.;
+                            let percentage_frame_time = 59.7 * seconds * 100.;
+                            let percentage_frame_time = percentage_frame_time.round();
+
                             if mark_this_test_as_soft_failed {
                                 mark_this_test_as_soft_failed = false;
                                 eprintln!(
-                                    "[fail: {} c ≈ {} s]",
-                                    cycles,
-                                    ((cycles as f64 / (16.78 * 1_000_000.0)) * 100.0).round()
-                                        / 100.0
+                                    "[fail: {}c ≈ {}s ≈ {}% frame]",
+                                    cycles, seconds_rounded, percentage_frame_time
                                 );
                             } else {
                                 eprintln!(
-                                    "[ok: {} c ≈ {} s]",
-                                    cycles,
-                                    ((cycles as f64 / (16.78 * 1_000_000.0)) * 100.0).round()
-                                        / 100.0
+                                    "[ok: {}c ≈ {}s ≈ {}% frame]",
+                                    cycles, seconds_rounded, percentage_frame_time
                                 );
                             }
                         } else {
