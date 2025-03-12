@@ -72,8 +72,9 @@ impl Paddle {
 // and interrupt handlers correctly.
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    // Get the OAM manager
+    // Get the graphics manager
     let mut gfx = gba.display.graphics.get();
+    let vblank = agb::interrupt::VBlank::get();
 
     // Create an object with the ball sprite
     let mut ball = Object::new(sprites::BALL.sprite(0));
@@ -114,7 +115,7 @@ fn main(mut gba: agb::Gba) -> ! {
         paddle_b.show(&mut frame);
 
         // Wait for vblank, then commit the objects to the screen
-        agb::display::busy_wait_for_vblank();
+        vblank.wait_for_vblank();
 
         frame.commit();
     }

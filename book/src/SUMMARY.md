@@ -13,3 +13,4 @@
   - [Sprites](./pong/03_sprites.md)
   - [Controls](./pong/04_controls.md)
   - [Meta Sprites](./pong/05_meta_sprites.md)
+  - [Proper vblank control](./pong/06_proper_vblank_control.md)

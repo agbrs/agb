@@ -67,7 +67,7 @@ impl Paddle {
 
     fn set_position(&mut self, x: i32, y: i32) {
         // new! use of the `set_position` method. This is a helper feature using
-        // agb's vector types. For now we can just use it to avoid adding them 
+        // agb's vector types. For now we can just use it to avoid adding them
         // separately
         self.start.set_position((x, y));
         self.mid.set_position((x, y + 16));
@@ -86,7 +86,6 @@ Here we've made a struct to hold our paddle objects and added a convenient
 `new`, `set_position`, and `show` function and methods to help us use it. Now we
 can easily create two paddles (one on each side of the screen).
 
-
 ```rust
 // outside the loop
 let mut paddle_a = Paddle::new(8, 8); // the left paddle
@@ -99,7 +98,8 @@ We used multiple sprites to form one game object of a paddle. We also added
 convenience around the use of the paddle to make creating a paddle and setting
 its position easy.
 
-In the next step we will cover adding collision with the ball and the paddles.
+In the next step, we'll take a quick aside and save a bit of battery life on the
+gba by doing proper vblank control.
 
 # Exercise
 

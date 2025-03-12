@@ -6,7 +6,7 @@ We'll briefly cover vblank, and by the end of this section, you'll have a ball b
 # Why do we need sprites?
 
 The Game Boy Advance has a 240x160px screen with 15-bit RGB color support. Setting the color for each pixel manually would require updating 38,400 pixels per frame, or 2,304,000 pixels per second at 60 fps.
-With a 16 MHz processor, this means calculating 1 pixel every 8 clock cycles, which is pretty much impossible. 
+With a 16 MHz processor, this means calculating 1 pixel every 8 clock cycles, which is pretty much impossible.
 he Game Boy Advance provides two ways to easily put pixels on the screen: tiles and sprites.
 
 Tiles are 8x8 pixels in size and can be placed in a grid on the screen.
@@ -43,7 +43,7 @@ The aseprite file defines tags for these sprites: "Paddle End," "Paddle Mid," an
 ```rust
 use agb::include_aseprite;
 
-// Import the sprites in to this static. This holds the sprite 
+// Import the sprites in to this static. This holds the sprite
 // and palette data in a way that is manageable by agb.
 include_aseprite!(
     mod sprites,
@@ -59,8 +59,8 @@ Using the `Gba` struct we get the [`Oam` struct](https://docs.rs/agb/latest/agb/
 ```rust
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    // Get the object manager
-    let mut object = gba.display.object.get();
+    // Get the graphics manager, responsible for all the graphics
+    let mut gfx = gba.display.graphics.get();
 
     // Create an object with the ball sprite
     let mut ball = Object::new(sprites::BALL.sprite(0));
@@ -69,10 +69,10 @@ fn main(mut gba: agb::Gba) -> ! {
     ball.set_position((50, 50));
 
     // Start a frame and add the one object to it
-    let mut frame = object.frame();
+    let mut frame = gfx.frame();
     ball.show(&mut frame);
     frame.commit();
-    
+
     loop {}
 }
 ```
@@ -132,5 +132,6 @@ loop {
 
 In this section, we covered why sprites are important, how to create and manage them using the `Oam` in `agb` and make a ball bounce around the screen.
 
-[^hblank]: Timing this can give you some really cool effects allowing you to push the hardware.
-  However, `agb` does not by default provide the timing accuracy needed to fully take advantage of this, erring on the side of making it easier to make games rather than squeezing every last drop of performance from the console.
+[^hblank]:
+    Timing this can give you some really cool effects allowing you to push the hardware.
+    However, `agb` does not by default provide the timing accuracy needed to fully take advantage of this, erring on the side of making it easier to make games rather than squeezing every last drop of performance from the console.
