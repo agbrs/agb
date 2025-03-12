@@ -7,7 +7,6 @@ use super::tiled::{DynamicTile, RegularBackgroundTiles};
 
 /// The text renderer renders a variable width fixed size
 /// bitmap font using dynamic tiles as a rendering surface.
-/// Does not support any unicode features.
 /// For usage see the `text_render.rs` example
 pub struct FontLetter {
     pub(crate) character: char,
@@ -103,7 +102,7 @@ impl Font {
 impl Font {
     #[must_use]
     /// Create renderer starting at the given tile co-ordinates.
-    pub fn render_text(&self, tile_pos: impl Into<Vector2D<u16>>) -> TextRenderer<'_> {
+    pub fn render_text(&'static self, tile_pos: impl Into<Vector2D<u16>>) -> TextRenderer {
         TextRenderer {
             current_x_pos: 0,
             current_y_pos: 0,
@@ -116,25 +115,25 @@ impl Font {
 }
 
 /// Keeps track of the cursor and manages rendered tiles.
-pub struct TextRenderer<'a> {
+pub struct TextRenderer {
     current_x_pos: i32,
     current_y_pos: i32,
     previous_character: Option<char>,
-    font: &'a Font,
+    font: &'static Font,
     tile_pos: Vector2D<u16>,
-    tiles: HashMap<(i32, i32), DynamicTile<'a>>,
+    tiles: HashMap<(i32, i32), DynamicTile>,
 }
 
 /// Generated from the renderer for use
 /// with `Write` trait methods.
-pub struct TextWriter<'a, 'b> {
+pub struct TextWriter<'a> {
     foreground_colour: u8,
     background_colour: u8,
-    text_renderer: &'a mut TextRenderer<'b>,
+    text_renderer: &'a mut TextRenderer,
     bg: &'a mut RegularBackgroundTiles,
 }
 
-impl Write for TextWriter<'_, '_> {
+impl Write for TextWriter<'_> {
     fn write_str(&mut self, text: &str) -> Result<(), Error> {
         for c in text.chars() {
             self.text_renderer
@@ -145,7 +144,7 @@ impl Write for TextWriter<'_, '_> {
     }
 }
 
-impl TextWriter<'_, '_> {
+impl TextWriter<'_> {
     pub fn commit(self) {
         self.text_renderer.commit(self.bg);
     }
@@ -155,13 +154,13 @@ fn div_ceil(quotient: i32, divisor: i32) -> i32 {
     (quotient + divisor - 1) / divisor
 }
 
-impl<'a, 'b> TextRenderer<'b> {
+impl<'a> TextRenderer {
     pub fn writer(
         &'a mut self,
         foreground_colour: u8,
         background_colour: u8,
         bg: &'a mut RegularBackgroundTiles,
-    ) -> TextWriter<'a, 'b> {
+    ) -> TextWriter<'a> {
         TextWriter {
             text_renderer: self,
             foreground_colour,
