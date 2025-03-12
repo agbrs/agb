@@ -109,7 +109,7 @@ pub(crate) fn generate_code(
         let index = data.new_index as u16;
 
         quote! {
-            #crate_prefix::display::tiled::TileSetting::new(#index, #hflipped, #vflipped, #palette_assignment)
+            #crate_prefix::display::tiled::TileSetting::new(#index, #crate_prefix::display::tiled::TileEffect::new(#hflipped, #vflipped, #palette_assignment))
         }
     });
 

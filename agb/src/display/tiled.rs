@@ -49,19 +49,22 @@ const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 #[repr(align(4))]
 pub struct TileSetting {
     tile_id: u16,
-    effect_bits: u16,
+    tile_effect: TileEffect,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+#[repr(transparent)]
+pub struct TileEffect(u16);
+
 impl TileSetting {
-    pub const BLANK: Self = TileSetting::new(TRANSPARENT_TILE_INDEX, false, false, 0);
+    pub const BLANK: Self =
+        TileSetting::new(TRANSPARENT_TILE_INDEX, TileEffect::new(false, false, 0));
 
     #[must_use]
-    pub const fn new(tile_id: u16, hflip: bool, vflip: bool, palette_id: u8) -> Self {
+    pub const fn new(tile_id: u16, tile_effect: TileEffect) -> Self {
         Self {
             tile_id,
-            effect_bits: ((hflip as u16) << 10)
-                | ((vflip as u16) << 11)
-                | ((palette_id as u16) << 12),
+            tile_effect,
         }
     }
 
@@ -69,32 +72,30 @@ impl TileSetting {
     pub const fn from_raw(tile_id: u16, effect_bits: u16) -> Self {
         Self {
             tile_id,
-            effect_bits,
+            tile_effect: TileEffect(effect_bits),
         }
     }
 
-    #[must_use]
-    pub const fn hflip(self, should_flip: bool) -> Self {
-        Self {
-            effect_bits: self.effect_bits ^ ((should_flip as u16) << 10),
-            ..self
-        }
+    pub const fn tile_effect(&mut self) -> &mut TileEffect {
+        &mut self.tile_effect
     }
 
     #[must_use]
-    pub const fn vflip(self, should_flip: bool) -> Self {
-        Self {
-            effect_bits: self.effect_bits ^ ((should_flip as u16) << 11),
-            ..self
-        }
+    pub const fn hflip(mut self, should_flip: bool) -> Self {
+        self.tile_effect().hflip(should_flip);
+        self
     }
 
     #[must_use]
-    pub const fn palette(self, palette_id: u8) -> Self {
-        Self {
-            effect_bits: self.effect_bits ^ ((palette_id as u16) << 12),
-            ..self
-        }
+    pub const fn vflip(mut self, should_flip: bool) -> Self {
+        self.tile_effect().vflip(should_flip);
+        self
+    }
+
+    #[must_use]
+    pub const fn palette(mut self, palette_id: u8) -> Self {
+        self.tile_effect().palette(palette_id);
+        self
     }
 
     fn index(self) -> u16 {
@@ -102,7 +103,30 @@ impl TileSetting {
     }
 
     fn setting(self) -> u16 {
-        self.effect_bits
+        self.tile_effect.0
+    }
+}
+
+impl TileEffect {
+    #[must_use]
+    pub const fn new(hflip: bool, vflip: bool, palette_id: u8) -> Self {
+        Self(((hflip as u16) << 10) | ((vflip as u16) << 11) | ((palette_id as u16) << 12))
+    }
+
+    pub const fn hflip(&mut self, should_flip: bool) -> &mut Self {
+        self.0 ^= (should_flip as u16) << 10;
+        self
+    }
+
+    pub const fn vflip(&mut self, should_flip: bool) -> &mut Self {
+        self.0 ^= (should_flip as u16) << 11;
+        self
+    }
+
+    pub const fn palette(&mut self, palette_id: u8) -> &mut Self {
+        self.0 &= 0x0fff;
+        self.0 |= (palette_id as u16) << 12;
+        self
     }
 }
 

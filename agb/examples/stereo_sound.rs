@@ -7,7 +7,8 @@ use agb::{
         Font, Priority,
         palette16::Palette16,
         tiled::{
-            DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
+            DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
+            VRAM_MANAGER,
         },
     },
     include_font, include_wav,
@@ -97,11 +98,7 @@ fn init_background(bg: &mut RegularBackgroundTiles) {
 
     for y in 0..20u16 {
         for x in 0..30u16 {
-            bg.set_tile(
-                (x, y),
-                &background_tile.tile_set(),
-                background_tile.tile_setting(),
-            );
+            bg.set_tile_dynamic((x, y), &background_tile, TileEffect::default());
         }
     }
 }
