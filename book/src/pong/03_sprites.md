@@ -130,7 +130,7 @@ loop {
 
 # What we did
 
-In this section, we covered why sprites are important, how to create and manage them using the `Oam` in `agb` and make a ball bounce around the screen.
+In this section, we covered why sprites are important, how to create and manage them using the `Frame` in `agb` and make a ball bounce around the screen.
 
 [^hblank]:
     Timing this can give you some really cool effects allowing you to push the hardware.

@@ -55,9 +55,6 @@ You can change the `set_position()` method on `Paddle` to take a `Vector2D<i32>`
 
 ```rust
     fn set_position(&mut self, pos: Vector2D<i32>) {
-        // new! use of the `set_position` method. This is a helper feature using
-        // agb's vector types. For now we can just use it to avoid adding them
-        // separately
         self.start.set_position(pos);
         self.mid.set_position(pos + vec2(0, 16));
         self.end.set_position(pos + vec2(0, 32));
@@ -83,6 +80,12 @@ Lets add a simple method to the `Paddle` impl which returns the collision rectan
     }
 ```
 
+Don't forget to update the `use` statement:
+
+```rust
+use agb::fixnum::{Rect, Vector2D, vec2};
+```
+
 And then we can get the ball's collision rectangle in a similar way.
 We can now implement collision between the ball and the paddle like so:
 
@@ -93,21 +96,11 @@ We can now implement collision between the ball and the paddle like so:
 
         let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
         if paddle_a.collision_rect().touches(ball_rect) {
-            ball_velocity.x *= -1;
-
-            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
-            if ball_pos.x < paddle_a.collision_rect().position.x + 16 {
-                ball_velocity.y *= -1;
-            }
+            ball_velocity.x = 1;
         }
 
         if paddle_b.collision_rect().touches(ball_rect) {
-            ball_velocity.x *= -1;
-
-            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
-            if ball_pos.x > paddle_b.collision_rect().position.x {
-                ball_velocity.y *= -1;
-            }
+            ball_velocity.x = -1;
         }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
@@ -121,3 +114,14 @@ We can now implement collision between the ball and the paddle like so:
 
         ball_pos += ball_velocity;
 ```
+
+This now gives us collision between the paddles and the ball.
+
+# What we did
+
+We've refactored the code a little to use `Rect` and `Vector2D` which simplifies some of the code.
+We've also now got collision handling between the paddle and the ball, which will set us up for paddle movement in the next section.
+
+# Exercise
+
+Play around with the collision code and see if you can make the ball bounce in the `y` direction as well if it hits the shorter edges of the paddle.

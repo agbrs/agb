@@ -26,8 +26,4 @@ and then replace the call to `busy_wait_for_vblank()` with
 
 We saved a fair bit of CPU time and therefore battery life in a battery powered console by pausing the CPU while we wait for rendering to finish.
 
-In the next part, we'll move the paddles and implement some collision between the paddles and the ball.
-
-# Exercise
-
-No exercise this time. Get ready for the next step though!
+In the next part, we'll implement some collision between the paddles and the ball.

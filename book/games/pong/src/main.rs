@@ -18,6 +18,7 @@ use agb::{
     display::{GraphicsFrame, object::Object},
     fixnum::{Rect, Vector2D, vec2},
     include_aseprite,
+    input::ButtonController,
 };
 
 // Import the sprites in to this static. This holds the sprite
@@ -53,12 +54,14 @@ impl Paddle {
     }
 
     fn set_position(&mut self, pos: Vector2D<i32>) {
-        // new! use of the `set_position` method. This is a helper feature using
-        // agb's vector types. For now we can just use it to avoid adding them
-        // separately
         self.start.set_position(pos);
         self.mid.set_position(pos + vec2(0, 16));
         self.end.set_position(pos + vec2(0, 32));
+    }
+
+    fn move_by(&mut self, y: i32) {
+        let current_pos = self.start.position();
+        self.set_position(current_pos + vec2(0, y));
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
@@ -81,40 +84,36 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.display.graphics.get();
     let vblank = agb::interrupt::VBlank::get();
 
+    let mut button_controller = ButtonController::new();
+
     // Create an object with the ball sprite
     let mut ball = Object::new(sprites::BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
     ball.set_position((50, 50));
 
-    let paddle_a = Paddle::new(vec2(8, 8));
+    let mut paddle_a = Paddle::new(vec2(8, 8));
     let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
 
     let mut ball_pos = vec2(50, 50);
     let mut ball_velocity = vec2(1, 1);
 
     loop {
+        button_controller.update();
+
+        paddle_a.move_by(button_controller.y_tri() as i32);
+
         // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
         // edge of the map or a paddle.
         let potential_ball_pos = ball_pos + ball_velocity;
 
         let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
         if paddle_a.collision_rect().touches(ball_rect) {
-            ball_velocity.x *= -1;
-
-            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
-            if ball_pos.x < paddle_a.collision_rect().position.x + 16 {
-                ball_velocity.y *= -1;
-            }
+            ball_velocity.x = 1;
         }
 
         if paddle_b.collision_rect().touches(ball_rect) {
-            ball_velocity.x *= -1;
-
-            // check if it's hit the _side_ of the paddle, and if so, reverse the y direction too
-            if ball_pos.x > paddle_b.collision_rect().position.x {
-                ball_velocity.y *= -1;
-            }
+            ball_velocity.x = -1;
         }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
