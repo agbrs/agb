@@ -122,7 +122,7 @@ pub struct TextRenderer<'a> {
     previous_character: Option<char>,
     font: &'a Font,
     tile_pos: Vector2D<u16>,
-    tiles: HashMap<(i32, i32), DynamicTile<'a>>,
+    tiles: HashMap<(i32, i32), DynamicTile>,
 }
 
 /// Generated from the renderer for use

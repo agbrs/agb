@@ -158,11 +158,11 @@ impl TileReferenceCount {
 }
 
 #[non_exhaustive]
-pub struct DynamicTile<'a> {
-    pub tile_data: &'a mut [u32],
+pub struct DynamicTile {
+    pub tile_data: &'static mut [u32],
 }
 
-impl DynamicTile<'_> {
+impl DynamicTile {
     #[must_use]
     pub fn new() -> Self {
         VRAM_MANAGER.new_dynamic_tile()
@@ -202,15 +202,17 @@ impl DynamicTile<'_> {
     }
 }
 
-impl Default for DynamicTile<'_> {
+impl Default for DynamicTile {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Drop for DynamicTile<'_> {
+impl Drop for DynamicTile {
     fn drop(&mut self) {
-        VRAM_MANAGER.drop_dynamic_tile(self);
+        unsafe {
+            VRAM_MANAGER.drop_dynamic_tile(self);
+        }
     }
 }
 
@@ -241,11 +243,11 @@ impl VRamManager {
 }
 
 impl VRamManager {
-    fn drop_dynamic_tile(&self, tile: &DynamicTile<'_>) {
+    unsafe fn drop_dynamic_tile(&self, tile: &DynamicTile) {
         self.with(|inner| inner.remove_dynamic_tile(tile));
     }
 
-    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile<'static> {
+    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile {
         self.with(VRamManagerInner::new_dynamic_tile)
     }
 
@@ -346,7 +348,7 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    pub fn new_dynamic_tile(&mut self) -> DynamicTile<'static> {
+    pub fn new_dynamic_tile(&mut self) -> DynamicTile {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -388,7 +390,7 @@ impl VRamManagerInner {
 
     // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
     #[allow(clippy::needless_pass_by_value)]
-    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile<'_>) {
+    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile) {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
