@@ -10,7 +10,6 @@ use agb::{
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
     },
     input::{Button, ButtonController},
-    interrupt::VBlank,
     sound::mixer::Frequency,
 };
 use game::{Pausable, PauseSelection};
@@ -30,7 +29,6 @@ mod game;
 mod save;
 
 struct Agb<'gba> {
-    vblank: VBlank,
     input: ButtonController,
     sfx: Sfx<'gba>,
     gfx: Graphics<'gba>,
@@ -45,7 +43,6 @@ impl<'gba> Agb<'gba> {
         let mut frame = self.gfx.frame();
         render(data, &mut frame);
 
-        self.vblank.wait_for_vblank();
         frame.commit();
 
         self.sfx.frame();
@@ -56,8 +53,6 @@ impl<'gba> Agb<'gba> {
 }
 
 pub fn entry(mut gba: agb::Gba) -> ! {
-    let vblank = VBlank::get();
-
     let _ = save::init_save(&mut gba);
 
     let gfx = gba.display.graphics.get();
@@ -87,12 +82,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     let sfx = Sfx::new(&mut mixer);
 
-    let mut g = Agb {
-        vblank,
-        input,
-        sfx,
-        gfx,
-    };
+    let mut g = Agb { input, sfx, gfx };
 
     let saved_level = save::load_max_level() as usize;
 

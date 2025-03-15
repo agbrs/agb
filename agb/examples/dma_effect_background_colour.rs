@@ -5,12 +5,9 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 
-use agb::{
-    display::{
-        example_logo,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
-    },
-    interrupt::VBlank,
+use agb::display::{
+    example_logo,
+    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
 };
 
 #[agb::entry]
@@ -24,8 +21,6 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     example_logo::display_logo_basic(&mut map);
-
-    let vblank = VBlank::get();
 
     let colours: Box<[_]> = (0..160).map(|i| ((i * 0xffff) / 160) as u16).collect();
 
@@ -44,7 +39,6 @@ fn main(mut gba: agb::Gba) -> ! {
             )
         };
 
-        vblank.wait_for_vblank();
         let mut frame = gfx.frame();
         map.show(&mut frame);
         frame.commit();

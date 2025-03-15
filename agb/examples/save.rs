@@ -64,8 +64,6 @@ impl Save {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let vblank = agb::interrupt::VBlank::get();
-
     let mut gfx = gba.display.graphics.get();
     let mut save = Save::new(&mut gba.save).expect("able to read save data");
     let mut button = ButtonController::new();
@@ -91,7 +89,6 @@ fn main(mut gba: agb::Gba) -> ! {
             .set_position(save.position.floor())
             .show(&mut frame);
 
-        vblank.wait_for_vblank();
         frame.commit();
     }
 }

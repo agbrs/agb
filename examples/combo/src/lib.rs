@@ -51,7 +51,6 @@ include_background_gfx!(
 
 fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();
-    let vblank = agb::interrupt::VBlank::get();
 
     let mut gfx = gba.display.graphics.get();
 
@@ -95,7 +94,6 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
         let mut frame = gfx.frame();
         bg.show(&mut frame);
-        vblank.wait_for_vblank();
 
         frame.commit();
         input.update();

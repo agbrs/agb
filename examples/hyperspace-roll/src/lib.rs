@@ -12,8 +12,8 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
+use agb::display::Graphics;
 use agb::sound::mixer::Frequency;
-use agb::{display::Graphics, interrupt::VBlank};
 
 extern crate alloc;
 use alloc::vec;
@@ -88,7 +88,6 @@ pub struct PlayerDice {
 
 struct Agb<'a> {
     gfx: Graphics<'a>,
-    vblank: VBlank,
     star_background: StarBackground,
     sfx: Sfx<'a>,
 }
@@ -101,7 +100,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
     }
 
     let gfx = gba.display.graphics.get();
-    let vblank = agb::interrupt::VBlank::get();
 
     let basic_die = Die {
         faces: [
@@ -123,7 +121,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
     let mut agb = Agb {
         gfx,
-        vblank,
         star_background,
         sfx,
     };
@@ -153,7 +150,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
                 let mut frame = agb.gfx.frame();
                 score_display.show(&mut frame);
                 title_screen_bg.show(&mut frame);
-                agb.vblank.wait_for_vblank();
                 frame.commit();
 
                 agb.sfx.frame();

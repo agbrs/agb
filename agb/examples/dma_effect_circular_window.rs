@@ -10,7 +10,6 @@ use agb::{
         window::WinIn,
     },
     fixnum::{Num, Rect, Vector2D},
-    interrupt::VBlank,
 };
 use alloc::{boxed::Box, vec};
 
@@ -37,8 +36,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
-
-    let vblank = VBlank::get();
 
     let circle: Box<[_]> = (1..64i32)
         .map(|i| {
@@ -81,7 +78,6 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut frame = gfx.frame();
         let background_id = map.show(&mut frame);
 
-        vblank.wait_for_vblank();
         frame.commit();
 
         window

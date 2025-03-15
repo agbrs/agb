@@ -5,12 +5,9 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 
-use agb::{
-    display::{
-        HEIGHT, example_logo,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-    },
-    interrupt::VBlank,
+use agb::display::{
+    HEIGHT, example_logo,
+    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
 };
 
 #[agb::entry]
@@ -24,8 +21,6 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     example_logo::display_logo(&mut map);
-
-    let vblank = VBlank::get();
 
     let mut dma = gba.dma.dma().dma0;
     let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
@@ -43,7 +38,6 @@ fn main(mut gba: agb::Gba) -> ! {
             frame_count = 0;
         }
 
-        vblank.wait_for_vblank();
         frame.commit();
 
         drop(x_scroll_transfer);

@@ -370,8 +370,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
 
-    let vblank = agb::interrupt::VBlank::get();
-
     let mut max_score = 0;
 
     loop {
@@ -394,37 +392,41 @@ pub fn main(mut gba: agb::Gba) -> ! {
             let max_bar_width = display::WIDTH - 2;
             let bar_width_pixels = (game.energy * max_bar_width) / game.settings.max_energy;
             let bar_width_pixels = (bar_width_pixels + num!(0.5)).floor().max(0) as usize;
-            let mut frame = gfx.frame();
-            draw_number(
-                max_score,
-                (display::WIDTH - 5, 2).into(),
-                &mut frame,
-                DrawDirection::Left,
-                &sprite_cache,
-            );
-            draw_number(
-                game.alive_frames,
-                (2, 2).into(),
-                &mut frame,
-                DrawDirection::Right,
-                &sprite_cache,
-            );
-            draw_bar(
-                (1, 1).into(),
-                bar_width_pixels,
-                game.circles.back().unwrap().colour,
-                &mut frame,
-                &sprite_cache,
-            );
 
-            game.render(&mut frame, &sprite_cache);
+            let mut render = || {
+                let mut frame = gfx.frame();
+                draw_number(
+                    max_score,
+                    (display::WIDTH - 5, 2).into(),
+                    &mut frame,
+                    DrawDirection::Left,
+                    &sprite_cache,
+                );
+                draw_number(
+                    game.alive_frames,
+                    (2, 2).into(),
+                    &mut frame,
+                    DrawDirection::Right,
+                    &sprite_cache,
+                );
+                draw_bar(
+                    (1, 1).into(),
+                    bar_width_pixels,
+                    game.circles.back().unwrap().colour,
+                    &mut frame,
+                    &sprite_cache,
+                );
 
-            vblank.wait_for_vblank();
-            frame.commit();
+                game.render(&mut frame, &sprite_cache);
+
+                frame.commit();
+            };
+
+            render();
 
             if matches!(state, GameState::Loss) {
                 for _ in 0..30 {
-                    vblank.wait_for_vblank();
+                    render();
                 }
                 break;
             }
