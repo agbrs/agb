@@ -198,6 +198,24 @@ impl DynamicTile {
         let difference = self.tile_data.as_ptr() as usize - VRAM_START;
         (difference / TileFormat::FourBpp.tile_size()) as u16
     }
+
+    pub fn set_pixel(&mut self, x: usize, y: usize, palette_index: u8) {
+        assert!((0..9).contains(&x));
+        assert!((0..9).contains(&y));
+        assert!(palette_index < 16);
+
+        let index = x + y * 8;
+        // each 'pixel' is one nibble, so 8 nibbles in a word (u32)
+        let word_index = index / 8;
+        let nibble_offset = index % 8;
+
+        let current_value = &mut self.tile_data[word_index];
+
+        let mask = 0xf << (nibble_offset * 4);
+        let palette_value = u32::from(palette_index) << (nibble_offset * 4);
+
+        *current_value = (*current_value & !mask) | palette_value;
+    }
 }
 
 impl Default for DynamicTile {

@@ -9,7 +9,7 @@ use super::{
     align::{Align, AlignmentKind, Line},
 };
 
-struct Layout {
+pub struct Layout {
     text: Rc<str>,
     font: &'static Font,
     align: Align,
@@ -20,7 +20,8 @@ struct Layout {
 }
 
 impl Layout {
-    fn new(
+    #[must_use]
+    pub fn new(
         text: &str,
         font: &'static Font,
         alignment: AlignmentKind,
@@ -41,7 +42,7 @@ impl Layout {
     }
 }
 
-struct LetterGroup {
+pub struct LetterGroup {
     tag: u16,
     str: Rc<str>,
     range: Range<usize>,
@@ -52,13 +53,66 @@ struct LetterGroup {
 
 impl core::fmt::Debug for LetterGroup {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let range = self.range.clone();
+        write!(f, "LetterGroup('{}' at {:?})", self.text(), self.position)
+    }
+}
 
-        write!(
-            f,
-            "LetterGroup('{}' at {:?})",
-            &self.str[range], self.position
-        )
+impl LetterGroup {
+    #[must_use]
+    pub fn text(&self) -> &str {
+        &self.str[self.range.clone()]
+    }
+
+    #[must_use]
+    pub fn tag(&self) -> u16 {
+        self.tag
+    }
+
+    pub(crate) fn palette_index(&self) -> u8 {
+        self.palette_index
+    }
+
+    pub(crate) fn font(&self) -> &Font {
+        self.font
+    }
+
+    #[must_use]
+    pub fn position(&self) -> Vector2D<i32> {
+        self.position
+    }
+
+    pub(crate) fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
+        let font = self.font();
+        let mut previous_char = None;
+
+        let mut x_offset = 0;
+
+        self.text().chars().flat_map(move |c| {
+            let letter = font.letter(c);
+            let kern = if let Some(previous) = previous_char {
+                letter.kerning_amount(previous)
+            } else {
+                0
+            };
+
+            previous_char = Some(c);
+
+            let y_position = font.ascent() - letter.height as i32 - letter.ymin as i32;
+
+            let x_offset_this = x_offset;
+            x_offset += kern + letter.advance_width as i32;
+
+            (0..letter.height as usize).flat_map(move |y| {
+                (0..letter.width as usize).filter_map(move |x| {
+                    let rendered = letter.bit_absolute(x, y);
+                    if rendered {
+                        Some((x as i32 + x_offset_this, y as i32 + y_position).into())
+                    } else {
+                        None
+                    }
+                })
+            })
+        })
     }
 }
 
@@ -90,7 +144,7 @@ impl Iterator for Layout {
             tag: 0,
             str: self.text.clone(),
             range: start..start,
-            palette_index: 0,
+            palette_index: 1,
             position: self.grouper.pos,
             font: self.font,
         };
@@ -131,9 +185,9 @@ impl Iterator for Layout {
             // left. If it isn't the first character in the letter group, then adding this letter
             // to the group should not include the amount it overlaps with the previous letter.
             let this_letter_width = if letter_group.range.is_empty() {
-                i32::from(letter.width)
+                i32::from(letter.advance_width)
             } else {
-                i32::from(letter.width) + kerning
+                i32::from(letter.advance_width) + kerning
             };
 
             if letter_group_width + this_letter_width > self.max_group_width {
