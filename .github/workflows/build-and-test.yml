@@ -38,7 +38,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: install mgba-test-runner
         run: cargo install --path emulator/test-runner --verbose
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v3
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2
         with:
