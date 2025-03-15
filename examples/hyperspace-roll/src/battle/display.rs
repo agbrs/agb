@@ -70,7 +70,7 @@ impl BattleScreenDisplay {
             .map(|(i, (face, _))| {
                 let mut die_obj = Object::new(FACE_SPRITES.sprite_for_face(face));
 
-                die_obj.set_position((120, i as i32 * 40 + 28));
+                die_obj.set_position((i as i32 * 40 + 28, 120));
 
                 die_obj
             })

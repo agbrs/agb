@@ -590,7 +590,7 @@ pub(crate) fn battle_screen(
         }
 
         select_box_obj
-            .set_position((120 - 4, selected_die as u16 * 40 + 28 - 4))
+            .set_position((selected_die as u16 * 40 + 28 - 4, 120 - 4))
             .set_sprite(SELECT_BOX.animation_sprite(counter / 10));
 
         select_box_obj.show(&mut frame);
