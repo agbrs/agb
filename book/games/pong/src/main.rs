@@ -15,8 +15,8 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{GraphicsFrame, object::Object},
-    fixnum::{Rect, Vector2D, vec2},
+    display::{object::Object, GraphicsFrame},
+    fixnum::{vec2, Rect, Vector2D},
     include_aseprite,
     input::ButtonController,
 };
@@ -82,7 +82,6 @@ impl Paddle {
 fn main(mut gba: agb::Gba) -> ! {
     // Get the graphics manager
     let mut gfx = gba.display.graphics.get();
-    let vblank = agb::interrupt::VBlank::get();
 
     let mut button_controller = ButtonController::new();
 
@@ -135,9 +134,6 @@ fn main(mut gba: agb::Gba) -> ! {
         ball.show(&mut frame);
         paddle_a.show(&mut frame);
         paddle_b.show(&mut frame);
-
-        // Wait for vblank, then commit the objects to the screen
-        vblank.wait_for_vblank();
 
         frame.commit();
     }

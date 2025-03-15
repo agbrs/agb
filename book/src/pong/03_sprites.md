@@ -86,9 +86,7 @@ After it has finished rendering to each pixel of the screen, it briefly pauses r
 This period of no drawing is called `vblank`, which stands for the 'vertical blanking interval'.
 There is also a 'horizontal blanking interval', but that is outside of the scope of this book.
 
-You should `.commit()` your sprites only during this `vblank` phase, because otherwise you may end up moving a sprite during the rendering which could cause tearing of your objects[^hblank].
-`agb` provides a convenience function for waiting until the right moment called `agb::display::busy_wait_for_vblank()`.
-You shouldn't use this is a real game (we'll do it properly later on), but for now we can use this to wait for the correct time to `commit` our sprites to memory.
+The `frame.commit()` method automatically waits for this `vblank` state before rendering your sprites to avoid moving a sprite during the rendering which could cause tearing of your objects[^hblank].
 
 Making the sprite move 1 pixel every frame (so 60 pixels per second) can be done as follows:
 
@@ -122,8 +120,6 @@ loop {
     let mut frame = object.frame();
     ball.show(&mut frame);
 
-    // Wait for vblank, then commit the objects to the screen
-    agb::display::busy_wait_for_vblank();
     frame.commit();
 }
 ```
