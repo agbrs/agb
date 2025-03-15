@@ -131,6 +131,10 @@ impl Iterator for Layout {
                 self.grouper.pos = vec2(line.left, self.grouper.pos.y + self.font.line_height);
                 self.grouper.previous_char = None;
 
+                if self.text[self.grouper.current_idx..].starts_with(' ') {
+                    self.grouper.current_idx += ' '.len_utf8();
+                }
+
                 self.line = Some(line);
                 self.line
                     .as_ref()

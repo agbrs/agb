@@ -67,7 +67,7 @@ impl Align {
             let letter = font.letter(c);
 
             if c == ' ' {
-                self.line_length += self.word_length + letter.advance_width as i32;
+                self.line_length += self.word_length + i32::from(letter.advance_width);
                 self.word_length = 0;
                 self.space_count += 1;
             }
@@ -80,12 +80,10 @@ impl Align {
 
             self.previous_char = Some(c);
 
-            if c != ' ' || c != '\n' {
-                self.word_length += letter.advance_width as i32 + kern_amount;
-            }
-
-            if c == ' ' || c == '\n' {
+            if matches!(c, ' ' | '\n') {
                 self.word_start_index = idx;
+            } else {
+                self.word_length += letter.advance_width as i32 + kern_amount;
             }
 
             if self.line_length + self.word_length >= self.max_line_length || c == '\n' {
@@ -94,13 +92,15 @@ impl Align {
                     self.line_length = self.word_length;
                     self.word_length = 0;
                     self.previous_char = None;
-                    self.word_start_index = idx;
+                    self.word_start_index = idx + c.len_utf8();
                 }
 
-                let space_count = self.space_count;
+                let space_count = self.space_count - 1;
                 let line_length = self.line_length;
                 self.line_length = 0;
                 self.space_count = 0;
+
+                crate::println!("Line length: {line_length}, space count: {space_count}");
 
                 return match self.kind {
                     AlignmentKind::Left => Some(Line {
@@ -116,7 +116,8 @@ impl Align {
                     AlignmentKind::Justify => Some(Line {
                         left: 0,
                         finish_index: self.word_start_index,
-                        space_width: (self.max_line_length - line_length)
+                        space_width: (self.max_line_length
+                            - (line_length - space_width * space_count))
                             .checked_div(space_count)
                             .unwrap_or_default(),
                     }),
@@ -125,7 +126,7 @@ impl Align {
             }
         }
 
-        let line_length = self.line_length;
+        let line_length = self.line_length + self.word_length;
         self.line_length = 0;
         self.space_count = 0;
         let idx = text.len();
@@ -154,8 +155,7 @@ impl Align {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::display::Font;
+    use crate::display::font::Font;
 
     use super::*;
 

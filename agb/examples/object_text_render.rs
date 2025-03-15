@@ -3,17 +3,16 @@
 
 use agb::{
     display::{
-        Font, HEIGHT, WIDTH,
-        object::{ChangeColour, ObjectTextRender, PaletteVramSingle, Size, TextAlignment},
+        font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+        object::Size,
         palette16::Palette16,
     },
     include_font,
-    input::Button,
 };
+use agb_fixnum::vec2;
+use alloc::{format, vec::Vec};
 
 extern crate alloc;
-
-use core::fmt::Write;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
@@ -23,29 +22,16 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
-
-    let mut palette = [0x0; 16];
-    palette[1] = 0xFF_FF;
-    palette[2] = 0x00_FF;
-    let palette = Palette16::new(palette);
-    let palette = PaletteVramSingle::try_allocate_new(&palette).unwrap();
-
     let timer = gba.timers.timers();
     let mut timer: agb::timer::Timer = timer.timer2;
 
     timer.set_enabled(true);
     timer.set_divider(agb::timer::Divider::Divider256);
 
-    let mut wr = ObjectTextRender::new(&FONT, Size::S16x16, palette);
     let start = timer.value();
-
     let player_name = "You";
-    let _ = writeln!(
-        wr,
-        "Woah!{change2} {player_name}! {change1}こんにちは! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
-        change2 = ChangeColour::new(2),
-        change1 = ChangeColour::new(1),
+    let text = format!(
+        "Woah! {player_name}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
     );
     let end = timer.value();
 
@@ -54,44 +40,29 @@ fn main(mut gba: agb::Gba) -> ! {
         256 * (end.wrapping_sub(start) as u32)
     );
 
-    let mut input = agb::input::ButtonController::new();
+    let mut gfx = gba.display.graphics.get();
 
-    let start = timer.value();
+    static PALETTE: Palette16 = const {
+        let mut palette = [0x0; 16];
+        palette[1] = 0xFF_FF;
+        Palette16::new(palette)
+    };
 
-    wr.layout((WIDTH, 40), TextAlignment::Justify, 2);
-    let end = timer.value();
+    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Right, 16, 200);
+    let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
-    agb::println!(
-        "Layout took {} cycles",
-        256 * (end.wrapping_sub(start) as u32)
-    );
-
-    let mut line_done = false;
-    let mut frame_count = 0;
+    let mut objects = Vec::new();
 
     loop {
-        input.update();
         let mut frame = gfx.frame();
-        wr.commit(&mut frame);
 
-        let start = timer.value();
-        if frame_count % 4 == 0 {
-            line_done = !wr.next_letter_group();
+        if let Some(group) = layout.next() {
+            objects.push(sprite_text_render.show(&group, vec2(16, 16)));
         }
-        if line_done && input.is_just_pressed(Button::A) {
-            line_done = false;
-            wr.pop_line();
+
+        for object in objects.iter() {
+            object.show(&mut frame);
         }
-        wr.update((0, HEIGHT - 40));
-        let end = timer.value();
-
-        frame_count += 1;
-
-        agb::println!(
-            "Took {} cycles, line done {}",
-            256 * (end.wrapping_sub(start) as u32),
-            line_done
-        );
 
         frame.commit();
     }

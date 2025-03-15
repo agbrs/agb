@@ -3,7 +3,8 @@
 
 use agb::{
     display::{
-        Font, Priority,
+        Priority,
+        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
         palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
@@ -12,8 +13,6 @@ use agb::{
     },
     include_font,
 };
-
-use core::fmt::Write;
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
@@ -43,34 +42,28 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    let mut renderer = FONT.render_text((0u16, 3u16));
-    let mut writer = renderer.writer(1, 2, &mut bg);
+    let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
 
-    writeln!(&mut writer, "Hello, World! こんにちは世界").unwrap();
-    writeln!(&mut writer, "This is a font rendering example").unwrap();
-
-    writer.commit();
+    let mut text_layout = Layout::new(
+        "Hello, World! こんにちは世界\nThis is a font rendering example\nHello, World! こんにちは世界\nThis is a font rendering example\nHello, World! こんにちは世界\nThis is a font rendering example\nHello, World! こんにちは世界\nThis is a font rendering example",
+        &FONT,
+        AlignmentKind::Left,
+        32,
+        200,
+    );
 
     let mut frame = gfx.frame();
     bg.show(&mut frame);
 
     frame.commit();
 
-    let mut frame_count = 0;
-
     loop {
+        if let Some(letter_group) = text_layout.next() {
+            text_renderer.show(&mut bg, &letter_group);
+        }
+
         let mut frame = gfx.frame();
-
-        let mut renderer = FONT.render_text((4u16, 0u16));
-        let mut writer = renderer.writer(1, 2, &mut bg);
-
-        writeln!(&mut writer, "Frame {frame_count}").unwrap();
-        writer.commit();
-
-        frame_count += 1;
-
         bg.show(&mut frame);
-
         frame.commit();
     }
 }
