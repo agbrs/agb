@@ -15,8 +15,8 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{object::Object, GraphicsFrame},
-    fixnum::{vec2, Rect, Vector2D},
+    display::{GraphicsFrame, object::Object},
+    fixnum::{Rect, Vector2D, vec2},
     include_aseprite,
     input::ButtonController,
 };
