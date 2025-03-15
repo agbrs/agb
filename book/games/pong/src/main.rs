@@ -1,9 +1,6 @@
 // Games made using `agb` are no_std which means you don't have access to the standard
 // rust library. This is because the game boy advance doesn't really have an operating
 // system, so most of the content of the standard library doesn't apply.
-//
-// Provided you haven't disabled it, agb does provide an allocator, so it is possible
-// to use both the `core` and the `alloc` built in crates.
 #![no_std]
 // `agb` defines its own `main` function, so you must declare your game's main function
 // using the #[agb::entry] proc macro. Failing to do so will cause failure in linking
@@ -16,7 +13,9 @@
 
 use agb::{
     display::{GraphicsFrame, object::Object},
+    fixnum::{Rect, Vector2D, vec2},
     include_aseprite,
+    input::ButtonController,
 };
 
 // Import the sprites in to this static. This holds the sprite
@@ -33,7 +32,7 @@ struct Paddle {
 }
 
 impl Paddle {
-    fn new(start_x: i32, start_y: i32) -> Self {
+    fn new(pos: Vector2D<i32>) -> Self {
         let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
         let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
         let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
@@ -46,24 +45,30 @@ impl Paddle {
             end: paddle_end,
         };
 
-        paddle.set_position(start_x, start_y);
+        paddle.set_position(pos);
 
         paddle
     }
 
-    fn set_position(&mut self, x: i32, y: i32) {
-        // new! use of the `set_position` method. This is a helper feature using
-        // agb's vector types. For now we can just use it to avoid adding them
-        // separately
-        self.start.set_position((x, y));
-        self.mid.set_position((x, y + 16));
-        self.end.set_position((x, y + 32));
+    fn set_position(&mut self, pos: Vector2D<i32>) {
+        self.start.set_position(pos);
+        self.mid.set_position(pos + vec2(0, 16));
+        self.end.set_position(pos + vec2(0, 32));
+    }
+
+    fn move_by(&mut self, y: i32) {
+        let current_pos = self.start.position();
+        self.set_position(current_pos + vec2(0, y));
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
         self.start.show(frame);
         self.mid.show(frame);
         self.end.show(frame);
+    }
+
+    fn collision_rect(&self) -> Rect<i32> {
+        Rect::new(self.start.position(), vec2(16, 16 * 3))
     }
 }
 
@@ -72,8 +77,10 @@ impl Paddle {
 // and interrupt handlers correctly.
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    // Get the OAM manager
+    // Get the graphics manager
     let mut gfx = gba.display.graphics.get();
+
+    let mut button_controller = ButtonController::new();
 
     // Create an object with the ball sprite
     let mut ball = Object::new(sprites::BALL.sprite(0));
@@ -81,40 +88,49 @@ fn main(mut gba: agb::Gba) -> ! {
     // Place this at some point on the screen, (50, 50) for example
     ball.set_position((50, 50));
 
-    let paddle_a = Paddle::new(8, 8);
-    let paddle_b = Paddle::new(240 - 16 - 8, 8);
+    let mut paddle_a = Paddle::new(vec2(8, 8));
+    let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
 
-    let mut ball_x = 50;
-    let mut ball_y = 50;
-    let mut x_velocity = 1;
-    let mut y_velocity = 1;
+    let mut ball_pos = vec2(50, 50);
+    let mut ball_velocity = vec2(1, 1);
 
     loop {
-        // This will calculate the new position and enforce the position
-        // of the ball remains within the screen
-        ball_x = (ball_x + x_velocity).clamp(0, agb::display::WIDTH - 16);
-        ball_y = (ball_y + y_velocity).clamp(0, agb::display::HEIGHT - 16);
+        button_controller.update();
+
+        paddle_a.move_by(button_controller.y_tri() as i32);
+
+        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
+        // edge of the map or a paddle.
+        let potential_ball_pos = ball_pos + ball_velocity;
+
+        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+        if paddle_a.collision_rect().touches(ball_rect) {
+            ball_velocity.x = 1;
+        }
+
+        if paddle_b.collision_rect().touches(ball_rect) {
+            ball_velocity.x = -1;
+        }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
-        if ball_x == 0 || ball_x == agb::display::WIDTH - 16 {
-            x_velocity = -x_velocity;
+        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
+            ball_velocity.x *= -1;
         }
 
-        if ball_y == 0 || ball_y == agb::display::HEIGHT - 16 {
-            y_velocity = -y_velocity;
+        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
+            ball_velocity.y *= -1;
         }
+
+        ball_pos += ball_velocity;
 
         // Set the position of the ball to match our new calculated position
-        ball.set_position((ball_x, ball_y));
+        ball.set_position(ball_pos);
 
         let mut frame = gfx.frame();
 
         ball.show(&mut frame);
         paddle_a.show(&mut frame);
         paddle_b.show(&mut frame);
-
-        // Wait for vblank, then commit the objects to the screen
-        agb::display::busy_wait_for_vblank();
 
         frame.commit();
     }

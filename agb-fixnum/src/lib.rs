@@ -956,7 +956,7 @@ impl<T: Number> Rect<T> {
     /// # use agb_fixnum::*;
     /// let r = Rect::new(Vector2D::new(1,1), Vector2D::new(3,3));
     ///
-    /// assert!(r.touches(r.clone()));
+    /// assert!(r.touches(r));
     ///
     /// let r1 = Rect::new(Vector2D::new(2,2), Vector2D::new(3,3));
     /// assert!(r.touches(r1));

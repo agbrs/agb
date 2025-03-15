@@ -40,13 +40,12 @@ loop {
     // buttons are being pressed
     x_velocity = input.x_tri() as i32;
     y_velocity = input.y_tri() as i32;
-    
+
     ball.set_position((ball_x, ball_y));
 
     let mut frame = object.frame();
     ball.show(&mut frame);
-    
-    agb::display::busy_wait_for_vblank();
+
     frame.commit();
 
     // We must call input.update() every frame otherwise it won't update based
