@@ -83,7 +83,10 @@ impl Align {
                 self.processed = char_index + c.len_utf8();
 
                 let left = if matches!(self.kind, AlignmentKind::Right) {
-                    current_width_of_words_in_line + spaces_in_line * self.default_space_width
+                    let line_width = current_width_of_words_in_line
+                        + current_width_of_word
+                        + spaces_in_line * self.default_space_width;
+                    self.max_line_length - line_width
                 } else {
                     0
                 };
