@@ -48,7 +48,7 @@ fn main(mut gba: agb::Gba) -> ! {
         Palette16::new(palette)
     };
 
-    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Justify, 16, 200);
+    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Centre, 16, 200);
     let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
     let mut objects = Vec::new();

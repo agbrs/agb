@@ -5,6 +5,8 @@ pub enum AlignmentKind {
     Left,
     Right,
     Justify,
+    #[doc(alias = "Center")]
+    Centre,
     None,
 }
 
@@ -82,13 +84,20 @@ impl Align {
             if c == '\n' {
                 self.processed = char_index + c.len_utf8();
 
-                let left = if matches!(self.kind, AlignmentKind::Right) {
-                    let line_width = current_width_of_words_in_line
-                        + current_width_of_word
-                        + spaces_in_line * self.default_space_width;
-                    self.max_line_length - line_width
-                } else {
-                    0
+                let left = match self.kind {
+                    AlignmentKind::Right => {
+                        let line_width = current_width_of_words_in_line
+                            + current_width_of_word
+                            + spaces_in_line * self.default_space_width;
+                        self.max_line_length - line_width
+                    }
+                    AlignmentKind::Centre => {
+                        let line_width = current_width_of_words_in_line
+                            + current_width_of_word
+                            + spaces_in_line * self.default_space_width;
+                        (self.max_line_length - line_width) / 2
+                    }
+                    _ => 0,
                 };
 
                 return Some(Line {
@@ -148,21 +157,33 @@ impl Align {
                             .checked_div(spaces_in_line)
                             .unwrap_or(0),
                     },
+                    AlignmentKind::Centre => Line {
+                        left: (self.max_line_length - line_width) / 2,
+                        start_index,
+                        finish_index: self.processed,
+                        space_width: self.default_space_width,
+                    },
                     AlignmentKind::None => unreachable!("Handled above"),
                 });
             }
         }
 
         self.processed = text.len();
-        let left = if matches!(self.kind, AlignmentKind::Right) {
-            self.max_line_length
-                - (current_width_of_words_in_line
+        let left = match self.kind {
+            AlignmentKind::Right => {
+                let line_width = current_width_of_words_in_line
                     + current_width_of_word
-                    + spaces_in_line * self.default_space_width)
-        } else {
-            0
+                    + spaces_in_line * self.default_space_width;
+                self.max_line_length - line_width
+            }
+            AlignmentKind::Centre => {
+                let line_width = current_width_of_words_in_line
+                    + current_width_of_word
+                    + spaces_in_line * self.default_space_width;
+                (self.max_line_length - line_width) / 2
+            }
+            _ => 0,
         };
-
         Some(Line {
             left,
             start_index,
