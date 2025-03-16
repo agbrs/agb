@@ -32,7 +32,7 @@ impl Layout {
         grouper.pos.y = -font.line_height;
 
         Self {
-            align: Align::new(alignment, max_line_length),
+            align: Align::new(alignment, max_line_length, font),
             text: text.into(),
             font,
             line: None,
@@ -130,10 +130,7 @@ impl Iterator for Layout {
                 let line = self.align.next(&self.text, self.font)?;
                 self.grouper.pos = vec2(line.left, self.grouper.pos.y + self.font.line_height);
                 self.grouper.previous_char = None;
-
-                if self.text[self.grouper.current_idx..].starts_with(' ') {
-                    self.grouper.current_idx += ' '.len_utf8();
-                }
+                self.grouper.current_idx = line.start_index;
 
                 self.line = Some(line);
                 self.line
