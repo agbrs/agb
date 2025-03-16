@@ -31,7 +31,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let start = timer.value();
     let player_name = "You";
     let text = format!(
-        "Woah! {player_name}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited. Who'd have thought! Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+        "Woah! {player_name}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited.\nWho'd have thought? Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
     );
     let end = timer.value();
 
@@ -48,7 +48,7 @@ fn main(mut gba: agb::Gba) -> ! {
         Palette16::new(palette)
     };
 
-    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Right, 16, 200);
+    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Justify, 16, 200);
     let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
     let mut objects = Vec::new();
