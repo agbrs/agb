@@ -113,23 +113,29 @@ pub enum MediaType {
 }
 
 /// The type used for errors encountered while reading or writing save media.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// There is no save media attached to this game cart.
+    #[error("There is no save media attached to this game cart")]
     NoMedia,
     /// Failed to write the data to save media.
+    #[error("Failed to write the data to save media")]
     WriteError,
     /// An operation on save media timed out.
+    #[error("An operation on save media timed out")]
     OperationTimedOut,
     /// An attempt was made to access save media at an invalid offset.
+    #[error("An attempt was made to access save media at an invalid offset")]
     OutOfBounds,
     /// The media is already in use.
     ///
     /// This can generally only happen in an IRQ that happens during an ongoing
     /// save media operation.
+    #[error("This media is already in use.")]
     MediaInUse,
     /// This command cannot be used with the save media in use.
+    #[error("This command cannot be used with the save media in use.")]
     IncompatibleCommand,
 }
 
