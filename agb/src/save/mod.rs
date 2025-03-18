@@ -93,8 +93,13 @@ use core::ops::Range;
 mod asm_utils;
 mod eeprom;
 mod flash;
+#[cfg(feature = "serde")]
+mod serde;
 mod sram;
 mod utils;
+
+#[cfg(feature = "serde")]
+pub use serde::Save;
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -378,6 +383,13 @@ mod marker {
     }
 }
 
+#[derive(Clone, Copy)]
+/// A type that indicates that you have initialised the save engine. It has no
+/// impact on logic and is purely designed to help the user avoid bugs involved
+/// in not initialising the save engine as a compile time check.
+#[non_exhaustive]
+pub struct InitialisedSaveEngine {}
+
 /// Allows access to the cartridge's save data.
 #[non_exhaustive]
 pub struct SaveManager {}
@@ -397,9 +409,10 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_sram(&mut self) {
+    pub fn init_sram(&mut self) -> InitialisedSaveEngine {
         marker::emit_sram_marker();
         set_save_implementation(&sram::BatteryBackedAccess);
+        InitialisedSaveEngine {}
     }
 
     /// Declares that the ROM uses 64KiB flash memory.
@@ -412,9 +425,10 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_flash_64k(&mut self) {
+    pub fn init_flash_64k(&mut self) -> InitialisedSaveEngine {
         marker::emit_flash_512k_marker();
         set_save_implementation(&flash::FlashAccess);
+        InitialisedSaveEngine {}
     }
 
     /// Declares that the ROM uses 128KiB flash memory.
@@ -427,9 +441,10 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_flash_128k(&mut self) {
+    pub fn init_flash_128k(&mut self) -> InitialisedSaveEngine {
         marker::emit_flash_1m_marker();
         set_save_implementation(&flash::FlashAccess);
+        InitialisedSaveEngine {}
     }
 
     /// Declares that the ROM uses 512 bytes EEPROM memory.
@@ -442,9 +457,10 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_eeprom_512b(&mut self) {
+    pub fn init_eeprom_512b(&mut self) -> InitialisedSaveEngine {
         marker::emit_eeprom_marker();
         set_save_implementation(&eeprom::Eeprom512B);
+        InitialisedSaveEngine {}
     }
 
     /// Declares that the ROM uses 8 KiB EEPROM memory.
@@ -457,9 +473,10 @@ impl SaveManager {
     /// given save type.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_eeprom_8k(&mut self) {
+    pub fn init_eeprom_8k(&mut self) -> InitialisedSaveEngine {
         marker::emit_eeprom_marker();
         set_save_implementation(&eeprom::Eeprom8K);
+        InitialisedSaveEngine {}
     }
 
     /// Creates a new accessor to the save data.
