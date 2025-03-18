@@ -29,6 +29,7 @@ qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 once_cell = { version = "1.20.1", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
+thiserror = { version = "2", default-features = false }
 
 [package.metadata.docs.rs]
 default-target = "thumbv4t-none-eabi"
