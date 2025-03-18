@@ -11,11 +11,11 @@ exclude = ["/tests", "/examples"]
 categories = ["game-engines", "embedded"]
 
 [features]
-default = ["backtrace", "testing"]
+default = ["backtrace", "testing", "serde"]
 backtrace = ["testing", "dep:qrcodegen-no-heap"]
 testing = []
 multiboot = []
-serde = ["agb_fixnum/serde", "agb_hashmap/serde"]
+serde = ["agb_fixnum/serde", "agb_hashmap/serde", "dep:serde", "dep:postcard"]
 
 [dependencies]
 bitflags = "2"
@@ -29,6 +29,8 @@ qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 once_cell = { version = "1.20.1", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
+serde = { version = "1", default-features = false, optional = true }
+postcard = { version = "1", default-features = false, optional = true }
 thiserror = { version = "2", default-features = false }
 
 [package.metadata.docs.rs]
