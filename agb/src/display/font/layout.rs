@@ -89,7 +89,7 @@ impl LetterGroup {
         self.line
     }
 
-    pub(crate) fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
+    pub fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
         let font = self.font();
         let mut previous_char = None;
 
