@@ -18,7 +18,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.2",
     "anser": "^2.3.0",
-    "next": "15.2.2",
+    "next": "15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sharp": "^0.33.3",
@@ -30,7 +30,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/styled-components": "^5.1.34",
     "eslint": "^9.0.0",
-    "eslint-config-next": "15.2.2",
+    "eslint-config-next": "15.2.3",
     "typescript": "^5"
   }
 }
