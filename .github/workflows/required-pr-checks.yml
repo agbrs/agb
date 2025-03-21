@@ -1,0 +1,20 @@
+# The idea here is to immediately pass checks required for a PR to be merged so
+# that the gate is on the merge queue rather than on entering the merge queue
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  just_ci:
+    name: Just CI
+    runs-on: ubuntu-latest
+    steps:
+      - if: false
+        run: echo "pass"
+  website:
+    name: Build website
+    runs-on: ubuntu-latest
+    steps:
+      - if: false
+        run: echo "pass"
