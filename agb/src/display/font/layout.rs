@@ -14,6 +14,7 @@ pub struct Layout {
     font: &'static Font,
     align: Align,
     line: Option<Line>,
+    line_number: i32,
     grouper: Grouper,
 
     max_group_width: i32,
@@ -36,6 +37,7 @@ impl Layout {
             text: text.into(),
             font,
             line: None,
+            line_number: -1,
             grouper,
             max_group_width,
         }
@@ -48,6 +50,7 @@ pub struct LetterGroup {
     range: Range<usize>,
     palette_index: u8,
     position: Vector2D<i32>,
+    line: i32,
     font: &'static Font,
 }
 
@@ -79,6 +82,11 @@ impl LetterGroup {
     #[must_use]
     pub fn position(&self) -> Vector2D<i32> {
         self.position
+    }
+
+    #[must_use]
+    pub fn line(&self) -> i32 {
+        self.line
     }
 
     pub(crate) fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
@@ -128,6 +136,7 @@ impl Iterator for Layout {
             Some(line) => line,
             None => {
                 let line = self.align.next(&self.text, self.font)?;
+                self.line_number += 1;
                 self.grouper.pos = vec2(line.left, self.grouper.pos.y + self.font.line_height);
                 self.grouper.previous_char = None;
                 self.grouper.current_idx = line.start_index;
@@ -147,6 +156,7 @@ impl Iterator for Layout {
             range: start..start,
             palette_index: 1,
             position: self.grouper.pos,
+            line: self.line_number,
             font: self.font,
         };
 
@@ -253,6 +263,8 @@ impl Grouper {
 
 #[cfg(test)]
 mod test {
+    use alloc::vec::Vec;
+
     use super::*;
     use crate::Gba;
 
@@ -285,5 +297,20 @@ mod test {
         for letter_group in layout {
             core::hint::black_box(letter_group);
         }
+    }
+
+    #[test_case]
+    fn tracks_line(_: &mut Gba) {
+        let layout = Layout::new(
+            "Hello\nWorld\nSome text that should break over multiple lines",
+            &FONT,
+            AlignmentKind::Centre,
+            150,
+            150,
+        );
+
+        let letter_group_lines = layout.map(|lg| lg.line()).collect::<Vec<_>>();
+
+        assert_eq!(&letter_group_lines, &[0, 1, 2, 2, 2, 2, 2, 3, 3, 3]);
     }
 }
