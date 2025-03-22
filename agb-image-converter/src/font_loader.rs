@@ -117,7 +117,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         });
 
         quote!(
-            display::FontLetter::new(
+            FontLetter::new(
                 #character,
                 #width,
                 #height,
@@ -133,6 +133,6 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     });
 
     quote![
-        display::Font::new(&[#(#font),*], #line_height, #ascent)
+        Font::new(&[#(#font),*], #line_height, #ascent)
     ]
 }

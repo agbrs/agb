@@ -128,7 +128,7 @@ pub use agb_image_converter::include_aseprite_256_inner;
 #[macro_export]
 macro_rules! include_font {
     ($font_path: literal, $font_size: literal) => {{
-        use $crate::display;
+        use $crate::display::font::{Font, FontLetter};
         $crate::include_font_inner!($font_path, $font_size)
     }};
 }
