@@ -1,13 +1,15 @@
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Priority,
-        object::{Object, ObjectTextRender, PaletteVramSingle, Size, SpriteVram, TextAlignment},
+        GraphicsFrame, HEIGHT, Priority, WIDTH,
+        font::{AlignmentKind, Layout, SpriteTextRenderer},
+        object::{Object, PaletteVramSingle, Size, SpriteVram},
         palette16::Palette16,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
 };
+use alloc::{format, vec::Vec};
 
 use crate::{
     resources::{ARROW_RIGHT, FONT},
@@ -15,13 +17,11 @@ use crate::{
 };
 
 use self::{
-    game_state::{GameState, PLAY_AREA_HEIGHT, PLAY_AREA_WIDTH},
+    game_state::{GameState, PLAY_AREA_WIDTH},
     simulation::Simulation,
 };
 
 pub use simulation::Direction;
-
-use core::{cell::RefCell, fmt::Write};
 
 mod game_state;
 mod simulation;
@@ -34,7 +34,9 @@ struct Game {
 
 struct Lament {
     level: usize,
-    writer: RefCell<ObjectTextRender<'static>>,
+    text_layout: Layout,
+    text_objects: Vec<Object>,
+    text_render: SpriteTextRenderer,
     background: RegularBackgroundTiles,
 }
 
@@ -52,27 +54,24 @@ impl Lament {
     fn new(level: usize) -> Self {
         let palette = generate_text_palette();
 
-        let mut writer = ObjectTextRender::new(&super::resources::FONT, Size::S16x16, palette);
-
-        let _ = writeln!(
-            writer,
+        let lament_text = format!(
             "{}\n\n{}",
             numbers::NUMBERS[level],
             crate::level::Level::get_level(level).name
         );
-
-        writer.layout(
-            Vector2D::new(
-                PLAY_AREA_WIDTH as i32 * 16 - 32,
-                PLAY_AREA_HEIGHT as i32 * 16,
-            ),
-            TextAlignment::Center,
-            0,
+        let layout = Layout::new(
+            &lament_text,
+            &FONT,
+            AlignmentKind::Centre,
+            32,
+            PLAY_AREA_WIDTH as i32 * 16 - 32,
         );
 
         Self {
             level,
-            writer: RefCell::new(writer),
+            text_layout: layout,
+            text_objects: Vec::new(),
+            text_render: SpriteTextRenderer::new(palette, Size::S32x16),
             background: RegularBackgroundTiles::new(
                 Priority::P1,
                 RegularBackgroundSize::Background32x32,
@@ -81,12 +80,12 @@ impl Lament {
         }
     }
 
-    fn update(self, input: &ButtonController) -> GamePhase {
-        {
-            let mut writer = self.writer.borrow_mut();
-            writer.next_letter_group();
-            writer.update(Vector2D::new(16, HEIGHT / 4));
+    fn update(mut self, input: &ButtonController) -> GamePhase {
+        if let Some(group) = self.text_layout.next() {
+            self.text_objects
+                .push(self.text_render.show(&group, (16, HEIGHT / 4)));
         }
+
         if input.is_just_pressed(Button::A) {
             GamePhase::Construction(Construction::new(self.level))
         } else {
@@ -95,7 +94,9 @@ impl Lament {
     }
 
     fn render(&self, frame: &mut GraphicsFrame) {
-        self.writer.borrow_mut().commit(frame);
+        for object in &self.text_objects {
+            object.show(frame);
+        }
         self.background.show(frame);
     }
 }
@@ -251,7 +252,7 @@ enum PauseSelectionInner {
 }
 
 struct PauseMenu {
-    option_text: RefCell<[ObjectTextRender<'static>; 2]>,
+    option_text: [Vec<Object>; 2],
     selection: PauseSelectionInner,
     indicator_sprite: SpriteVram,
     selected_level: usize,
@@ -259,28 +260,23 @@ struct PauseMenu {
 }
 
 impl PauseMenu {
-    fn text_at_position(
-        text: core::fmt::Arguments,
-        position: Vector2D<i32>,
-    ) -> ObjectTextRender<'static> {
-        let mut t = ObjectTextRender::new(&FONT, Size::S32x16, generate_text_palette());
+    fn text_at_position(text: &str, position: Vector2D<i32>) -> Vec<Object> {
+        let text_renderer = SpriteTextRenderer::new(generate_text_palette(), Size::S32x16);
 
-        let _ = writeln!(t, "{}", text);
-        t.layout(Vector2D::new(i32::MAX, i32::MAX), TextAlignment::Left, 0);
-        t.next_line();
-        t.update(position);
-        t
+        Layout::new(text, &FONT, AlignmentKind::Left, 32, WIDTH)
+            .map(|lg| text_renderer.show(&lg, position))
+            .collect()
     }
 
     fn new(maximum_level: usize, current_level: usize) -> Self {
         PauseMenu {
-            option_text: RefCell::new([
-                Self::text_at_position(format_args!("Restart"), Vector2D::new(32, HEIGHT / 4)),
+            option_text: [
+                Self::text_at_position("Restart", Vector2D::new(32, HEIGHT / 4)),
                 Self::text_at_position(
-                    format_args!("Go to level: {}", current_level + 1),
+                    &format!("Go to level: {}", current_level + 1),
                     Vector2D::new(32, HEIGHT / 4 + 20),
                 ),
-            ]),
+            ],
             selection: PauseSelectionInner::Restart,
             indicator_sprite: ARROW_RIGHT.sprite(0).into(),
             selected_level: current_level,
@@ -305,8 +301,9 @@ impl PauseMenu {
             let selected_level =
                 (selected_level + lr as i32).rem_euclid(self.maximum_level as i32 + 1);
             self.selected_level = selected_level as usize;
-            self.option_text.borrow_mut()[1] = Self::text_at_position(
-                format_args!("Go to level: {}", selected_level + 1),
+
+            self.option_text[1] = Self::text_at_position(
+                &format!("Go to level: {}", selected_level + 1),
                 Vector2D::new(32, HEIGHT / 4 + 20),
             )
         }
@@ -324,9 +321,10 @@ impl PauseMenu {
     }
 
     fn render(&self, frame: &mut GraphicsFrame) {
-        for text in self.option_text.borrow_mut().iter_mut() {
-            text.commit(frame);
+        for text in self.option_text.iter().flatten() {
+            text.show(frame);
         }
+
         let mut indicator = Object::new(self.indicator_sprite.clone());
         match self.selection {
             PauseSelectionInner::Restart => indicator.set_position(Vector2D::new(16, HEIGHT / 4)),

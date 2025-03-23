@@ -2,7 +2,6 @@
 #![deny(missing_docs)]
 
 mod affine;
-mod font;
 mod sprites;
 mod unmanaged;
 
@@ -16,8 +15,6 @@ pub(crate) use sprites::SPRITE_LOADER;
 pub use affine::AffineMatrixInstance;
 pub use unmanaged::{AffineMode, GraphicsMode, Object, ObjectAffine};
 pub(crate) use unmanaged::{Oam, OamFrame};
-
-pub use font::{ChangeColour, ObjectTextRender, TextAlignment};
 
 use super::DISPLAY_CONTROL;
 

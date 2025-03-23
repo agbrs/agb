@@ -26,7 +26,6 @@ mod blend;
 pub mod window;
 
 pub mod font;
-pub use font::{Font, FontLetter};
 
 const DISPLAY_CONTROL: MemoryMapped<DisplayControlRegister> =
     unsafe { MemoryMapped::new(0x0400_0000) };
