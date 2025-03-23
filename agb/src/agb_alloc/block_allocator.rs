@@ -223,7 +223,7 @@ impl BlockAllocatorInner {
             if let Some(list_to_block) = next_block {
                 let is_block_directly_after = {
                     if let Some(block) = list_to_block {
-                        block.0.as_ptr() == ptr.add(either_layout_initial.size()).cast()
+                        core::ptr::eq(block.0.as_ptr(), ptr.add(either_layout_initial.size()).cast())
                     } else {
                         false
                     }
