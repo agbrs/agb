@@ -1,10 +1,13 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use agb::{
     Gba,
     display::{
-        Font, Priority,
+        Priority, WIDTH,
+        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
         palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
@@ -15,12 +18,12 @@ use agb::{
     sound::mixer::{Frequency, SoundChannel},
 };
 
-use core::fmt::Write;
+use alloc::format;
 
 // Music - "Crazy glue" by Josh Woodward, free download at http://joshwoodward.com
 static CRAZY_GLUE: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
 
-static FONT: Font = include_font!("examples/font/yoster.ttf", 12);
+static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {
@@ -32,13 +35,6 @@ fn main(mut gba: Gba) -> ! {
     );
 
     init_background(&mut bg);
-
-    let mut title_renderer = FONT.render_text((0u16, 3u16));
-    let mut writer = title_renderer.writer(1, 0, &mut bg);
-
-    writeln!(&mut writer, "Crazy Glue by Josh Woodward").unwrap();
-
-    writer.commit();
 
     let timer_controller = gba.timers.timers();
     let mut timer = timer_controller.timer2;
@@ -54,9 +50,10 @@ fn main(mut gba: Gba) -> ! {
     mixer.play_sound(channel).unwrap();
 
     let mut frame_counter = 0i32;
-    let mut has_written_frame_time = false;
 
-    let mut stats_renderer = FONT.render_text((0u16, 6u16));
+    let mut text_layout = None;
+    let mut renderer = RegularBackgroundTextRenderer::new((0, FONT.line_height() * 3));
+
     loop {
         let mut frame = gfx.frame();
         bg.show(&mut frame);
@@ -72,7 +69,7 @@ fn main(mut gba: Gba) -> ! {
 
         frame_counter = frame_counter.wrapping_add(1);
 
-        if frame_counter % 128 == 0 && !has_written_frame_time {
+        if text_layout.is_none() && frame_counter % 128 == 0 {
             let before_mixing_cycles =
                 ((before_mixing_cycles_high as u32) << 16) + before_mixing_cycles_low as u32;
             let after_mixing_cycles =
@@ -81,13 +78,13 @@ fn main(mut gba: Gba) -> ! {
 
             let percent = (total_cycles * 100) / 280896;
 
-            let mut writer = stats_renderer.writer(1, 0, &mut bg);
-            writeln!(&mut writer, "{total_cycles} cycles").unwrap();
-            writeln!(&mut writer, "{percent} percent").unwrap();
+            let text = format!("Mixing time: {total_cycles} cycles ({percent}%)");
 
-            writer.commit();
-
-            has_written_frame_time = true;
+            text_layout = Some(Layout::new(&text, &FONT, AlignmentKind::Left, 16, WIDTH));
+        } else if let Some(text_layout) = text_layout.as_mut() {
+            if let Some(lg) = text_layout.next() {
+                renderer.show(&mut bg, &lg);
+            }
         }
     }
 }
@@ -107,5 +104,18 @@ fn init_background(bg: &mut RegularBackgroundTiles) {
         for x in 0..30u16 {
             bg.set_tile_dynamic((x, y), &background_tile, TileEffect::default());
         }
+    }
+
+    let text_layout = Layout::new(
+        "Crazy glue by Josh Woodward\njoshwoodward.com",
+        &FONT,
+        AlignmentKind::Centre,
+        WIDTH,
+        WIDTH,
+    );
+
+    let mut renderer = RegularBackgroundTextRenderer::new((0, 0));
+    for lg in text_layout {
+        renderer.show(bg, &lg);
     }
 }
