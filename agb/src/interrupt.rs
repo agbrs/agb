@@ -187,13 +187,13 @@ impl Drop for InterruptInner {
             root.reduce();
             let mut c = root.next.get();
             let own_pointer = &*this as *const _;
-            if c == own_pointer {
+            if core::ptr::eq(c, own_pointer) {
                 unsafe { &*this.root }.next.set(this.next.get());
                 return;
             }
             loop {
                 let p = unsafe { &*c }.next.get();
-                if p == own_pointer {
+                if core::ptr::eq(p, own_pointer) {
                     unsafe { &*c }.next.set(this.next.get());
                     return;
                 }
