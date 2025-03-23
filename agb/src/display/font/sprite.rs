@@ -16,7 +16,8 @@ impl SpriteTextRenderer {
     }
 
     #[must_use]
-    pub fn show(&self, group: &LetterGroup, offset: Vector2D<i32>) -> Object {
+    pub fn show(&self, group: &LetterGroup, offset: impl Into<Vector2D<i32>>) -> Object {
+        let offset = offset.into();
         let mut sprite = DynamicSprite::new(self.size);
         let pal_index = group.palette_index();
 

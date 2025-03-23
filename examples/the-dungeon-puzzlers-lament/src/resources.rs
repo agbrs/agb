@@ -1,4 +1,4 @@
-use agb::{display::Font, include_aseprite, include_font};
+use agb::{display::font::Font, include_aseprite, include_font};
 
 include_aseprite!(mod sprites,
     "gfx/sprites16x16.aseprite",
