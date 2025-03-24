@@ -72,12 +72,14 @@ mod test {
         Gba,
         display::{
             Priority,
-            font::{AlignmentKind, Font, Layout},
+            font::{AlignmentKind, ChangeColour, Font, Layout},
             palette16::Palette16,
             tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
         },
         test_runner::assert_image_output,
     };
+
+    use alloc::format;
 
     static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
 
@@ -88,6 +90,8 @@ mod test {
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
             palette[1] = 0xFF_FF;
+            palette[2] = 0x10_7C;
+
             Palette16::new(palette)
         };
 
@@ -99,7 +103,17 @@ mod test {
             TileFormat::FourBpp,
         );
 
-        let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+        const CHANGE1: ChangeColour = ChangeColour::new(1);
+        const CHANGE2: ChangeColour = ChangeColour::new(2);
+
+        let layout = Layout::new(
+            &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
+            &FONT,
+            AlignmentKind::Left,
+            16,
+            200,
+        );
+
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
 
         for lg in layout {

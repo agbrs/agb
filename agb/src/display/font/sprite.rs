@@ -35,11 +35,11 @@ impl SpriteTextRenderer {
 #[cfg(test)]
 mod tests {
     use agb_fixnum::vec2;
-    use alloc::vec::Vec;
+    use alloc::{format, vec::Vec};
 
     use crate::{
         display::{
-            font::{AlignmentKind, Font, Layout},
+            font::{AlignmentKind, ChangeColour, Font, Layout},
             palette16::Palette16,
         },
         test_runner::assert_image_output,
@@ -55,10 +55,20 @@ mod tests {
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
             palette[1] = 0xFF_FF;
+            palette[2] = 0x10_7C;
             Palette16::new(palette)
         };
 
-        let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+        const CHANGE1: ChangeColour = ChangeColour::new(1);
+        const CHANGE2: ChangeColour = ChangeColour::new(2);
+
+        let layout = Layout::new(
+            &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
+            &FONT,
+            AlignmentKind::Left,
+            16,
+            200,
+        );
         let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
         let objects: Vec<_> = layout
