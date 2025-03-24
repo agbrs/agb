@@ -1,9 +1,8 @@
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Priority, WIDTH,
+        GraphicsFrame, HEIGHT, Palette16, Priority, WIDTH,
         font::{AlignmentKind, Layout, SpriteTextRenderer},
         object::{Object, PaletteVramSingle, Size, SpriteVram},
-        palette16::Palette16,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
     },
     fixnum::Vector2D,

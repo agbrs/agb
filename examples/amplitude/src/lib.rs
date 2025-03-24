@@ -11,10 +11,9 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        self, GraphicsFrame,
+        self, GraphicsFrame, Palette16,
         affine::AffineMatrix,
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
-        palette16::Palette16,
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num},

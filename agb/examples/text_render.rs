@@ -3,9 +3,8 @@
 
 use agb::{
     display::{
-        Priority,
+        Palette16, Priority,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
-        palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
             VRAM_MANAGER,
