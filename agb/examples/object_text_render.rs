@@ -3,9 +3,9 @@
 
 use agb::{
     display::{
+        Palette16,
         font::{AlignmentKind, ChangeColour, Font, Layout, SpriteTextRenderer},
         object::Size,
-        palette16::Palette16,
     },
     include_font,
 };

@@ -6,9 +6,8 @@ extern crate alloc;
 use agb::{
     Gba,
     display::{
-        Priority, WIDTH,
+        Palette16, Priority, WIDTH,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
-        palette16::Palette16,
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
             VRAM_MANAGER,

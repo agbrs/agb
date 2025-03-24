@@ -3,9 +3,8 @@
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, WIDTH,
+        GraphicsFrame, HEIGHT, Palette16, WIDTH,
         object::{Object, Sprite},
-        palette16::Palette16,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
             VRAM_MANAGER,

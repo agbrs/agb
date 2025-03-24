@@ -4,8 +4,8 @@ use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
+use crate::display::Palette16;
 use crate::display::object::{DynamicSprite, PaletteVramSingle, Size, SpriteVram};
-use crate::display::palette16::Palette16;
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
     include_palette,

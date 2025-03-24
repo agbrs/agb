@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::{
-    display::{HEIGHT, WIDTH, object::Object, palette16::Palette16, tiled::VRAM_MANAGER},
+    display::{HEIGHT, Palette16, WIDTH, object::Object, tiled::VRAM_MANAGER},
     include_aseprite,
     input::ButtonController,
     save::{Error, SaveManager},

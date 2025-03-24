@@ -24,14 +24,14 @@ pub(crate) fn generate_palette_code(
             .take(16);
 
         quote! {
-            #crate_prefix::display::palette16::Palette16::new([
+            #crate_prefix::display::Palette16::new([
                 #(#colours),*
             ])
         }
     });
 
     quote! {
-        pub static PALETTES: &[#crate_prefix::display::palette16::Palette16] = &[#(#palettes),*];
+        pub static PALETTES: &[#crate_prefix::display::Palette16] = &[#(#palettes),*];
     }
 }
 

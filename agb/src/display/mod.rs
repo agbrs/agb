@@ -9,13 +9,15 @@ use self::{
     window::Windows,
 };
 
+pub use palette16::{Palette16, include_palette};
+
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub(crate) mod bitmap3;
 /// Test logo of agb.
 pub mod example_logo;
 pub mod object;
 /// Palette type.
-pub mod palette16;
+mod palette16;
 /// Data produced by agb-image-converter
 pub mod tile_data;
 /// Graphics mode 0. Four regular backgrounds.
