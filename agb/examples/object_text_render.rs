@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+        font::{AlignmentKind, ChangeColour, Font, Layout, SpriteTextRenderer},
         object::Size,
         palette16::Palette16,
     },
@@ -30,8 +30,12 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let start = timer.value();
     let player_name = "You";
+
+    let colour1 = ChangeColour::new(1);
+    let colour2 = ChangeColour::new(2);
+
     let text = format!(
-        "Woah! {player_name}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited.\nWho'd have thought? Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+        "Woah! {colour2}{player_name}{colour1}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited.\nWho'd have thought? Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
     );
     let end = timer.value();
 
@@ -45,6 +49,7 @@ fn main(mut gba: agb::Gba) -> ! {
     static PALETTE: Palette16 = const {
         let mut palette = [0x0; 16];
         palette[1] = 0xFF_FF;
+        palette[2] = 0x10_7C;
         Palette16::new(palette)
     };
 

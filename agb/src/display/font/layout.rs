@@ -5,7 +5,7 @@ use alloc::rc::Rc;
 use crate::fixnum::{Vector2D, vec2};
 
 use super::{
-    Font, FontLetter,
+    ChangeColour, Font, FontLetter,
     align::{Align, AlignmentKind, Line},
 };
 
@@ -16,6 +16,8 @@ pub struct Layout {
     line: Option<Line>,
     line_number: i32,
     grouper: Grouper,
+
+    palette_index: u8,
 
     max_group_width: i32,
 }
@@ -39,6 +41,9 @@ impl Layout {
             line: None,
             line_number: -1,
             grouper,
+
+            palette_index: 1,
+
             max_group_width,
         }
     }
@@ -154,7 +159,7 @@ impl Iterator for Layout {
             tag: 0,
             str: self.text.clone(),
             range: start..start,
-            palette_index: 1,
+            palette_index: self.palette_index,
             position: self.grouper.pos,
             line: self.line_number,
             font: self.font,
@@ -169,6 +174,20 @@ impl Iterator for Layout {
             if char_index == line.finish_index {
                 self.line = None;
                 break;
+            }
+
+            if let Some(change_colour) = ChangeColour::try_from_char(char) {
+                crate::println!("Colour change to {change_colour:?}");
+                self.palette_index = change_colour.palette_index;
+
+                if letter_group.range.is_empty() {
+                    self.grouper.current_idx += char.len_utf8();
+                    letter_group.range = self.grouper.current_idx..self.grouper.current_idx;
+                    letter_group.palette_index = change_colour.palette_index;
+                    continue;
+                } else {
+                    break;
+                }
             }
 
             if char == ' ' {

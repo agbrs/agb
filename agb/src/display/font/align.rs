@@ -1,4 +1,4 @@
-use super::Font;
+use super::{ChangeColour, Font};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AlignmentKind {
@@ -114,6 +114,9 @@ impl Align {
                 current_word_start_index = char_index + ' '.len_utf8();
 
                 previous_char = None;
+            } else if ChangeColour::try_from_char(c).is_some() {
+                // skip it
+                continue;
             } else {
                 let kerning =
                     previous_char.map_or(0, |previous_char| letter.kerning_amount(previous_char));
