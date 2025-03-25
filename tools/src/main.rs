@@ -10,6 +10,7 @@ mod utils;
 pub enum Error {
     PublishError(publish::Error),
     ReleaseError(release::Error),
+    DeployError(deploy::Error),
 }
 
 fn cli() -> Command {
@@ -32,6 +33,8 @@ fn main() {
         Some(("release", arg_matches)) => {
             release::release(arg_matches).map_err(Error::ReleaseError)
         }
+
+        Some(("deploy", arg_matches)) => deploy::deploy(arg_matches).map_err(Error::DeployError),
 
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     };

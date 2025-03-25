@@ -1,4 +1,4 @@
-use clap::{Arg, ArgAction};
+use clap::{Arg, ArgAction, ArgMatches};
 
 pub fn command() -> clap::Command {
     clap::Command::new("deploy").arg(
@@ -8,3 +8,10 @@ pub fn command() -> clap::Command {
             .action(ArgAction::SetTrue),
     )
 }
+
+pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
+    Ok(())
+}
+
+#[derive(Debug)]
+pub enum Error {}
