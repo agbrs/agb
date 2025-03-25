@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 use clap::Command;
 
+mod deploy;
 mod publish;
 mod release;
 mod utils;
@@ -17,6 +18,7 @@ fn cli() -> Command {
         .arg_required_else_help(true)
         .subcommand(publish::command())
         .subcommand(release::command())
+        .subcommand(deploy::command())
 }
 
 fn main() {
