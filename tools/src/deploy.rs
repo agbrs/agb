@@ -92,12 +92,14 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
     if dry_run {
         eprintln!("Would create droplet with name {new_droplet_name}");
     } else {
+        eprintln!("Creating new droplet with name {new_droplet_name}");
+
         cmd!(
             sh,
             "doctl compute droplet create
-                -o json
                 --image debian-12-x64 --size s-1vcpu-512mb-10gb 
                 --enable-monitoring --region ams3 --wait --user-data {launch_script}
+                --ssh-keys 46412207,45540604
                 --tag-names playground {new_droplet_name}"
         )
         .quiet()
