@@ -40,7 +40,7 @@ async fn main() {
         .init();
 
     let state = Builder {
-        temp_path: PathBuf::from("/tmp/agb-build"),
+        temp_path: PathBuf::from("/run/agbrs-playground"),
     };
 
     let app = Router::new()
@@ -55,7 +55,7 @@ async fn main() {
         )
         .with_state(state);
 
-    let listener = TcpListener::bind("127.0.0.1:5409").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:5409").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     axum::serve(listener, app).await.unwrap();
@@ -151,7 +151,7 @@ impl Builder {
                 "-v",
             ])
             .arg(format!("{}:/out", temp_folder.display()))
-            .args(["-i", "agb-build:latest"]);
+            .args(["-i", "ghcr.io/agbrs/playground-builder:latest"]);
 
         match launch_command.output() {
             Ok(output) => {
