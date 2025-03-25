@@ -61,6 +61,26 @@ jobs:
         with:
           name: playground-server
       - name: Import images
-        run: zstd -d playground-builder.tar.zstd | docker load && zstd -d playground-server.tar.zstd | docker load
+        run: zstd --stdout -d playground-builder.tar.zstd | docker load && zstd --stdout -d playground-server.tar.zstd | docker load
       - name: Push container image
-        run: docker push ghcr.io/agbrs/playground-builder:latest && docker push ghcr.io/agbrs/playground-server:latest
+        run: |
+          docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
+          docker push ghcr.io/agbrs/playground-builder:latest && docker push ghcr.io/agbrs/playground-server:latest
+  deploy:
+    name: Deploy to digital ocean
+    if: github.event_name == 'push'
+    needs: deploy_playground_builder
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Deploy
+        env:
+          AGB_CLOUDFLARE_TUNNEL_SECRET: ${{ secrets.AGB_CLOUDFLARE_TUNNEL_SECRET }}
+        run: cd tools && cargo run deploy
