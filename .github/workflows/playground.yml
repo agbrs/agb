@@ -8,8 +8,8 @@ on:
     branches: [master]
 
 jobs:
-  build_container_image:
-    name: Build container image
+  build_playground_builder:
+    name: Build playground builder image
     runs-on: ubuntu-24.04
     steps:
       - uses: extractions/setup-just@v3
@@ -21,34 +21,46 @@ jobs:
       - name: Build image
         run: just build-playground-image
       - name: Save image
-        run: docker save agb-build:latest | zstd -9 -o agb-playground.tar.zstd
+        run: docker save ghcr.io/agbrs/playground-builder:latest | zstd -9 -o playground-builder.tar.zstd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: container-image
-          path: "agb-playground.tar.zstd"
-  build_app:
-    name: Build playground api
+          name: playground-builder
+          path: "playground-builder.tar.zstd"
+  build_playground_server:
+    name: Build playground server image
     runs-on: ubuntu-24.04
     steps:
       - uses: extractions/setup-just@v3
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Add rustup target
-        run: rustup target add x86_64-unknown-linux-musl
-      - name: Build playground
-        run: just build-playground-api
+      - name: Build image
+        run: just build-playground-server-image
+      - name: Save image
+        run: docker save ghcr.io/agbrs/playground-server:latest | zstd -9 -o playground-server.tar.zstd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: playground
-          path: "target/x86_64-unknown-linux-musl/release/play"
+          name: playground-server
+          path: "playground-server.tar.zstd"
+  deploy_playground_builder:
+    name: Push playground builder image
+    if: github.event_name == 'push'
+    needs: [build_playground_builder, build_playground_server]
+    permissions:
+      packages: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download playground builder
+        uses: actions/download-artifact@v4
+        with:
+          name: playground-builder
+      - name: Download playground server
+        uses: actions/download-artifact@v4
+        with:
+          name: playground-server
+      - name: Import images
+        run: zstd -d playground-builder.tar.zstd | docker load && zstd -d playground-server.tar.zstd | docker load
+      - name: Push container image
+        run: docker push ghcr.io/agbrs/playground-builder:latest && docker push ghcr.io/agbrs/playground-server:latest
