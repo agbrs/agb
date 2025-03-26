@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, thread, time::Duration};
 
 use clap::{Arg, ArgAction, ArgMatches};
 use serde::Deserialize;
@@ -33,6 +33,7 @@ docker run -v /run/docker.sock:/run/docker.sock \
     --detach --restart unless-stopped \
     --init --network=agbnet \
     --name=playground-server \
+    -p 5409:5409 \
     ghcr.io/agbrs/playground-server:latest
 
 docker run \
@@ -93,18 +94,64 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
     } else {
         eprintln!("Creating new droplet with name {new_droplet_name}");
 
-        cmd!(
+        let create_droplet_output = cmd!(
             sh,
-            "doctl compute droplet create
+            "doctl 
+                -o json
+                compute droplet create
                 --image debian-12-x64 --size s-1vcpu-512mb-10gb 
                 --enable-monitoring --region ams3 --wait --user-data {launch_script}
                 --ssh-keys 46412207,45540604
                 --tag-names playground {new_droplet_name}"
         )
         .quiet()
-        .run()?;
+        .read()?;
 
-        eprintln!("Created droplet {new_droplet_name}");
+        #[derive(Deserialize)]
+        struct CreateDropletOutput {
+            networks: CreateDropletNetworks,
+        }
+
+        #[derive(Deserialize)]
+        struct CreateDropletNetworks {
+            v4: Vec<CreateDropletV4Networks>,
+        }
+
+        #[derive(Deserialize)]
+        struct CreateDropletV4Networks {
+            ip_address: String,
+            #[serde(rename = "type")]
+            type_: String,
+        }
+
+        let create_droplet_output: Vec<CreateDropletOutput> =
+            serde_json::from_str(&create_droplet_output)?;
+        let create_droplet_output = &create_droplet_output[0];
+
+        let ip_address = &create_droplet_output
+            .networks
+            .v4
+            .iter()
+            .find(|addr| addr.type_ == "public")
+            .unwrap()
+            .ip_address;
+
+        eprintln!(
+            "Created droplet {new_droplet_name} with ip {ip_address}, waiting for it to be ready"
+        );
+
+        loop {
+            if cmd!(sh, "curl --head --silent http://{ip_address}:5409")
+                .ignore_stdout()
+                .quiet()
+                .run()
+                .is_ok()
+            {
+                break;
+            }
+
+            thread::sleep(Duration::from_secs(5));
+        }
     }
 
     if dry_run {
