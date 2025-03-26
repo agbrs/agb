@@ -1,9 +1,9 @@
 name: Playground
 
 on:
-  merge_group:
-  push:
-    branches: [master]
+  workflow_run:
+    workflows: ["Publish agb"]
+    types: [completed]
   pull_request:
     branches: [master]
 
@@ -46,7 +46,7 @@ jobs:
           path: "playground-server.tar.zstd"
   deploy_playground_builder:
     name: Push playground builder image
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_run'
     needs: [build_playground_builder, build_playground_server]
     permissions:
       packages: write
@@ -68,7 +68,7 @@ jobs:
           docker push ghcr.io/agbrs/playground-builder:latest && docker push ghcr.io/agbrs/playground-server:latest
   deploy:
     name: Deploy to digital ocean
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_run'
     needs: deploy_playground_builder
     runs-on: ubuntu-24.04
     steps:
