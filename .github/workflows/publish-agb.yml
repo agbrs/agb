@@ -40,4 +40,4 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
       - name: Build the example games
-        run: just 
+        run: just

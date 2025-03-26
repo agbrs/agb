@@ -7,7 +7,7 @@ if [ "$#" != 1 ]; then
     exit 1
 fi
 
-curl -v http://localhost:3000/build --json "$(jq -Rs '{code: .}' < "$1")" --output out.gba.gz
+curl -v http://localhost:5409/build --json "$(jq -Rs '{code: .}' < "$1")" --output out.gba.gz
 if gunzip out.gba.gz; then
     mgba-qt out.gba
     rm -f out.gba out.gba.sav

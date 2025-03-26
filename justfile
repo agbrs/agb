@@ -206,6 +206,9 @@ _all-crates target:
 build-playground-image:
     (cd website/play/docker && ./build-initial-image.sh)
 
+build-playground-server-image:
+    (cd website/play && docker build -t ghcr.io/agbrs/playground-server:latest .)
+
 build-playground-api:
     (cd website/play && cargo build --release --target=x86_64-unknown-linux-musl)
 

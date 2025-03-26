@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 use clap::Command;
 
+mod deploy;
 mod publish;
 mod release;
 mod utils;
@@ -9,6 +10,7 @@ mod utils;
 pub enum Error {
     PublishError(publish::Error),
     ReleaseError(release::Error),
+    DeployError(deploy::Error),
 }
 
 fn cli() -> Command {
@@ -17,6 +19,7 @@ fn cli() -> Command {
         .arg_required_else_help(true)
         .subcommand(publish::command())
         .subcommand(release::command())
+        .subcommand(deploy::command())
 }
 
 fn main() {
@@ -30,6 +33,8 @@ fn main() {
         Some(("release", arg_matches)) => {
             release::release(arg_matches).map_err(Error::ReleaseError)
         }
+
+        Some(("deploy", arg_matches)) => deploy::deploy(arg_matches).map_err(Error::DeployError),
 
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     };
