@@ -67,6 +67,21 @@ jobs:
         run: |
           docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
           docker push ghcr.io/agbrs/playground-builder:latest && docker push ghcr.io/agbrs/playground-server:latest
+      - name: Delete old playground-builder container versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: playground-builder
+          package-type: container
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: "true"
+      - name: Delete old playground-server container versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: playground-server
+          package-type: container
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: "true"
+
   deploy:
     name: Deploy to digital ocean
     if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' }}
