@@ -13,8 +13,7 @@ pub fn command() -> clap::Command {
     )
 }
 
-const LAUNCH_SCRIPT: &str = r#"
-#!/usr/bin/env bash
+const LAUNCH_SCRIPT: &str = r#"#!/usr/bin/env bash
 
 apt-get install unattended-upgrades docker.io -y --no-install-recommends
 
