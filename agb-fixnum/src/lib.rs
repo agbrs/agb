@@ -3,15 +3,15 @@
 //! Fixed point number implementation for representing non integers efficiently.
 
 use core::{
-    cmp::{Eq, Ord, PartialEq, PartialOrd},
+    cmp::{Ord, PartialOrd},
     fmt::{Debug, Display},
     mem::size_of,
-    ops::{
-        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
-        Sub, SubAssign,
-    },
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
-use num_traits::Signed;
+use num_traits::{
+    ops::overflowing::{OverflowingAdd, OverflowingSub},
+    One, PrimInt, Signed, WrappingAdd, WrappingSub, Zero,
+};
 
 #[doc(hidden)]
 /// Used internally by the [num!] macro which should be used instead.
@@ -33,43 +33,30 @@ macro_rules! num {
 /// fixed point number.
 pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
-impl<I: FixedWidthUnsignedInteger> Number for I {}
+impl<I: FixedWidthInteger, const N: usize> Number for Num<I, N> {}
+impl<I: PrimInt> Number for I {}
 
-/// A trait for integers that don't implement unary negation
-pub trait FixedWidthUnsignedInteger:
-    Copy
-    + PartialOrd
-    + Ord
-    + Shl<usize, Output = Self>
-    + Shr<usize, Output = Self>
-    + BitAnd<Output = Self>
-    + From<u8>
-    + Debug
-    + Display
-    + num_traits::Num
-    + Not<Output = Self>
+/// A trait for integers with fixed width
+pub trait FixedWidthInteger:
+    Number + PrimInt + OverflowingAdd + OverflowingSub + WrappingAdd + WrappingSub + Display
 {
-    /// Returns the representation of ten
-    fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
-    fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
+    fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self;
+    /// Returns Some((a * b) >> N) if the multiplication didn't overflowed
+    fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self>;
+    /// Returns ((a * b) >> N, flag), where flag is true if the operation overflowed
+    fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool);
+    /// Returns (a * b) >> N, saturating at the numeric bounds instead of overflowing
+    fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self;
+    /// Returns (a * b) >> N, but doesn't panic in case of overflow in debug mode
+    fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self;
 }
 
-/// Trait for an integer that includes negation
-pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + num_traits::sign::Signed {}
-
-impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
-
-macro_rules! fixed_width_unsigned_integer_impl {
+macro_rules! fixed_width_integer_impl {
     ($T: ty, $Upcast: ident) => {
-        impl FixedWidthUnsignedInteger for $T {
-            #[inline(always)]
-            fn ten() -> Self {
-                10
-            }
+        impl FixedWidthInteger for $T {
             #[inline(always)]
             fn from_as_i32(v: i32) -> Self {
                 v as $T
@@ -80,51 +67,321 @@ macro_rules! fixed_width_unsigned_integer_impl {
     };
 }
 
-macro_rules! upcast_multiply_impl {
-    ($T: ty, optimised_64_bit) => {
+#[cfg(target_arch = "arm")]
+#[cfg_attr(target_feature = "thumb-mode", instruction_set(arm::a32))]
+#[cfg_attr(not(target_feature = "thumb-mode"), inline(always))]
+fn upcast_multiply_wide_unsigned(a: u32, b: u32) -> (u32, u32) {
+    use core::arch::asm;
+    let low: u32;
+    let high: u32;
+    unsafe {
+        asm!(
+            "UMULL {low}, {high}, {a}, {b}",
+            a = in(reg) a,
+            b = in(reg) b,
+            low = lateout(reg) low,
+            high = lateout(reg) high,
+        );
+    }
+    (low, high)
+}
+
+#[cfg(target_arch = "arm")]
+#[cfg_attr(target_feature = "thumb-mode", instruction_set(arm::a32))]
+#[cfg_attr(not(target_feature = "thumb-mode"), inline(always))]
+fn upcast_multiply_wide_signed(a: i32, b: i32) -> (u32, i32) {
+    use core::arch::asm;
+    let low: u32;
+    let high: i32;
+    unsafe {
+        asm!(
+            "SMULL {low}, {high}, {a}, {b}",
+            a = in(reg) a,
+            b = in(reg) b,
+            low = lateout(reg) low,
+            high = lateout(reg) high,
+        );
+    }
+    (low, high)
+}
+
+macro_rules! upcast_multiply_fast_impl {
+    ($FnName: ident, i32) => {
+        upcast_multiply_fast_impl!($FnName, i32, 1);
+    };
+    ($FnName: ident, u32) => {
+        upcast_multiply_fast_impl!($FnName, u32, 0);
+    };
+    ($FnName: ident, $T: ty, $OverflowTypeExpr: expr) => {
+        #[cfg(target_arch = "arm")]
         #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            use num_traits::One;
+        fn $FnName<const N: usize>(a: $T, b: $T) -> ($T, bool) {
+            let mask = (1 << N).wrapping_sub(&1);
 
-            let mask = (Self::one() << n).wrapping_sub(1);
-
-            let a_floor = a >> n;
+            let a_floor = a >> N;
             let a_frac = a & mask;
 
-            let b_floor = b >> n;
+            let b_floor = b >> N;
             let b_frac = b & mask;
 
-            (a_floor.wrapping_mul(b_floor) << n)
-                .wrapping_add(
-                    a_floor
-                        .wrapping_mul(b_frac)
-                        .wrapping_add(b_floor.wrapping_mul(a_frac)),
-                )
-                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
-        }
-    };
-    ($T: ty, $Upcast: ty) => {
-        #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            (((a as $Upcast) * (b as $Upcast)) >> n) as $T
+            let (x, is_overflow1) = a_floor.overflowing_mul(b_floor);
+            // unsigned -> overflow if high != 0
+            // signed   -> overflow if high != (if res >= 0 {0} else {-1})
+            let is_overflow2 =
+                (x as $T >> (32 - N)) != ($OverflowTypeExpr * ((x << N) as $T >> 31));
+            let x = x << N;
+            let (y, is_overflow3) = a_floor
+                .wrapping_mul(b_frac)
+                .overflowing_add(b_floor.wrapping_mul(a_frac));
+            // cannot overflow since a_fract and b_fract are at most 16 bits
+            let z = ((a_frac as u32).wrapping_mul(b_frac as u32) >> N) as $T;
+            let (res, is_overflow4) = x.overflowing_add(y);
+            let (res, is_overflow5) = res.overflowing_add(z);
+
+            (
+                res,
+                is_overflow1 || is_overflow2 || is_overflow3 || is_overflow4 || is_overflow5,
+            )
         }
     };
 }
 
-fixed_width_unsigned_integer_impl!(u8, u32);
-fixed_width_unsigned_integer_impl!(i16, i32);
-fixed_width_unsigned_integer_impl!(u16, u32);
+upcast_multiply_fast_impl!(upcast_multiply_fast_signed, i32);
+upcast_multiply_fast_impl!(upcast_multiply_fast_unsigned, u32);
 
-fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
-fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
+macro_rules! upcast_multiply_impl {
+    ($T: ty, optimised_64_bit_signed) => {
+        #[cfg(not(target_arch = "arm"))]
+        upcast_multiply_impl!($T, i64);
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
+            if cfg!(debug_assertions) && is_overflow {
+                panic!("attempt to multiply with overflow");
+            }
+            res
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
+            if is_overflow {
+                None
+            } else {
+                Some(res)
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
+            if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                let res = ((low >> N) | (high << (32 - N)) as u32) as $T;
+                let is_overflow = (high >> N) != (res >> 31);
+                (res, is_overflow)
+            };
+            if is_overflow {
+                if (a < 0) ^ (b < 0) {
+                    <$T>::MIN
+                } else {
+                    <$T>::MAX
+                }
+            } else {
+                res
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
+            if N <= 16 {
+                upcast_multiply_fast_signed::<N>(a, b).0
+            } else {
+                let (low, high) = upcast_multiply_wide_signed(a, b);
+                ((low >> N) | (high << (32 - N)) as u32) as $T
+            }
+        }
+    };
+    ($T: ty, optimised_64_bit_unsigned) => {
+        #[cfg(not(target_arch = "arm"))]
+        upcast_multiply_impl!($T, u64);
+
+        #[cfg(target_arch = "arm")]
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
+            if cfg!(debug_assertions) && is_overflow {
+                panic!("attempt to multiply with overflow");
+            }
+            res
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
+            if is_overflow {
+                None
+            } else {
+                Some(res)
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
+            if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
+            let (res, is_overflow) = if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b)
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                let res = ((low >> N) | (high << (32 - N))) as $T;
+                let is_overflow = (high >> N) != 0;
+                (res, is_overflow)
+            };
+            if is_overflow {
+                <$T>::MAX
+            } else {
+                res
+            }
+        }
+
+        #[cfg(target_arch = "arm")]
+        #[inline(always)]
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
+            if N <= 16 {
+                upcast_multiply_fast_unsigned::<N>(a, b).0
+            } else {
+                let (low, high) = upcast_multiply_wide_unsigned(a, b);
+                ((low >> N) | (high << (32 - N))) as $T
+            }
+        }
+    };
+    ($T: ty, $Upcast: ty) => {
+        #[inline(always)]
+        fn upcast_multiply<const N: usize>(a: Self, b: Self) -> Self {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
+            let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+            if cfg!(debug_assertions) && is_overflow {
+                panic!("attempt to multiply with overflow");
+            }
+            res as $T
+        }
+
+        #[inline(always)]
+        fn upcast_multiply_checked<const N: usize>(a: Self, b: Self) -> Option<Self> {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
+            let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+            if is_overflow {
+                None
+            } else {
+                Some(res as $T)
+            }
+        }
+
+        #[inline(always)]
+        fn upcast_multiply_overflowing<const N: usize>(a: Self, b: Self) -> (Self, bool) {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
+            let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+            (res as $T, is_overflow)
+        }
+
+        #[inline(always)]
+        fn upcast_multiply_saturating<const N: usize>(a: Self, b: Self) -> Self {
+            let res = ((a as $Upcast) * (b as $Upcast)) >> N;
+            let is_overflow = res > <$T>::MAX as $Upcast || res < <$T>::MIN as $Upcast;
+            if is_overflow {
+                #[allow(unused_comparisons)]
+                if (a < 0) ^ (b < 0) {
+                    <$T>::MIN
+                } else {
+                    <$T>::MAX
+                }
+            } else {
+                res as $T
+            }
+        }
+
+        #[inline(always)]
+        fn upcast_multiply_wrapping<const N: usize>(a: Self, b: Self) -> Self {
+            ((a as $Upcast) * (b as $Upcast) >> N) as $T
+        }
+    };
+}
+
+fixed_width_integer_impl!(i8, i16);
+fixed_width_integer_impl!(u8, u16);
+fixed_width_integer_impl!(i16, i32);
+fixed_width_integer_impl!(u16, u32);
+
+fixed_width_integer_impl!(i32, optimised_64_bit_signed);
+fixed_width_integer_impl!(u32, optimised_64_bit_unsigned);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
-pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
+pub struct Num<I: FixedWidthInteger, const N: usize>(I);
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Zero for Num<I, N> {
     fn zero() -> Self {
         Self::new(I::zero())
     }
@@ -134,13 +391,13 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::One for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> One for Num<I, N> {
     fn one() -> Self {
         Self::new(I::one())
     }
 }
 
-impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
+impl<I: FixedWidthInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
     type FromStrRadixErr = <f64 as num_traits::Num>::FromStrRadixErr;
 
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
@@ -150,10 +407,15 @@ impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits:
 
         let v: f64 = f64::from_str_radix(str, radix)?;
 
-        let integer = v.trunc();
-        let fractional = v.fract() * (1u64 << 30) as f64;
+        let integer = v.trunc().abs();
+        let fractional = v.fract().abs() * (1u64 << 32) as f64;
+        let sign = v.signum();
 
-        Ok(Self::new_from_parts((integer as i32, fractional as i32)))
+        Ok(Self::new_from_parts((
+            sign as i8,
+            integer as u32,
+            fractional as u32,
+        )))
     }
 }
 
@@ -161,7 +423,7 @@ impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits:
 /// internal representation for maximum efficiency
 pub type FixedNum<const N: usize> = Num<i32, N>;
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> From<I> for Num<I, N> {
     fn from(value: I) -> Self {
         Num(value << N)
     }
@@ -169,7 +431,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
 
 impl<I, const N: usize> Default for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     fn default() -> Self {
         Num(I::zero())
@@ -178,7 +440,7 @@ where
 
 impl<I, T, const N: usize> Add<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -189,7 +451,7 @@ where
 
 impl<I, T, const N: usize> AddAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn add_assign(&mut self, rhs: T) {
@@ -199,7 +461,7 @@ where
 
 impl<I, T, const N: usize> Sub<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -210,7 +472,7 @@ where
 
 impl<I, T, const N: usize> SubAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn sub_assign(&mut self, rhs: T) {
@@ -220,17 +482,17 @@ where
 
 impl<I, const N: usize> Mul<Num<I, N>> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn mul(self, rhs: Num<I, N>) -> Self::Output {
-        Num(I::upcast_multiply(self.0, rhs.0, N))
+        Num(I::upcast_multiply::<N>(self.0, rhs.0))
     }
 }
 
 impl<I, const N: usize> Mul<I> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn mul(self, rhs: I) -> Self::Output {
@@ -240,7 +502,7 @@ where
 
 impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     Num<I, N>: Mul<T, Output = Num<I, N>>,
 {
     fn mul_assign(&mut self, rhs: T) {
@@ -250,7 +512,7 @@ where
 
 impl<I, const N: usize> Div<Num<I, N>> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn div(self, rhs: Num<I, N>) -> Self::Output {
@@ -260,7 +522,7 @@ where
 
 impl<I, const N: usize> Div<I> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
 {
     type Output = Self;
     fn div(self, rhs: I) -> Self::Output {
@@ -270,7 +532,7 @@ where
 
 impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     Num<I, N>: Div<T, Output = Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
@@ -280,7 +542,7 @@ where
 
 impl<I, T, const N: usize> Rem<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     type Output = Self;
@@ -291,7 +553,7 @@ where
 
 impl<I, T, const N: usize> RemAssign<T> for Num<I, N>
 where
-    I: FixedWidthUnsignedInteger,
+    I: FixedWidthInteger,
     T: Into<Num<I, N>>,
 {
     fn rem_assign(&mut self, modulus: T) {
@@ -299,16 +561,16 @@ where
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Neg for Num<I, N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Num(-self.0)
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
     /// Performs the conversion between two integer types and between two different fractional precisions
-    pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
+    pub fn change_base<J: FixedWidthInteger + From<I>, const M: usize>(self) -> Num<J, M> {
         let n: J = self.0.into();
         if N < M {
             Num(n << (M - N))
@@ -329,7 +591,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     /// let b: Option<Num<u8, 4>> = a.try_change_base();
     /// assert_eq!(b, None);
     /// ```
-    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+    pub fn try_change_base<J: FixedWidthInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Num<J, M>> {
         if size_of::<I>() > size_of::<J>() {
@@ -367,14 +629,14 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     /// because you cannot currently do floating point operations in const contexts, so
     /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
     pub fn from_f32(input: f32) -> Self {
-        Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
+        Self::from_raw(I::from_as_i32((input * (1_usize << N) as f32) as i32))
     }
 
     /// Lossily transforms an f64 into a fixed point representation. This is not const
     /// because you cannot currently do floating point operations in const contexts, so
     /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
     pub fn from_f64(input: f64) -> Self {
-        Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
+        Self::from_raw(I::from_as_i32((input * (1_usize << N) as f64) as i32))
     }
 
     /// Truncates the fixed point number returning the integral part
@@ -450,8 +712,9 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     #[doc(hidden)]
     #[inline(always)]
     /// Called by the [num!] macro in order to create a fixed point number
-    pub fn new_from_parts(num: (i32, i32)) -> Self {
-        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    pub fn new_from_parts((sign, integer, fraction): (i8, u32, u32)) -> Self {
+        let repr = sign as i64 * (((integer as i64) << N) | ((fraction as i64) >> (32 - N)));
+        Self(I::from_as_i32(repr as i32))
     }
 }
 
@@ -489,7 +752,7 @@ impl<const N: usize> Num<i32, N> {
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Num<I, N> {
     #[must_use]
     /// Returns the absolute value of a fixed point number
     /// ```
@@ -544,12 +807,12 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     #[must_use]
     pub fn sin(self) -> Self {
         let one: Self = I::one().into();
-        let four: I = 4.into();
+        let four: I = I::from_as_i32(4);
         (self - one / four).cos()
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> num_traits::sign::Signed for Num<I, N> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Signed for Num<I, N> {
     fn abs(&self) -> Self {
         Self::abs(*self)
     }
@@ -571,44 +834,122 @@ impl<I: FixedWidthSignedInteger, const N: usize> num_traits::sign::Signed for Nu
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut integral = self.0 >> N;
-        let mask: I = (I::one() << N) - I::one();
+impl<I: FixedWidthInteger, const N: usize> Num<I, N> {
+    /// Checked integer addition. Computes self + rhs, returning None if overflow occurred
+    pub fn checked_add(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        self.0.checked_add(&rhs.into().0).map(|n| Num(n))
+    }
 
-        let mut fractional = self.0 & mask;
+    /// Checked integer division. Computes self / rhs, returning None if rhs == 0 or the division results in overflow
+    pub fn checked_div(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        (self.0 << N).checked_div(&rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Checked integer multiplication. Computes self * rhs, returning None if overflow occurred
+    pub fn checked_mul(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        I::upcast_multiply_checked::<N>(self.0, rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Checked integer subtraction. Computes self - rhs, returning None if overflow occurred
+    pub fn checked_sub(&self, rhs: impl Into<Num<I, N>>) -> Option<Self> {
+        self.0.checked_sub(&rhs.into().0).map(|n| Num(n))
+    }
+
+    /// Calculates self + rhs
+    /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_add(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = self.0.overflowing_add(&rhs.into().0);
+        (Num(res), flag)
+    }
+
+    /// Calculates the multiplication of self and rhs.
+    /// Returns a tuple of the multiplication along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_mul(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = I::upcast_multiply_overflowing::<N>(self.0, rhs.into().0);
+        (Num(res), flag)
+    }
+
+    /// Calculates self - rhs
+    /// Returns a tuple of the subtraction along with a boolean indicating whether an arithmetic overflow would occur. If an overflow would have occurred then the wrapped value is returned
+    pub fn overflowing_sub(&self, rhs: impl Into<Num<I, N>>) -> (Self, bool) {
+        let (res, flag) = self.0.overflowing_sub(&rhs.into().0);
+        (Num(res), flag)
+    }
+
+    /// Saturating integer addition. Computes self + rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_add(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.saturating_add(rhs.into().0))
+    }
+
+    /// Saturating integer multiplication. Computes self * rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(I::upcast_multiply_saturating::<N>(self.0, rhs.into().0))
+    }
+
+    /// Saturating integer subtraction. Computes self - rhs, saturating at the numeric bounds instead of overflowing
+    pub fn saturating_sub(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.saturating_sub(rhs.into().0))
+    }
+
+    /// Wrapping (modular) addition. Computes self + rhs, wrapping around at the boundary of the type
+    pub fn wrapping_add(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.wrapping_add(&rhs.into().0))
+    }
+
+    /// Wrapping (modular) multiplication. Computes self * rhs, wrapping around at the boundary of the type
+    pub fn wrapping_mul(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(I::upcast_multiply_wrapping::<N>(self.0, rhs.into().0))
+    }
+
+    /// Wrapping (modular) subtraction. Computes self - rhs, wrapping around at the boundary of the type
+    pub fn wrapping_sub(&self, rhs: impl Into<Num<I, N>>) -> Self {
+        Num(self.0.wrapping_sub(&rhs.into().0))
+    }
+}
+
+impl<I: FixedWidthInteger, const N: usize> Display for Num<I, N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let repr = self
+            .0
+            .to_i64()
+            .expect("Num<I, N>'s I can always be converted to i64");
+        let mut integral = repr >> N;
+        let mask = (1_i64 << N) - 1;
+
+        let mut fractional = repr & mask;
 
         // Negative fixnums are awkward to print if they have non zero fractional part.
         // This is because you can think of them as `number + non negative fraction`.
         //
         // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
         // So we have to add 1 to the integral bit, and take 1 - fractional bit
-        let sign = if fractional != I::zero() && integral < I::zero() {
-            integral = integral + I::one();
-            fractional = (I::one() << N) - fractional;
+        let sign = if fractional != 0 && integral < 0 {
+            integral += 1;
+            fractional = (1 << N) - fractional;
             -1
         } else {
             1
         };
+        let mut integral = integral as i32;
 
         if let Some(precision) = f.precision() {
-            let precision_multiplier = I::from_as_i32(10_i32.pow(precision as u32));
+            let precision_multiplier = 10_u32.pow(precision as u32);
 
-            let fractional_as_integer = fractional * precision_multiplier * I::ten();
-            let mut fractional_as_integer = fractional_as_integer >> N;
+            let fractional_as_integer = fractional * precision_multiplier as i64 * 10;
+            let mut fractional_as_integer = (fractional_as_integer >> N) as u32;
 
-            if fractional_as_integer % I::ten() >= I::from_as_i32(5) {
-                fractional_as_integer = fractional_as_integer + I::ten();
+            if fractional_as_integer % 10 >= 5 {
+                fractional_as_integer += 10;
             }
 
-            let mut fraction_to_write = fractional_as_integer / I::ten();
+            let mut fraction_to_write = fractional_as_integer / 10;
 
             if fraction_to_write >= precision_multiplier {
-                integral = integral + I::from_as_i32(sign);
-                fraction_to_write = fraction_to_write - precision_multiplier;
+                integral += sign;
+                fraction_to_write -= precision_multiplier;
             }
 
-            if sign == -1 && integral == I::zero() && fraction_to_write != I::zero() {
+            if sign == -1 && integral == 0 && fraction_to_write != 0 {
                 write!(f, "-")?;
             }
 
@@ -618,19 +959,19 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
                 write!(f, ".{:#0width$}", fraction_to_write, width = precision)?;
             }
         } else {
-            if sign == -1 && integral == I::zero() {
+            if sign == -1 && integral == 0 {
                 write!(f, "-")?;
             }
             write!(f, "{integral}")?;
 
-            if fractional != I::zero() {
+            if fractional != 0 {
                 write!(f, ".")?;
             }
 
-            while fractional & mask != I::zero() {
-                fractional = fractional * I::ten();
+            while fractional & mask != 0 {
+                fractional *= 10;
                 write!(f, "{}", (fractional & !mask) >> N)?;
-                fractional = fractional & mask;
+                fractional &= mask;
             }
         }
 
@@ -638,7 +979,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
+impl<I: FixedWidthInteger, const N: usize> Debug for Num<I, N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use core::any::type_name;
 
@@ -768,7 +1109,7 @@ impl<T: Number + Signed> Vector2D<T> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger, const N: usize> Vector2D<Num<I, N>> {
     #[must_use]
     /// Truncates the x and y coordinate, see [Num::trunc]
     /// ```
@@ -801,7 +1142,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
 
     #[must_use]
     /// Attempts to change the base returning None if the numbers cannot be represented
-    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+    pub fn try_change_base<J: FixedWidthInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Vector2D<Num<J, M>>> {
         Some(Vector2D::new(
@@ -882,7 +1223,7 @@ impl<T: Number> Vector2D<T> {
     }
 }
 
-impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger + Signed, const N: usize> Vector2D<Num<I, N>> {
     /// Creates a unit vector from an angle, noting that the domain of the angle
     /// is [0, 1], see [Num::cos] and [Num::sin].
     /// ```
@@ -898,7 +1239,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 }
 
-impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
+impl<I: FixedWidthInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
         Vector2D {
             x: n.x.into(),
@@ -1022,7 +1363,7 @@ impl<T: Number> Rect<T> {
     }
 }
 
-impl<T: FixedWidthUnsignedInteger> Rect<T> {
+impl<T: FixedWidthInteger> Rect<T> {
     /// Iterate over the points in a rectangle in row major order.
     /// ```
     /// use agb_fixnum::{Rect, vec2};
@@ -1257,6 +1598,18 @@ mod tests {
 
         test_precision!(zero_precision_negative, -0.001, "0", 0);
         test_precision!(zero_precision_positive, 0.001, "0", 0);
+
+        #[test]
+        fn test_high_precision() {
+            let a: Num<i32, 31> = num!(-0.625);
+            assert_eq!(format!("{:.3}", a), "-0.625");
+
+            let a: Num<u32, 31> = num!(0.390625);
+            assert_eq!(format!("{:.6}", a), "0.390625");
+
+            let a: Num<u32, 32> = num!(0.66666667);
+            assert_eq!(format!("{:.8}", a), "0.66666667");
+        }
     }
 
     #[test]
@@ -1269,7 +1622,7 @@ mod tests {
 
     #[test]
     fn test_macro_conversion() {
-        fn test_positive<A: FixedWidthUnsignedInteger, const B: usize>() {
+        fn test_positive<A: FixedWidthInteger, const B: usize>() {
             let a: Num<A, B> = num!(1.5);
             let one = A::one() << B;
             let b = Num::from_raw(one + (one >> 1));
@@ -1277,7 +1630,7 @@ mod tests {
             assert_eq!(a, b);
         }
 
-        fn test_negative<A: FixedWidthSignedInteger, const B: usize>() {
+        fn test_negative<A: FixedWidthInteger + Signed, const B: usize>() {
             let a: Num<A, B> = num!(-1.5);
             let one = A::one() << B;
             let b = Num::from_raw(one + (one >> 1));
@@ -1366,6 +1719,272 @@ mod tests {
 
             assert_eq!(m * sixteen, n);
         }
+    }
+
+    #[test]
+    fn test_multiplication_overflow() {
+        let a: Num<i16, 6> = Num::from_f32(0.625);
+        let b: Num<i16, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 6> = Num::from_f32(0.625);
+        let b: Num<u32, 6> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = Num::from_f32(0.625);
+        let b: Num<u32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = Num::from_f32(-0.625);
+        let b: Num<i32, 31> = Num::from_f32(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<u32, 31> = num!(0.625);
+        let b: Num<u32, 31> = num!(0.390625);
+
+        assert_eq!(a * a, b);
+
+        let a: Num<i32, 31> = num!(-0.625);
+        let b: Num<i32, 31> = num!(0.390625);
+
+        assert_eq!(a * a, b);
+    }
+
+    mod overflow_strategies {
+        use super::*;
+
+        macro_rules! test_overflow_strategies {
+            ($TestName: ident, $Type: ty, $Prec: literal) => {
+                #[test]
+                fn $TestName() {
+                    let max_value_integer: Num<$Type, $Prec> = (<$Type>::MAX >> $Prec).into();
+                    let min_value_integer: Num<$Type, $Prec> = (<$Type>::MIN >> $Prec).into();
+                    let max_value_fract: Num<$Type, $Prec> = Num::from_raw(<$Type>::MAX);
+                    let min_value_fract: Num<$Type, $Prec> = Num::from_raw(<$Type>::MIN);
+
+                    let max_minus_one: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 1).into();
+                    let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
+                    assert_eq!(max_minus_two.checked_add(1), Some(max_minus_one));
+                    assert_eq!(max_minus_two.checked_add(3), None);
+                    assert_eq!(max_minus_two.overflowing_add(1), (max_minus_one, false));
+                    assert_eq!(max_minus_two.overflowing_add(3), (min_value_integer, true));
+                    assert_eq!(max_minus_two.saturating_add(1), max_minus_one);
+                    assert_eq!(max_minus_two.saturating_add(3), max_value_fract);
+                    assert_eq!(max_minus_two.wrapping_add(1), max_minus_one);
+                    assert_eq!(max_minus_two.wrapping_add(3), min_value_integer);
+
+                    let eight: Num<$Type, $Prec> = 8.into();
+                    let four: Num<$Type, $Prec> = 4.into();
+                    // TODO: fix high precision division
+                    let eight_low_precision: Num<$Type, 1> = 8.into();
+                    let four_low_precision: Num<$Type, 1> = 4.into();
+                    assert_eq!(eight_low_precision.checked_div(2), Some(four_low_precision));
+                    assert_eq!(eight.checked_div(0), None);
+
+                    let max_minus_two_times_two: Num<$Type, $Prec> =
+                        ((<$Type>::MAX >> $Prec) - 5 | (1 << <$Type>::BITS - 1 - $Prec)).into();
+                    assert_eq!(max_minus_two.checked_mul(1), Some(max_minus_two));
+                    assert_eq!(four.checked_mul(2), Some(eight));
+                    assert_eq!(max_minus_two.checked_mul(2), None);
+
+                    assert_eq!(max_minus_two.overflowing_mul(1), (max_minus_two, false));
+                    assert_eq!(four.overflowing_mul(2), (eight, false));
+                    assert_eq!(
+                        max_minus_two.overflowing_mul(2),
+                        (max_minus_two_times_two, true)
+                    );
+
+                    assert_eq!(max_minus_two.saturating_mul(1), max_minus_two);
+                    assert_eq!(four.saturating_mul(2), eight);
+                    assert_eq!(max_minus_two.saturating_mul(2), max_value_fract);
+
+                    assert_eq!(max_minus_two.wrapping_mul(1), max_minus_two);
+                    assert_eq!(four.wrapping_mul(2), eight);
+                    assert_eq!(max_minus_two.wrapping_mul(2), max_minus_two_times_two);
+
+                    let min_plus_one: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 1).into();
+                    let min_plus_two: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 2).into();
+                    assert_eq!(min_plus_two.checked_sub(1), Some(min_plus_one));
+                    assert_eq!(min_plus_two.checked_sub(3), None);
+                    assert_eq!(min_plus_two.overflowing_sub(1), (min_plus_one, false));
+                    assert_eq!(min_plus_two.overflowing_sub(3), (max_value_integer, true));
+                    assert_eq!(min_plus_two.saturating_sub(1), min_plus_one);
+                    assert_eq!(min_plus_two.saturating_sub(3), min_value_fract);
+                    assert_eq!(min_plus_two.wrapping_sub(1), min_plus_one);
+                    assert_eq!(min_plus_two.wrapping_sub(3), max_value_integer);
+                }
+            };
+        }
+
+        macro_rules! test_overflow_strategies_signed_mul {
+            ($TestName: ident, $Type: ty, $Prec: literal) => {
+                #[test]
+                fn $TestName() {
+                    let two_point_five: Num<$Type, $Prec> = Num::from_f32(2.5);
+                    let five: Num<$Type, $Prec> = 5.into();
+                    let minus_two_point_five: Num<$Type, $Prec> = Num::from_f32(-2.5);
+                    let minus_six_point_twenty_five: Num<$Type, $Prec> = Num::from_f32(6.25);
+                    assert_eq!(two_point_five.checked_mul(-2), Some(-five));
+                    assert_eq!(
+                        minus_two_point_five.checked_mul(minus_two_point_five),
+                        Some(minus_six_point_twenty_five)
+                    );
+                    assert_eq!(two_point_five.overflowing_mul(-2), (-five, false));
+                    assert_eq!(
+                        minus_two_point_five.overflowing_mul(minus_two_point_five),
+                        (minus_six_point_twenty_five, false)
+                    );
+                    assert_eq!(two_point_five.saturating_mul(-2), -five);
+                    assert_eq!(
+                        minus_two_point_five.saturating_mul(minus_two_point_five),
+                        minus_six_point_twenty_five
+                    );
+                    assert_eq!(two_point_five.wrapping_mul(-2), -five);
+                    assert_eq!(
+                        minus_two_point_five.wrapping_mul(minus_two_point_five),
+                        minus_six_point_twenty_five
+                    );
+
+                    let very_small: Num<$Type, $Prec> =
+                        (<$Type>::MIN + (2 << $Prec) >> $Prec + 1).into();
+                    let very_small_times_minus_thirty_two: Num<$Type, $Prec> = (-32).into();
+                    let negative_very_small_squared: Num<$Type, $Prec> =
+                        (<$Type>::MAX >> $Prec).into();
+                    assert_eq!(very_small.checked_mul(-32), None);
+                    assert_eq!(very_small.checked_mul(very_small), None);
+                    assert_eq!(
+                        very_small.overflowing_mul(-32),
+                        (very_small_times_minus_thirty_two, true)
+                    );
+                    assert_eq!(
+                        very_small.overflowing_mul(-very_small),
+                        (negative_very_small_squared, true)
+                    );
+                    assert_eq!(very_small.saturating_mul(-32), Num::from_raw(<$Type>::MAX));
+                    assert_eq!(
+                        very_small.saturating_mul(-very_small),
+                        Num::from_raw(<$Type>::MIN)
+                    );
+                    assert_eq!(
+                        very_small.wrapping_mul(-32),
+                        very_small_times_minus_thirty_two
+                    );
+                    assert_eq!(
+                        very_small.wrapping_mul(-very_small),
+                        negative_very_small_squared
+                    );
+                }
+            };
+        }
+
+        macro_rules! test_panic_on_overflow {
+            ($ModName: ident, $Type: ty, $Prec: literal) => {
+                mod $ModName {
+                    use super::*;
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to add with overflow")
+                    )]
+                    fn add() {
+                        let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
+                        let three: Num<$Type, $Prec> = 3.into();
+                        let _ = max_minus_two + three;
+                    }
+
+                    #[test]
+                    #[should_panic(expected = "attempt to divide by zero")]
+                    fn div() {
+                        let eight: Num<$Type, 1> = 8.into();
+                        let zero: Num<$Type, 1> = 0.into();
+                        let _ = eight / zero;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul() {
+                        let max_minus_two: Num<$Type, $Prec> = ((<$Type>::MAX >> $Prec) - 2).into();
+                        let two: Num<$Type, $Prec> = 2.into();
+                        let _ = max_minus_two * two;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to subtract with overflow")
+                    )]
+                    fn sub() {
+                        let min_plus_two: Num<$Type, $Prec> = ((<$Type>::MIN >> $Prec) + 2).into();
+                        let three: Num<$Type, $Prec> = 3.into();
+                        let _ = min_plus_two - three;
+                    }
+                }
+            };
+        }
+
+        macro_rules! test_panic_on_overflow_signed_mul {
+            ($ModName: ident, $Type: ty, $Prec: literal) => {
+                mod $ModName {
+                    use super::*;
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul_negative_times_positive() {
+                        let very_small: Num<$Type, $Prec> =
+                            (<$Type>::MIN + (2 << $Prec) >> $Prec).into();
+                        let _ = very_small * -very_small;
+                    }
+
+                    #[test]
+                    #[cfg_attr(
+                        debug_assertions,
+                        should_panic(expected = "attempt to multiply with overflow")
+                    )]
+                    fn mul_negative_times_negative() {
+                        let very_small: Num<$Type, $Prec> =
+                            (<$Type>::MIN + (2 << $Prec) >> $Prec).into();
+                        let minus_thirty_two: Num<$Type, $Prec> = (-32).into();
+                        let _ = very_small * minus_thirty_two;
+                    }
+                }
+            };
+        }
+
+        test_overflow_strategies!(test_i8, i8, 1);
+        test_overflow_strategies!(test_u8, u8, 1);
+        test_overflow_strategies!(test_i16, i16, 3);
+        test_overflow_strategies!(test_u16, u16, 3);
+        test_overflow_strategies!(test_i32, i32, 3);
+        test_overflow_strategies!(test_i32_high_precision, i32, 18);
+        test_overflow_strategies!(test_u32, u32, 3);
+        test_overflow_strategies!(test_u32_high_precision, u32, 18);
+        test_overflow_strategies_signed_mul!(test_i8_signed_mul, i8, 2);
+        test_overflow_strategies_signed_mul!(test_i16_signed_mul, i16, 3);
+        test_overflow_strategies_signed_mul!(test_i32_signed_mul, i32, 3);
+        test_overflow_strategies_signed_mul!(test_i32_high_precision_signed_mul, i32, 18);
+        test_panic_on_overflow!(test_panic_i8, i8, 2);
+        test_panic_on_overflow!(test_panic_u8, u8, 2);
+        test_panic_on_overflow!(test_panic_i16, i16, 3);
+        test_panic_on_overflow!(test_panic_u16, u16, 3);
+        test_panic_on_overflow!(test_panic_i32, i32, 3);
+        test_panic_on_overflow!(test_panic_i32_high_precision, i32, 18);
+        test_panic_on_overflow!(test_panic_u32, u32, 3);
+        test_panic_on_overflow!(test_panic_u32_high_precision, i32, 18);
+        test_panic_on_overflow_signed_mul!(test_panic_i8_signed_mul, i8, 2);
+        test_panic_on_overflow_signed_mul!(test_panic_i16_signed_mul, i16, 3);
+        test_panic_on_overflow_signed_mul!(test_panic_i32_signed_mul, i32, 3);
+        test_panic_on_overflow_signed_mul!(test_panic_i32_high_precision_signed_mul, i32, 18);
     }
 
     #[test]
