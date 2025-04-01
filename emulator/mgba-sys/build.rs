@@ -8,7 +8,7 @@ use std::{
 type MyError = Result<(), Box<dyn Error>>;
 
 fn main() -> MyError {
-    have_submodule()?;
+    have_mgba()?;
 
     generate_bindings()?;
 
@@ -17,7 +17,7 @@ fn main() -> MyError {
     Ok(())
 }
 
-fn have_submodule() -> MyError {
+fn have_mgba() -> MyError {
     if !Path::new("mgba/src").exists() {
         Command::new("curl")
             .args([
@@ -83,6 +83,7 @@ fn compile() -> MyError {
         .define("M_CORE_GBA", "1")
         .define("M_CORE_GB", "0")
         .define("USE_DEBUGGERS", "1")
+        .define("CMAKE_POLICY_VERSION_MINIMUM", "3.5")
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
