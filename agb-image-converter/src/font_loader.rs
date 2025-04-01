@@ -39,22 +39,28 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         .iter()
         .map(|(&c, &index)| (c, index, font.rasterize(c, pixels_per_em)))
         .map(|(c, index, (metrics, bitmap))| {
-            let width = metrics.width;
+            let width = metrics.width.div_ceil(8) * 8;
             let height = metrics.height;
 
-            let rendered = bitmap
-                .chunks(8)
-                .map(|chunk| {
-                    let mut output = 0u8;
-                    for (i, &value) in chunk.iter().enumerate() {
-                        if value > 100 {
-                            output |= 1 << i;
-                        }
-                    }
+            let rendered = if bitmap.is_empty() {
+                vec![]
+            } else {
+                bitmap
+                    .chunks(metrics.width)
+                    .flat_map(|row| {
+                        row.chunks(8).map(|chunk| {
+                            let mut output = 0u8;
+                            for (i, &value) in chunk.iter().enumerate() {
+                                if value > 100 {
+                                    output |= 1 << i;
+                                }
+                            }
 
-                    output
-                })
-                .collect();
+                            output
+                        })
+                    })
+                    .collect()
+            };
 
             let mut kerning_data: Vec<_> = font
                 .chars()
