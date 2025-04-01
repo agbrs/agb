@@ -117,7 +117,7 @@ build-combo-rom-site:
     gzip -9 -c examples/target/examples/combo.gba > website/agb/src/roms/combo.gba.gz
 
 generate-screenshot *args:
-    (cd emulator/screenshot-generator && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}})
+    "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}}
 
 
 build-site-examples: build-release
