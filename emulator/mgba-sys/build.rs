@@ -22,7 +22,7 @@ fn have_submodule() -> MyError {
         Command::new("curl")
             .args([
                 "-L",
-                "https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.2.tar.gz",
+                "https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.5.tar.gz",
                 "-o",
                 "mgba.tar.gz",
             ])
