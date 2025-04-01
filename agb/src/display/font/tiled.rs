@@ -42,8 +42,8 @@ impl RegularBackgroundTextRenderer {
             let tile_left = row[x].get_or_insert_with(|| DynamicTile::new().fill_with(0));
             tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
 
-            let tile_right = row[x + 1].get_or_insert_with(|| DynamicTile::new().fill_with(0));
             if x_in_tile > 0 {
+                let tile_right = row[x + 1].get_or_insert_with(|| DynamicTile::new().fill_with(0));
                 tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
