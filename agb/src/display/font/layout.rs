@@ -95,6 +95,68 @@ impl LetterGroup {
         self.line
     }
 
+    pub fn pixels_packed(&self) -> impl Iterator<Item = (Vector2D<i32>, u32)> {
+        let font = self.font();
+        let mut previous_char = None;
+
+        let mut x_offset = 0;
+
+        self.text().chars().flat_map(move |c| {
+            let letter = font.letter(c);
+            let kern = if let Some(previous) = previous_char {
+                letter.kerning_amount(previous)
+            } else {
+                0
+            };
+
+            previous_char = Some(c);
+
+            let y_position = font.ascent() - letter.height as i32 - letter.ymin as i32;
+
+            let x_offset_this = x_offset;
+            x_offset += kern + letter.advance_width as i32;
+
+            let chunks_in_a_row = (letter.width / 8).into();
+            let mut row_index = 0;
+            let mut chunk_in_row_index = 0;
+
+            let palette_index: u32 = self.palette_index.into();
+
+            letter
+                .data
+                .iter()
+                .copied()
+                .map(move |x| {
+                    static PX_LUT: [u16; 16] = [
+                        0x0000, 0x0001, 0x0010, 0x0011, 0x0100, 0x0101, 0x0110, 0x0111, 0x1000,
+                        0x1001, 0x1010, 0x1011, 0x1100, 0x1101, 0x1110, 0x1111,
+                    ];
+
+                    let px = u32::from(PX_LUT[usize::from(x & 0xF)])
+                        | (u32::from(PX_LUT[usize::from(x >> 4)]) << 16);
+
+                    let px = px * palette_index;
+
+                    let unpacked = (
+                        vec2(
+                            chunk_in_row_index * 8 + x_offset_this,
+                            y_position + row_index,
+                        ),
+                        px,
+                    );
+
+                    chunk_in_row_index += 1;
+                    if chunk_in_row_index >= chunks_in_a_row {
+                        chunk_in_row_index = 0;
+                        row_index += 1;
+                    }
+
+                    unpacked
+                })
+                .filter(|&(_, px)| px != 0)
+        })
+    }
+
     pub fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
         let font = self.font();
         let mut previous_char = None;

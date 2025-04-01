@@ -22,11 +22,30 @@ impl RegularBackgroundTextRenderer {
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
         let dynamic_origin = vec2(self.origin.x % 8, self.origin.y % 8);
 
-        for pixel in group.pixels() {
-            self.put_pixel(
-                dynamic_origin + pixel + group.position(),
-                group.palette_index(),
-            );
+        for (px_start, px) in group.pixels_packed() {
+            let pos = px_start + dynamic_origin + group.position();
+
+            let x = pos.x as usize / 8;
+            let y = pos.y as usize / 8;
+
+            if self.tiles.len() <= y {
+                self.tiles.resize_with(y + 1, Vec::new);
+            }
+
+            let row = &mut self.tiles[y];
+            if row.len() <= x + 1 {
+                row.resize_with(x + 2, || None);
+            }
+
+            let x_in_tile = pos.x.rem_euclid(8) * 4;
+
+            let tile_left = row[x].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+            tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+
+            let tile_right = row[x + 1].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+            if x_in_tile > 0 {
+                tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
+            }
         }
 
         let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
@@ -41,27 +60,6 @@ impl RegularBackgroundTextRenderer {
                 bg.set_tile_dynamic(tile_pos + tile_offset, tile, TileEffect::default());
             }
         }
-    }
-
-    fn put_pixel(&mut self, pos: Vector2D<i32>, palette_index: u8) {
-        let x = pos.x as usize / 8;
-        let y = pos.y as usize / 8;
-
-        if self.tiles.len() <= y {
-            self.tiles.resize_with(y + 1, Vec::new);
-        }
-
-        let row = &mut self.tiles[y];
-        if row.len() <= x {
-            row.resize_with(x + 1, || None);
-        }
-
-        let tile = row[x].get_or_insert_with(|| DynamicTile::new().fill_with(0));
-
-        let inner_x = (pos.x as usize).rem_euclid(8);
-        let inner_y = (pos.y as usize).rem_euclid(8);
-
-        tile.set_pixel(inner_x, inner_y, palette_index);
     }
 }
 
@@ -82,6 +80,11 @@ mod test {
     use alloc::format;
 
     static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
+
+    // #[test_case]
+    // fn check_shifting(_gba: &mut Gba) {
+    //     assert_eq!((0xFFFF_FFFF as u32) >> 32, 0);
+    // }
 
     #[test_case]
     fn background_text_render_english(gba: &mut Gba) {
