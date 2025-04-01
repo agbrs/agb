@@ -55,6 +55,7 @@ pub struct LetterGroup {
     str: Rc<str>,
     range: Range<usize>,
     palette_index: u8,
+    width: i32,
     position: Vector2D<i32>,
     line: i32,
     font: &'static Font,
@@ -93,6 +94,21 @@ impl LetterGroup {
     #[must_use]
     pub fn line(&self) -> i32 {
         self.line
+    }
+
+    #[must_use]
+    pub fn bounds(&self) -> Vector2D<i32> {
+        let height = self
+            .text()
+            .chars()
+            .map(|c| {
+                let letter = self.font.letter(c);
+                self.font.ascent() - letter.ymin as i32
+            })
+            .max()
+            .unwrap_or(0);
+
+        vec2(self.width, height)
     }
 
     pub fn pixels_packed(&self) -> impl Iterator<Item = (Vector2D<i32>, u32)> {
@@ -226,9 +242,8 @@ impl Iterator for Layout {
             position: self.grouper.pos,
             line: self.line_number,
             font: self.font,
+            width: 0,
         };
-
-        let mut letter_group_width = 0;
 
         for (char_index, char) in self.text[self.grouper.current_idx..].char_indices() {
             let char_index = char_index + start;
@@ -306,7 +321,7 @@ impl Iterator for Layout {
                 i32::from(letter.advance_width) + kerning
             };
 
-            if letter_group_width + this_letter_width > self.max_group_width {
+            if letter_group.width + this_letter_width > self.max_group_width {
                 // If we've decided that we can't fit this letter, and there currently isn't anything
                 // in the letter group at all yet, then we can never fit this character. Warn the user
                 // about it and skip drawing this character.
@@ -318,7 +333,7 @@ impl Iterator for Layout {
                 break;
             }
 
-            letter_group_width += this_letter_width;
+            letter_group.width += this_letter_width;
             letter_group.position.x = letter_group.position.x.min(letter_x);
             letter_group.range.end = char_index + char.len_utf8();
 

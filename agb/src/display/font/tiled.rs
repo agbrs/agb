@@ -20,7 +20,27 @@ impl RegularBackgroundTextRenderer {
     }
 
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
-        let dynamic_origin = vec2(self.origin.x % 8, self.origin.y % 8);
+        let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
+
+        let bounds = group.bounds();
+        let top_left_tile = group.position() / 8;
+
+        let bottom_right_tile = (dynamic_origin + bounds + group.position()) / 8 + vec2(1, 0);
+        if self.tiles.len() <= bottom_right_tile.y as usize {
+            self.tiles
+                .resize_with(bottom_right_tile.y as usize + 1, Vec::new);
+        }
+
+        for row in top_left_tile.y..(bottom_right_tile.y + 1) {
+            let row = &mut self.tiles[row as usize];
+            if row.len() <= bottom_right_tile.x as usize {
+                row.resize_with(bottom_right_tile.x as usize + 1, || None);
+            }
+
+            for column in top_left_tile.x..(bottom_right_tile.x + 1) {
+                row[column as usize].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+            }
+        }
 
         for (px_start, px) in group.pixels_packed() {
             let pos = px_start + dynamic_origin + group.position();
@@ -28,22 +48,16 @@ impl RegularBackgroundTextRenderer {
             let x = pos.x as usize / 8;
             let y = pos.y as usize / 8;
 
-            if self.tiles.len() <= y {
-                self.tiles.resize_with(y + 1, Vec::new);
-            }
-
-            let row = &mut self.tiles[y];
-            if row.len() <= x + 1 {
-                row.resize_with(x + 2, || None);
-            }
+            let row = unsafe { self.tiles.get_unchecked_mut(y) };
 
             let x_in_tile = pos.x.rem_euclid(8) * 4;
 
-            let tile_left = row[x].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+            let tile_left = unsafe { row.get_unchecked_mut(x).as_mut().unwrap_unchecked() };
             tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
 
             if x_in_tile > 0 {
-                let tile_right = row[x + 1].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+                let tile_right =
+                    unsafe { row.get_unchecked_mut(x + 1).as_mut().unwrap_unchecked() };
                 tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
@@ -113,7 +127,7 @@ mod test {
             &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
             &FONT,
             AlignmentKind::Left,
-            16,
+            128,
             200,
         );
 
@@ -152,7 +166,7 @@ mod test {
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
             AlignmentKind::Left,
-            16,
+            200,
             200,
         );
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
