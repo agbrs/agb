@@ -20,6 +20,32 @@ impl RegularBackgroundTextRenderer {
     }
 
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
+        self.ensure_drawing_space(bg, group);
+
+        let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
+
+        for (px_start, px) in group.pixels_packed() {
+            let pos = px_start + dynamic_origin + group.position();
+
+            let x = pos.x as usize / 8;
+            let y = pos.y as usize / 8;
+
+            let row = unsafe { self.tiles.get_unchecked_mut(y) };
+
+            let x_in_tile = pos.x.rem_euclid(8) * 4;
+
+            let tile_left = unsafe { row.get_unchecked_mut(x).as_mut().unwrap_unchecked() };
+            tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+
+            if x_in_tile > 0 {
+                let tile_right =
+                    unsafe { row.get_unchecked_mut(x + 1).as_mut().unwrap_unchecked() };
+                tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
+            }
+        }
+    }
+
+    fn ensure_drawing_space(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
         let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
         let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
 
@@ -46,26 +72,6 @@ impl RegularBackgroundTextRenderer {
 
                     row[column_idx as usize] = Some(tile);
                 }
-            }
-        }
-
-        for (px_start, px) in group.pixels_packed() {
-            let pos = px_start + dynamic_origin + group.position();
-
-            let x = pos.x as usize / 8;
-            let y = pos.y as usize / 8;
-
-            let row = unsafe { self.tiles.get_unchecked_mut(y) };
-
-            let x_in_tile = pos.x.rem_euclid(8) * 4;
-
-            let tile_left = unsafe { row.get_unchecked_mut(x).as_mut().unwrap_unchecked() };
-            tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
-
-            if x_in_tile > 0 {
-                let tile_right =
-                    unsafe { row.get_unchecked_mut(x + 1).as_mut().unwrap_unchecked() };
-                tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
     }
