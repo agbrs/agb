@@ -21,6 +21,7 @@ impl RegularBackgroundTextRenderer {
 
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
         let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
+        let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
 
         let bounds = group.bounds();
         let top_left_tile = group.position() / 8;
@@ -31,14 +32,20 @@ impl RegularBackgroundTextRenderer {
                 .resize_with(bottom_right_tile.y as usize + 1, Vec::new);
         }
 
-        for row in top_left_tile.y..(bottom_right_tile.y + 1) {
-            let row = &mut self.tiles[row as usize];
+        for row_idx in top_left_tile.y..(bottom_right_tile.y + 1) {
+            let row = &mut self.tiles[row_idx as usize];
             if row.len() <= bottom_right_tile.x as usize {
                 row.resize_with(bottom_right_tile.x as usize + 1, || None);
             }
 
-            for column in top_left_tile.x..(bottom_right_tile.x + 1) {
-                row[column as usize].get_or_insert_with(|| DynamicTile::new().fill_with(0));
+            for column_idx in top_left_tile.x..(bottom_right_tile.x + 1) {
+                if row[column_idx as usize].is_none() {
+                    let tile_pos = vec2(column_idx, row_idx) + tile_offset;
+                    let tile = DynamicTile::new().fill_with(0);
+                    bg.set_tile_dynamic(tile_pos, &tile, TileEffect::default());
+
+                    row[column_idx as usize] = Some(tile);
+                }
             }
         }
 
@@ -59,19 +66,6 @@ impl RegularBackgroundTextRenderer {
                 let tile_right =
                     unsafe { row.get_unchecked_mut(x + 1).as_mut().unwrap_unchecked() };
                 tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
-            }
-        }
-
-        let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
-        for (y, row) in self.tiles.iter().enumerate() {
-            for (x, tile) in row.iter().enumerate() {
-                let Some(tile) = tile else {
-                    continue;
-                };
-
-                let tile_pos = vec2(x as i32, y as i32);
-
-                bg.set_tile_dynamic(tile_pos + tile_offset, tile, TileEffect::default());
             }
         }
     }
