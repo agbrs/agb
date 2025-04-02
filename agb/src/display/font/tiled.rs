@@ -30,16 +30,15 @@ impl RegularBackgroundTextRenderer {
             let x = pos.x as usize / 8;
             let y = pos.y as usize / 8;
 
-            let row = unsafe { self.tiles.get_unchecked_mut(y) };
+            let row = &mut self.tiles[y];
 
             let x_in_tile = pos.x.rem_euclid(8) * 4;
 
-            let tile_left = unsafe { row.get_unchecked_mut(x).as_mut().unwrap_unchecked() };
+            let tile_left = row[x].as_mut().expect("should have ensured space");
             tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
 
             if x_in_tile > 0 {
-                let tile_right =
-                    unsafe { row.get_unchecked_mut(x + 1).as_mut().unwrap_unchecked() };
+                let tile_right = row[x + 1].as_mut().expect("should have ensured space");
                 tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
