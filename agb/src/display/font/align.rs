@@ -1,4 +1,4 @@
-use super::{ChangeColour, Font};
+use super::{Font, special::AGB_PRIVATE_USE_RANGE};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AlignmentKind {
@@ -114,7 +114,7 @@ impl Align {
                 current_word_start_index = char_index + ' '.len_utf8();
 
                 previous_char = None;
-            } else if ChangeColour::try_from_char(c).is_some() {
+            } else if AGB_PRIVATE_USE_RANGE.contains(&(c as u32)) {
                 // skip it
                 continue;
             } else {

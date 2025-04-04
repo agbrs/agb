@@ -5,7 +5,7 @@ use alloc::rc::Rc;
 use crate::fixnum::{Vector2D, vec2};
 
 use super::{
-    ChangeColour, Font, FontLetter,
+    ChangeColour, Font, FontLetter, SetTag, UnsetTag,
     align::{Align, AlignmentKind, Line},
 };
 
@@ -18,6 +18,7 @@ pub struct Layout {
     grouper: Grouper,
 
     palette_index: u8,
+    tag: u16,
 
     max_group_width: i32,
 }
@@ -43,7 +44,7 @@ impl Layout {
             grouper,
 
             palette_index: 1,
-
+            tag: 0,
             max_group_width,
         }
     }
@@ -156,7 +157,7 @@ impl Iterator for Layout {
         let start = self.grouper.current_idx;
 
         let mut letter_group = LetterGroup {
-            tag: 0,
+            tag: self.tag,
             str: self.text.clone(),
             range: start..start,
             palette_index: self.palette_index,
@@ -183,6 +184,30 @@ impl Iterator for Layout {
                     self.grouper.current_idx += char.len_utf8();
                     letter_group.range = self.grouper.current_idx..self.grouper.current_idx;
                     letter_group.palette_index = change_colour.palette_index;
+                    continue;
+                } else {
+                    break;
+                }
+            }
+
+            if let Some(set_tag) = SetTag::try_from_char(char) {
+                self.tag |= 1 << set_tag.0;
+                if letter_group.range.is_empty() {
+                    self.grouper.current_idx += char.len_utf8();
+                    letter_group.range = self.grouper.current_idx..self.grouper.current_idx;
+                    letter_group.tag = self.tag;
+                    continue;
+                } else {
+                    break;
+                }
+            }
+
+            if let Some(unset_tag) = UnsetTag::try_from_char(char) {
+                self.tag &= !(1 << unset_tag.0);
+                if letter_group.range.is_empty() {
+                    self.grouper.current_idx += char.len_utf8();
+                    letter_group.range = self.grouper.current_idx..self.grouper.current_idx;
+                    letter_group.tag = self.tag;
                     continue;
                 } else {
                     break;
