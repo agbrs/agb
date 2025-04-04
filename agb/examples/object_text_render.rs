@@ -31,11 +31,11 @@ fn main(mut gba: agb::Gba) -> ! {
     let start = timer.value();
     let player_name = "You";
 
-    let colour1 = ChangeColour::new(1);
-    let colour2 = ChangeColour::new(2);
+    const COLOUR_1: ChangeColour = ChangeColour::new(1);
+    const COLOUR_2: ChangeColour = ChangeColour::new(2);
 
     let text = format!(
-        "Woah! {colour2}{player_name}{colour1}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited.\nWho'd have thought? Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
+        "Woah! {COLOUR_2}{player_name}{COLOUR_1}! I have a bunch of text I want to show you. However, you will find that the amount of text I can display is limited.\nWho'd have thought? Good thing that my text system supports scrolling! It only took around 20 jank versions to get here!",
     );
     let end = timer.value();
 
