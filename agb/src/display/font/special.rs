@@ -3,7 +3,10 @@ use core::fmt::Write;
 use core::fmt::Display;
 use core::ops::Range;
 
-pub(crate) const UTF8_PRIVATE_USE_START: u32 = 0xE000;
+const UTF8_PRIVATE_USE_START: u32 = 0xE000;
+
+pub(crate) const AGB_PRIVATE_USE_RANGE: Range<u32> =
+    UTF8_PRIVATE_USE_START..UTF8_PRIVATE_USE_START + 48;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ChangeColour {
@@ -43,10 +46,10 @@ impl Display for ChangeColour {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct SetTag(u8);
+pub struct SetTag(pub(crate) u8);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct UnsetTag(u8);
+pub struct UnsetTag(pub(crate) u8);
 
 impl SetTag {
     const RANGE: Range<u32> = UTF8_PRIVATE_USE_START + 16..UTF8_PRIVATE_USE_START + 32;
