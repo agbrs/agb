@@ -177,7 +177,6 @@ impl Iterator for Layout {
             }
 
             if let Some(change_colour) = ChangeColour::try_from_char(char) {
-                crate::println!("Colour change to {change_colour:?}");
                 self.palette_index = change_colour.palette_index;
 
                 if letter_group.range.is_empty() {
