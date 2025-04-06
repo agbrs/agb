@@ -88,16 +88,12 @@ mod test {
             tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
         },
         test_runner::assert_image_output,
+        timer::Divider,
     };
 
     use alloc::format;
 
     static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
-
-    // #[test_case]
-    // fn check_shifting(_gba: &mut Gba) {
-    //     assert_eq!((0xFFFF_FFFF as u32) >> 32, 0);
-    // }
 
     #[test_case]
     fn background_text_render_english(gba: &mut Gba) {
@@ -182,7 +178,7 @@ mod test {
     }
 
     #[test_case]
-    fn background_text_single_group(_gba: &mut Gba) {
+    fn background_text_single_group(gba: &mut Gba) {
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
             palette[1] = 0xFF_FF;
@@ -201,11 +197,25 @@ mod test {
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
             AlignmentKind::Left,
-            16,
+            32,
             200,
         );
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
+        let letter_group = layout.next().unwrap();
 
-        bg_text_render.show(&mut bg, &layout.next().unwrap());
+        let mut timer = gba.timers.timers().timer2;
+        timer
+            .set_divider(Divider::Divider256)
+            .set_overflow_amount(u16::MAX)
+            .set_cascade(false)
+            .set_enabled(true);
+
+        let before_show = timer.value();
+        bg_text_render.show(&mut bg, &core::hint::black_box(letter_group));
+        let after_show = timer.value();
+
+        let total = u32::from(after_show.wrapping_sub(before_show)) * 256;
+
+        crate::println!("rendering time: {total}");
     }
 }
