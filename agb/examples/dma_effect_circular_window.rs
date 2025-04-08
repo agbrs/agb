@@ -9,6 +9,7 @@ use agb::{
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
         window::WinIn,
     },
+    dma::HBlankDmaDefinition,
     fixnum::{Num, Rect, Vector2D},
 };
 use alloc::{boxed::Box, vec};
@@ -29,8 +30,6 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    let mut dmas = gba.dma.dma();
-
     example_logo::display_logo(&mut map);
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
@@ -48,7 +47,6 @@ fn main(mut gba: agb::Gba) -> ! {
         .collect();
 
     let mut circle_poses = vec![0; 160];
-    let mut circle_transfer = None;
 
     loop {
         pos += velocity;
@@ -85,11 +83,8 @@ fn main(mut gba: agb::Gba) -> ! {
             .set_position(Rect::new(pos.floor(), (64, 65).into()));
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
+        HBlankDmaDefinition::new(dma_controllable, &circle_poses).show(&mut frame);
 
         frame.commit();
-
-        drop(circle_transfer);
-        circle_transfer =
-            Some(unsafe { dmas.dma0.hblank_transfer(&dma_controllable, &circle_poses) });
     }
 }

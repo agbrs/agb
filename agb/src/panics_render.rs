@@ -20,54 +20,51 @@ static WEBSITE: &str = {
 };
 
 pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
-    critical_section::with(|_cs| {
-        dma3_exclusive(|| {
-            // SAFETY: This is not fine, but we're crashing anyway. The loop at the end should stop anything bad happening
-            let mut gba = unsafe { crate::Gba::new_in_entry() };
+    dma3_exclusive(|| {
+        // SAFETY: This is not fine, but we're crashing anyway. The loop at the end should stop anything bad happening
+        unsafe { crate::dma::Dma::new(3) }.disable();
 
-            gba.dma.dma().dma3.disable();
-            // SAFETY: Again, not fine, but we're crashing anyway so we can clobber VRam if we need to
-            let mut gfx = unsafe { Bitmap3::new() };
-            gfx.clear(0xFFFF);
+        // SAFETY: Again, not fine, but we're crashing anyway so we can clobber VRam if we need to
+        let mut gfx = unsafe { Bitmap3::new() };
+        gfx.clear(0xFFFF);
 
-            let qrcode_string_data = if WEBSITE.is_empty() {
-                format!("{trace}")
-            } else {
-                format!("{WEBSITE}{trace}")
-            };
-            crate::println!("Stack trace: {qrcode_string_data}");
+        let qrcode_string_data = if WEBSITE.is_empty() {
+            format!("{trace}")
+        } else {
+            format!("{WEBSITE}{trace}")
+        };
+        crate::println!("Stack trace: {qrcode_string_data}");
 
-            let location = draw_qr_code(&mut gfx, &qrcode_string_data);
+        let location = draw_qr_code(&mut gfx, &qrcode_string_data);
 
-            let mut trace_text_render =
-                text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
-            let _ = writeln!(
-                &mut trace_text_render,
-                "The game crashed :({}{WEBSITE}\n{trace}",
-                if WEBSITE.is_empty() { "" } else { "\n" }
-            );
+        let mut trace_text_render =
+            text::BitmapTextRender::new(&mut gfx, (location, 8).into(), 0x0000);
+        let _ = writeln!(
+            &mut trace_text_render,
+            "The game crashed :({}{WEBSITE}\n{trace}",
+            if WEBSITE.is_empty() { "" } else { "\n" }
+        );
 
-            let trace_location = trace_text_render.head_y_position();
+        let trace_location = trace_text_render.head_y_position();
 
-            let mut panic_text_render = text::BitmapTextRender::new(
-                &mut gfx,
-                (8, location.max(trace_location + PADDING)).into(),
-                0x0000,
-            );
-            let _ = write!(&mut panic_text_render, "{info}");
+        let mut panic_text_render = text::BitmapTextRender::new(
+            &mut gfx,
+            (8, location.max(trace_location + PADDING)).into(),
+            0x0000,
+        );
+        let _ = write!(&mut panic_text_render, "{info}");
 
-            // need to wait 2 frames to ensure that mgba finishes rendering before the fatal call below
-            busy_wait_for_vblank();
-            busy_wait_for_vblank();
+        // need to wait 2 frames to ensure that mgba finishes rendering before the fatal call below
+        busy_wait_for_vblank();
+        busy_wait_for_vblank();
 
-            if let Some(mut mgba) = mgba::Mgba::new() {
-                let _ = mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal);
-            }
+        if let Some(mut mgba) = mgba::Mgba::new() {
+            let _ = mgba.print(format_args!("Error: {info}"), mgba::DebugLevel::Fatal);
+        }
 
-            loop {
-                syscall::halt();
-            }
-        })
+        loop {
+            syscall::halt();
+        }
     })
 }
 const PADDING: i32 = 8;

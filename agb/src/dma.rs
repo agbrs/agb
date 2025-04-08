@@ -1,41 +1,13 @@
-use core::{marker::PhantomData, mem::size_of, pin::Pin};
+use core::{mem::size_of, pin::Pin};
 
 use alloc::boxed::Box;
 
-use crate::memory_mapped::MemoryMapped;
+use crate::{
+    display::{DmaFrame, GraphicsFrame},
+    memory_mapped::MemoryMapped,
+};
 
-#[non_exhaustive]
-pub struct DmaController {}
-
-impl DmaController {
-    pub(crate) const fn new() -> Self {
-        Self {}
-    }
-
-    pub fn dma(&mut self) -> Dmas<'_> {
-        unsafe { Dmas::new() }
-    }
-}
-
-pub struct Dmas<'gba> {
-    phantom: PhantomData<&'gba ()>,
-
-    pub dma0: Dma,
-    pub dma3: Dma,
-}
-
-impl Dmas<'_> {
-    unsafe fn new() -> Self {
-        Self {
-            phantom: PhantomData,
-
-            dma0: unsafe { Dma::new(0) },
-            dma3: unsafe { Dma::new(3) },
-        }
-    }
-}
-
-pub struct Dma {
+pub(crate) struct Dma {
     number: usize,
 
     source_addr: MemoryMapped<u32>,
@@ -44,7 +16,7 @@ pub struct Dma {
 }
 
 impl Dma {
-    unsafe fn new(number: usize) -> Self {
+    pub(crate) unsafe fn new(number: usize) -> Self {
         Self {
             number,
             source_addr: unsafe { MemoryMapped::new(dma_source_addr(number)) },
@@ -55,62 +27,6 @@ impl Dma {
 
     pub(crate) fn disable(&mut self) {
         unsafe { MemoryMapped::new(dma_control_addr(self.number)) }.set(0);
-    }
-
-    /// Triggers a transfer from `values` to `location` to happen on every horizontal blank.
-    ///
-    /// This is useful for doing things like circular windows, wobbly backgrounds or fades
-    /// in palettes that you'd want to change every scan line.
-    ///
-    /// `values` must be a slice of length at lest 160 (since that is how many visible lines there are)
-    /// and the first value will be copied to the target address immediately since the items are only
-    /// transferred at the _end_ of the hblank line rather than the beginning.
-    ///
-    /// It is recommended that you set this up as soon after the vblank interrupt as possible, and don't
-    /// drop the DmaTransferHandler return value until the next vblank interrupt to ensure that you
-    /// a continuous effect.
-    ///
-    /// # Safety
-    ///
-    /// While DmaTransferHandle is not dropped, the slice at `values` must not move in memory.
-    ///
-    /// # Examples
-    ///
-    /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub unsafe fn hblank_transfer<'dma, T>(
-        &'dma mut self,
-        location: &DmaControllable<T>,
-        values: &[T],
-    ) -> DmaTransferHandle<'dma, T>
-    where
-        T: Copy,
-    {
-        assert!(
-            values.len() >= 160,
-            "need to pass at least 160 values for a hblank_transfer"
-        );
-        let handle = DmaTransferHandle::new(self.number, values);
-
-        let n_transfers = (size_of::<T>() / 2) as u32;
-
-        self.source_addr.set(handle.data[1..].as_ptr() as u32);
-        self.dest_addr.set(location.memory_location as u32);
-
-        unsafe {
-            location.memory_location.write_volatile(values[0]);
-        }
-
-        self.ctrl_addr.set(
-            (0b10 << 0x15) | // keep destination address fixed
-            // (0b00 << 0x17) | // increment the source address each time
-            (1 << 0x19) | // repeat the copy each hblank
-            // 0 << 0x1a | // copy in half words (see n_transfers above)
-            (0b10 << 0x1c) | // copy each hblank
-            (1 << 0x1f) | // enable the dma
-            n_transfers, // the number of halfwords to copy
-        );
-
-        handle
     }
 }
 
@@ -129,38 +45,63 @@ impl<Item> DmaControllable<Item> {
     }
 }
 
-pub struct DmaTransferHandle<'dma, T>
-where
-    T: Copy,
-{
-    number: usize,
-    data: Pin<Box<[T]>>,
-
-    _phantom: PhantomData<&'dma ()>,
+pub struct HBlankDmaDefinition<Item> {
+    controllable: DmaControllable<Item>,
+    values: Pin<Box<[Item]>>,
 }
 
-impl<T> DmaTransferHandle<'_, T>
+impl<Item> HBlankDmaDefinition<Item>
 where
-    T: Copy,
+    Item: Copy + 'static,
 {
-    pub(crate) fn new(number: usize, data: &[T]) -> Self {
-        Self {
-            number,
-            data: Box::into_pin(data.into()),
+    pub fn new(controllable: DmaControllable<Item>, values: &[Item]) -> Self {
+        assert!(
+            values.len() >= 160,
+            "need to pass at least 160 values for a hblank transfer"
+        );
 
-            _phantom: PhantomData,
+        Self {
+            controllable,
+            values: Box::into_pin(values.into()),
         }
+    }
+
+    pub fn show(self, frame: &mut GraphicsFrame) {
+        frame.add_dma(self);
     }
 }
 
-impl<T> Drop for DmaTransferHandle<'_, T>
+impl<Item> DmaFrame for HBlankDmaDefinition<Item>
 where
-    T: Copy,
+    Item: Copy + 'static,
 {
-    fn drop(&mut self) {
+    fn commit(&mut self) {
+        let dma = unsafe { Dma::new(0) };
+
+        let n_transfers = (size_of::<Item>() / 2) as u32;
+
+        dma.source_addr.set(self.values[1..].as_ptr() as u32);
+        dma.dest_addr.set(self.controllable.memory_location as u32);
+
         unsafe {
-            Dma::new(self.number).disable();
+            self.controllable
+                .memory_location
+                .write_volatile(self.values[0]);
         }
+
+        dma.ctrl_addr.set(
+            (0b10 << 0x15) | // keep destination address fixed
+            // (0b00 << 0x17) | // increment the source address each time
+            (1 << 0x19) | // repeat the copy each hblank
+            // 0 << 0x1a | // copy in half words (see n_transfers above)
+            (0b10 << 0x1c) | // copy each hblank
+            (1 << 0x1f) | // enable the dma
+            n_transfers, // the number of halfwords to copy
+        );
+    }
+
+    fn cleanup(&mut self) {
+        unsafe { Dma::new(0) }.disable();
     }
 }
 
