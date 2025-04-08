@@ -278,7 +278,7 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
 #[non_exhaustive]
 pub struct Gba {
     /// Manages access to the Game Boy Advance's display hardware
-    pub display: display::Display,
+    pub graphics: display::GraphicsDist,
     /// Manages access to the Game Boy Advance's direct sound mixer for playing raw wav files.
     pub mixer: sound::mixer::MixerController,
     /// Manages access to the Game Boy Advance cartridge's save chip.
@@ -308,7 +308,7 @@ impl Gba {
 
     const unsafe fn single_new() -> Self {
         Self {
-            display: unsafe { display::Display::new() },
+            graphics: display::GraphicsDist,
             mixer: sound::mixer::MixerController::new(),
             save: save::SaveManager::new(),
             timers: timer::TimerController::new(),

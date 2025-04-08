@@ -26,7 +26,7 @@ mod tests {
 
     #[test_case]
     fn logo_display(gba: &mut crate::Gba) {
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         let mut map = RegularBackgroundTiles::new(
             Priority::P0,

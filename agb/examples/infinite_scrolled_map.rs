@@ -15,7 +15,7 @@ include_background_gfx!(big_map, "2ce8f4", big_map => deduplicate "examples/big_
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     let mut input = ButtonController::new();
 

@@ -97,7 +97,7 @@ mod test {
 
     #[test_case]
     fn background_text_render_english(gba: &mut Gba) {
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
@@ -141,7 +141,7 @@ mod test {
 
     #[test_case]
     fn background_text_render_japanese(gba: &mut Gba) {
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];

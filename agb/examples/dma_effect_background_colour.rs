@@ -12,7 +12,7 @@ use agb::display::{
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,

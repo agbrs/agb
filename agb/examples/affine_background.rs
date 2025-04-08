@@ -17,7 +17,7 @@ include_background_gfx!(affine_tiles, "3f3f74", water_tiles => 256 "examples/wat
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     let tileset = &affine_tiles::water_tiles.tiles;
 

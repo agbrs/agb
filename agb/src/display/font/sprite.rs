@@ -50,7 +50,7 @@ mod tests {
 
     #[test_case]
     fn check_font_rendering_simple(gba: &mut crate::Gba) {
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
@@ -88,7 +88,7 @@ mod tests {
 
     #[test_case]
     fn check_japanese_rendering(gba: &mut crate::Gba) {
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];

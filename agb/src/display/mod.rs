@@ -44,12 +44,6 @@ pub const WIDTH: i32 = 240;
 pub const HEIGHT: i32 = 160;
 
 #[non_exhaustive]
-/// Manages distribution of display modes, obtained from the gba struct
-pub struct Display {
-    pub graphics: GraphicsDist,
-}
-
-#[non_exhaustive]
 pub struct GraphicsDist;
 
 impl GraphicsDist {
@@ -105,14 +99,6 @@ impl GraphicsFrame<'_> {
 
     pub fn windows(&mut self) -> &mut Windows {
         &mut self.windows
-    }
-}
-
-impl Display {
-    pub(crate) const unsafe fn new() -> Self {
-        Display {
-            graphics: GraphicsDist,
-        }
     }
 }
 
