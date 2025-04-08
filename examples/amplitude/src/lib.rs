@@ -364,7 +364,7 @@ struct FinalisedSettings {
 }
 
 pub fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
     let sprite_cache = SpriteCache::new();
 
     VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);

@@ -60,7 +60,7 @@ Using the `Gba` struct we get the [`Oam` struct](https://docs.rs/agb/latest/agb/
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     // Get the graphics manager, responsible for all the graphics
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     // Create an object with the ball sprite
     let mut ball = Object::new(sprites::BALL.sprite(0));

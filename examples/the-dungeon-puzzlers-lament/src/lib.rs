@@ -55,7 +55,7 @@ impl<'gba> Agb<'gba> {
 pub fn entry(mut gba: agb::Gba) -> ! {
     let _ = save::init_save(&mut gba);
 
-    let gfx = gba.display.graphics.get();
+    let gfx = gba.graphics.get();
     let mut ui_bg = RegularBackgroundTiles::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,

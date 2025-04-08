@@ -78,7 +78,7 @@ impl Paddle {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     // Get the graphics manager
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     let mut button_controller = ButtonController::new();
 
