@@ -116,14 +116,14 @@ impl GraphicsFrame<'_> {
             old.cleanup();
         }
 
-        if let Some(dma) = self.others.dma.as_mut() {
-            dma.commit();
-        }
-
         self.oam_frame.commit();
         self.bg_frame.commit();
         self.blend.commit();
         self.windows.commit();
+
+        if let Some(dma) = self.others.dma.as_mut() {
+            dma.commit();
+        }
     }
 
     pub fn blend(&mut self) -> &mut Blend {
