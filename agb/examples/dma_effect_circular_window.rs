@@ -28,7 +28,6 @@ fn main(mut gba: agb::Gba) -> ! {
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
-    let mut window = gba.display.window.get();
 
     let mut dmas = gba.dma.dma();
 
@@ -78,17 +77,16 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut frame = gfx.frame();
         let background_id = map.show(&mut frame);
 
-        frame.commit();
+        let window = frame.windows();
 
         window
             .win_in(WinIn::Win0)
-            .set_background_enable(background_id, true)
-            .set_position(&Rect::new(pos.floor(), (64, 65).into()))
-            .enable();
-
-        window.commit();
+            .enable_background(background_id)
+            .set_position(Rect::new(pos.floor(), (64, 65).into()));
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
+
+        frame.commit();
 
         drop(circle_transfer);
         circle_transfer =

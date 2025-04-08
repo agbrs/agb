@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 //! The window feature of the GBA.
-use core::marker::PhantomData;
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
@@ -11,11 +10,10 @@ use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 /// The windows feature can selectively display backgrounds or objects on the screen
 /// and can selectively enable and disable effects. This gives out references and
 /// holds changes before they can be committed.
-pub struct Windows<'gba> {
+pub struct Windows {
     wins: [MovableWindow; 2],
     out: Window,
     obj: Window,
-    phantom: PhantomData<&'gba ()>,
 }
 
 const REG_HORIZONTAL_BASE: *mut u16 = 0x0400_0040 as *mut _;
@@ -31,40 +29,37 @@ pub enum WinIn {
     Win1,
 }
 
-impl Windows<'_> {
+impl Windows {
     pub(crate) fn new() -> Self {
-        let s = Self {
+        Self {
             wins: [MovableWindow::new(0), MovableWindow::new(1)],
             out: Window::new(),
             obj: Window::new(),
-            phantom: PhantomData,
-        };
-        s.commit();
-        s
+        }
     }
 
     /// Returns a reference to the window that is used when outside all other windows
     #[inline(always)]
     pub fn win_out(&mut self) -> &mut Window {
-        &mut self.out
+        self.out.enable()
     }
 
     /// Gives a reference to the specified window that has effect when inside of it's boundary
     #[inline(always)]
     pub fn win_in(&mut self, id: WinIn) -> &mut MovableWindow {
-        &mut self.wins[id as usize]
+        self.wins[id as usize].enable()
     }
 
     /// Gives a reference to the window that is controlled by sprites and objects
     #[inline(always)]
     pub fn win_obj(&mut self) -> &mut Window {
-        &mut self.obj
+        self.obj.enable()
     }
 
     /// Commits the state of the windows as dictated by the various functions to
     /// modify them. This should be done during vblank shortly after the wait
     /// for next vblank call.
-    pub fn commit(&self) {
+    pub(crate) fn commit(&self) {
         for win in &self.wins {
             win.commit();
         }
@@ -97,21 +92,8 @@ impl Window {
         Self { window_bits: 0 }
     }
 
-    /// Enables the window, must call [Windows::commit] for this change to be
-    /// seen. If a window is not enabled it will not have an effect on the
-    /// display.
-    #[inline(always)]
-    pub fn enable(&mut self) -> &mut Self {
+    fn enable(&mut self) -> &mut Self {
         self.set_bit(7, true);
-
-        self
-    }
-
-    /// Disables the window, must call [Windows::commit] for this change to be
-    /// seen.
-    #[inline(always)]
-    pub fn disable(&mut self) -> &mut Self {
-        self.set_bit(7, false);
 
         self
     }
@@ -125,36 +107,24 @@ impl Window {
         self.window_bits |= (value as u8) << bit;
     }
 
-    /// Resets the window to it's default state, must call [Windows::commit] for
-    /// this change to be seen. The default state is the window disabled with
-    /// nothing rendered.
-    #[inline(always)]
-    pub fn reset(&mut self) -> &mut Self {
-        *self = Self::new();
-
-        self
-    }
     /// Sets whether the blend is enabled inside of this window, must call
-    /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
-        self.set_bit(5, blend);
+    pub fn enable_blending(&mut self) -> &mut Self {
+        self.set_bit(5, true);
 
         self
     }
-    /// Sets whether the given background will be rendered inside this window,
-    /// must call [Windows::commit] for this change to be seen.
+    /// Sets whether the given background will be rendered inside this window
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
-        self.set_bit(back.0 as usize, enable);
+    pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
+        self.set_bit(back.0 as usize, true);
 
         self
     }
-    /// Sets whether objects will be rendered inside this window, must call
-    /// [Windows::commit] for this change to be seen.
+    /// Sets whether objects will be rendered inside this window
     #[inline(always)]
-    pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
-        self.set_bit(4, obj);
+    pub fn enable_objects(&mut self) -> &mut Self {
+        self.set_bit(4, true);
 
         self
     }
@@ -179,21 +149,8 @@ impl MovableWindow {
         }
     }
 
-    /// Enables the window, must call [Windows::commit] for this change to be
-    /// seen. If a window is not enabled it will not have an effect on the
-    /// display.
-    #[inline(always)]
-    pub fn enable(&mut self) -> &mut Self {
+    fn enable(&mut self) -> &mut Self {
         self.inner.enable();
-
-        self
-    }
-
-    /// Disables the window, must call [Windows::commit] for this change to be
-    /// seen.
-    #[inline(always)]
-    pub fn disable(&mut self) -> &mut Self {
-        self.inner.disable();
 
         self
     }
@@ -202,34 +159,22 @@ impl MovableWindow {
         self.inner.is_enabled()
     }
 
-    /// Resets the window to it's default state, must call [Windows::commit] for
-    /// this change to be seen. The default state is the window disabled with
-    /// nothing rendered and represents a 0x0 rectangle at (0, 0).
+    /// Sets whether the blend is enabled inside of this window
     #[inline(always)]
-    pub fn reset(&mut self) -> &mut Self {
-        *self = Self::new(self.id);
-
+    pub fn enable_blending(&mut self) -> &mut Self {
+        self.inner.enable_blending();
         self
     }
-    /// Sets whether the blend is enabled inside of this window, must call
-    /// [Windows::commit] for this change to be seen.
+    /// Sets whether the given background will be rendered inside this window
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
-        self.inner.set_blend_enable(blend);
+    pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
+        self.inner.enable_background(back);
         self
     }
-    /// Sets whether the given background will be rendered inside this window,
-    /// must call [Windows::commit] for this change to be seen.
+    /// Sets whether objects will be rendered inside this window
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
-        self.inner.set_background_enable(back, enable);
-        self
-    }
-    /// Sets whether objects will be rendered inside this window, must call
-    /// [Windows::commit] for this change to be seen.
-    #[inline(always)]
-    pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
-        self.inner.set_object_enable(obj);
+    pub fn enable_objects(&mut self) -> &mut Self {
+        self.inner.enable_objects();
         self
     }
 
@@ -251,7 +196,7 @@ impl MovableWindow {
     /// which is closest to what the GBA uses. Most of the time
     /// [MovableWindow::set_position] should be used.
     #[inline(always)]
-    pub fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
+    fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
 
         self
@@ -259,7 +204,7 @@ impl MovableWindow {
 
     /// Sets the position of the area that is inside the window.
     #[inline(always)]
-    pub fn set_position(&mut self, rect: &Rect<i32>) -> &mut Self {
+    pub fn set_position(&mut self, rect: Rect<i32>) -> &mut Self {
         let new_rect = Rect::new(
             (
                 rect.position.x.clamp(0, WIDTH) as u8,

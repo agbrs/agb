@@ -46,7 +46,6 @@ pub const HEIGHT: i32 = 160;
 #[non_exhaustive]
 /// Manages distribution of display modes, obtained from the gba struct
 pub struct Display {
-    pub window: WindowDist,
     pub graphics: GraphicsDist,
 }
 
@@ -76,6 +75,7 @@ impl<'gba> Graphics<'gba> {
             oam_frame: self.oam.frame(),
             bg_frame: self.tiled.iter(),
             blend: Blend::new(),
+            windows: Windows::new(),
             vblank: &self.vblank,
         }
     }
@@ -85,6 +85,7 @@ pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,
     pub(crate) bg_frame: BackgroundFrame<'frame>,
     blend: Blend,
+    windows: Windows,
     vblank: &'frame VBlank,
 }
 
@@ -95,19 +96,15 @@ impl GraphicsFrame<'_> {
         self.oam_frame.commit();
         self.bg_frame.commit();
         self.blend.commit();
+        self.windows.commit();
     }
 
     pub fn blend(&mut self) -> &mut Blend {
         &mut self.blend
     }
-}
 
-#[non_exhaustive]
-pub struct WindowDist;
-
-impl WindowDist {
-    pub fn get(&mut self) -> Windows<'_> {
-        Windows::new()
+    pub fn windows(&mut self) -> &mut Windows {
+        &mut self.windows
     }
 }
 
@@ -115,7 +112,6 @@ impl Display {
     pub(crate) const unsafe fn new() -> Self {
         Display {
             graphics: GraphicsDist,
-            window: WindowDist,
         }
     }
 }
