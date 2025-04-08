@@ -1,5 +1,6 @@
 use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
 
+use alloc::boxed::Box;
 use bilge::prelude::*;
 
 use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
@@ -62,12 +63,26 @@ impl GraphicsDist {
 pub struct Graphics<'gba> {
     oam: Oam<'gba>,
     tiled: TiledBackground<'gba>,
+    others: Others,
+}
+
+pub(crate) trait DmaFrame {
+    fn commit(&mut self);
+    fn cleanup(&mut self);
+}
+
+struct Others {
     vblank: VBlank,
+    dma: Option<Box<dyn DmaFrame>>,
 }
 
 impl<'gba> Graphics<'gba> {
     fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>, vblank: VBlank) -> Self {
-        Self { oam, tiled, vblank }
+        Self {
+            oam,
+            tiled,
+            others: Others { vblank, dma: None },
+        }
     }
 
     pub fn frame(&mut self) -> GraphicsFrame<'_> {
@@ -76,7 +91,8 @@ impl<'gba> Graphics<'gba> {
             bg_frame: self.tiled.iter(),
             blend: Blend::new(),
             windows: Windows::new(),
-            vblank: &self.vblank,
+            next_dma: None,
+            others: &mut self.others,
         }
     }
 }
@@ -86,12 +102,23 @@ pub struct GraphicsFrame<'frame> {
     pub(crate) bg_frame: BackgroundFrame<'frame>,
     blend: Blend,
     windows: Windows,
-    vblank: &'frame VBlank,
+    next_dma: Option<Box<dyn DmaFrame>>,
+
+    others: &'frame mut Others,
 }
 
 impl GraphicsFrame<'_> {
-    pub fn commit(self) {
-        self.vblank.wait_for_vblank();
+    pub fn commit(mut self) {
+        self.others.vblank.wait_for_vblank();
+        core::mem::swap(&mut self.others.dma, &mut self.next_dma);
+
+        if let Some(mut old) = self.next_dma.take() {
+            old.cleanup();
+        }
+
+        if let Some(dma) = self.others.dma.as_mut() {
+            dma.commit();
+        }
 
         self.oam_frame.commit();
         self.bg_frame.commit();
@@ -105,6 +132,10 @@ impl GraphicsFrame<'_> {
 
     pub fn windows(&mut self) -> &mut Windows {
         &mut self.windows
+    }
+
+    pub(crate) fn add_dma<C: DmaFrame + 'static>(&mut self, c: C) {
+        self.next_dma = Some(Box::new(c));
     }
 }
 
