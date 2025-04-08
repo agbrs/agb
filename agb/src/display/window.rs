@@ -108,23 +108,20 @@ impl Window {
     }
 
     /// Sets whether the blend is enabled inside of this window, must call
-    /// [Windows::commit] for this change to be seen.
     #[inline(always)]
     pub fn enable_blending(&mut self) -> &mut Self {
         self.set_bit(5, true);
 
         self
     }
-    /// Sets whether the given background will be rendered inside this window,
-    /// must call [Windows::commit] for this change to be seen.
+    /// Sets whether the given background will be rendered inside this window
     #[inline(always)]
     pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
         self.set_bit(back.0 as usize, true);
 
         self
     }
-    /// Sets whether objects will be rendered inside this window, must call
-    /// [Windows::commit] for this change to be seen.
+    /// Sets whether objects will be rendered inside this window
     #[inline(always)]
     pub fn enable_objects(&mut self) -> &mut Self {
         self.set_bit(4, true);
@@ -162,31 +159,19 @@ impl MovableWindow {
         self.inner.is_enabled()
     }
 
-    /// Resets the window to it's default state, must call [Windows::commit] for
-    /// this change to be seen. The default state is the window disabled with
-    /// nothing rendered and represents a 0x0 rectangle at (0, 0).
-    #[inline(always)]
-    pub fn reset(&mut self) -> &mut Self {
-        *self = Self::new(self.id);
-
-        self
-    }
-    /// Sets whether the blend is enabled inside of this window, must call
-    /// [Windows::commit] for this change to be seen.
+    /// Sets whether the blend is enabled inside of this window
     #[inline(always)]
     pub fn enable_blending(&mut self) -> &mut Self {
         self.inner.enable_blending();
         self
     }
-    /// Sets whether the given background will be rendered inside this window,
-    /// must call [Windows::commit] for this change to be seen.
+    /// Sets whether the given background will be rendered inside this window
     #[inline(always)]
     pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
         self.inner.enable_background(back);
         self
     }
-    /// Sets whether objects will be rendered inside this window, must call
-    /// [Windows::commit] for this change to be seen.
+    /// Sets whether objects will be rendered inside this window
     #[inline(always)]
     pub fn enable_objects(&mut self) -> &mut Self {
         self.inner.enable_objects();
