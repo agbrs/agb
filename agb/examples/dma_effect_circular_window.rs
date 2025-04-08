@@ -81,9 +81,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
         window
             .win_in(WinIn::Win0)
-            .set_background_enable(background_id, true)
-            .set_position(&Rect::new(pos.floor(), (64, 65).into()))
-            .enable();
+            .enable_background(background_id)
+            .set_position(Rect::new(pos.floor(), (64, 65).into()));
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
 

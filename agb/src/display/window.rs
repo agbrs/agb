@@ -92,21 +92,8 @@ impl Window {
         Self { window_bits: 0 }
     }
 
-    /// Enables the window, must call [Windows::commit] for this change to be
-    /// seen. If a window is not enabled it will not have an effect on the
-    /// display.
-    #[inline(always)]
-    pub fn enable(&mut self) -> &mut Self {
+    fn enable(&mut self) -> &mut Self {
         self.set_bit(7, true);
-
-        self
-    }
-
-    /// Disables the window, must call [Windows::commit] for this change to be
-    /// seen.
-    #[inline(always)]
-    pub fn disable(&mut self) -> &mut Self {
-        self.set_bit(7, false);
 
         self
     }
@@ -120,36 +107,27 @@ impl Window {
         self.window_bits |= (value as u8) << bit;
     }
 
-    /// Resets the window to it's default state, must call [Windows::commit] for
-    /// this change to be seen. The default state is the window disabled with
-    /// nothing rendered.
-    #[inline(always)]
-    pub fn reset(&mut self) -> &mut Self {
-        *self = Self::new();
-
-        self
-    }
     /// Sets whether the blend is enabled inside of this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
-        self.set_bit(5, blend);
+    pub fn enable_blending(&mut self) -> &mut Self {
+        self.set_bit(5, true);
 
         self
     }
     /// Sets whether the given background will be rendered inside this window,
     /// must call [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
-        self.set_bit(back.0 as usize, enable);
+    pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
+        self.set_bit(back.0 as usize, true);
 
         self
     }
     /// Sets whether objects will be rendered inside this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
-        self.set_bit(4, obj);
+    pub fn enable_objects(&mut self) -> &mut Self {
+        self.set_bit(4, true);
 
         self
     }
@@ -174,21 +152,8 @@ impl MovableWindow {
         }
     }
 
-    /// Enables the window, must call [Windows::commit] for this change to be
-    /// seen. If a window is not enabled it will not have an effect on the
-    /// display.
-    #[inline(always)]
-    pub fn enable(&mut self) -> &mut Self {
+    fn enable(&mut self) -> &mut Self {
         self.inner.enable();
-
-        self
-    }
-
-    /// Disables the window, must call [Windows::commit] for this change to be
-    /// seen.
-    #[inline(always)]
-    pub fn disable(&mut self) -> &mut Self {
-        self.inner.disable();
 
         self
     }
@@ -209,22 +174,22 @@ impl MovableWindow {
     /// Sets whether the blend is enabled inside of this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_blend_enable(&mut self, blend: bool) -> &mut Self {
-        self.inner.set_blend_enable(blend);
+    pub fn enable_blending(&mut self) -> &mut Self {
+        self.inner.enable_blending();
         self
     }
     /// Sets whether the given background will be rendered inside this window,
     /// must call [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_background_enable(&mut self, back: BackgroundId, enable: bool) -> &mut Self {
-        self.inner.set_background_enable(back, enable);
+    pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
+        self.inner.enable_background(back);
         self
     }
     /// Sets whether objects will be rendered inside this window, must call
     /// [Windows::commit] for this change to be seen.
     #[inline(always)]
-    pub fn set_object_enable(&mut self, obj: bool) -> &mut Self {
-        self.inner.set_object_enable(obj);
+    pub fn enable_objects(&mut self) -> &mut Self {
+        self.inner.enable_objects();
         self
     }
 
@@ -246,7 +211,7 @@ impl MovableWindow {
     /// which is closest to what the GBA uses. Most of the time
     /// [MovableWindow::set_position] should be used.
     #[inline(always)]
-    pub fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
+    fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
 
         self
@@ -254,7 +219,7 @@ impl MovableWindow {
 
     /// Sets the position of the area that is inside the window.
     #[inline(always)]
-    pub fn set_position(&mut self, rect: &Rect<i32>) -> &mut Self {
+    pub fn set_position(&mut self, rect: Rect<i32>) -> &mut Self {
         let new_rect = Rect::new(
             (
                 rect.position.x.clamp(0, WIDTH) as u8,
