@@ -70,14 +70,10 @@ impl Dma {
     /// drop the DmaTransferHandler return value until the next vblank interrupt to ensure that you
     /// a continuous effect.
     ///
-    /// # Safety
-    ///
-    /// While DmaTransferHandle is not dropped, the slice at `values` must not move in memory.
-    ///
     /// # Examples
     ///
     /// See the `dma_effect_*` examples in the repository to see some ways to use this.
-    pub unsafe fn hblank_transfer<'dma, T>(
+    pub fn hblank_transfer<'dma, T>(
         &'dma mut self,
         location: &DmaControllable<T>,
         values: &[T],
