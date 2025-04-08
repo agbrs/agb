@@ -11,11 +11,11 @@ use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 /// The windows feature can selectively display backgrounds or objects on the screen
 /// and can selectively enable and disable effects. This gives out references and
 /// holds changes before they can be committed.
-pub struct Windows<'gba> {
+pub struct Windows<'frame> {
     wins: [MovableWindow; 2],
     out: Window,
     obj: Window,
-    phantom: PhantomData<&'gba ()>,
+    phantom: PhantomData<&'frame ()>,
 }
 
 const REG_HORIZONTAL_BASE: *mut u16 = 0x0400_0040 as *mut _;
