@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 //! The window feature of the GBA.
-use core::marker::PhantomData;
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
@@ -11,11 +10,10 @@ use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 /// The windows feature can selectively display backgrounds or objects on the screen
 /// and can selectively enable and disable effects. This gives out references and
 /// holds changes before they can be committed.
-pub struct Windows<'frame> {
+pub struct Windows {
     wins: [MovableWindow; 2],
     out: Window,
     obj: Window,
-    phantom: PhantomData<&'frame ()>,
 }
 
 const REG_HORIZONTAL_BASE: *mut u16 = 0x0400_0040 as *mut _;
@@ -31,40 +29,37 @@ pub enum WinIn {
     Win1,
 }
 
-impl Windows<'_> {
+impl Windows {
     pub(crate) fn new() -> Self {
-        let s = Self {
+        Self {
             wins: [MovableWindow::new(0), MovableWindow::new(1)],
             out: Window::new(),
             obj: Window::new(),
-            phantom: PhantomData,
-        };
-        s.commit();
-        s
+        }
     }
 
     /// Returns a reference to the window that is used when outside all other windows
     #[inline(always)]
     pub fn win_out(&mut self) -> &mut Window {
-        &mut self.out
+        self.out.enable()
     }
 
     /// Gives a reference to the specified window that has effect when inside of it's boundary
     #[inline(always)]
     pub fn win_in(&mut self, id: WinIn) -> &mut MovableWindow {
-        &mut self.wins[id as usize]
+        self.wins[id as usize].enable()
     }
 
     /// Gives a reference to the window that is controlled by sprites and objects
     #[inline(always)]
     pub fn win_obj(&mut self) -> &mut Window {
-        &mut self.obj
+        self.obj.enable()
     }
 
     /// Commits the state of the windows as dictated by the various functions to
     /// modify them. This should be done during vblank shortly after the wait
     /// for next vblank call.
-    pub fn commit(&self) {
+    pub(crate) fn commit(&self) {
         for win in &self.wins {
             win.commit();
         }

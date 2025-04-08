@@ -60,21 +60,17 @@ fn main(mut gba: agb::Gba) -> ! {
             .enable_background(background_id);
         blend.layer(BlendLayer::Bottom).enable_backdrop();
 
-        let mut window = gba.display.window.get();
-
+        let window = frame.windows();
         window
             .win_in(WinIn::Win0)
             .set_background_enable(background_id, true)
-            .set_position(&Rect::new(pos.floor(), (64, 64).into()))
-            .enable();
+            .set_position(&Rect::new(pos.floor(), (64, 64).into()));
 
         window
             .win_out()
-            .enable()
             .set_background_enable(background_id, true)
             .set_blend_enable(true);
 
-        window.commit();
         frame.commit();
     }
 }
