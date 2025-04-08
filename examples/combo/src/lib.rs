@@ -52,7 +52,7 @@ include_background_gfx!(
 fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();
 
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     VRAM_MANAGER.set_background_palettes(games::PALETTES);
 

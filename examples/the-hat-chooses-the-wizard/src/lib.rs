@@ -746,7 +746,7 @@ impl<'a> PlayingLevel<'a> {
 }
 
 pub fn main(mut agb: agb::Gba) -> ! {
-    let mut gfx = agb.display.graphics.get();
+    let mut gfx = agb.graphics.get();
     VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
 
     let tileset = &tile_sheet::background.tiles;

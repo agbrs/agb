@@ -10,7 +10,7 @@ fn test_commit_in_basic_case(gba: &mut Gba) {
     let vblank = VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut graphics = gba.display.graphics.get();
+    let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackgroundTiles::new(
@@ -39,7 +39,7 @@ fn test_commit_when_background_tiles_are_modified_after_show(gba: &mut Gba) {
     let vblank = VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut graphics = gba.display.graphics.get();
+    let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackgroundTiles::new(
@@ -76,7 +76,7 @@ fn test_commit_when_background_tiles_are_dropped_after_show(gba: &mut Gba) {
     let vblank = VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut graphics = gba.display.graphics.get();
+    let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackgroundTiles::new(
@@ -109,7 +109,7 @@ fn test_commit_when_background_tiles_rendered_twice(gba: &mut Gba) {
     let vblank = VBlank::get();
     vblank.wait_for_vblank();
 
-    let mut graphics = gba.display.graphics.get();
+    let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackgroundTiles::new(

@@ -99,7 +99,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         save::save_high_score(&mut gba.save, 0).expect("Could not reset high score");
     }
 
-    let gfx = gba.display.graphics.get();
+    let gfx = gba.graphics.get();
 
     let basic_die = Die {
         faces: [

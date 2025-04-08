@@ -17,7 +17,7 @@ static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
 
     VRAM_MANAGER.set_background_palette(
         0,

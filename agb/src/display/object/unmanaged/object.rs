@@ -425,7 +425,7 @@ mod tests {
             "../examples/the-purple-night/gfx/boss.aseprite"
         );
 
-        let mut gfx = gba.display.graphics.get();
+        let mut gfx = gba.graphics.get();
 
         {
             let mut frame = gfx.frame();

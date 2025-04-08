@@ -64,7 +64,7 @@ impl Save {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
     let mut save = Save::new(&mut gba.save).expect("able to read save data");
     let mut button = ButtonController::new();
 

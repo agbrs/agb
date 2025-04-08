@@ -139,7 +139,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
 }
 
 pub fn no_game(mut gba: crate::Gba) -> ! {
-    let mut gfx: crate::display::Graphics<'_> = gba.display.graphics.get();
+    let mut gfx: crate::display::Graphics<'_> = gba.graphics.get();
 
     let squares = generate_sprites();
 

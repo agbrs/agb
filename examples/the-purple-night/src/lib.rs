@@ -2075,7 +2075,7 @@ fn game_with_level(gba: &mut agb::Gba) {
 
     let mut start_at_boss = false;
 
-    let mut gfx = gba.display.graphics.get();
+    let mut gfx = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
     loop {
