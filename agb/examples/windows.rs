@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .set_background_enable(background_id, true)
             .set_blend_enable(true);
 
-        frame.commit();
         window.commit();
+        frame.commit();
     }
 }
