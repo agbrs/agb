@@ -20,48 +20,59 @@ impl RegularBackgroundTextRenderer {
     }
 
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
-        let dynamic_origin = vec2(self.origin.x % 8, self.origin.y % 8);
+        self.ensure_drawing_space(bg, group);
 
-        for pixel in group.pixels() {
-            self.put_pixel(
-                dynamic_origin + pixel + group.position(),
-                group.palette_index(),
-            );
-        }
+        let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
 
-        let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
-        for (y, row) in self.tiles.iter().enumerate() {
-            for (x, tile) in row.iter().enumerate() {
-                let Some(tile) = tile else {
-                    continue;
-                };
+        for (px_start, px) in group.pixels_packed() {
+            let pos = px_start + dynamic_origin + group.position();
 
-                let tile_pos = vec2(x as i32, y as i32);
+            let x = pos.x as usize / 8;
+            let y = pos.y as usize / 8;
 
-                bg.set_tile_dynamic(tile_pos + tile_offset, tile, TileEffect::default());
+            let row = &mut self.tiles[y];
+
+            let x_in_tile = pos.x.rem_euclid(8) * 4;
+
+            let tile_left = row[x].as_mut().expect("should have ensured space");
+            tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+
+            if x_in_tile > 0 {
+                let tile_right = row[x + 1].as_mut().expect("should have ensured space");
+                tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
     }
 
-    fn put_pixel(&mut self, pos: Vector2D<i32>, palette_index: u8) {
-        let x = pos.x as usize / 8;
-        let y = pos.y as usize / 8;
+    fn ensure_drawing_space(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
+        let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
+        let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
 
-        if self.tiles.len() <= y {
-            self.tiles.resize_with(y + 1, Vec::new);
+        let bounds = group.bounds();
+        let top_left_tile = group.position() / 8;
+
+        let bottom_right_tile = (dynamic_origin + bounds + group.position()) / 8 + vec2(1, 0);
+        if self.tiles.len() <= bottom_right_tile.y as usize {
+            self.tiles
+                .resize_with(bottom_right_tile.y as usize + 1, Vec::new);
         }
 
-        let row = &mut self.tiles[y];
-        if row.len() <= x {
-            row.resize_with(x + 1, || None);
+        for row_idx in top_left_tile.y..(bottom_right_tile.y + 1) {
+            let row = &mut self.tiles[row_idx as usize];
+            if row.len() <= bottom_right_tile.x as usize {
+                row.resize_with(bottom_right_tile.x as usize + 1, || None);
+            }
+
+            for column_idx in top_left_tile.x..(bottom_right_tile.x + 1) {
+                if row[column_idx as usize].is_none() {
+                    let tile_pos = vec2(column_idx, row_idx) + tile_offset;
+                    let tile = DynamicTile::new().fill_with(0);
+                    bg.set_tile_dynamic(tile_pos, &tile, TileEffect::default());
+
+                    row[column_idx as usize] = Some(tile);
+                }
+            }
         }
-
-        let tile = row[x].get_or_insert_with(|| DynamicTile::new().fill_with(0));
-
-        let inner_x = (pos.x as usize).rem_euclid(8);
-        let inner_y = (pos.y as usize).rem_euclid(8);
-
-        tile.set_pixel(inner_x, inner_y, palette_index);
     }
 }
 
@@ -77,6 +88,7 @@ mod test {
             tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
         },
         test_runner::assert_image_output,
+        timer::Divider,
     };
 
     use alloc::format;
@@ -110,7 +122,7 @@ mod test {
             &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
             &FONT,
             AlignmentKind::Left,
-            16,
+            128,
             200,
         );
 
@@ -166,7 +178,7 @@ mod test {
     }
 
     #[test_case]
-    fn background_text_single_group(_gba: &mut Gba) {
+    fn background_text_single_group(gba: &mut Gba) {
         static PALETTE: Palette16 = const {
             let mut palette = [0x0; 16];
             palette[1] = 0xFF_FF;
@@ -185,11 +197,25 @@ mod test {
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
             AlignmentKind::Left,
-            16,
+            32,
             200,
         );
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
+        let letter_group = layout.next().unwrap();
 
-        bg_text_render.show(&mut bg, &layout.next().unwrap());
+        let mut timer = gba.timers.timers().timer2;
+        timer
+            .set_divider(Divider::Divider256)
+            .set_overflow_amount(u16::MAX)
+            .set_cascade(false)
+            .set_enabled(true);
+
+        let before_show = timer.value();
+        bg_text_render.show(&mut bg, &core::hint::black_box(letter_group));
+        let after_show = timer.value();
+
+        let total = u32::from(after_show.wrapping_sub(before_show)) * 256;
+
+        crate::println!("rendering time: {total}");
     }
 }

@@ -1,4 +1,4 @@
-use core::{alloc::Layout, mem::MaybeUninit, ptr::NonNull};
+use core::{alloc::Layout, fmt::Debug, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 
@@ -160,6 +160,12 @@ impl TileReferenceCount {
 #[non_exhaustive]
 pub struct DynamicTile {
     pub tile_data: &'static mut [u32],
+}
+
+impl Debug for DynamicTile {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::write!(f, "DynamicTile({})", self.tile_id())
+    }
 }
 
 impl DynamicTile {

@@ -26,7 +26,7 @@ impl ChangeColour {
     }
 
     pub(crate) fn try_from_char(c: char) -> Option<Self> {
-        let c = c as u32;
+        let c = u32::from(c);
         if Self::RANGE.contains(&c) {
             Some(Self::new(c - Self::RANGE.start))
         } else {
@@ -61,7 +61,7 @@ impl SetTag {
     }
 
     pub(crate) fn try_from_char(c: char) -> Option<Self> {
-        let c = c as u32;
+        let c = u32::from(c);
         if Self::RANGE.contains(&c) {
             Some(Self::new(c - Self::RANGE.start))
         } else {
@@ -90,7 +90,7 @@ impl UnsetTag {
     }
 
     pub(crate) fn try_from_char(c: char) -> Option<Self> {
-        let c = c as u32;
+        let c = u32::from(c);
         if Self::RANGE.contains(&c) {
             Some(Self::new(c - Self::RANGE.start))
         } else {
