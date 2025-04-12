@@ -1,6 +1,6 @@
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Palette16, Priority, WIDTH,
+        GraphicsFrame, HEIGHT, Palette16, Priority, Rgb15, WIDTH,
         font::{AlignmentKind, Layout, SpriteTextRenderer},
         object::{Object, PaletteVramSingle, Size, SpriteVram},
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
@@ -41,8 +41,8 @@ struct Lament {
 
 fn generate_text_palette() -> PaletteVramSingle {
     static PALETTE: Palette16 = const {
-        let mut palette = [0x0; 16];
-        palette[1] = 0xFF_FF;
+        let mut palette = [Rgb15::BLACK; 16];
+        palette[1] = Rgb15::WHITE;
 
         Palette16::new(palette)
     };
