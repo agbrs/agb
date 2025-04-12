@@ -148,6 +148,9 @@ impl ToTokens for Output {
         let palettes = self.palettes.iter().map(|palette| {
             let mut colours: Vec<_> = palette.colours().copied().map(Colour::to_rgb15).collect();
             colours.resize(16, 0);
+
+            let colours = colours.iter().map(|c| quote!(Rgb15(#c)));
+
             quote! {
                 Palette16::new([#(#colours),*])
             }

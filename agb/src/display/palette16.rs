@@ -2,24 +2,51 @@ use core::fmt::Debug;
 
 use crate::{fixnum::Num, fixnum::num};
 
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Rgb15(pub u16);
+
+impl Rgb15 {
+    #[must_use]
+    pub const fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    pub const BLACK: Rgb15 = Rgb::new(0, 0, 0).to_rgb15();
+    pub const WHITE: Rgb15 = Rgb::new(255, 255, 255).to_rgb15();
+}
+
+impl From<Rgb> for Rgb15 {
+    fn from(value: Rgb) -> Self {
+        value.to_rgb15()
+    }
+}
+
+impl Debug for Rgb15 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let rgb = Rgb::from(*self);
+        write!(f, "Rgb15({rgb:?})")
+    }
+}
+
 #[repr(C)]
 #[derive(Clone)]
 pub struct Palette16 {
-    pub(crate) colours: [u16; 16],
+    pub(crate) colours: [Rgb15; 16],
 }
 
 impl Palette16 {
     #[must_use]
-    pub const fn new(colours: [u16; 16]) -> Self {
+    pub const fn new(colours: [Rgb15; 16]) -> Self {
         Palette16 { colours }
     }
 
-    pub fn update_colour(&mut self, index: usize, colour: u16) {
+    pub fn update_colour(&mut self, index: usize, colour: Rgb15) {
         self.colours[index] = colour;
     }
 
     #[must_use]
-    pub fn colour(&self, index: usize) -> u16 {
+    pub fn colour(&self, index: usize) -> Rgb15 {
         self.colours[index]
     }
 }
@@ -38,7 +65,8 @@ impl Rgb {
     }
 
     #[must_use]
-    pub const fn from_rgb15(rgb15: u16) -> Self {
+    pub const fn from_rgb15(rgb15: Rgb15) -> Self {
+        let rgb15 = rgb15.0;
         let r = (rgb15 & 31) << 3;
         let g = ((rgb15 >> 5) & 31) << 3;
         let b = ((rgb15 >> 10) & 31) << 3;
@@ -47,9 +75,9 @@ impl Rgb {
     }
 
     #[must_use]
-    pub const fn to_rgb15(self) -> u16 {
+    pub const fn to_rgb15(self) -> Rgb15 {
         let (r, g, b) = (self.r as u16, self.g as u16, self.b as u16);
-        ((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)
+        Rgb15(((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10))
     }
 
     #[must_use]
@@ -64,6 +92,12 @@ impl Rgb {
     }
 }
 
+impl From<Rgb15> for Rgb {
+    fn from(value: Rgb15) -> Self {
+        Self::from_rgb15(value)
+    }
+}
+
 impl Debug for Rgb {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
@@ -73,7 +107,7 @@ impl Debug for Rgb {
 #[macro_export]
 macro_rules! include_palette {
     ($palette:literal) => {
-        $crate::include_colours_inner!($palette)
+        $crate::include_colours_inner!($crate, $palette)
     };
 }
 

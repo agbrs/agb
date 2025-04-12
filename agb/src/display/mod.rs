@@ -10,7 +10,7 @@ use self::{
     window::Windows,
 };
 
-pub use palette16::{Palette16, Rgb, include_palette};
+pub use palette16::{Palette16, Rgb, Rgb15, include_palette};
 
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub(crate) mod bitmap3;

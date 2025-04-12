@@ -4,14 +4,14 @@ use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
-use crate::display::Palette16;
 use crate::display::object::{DynamicSprite, PaletteVramSingle, Size, SpriteVram};
+use crate::display::{Palette16, Rgb15};
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
     include_palette,
 };
 
-static PALETTE: &[u16] = &include_palette!("gfx/pastel.png");
+static PALETTE: &[Rgb15] = &include_palette!("gfx/pastel.png");
 
 fn letters() -> Vec<Vec<Vector2D<Num<i32, 8>>>> {
     vec![
@@ -115,9 +115,9 @@ fn generate_sprites() -> Box<[SpriteVram]> {
     let palettes: Vec<PaletteVramSingle> = PALETTE
         .chunks(15)
         .map(|x| {
-            core::iter::once(0)
+            core::iter::once(Rgb15::BLACK)
                 .chain(x.iter().copied())
-                .chain(core::iter::repeat(0))
+                .chain(core::iter::repeat(Rgb15::BLACK))
                 .take(16)
                 .collect::<Vec<_>>()
         })

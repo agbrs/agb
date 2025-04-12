@@ -82,7 +82,7 @@ mod test {
     use crate::{
         Gba,
         display::{
-            Priority,
+            Priority, Rgb15,
             font::{AlignmentKind, ChangeColour, Font, Layout},
             palette16::Palette16,
             tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
@@ -100,10 +100,9 @@ mod test {
         let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
-            let mut palette = [0x0; 16];
-            palette[1] = 0xFF_FF;
-            palette[2] = 0x10_7C;
-
+            let mut palette = [Rgb15::BLACK; 16];
+            palette[1] = Rgb15::WHITE;
+            palette[2] = Rgb15(0x10_7C);
             Palette16::new(palette)
         };
 
@@ -144,8 +143,9 @@ mod test {
         let mut gfx = gba.graphics.get();
 
         static PALETTE: Palette16 = const {
-            let mut palette = [0x0; 16];
-            palette[1] = 0xFF_FF;
+            let mut palette = [Rgb15::BLACK; 16];
+            palette[1] = Rgb15::WHITE;
+            palette[2] = Rgb15(0x10_7C);
             Palette16::new(palette)
         };
 
@@ -180,8 +180,9 @@ mod test {
     #[test_case]
     fn background_text_single_group(gba: &mut Gba) {
         static PALETTE: Palette16 = const {
-            let mut palette = [0x0; 16];
-            palette[1] = 0xFF_FF;
+            let mut palette = [Rgb15::BLACK; 16];
+            palette[1] = Rgb15::WHITE;
+            palette[2] = Rgb15(0x10_7C);
             Palette16::new(palette)
         };
 

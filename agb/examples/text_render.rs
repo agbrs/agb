@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        Palette16, Priority,
+        Palette16, Priority, Rgb15,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
         tiled::{
             DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
@@ -21,10 +21,13 @@ fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palette(
         0,
-        &Palette16::new([
-            0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
-            0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-        ]),
+        &Palette16::new(
+            [
+                0x0000, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000,
+                0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+            ]
+            .map(Rgb15::new),
+        ),
     );
 
     let background_tile = DynamicTile::new().fill_with(0);

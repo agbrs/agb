@@ -183,7 +183,7 @@ macro_rules! include_aseprite {
         $v mod $module {
             #[allow(unused_imports)]
             use $crate::display::object::{Size, Sprite, Tag};
-            use $crate::display::Palette16;
+            use $crate::display::{Palette16, Rgb15};
             use $crate::align_bytes;
 
             $crate::include_aseprite_inner!($($aseprite_path),*);
@@ -212,7 +212,7 @@ macro_rules! include_aseprite_256 {
         $v mod $module {
             #[allow(unused_imports)]
             use $crate::display::object::{Size, Sprite, Tag, PaletteMulti};
-            use $crate::display::Palette16;
+            use $crate::display::{Palette16, Rgb15};
             use $crate::align_bytes;
 
             $crate::include_aseprite_256_inner!($($aseprite_path),*);
