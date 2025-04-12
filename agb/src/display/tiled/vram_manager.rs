@@ -319,7 +319,7 @@ impl VRamManager {
     }
 
     pub fn set_background_palette_colour(
-        &mut self,
+        &self,
         pal_index: usize,
         colour_index: usize,
         colour: u16,
@@ -348,7 +348,7 @@ struct VRamManagerInner {
 }
 
 impl VRamManagerInner {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
             HashMap::with_capacity(256);
 
@@ -370,7 +370,7 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    pub fn new_dynamic_tile(&mut self) -> DynamicTile {
+    fn new_dynamic_tile(&mut self) -> DynamicTile {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -422,7 +422,7 @@ impl VRamManagerInner {
     }
 
     #[inline(never)]
-    pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
+    fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
         let reference = self
             .tile_set_to_vram
             .entry(TileInTileSetReference::new(tile_set, tile));
@@ -455,7 +455,7 @@ impl VRamManagerInner {
         index
     }
 
-    pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
+    fn remove_tile(&mut self, tile_index: TileIndex) {
         let key = tile_index.refcount_key();
 
         let new_reference_count = self.reference_counts[key].decrement_reference_count();
@@ -472,7 +472,7 @@ impl VRamManagerInner {
         self.reference_counts[key].increment_reference_count();
     }
 
-    pub(crate) fn gc(&mut self) {
+    fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
             let key = tile_index.refcount_key();
             if self.reference_counts[key].current_count() > 0 {
@@ -497,7 +497,7 @@ impl VRamManagerInner {
         }
     }
 
-    pub fn replace_tile(
+    fn replace_tile(
         &mut self,
         source_tile_set: &TileSet<'_>,
         source_tile: u16,
@@ -561,7 +561,7 @@ impl VRamManagerInner {
     }
 
     /// Copies the palette to the given palette index
-    pub fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
         assert!(pal_index < 16);
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
@@ -570,7 +570,7 @@ impl VRamManagerInner {
 
     /// The DMA register for controlling a single colour in a single background. Good for drawing gradients
     #[must_use]
-    pub fn background_palette_colour_dma(
+    fn background_palette_colour_dma(
         &self,
         pal_index: usize,
         colour_index: usize,
@@ -588,7 +588,7 @@ impl VRamManagerInner {
     }
 
     /// Sets a single colour for a given background palette. Takes effect immediately
-    pub fn set_background_palette_colour(
+    fn set_background_palette_colour(
         &mut self,
         pal_index: usize,
         colour_index: usize,
@@ -601,7 +601,7 @@ impl VRamManagerInner {
     }
 
     /// Copies palettes to the background palettes without any checks.
-    pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+    fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry);
         }
@@ -609,7 +609,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+    fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
         assert!(palette_index < 16);
 
         (0..16).find(|i| PALETTE_BACKGROUND.get(palette_index * 16 + i) == colour)
@@ -617,7 +617,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+    fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
         (0..256).find(|&i| PALETTE_BACKGROUND.get(i) == colour)
     }
 }
