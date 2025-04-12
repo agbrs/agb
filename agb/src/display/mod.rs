@@ -21,7 +21,6 @@ pub mod object;
 mod palette16;
 /// Data produced by agb-image-converter
 pub mod tile_data;
-/// Graphics mode 0. Four regular backgrounds.
 pub mod tiled;
 
 pub mod affine;
