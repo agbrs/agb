@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use core::{alloc::Layout, fmt::Debug, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
@@ -27,9 +28,12 @@ const fn layout_of(format: TileFormat) -> Layout {
     unsafe { Layout::from_size_align_unchecked(format.tile_size(), format.tile_size()) }
 }
 
+/// Represents the pixel format of a tile in VRAM.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileFormat {
+    /// 4 bits per pixel, allowing for 16 colours per tile
     FourBpp = 5,
+    /// 8 bits per pixel, allowing for 256 colours per tile
     EightBpp = 6,
 }
 
@@ -40,17 +44,26 @@ impl TileFormat {
     }
 }
 
+/// Represents a collection of tile data in a specific format.
+///
+/// A `TileSet` holds a slice of raw byte data representing one or more tiles and the
+/// format of those tiles (either 4 bits per pixel or 8 bits per pixel).
 pub struct TileSet<'a> {
     tiles: &'a [u8],
     format: TileFormat,
 }
 
 impl<'a> TileSet<'a> {
+    /// Create a new TileSet. You probably shouldn't use this function and instead rely on
+    /// [`include_background_gfx!`](crate::include_background_gfx).
     #[must_use]
     pub const fn new(tiles: &'a [u8], format: TileFormat) -> Self {
         Self { tiles, format }
     }
 
+    /// Returns the format used for this TileSet. This will be either [`TileFormat::FourBpp`] if
+    /// it was imported as a 16 colour background (the default) or [`TileFormat::EightBpp`] if
+    /// it was imported as a 256 colour background.
     #[must_use]
     pub const fn format(&self) -> TileFormat {
         self.format
@@ -61,9 +74,15 @@ impl<'a> TileSet<'a> {
     }
 }
 
+/// Represents the index of a tile within VRAM, along with its pixel format.
+///
+/// Tile indices are used to reference specific 8x8 pixel blocks of data stored in the GBA's
+/// Video RAM (VRAM).
 #[derive(Debug, Clone, Copy)]
 pub enum TileIndex {
+    /// 4 bits per pixel, allowing for 16 colours per tile
     FourBpp(u16),
+    /// 8 bits per pixel, allowing for 256 colours per tile
     EightBpp(u16),
 }
 
@@ -157,8 +176,22 @@ impl TileReferenceCount {
     }
 }
 
+/// Represents a tile that can be modified at runtime. Most tiles fetched using [`TileSet`] are generated at
+/// compile time and are loaded on demand from ROM. Note that `DynamicTile`s are always 16 colours, so four bits
+/// per pixel are used.
+///
+/// If you have access to a `DynamicTile`, then this is actually a direct pointer to Video RAM. Note that any
+/// writes to `tile_data` must be at least 16-bits at a time, or it won't work due to how the GBA's video RAM
+/// works.
+///
+/// While a DynamicTile is active, some of Video RAM will be used up by it, so ensure it is dropped when you don't
+/// need it any more.
+///
+/// Most of the time, you won't need this. But it is used heavily in the
+/// [`RegularBackgroundTextRenderer`](crate::display::font::RegularBackgroundTextRenderer).
 #[non_exhaustive]
 pub struct DynamicTile {
+    /// The actual tile data. This will be exactly 8 long, where each entry represents one row of pixel data.
     pub tile_data: &'static mut [u32],
 }
 
@@ -169,11 +202,30 @@ impl Debug for DynamicTile {
 }
 
 impl DynamicTile {
+    /// Creates a new `DynamicTile`. Dynamic tiles aren't cleared by default, so the value you get in `tile_data`
+    /// won't necessarily be empty, and will contain whatever was in that same location last time.
+    ///
+    /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
+    /// do something like:
+    ///
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::display::tiled::DynamicTile;
+    ///
+    /// # fn test() {
+    /// let my_new_tile = DynamicTile::new().fill_with(0);
+    /// # }
+    /// ```
+    ///
+    /// which will fill the tile with the transparent colour.
     #[must_use]
     pub fn new() -> Self {
         VRAM_MANAGER.new_dynamic_tile()
     }
 
+    /// Fills a `DynamicTile` with a given colour index from the palette. Note that the actual palette
+    /// doesn't get assigned until you try to render it.
     #[must_use]
     pub fn fill_with(self, colour_index: u8) -> Self {
         let colour_index = u32::from(colour_index);
@@ -205,6 +257,7 @@ impl DynamicTile {
         (difference / TileFormat::FourBpp.tile_size()) as u16
     }
 
+    /// Sets the pixel at `(x, y)` to the colour index given by `palette_index`
     pub fn set_pixel(&mut self, x: usize, y: usize, palette_index: u8) {
         assert!((0..9).contains(&x));
         assert!((0..9).contains(&y));
@@ -238,10 +291,34 @@ impl Drop for DynamicTile {
     }
 }
 
+/// Manages the allocation and deallocation of tile data within the Game Boy Advance's **Video RAM (VRAM)**.
+///
+/// VRAM is a **limited resource (96 KB)** on the GBA, and this manager helps to use it **efficiently**
+/// by tracking the usage of tiles (8x8 pixel mini-bitmaps) and allowing for **dynamic allocation**
+/// of tile memory.
+///
+/// The `VRamManager` interacts with several key GBA graphics concepts:
+///
+/// *   **Tiles:** The fundamental building blocks of graphics on the GBA. This manager tracks which
+///     tiles are in use and where they are located in VRAM.
+/// *   **Palettes:** Colour palettes stored in PAL RAM (both background and sprite palettes). The
+///     `VRamManager` provides methods for interacting with the background palette.
+///
+/// To ensure efficient memory usage and prevent premature freeing of shared resources, the
+/// `VRamManager` employs **reference counting** for tiles that are used by multiple parts of the
+/// game (e.g., different sprites or background layers).
+///
+/// Additionally, the manager supports **dynamic allocation** of tiles for temporary needs, allowing
+/// for flexible memory management during gameplay. These dynamically allocated tiles have their
+/// memory managed by the `VRamManager` and are freed when no longer in use.
+///
+/// All interactions for the VRamManager is done via the static [`VRAM_MANAGER`] instance.
 pub struct VRamManager {
     inner: SyncUnsafeCell<MaybeUninit<VRamManagerInner>>,
 }
 
+/// The global instance of the VRamManager. You should always use this and never attempt to
+/// construct one yourself.
 // SAFETY: This is the _only_ one
 pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
 
@@ -289,14 +366,29 @@ impl VRamManager {
         self.with(VRamManagerInner::gc);
     }
 
+    /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
+    /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
+    /// the GameBoy Advance.
     pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
         self.with(|inner| inner.set_background_palette(pal_index, palette));
     }
 
+    /// Sets all background palettes based on the entries given in `palettes`. Note that the GameBoy Advance
+    /// can have at most 16 palettes loaded at once, so only the first 16 will be loaded (although this
+    /// array can be shorter if you don't need all 16).
+    ///
+    /// You will probably call this method early on in the game setup using the palette combination that you
+    /// built using [`include_background_gfx!`](crate::include_background_gfx).
     pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
         self.with(|inner| inner.set_background_palettes(palettes));
     }
 
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
     pub fn replace_tile(
         &self,
         source_tile_set: &TileSet<'_>,
@@ -309,6 +401,11 @@ impl VRamManager {
         });
     }
 
+    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
+    /// Very useful if you want a gradient of more colours than the gba can normally handle.
+    ///
+    /// See [`HBlankDmaDefinition`](crate::dma::HBlankDmaDefinition) for examples for how to do this, or the
+    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
     #[must_use]
     pub fn background_palette_colour_dma(
         &self,
@@ -318,13 +415,37 @@ impl VRamManager {
         self.with(|inner| inner.background_palette_colour_dma(pal_index, colour_index))
     }
 
+    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
+    /// Very useful if you want a gradient of more colours than the gba can normally handle.
+    ///
+    /// See [`HBlankDmaDefinition`](crate::dma::HBlankDmaDefinition) for examples for how to do this, or the
+    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
+    #[must_use]
+    pub fn background_palette_colour_256_dma(
+        &self,
+        colour_index: usize,
+    ) -> dma::DmaControllable<u16> {
+        assert!(colour_index < 256);
+
+        self.background_palette_colour_dma(colour_index / 16, colour_index % 16)
+    }
+
+    /// Set a single colour in a single palette. `pal_index` must be in 0..16 as must colour_index.
+    /// If you're working with a 256 colour palette, you should use [`VRamManager::set_background_palette_colour_256()`]
+    /// instead. Although these use the same underlying palette, so both methods will work.
     pub fn set_background_palette_colour(
-        &mut self,
+        &self,
         pal_index: usize,
         colour_index: usize,
         colour: u16,
     ) {
         self.with(|inner| inner.set_background_palette_colour(pal_index, colour_index, colour));
+    }
+
+    /// Sets a single colour in a 256 colour palette. `colour_index` must be less than 256.
+    pub fn set_background_palette_colour_256(&self, colour_index: usize, colour: u16) {
+        assert!(colour_index < 256);
+        self.set_background_palette_colour(colour_index / 16, colour_index % 16, colour);
     }
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
@@ -348,7 +469,7 @@ struct VRamManagerInner {
 }
 
 impl VRamManagerInner {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
             HashMap::with_capacity(256);
 
@@ -370,7 +491,7 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    pub fn new_dynamic_tile(&mut self) -> DynamicTile {
+    fn new_dynamic_tile(&mut self) -> DynamicTile {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -422,7 +543,7 @@ impl VRamManagerInner {
     }
 
     #[inline(never)]
-    pub(crate) fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
+    fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
         let reference = self
             .tile_set_to_vram
             .entry(TileInTileSetReference::new(tile_set, tile));
@@ -455,7 +576,7 @@ impl VRamManagerInner {
         index
     }
 
-    pub(crate) fn remove_tile(&mut self, tile_index: TileIndex) {
+    fn remove_tile(&mut self, tile_index: TileIndex) {
         let key = tile_index.refcount_key();
 
         let new_reference_count = self.reference_counts[key].decrement_reference_count();
@@ -472,7 +593,7 @@ impl VRamManagerInner {
         self.reference_counts[key].increment_reference_count();
     }
 
-    pub(crate) fn gc(&mut self) {
+    fn gc(&mut self) {
         for tile_index in self.indices_to_gc.drain(..) {
             let key = tile_index.refcount_key();
             if self.reference_counts[key].current_count() > 0 {
@@ -497,7 +618,7 @@ impl VRamManagerInner {
         }
     }
 
-    pub fn replace_tile(
+    fn replace_tile(
         &mut self,
         source_tile_set: &TileSet<'_>,
         source_tile: u16,
@@ -561,7 +682,7 @@ impl VRamManagerInner {
     }
 
     /// Copies the palette to the given palette index
-    pub fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
         assert!(pal_index < 16);
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
@@ -570,7 +691,7 @@ impl VRamManagerInner {
 
     /// The DMA register for controlling a single colour in a single background. Good for drawing gradients
     #[must_use]
-    pub fn background_palette_colour_dma(
+    fn background_palette_colour_dma(
         &self,
         pal_index: usize,
         colour_index: usize,
@@ -588,7 +709,7 @@ impl VRamManagerInner {
     }
 
     /// Sets a single colour for a given background palette. Takes effect immediately
-    pub fn set_background_palette_colour(
+    fn set_background_palette_colour(
         &mut self,
         pal_index: usize,
         colour_index: usize,
@@ -601,7 +722,7 @@ impl VRamManagerInner {
     }
 
     /// Copies palettes to the background palettes without any checks.
-    pub fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+    fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry);
         }
@@ -609,7 +730,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+    fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
         assert!(palette_index < 16);
 
         (0..16).find(|i| PALETTE_BACKGROUND.get(palette_index * 16 + i) == colour)
@@ -617,7 +738,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+    fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
         (0..256).find(|&i| PALETTE_BACKGROUND.get(i) == colour)
     }
 }

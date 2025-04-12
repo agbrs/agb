@@ -1,4 +1,7 @@
-use core::{mem::size_of, pin::Pin};
+use core::{
+    mem::{MaybeUninit, size_of},
+    pin::Pin,
+};
 
 use alloc::boxed::Box;
 
@@ -47,12 +50,12 @@ impl<Item> DmaControllable<Item> {
 
 pub struct HBlankDmaDefinition<Item> {
     controllable: DmaControllable<Item>,
-    values: Pin<Box<[Item]>>,
+    values: Pin<Box<[Item; 161]>>,
 }
 
 impl<Item> HBlankDmaDefinition<Item>
 where
-    Item: Copy + 'static,
+    Item: Copy + Unpin + 'static,
 {
     pub fn new(controllable: DmaControllable<Item>, values: &[Item]) -> Self {
         assert!(
@@ -60,9 +63,20 @@ where
             "need to pass at least 160 values for a hblank transfer"
         );
 
+        let mut copied_values = Box::into_pin(Box::new([const { MaybeUninit::uninit() }; 161]));
+        copied_values[..160].copy_from_slice(unsafe {
+            core::mem::transmute::<&[Item], &[MaybeUninit<Item>]>(values)
+        });
+
+        copied_values[160].write(values[0]);
+
         Self {
             controllable,
-            values: Box::into_pin(values.into()),
+            values: unsafe {
+                core::mem::transmute::<Pin<Box<[MaybeUninit<Item>; 161]>>, Pin<Box<[Item; 161]>>>(
+                    copied_values,
+                )
+            },
         }
     }
 
