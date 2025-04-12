@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Introduced `agb::display::{Rgb15, Rgb}` to represent colours and allow for basic interpolation and conversion.
+
+### Changed
+
+- Where `agb` used to accept `u16` values for colours, it now expects the new `Rgb15` type to avoid type confusion.
+
 ### Removed
 
 - Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer

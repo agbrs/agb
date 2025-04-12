@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Literal;
 use syn::parse::{Parse, Parser};
 use syn::{Expr, ExprLit, Lit, Token};
-use syn::{LitStr, parse_macro_input, punctuated::Punctuated};
+use syn::{parse_macro_input, punctuated::Punctuated};
 
 use std::collections::HashMap;
 use std::{path::Path, str};
@@ -300,10 +300,30 @@ impl ToTokens for ByteString<'_> {
     }
 }
 
+struct IncludeColoursInput {
+    module_name: syn::Path,
+    filename: String,
+}
+
+impl Parse for IncludeColoursInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let module_name: syn::Path = input.parse()?;
+        let _: Token![,] = input.parse()?;
+        let filename: syn::LitStr = input.parse()?;
+
+        Ok(Self {
+            module_name,
+            filename: filename.value(),
+        })
+    }
+}
+
 #[proc_macro]
 pub fn include_colours_inner(input: TokenStream) -> TokenStream {
-    let input_filename = parse_macro_input!(input as LitStr);
-    let input_filename = input_filename.value();
+    let input = parse_macro_input!(input as IncludeColoursInput);
+    let input_filename = input.filename;
+
+    let module_name = input.module_name.clone();
 
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
     let input_filename = Path::new(&root).join(input_filename);
@@ -313,7 +333,8 @@ pub fn include_colours_inner(input: TokenStream) -> TokenStream {
     let mut palette_data = Vec::with_capacity(image.width * image.height);
     for y in 0..image.height {
         for x in 0..image.width {
-            palette_data.push(image.colour(x, y).to_rgb15())
+            let rgb15 = image.colour(x, y).to_rgb15();
+            palette_data.push(quote!(#module_name::display::Rgb15(#rgb15)));
         }
     }
 

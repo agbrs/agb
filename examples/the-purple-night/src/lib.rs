@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Priority, WIDTH,
+        GraphicsFrame, HEIGHT, Priority, Rgb15, WIDTH,
         object::{Object, Sprite, Tag},
         tiled::{
             InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
@@ -2016,8 +2016,8 @@ impl Game {
         let a = modified_palette.colour(0);
         let b = modified_palette.colour(1);
 
-        modified_palette.update_colour(0, interpolate_colour(a, 17982, time, 120));
-        modified_palette.update_colour(2, interpolate_colour(b, 22427, time, 120));
+        modified_palette.update_colour(0, interpolate_colour(a, Rgb15(17982), time, 120));
+        modified_palette.update_colour(2, interpolate_colour(b, Rgb15(22427), time, 120));
 
         let modified_palettes = [modified_palette];
 
@@ -2029,9 +2029,15 @@ impl Game {
 
         let c = modified_palette.colour(1);
 
-        modified_palette.update_colour(0, interpolate_colour(17982, 0x7FFF, time, 600));
-        modified_palette.update_colour(1, interpolate_colour(c, 0x7FFF, time, 600));
-        modified_palette.update_colour(2, interpolate_colour(22427, 0x7FFF, time, 600));
+        modified_palette.update_colour(
+            0,
+            interpolate_colour(Rgb15(17982), Rgb15(0x7FFF), time, 600),
+        );
+        modified_palette.update_colour(1, interpolate_colour(c, Rgb15(0x7FFF), time, 600));
+        modified_palette.update_colour(
+            2,
+            interpolate_colour(Rgb15(22427), Rgb15(0x7FFF), time, 600),
+        );
 
         let modified_palettes = [modified_palette];
 
@@ -2144,7 +2150,15 @@ fn ping_pong(i: u16, n: u16) -> u16 {
     if i >= n { cycle - i } else { i }
 }
 
-fn interpolate_colour(initial: u16, destination: u16, time_so_far: u16, total_time: u16) -> u16 {
+fn interpolate_colour(
+    initial: Rgb15,
+    destination: Rgb15,
+    time_so_far: u16,
+    total_time: u16,
+) -> Rgb15 {
+    let initial = initial.0;
+    let destination = destination.0;
+
     const MASK: u16 = 0b11111;
     fn to_components(c: u16) -> [u16; 3] {
         [c & MASK, (c >> 5) & MASK, (c >> 10) & MASK]
@@ -2162,5 +2176,5 @@ fn interpolate_colour(initial: u16, destination: u16, time_so_far: u16, total_ti
     {
         colour |= (c & MASK) << (i * 5);
     }
-    colour
+    Rgb15(colour)
 }

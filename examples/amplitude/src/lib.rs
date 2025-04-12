@@ -11,7 +11,7 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        self, GraphicsFrame, Palette16,
+        self, GraphicsFrame, Palette16, Rgb15,
         affine::AffineMatrix,
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
         tiled::VRAM_MANAGER,
@@ -367,7 +367,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
     let sprite_cache = SpriteCache::new();
 
-    VRAM_MANAGER.set_background_palettes(&[Palette16::new([u16::MAX; 16])]);
+    VRAM_MANAGER.set_background_palettes(&[Palette16::new([Rgb15::WHITE; 16])]);
 
     let mut max_score = 0;
 

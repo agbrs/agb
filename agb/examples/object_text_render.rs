@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        Palette16,
+        Palette16, Rgb15,
         font::{AlignmentKind, ChangeColour, Font, Layout, SetTag, SpriteTextRenderer, UnsetTag},
         object::Size,
     },
@@ -55,9 +55,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
     static PALETTE: Palette16 = const {
-        let mut palette = [0x0; 16];
-        palette[1] = 0xFF_FF;
-        palette[2] = 0x10_7C;
+        let mut palette = [Rgb15::BLACK; 16];
+        palette[1] = Rgb15::WHITE;
+        palette[2] = Rgb15(0x10_7C);
         Palette16::new(palette)
     };
 

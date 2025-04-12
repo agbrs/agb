@@ -5,7 +5,7 @@ use alloc::{slice, vec::Vec};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
-    display::palette16,
+    display::{Palette16, Rgb15},
     dma,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
@@ -14,7 +14,7 @@ use crate::{
 
 use super::{CHARBLOCK_SIZE, VRAM_START};
 
-const PALETTE_BACKGROUND: MemoryMapped1DArray<u16, 256> =
+const PALETTE_BACKGROUND: MemoryMapped1DArray<Rgb15, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
 
 static TILE_ALLOCATOR: BlockAllocator = unsafe {
@@ -369,7 +369,7 @@ impl VRamManager {
     /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
     /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
     /// the GameBoy Advance.
-    pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
+    pub fn set_background_palette(&self, pal_index: u8, palette: &Palette16) {
         self.with(|inner| inner.set_background_palette(pal_index, palette));
     }
 
@@ -379,7 +379,7 @@ impl VRamManager {
     ///
     /// You will probably call this method early on in the game setup using the palette combination that you
     /// built using [`include_background_gfx!`](crate::include_background_gfx).
-    pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
+    pub fn set_background_palettes(&self, palettes: &[Palette16]) {
         self.with(|inner| inner.set_background_palettes(palettes));
     }
 
@@ -411,7 +411,7 @@ impl VRamManager {
         &self,
         pal_index: usize,
         colour_index: usize,
-    ) -> dma::DmaControllable<u16> {
+    ) -> dma::DmaControllable<Rgb15> {
         self.with(|inner| inner.background_palette_colour_dma(pal_index, colour_index))
     }
 
@@ -424,7 +424,7 @@ impl VRamManager {
     pub fn background_palette_colour_256_dma(
         &self,
         colour_index: usize,
-    ) -> dma::DmaControllable<u16> {
+    ) -> dma::DmaControllable<Rgb15> {
         assert!(colour_index < 256);
 
         self.background_palette_colour_dma(colour_index / 16, colour_index % 16)
@@ -437,26 +437,26 @@ impl VRamManager {
         &self,
         pal_index: usize,
         colour_index: usize,
-        colour: u16,
+        colour: Rgb15,
     ) {
         self.with(|inner| inner.set_background_palette_colour(pal_index, colour_index, colour));
     }
 
     /// Sets a single colour in a 256 colour palette. `colour_index` must be less than 256.
-    pub fn set_background_palette_colour_256(&self, colour_index: usize, colour: u16) {
+    pub fn set_background_palette_colour_256(&self, colour_index: usize, colour: Rgb15) {
         assert!(colour_index < 256);
         self.set_background_palette_colour(colour_index / 16, colour_index % 16, colour);
     }
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+    pub fn find_colour_index_16(&self, palette_index: usize, colour: Rgb15) -> Option<usize> {
         self.with(|inner| inner.find_colour_index_16(palette_index, colour))
     }
 
     /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
     #[must_use]
-    pub fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+    pub fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
         self.with(|inner| inner.find_colour_index_256(colour))
     }
 }
@@ -682,7 +682,7 @@ impl VRamManagerInner {
     }
 
     /// Copies the palette to the given palette index
-    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+    fn set_background_palette(&mut self, pal_index: u8, palette: &Palette16) {
         assert!(pal_index < 16);
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
@@ -695,7 +695,7 @@ impl VRamManagerInner {
         &self,
         pal_index: usize,
         colour_index: usize,
-    ) -> dma::DmaControllable<u16> {
+    ) -> dma::DmaControllable<Rgb15> {
         assert!(pal_index < 16);
         assert!(colour_index < 16);
 
@@ -713,7 +713,7 @@ impl VRamManagerInner {
         &mut self,
         pal_index: usize,
         colour_index: usize,
-        colour: u16,
+        colour: Rgb15,
     ) {
         assert!(pal_index < 16);
         assert!(colour_index < 16);
@@ -722,7 +722,7 @@ impl VRamManagerInner {
     }
 
     /// Copies palettes to the background palettes without any checks.
-    fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+    fn set_background_palettes(&mut self, palettes: &[Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry);
         }
@@ -730,7 +730,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
     #[must_use]
-    fn find_colour_index_16(&self, palette_index: usize, colour: u16) -> Option<usize> {
+    fn find_colour_index_16(&self, palette_index: usize, colour: Rgb15) -> Option<usize> {
         assert!(palette_index < 16);
 
         (0..16).find(|i| PALETTE_BACKGROUND.get(palette_index * 16 + i) == colour)
@@ -738,7 +738,7 @@ impl VRamManagerInner {
 
     /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
     #[must_use]
-    fn find_colour_index_256(&self, colour: u16) -> Option<usize> {
+    fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
         (0..256).find(|&i| PALETTE_BACKGROUND.get(i) == colour)
     }
 }

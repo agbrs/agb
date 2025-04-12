@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Palette16, WIDTH,
+        GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
         object::{Object, Sprite},
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting,
@@ -347,5 +347,21 @@ static MAP_MAP: [u16; 1024] = [
     0x0000, 0x0000, 0x0000, 0x0000,
 ];
 
-static MAP_PALETTE: Palette16 =
-    Palette16::new([0x0000, 0x6A2F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+static MAP_PALETTE: Palette16 = Palette16::new([
+    Rgb15::BLACK,
+    Rgb15(0x6A2F),
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+    Rgb15::BLACK,
+]);

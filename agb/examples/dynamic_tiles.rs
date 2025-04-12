@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::display::{
-    Palette16, Priority,
+    Palette16, Priority, Rgb15,
     tiled::{
         DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
         VRAM_MANAGER,
@@ -13,10 +13,13 @@ use agb::display::{
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palettes(&[Palette16::new([
-        0xff00, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
-        0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    ])]);
+    VRAM_MANAGER.set_background_palettes(&[Palette16::new(
+        [
+            0xff00, 0x0ff0, 0x00ff, 0xf00f, 0xf0f0, 0x0f0f, 0xaaaa, 0x5555, 0x0000, 0x0000, 0x0000,
+            0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        ]
+        .map(Rgb15::new),
+    )]);
 
     let mut bg = RegularBackgroundTiles::new(
         Priority::P0,

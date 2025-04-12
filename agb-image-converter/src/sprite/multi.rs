@@ -176,6 +176,7 @@ impl ToTokens for Output {
         });
 
         let palettes = self.palette.chunks(16).map(|palette| {
+            let palette = palette.iter().map(|c| quote!(Rgb15(#c)));
             quote! { Palette16::new([#(#palette),*])}
         });
 

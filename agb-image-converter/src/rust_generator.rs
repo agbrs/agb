@@ -19,8 +19,11 @@ pub(crate) fn generate_palette_code(
         let colours = palette
             .clone()
             .into_iter()
-            .map(|colour| colour.to_rgb15())
-            .chain(iter::repeat(0))
+            .map(|colour| {
+                let rgb15 = colour.to_rgb15();
+                quote!(#crate_prefix::display::Rgb15(#rgb15))
+            })
+            .chain(iter::repeat(quote!(#crate_prefix::display::Rgb15(0))))
             .take(16);
 
         quote! {

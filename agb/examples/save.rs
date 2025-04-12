@@ -2,7 +2,7 @@
 #![no_main]
 
 use agb::{
-    display::{HEIGHT, Palette16, WIDTH, object::Object, tiled::VRAM_MANAGER},
+    display::{HEIGHT, Palette16, Rgb15, WIDTH, object::Object, tiled::VRAM_MANAGER},
     include_aseprite,
     input::ButtonController,
     save::{Error, SaveManager},
@@ -70,7 +70,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palette(
         0,
-        &Palette16::new([0xffff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+        &Palette16::new([0xffff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].map(Rgb15::new)),
     );
 
     loop {
