@@ -5,7 +5,7 @@ use alloc::{slice, vec::Vec};
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
-    display::palette16::{self, Rgb15},
+    display::{Palette16, Rgb15},
     dma,
     hash_map::{Entry, HashMap},
     memory_mapped::MemoryMapped1DArray,
@@ -369,7 +369,7 @@ impl VRamManager {
     /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
     /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
     /// the GameBoy Advance.
-    pub fn set_background_palette(&self, pal_index: u8, palette: &palette16::Palette16) {
+    pub fn set_background_palette(&self, pal_index: u8, palette: &Palette16) {
         self.with(|inner| inner.set_background_palette(pal_index, palette));
     }
 
@@ -379,7 +379,7 @@ impl VRamManager {
     ///
     /// You will probably call this method early on in the game setup using the palette combination that you
     /// built using [`include_background_gfx!`](crate::include_background_gfx).
-    pub fn set_background_palettes(&self, palettes: &[palette16::Palette16]) {
+    pub fn set_background_palettes(&self, palettes: &[Palette16]) {
         self.with(|inner| inner.set_background_palettes(palettes));
     }
 
@@ -682,7 +682,7 @@ impl VRamManagerInner {
     }
 
     /// Copies the palette to the given palette index
-    fn set_background_palette(&mut self, pal_index: u8, palette: &palette16::Palette16) {
+    fn set_background_palette(&mut self, pal_index: u8, palette: &Palette16) {
         assert!(pal_index < 16);
         for (colour_index, &colour) in palette.colours.iter().enumerate() {
             PALETTE_BACKGROUND.set(colour_index + 16 * pal_index as usize, colour);
@@ -722,7 +722,7 @@ impl VRamManagerInner {
     }
 
     /// Copies palettes to the background palettes without any checks.
-    fn set_background_palettes(&mut self, palettes: &[palette16::Palette16]) {
+    fn set_background_palettes(&mut self, palettes: &[Palette16]) {
         for (palette_index, entry) in palettes.iter().enumerate() {
             self.set_background_palette(palette_index as u8, entry);
         }
