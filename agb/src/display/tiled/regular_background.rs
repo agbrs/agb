@@ -313,6 +313,17 @@ impl RegularBackgroundTiles {
         self.screenblock.size()
     }
 
+    /// Gets the [`Priority`] of this background.
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+
+    /// Sets the [`Priority`] of this background. This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show())
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.priority = priority;
+    }
+
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
         let mut background_control_register = BackgroundControlRegister::default();
 
