@@ -8,6 +8,9 @@
     - [Windows setup](./setup/windows.md)
     - [Mac OS setup](./setup/mac.md)
   - [Building the template](./setup/building.md)
+
+# Tutorials
+
 - [Learn agb part I - pong](./pong/01_introduction.md)
   - [The Gba struct](./pong/02_the_gba_struct.md)
   - [Sprites](./pong/03_sprites.md)
@@ -16,3 +19,13 @@
   - [Paddle collision](./pong/07_paddle_collision.md)
   - [Paddle movement](./pong/08_paddle_movement.md)
   - [Backgrounds](./pong/09_background.md)
+
+# Articles
+
+- [Frame lifecycle](./articles/frame_lifecycle.md)
+- [Backgrounds deep dive]()
+- [Objects deep dive]()
+- [Text rendering]()
+- [Blending, windows and DMA effects]()
+- [Music and sound effects]()
+- [Fixnums]()
