@@ -79,7 +79,7 @@ impl<'a> TileSet<'a> {
 /// Tile indices are used to reference specific 8x8 pixel blocks of data stored in the GBA's
 /// Video RAM (VRAM).
 #[derive(Debug, Clone, Copy)]
-pub enum TileIndex {
+pub(crate) enum TileIndex {
     /// 4 bits per pixel, allowing for 16 colours per tile
     FourBpp(u16),
     /// 8 bits per pixel, allowing for 256 colours per tile
