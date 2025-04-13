@@ -5,9 +5,8 @@ extern crate alloc;
 
 use agb::{
     display::{
-        HEIGHT, WIDTH, example_logo,
+        HEIGHT, WIDTH, WinIn, example_logo,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
-        window::WinIn,
     },
     dma::HBlankDmaDefinition,
     fixnum::{Num, Rect, Vector2D},
