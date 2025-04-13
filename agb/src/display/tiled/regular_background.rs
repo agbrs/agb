@@ -27,7 +27,7 @@ mod tiles;
 /// size you can while minimising the number of times you have to redraw tiles.
 ///
 /// If you want more space than can be provided here, or want to keep more video ram free, then you should use
-/// the [`InfiniteScrolledMap`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
+/// the [`InfiniteScrolle   p`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
 /// as you scroll around.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -285,6 +285,8 @@ impl RegularBackgroundTiles {
     /// Note that after this call, any modifications made to the background will _not_ show this frame. Effectively
     /// calling `show()` takes a snapshot of the current state of the background, so you can even modify
     /// the background and `show()` it again and both will show in the frame.
+    ///
+    /// The returned [`BackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window).
     ///
     /// # Panics
     ///

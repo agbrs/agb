@@ -3,7 +3,7 @@
 
 use agb::display::tiled::{RegularBackgroundTiles, TileFormat};
 use agb::display::{BlendLayer, HEIGHT, WIDTH};
-use agb::display::{example_logo, tiled::RegularBackgroundSize, window::WinIn};
+use agb::display::{WinIn, example_logo, tiled::RegularBackgroundSize};
 use agb::fixnum::{Num, Rect, Vector2D, num};
 
 type FNum = Num<i32, 8>;

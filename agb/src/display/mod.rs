@@ -5,10 +5,7 @@ use bilge::prelude::*;
 
 use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
 
-use self::{
-    object::{Oam, OamFrame, initilise_oam},
-    window::Windows,
-};
+use object::{Oam, OamFrame, initilise_oam};
 
 pub use colours::{Rgb, Rgb15};
 pub use palette16::{Palette16, include_palette};
@@ -27,7 +24,7 @@ pub mod tiled;
 
 pub mod affine;
 mod blend;
-pub mod window;
+mod window;
 
 pub mod font;
 
@@ -39,6 +36,8 @@ const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 pub use blend::{
     Blend, BlendAlphaEffect, BlendFadeEffect, BlendObjectTransparency, Layer as BlendLayer,
 };
+
+pub use window::{MovableWindow, WinIn, Window, Windows};
 
 /// Width of the Gameboy advance screen in pixels
 pub const WIDTH: i32 = 240;
