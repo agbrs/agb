@@ -104,7 +104,7 @@ fn init_background(bg: &mut RegularBackgroundTiles) {
 
     for y in 0..20u16 {
         for x in 0..30u16 {
-            bg.set_tile_dynamic((x, y), &background_tile, TileEffect::default());
+            bg.set_tile_dynamic16((x, y), &background_tile, TileEffect::default());
         }
     }
 

@@ -67,7 +67,7 @@ impl RegularBackgroundTextRenderer {
                 if row[column_idx as usize].is_none() {
                     let tile_pos = vec2(column_idx, row_idx) + tile_offset;
                     let tile = DynamicTile16::new().fill_with(0);
-                    bg.set_tile_dynamic(tile_pos, &tile, TileEffect::default());
+                    bg.set_tile_dynamic16(tile_pos, &tile, TileEffect::default());
 
                     row[column_idx as usize] = Some(tile);
                 }

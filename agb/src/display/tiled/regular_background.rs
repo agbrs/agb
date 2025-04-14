@@ -206,7 +206,7 @@ impl RegularBackgroundTiles {
 
     /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination. This only works on a
     /// [16 colour background](TileFormat::FourBpp).
-    pub fn set_tile_dynamic(
+    pub fn set_tile_dynamic16(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
         tile: &DynamicTile16,

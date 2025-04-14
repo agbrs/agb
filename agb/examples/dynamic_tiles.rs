@@ -42,7 +42,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 *bit = value;
             }
 
-            bg.set_tile_dynamic((x as u16, y as u16), &dynamic_tile, TileEffect::default());
+            bg.set_tile_dynamic16((x as u16, y as u16), &dynamic_tile, TileEffect::default());
         }
     }
 
