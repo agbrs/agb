@@ -79,9 +79,9 @@ fn main(mut gba: agb::Gba) -> ! {
         window
             .win_in(WinIn::Win0)
             .enable_background(background_id)
-            .set_position(Rect::new(pos.floor(), (64, 65).into()));
+            .set_pos(Rect::new(pos.floor(), (64, 65).into()));
 
-        let dma_controllable = window.win_in(WinIn::Win0).horizontal_position_dma();
+        let dma_controllable = window.win_in(WinIn::Win0).horizontal_pos_dma();
         HBlankDmaDefinition::new(dma_controllable, &circle_poses).show(&mut frame);
 
         frame.commit();
