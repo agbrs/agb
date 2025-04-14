@@ -6,8 +6,8 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    DynamicSprite, PaletteMulti, PaletteVram, PaletteVramInterface, PaletteVramMulti,
-    PaletteVramSingle, Size, Sprite, SpriteVram, Tag, include_aseprite,
+    AnimationIterator, DynamicSprite16, DynamicSprite256, PaletteMulti, PaletteVram,
+    PaletteVramMulti, PaletteVramSingle, Size, Sprite, SpriteVram, Tag, include_aseprite,
 };
 
 pub(crate) use sprites::SPRITE_LOADER;

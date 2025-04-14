@@ -38,7 +38,7 @@ create_allocator_arena!(
 /// deallocated from vram.
 ///
 /// You can create one of these by:
-/// * [DynamicSprite][super::DynamicSprite] interface, which allows you to generate sprites at run time,
+/// * [DynamicSprite16][super::DynamicSprite16] or [DynamicSprite256][super::DynamicSprite256], which allows you to generate sprites at run time,
 /// * The [From<&'static Sprite] implementation which deduplicates uses of the same sprite.
 #[derive(Clone, Debug)]
 pub struct SpriteVram {
