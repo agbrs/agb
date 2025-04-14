@@ -6,7 +6,7 @@ use agb::{
         Palette16, Priority, Rgb15,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
         tiled::{
-            DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
+            DynamicTile16, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
             VRAM_MANAGER,
         },
     },
@@ -30,7 +30,7 @@ fn main(mut gba: agb::Gba) -> ! {
         ),
     );
 
-    let background_tile = DynamicTile::new().fill_with(0);
+    let background_tile = DynamicTile16::new().fill_with(0);
 
     let mut bg = RegularBackgroundTiles::new(
         Priority::P0,

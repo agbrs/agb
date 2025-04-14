@@ -4,7 +4,7 @@
 use agb::display::{
     Palette16, Priority, Rgb15,
     tiled::{
-        DynamicTile, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
+        DynamicTile16, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
         VRAM_MANAGER,
     },
 };
@@ -29,7 +29,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     for y in 0..20u32 {
         for x in 0..30u32 {
-            let dynamic_tile = DynamicTile::new();
+            let dynamic_tile = DynamicTile16::new();
 
             for (i, bit) in dynamic_tile.tile_data.iter_mut().enumerate() {
                 let i = i as u32;

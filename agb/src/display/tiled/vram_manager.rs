@@ -177,32 +177,32 @@ impl TileReferenceCount {
 }
 
 /// Represents a tile that can be modified at runtime. Most tiles fetched using [`TileSet`] are generated at
-/// compile time and are loaded on demand from ROM. Note that `DynamicTile`s are always 16 colours, so four bits
+/// compile time and are loaded on demand from ROM. Note that `DynamicTile16`s are always 16 colours, so four bits
 /// per pixel are used.
 ///
-/// If you have access to a `DynamicTile`, then this is actually a direct pointer to Video RAM. Note that any
+/// If you have access to a `DynamicTile16`, then this is actually a direct pointer to Video RAM. Note that any
 /// writes to `tile_data` must be at least 16-bits at a time, or it won't work due to how the GBA's video RAM
 /// works.
 ///
-/// While a DynamicTile is active, some of Video RAM will be used up by it, so ensure it is dropped when you don't
+/// While a DynamicTile16 is active, some of Video RAM will be used up by it, so ensure it is dropped when you don't
 /// need it any more.
 ///
 /// Most of the time, you won't need this. But it is used heavily in the
 /// [`RegularBackgroundTextRenderer`](crate::display::font::RegularBackgroundTextRenderer).
 #[non_exhaustive]
-pub struct DynamicTile {
+pub struct DynamicTile16 {
     /// The actual tile data. This will be exactly 8 long, where each entry represents one row of pixel data.
     pub tile_data: &'static mut [u32],
 }
 
-impl Debug for DynamicTile {
+impl Debug for DynamicTile16 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::write!(f, "DynamicTile({})", self.tile_id())
+        core::write!(f, "DynamicTile16({})", self.tile_id())
     }
 }
 
-impl DynamicTile {
-    /// Creates a new `DynamicTile`. Dynamic tiles aren't cleared by default, so the value you get in `tile_data`
+impl DynamicTile16 {
+    /// Creates a new `DynamicTile16`. Dynamic tiles aren't cleared by default, so the value you get in `tile_data`
     /// won't necessarily be empty, and will contain whatever was in that same location last time.
     ///
     /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
@@ -211,10 +211,10 @@ impl DynamicTile {
     /// ```rust,no_run
     /// # #![no_std]
     /// # #![no_main]
-    /// use agb::display::tiled::DynamicTile;
+    /// use agb::display::tiled::DynamicTile16;
     ///
     /// # fn test() {
-    /// let my_new_tile = DynamicTile::new().fill_with(0);
+    /// let my_new_tile = DynamicTile16::new().fill_with(0);
     /// # }
     /// ```
     ///
@@ -224,7 +224,7 @@ impl DynamicTile {
         VRAM_MANAGER.new_dynamic_tile()
     }
 
-    /// Fills a `DynamicTile` with a given colour index from the palette. Note that the actual palette
+    /// Fills a `DynamicTile16` with a given colour index from the palette. Note that the actual palette
     /// doesn't get assigned until you try to render it.
     #[must_use]
     pub fn fill_with(self, colour_index: u8) -> Self {
@@ -277,13 +277,13 @@ impl DynamicTile {
     }
 }
 
-impl Default for DynamicTile {
+impl Default for DynamicTile16 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Drop for DynamicTile {
+impl Drop for DynamicTile16 {
     fn drop(&mut self) {
         unsafe {
             VRAM_MANAGER.drop_dynamic_tile(self);
@@ -342,11 +342,11 @@ impl VRamManager {
 }
 
 impl VRamManager {
-    unsafe fn drop_dynamic_tile(&self, tile: &DynamicTile) {
+    unsafe fn drop_dynamic_tile(&self, tile: &DynamicTile16) {
         self.with(|inner| inner.remove_dynamic_tile(tile));
     }
 
-    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile {
+    pub(crate) fn new_dynamic_tile(&self) -> DynamicTile16 {
         self.with(VRamManagerInner::new_dynamic_tile)
     }
 
@@ -491,7 +491,7 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    fn new_dynamic_tile(&mut self) -> DynamicTile {
+    fn new_dynamic_tile(&mut self) -> DynamicTile16 {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
@@ -518,7 +518,7 @@ impl VRamManagerInner {
         self.reference_counts[key] =
             TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index.raw_index()));
 
-        DynamicTile {
+        DynamicTile16 {
             tile_data: unsafe {
                 slice::from_raw_parts_mut(
                     tiles
@@ -533,7 +533,7 @@ impl VRamManagerInner {
 
     // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
     #[allow(clippy::needless_pass_by_value)]
-    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile) {
+    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile16) {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
