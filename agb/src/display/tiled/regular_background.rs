@@ -229,6 +229,9 @@ impl RegularBackgroundTiles {
 
     /// Fills the screen with the data given in `tile_data`. This is useful mainly e.g. title screens or other full screen
     /// backgrounds.
+    ///
+    /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx) and
+    /// that it is exactly the same size as the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
     pub fn fill_with(&mut self, tile_data: &TileData) {
         assert!(
             tile_data.tile_settings.len() >= 20 * 30,
