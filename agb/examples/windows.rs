@@ -64,7 +64,7 @@ fn main(mut gba: agb::Gba) -> ! {
         window
             .win_in(WinIn::Win0)
             .enable_background(background_id)
-            .set_position(Rect::new(pos.floor(), (64, 64).into()));
+            .set_pos(Rect::new(pos.floor(), (64, 64).into()));
 
         window
             .win_out()

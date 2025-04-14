@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 //! The window feature of the GBA.
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
@@ -194,9 +194,9 @@ impl MovableWindow {
 
     /// Sets the area of what is inside the window using [u8] representation,
     /// which is closest to what the GBA uses. Most of the time
-    /// [MovableWindow::set_position] should be used.
+    /// [MovableWindow::set_pos] should be used.
     #[inline(always)]
-    fn set_position_u8(&mut self, rect: Rect<u8>) -> &mut Self {
+    fn set_pos_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
 
         self
@@ -204,7 +204,7 @@ impl MovableWindow {
 
     /// Sets the position of the area that is inside the window.
     #[inline(always)]
-    pub fn set_position(&mut self, rect: Rect<i32>) -> &mut Self {
+    pub fn set_pos(&mut self, rect: Rect<i32>) -> &mut Self {
         let new_rect = Rect::new(
             (
                 rect.position.x.clamp(0, WIDTH) as u8,
@@ -213,16 +213,16 @@ impl MovableWindow {
                 .into(),
             (rect.size.x as u8, rect.size.y as u8).into(),
         );
-        self.set_position_u8(new_rect)
+        self.set_pos_u8(new_rect)
     }
 
     /// DMA to control the horizontal position of the window. The lower 8 bits are
     /// the left hand side, and the upper 8 bits are the right hand side.
     ///
     /// When you use this, you should also set the height of the window approprately using
-    /// [`set_position`](Self::set_position).
+    /// [`set_pos`](Self::set_pos).
     #[must_use]
-    pub fn horizontal_position_dma(&self) -> dma::DmaControllable<u16> {
+    pub fn horizontal_pos_dma(&self) -> dma::DmaControllable<u16> {
         unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id)) }
     }
 }
