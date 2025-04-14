@@ -4,7 +4,7 @@ use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
-use crate::display::object::{DynamicSprite, PaletteVramSingle, Size, SpriteVram};
+use crate::display::object::{DynamicSprite16, PaletteVramSingle, Size, SpriteVram};
 use crate::display::{Palette16, Rgb15};
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
@@ -130,7 +130,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
     // generate sprites
 
     for (palette, colour) in (0..PALETTE.len()).map(|x| (x / 15, x % 15)) {
-        let mut sprite = DynamicSprite::new(Size::S8x8);
+        let mut sprite = DynamicSprite16::new(Size::S8x8);
         sprite.clear(colour + 1);
         sprites.push(sprite.to_vram(palettes[palette].clone()));
     }

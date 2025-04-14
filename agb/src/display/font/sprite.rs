@@ -1,6 +1,6 @@
 use agb_fixnum::Vector2D;
 
-use crate::display::object::{DynamicSprite, Object, PaletteVramSingle, Size};
+use crate::display::object::{DynamicSprite16, Object, PaletteVramSingle, Size};
 
 use super::LetterGroup;
 
@@ -18,7 +18,7 @@ impl SpriteTextRenderer {
     #[must_use]
     pub fn show(&self, group: &LetterGroup, offset: impl Into<Vector2D<i32>>) -> Object {
         let offset = offset.into();
-        let mut sprite = DynamicSprite::new(self.size);
+        let mut sprite = DynamicSprite16::new(self.size);
         let pal_index = group.palette_index();
 
         for pixel in group.pixels() {
