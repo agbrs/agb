@@ -80,7 +80,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
         position.x += (Num::new(game_idx * 30 * 8) - position.x) / 8;
 
-        bg.set_pos(position.floor(), |pos| {
+        bg.set_scroll_pos(position.floor(), |pos| {
             let y = pos.y.rem_euclid(20);
             let x = pos.x.rem_euclid(30);
 
