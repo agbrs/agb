@@ -181,7 +181,7 @@ impl TileReferenceCount {
 /// per pixel are used.
 ///
 /// If you have access to a `DynamicTile16`, then this is actually a direct pointer to Video RAM. Note that any
-/// writes to `tile_data` must be at least 16-bits at a time, or it won't work due to how the GBA's video RAM
+/// writes to [`.data()`](Self::data) must be at least 16-bits at a time, or it won't work due to how the GBA's video RAM
 /// works.
 ///
 /// While a DynamicTile16 is active, some of Video RAM will be used up by it, so ensure it is dropped when you don't
@@ -192,7 +192,7 @@ impl TileReferenceCount {
 #[non_exhaustive]
 pub struct DynamicTile16 {
     /// The actual tile data. This will be exactly 8 long, where each entry represents one row of pixel data.
-    pub tile_data: &'static mut [u32],
+    tile_data: &'static mut [u32],
 }
 
 impl Debug for DynamicTile16 {
@@ -237,6 +237,12 @@ impl DynamicTile16 {
 
         self.tile_data.fill(value);
         self
+    }
+
+    /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
+    /// and must write to it in at least 16-bit chunks.
+    pub fn data(&mut self) -> &mut [u32] {
+        self.tile_data
     }
 
     #[must_use]
