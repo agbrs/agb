@@ -27,7 +27,7 @@ mod tiles;
 /// size you can while minimising the number of times you have to redraw tiles.
 ///
 /// If you want more space than can be provided here, or want to keep more video ram free, then you should use
-/// the [`InfiniteScrolle   p`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
+/// the [`InfiniteScrolledMap`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
 /// as you scroll around.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
@@ -229,6 +229,32 @@ impl RegularBackgroundTiles {
 
     /// Fills the screen with the data given in `tile_data`. This is useful mainly e.g. title screens or other full screen
     /// backgrounds.
+    ///
+    /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx) and
+    /// that it is exactly the same size as the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
+    ///
+    /// ## Example
+    ///
+    /// ```rust,no_run
+    /// # #![no_main]
+    /// # #![no_std]
+    /// use agb::{
+    ///     display::{
+    ///         Priority,
+    ///         tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+    ///     },
+    ///     include_background_gfx,
+    /// };
+    ///
+    /// include_background_gfx!(logo, logo => deduplicate "gfx/test_logo.png");
+    ///
+    /// # fn foo() {
+    /// VRAM_MANAGER.set_background_palettes(logo::PALETTES);
+    /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
+    ///
+    /// bg.fill_with(&logo::logo);
+    /// # }
+    /// ```
     pub fn fill_with(&mut self, tile_data: &TileData) {
         assert!(
             tile_data.tile_settings.len() >= 20 * 30,
