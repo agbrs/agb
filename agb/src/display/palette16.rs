@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use super::Rgb15;
 
 #[repr(C)]
@@ -21,12 +22,3 @@ impl Palette16 {
         self.colours[index]
     }
 }
-
-#[macro_export]
-macro_rules! include_palette {
-    ($palette:literal) => {
-        $crate::include_colours_inner!($crate, $palette)
-    };
-}
-
-pub use include_palette;

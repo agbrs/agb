@@ -99,6 +99,15 @@ impl Debug for Rgb {
     }
 }
 
+#[macro_export]
+macro_rules! include_colours {
+    ($palette:literal) => {
+        $crate::include_colours_inner!($crate, $palette)
+    };
+}
+
+pub use include_colours;
+
 #[cfg(test)]
 mod tests {
     use super::*;
