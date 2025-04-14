@@ -72,19 +72,6 @@ impl Rgb {
         let (r, g, b) = (self.r as u16, self.g as u16, self.b as u16);
         Rgb15(((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10))
     }
-
-    /// Interpolate between self and another colour. This does a simple linear interpolation. Amount should be
-    /// between 0 and 1 (inclusive), but could technically extend if you want to overshoot.
-    #[must_use]
-    pub fn interpolate(self, other: Self, amount: Num<i32, 8>) -> Self {
-        let inv_amount = num!(1.) - amount;
-
-        Self::new(
-            (inv_amount * i32::from(self.r) + amount * i32::from(other.r)).floor() as u8,
-            (inv_amount * i32::from(self.g) + amount * i32::from(other.g)).floor() as u8,
-            (inv_amount * i32::from(self.b) + amount * i32::from(other.b)).floor() as u8,
-        )
-    }
 }
 
 impl From<Rgb15> for Rgb {
