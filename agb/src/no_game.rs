@@ -8,10 +8,10 @@ use crate::display::object::{DynamicSprite16, PaletteVramSingle, Size, SpriteVra
 use crate::display::{Palette16, Rgb15};
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
-    include_palette,
+    include_colours,
 };
 
-static PALETTE: &[Rgb15] = &include_palette!("gfx/pastel.png");
+static PALETTE: &[Rgb15] = &include_colours!("gfx/pastel.png");
 
 fn letters() -> Vec<Vec<Vector2D<Num<i32, 8>>>> {
     vec![

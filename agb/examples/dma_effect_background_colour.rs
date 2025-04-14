@@ -3,23 +3,22 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
-
 use agb::{
     display::{
-        Rgb,
+        Rgb, Rgb15,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDmaDefinition,
-    fixnum::Num,
-    include_background_gfx,
+    include_background_gfx, include_colours,
     input::{Button, ButtonController},
 };
 
-const LIGHTEST_SKY_BLUE: Rgb = Rgb::new(0xd8, 0xf2, 0xff);
 const DARKEST_SKY_BLUE: Rgb = Rgb::new(0x00, 0xbd, 0xff);
 
 include_background_gfx!(sky_background, "00BDFE", SKY => "examples/gfx/sky-background.aseprite");
+
+static SKY_GRADIENT: [Rgb15; 160] =
+    include_colours!("examples/gfx/sky-background-gradient.aseprite");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
@@ -33,15 +32,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
     map.fill_with(&sky_background::SKY);
     VRAM_MANAGER.set_background_palettes(sky_background::PALETTES);
-
-    let colours: Box<[_]> = (0..160)
-        .map(|i| {
-            let amount = Num::from(i) / 160;
-            LIGHTEST_SKY_BLUE
-                .interpolate(DARKEST_SKY_BLUE, amount)
-                .to_rgb15()
-        })
-        .collect();
 
     let background_colour_index = VRAM_MANAGER
         .find_colour_index_16(0, DARKEST_SKY_BLUE.to_rgb15())
@@ -60,7 +50,7 @@ fn main(mut gba: agb::Gba) -> ! {
         if should_do_dma {
             HBlankDmaDefinition::new(
                 VRAM_MANAGER.background_palette_colour_dma(0, background_colour_index),
-                &colours,
+                &SKY_GRADIENT,
             )
             .show(&mut frame);
         } else {

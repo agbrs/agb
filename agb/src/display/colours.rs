@@ -1,8 +1,6 @@
 #![warn(missing_docs)]
 use core::fmt::Debug;
 
-use crate::{fixnum::Num, fixnum::num};
-
 /// Represents a pixel on the GBA. This is stored as a 15 bit number as `0b0bbbbbgggggrrrrr`. You can see
 /// what would happen to your true-colour value by using the [utility site](https://agbrs.dev/colour) in the agbrs.dev website.
 #[repr(transparent)]
@@ -72,19 +70,6 @@ impl Rgb {
         let (r, g, b) = (self.r as u16, self.g as u16, self.b as u16);
         Rgb15(((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10))
     }
-
-    /// Interpolate between self and another colour. This does a simple linear interpolation. Amount should be
-    /// between 0 and 1 (inclusive), but could technically extend if you want to overshoot.
-    #[must_use]
-    pub fn interpolate(self, other: Self, amount: Num<i32, 8>) -> Self {
-        let inv_amount = num!(1.) - amount;
-
-        Self::new(
-            (inv_amount * i32::from(self.r) + amount * i32::from(other.r)).floor() as u8,
-            (inv_amount * i32::from(self.g) + amount * i32::from(other.g)).floor() as u8,
-            (inv_amount * i32::from(self.b) + amount * i32::from(other.b)).floor() as u8,
-        )
-    }
 }
 
 impl From<Rgb15> for Rgb {
@@ -98,6 +83,28 @@ impl Debug for Rgb {
         write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
 }
+
+/// Includes the colours of an image in the order that they appear as an array of [`Rgb15`].
+/// Useful for passing to a DMA from
+/// [`VRamManager::background_palette_colour_dma`](crate::display::tiled::VRamManager::background_palette_colour_dma)
+///
+/// ## Example
+///
+/// ```rust,no_run
+/// # #![no_main]
+/// # #![no_std]
+/// use agb::{include_colours, display::Rgb15};
+///
+/// static PALETTE: &[Rgb15] = &include_colours!("gfx/pastel.png");
+/// ```
+#[macro_export]
+macro_rules! include_colours {
+    ($palette:literal) => {
+        $crate::include_colours_inner!($crate, $palette)
+    };
+}
+
+pub use include_colours;
 
 #[cfg(test)]
 mod tests {
