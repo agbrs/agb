@@ -27,7 +27,7 @@ mod tiles;
 /// size you can while minimising the number of times you have to redraw tiles.
 ///
 /// If you want more space than can be provided here, or want to keep more video ram free, then you should use
-/// the [`InfiniteScrolle   p`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
+/// the [`InfiniteScrolledMap`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
 /// as you scroll around.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
