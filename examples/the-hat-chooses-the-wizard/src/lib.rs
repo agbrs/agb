@@ -271,26 +271,30 @@ impl Map<'_> {
     pub fn commit_position(&mut self) {
         let tileset = &tile_sheet::background.tiles;
 
-        self.background.set_pos(self.position.floor(), |pos| {
-            (
-                tileset,
-                tile_sheet::background.tile_settings[*self
-                    .level
-                    .background
-                    .get((pos.y * self.level.dimensions.x as i32 + pos.x) as usize)
-                    .unwrap_or(&0) as usize],
-            )
-        });
-        self.foreground.set_pos(self.position.floor(), |pos| {
-            (
-                tileset,
-                tile_sheet::background.tile_settings[*self
-                    .level
-                    .foreground
-                    .get((pos.y * self.level.dimensions.x as i32 + pos.x) as usize)
-                    .unwrap_or(&0) as usize],
-            )
-        });
+        self.background
+            .set_scroll_pos(self.position.floor(), |pos| {
+                (
+                    tileset,
+                    tile_sheet::background.tile_settings[*self
+                        .level
+                        .background
+                        .get((pos.y * self.level.dimensions.x as i32 + pos.x) as usize)
+                        .unwrap_or(&0)
+                        as usize],
+                )
+            });
+        self.foreground
+            .set_scroll_pos(self.position.floor(), |pos| {
+                (
+                    tileset,
+                    tile_sheet::background.tile_settings[*self
+                        .level
+                        .foreground
+                        .get((pos.y * self.level.dimensions.x as i32 + pos.x) as usize)
+                        .unwrap_or(&0)
+                        as usize],
+                )
+            });
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {

@@ -21,7 +21,7 @@ use agb::{
             VRAM_MANAGER,
         },
     },
-    fixnum::{FixedNum, Rect, Vector2D, num},
+    fixnum::{FixedNum, Rect, Vector2D, num, vec2},
     input::{Button, ButtonController, Tri},
     rng,
     sound::mixer::Frequency,
@@ -1884,34 +1884,43 @@ impl Game {
         self.player.show(frame, this_frame_offset);
         self.boss.show(frame, this_frame_offset);
 
-        let background_offset = (this_frame_offset.floor().x, 8).into();
+        let background_offset = vec2(this_frame_offset.floor().x, 8);
 
         let tileset = &background::background.tiles;
 
-        self.level.background.set_pos(background_offset, |pos| {
-            (
-                tileset,
-                background::background.tile_settings[*tilemap::BACKGROUND_MAP
-                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                    .unwrap_or(&0) as usize],
-            )
-        });
-        self.level.foreground.set_pos(background_offset, |pos| {
-            (
-                tileset,
-                background::background.tile_settings[*tilemap::FOREGROUND_MAP
-                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                    .unwrap_or(&0) as usize],
-            )
-        });
-        self.level.clouds.set_pos(background_offset / 4, |pos| {
-            (
-                tileset,
-                background::background.tile_settings[*tilemap::CLOUD_MAP
-                    .get((pos.x + tilemap::WIDTH * pos.y) as usize)
-                    .unwrap_or(&0) as usize],
-            )
-        });
+        self.level
+            .background
+            .set_scroll_pos(background_offset, |pos| {
+                (
+                    tileset,
+                    background::background.tile_settings[*tilemap::BACKGROUND_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
+                )
+            });
+        self.level
+            .foreground
+            .set_scroll_pos(background_offset, |pos| {
+                (
+                    tileset,
+                    background::background.tile_settings[*tilemap::FOREGROUND_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
+                )
+            });
+        self.level
+            .clouds
+            .set_scroll_pos(background_offset / 4, |pos| {
+                (
+                    tileset,
+                    background::background.tile_settings[*tilemap::CLOUD_MAP
+                        .get((pos.x + tilemap::WIDTH * pos.y) as usize)
+                        .unwrap_or(&0)
+                        as usize],
+                )
+            });
 
         for i in remove {
             self.enemies.remove(i);
