@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    BackgroundControlRegister, BackgroundId, DynamicTile, RegularBackgroundCommitData,
+    BackgroundControlRegister, BackgroundId, DynamicTile16, RegularBackgroundCommitData,
     RegularBackgroundData, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileEffect, TileFormat,
     TileSet, TileSetting, VRAM_MANAGER,
 };
@@ -204,12 +204,12 @@ impl RegularBackgroundTiles {
         self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
-    /// Sets a tile at the given position to the given [`DynamicTile`] / [`TileSetting`] combination. This only works on a
+    /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination. This only works on a
     /// [16 colour background](TileFormat::FourBpp).
-    pub fn set_tile_dynamic(
+    pub fn set_tile_dynamic16(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
-        tile: &DynamicTile,
+        tile: &DynamicTile16,
         effect: TileEffect,
     ) {
         assert_eq!(

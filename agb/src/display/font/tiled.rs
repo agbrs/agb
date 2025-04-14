@@ -2,12 +2,12 @@ use alloc::vec::Vec;
 
 use super::LetterGroup;
 use crate::{
-    display::tiled::{DynamicTile, RegularBackgroundTiles, TileEffect},
+    display::tiled::{DynamicTile16, RegularBackgroundTiles, TileEffect},
     fixnum::{Vector2D, vec2},
 };
 
 pub struct RegularBackgroundTextRenderer {
-    tiles: Vec<Vec<Option<DynamicTile>>>,
+    tiles: Vec<Vec<Option<DynamicTile16>>>,
     origin: Vector2D<i32>,
 }
 
@@ -35,11 +35,11 @@ impl RegularBackgroundTextRenderer {
             let x_in_tile = pos.x.rem_euclid(8) * 4;
 
             let tile_left = row[x].as_mut().expect("should have ensured space");
-            tile_left.tile_data[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+            tile_left.data()[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
 
             if x_in_tile > 0 {
                 let tile_right = row[x + 1].as_mut().expect("should have ensured space");
-                tile_right.tile_data[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
+                tile_right.data()[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
     }
@@ -66,8 +66,8 @@ impl RegularBackgroundTextRenderer {
             for column_idx in top_left_tile.x..(bottom_right_tile.x + 1) {
                 if row[column_idx as usize].is_none() {
                     let tile_pos = vec2(column_idx, row_idx) + tile_offset;
-                    let tile = DynamicTile::new().fill_with(0);
-                    bg.set_tile_dynamic(tile_pos, &tile, TileEffect::default());
+                    let tile = DynamicTile16::new().fill_with(0);
+                    bg.set_tile_dynamic16(tile_pos, &tile, TileEffect::default());
 
                     row[column_idx as usize] = Some(tile);
                 }
