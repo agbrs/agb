@@ -6,7 +6,7 @@ mod sprites;
 mod unmanaged;
 
 pub use sprites::{
-    DynamicSprite, PaletteMulti, PaletteVram, PaletteVramInterface, PaletteVramMulti,
+    DynamicSprite16, DynamicSprite256, PaletteMulti, PaletteVram, PaletteVramMulti,
     PaletteVramSingle, Size, Sprite, SpriteVram, Tag, include_aseprite,
 };
 

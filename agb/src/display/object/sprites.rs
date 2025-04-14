@@ -6,6 +6,6 @@ const BYTES_PER_TILE_8BPP: usize = 16;
 
 pub use sprite::{PaletteMulti, Size, Sprite, Tag, include_aseprite};
 pub use sprite_allocator::{
-    DynamicSprite, PaletteVram, PaletteVramInterface, PaletteVramMulti, PaletteVramSingle,
+    DynamicSprite16, DynamicSprite256, PaletteVram, PaletteVramMulti, PaletteVramSingle,
     SPRITE_LOADER, SpriteVram,
 };

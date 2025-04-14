@@ -3,7 +3,7 @@ use core::mem::MaybeUninit;
 pub use palette::{PaletteVram, PaletteVramMulti, PaletteVramSingle};
 use sprite::SpriteVramInner;
 
-pub use dynamic::{DynamicSprite, PaletteVramInterface};
+pub use dynamic::{DynamicSprite16, DynamicSprite256};
 pub use sprite::SpriteVram;
 
 use crate::{display::palette16::Palette16, hash_map::HashMap, util::SyncUnsafeCell};
