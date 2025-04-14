@@ -14,19 +14,34 @@ use core::{
 use num_traits::Signed;
 
 #[doc(hidden)]
-/// Used internally by the [num!] macro which should be used instead.
-pub use agb_macros::num as num_inner;
+pub mod __private {
+    pub use const_soft_float;
+}
 
 /// Can be thought of having the signature `num!(float) -> Num<I, N>`.
 /// ```
-/// # use agb_fixnum::Num;
-/// # use agb_fixnum::num;
+/// # use agb_fixnum::{Num, num};
 /// let n: Num<i32, 8> = num!(0.75);
 /// assert_eq!(n, Num::new(3) / 4, "0.75 == 3/4");
 /// ```
 #[macro_export]
 macro_rules! num {
-    ($value:literal) => {{ $crate::Num::new_from_parts($crate::num_inner!($value)) }};
+    ($value:literal) => {
+        $crate::Num::new_from_parts(
+            const {
+                use $crate::__private::const_soft_float::soft_f64::SoftF64;
+
+                let v = SoftF64($value as f64);
+                let integer = v.trunc().to_f64();
+                let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
+
+                let integer = integer as i32;
+                let fractional = fractional as i32;
+
+                (integer, fractional)
+            },
+        )
+    };
 }
 
 /// A trait for everything required to use as the internal representation of the
