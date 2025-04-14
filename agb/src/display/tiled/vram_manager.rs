@@ -349,7 +349,7 @@ impl VRamManager {
 
 impl VRamManager {
     unsafe fn drop_dynamic_tile(&self, tile: &DynamicTile16) {
-        self.with(|inner| inner.remove_dynamic_tile(tile));
+        self.with(|inner| unsafe { inner.remove_dynamic_tile(tile) });
     }
 
     pub(crate) fn new_dynamic_tile(&self) -> DynamicTile16 {
@@ -537,9 +537,8 @@ impl VRamManagerInner {
         }
     }
 
-    // This needs to take ownership of the dynamic tile because it will no longer be valid after this call
-    #[allow(clippy::needless_pass_by_value)]
-    fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile16) {
+    // The dynamic tile because it will no longer be valid after this call
+    unsafe fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile16) {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
