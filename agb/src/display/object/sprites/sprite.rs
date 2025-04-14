@@ -149,7 +149,6 @@ macro_rules! align_bytes {
 /// exports each Tag in the aseprite file as a static, the static will be all
 /// caps and have spaces and dashes converted to underscores.
 ///
-///
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
@@ -177,6 +176,18 @@ macro_rules! align_bytes {
 /// );
 /// ```
 ///
+/// You may pass multiple aseprite files in
+///
+/// ```rust,no_run
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
+///     "examples/gfx/chicken.aseprite",
+///     "examples/gfx/sky-background.aseprite"
+/// );
+/// ```
 #[macro_export]
 macro_rules! include_aseprite {
     ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
