@@ -13,7 +13,7 @@ use agb_fixnum::{Num, Vector2D, vec2};
 
 include_aseprite!(
     mod sprites,
-    "examples/gfx/chicken.aseprite"
+    "examples/gfx/crab.aseprite"
 );
 
 struct Save {
@@ -80,8 +80,8 @@ fn main(mut gba: agb::Gba) -> ! {
         save.position.x += button.x_tri() as i32;
         save.position.y += button.y_tri() as i32;
 
-        save.position.x = save.position.x.clamp(0.into(), (WIDTH - 8).into());
-        save.position.y = save.position.y.clamp(0.into(), (HEIGHT - 8).into());
+        save.position.x = save.position.x.clamp(0.into(), (WIDTH - 32).into());
+        save.position.y = save.position.y.clamp(0.into(), (HEIGHT - 32).into());
 
         save.write(&mut gba.save).expect("able to write save data");
 
