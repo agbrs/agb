@@ -255,7 +255,7 @@ impl RegularBackgroundTiles {
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
         let old_tile = self.tiles.get(pos);
 
-        let tile_index = tile_setting.index();
+        let tile_index = tile_setting.tile_id();
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index);

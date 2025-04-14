@@ -100,11 +100,13 @@ impl TileSetting {
         self
     }
 
-    fn index(self) -> u16 {
+    #[must_use]
+    /// Get the underlying tile id
+    pub const fn tile_id(self) -> u16 {
         self.tile_id
     }
 
-    fn setting(self) -> u16 {
+    const fn setting(self) -> u16 {
         self.tile_effect.0
     }
 }
