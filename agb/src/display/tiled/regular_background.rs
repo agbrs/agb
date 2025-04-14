@@ -254,9 +254,6 @@ impl RegularBackgroundTiles {
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
         let old_tile = self.tiles.get(pos);
-        if old_tile != Tile::default() {
-            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours()));
-        }
 
         let tile_index = tile_setting.index();
 
@@ -266,6 +263,10 @@ impl RegularBackgroundTiles {
         } else {
             Tile::default()
         };
+
+        if old_tile != Tile::default() {
+            VRAM_MANAGER.remove_tile(old_tile.tile_index(self.tiles.colours()));
+        }
 
         if old_tile == new_tile {
             // no need to mark as dirty if nothing changes
