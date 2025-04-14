@@ -37,7 +37,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
         current_pos += input.vector();
 
-        infinite_scrolled.set_pos(current_pos, |p| {
+        infinite_scrolled.set_scroll_pos(current_pos, |p| {
             (
                 &big_map::big_map.tiles,
                 big_map::big_map.tile_settings

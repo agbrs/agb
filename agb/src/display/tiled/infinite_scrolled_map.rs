@@ -1,6 +1,8 @@
-use agb_fixnum::{Rect, Vector2D, vec2};
-
-use crate::display::{GraphicsFrame, HEIGHT, WIDTH};
+#![warn(missing_docs)]
+use crate::{
+    display::{GraphicsFrame, HEIGHT, Priority, WIDTH},
+    fixnum::{Rect, Vector2D, vec2},
+};
 
 use super::{BackgroundId, RegularBackgroundTiles, TileSet, TileSetting};
 
@@ -8,12 +10,6 @@ use super::{BackgroundId, RegularBackgroundTiles, TileSet, TileSetting};
 const ONE_MORE_THAN_SCREEN_HEIGHT: i32 = HEIGHT / 8 + 1;
 /// In tiles
 const ONE_MORE_THAN_SCREEN_WIDTH: i32 = WIDTH / 8 + 1;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PartialUpdateStatus {
-    Done,
-    Continue,
-}
 
 #[derive(Clone, Copy)]
 enum Position {
@@ -35,6 +31,20 @@ impl Position {
     }
 }
 
+/// Create a 'virtual background' which is larger than the maximum size allowed by the Game Boy Advance.
+///
+/// The maximum background size in the Game Boy Advance is `64x64` tiles. Sometimes you want your game playing
+/// space to be much larger than that. The `InfiniteScrolledMap` lets you pretend that the background is
+/// as big as you need it to be, and it will lazily load the data into video RAM to ensure that the
+/// screen is filled with the content that you expect it to. So the player won't know that tiles are being replaced
+/// off-screen.
+///
+/// Note that the `InfiniteScrolledMap` only works with _regular backgrounds_ and not affine backgrounds.
+///
+/// You create an `InfiniteScrolledMap` by passing a [`RegularBackgroundTiles`] you've created before. Then,
+/// call [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) to control the position of the scrolling.
+///
+/// See [here](https://agbrs.dev/examples/infinite_scrolled_map) for an example of how to use it.
 pub struct InfiniteScrolledMap {
     map: RegularBackgroundTiles,
 
@@ -42,6 +52,12 @@ pub struct InfiniteScrolledMap {
 }
 
 impl InfiniteScrolledMap {
+    /// Creates a new [`InfiniteScrolledMap`] taking ownership of the [`RegularBackgroundTiles`]. Until you call
+    /// [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) calling [`.show()`](InfiniteScrolledMap::show) on this will
+    /// do no more than calling `.show` would have on the `map`.
+    ///
+    /// You need to call [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) in order to actually render something to the
+    /// map.
     #[must_use]
     pub fn new(map: RegularBackgroundTiles) -> Self {
         Self {
@@ -166,11 +182,35 @@ impl InfiniteScrolledMap {
         PartialUpdateStatus::Done
     }
 
-    pub fn set_pos(
+    /// Scrolls the [`InfiniteScrolledMap`] to the provided location and does the minimum amount of
+    /// rendering required in order to make the illusion that we have a map that's larger than the
+    /// maximum background size provided by the Game Boy Advance. The behaviour is the same as
+    /// [`RegularBackgroundTiles::set_scroll_pos`] except without the wrapping behaviour.
+    ///
+    /// You should pass a function to the `tile` argument which, given a position, returns the tile
+    /// that should be rendered in that location. Calling this with a new position that keeps some of
+    /// the screen still visible will result in only the newly visible tiles being updated.
+    ///
+    /// The return value of this indicates whether the whole screen was updated, or if only part of
+    /// the screen was updated. It can require quite a lot of CPU time to render the entire
+    /// screen, so it is smeared across multiple frames to avoid dropping them if e.g. loading an
+    /// entirely new set of tiles.
+    ///
+    /// * [`PartialUpdateStatus::Done`] is returned if the entire screen was updated.
+    /// * [`PartialUpdateStatus::Continue`] is returned if only part of the screen was updated.
+    ///
+    /// It is recommended that you call this every frame, and then if update smearing has to happen,
+    /// it won't happen for long and your players are unlikely to notice. You should also
+    /// hide the scrolled map until the initial rendering is completed (by not calling
+    /// [`InfiniteScrolledMap::show()`]) to hide the initial render.
+    ///
+    /// Do be aware that the provided `Vector2D<i32>` passed to the tile could be negative.
+    pub fn set_scroll_pos(
         &mut self,
-        new_pos: Vector2D<i32>,
+        new_pos: impl Into<Vector2D<i32>>,
         tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
     ) -> PartialUpdateStatus {
+        let new_pos = new_pos.into();
         self.map.set_scroll_pos(new_pos);
 
         // if the current pos is so far away from the new pos, we may as well start again
@@ -187,9 +227,37 @@ impl InfiniteScrolledMap {
         }
     }
 
+    /// Gets the current scroll position. See [`RegularBackgroundTiles::scroll_pos`]
+    #[must_use]
+    pub fn scroll_pos(&self) -> Vector2D<i32> {
+        self.map.scroll_pos()
+    }
+
+    /// Sets the priority of the underlying map. See [`RegularBackgroundTiles::set_priority`]
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.map.set_priority(priority);
+    }
+
+    /// Gets the current priority of the underlying map. See [`RegularBackgroundTiles::priority`]
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.map.priority()
+    }
+
+    /// Shows this map on the given [`GraphicsFrame`]. See [`RegularBackgroundTiles::show`] for more
+    /// details.
     pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
         self.map.show(frame)
     }
+}
+
+/// An indication as to whether scrolling is complete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PartialUpdateStatus {
+    /// The entire screen has been filled and is ready to show the player
+    Done,
+    /// There is still work to do to fully fill the screen. Maybe only a few rows of tiles have been rendered.
+    Continue,
 }
 
 // Can remove once div_floor and div_ceil are stable
