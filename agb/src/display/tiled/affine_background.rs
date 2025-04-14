@@ -131,9 +131,6 @@ impl AffineBackgroundTiles {
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) {
         let old_tile = self.tiles.get(pos);
-        if old_tile != 0 {
-            VRAM_MANAGER.remove_tile(TileIndex::EightBpp(old_tile as u16));
-        }
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
             let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index);
@@ -146,6 +143,10 @@ impl AffineBackgroundTiles {
         } else {
             0
         };
+
+        if old_tile != 0 {
+            VRAM_MANAGER.remove_tile(TileIndex::EightBpp(old_tile as u16));
+        }
 
         if old_tile == new_tile {
             return;
