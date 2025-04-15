@@ -289,6 +289,9 @@ impl AnimationIterator {
 
     #[must_use]
     /// Repeats each frame of the animation times times
+    ///
+    /// # Panics
+    /// Panics if the number of times to repeat is zero
     pub fn repeat(self, times: u16) -> RepeatingAnimationIterator {
         assert!(times > 0);
         RepeatingAnimationIterator(times, times, self)
