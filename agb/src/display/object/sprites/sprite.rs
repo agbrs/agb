@@ -176,7 +176,9 @@ macro_rules! align_bytes {
 /// );
 /// ```
 ///
-/// You may pass multiple aseprite files in
+/// You may pass multiple aseprite files in. This is particularly useful if you
+/// have multiple sprites with different sizes since aseprite files require
+/// that every frame has the same size.
 ///
 /// ```rust,no_run
 /// # #![no_std]
@@ -184,8 +186,8 @@ macro_rules! align_bytes {
 /// use agb::include_aseprite;
 /// include_aseprite!(
 ///     mod sprites,
-///     "examples/gfx/chicken.aseprite",
-///     "examples/gfx/sky-background.aseprite"
+///     "examples/gfx/crab.aseprite",
+///     "examples/gfx/crab-small.aseprite"
 /// );
 /// ```
 #[macro_export]
