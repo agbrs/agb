@@ -141,11 +141,11 @@ impl ButtonController {
         (up, down).into()
     }
 
-    /// Returns true if all the buttons specified in `keys` are pressed.
+    /// Returns a vector which represents the current direction being pressed.
     #[must_use]
     pub fn vector<T>(&self) -> Vector2D<T>
     where
-        T: From<i32> + crate::fixnum::FixedWidthUnsignedInteger,
+        T: From<i32> + crate::fixnum::Number,
     {
         (self.x_tri() as i32, self.y_tri() as i32).into()
     }
@@ -176,7 +176,7 @@ impl ButtonController {
     /// Returns a vector which represents the direction the button was just pressed in.
     pub fn just_pressed_vector<T>(&self) -> Vector2D<T>
     where
-        T: From<i32> + crate::fixnum::FixedWidthUnsignedInteger,
+        T: From<i32> + crate::fixnum::Number,
     {
         (
             self.just_pressed_x_tri() as i32,
