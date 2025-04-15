@@ -246,7 +246,6 @@ pub struct Tag {
     direction: Direction,
 }
 
-#[repr(align(4))]
 /// An [`AnimationIterator`] that repeats each frame of the animation a certain
 /// number of times. It is created by the [`AnimationIterator::repeat`] method.
 pub struct RepeatingAnimationIterator(u16, u16, AnimationIterator);
