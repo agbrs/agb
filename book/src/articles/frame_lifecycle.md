@@ -1,6 +1,6 @@
 # Frame lifecycle
 
-Games written using `agb` are typically follow the ['update-render loop'](https://gameprogrammingpatterns.com/game-loop.html).
+Games written using `agb` typically follow the ['update-render loop'](https://gameprogrammingpatterns.com/game-loop.html).
 The way your components update will be very dependent on the game you are writing, but each frame you would normally do the following:
 
 ```rust
