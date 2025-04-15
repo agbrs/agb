@@ -60,7 +60,6 @@ pub trait FixedWidthUnsignedInteger:
     + Shl<usize, Output = Self>
     + Shr<usize, Output = Self>
     + BitAnd<Output = Self>
-    + From<u8>
     + Debug
     + Display
     + num_traits::Num
@@ -127,6 +126,7 @@ macro_rules! upcast_multiply_impl {
     };
 }
 
+fixed_width_unsigned_integer_impl!(i8, i32);
 fixed_width_unsigned_integer_impl!(u8, u32);
 fixed_width_unsigned_integer_impl!(i16, i32);
 fixed_width_unsigned_integer_impl!(u16, u32);
@@ -559,9 +559,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     /// ```
     #[must_use]
     pub fn sin(self) -> Self {
-        let one: Self = I::one().into();
-        let four: I = 4.into();
-        (self - one / four).cos()
+        (self - num!(0.25)).cos()
     }
 }
 
