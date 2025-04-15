@@ -246,9 +246,54 @@ pub struct Tag {
     direction: Direction,
 }
 
+#[repr(align(4))]
+/// An [`AnimationIterator`] that repeats each frame of the animation a certain
+/// number of times. It is created by the [`AnimationIterator::repeat`] method.
+pub struct RepeatingAnimationIterator(u16, u16, AnimationIterator);
+
+impl Iterator for RepeatingAnimationIterator {
+    type Item = &'static Sprite;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0 -= 1;
+        if self.0 == 0 {
+            self.0 = self.1;
+            self.2.next()
+        } else {
+            Some(self.2.peek())
+        }
+    }
+}
+
 /// An infinite iterator over the frames of the animation
 #[derive(Clone, Copy)]
 pub struct AnimationIterator(i32, &'static Tag);
+
+impl AnimationIterator {
+    #[must_use]
+    /// Gives the current sprite from the animation iterator
+    pub fn peek(self) -> &'static Sprite {
+        match self.1.direction {
+            Direction::Forward | Direction::Backward => self.1.sprite(self.0 as usize),
+            Direction::PingPong => {
+                let current = self.0;
+                if current >= self.1.sprites.len() as i32 {
+                    let idx = self.1.sprites.len() * 2 - current as usize - 2;
+                    self.1.sprite(idx)
+                } else {
+                    self.1.sprite(current as usize)
+                }
+            }
+        }
+    }
+
+    #[must_use]
+    /// Repeats each frame of the animation times times
+    pub fn repeat(self, times: u16) -> RepeatingAnimationIterator {
+        assert!(times > 0);
+        RepeatingAnimationIterator(times, times, self)
+    }
+}
 
 impl Iterator for AnimationIterator {
     type Item = &'static Sprite;
