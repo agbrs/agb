@@ -125,19 +125,6 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
-#[proc_macro]
-pub fn num(input: TokenStream) -> TokenStream {
-    let f = syn::parse_macro_input!(input as syn::LitFloat);
-    let v: f64 = f.base10_parse().expect("The number should be parsable");
-
-    let integer = v.trunc();
-    let fractional = v.fract() * (1_u64 << 30) as f64;
-
-    let integer = integer as i32;
-    let fractional = fractional as i32;
-    quote!((#integer, #fractional)).into()
-}
-
 fn hashed_ident<T: Hash>(f: &T) -> Ident {
     let hash = calculate_hash(f);
     Ident::new(&format!("_agb_main_func_{hash}"), Span::call_site())
