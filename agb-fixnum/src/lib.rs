@@ -23,10 +23,11 @@ pub mod __private {
 /// # use agb_fixnum::{Num, num};
 /// let n: Num<i32, 8> = num!(0.75);
 /// assert_eq!(n, Num::new(3) / 4, "0.75 == 3/4");
+/// assert_eq!(n, num!(3. / 4.));
 /// ```
 #[macro_export]
 macro_rules! num {
-    ($value:literal) => {
+    ($value:expr) => {
         $crate::Num::new_from_parts(
             const {
                 use $crate::__private::const_soft_float::soft_f64::SoftF64;
