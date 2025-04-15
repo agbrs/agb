@@ -3,19 +3,21 @@
 
 use agb::{
     display::{
-        Graphics, Rgb15,
+        Graphics,
         object::{Object, SpriteVram},
-        tiled::VRAM_MANAGER,
+        tiled::{RegularBackgroundTiles, VRAM_MANAGER},
     },
     fixnum::{Num, Vector2D, vec2},
-    include_aseprite,
+    include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
 
 include_aseprite!(mod sprites, "examples/gfx/crab.aseprite");
+include_background_gfx!(background, bg => deduplicate "examples/gfx/fixed_point_background.aseprite");
 
 fn integer(
     gfx: &mut Graphics,
+    bg: &RegularBackgroundTiles,
     initial_position: Vector2D<i32>,
     initial_velocity: Vector2D<i32>,
 ) -> (Vector2D<i32>, Vector2D<i32>) {
@@ -39,6 +41,8 @@ fn integer(
             .set_position(position)
             .show(&mut frame);
 
+        bg.show(&mut frame);
+
         frame.commit();
         button.update();
     }
@@ -48,6 +52,7 @@ fn integer(
 
 fn fixed(
     gfx: &mut Graphics,
+    bg: &RegularBackgroundTiles,
     initial_position: Vector2D<i32>,
     initial_velocity: Vector2D<i32>,
 ) -> (Vector2D<i32>, Vector2D<i32>) {
@@ -71,6 +76,8 @@ fn fixed(
             .set_position(position.floor())
             .show(&mut frame);
 
+        bg.show(&mut frame);
+
         frame.commit();
         button.update();
     }
@@ -82,12 +89,19 @@ fn fixed(
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb15::WHITE);
+    let mut bg = RegularBackgroundTiles::new(
+        agb::display::Priority::P0,
+        agb::display::tiled::RegularBackgroundSize::Background32x32,
+        agb::display::tiled::TileFormat::FourBpp,
+    );
+
+    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    bg.fill_with(&background::bg);
 
     let mut position = vec2(80, 80);
     let mut velocity = vec2(0, 0);
     loop {
-        (position, velocity) = integer(&mut gfx, position, velocity);
-        (position, velocity) = fixed(&mut gfx, position, velocity);
+        (position, velocity) = integer(&mut gfx, &bg, position, velocity);
+        (position, velocity) = fixed(&mut gfx, &bg, position, velocity);
     }
 }
