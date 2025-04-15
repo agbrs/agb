@@ -575,4 +575,42 @@ mod tests {
         assert_is_at_idx(1);
         assert_is_at_idx(0);
     }
+
+    #[test_case]
+    fn check_repeating(_: &mut crate::Gba) {
+        let iterator = create_iterator!(3, Direction::Forward);
+
+        let mut iterator = iterator.repeat(3);
+
+        let mut assert_is_at_idx = |idx: usize| {
+            assert_eq!(
+                iterator.next().map(as_ptr),
+                Some(as_ptr(iterator.2.1.sprite(idx)))
+            );
+        };
+
+        assert_is_at_idx(0);
+        assert_is_at_idx(0);
+        assert_is_at_idx(0);
+
+        assert_is_at_idx(1);
+        assert_is_at_idx(1);
+        assert_is_at_idx(1);
+
+        assert_is_at_idx(2);
+        assert_is_at_idx(2);
+        assert_is_at_idx(2);
+
+        assert_is_at_idx(0);
+        assert_is_at_idx(0);
+        assert_is_at_idx(0);
+
+        assert_is_at_idx(1);
+        assert_is_at_idx(1);
+        assert_is_at_idx(1);
+
+        assert_is_at_idx(2);
+        assert_is_at_idx(2);
+        assert_is_at_idx(2);
+    }
 }
