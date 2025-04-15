@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Introduced `agb::display::{Rgb15, Rgb}` to represent colours and allow for basic interpolation and conversion.
+- You can now pass any constant expression to the `num!` macro.
 
 ### Changed
 
