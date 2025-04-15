@@ -28,4 +28,4 @@
 - [Text rendering]()
 - [Blending, windows and DMA effects]()
 - [Music and sound effects]()
-- [Fixnums]()
+- [Fixnums](./articles/fixed_point_numbers.md)
