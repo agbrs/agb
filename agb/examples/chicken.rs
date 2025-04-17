@@ -10,7 +10,7 @@ use agb::{
             VRAM_MANAGER,
         },
     },
-    fixnum::{Num, Vector2D, num, vec2},
+    fixnum::{Num, Vector2D, vec2},
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
@@ -92,7 +92,7 @@ fn entry(mut gba: agb::Gba) -> ! {
         camera_position.x += (Number::new(target_position) - camera_position.x) / 8;
 
         background.set_scroll_pos(
-            (camera_position + vec2(num!(0.5), num!(0))).floor(),
+            vec2(camera_position.x.round(), camera_position.y.floor()),
             |pos| {
                 let (x, y) = (pos.x, pos.y);
                 let tile_idx = if !(0..30 * 5).contains(&x) || !(0..20).contains(&y) {
@@ -175,9 +175,8 @@ impl Chicken {
             }
         }
 
-        self.object.set_position(
-            (self.position - camera_position + vec2(num!(0.5), num!(0.5))).floor() - vec2(4, 4),
-        );
+        self.object
+            .set_position((self.position - camera_position).round() - vec2(4, 4));
     }
 
     fn restrict_to_screen(&mut self) {
