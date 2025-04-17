@@ -442,6 +442,28 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         self.0 >> N
     }
 
+    /// Rounds towards the nearest integer and rounds towards positive infinity
+    /// for values half way between two integers. Equivalent to `(self + num!(0.5)).floor()`.
+    ///
+    /// ```rust
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// fn make(a: Num<i32, 8>) -> Num<i32, 8> {
+    ///     a
+    /// }
+    ///
+    /// assert_eq!(make(num!(0.2)).round(), 0);
+    /// assert_eq!(make(num!(4.5)).round(), 5);
+    /// assert_eq!(make(num!(9.75)).round(), 10);
+    ///
+    /// assert_eq!(make(num!(-9.2)).round(), -9);
+    /// assert_eq!(make(num!(-11.8)).round(), -12);
+    /// assert_eq!(make(num!(-2.5)).round(), -2);
+    /// ```
+    pub fn round(self) -> I {
+        (self + num!(0.5)).floor()
+    }
+
     /// Returns the fractional component of a number as it's integer representation
     /// ```
     /// # use agb_fixnum::*;
@@ -810,6 +832,21 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
         Vector2D {
             x: self.x.floor(),
             y: self.y.floor(),
+        }
+    }
+
+    #[must_use]
+    /// Rounds the x and y coordinate, see [Num::round]
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1: Vector2D<Num<i32, 8>> = Vector2D::new(num!(1.56), num!(-2.2));
+    /// let v2: Vector2D<i32> = (2, -2).into();
+    /// assert_eq!(v1.round(), v2);
+    /// ```
+    pub fn round(self) -> Vector2D<I> {
+        Vector2D {
+            x: self.x.round(),
+            y: self.y.round(),
         }
     }
 
