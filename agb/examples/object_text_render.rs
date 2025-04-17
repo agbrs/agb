@@ -7,7 +7,7 @@ use agb::{
         font::{AlignmentKind, ChangeColour, Font, Layout, SetTag, SpriteTextRenderer, UnsetTag},
         object::Size,
     },
-    fixnum::{Num, num, vec2},
+    fixnum::{Num, vec2},
     include_font,
     rng::next_i32,
 };
@@ -108,11 +108,11 @@ fn main(mut gba: agb::Gba) -> ! {
                 )]
                 object.set_position(
                     *resting
-                        + (vec2(
+                        + vec2(
                             Num::<i32, 12>::from_raw(next_i32()) % 1,
                             Num::from_raw(next_i32()) % 1,
-                        ) + vec2(num!(0.5), num!(0.5)))
-                        .floor(),
+                        )
+                        .round(),
                 );
             }
             object.show(&mut frame);

@@ -229,7 +229,7 @@ impl Entity {
     }
 
     fn show(&mut self, frame: &mut GraphicsFrame, offset: Vector2D<Number>) {
-        let position = (self.position - offset + Vector2D::new(num!(0.5), num!(0.5))).floor();
+        let position = (self.position - offset).round();
         if !(position.x < -8
             || position.x > WIDTH + 8
             || position.y < -8
@@ -247,7 +247,7 @@ impl Entity {
         offset: Vector2D<Number>,
         size: Vector2D<i32>,
     ) {
-        let position = (self.position - offset + Vector2D::new(num!(0.5), num!(0.5))).floor();
+        let position = (self.position - offset).round();
         if !(position.x < -8
             || position.x > WIDTH + 8
             || position.y < -8

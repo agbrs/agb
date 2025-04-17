@@ -390,7 +390,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
             }
             let max_bar_width = display::WIDTH - 2;
             let bar_width_pixels = (game.energy * max_bar_width) / game.settings.max_energy;
-            let bar_width_pixels = (bar_width_pixels + num!(0.5)).floor().max(0) as usize;
+            let bar_width_pixels = bar_width_pixels.round().max(0) as usize;
 
             let mut render = || {
                 let mut frame = gfx.frame();
