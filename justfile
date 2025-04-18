@@ -52,9 +52,11 @@ clean:
 
 fmt:
     just _all-crates _fmt
+    just _all-examples _fmt
 
 fmt-check:
     just _all-crates _fmt-check
+    just _all-examples _fmt-check
 
 run-example example:
     just _build-example "{{example}}"
@@ -199,6 +201,12 @@ debug *args:
 
 _all-crates target:
     for CARGO_PROJECT_FILE in agb/Cargo.toml tracker/agb-tracker/Cargo.toml ./Cargo.toml; do \
+        PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
+        just "{{target}}" "$PROJECT_DIR" || exit $?; \
+    done
+
+_all-examples target:
+    for CARGO_PROJECT_FILE in examples/*/Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
