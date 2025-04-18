@@ -7,7 +7,7 @@ use agb::{
         object::{Object, Sprite},
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
-    fixnum::{Num, Vector2D, num, vec2},
+    fixnum::{Num, Rect, Vector2D, num, vec2},
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
@@ -205,7 +205,6 @@ impl Chicken {
 }
 
 include_aseprite!(mod sprites, "examples/gfx/chicken.aseprite");
-use agb_fixnum::Rect;
 use sprites::{JUMP, WALK};
 static IDLE: &Sprite = sprites::IDLE.sprite(0);
 
