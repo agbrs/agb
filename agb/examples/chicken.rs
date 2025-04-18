@@ -148,20 +148,12 @@ impl Chicken {
     }
 
     fn restrict_to_screen(&mut self) {
-        if self.position.x > (WIDTH - 8 + 4).into() {
-            self.velocity.x = 0.into();
-            self.position.x = (WIDTH - 8 + 4).into();
-        } else if self.position.x < 4.into() {
-            self.velocity.x = 0.into();
-            self.position.x = 4.into();
-        }
-        if self.position.y > (HEIGHT - 8 + 4).into() {
-            self.velocity.y = 0.into();
-            self.position.y = (HEIGHT - 8 + 4).into();
-        } else if self.position.y < 4.into() {
-            self.velocity.y = 0.into();
-            self.position.y = 4.into();
-        }
+        let bounding_rect = Rect::new(
+            vec2(num!(4), num!(4)),
+            vec2(num!(WIDTH - 8), num!(HEIGHT - 8)),
+        );
+
+        self.position = bounding_rect.clamp_point(self.position);
     }
 
     fn handle_collision_component(
@@ -213,6 +205,7 @@ impl Chicken {
 }
 
 include_aseprite!(mod sprites, "examples/gfx/chicken.aseprite");
+use agb_fixnum::Rect;
 use sprites::{JUMP, WALK};
 static IDLE: &Sprite = sprites::IDLE.sprite(0);
 
