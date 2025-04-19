@@ -1071,6 +1071,79 @@ impl<T: Number> Rect<T> {
 
         Some(Rect::new(top_left, bottom_right - top_left))
     }
+
+    /// Clamps the given point to be within the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let bounding_rect = Rect::new(vec2(10, 10), vec2(10, 10));
+    ///
+    /// assert_eq!(bounding_rect.clamp_point(vec2(15, 15)), vec2(15, 15));
+    /// assert_eq!(bounding_rect.clamp_point(vec2(0, 15)), vec2(10, 15));
+    /// assert_eq!(bounding_rect.clamp_point(vec2(100, 30)), vec2(20, 20));
+    /// ```
+    #[inline(always)]
+    pub fn clamp_point(self, point: impl Into<Vector2D<T>>) -> Vector2D<T> {
+        let point = point.into();
+        let top_left = self.top_left();
+        let bottom_right = self.bottom_right();
+
+        let x = point.x.clamp(top_left.x, bottom_right.x);
+        let y = point.y.clamp(top_left.y, bottom_right.y);
+
+        vec2(x, y)
+    }
+
+    /// Returns the top left point of the rectangle.
+    ///
+    /// Is the same as `.position`.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.top_left(), vec2(10, 10));
+    /// assert_eq!(r.top_left(), r.position);
+    /// ```
+    #[inline(always)]
+    pub fn top_left(self) -> Vector2D<T> {
+        self.position
+    }
+
+    /// Returns the top right point of the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.top_right(), vec2(20, 10));
+    /// ```
+    #[inline(always)]
+    pub fn top_right(self) -> Vector2D<T> {
+        self.position + vec2(self.size.x, T::zero())
+    }
+
+    /// Returns the bottom left point of the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.bottom_left(), vec2(10, 20));
+    /// ```
+    #[inline(always)]
+    pub fn bottom_left(self) -> Vector2D<T> {
+        self.position + vec2(T::zero(), self.size.y)
+    }
+
+    /// Returns the bottom right point of the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.bottom_right(), vec2(20, 20));
+    /// ```
+    #[inline(always)]
+    pub fn bottom_right(self) -> Vector2D<T> {
+        self.position + self.size
+    }
 }
 
 impl<T: FixedWidthUnsignedInteger> Rect<T> {
