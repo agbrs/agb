@@ -13,7 +13,7 @@ use agb::{
 };
 
 include_aseprite!(mod sprites, "examples/gfx/crab.aseprite");
-include_background_gfx!(mod background, beach => deduplicate "examples/gfx/beach-background.aseprite");
+include_background_gfx!(mod background, BEACH => deduplicate "examples/gfx/beach-background.aseprite");
 
 struct Player {
     sprite: SpriteVram,
@@ -58,7 +58,7 @@ fn main(mut gba: agb::Gba) -> ! {
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
-    bg_tiles.fill_with(&background::beach);
+    bg_tiles.fill_with(&background::BEACH);
 
     loop {
         button_controller.update();
