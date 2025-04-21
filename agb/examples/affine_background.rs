@@ -13,7 +13,7 @@ use agb::{
     include_background_gfx,
 };
 
-include_background_gfx!(affine_tiles, "3f3f74", water_tiles => 256 "examples/water_tiles.png");
+include_background_gfx!(mod affine_tiles, "3f3f74", water_tiles => 256 "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

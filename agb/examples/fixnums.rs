@@ -13,7 +13,7 @@ use agb::{
 };
 
 include_aseprite!(mod sprites, "examples/gfx/crab.aseprite");
-include_background_gfx!(background, bg => deduplicate "examples/gfx/fixed_point_background.aseprite");
+include_background_gfx!(mod background, bg => deduplicate "examples/gfx/fixed_point_background.aseprite");
 
 fn integer(
     gfx: &mut Graphics,

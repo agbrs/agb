@@ -9,7 +9,7 @@ use agb::{
     include_background_gfx,
 };
 
-include_background_gfx!(water_tiles, water_tiles => "examples/water_tiles.png");
+include_background_gfx!(mod water_tiles, water_tiles => "examples/water_tiles.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

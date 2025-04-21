@@ -41,7 +41,7 @@ static GAMES: &[GameWithTiles] = &[
 ];
 
 include_background_gfx!(
-    games, "121105",
+    mod games, "121105",
     hat => 256 deduplicate "gfx/hat.png",
     purple => 256 deduplicate "gfx/purple.png",
     hyperspace => 256 deduplicate "gfx/hyperspace.png",

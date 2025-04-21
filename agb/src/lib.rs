@@ -40,7 +40,7 @@
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
-/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
 /// ```
 ///
 /// This will generate something along the lines of the following:
@@ -73,7 +73,7 @@
 ///     include_background_gfx,
 /// };
 ///
-/// agb::include_background_gfx!(water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
 ///
 /// # fn load_tileset() {
 /// let tileset = &water_tiles::tiles.tiles;
@@ -100,7 +100,7 @@
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::include_background_gfx;
-/// include_background_gfx!(generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
+/// include_background_gfx!(mod generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
 /// ```
 ///
 /// You can also make the exported background a public module which will allow other modules access them. The following
@@ -109,7 +109,7 @@
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
-/// agb::include_background_gfx!(pub water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(pub mod water_tiles, tiles => "examples/water_tiles.png");
 /// ```
 pub use agb_image_converter::include_background_gfx;
 

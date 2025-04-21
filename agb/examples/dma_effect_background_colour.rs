@@ -15,7 +15,7 @@ use agb::{
 
 const DARKEST_SKY_BLUE: Rgb = Rgb::new(0x00, 0xbd, 0xff);
 
-include_background_gfx!(sky_background, "00BDFE", SKY => "examples/gfx/sky-background.aseprite");
+include_background_gfx!(mod sky_background, "00BDFE", SKY => "examples/gfx/sky-background.aseprite");
 
 static SKY_GRADIENT: [Rgb15; 160] =
     include_colours!("examples/gfx/sky-background-gradient.aseprite");

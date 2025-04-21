@@ -13,7 +13,7 @@ use agb::{
 };
 
 include_aseprite!(mod sprites, "examples/gfx/crab.aseprite");
-include_background_gfx!(background, beach => deduplicate "examples/gfx/beach-background.aseprite");
+include_background_gfx!(mod background, beach => deduplicate "examples/gfx/beach-background.aseprite");
 
 struct Player {
     sprite: SpriteVram,

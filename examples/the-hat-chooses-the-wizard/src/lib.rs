@@ -102,7 +102,7 @@ mod map_tiles {
     }
 }
 
-agb::include_background_gfx!(tile_sheet, "2ce8f4", background => deduplicate "gfx/tile_sheet.png");
+agb::include_background_gfx!(mod tile_sheet, "2ce8f4", background => deduplicate "gfx/tile_sheet.png");
 
 agb::include_aseprite!(mod sprites, "gfx/sprites.aseprite");
 

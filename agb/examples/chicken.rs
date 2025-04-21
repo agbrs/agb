@@ -208,4 +208,4 @@ include_aseprite!(mod sprites, "examples/gfx/chicken.aseprite");
 use sprites::{JUMP, WALK};
 static IDLE: &Sprite = sprites::IDLE.sprite(0);
 
-include_background_gfx!(background, map => deduplicate "examples/gfx/chicken-map.aseprite");
+include_background_gfx!(mod background, map => deduplicate "examples/gfx/chicken-map.aseprite");
