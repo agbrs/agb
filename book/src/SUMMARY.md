@@ -23,7 +23,7 @@
 # Articles
 
 - [Frame lifecycle](./articles/frame_lifecycle.md)
-- [Backgrounds deep dive]()
+- [Backgrounds deep dive](./articles/backgrounds.md)
 - [Objects deep dive]()
 - [Text rendering]()
 - [Blending, windows and DMA effects]()
