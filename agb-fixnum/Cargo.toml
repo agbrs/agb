@@ -16,3 +16,6 @@ num-traits = { version = "0.2", default-features = false }
 serde = { version = "1", features = [
     "derive",
 ], default-features = false, optional = true }
+
+[build-dependencies]
+quote = "1"
