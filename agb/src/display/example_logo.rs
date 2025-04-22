@@ -1,7 +1,7 @@
 use super::tiled::{RegularBackgroundTiles, VRAM_MANAGER};
 
-crate::include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/test_logo.png");
-crate::include_background_gfx!(crate, agb_logo_basic, test_logo => deduplicate "gfx/test_logo_basic.png");
+crate::include_background_gfx!(crate, mod agb_logo, test_logo => deduplicate "gfx/test_logo.png");
+crate::include_background_gfx!(crate, mod agb_logo_basic, test_logo => deduplicate "gfx/test_logo_basic.png");
 
 pub fn display_logo(map: &mut RegularBackgroundTiles) {
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);

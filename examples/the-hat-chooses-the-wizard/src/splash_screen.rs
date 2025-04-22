@@ -4,7 +4,7 @@ use agb::display::{
     tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
 };
 
-agb::include_background_gfx!(splash_screens,
+agb::include_background_gfx!(mod splash_screens,
     splash => deduplicate "gfx/splash.png",
     thanks_for_playing => deduplicate "gfx/thanks_for_playing.png",
 );

@@ -137,6 +137,7 @@ impl Parse for IncludeBackgroundGfxInput {
             false
         };
 
+        let _: Token![mod] = input.parse()?;
         let module_name: syn::Ident = input.parse()?;
         let _: Token![,] = input.parse()?;
 
@@ -188,7 +189,7 @@ impl config::Config for IncludeBackgroundGfxInput {
 /// # #![no_std]
 /// # #![no_main]
 /// # use agb::include_background_gfx;
-/// include_background_gfx!(generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
+/// include_background_gfx!(mod generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
 /// ```
 ///
 #[proc_macro]

@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Gba, include_background_gfx, interrupt::VBlank, test_runner::assert_image_output};
 
-include_background_gfx!(crate, agb_logo, test_logo => deduplicate "gfx/test_logo.png");
+include_background_gfx!(crate, mod agb_logo, test_logo => deduplicate "gfx/test_logo.png");
 
 const WIZARD_FACE_TILE: usize = 19 + 4 * 30;
 

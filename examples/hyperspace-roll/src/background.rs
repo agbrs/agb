@@ -10,7 +10,7 @@ use agb::{
 
 use crate::sfx::Sfx;
 
-include_background_gfx!(backgrounds, "121105",
+include_background_gfx!(mod backgrounds, "121105",
     stars => deduplicate "gfx/stars.aseprite",
     title => deduplicate "gfx/title-screen.aseprite",
     help => deduplicate "gfx/help-text.aseprite",

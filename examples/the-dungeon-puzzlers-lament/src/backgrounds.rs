@@ -3,7 +3,7 @@ use agb::{
     include_background_gfx,
 };
 
-include_background_gfx!(backgrounds, "1e151b",
+include_background_gfx!(mod backgrounds, "1e151b",
     ui => deduplicate "maps/ui_tiles.png",
     level => deduplicate "maps/level.png",
     ending => deduplicate "gfx/ending_page.aseprite",

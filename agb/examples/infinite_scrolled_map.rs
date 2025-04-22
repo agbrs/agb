@@ -11,7 +11,7 @@ use agb::{
     input::ButtonController,
 };
 
-include_background_gfx!(big_map, "2ce8f4", big_map => deduplicate "examples/big_map.png");
+include_background_gfx!(mod big_map, "2ce8f4", big_map => deduplicate "examples/big_map.png");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {

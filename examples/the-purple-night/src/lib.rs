@@ -54,7 +54,7 @@ static SWORDLESS_JUMP: &Tag = &sprites::JUMP_SWORDLESS;
 static SWORDLESS_ATTACK: &Tag = KNIFE_ATTACK;
 static SWORDLESS_JUMP_ATTACK: &Tag = KNIFE_JUMP_ATTACK;
 
-agb::include_background_gfx!(background, "53269a", background => deduplicate "gfx/background.aseprite");
+agb::include_background_gfx!(mod background, "53269a", background => deduplicate "gfx/background.aseprite");
 
 type Number = FixedNum<8>;
 
