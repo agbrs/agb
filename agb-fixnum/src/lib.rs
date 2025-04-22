@@ -13,6 +13,10 @@ use core::{
 };
 use num_traits::Signed;
 
+mod lut {
+    include!(concat!(env!("OUT_DIR"), "/lut.rs"));
+}
+
 #[doc(hidden)]
 pub mod __private {
     pub use const_soft_float;
@@ -64,6 +68,7 @@ pub trait FixedWidthUnsignedInteger:
     + Display
     + num_traits::Num
     + Not<Output = Self>
+    + num_traits::AsPrimitive<usize>
 {
     /// Returns the representation of ten
     fn ten() -> Self;
@@ -542,7 +547,6 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     }
 
     /// Calculates the cosine of a fixed point number with the domain of [0, 1].
-    /// Uses a [fifth order polynomial](https://github.com/tarcieri/micromath/blob/24584465b48ff4e87cffb709c7848664db896b4f/src/float/cos.rs#L226).
     /// ```
     /// # use agb_fixnum::*;
     /// let n: Num<i32, 8> = num!(0.);   // 0 radians
@@ -558,11 +562,14 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
     /// ```
     #[must_use]
     pub fn cos(self) -> Self {
-        let mut x = self;
-        x -= num!(0.25) + (x + num!(0.25)).floor();
-        x *= (x.abs() - num!(0.5)) * num!(16.);
-        x += x * (x.abs() - num!(1.)) * num!(0.225);
-        x
+        let n: Num<I, 8> = self.change_base();
+        let n: usize = n.to_raw().as_();
+
+        let x: i16 = lut::COS[n & 0xFF];
+
+        let n: Num<I, 8> = Num::from_raw(I::from_as_i32(x as i32));
+
+        n.change_base()
     }
 
     /// Calculates the sine of a number with domain of [0, 1].
