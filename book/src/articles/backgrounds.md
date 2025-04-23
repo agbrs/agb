@@ -67,7 +67,7 @@ fn main() -> ! {
 
 ## `RegularBackgroundTiles`
 
-Now that we have the `TileSet` ready and the palette set up, we need to actually declare which tiles to show where on the screen.
+With a `TileSet` ready and a palette set up, we need to actually declare which tiles to show where on the screen.
 This is done using the [`RegularBackgroundTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html) struct.
 The `RegularBackgroundTiles` reserves some video RAM to store which tile goes where and other metadata about it like it's palette number and whether it should be flipped.
 
@@ -88,7 +88,11 @@ For this example, we'll just create a 32x32 background, but it is important to a
 
 ```rust
 use agb::{
-    display::tiled::VRAM_MANAGER,
+    display::Priority,
+    display::tiled::{
+        RegularBackgroundTiles, RegularBackgroundSize,
+        VRAM_MANAGER,
+    },
     include_background_gfx,
 };
 
@@ -148,9 +152,74 @@ loop {
 }
 ```
 
-## TODO:
+## Background scrolling
 
-- Mulitple backgrounds and priority
+One of the key things you can use backgrounds to do is to display something scrolling.
+You can use this to make your level bigger than the world map, or to do some parallax effect in the background.
+
+You can scroll the background with the [`.set_scroll_pos()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_scroll_pos) method.
+The `scroll_pos` passed to the `.set_scroll_pos()` method is effectively the 'camera' position.
+It chooses where the top left camera position should be.
+So increasing the `x` coordinate will slide the background to the right, to ensure that the top-left corner of the Game Boy Advance's screen is at that pixel.
+
+Backgrounds will wrap around if they are pushed off the edge of the screen.
+See the [scrolling example](https://agbrs.dev/examples/scrolling_background) for an example of using the scroll position.
+
+## Multiple backgrounds and priorities
+
+The Game Boy Advance has the ability to show up to 4 background concurrently.
+These can be layered on top of eachother to create different effects like the parallax effect above or to always show certain things above the rest of the game.
+
+### Displaying multiple backgrounds
+
+You can display multiple backgrounds at once by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.show) method on each background passing the same [`frame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) instance.
+If you try to show more than 4 backgrounds, then the call to `.show()` will panic.
+
+### Transparency
+
+When two backgrounds are rendered on top of eachother, the lower background will be visible through the transparent pixels in the backgrounds above.
+Only full transparency is supported, partial transparency is ignored.
+
+Any pixels with no background visible at all will be displayed in the first colour in the first palette.
+You can alter what colour this is in the [`include_background_gfx!`](https://docs.rs/agb/latest/agb/macro.include_background_gfx.html) call.
+
+```rust
+use agb::{
+    display::tiled::VRAM_MANAGER,
+    include_background_gfx,
+};
+
+include_background_gfx!(
+    mod background,
+    "00bdfe", // the hex code of the sky colour we want to use as the background layer
+    BEACH => deduplicate "gfx/beach-background.aseprite"
+);
+
+#[agb::entry]
+fn main() -> ! {
+    // by setting the background colour here, the first colour will be the sky colour,
+    // so rather than filling the screen with black you will now instead have it
+    // filled with blue. Even though we don't show anything yet.
+    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+
+    loop {}
+}
+```
+
+There is also a special tile setting you can use in the call to [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_tile), [`TileSetting::BLANK`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html#associatedconstant.BLANK).
+This is a fully transparent tile, and if you ever want a tile in your background to be fully transparent, it is better to use this one for performance.
+
+### Priority and interaction with objects
+
+There are 2 things which impact which background gets displayed above other ones.
+The [priority](https://docs.rs/agb/latest/agb/display/enum.Priority.html), and the order in which you call `.show()`.
+Backgrounds with higher priorities are rendered first, and so are rendered behind those with lower priorities.
+Between backgrounds with the same priority, the one which called `.show()` first will render before (and therefore behind) the later ones.
+
+When interacting with objects, objects with the same priority as backgrounds are always displayed _above_ the background.
+You can use this to display the [Heads Up Display (HUD)](<https://en.wikipedia.org/wiki/HUD_(video_games)>) above the player by putting the HUD background on priority 0, the main background on priority 3 and the player also on priority 3.
+
+See the [hud example](https://agbrs.dev/examples/hud) for an example of how to use priorities to draw a heads up display above the scene we've been working on.
 
 - Infinite maps
 

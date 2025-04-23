@@ -59,6 +59,33 @@ pub struct TileSetting {
 pub struct TileEffect(u16);
 
 impl TileSetting {
+    /// Displays a blank tile.
+    ///
+    /// Use this instead of a fully blank tile in your tile set if possible, since it is special cased to be more performant.
+    ///
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::{
+    ///     display::Priority,
+    ///     display::tiled::{
+    ///         RegularBackgroundTiles, RegularBackgroundSize, TileEffect, TileSetting,
+    ///         VRAM_MANAGER,
+    ///     },
+    ///     include_background_gfx,
+    /// };
+    ///
+    /// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
+    ///
+    /// # fn foo() {
+    /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
+    ///
+    /// // put something in the background
+    /// bg.set_tile((0, 0), &water_tiles::tiles.tiles, water_tiles::tiles.tile_settings[1]);
+    /// // set it back to blank
+    /// bg.set_tile((0, 0), &water_tiles::tiles.tiles, TileSetting::BLANK);
+    /// # }
+    /// ```
     pub const BLANK: Self =
         TileSetting::new(TRANSPARENT_TILE_INDEX, TileEffect::new(false, false, 0));
 
