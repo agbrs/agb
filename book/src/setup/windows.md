@@ -1,6 +1,6 @@
 # Windows setup
 
-This guide has been tested on Windows 11 using PowerShell with elevated rights _(dont use cmd)_.
+This guide has been tested on Windows 11 using PowerShell with elevated rights _(don't use cmd)_.
 
 # 1. Install a recent version of rust
 
@@ -9,7 +9,6 @@ Firstly, ensure that you have **rustup** installed which you can do by following
 
 If you have installed rustup, you can update it with `rustup update`.  
 If the `rustup`-command fails, you'll most probably add the cargo/bin folder to the Path-environment variable.
-
 
 # 2. git
 
@@ -24,6 +23,7 @@ We recommend using the mGBA emulator which you can download from [here](https://
 After installing, you can add the binary to your Path-environment variable and create an alias for the agb run command to use.
 
 Creating link for mgba-qt:
+
 ```PS
 New-Item -itemtype hardlink -path "C:\Program Files\mGBA\mgba-qt.exe" -value "C:\Program Files\mGBA\mGBA.exe"
 ```

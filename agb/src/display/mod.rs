@@ -39,9 +39,9 @@ pub use blend::{
 
 pub use window::{MovableWindow, WinIn, Window, Windows};
 
-/// Width of the Gameboy advance screen in pixels
+/// Width of the Game Boy advance screen in pixels
 pub const WIDTH: i32 = 240;
-/// Height of the Gameboy advance screen in pixels
+/// Height of the Game Boy advance screen in pixels
 pub const HEIGHT: i32 = 160;
 
 #[non_exhaustive]
