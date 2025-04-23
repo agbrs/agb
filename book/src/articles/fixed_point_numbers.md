@@ -29,7 +29,7 @@ The larger `N` is, the more precise your numbers can be but it also reduces the 
 The smallest positive number that can be represented for a given `N` will be `1 / 2^N`, and the maximum number will be `type::MAX / 2^N`.
 You should use an `N` that is less than or equal to half the number of bits in the underlying integer type, so for an `i32` you should use an `N` of _at most_ `16`.
 
-In general, `8` bits offers a good middleground, allowing for `1/256` precision while still allowing for a range of `-8388608..8388608` with `i32`.
+In general, `8` bits offers a good middle ground, allowing for `1/256` precision while still allowing for a range of `-8388608..8388608` with `i32`.
 
 The original Super Mario Bros has 16 sub pixels, which would correspond to an `N` of `4`.
 That was designed to run on a 8-bit processor, so you might as well use a few more.

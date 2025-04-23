@@ -231,7 +231,7 @@ unsafe fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// * You *must not* allocate in an interrupt.
 ///     - Many functions in agb allocate and it isn't always clear.
 ///
-/// # Staticness
+/// # 'static
 /// * The closure must be static because forgetting the interrupt handler would
 ///   cause a use after free.
 ///

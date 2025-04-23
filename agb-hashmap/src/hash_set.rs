@@ -218,7 +218,7 @@ where
         self.map.contains_key(value)
     }
 
-    /// Visits the values reperesting the difference i.e. the values that are in `self` but not in `other`.
+    /// Visits the values representing the difference i.e. the values that are in `self` but not in `other`.
     ///
     /// # Examples
     ///

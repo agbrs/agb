@@ -71,7 +71,7 @@ macro_rules! dynamic_sprite_defn {
                 Self::try_new(size).expect("couldn't allocate dynamic sprite")
             }
 
-            /// Set the pixel of a sprite to a given paletted pixel.
+            /// Set the pixel of a sprite to a given colour index from the palette.
             ///
             /// # Panics
             /// Panics if the pixel would be outside the range of the palette

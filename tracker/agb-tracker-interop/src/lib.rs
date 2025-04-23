@@ -80,7 +80,7 @@ pub enum PatternEffect {
     None,
     /// Stops playing the current note
     Stop,
-    /// Plays an arpeggiation of three notes in one row, cycling betwen the current note, current note + first speed, current note + second speed
+    /// Plays an arpeggio of three notes in one row, cycling between the current note, current note + first speed, current note + second speed
     Arpeggio(Num<u16, 8>, Num<u16, 8>),
     Panning(Num<i16, 4>),
     Volume(Num<i16, 8>),

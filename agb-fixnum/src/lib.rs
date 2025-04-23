@@ -813,7 +813,7 @@ impl<T: Number + Signed> Vector2D<T> {
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     #[must_use]
-    /// Truncates the x and y coordinate, see [Num::trunc]
+    /// Truncates the x and y coordinate, see [`Num::trunc`]
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = (num!(1.56), num!(-2.2)).into();

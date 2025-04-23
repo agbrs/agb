@@ -219,7 +219,7 @@ impl MovableWindow {
     /// DMA to control the horizontal position of the window. The lower 8 bits are
     /// the left hand side, and the upper 8 bits are the right hand side.
     ///
-    /// When you use this, you should also set the height of the window approprately using
+    /// When you use this, you should also set the height of the window appropriately using
     /// [`set_pos`](Self::set_pos).
     #[must_use]
     pub fn horizontal_pos_dma(&self) -> dma::DmaControllable<u16> {

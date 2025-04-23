@@ -173,7 +173,7 @@ pub struct HashMap<K, V, ALLOCATOR: Allocator = Global> {
     hasher: BuildHasherDefault<FxHasher>,
 }
 
-/// Trait for allocators that are clonable, blanket implementation for all types that implement Allocator and Clone
+/// Trait for allocators that are cloneable.
 pub trait ClonableAllocator: Allocator + Clone {}
 impl<T: Allocator + Clone> ClonableAllocator for T {}
 

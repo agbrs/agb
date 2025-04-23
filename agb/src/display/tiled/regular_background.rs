@@ -184,7 +184,7 @@ impl RegularBackgroundTiles {
     /// which you set when creating the background (in the [`TileFormat`] argument) must match the number of colours in
     /// the tileset you are creating.
     ///
-    /// This will resulting in copying the tile data to video RAM. However, setting the same tile accross multiple locations
+    /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
     /// in the background will reference that same tile only once to reduce video RAM usage.
     pub fn set_tile(
         &mut self,

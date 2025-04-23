@@ -18,7 +18,7 @@ pub(super) const MALFUNCTION_COOLDOWN_FRAMES: u32 = 3 * 60;
 const ROLL_TIME_FRAMES_ALL: u32 = 2 * 60;
 const ROLL_TIME_FRAMES_ONE: u32 = 60 / 8;
 
-/// A face of the rolled die and it's cooldown (should it be a malfunction)
+/// A face of the rolled die and it's cool down (should it be a malfunction)
 #[derive(Debug)]
 struct RolledDie {
     face: Face,
