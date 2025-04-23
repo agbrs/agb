@@ -72,7 +72,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy fmt-check test miri build-release test-release doctest-agb build-roms build-book check-docs
+ci: build-debug clippy fmt-check spellcheck test miri build-release test-release doctest-agb build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -219,6 +219,9 @@ build-playground-server-image:
 
 build-playground-api:
     (cd website/play && cargo build --release --target=x86_64-unknown-linux-musl)
+
+spellcheck:
+    npx --yes -- cspell lint '**/*.rs' '**/*.md' 
 
 _test-release crate:
     (cd "{{crate}}" && cargo test --release)
