@@ -1,0 +1,74 @@
+### General terms ###
+
+agbrs
+gmtk
+
+thumbv4t-none-eabi
+thumbv4t_none_eabi
+
+fixnum
+fixnums
+rect
+
+hflip
+vflip
+
+tileset
+
+vblank
+vdraw
+hblank
+scanline
+
+lossily
+
+cloneable
+
+### GBA ecosystem terms ###
+
+tonc
+tonc's
+gbatek
+gbadev
+aeabi
+
+### Software ###
+
+aseprite
+mgba
+gbafix
+binutils
+mdbook
+
+rustc
+rustup
+rustflags
+miri
+
+agbabi
+
+### Rust crates ###
+
+serde
+libelf
+
+### GBA hardware terms ###
+
+pak # like game pak
+paks
+
+### Types of GBA RAM ###
+FRAM
+WRAM
+IWRAM
+WRAM
+EWRAM
+
+### Commercial games ###
+
+minish
+
+### Chip manufacturers
+Atmel
+Macronix
+Sanyo

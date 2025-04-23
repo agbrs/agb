@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en-GB",
+  "dictionaryDefinitions": [
+    {
+      "name": "agb-words",
+      "path": "agb/dictionary.txt",
+      "addWords": true
+    }
+  ],
+  "languageSettings": [
+    {
+      "languageId": "rust",
+      "includeRegExpList": [
+        // only include stuff in doc comments
+        "/\\/\\/\\/.*/"
+      ],
+      "ignoreRegExpList": [
+        // but skip example code in doc comments
+        "/\\/\\/\\/ ```[\\s\\S]+?```/g",
+        // skip in links
+        "/\\[`[^`]+?`\\]/g",
+        // and anything else in `s. Weirdly just this still catches the one in links so we need both
+        "/`[^`]+?`/g"
+      ]
+    },
+    {
+      "languageId": "markdown",
+      "ignoreRegExpList": [
+        // skip anything in a code block
+        "/```[\\s\\S]+?```/g",
+        "/`[^`]+?`/g"
+      ]
+    }
+  ],
+  "dictionaries": ["agb-words"],
+  "useGitignore": true,
+  "ignorePaths": [
+    "CHANGELOG.md", // too much in here
+    "**/LICENSE.md"
+  ]
+}
