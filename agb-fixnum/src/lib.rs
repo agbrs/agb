@@ -658,7 +658,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
             write!(f, "{integral}")?;
 
             if precision != 0 {
-                write!(f, ".{:#0width$}", fraction_to_write, width = precision)?;
+                write!(f, ".{fraction_to_write:#0precision$}")?;
             }
         } else {
             if sign == -1 && integral == I::zero() {
