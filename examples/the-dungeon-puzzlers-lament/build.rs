@@ -255,7 +255,7 @@ fn export_level(map: &tiled::Map) -> Level {
     let starting_items = starting_items.split(',').map(|starting_item| {
         starting_item
             .parse()
-            .unwrap_or_else(|_| panic!("unknown object type {}", starting_item))
+            .unwrap_or_else(|_| panic!("unknown object type {starting_item}"))
     });
 
     let Some(tiled::PropertyValue::StringValue(directions)) = map.properties.get("DIRECTIONS")
@@ -266,7 +266,7 @@ fn export_level(map: &tiled::Map) -> Level {
     let directions = directions.chars().map(|starting_item| {
         starting_item
             .try_into()
-            .unwrap_or_else(|_| panic!("unknown object type {}", starting_item))
+            .unwrap_or_else(|_| panic!("unknown object type {starting_item}"))
     });
 
     let Some(tiled::TileLayer::Finite(tiles)) = map.get_layer(0).unwrap().as_tile_layer() else {

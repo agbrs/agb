@@ -85,7 +85,7 @@ impl TestRunner {
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!("\n{}\nWriting new image and failing the testts", e);
+                                    eprintln!("\n{e}\nWriting new image and failing the testts");
                                     mark_tests_as_soft_failed = true;
                                     mark_this_test_as_soft_failed = true;
 
@@ -119,7 +119,7 @@ impl TestRunner {
                                 }
                             }
                         } else if debug_message.ends_with("...") {
-                            eprint!("{}", debug_message);
+                            eprint!("{debug_message}");
                         } else if debug_message == "[ok]" {
                             let cycles = match timer {
                                 Timer::Start(_) => panic!("test completed with invalid timing"),
@@ -133,17 +133,15 @@ impl TestRunner {
                             if mark_this_test_as_soft_failed {
                                 mark_this_test_as_soft_failed = false;
                                 eprintln!(
-                                    "[fail: {}c ≈ {}s ≈ {}% frame]",
-                                    cycles, seconds_rounded, percentage_frame_time
+                                    "[fail: {cycles}c ≈ {seconds_rounded}s ≈ {percentage_frame_time}% frame]"
                                 );
                             } else {
                                 eprintln!(
-                                    "[ok: {}c ≈ {}s ≈ {}% frame]",
-                                    cycles, seconds_rounded, percentage_frame_time
+                                    "[ok: {cycles}c ≈ {seconds_rounded}s ≈ {percentage_frame_time}% frame]"
                                 );
                             }
                         } else {
-                            eprintln!("{}", debug_message);
+                            eprintln!("{debug_message}");
                         }
                     }
                     _ => {}
@@ -154,7 +152,7 @@ impl TestRunner {
                         eprintln!("Tests failed");
                         return Err(anyhow!("Tests failed").into());
                     } else {
-                        eprintln!("{}", message);
+                        eprintln!("{message}");
                         return Ok(());
                     }
                 }

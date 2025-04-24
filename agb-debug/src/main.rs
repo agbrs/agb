@@ -98,7 +98,7 @@ fn print_line_of_code(
 
     let trimmed = line_of_code.trim_start();
     let trimmed_len = line_of_code.len() - trimmed.len();
-    println!("\t\t{}", trimmed);
+    println!("\t\t{trimmed}");
 
     if location.col != 0 {
         println!(
