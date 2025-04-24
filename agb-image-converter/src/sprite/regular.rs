@@ -13,7 +13,7 @@ pub fn include_regular(tokens: TokenStream) -> TokenStream {
 
     match process_input(&input) {
         Ok(tokens) => tokens,
-        Err(err) => panic!("Failed to generate sprites: {}", err),
+        Err(err) => panic!("Failed to generate sprites: {err}"),
     }
 }
 
