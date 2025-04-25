@@ -168,7 +168,7 @@ See the [scrolling example](https://agbrs.dev/examples/scrolling_background) for
 ## Multiple backgrounds and priorities
 
 The Game Boy Advance has the ability to show up to 4 background concurrently.
-These can be layered on top of eachother to create different effects like the parallax effect above or to always show certain things above the rest of the game.
+These can be layered on top of each other to create different effects like the parallax effect above or to always show certain things above the rest of the game.
 
 ### Displaying multiple backgrounds
 
@@ -177,7 +177,7 @@ If you try to show more than 4 backgrounds, then the call to `.show()` will pani
 
 ### Transparency
 
-When two backgrounds are rendered on top of eachother, the lower background will be visible through the transparent pixels in the backgrounds above.
+When two backgrounds are rendered on top of each other, the lower background will be visible through the transparent pixels in the backgrounds above.
 Only full transparency is supported, partial transparency is ignored.
 
 Any pixels with no background visible at all will be displayed in the first colour in the first palette.
@@ -221,12 +221,62 @@ You can use this to display the [Heads Up Display (HUD)](<https://en.wikipedia.o
 
 See the [hud example](https://agbrs.dev/examples/hud) for an example of how to use priorities to draw a heads up display above the scene we've been working on.
 
-- Infinite maps
+## Infinite maps
 
-  - Why you would need them
-  - Worked example
+Often in your game you'll want maps that are larger than the maximum background size of 64x64.
+It could be a platformer with large levels, or a large map in an RPG.
+Or maybe you want a scrolling background that's got a longer repeat than every 64 tiles.
 
-- 256 colours
+The [`InfiniteScrolledMap`](https://docs.rs/agb/latest/agb/display/tiled/struct.InfiniteScrolledMap.html) is a used to manage a map that's larger than the background size.
+It works by changing the tiles that aren't currently visible on the screen and then allowing you to scroll to them.
+This creates a seamless, 'infinite' map.
+
+The key method in `InfiniteScrolledMap` is the [`.set_scroll_pos()`](https://docs.rs/agb/latest/agb/display/tiled/struct.InfiniteScrolledMap.html#method.set_scroll_pos) method.
+This method takes a position to scroll to and a function which accepts a scroll position (working in the same way as the regular `.set_scroll_pos()` on a RegularTiledBackground) and a callback function.
+The callback function is called for every tile it needs to fill with some data, which will be as minimal as possible and attempt to reuse already drawn tiles.
+So the `.set_scroll_pos()` method assumes that this function is pure, and the same between calls.
+
+See the [infinite scrolled map example](https://agbrs.dev/examples/infinite_scrolled_map) for an example of how to use it with a large static map.
+
+In the example linked above, the map tiles are larger than the provided background size (60x40 vs. 32x32), but could still fit in a 64x64 space.
+Using the infinite scrolled map however allows us to wrap the background at the edge of this provided background rather than being forced to wrap it at 64 tiles wide.
+This will also use less video RAM while the game is running since we need fewer tiles loaded at once to fill the screen.
+
+Generally, when you're working with `InfiniteScrolledMap`s, you'll want to use 32x32 backgrounds as the underlying size, since there is very little advantage to using larger backgrounds.
+
+## 256 colours
+
+So far every example has used 16-colour tiles or 4 bits per pixel.
+Each tile in a 16-colour tile can have at most 16 colours, but you can use different palettes for each tile.
+Most of this has been hidden by the [`include_background_gfx!`](https://docs.rs/agb/latest/agb/macro.include_background_gfx.html) macro.
+
+However, it does limit the number of colours you can have in your background a little.
+If you need to bypass this limit, you can use 256 colour tiles (or 8 bits per pixel).
+This has the disadvantage that it takes twice as much video RAM to store the tile data, but the advantage that it gives you more freedom as to how to put the colours in your background.
+
+Import a 256 colour background by adding the `256` modifier to the call to `include_background_gfx!()`.
+
+```rust
+use agb::include_background_gfx;
+
+include_background_gfx!(
+    mod background,
+    BEACH => 256 deduplicate "gfx/beach-background.aseprite"
+);
+```
+
+Also ensure that when you create the `RegularBackgroundTiles`, you pass [`TileFormat::EightBpp`](https://docs.rs/agb/latest/agb/display/tiled/enum.TileFormat.html#variant.EightBpp) (or using the `.format()` method on the tile data like we've been using in the other examples here).
+A background must be in one of `FourBpp` or `EightBpp` mode.
+
+## Tile effects
+
+Each tile in the Game Boy Advance can be flipped horizontally or vertically.
+This is controlled by the `.vflip` and `.hflip` methods on [`TileSetting`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html).
+
+You can also set the palette index using the `TileSetting`.
+But for backgrounds imported using `include_background_gfx!()` you probably don't need that, since the palettes will have been optimised and aren't guaranteed to be the same each time you compile your game.
+
+## Affine backgrounds
 
 - The 2 different types of backgrounds
 
