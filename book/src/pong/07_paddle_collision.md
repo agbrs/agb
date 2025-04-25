@@ -28,7 +28,7 @@ Which will be:
 use agb::fixnum::{Vector2D, vec2};
 ```
 
-Note that the `vec2` method is a convienence method which is the same as `Vector2D::new()` but shorter.
+Note that the `vec2` method is a convenience method which is the same as `Vector2D::new()` but shorter.
 
 You can now simplify the calculation:
 

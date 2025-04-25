@@ -22,7 +22,7 @@
         // skip in links
         "/\\[`[^`]+?`\\]/g",
         // and anything else in `s. Weirdly just this still catches the one in links so we need both
-        "/`[^`]+?`/g"
+        "/\\B`[^`\n]+?`\\B/g"
       ]
     },
     {
@@ -30,7 +30,9 @@
       "ignoreRegExpList": [
         // skip anything in a code block
         "/```[\\s\\S]+?```/g",
-        "/`[^`]+?`/g"
+        "/\\B`[^`\n]+?`\\B/g",
+        // skip img tags which are checked for some reason
+        "/src=\"[^\"]+\"/g"
       ]
     }
   ],
