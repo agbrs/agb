@@ -47,10 +47,13 @@ miri
 
 agbabi
 
-### Rust crates ###
+### Rust crates and terms ###
 
 serde
 libelf
+proc
+asefile
+subcrates
 
 ### GBA hardware terms ###
 

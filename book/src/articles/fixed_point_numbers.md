@@ -181,10 +181,10 @@ See the [`Vector2D` documentation](https://docs.rs/agb/latest/agb/fixnum/struct.
 
 ### `Rect<T>`
 
-`Rect<T>` is an axis aligned rectangle that can be used to represent hitboxes.
+`Rect<T>` is an axis aligned rectangle that can be used to represent hit boxes.
 It is represented as a position and a size.
 
-For the purpose of hitboxes, the most useful method is the `touches` method that is true if the two rectangles are overlapping.
+For the purpose of hit boxes, the most useful method is the `touches` method that is true if the two rectangles are overlapping.
 
 ```rust
 use agb::fixnum::{Rect, vec2};
