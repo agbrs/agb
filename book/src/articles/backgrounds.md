@@ -278,11 +278,62 @@ But for backgrounds imported using `include_background_gfx!()` you probably don'
 
 ## Affine backgrounds
 
-- The 2 different types of backgrounds
+See the main affine background documentation for details on affine backgrounds and their use.
 
-  - Regular is what we've been using already
-  - Affine is new!
+## Animated tiles
 
-- Animated tiles
+If you have some tiles you'd like to animate (such as some flowing water, or flowers blowing in the breeze), it can be quite inefficient to replace every instance of a tile with the animation every frame.
+What's much faster is just replacing the one copy of the tile that's been repeated across the background 10s or even 100s of times rather than resetting the entire tile data.
 
-- Dynamic tiles
+To change which tile is being used, use the [`replace_tile`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.replace_tile) method on the `VRAM_MANAGER` instance.
+
+```rust
+VRAM_MANAGER.replace_tile(
+    tileset1, 4, tileset2, 5
+);
+```
+
+This will replace every occurrence of `tileset1`'s tile 4 with `tileset2`'s tile 5.
+
+<div class="warning">
+
+Animated tiles work on **tile indexes** and only change the tile data itself and not the state of the tiles used.
+The tiles being replaced will retain their `hflip` and `vflip`, so you can animate tiles in transformed states.
+
+Therefore, animated tiles **do not** work with the `deduplicate` option in `include_background_gfx!()`, since this will flip tiles in order to reduce the number of exported tiles.
+
+It will also not change the palette index for those tiles, so only animate tiles which result in the same palette index.
+
+</div>
+
+See [this example](https://agbrs.dev/examples/animated_background) for an example of an animated background in a very basic example.
+
+## Dynamic tiles
+
+Sometimes you don't know what needs to be drawn on a tile ahead of time.
+[`DynamicTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.DynamicTile16.html) are a powerful way to show tiles whose contents are decided at runtime in your game.
+Their current main use is for text rendering, where they are used as the target for rendering text.
+
+Currently only 16-colour dynamic tiles are supported and can only be shown on 4 bits per pixel backgrounds via the [set_tile_dynamic16()](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_tile_dynamic16) method on `RegularBackgroundTiles`.
+
+```rust
+// by default, `DynamicTile`s are left with whatever was in video RAM before it
+// was allocated. So you'll need to clear it if you're not planning on writing
+// to the entire tile.
+let dynamic_tile = DynamicTile16::new().fill_with(0);
+
+// my_background here must have FourBpp set as it's TileFormat or you won't be able
+// to use DynamicTile16 on it.
+let my_background = RegularBackgroundTiles::new(
+    Priority::P0,
+    RegularBackgroundSize::Background32x32,
+    TileFormat::FourBpp
+);
+
+// Note that you can pass a TileEffect here which would allow you to flip the tile
+// vertically or horizontally if you choose to.
+my_background.set_tile_dynamic16((0, 5), dynamic_tile, TileEffect::default());
+```
+
+See [the dynamic tiles](https://agbrs.dev/examples/dynamic_tiles) example for a really basic example, or the [tiled background text renderer](https://github.com/agbrs/agb/blob/master/agb/src/display/font/tiled.rs) for a much more in-depth example.
+If you have any examples where dynamic tiles are the correct tool which isn't font rendering, please let us know by opening an issue in the [agb repo](https://github.com/agbrs/agb).
