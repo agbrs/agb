@@ -1,11 +1,66 @@
 # Objects deep dive
 
 An object is a sprite drawn to an arbitrary part of the screen.
-It may be flipped and even scaled and rotated for affine objects.
+They are typically used for anything that moves such as characters and NPCs.
+All objects can be flipped and affine objects can have an affine transformation applied to them that can rotate and scale them.
 
-The pong tutorial goes over the [basics of sprites](../pong/03_sprites.md).
+
+## Importing sprites
+
+Sprites are imported from aseprite files.
+Aseprite is an excellent pixel sprite editor that can be acquired for low cost or compiled yourself for free.
+It also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
+This makes it very useful for creating art for use by agb.
+
+
+You can import 15 colour sprites using the `include_aseprite` macro.
+In a single invocation of `include_aseprite` the palettes are all optimised together.
+For example, you might use the following to import some sprites.
+
+```rust
+agb::include_aseprite(mod sprites, "sprites.aseprite", "other_sprites.aseprite");
+```
+
+You can import 255 colour sprites using the `include_aseprite_256` macro similarly.
+
+
+## ROM and VRAM
+
+Sprites must be in VRAM to be displayed on screen.
+The `SpriteVram` type represents a sprite in VRAM.
+This implements the `From` trait from `&'static Sprite`.
+The `From` implementation will deduplicate the sprites in VRAM, this means that you can repeatedly use the same sprite and it won't blow up your VRAM usage.
+This deduplication does have the performance implication of requiring a HashMap lookup, although for many games this will a rather small penalty.
+By storing and reusing the `SpriteVram` you can avoid this lookup.
+Furthermore, `SpriteVram` is reference counted, so `Clone`ing it is cheap and doesn't allocate more `VRAM`.
+
+
+```rust
+agb::include_aseprite(mod sprites, "examples/chicken.aseprite");
+
+let sprite = agb::display::object::SpriteVram = sprites::IDLE.sprite(0).into();
+let clone = sprite.clone();
+```
 
 ## Regular objects
+
+When you have a sprite, you will want to display it to the screen.
+This is an `Object`.
+Like many things in agb, you can display to the screen using the `show` method on `Object` on the frame.
+
+```rust
+use agb::display::{GraphicsFrame, object::Object};
+
+agb::include_aseprite(mod sprites, "examples/chicken.aseprite");
+
+fn chicken(frame: &mut GraphicsFrame) {
+    // Object::new takes anything that implements Into<SpriteVram>, so we can pass in a static sprite.
+    Object::new(sprites::IDLE.sprite(0))
+        .set_position((32, 32))
+        .set_hflip(true)
+        .show(frame);
+}
+```
 
 ## Affine objects
 
@@ -14,8 +69,11 @@ These objects are created using the `ObjectAffine` type.
 This like an `Object` requires a sprite but also requires an `AffineMatrixInstance` and an `AffineMode`.
 The affine matrix instance can be thought of as an affine matrix stored in oam.
 
-The `affine` module goes over some detail in how to create affine matricies, the relevant part is `AffineMatrix::to_object_wrapping` which creates an `AffineMatrixObject` that is suitable for use in objects which then has the `oam` version of `AffineMatrixInstance`.
-When using a single affine matrix for multiple sprites, it is imperetive that you reuse the `AffineMatrixInstance` as otherwise you may run out of affine matricies.
+The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an `AffineMatrixObject` that is suitable for use in objects which then has the `oam` version of `AffineMatrixInstance`.
+When using a single affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
+
+
+
 
 ## Dynamic sprites
 
@@ -69,3 +127,7 @@ impl MyObject {
 While you can get the position of an `Object`, do not try using this to correct for the camera position as it will not work.
 The precision that positions are stored in the `Object` are enough to be displayed to the screen and not much more.
 Trying to use this for world coordinates will fail.
+
+## See also
+
+* The pong tutorial goes over the [basics of sprites](../pong/03_sprites.md).
