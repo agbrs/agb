@@ -108,15 +108,6 @@ impl TileSetting {
         }
     }
 
-    #[doc(hidden)]
-    #[must_use]
-    pub const fn from_raw(tile_id: u16, effect_bits: u16) -> Self {
-        Self {
-            tile_id,
-            tile_effect: TileEffect(effect_bits),
-        }
-    }
-
     /// Gets the tile_effect and allows for manipulations of it.
     pub const fn tile_effect(&mut self) -> &mut TileEffect {
         &mut self.tile_effect
