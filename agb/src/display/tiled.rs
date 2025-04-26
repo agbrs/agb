@@ -47,6 +47,7 @@ impl BackgroundId {
 
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 
+/// The `TileSetting` holds the index for the tile in the tile set, and which effects it should be rendered with.
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(align(4))]
 pub struct TileSetting {
@@ -54,14 +55,51 @@ pub struct TileSetting {
     tile_effect: TileEffect,
 }
 
+/// Represents the simple effects that can be applied to a tile.
+///
+/// A tile can be flipped horizontally, vertically or both. You can also configure which
+/// palette to use for the tile.
+///
+/// The palette does nothing for 256 colour tiles, since there is only a single 256 colour palette.
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(transparent)]
 pub struct TileEffect(u16);
 
 impl TileSetting {
+    /// Displays a blank tile.
+    ///
+    /// Use this instead of a fully blank tile in your tile set if possible, since it is special cased to be more performant.
+    ///
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::{
+    ///     display::Priority,
+    ///     display::tiled::{
+    ///         RegularBackgroundTiles, RegularBackgroundSize, TileEffect, TileSetting,
+    ///         VRAM_MANAGER,
+    ///     },
+    ///     include_background_gfx,
+    /// };
+    ///
+    /// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
+    ///
+    /// # fn foo() {
+    /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
+    ///
+    /// // put something in the background
+    /// bg.set_tile((0, 0), &water_tiles::tiles.tiles, water_tiles::tiles.tile_settings[1]);
+    /// // set it back to blank
+    /// bg.set_tile((0, 0), &water_tiles::tiles.tiles, TileSetting::BLANK);
+    /// # }
+    /// ```
     pub const BLANK: Self =
         TileSetting::new(TRANSPARENT_TILE_INDEX, TileEffect::new(false, false, 0));
 
+    /// Create a new TileIndex with a given `tile_id` and `tile_effect`.
+    ///
+    /// You probably won't need to use this method, instead either using [`TileSetting::BLANK`] or one of the entries in
+    /// [`TileData.tile_settings`](crate::display::tile_data::TileData::tile_settings).
     #[must_use]
     pub const fn new(tile_id: u16, tile_effect: TileEffect) -> Self {
         Self {
@@ -70,38 +108,49 @@ impl TileSetting {
         }
     }
 
-    #[must_use]
-    pub const fn from_raw(tile_id: u16, effect_bits: u16) -> Self {
-        Self {
-            tile_id,
-            tile_effect: TileEffect(effect_bits),
-        }
-    }
-
+    /// Gets the tile_effect and allows for manipulations of it.
     pub const fn tile_effect(&mut self) -> &mut TileEffect {
         &mut self.tile_effect
     }
 
+    /// Horizontally flips the tile.
+    ///
+    /// If `should_flip` is false, returns the same as current. If it is true, will return a new
+    /// `TileSetting` with ever setting the same, except it will be horizontally flipped.
     #[must_use]
     pub const fn hflip(mut self, should_flip: bool) -> Self {
         self.tile_effect().hflip(should_flip);
         self
     }
 
+    /// Vertically flips the tile.
+    ///
+    /// If `should_flip` is false, returns the same as current. If it is true, will return a new
+    /// `TileSetting` with ever setting the same, except it will be vertically flipped.
     #[must_use]
     pub const fn vflip(mut self, should_flip: bool) -> Self {
         self.tile_effect().vflip(should_flip);
         self
     }
 
+    /// Sets which palette to use
+    ///
+    /// This has no effect if the background is set to use 256 colours.
     #[must_use]
     pub const fn palette(mut self, palette_id: u8) -> Self {
         self.tile_effect().palette(palette_id);
         self
     }
 
+    /// Gets the internal tile ID for a given tile.
+    ///
+    /// The main use case for this is checking which tile_id was assigned when using the `deduplicate`
+    /// option in [`include_background_gfx!()`](crate::include_background_gfx).
+    ///
+    /// Be careful when passing this ID to [`VRAM_MANAGER.replace_tile()`](crate::display::tiled::VRamManager::replace_tile)
+    /// if you've generated this tile set with the `deduplicate` option, since tiles may be flipped or
+    /// reused meaning replacing IDs could result in strange display behaviour.
     #[must_use]
-    /// Get the underlying tile id
     pub const fn tile_id(self) -> u16 {
         self.tile_id
     }
@@ -112,21 +161,35 @@ impl TileSetting {
 }
 
 impl TileEffect {
+    /// Creates a new [`TileEffect`] with the given state of being flipped and palette id.
     #[must_use]
     pub const fn new(hflip: bool, vflip: bool, palette_id: u8) -> Self {
         Self(((hflip as u16) << 10) | ((vflip as u16) << 11) | ((palette_id as u16) << 12))
     }
 
+    /// Horizontally flips the tile.
+    ///
+    /// If `should_flip` is false, this does nothing.
+    /// If `should_flip` is true, will mutate itself to show the tile flipped horizontally.
+    ///
+    /// Calling `.hflip` twice on the same TileEffect will flip the tile twice, resulting in no flipping.
     pub const fn hflip(&mut self, should_flip: bool) -> &mut Self {
         self.0 ^= (should_flip as u16) << 10;
         self
     }
 
+    /// Vertically flips the tile.
+    ///
+    /// If `should_flip` is false, this does nothing.
+    /// If `should_flip` is true, will mutate itself to show the tile flipped vertically.
+    ///
+    /// Calling `.hflip` twice on the same TileEffect will flip the tile twice, resulting in no flipping.
     pub const fn vflip(&mut self, should_flip: bool) -> &mut Self {
         self.0 ^= (should_flip as u16) << 11;
         self
     }
 
+    /// Sets the palette index for the current TileEffect.
     pub const fn palette(&mut self, palette_id: u8) -> &mut Self {
         self.0 &= 0x0fff;
         self.0 |= (palette_id as u16) << 12;

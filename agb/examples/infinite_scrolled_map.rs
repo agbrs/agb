@@ -38,10 +38,14 @@ fn main(mut gba: agb::Gba) -> ! {
         current_pos += input.vector();
 
         infinite_scrolled.set_scroll_pos(current_pos, |p| {
+            // The map is 60x40 tiles in size. And we use `rem_euclid` because that will effectively do
+            // what % does but will always return a positive result, being exactly what we need for this
+            // wrapped map.
+            let tile_index = p.x.rem_euclid(60) as usize + p.y.rem_euclid(40) as usize * 60;
+
             (
                 &big_map::big_map.tiles,
-                big_map::big_map.tile_settings
-                    [p.x.rem_euclid(60) as usize + p.y.rem_euclid(40) as usize * 60],
+                big_map::big_map.tile_settings[tile_index],
             )
         });
 
