@@ -142,8 +142,15 @@ impl TileSetting {
         self
     }
 
+    /// Gets the internal tile ID for a given tile.
+    ///
+    /// The main use case for this is checking which tile_id was assigned when using the `deduplicate`
+    /// option in [`include_background_gfx!()`](crate::include_background_gfx).
+    ///
+    /// Be careful when passing this ID to [`VRAM_MANAGER.replace_tile()`](crate::display::tiled::VRamManager::replace_tile)
+    /// if you've generated this tile set with the `deduplicate` option, since tiles may be flipped or
+    /// reused meaning replacing IDs could result in strange display behaviour.
     #[must_use]
-    #[doc(hidden)]
     pub const fn tile_id(self) -> u16 {
         self.tile_id
     }
