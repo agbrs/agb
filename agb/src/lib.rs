@@ -34,33 +34,132 @@
 
 /// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
-/// Suppose you have a file in `examples/water_tiles.png` which contains some tiles you'd like to use.
+/// Suppose you have a file in `examples/gfx/beach-background.aseprite` which contains some tiles you'd like to use.
 ///
 /// You import them using:
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
-/// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     BEACH => "examples/gfx/beach-background.aseprite"
+/// );
 /// ```
 ///
 /// This will generate something along the lines of the following:
 ///
 /// ```rust,ignore
 /// // module name comes from the first argument, name of the constant from the arrow
-/// mod water_tiles {
-///     pub static tiles = /* ... */;
+/// mod backgrounds {
+///     pub static BEACH: TileData = /* ... */;
+///     pub static PALETTES: Palette16[] = /* ... */;
 /// }
 /// ```
 ///
-/// And tiles will be an instance of [`TileData`][crate::display::tile_data::TileData]
+/// And `BEACH` will be an instance of [`TileData`][crate::display::tile_data::TileData]
 ///
 /// You can import multiple files at once, and the palette data will be combined so they can all be visible.
 ///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     BEACH => "examples/gfx/beach-background.aseprite",
+///     HUD => "examples/gfx/hud.aseprite",
+/// );
+/// ```
+///
+/// # Transparent backgrounds
+///
+/// The GBA supports a single transparent colour. Any pixels marked with full alpha transparency
+/// in the background will be mapped to the first colour of the relevant palette, which is displayed
+/// as transparent.
+///
+/// However, that transparency colour will be the one shown behind any background so any space which
+/// has no tiles, or you can see all the way through will be shown using that colour.
+///
+/// You can configure which colour that will be with the optional second argument to `include_background_gfx!`
+///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     "00bdfe", // the sky colour hex code
+///     BEACH => "examples/gfx/beach-background.aseprite",
+///     HUD => "examples/gfx/hud.aseprite",
+/// );
+/// ```
+///
+/// # Deduplication
+///
+/// If your background has a large number of repeated 8x8 tiles (like the beach background above),
+/// then you can let the tile importing do the hard bit of deduplicating those tiles and with that
+/// you'll save some video RAM, which will then allow you to use even more tiles.
+///
+/// Note that once you've used deduplication, you need to use the [`TileData::settings`](display::display_data::TileData.settings)
+/// field in order to be able to actually display your given tiles. This is because the tiles
+/// could be flipped horizontally or vertically (or both) and combined with other tiles.
+///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     BEACH => deduplicate "examples/gfx/beach-background.aseprite",
+/// );
+/// ```
+///
+/// # 256 colours
+///
+/// The Game Boy Advance supports both 16-colour and 256-colour tiles. If you're using 256 colours
+/// in some (or all of) your backgrounds, you'll have to include them in 256 colour mode. You are
+/// required to use 256 colour backgrounds with affine tiles.
+///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     BEACH => 256 "examples/gfx/beach-background.aseprite",
+///     HUD => "examples/gfx/hud.aseprite", // you can still import 16-colour backgrounds at the same time
+/// );
+/// ```
+///
+/// # Module visibility
+///
+/// The resulting module that's being exported can have a different visibility if you want it to.
+/// So for instance you could make the resulting module `pub` as follows:
+///
+/// ```rust,no_run
+/// ##![no_std]
+/// ##![no_main]
+/// agb::include_background_gfx!(
+///     pub mod backgrounds,
+///     BEACH => "examples/gfx/beach-background.aseprite",
+/// );
+/// ```
+///
+/// # `$OUT_DIR`
+///
+/// You may be generating the backgrounds as part of your `build.rs` file. If you're doing that, you'll
+/// want to put the generated files in `$OUT_DIR`. You can refer to this as part of the file name:
+///
+/// ```rust,ignore
+/// # #![no_std]
+/// # #![no_main]
+/// # use agb::include_background_gfx;
+/// include_background_gfx!(mod generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
+/// ```
+///
 /// # Examples
 ///
-/// Assume the tiles are loaded as above
+/// ## `fill_with` and displaying a full screen background
 ///
-/// In `src/main.rs`:
+/// This example uses [`RegularBackgroundTiles::fill_with`](display::tiled::RegularBackgroundTiles::fill_with)
+/// to fill the screen with a screen-sized image.
+///
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
@@ -73,43 +172,35 @@
 ///     include_background_gfx,
 /// };
 ///
-/// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(
+///     pub mod backgrounds,
+///     BEACH => "examples/gfx/beach-background.aseprite",
+/// );
 ///
 /// # fn load_tileset() {
-/// let tileset = &water_tiles::tiles.tiles;
+/// VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 ///
-/// VRAM_MANAGER.set_background_palettes(water_tiles::PALETTES);
-///
-/// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, tileset.format());
-///
-/// for y in 0..20u16 {
-///     for x in 0..30u16 {
-///         bg.set_tile(
-///             (x, y),
-///             tileset,
-///             water_tiles::tiles.tile_settings[0],
-///         );
-///     }
-/// }
+/// let mut bg = RegularBackgroundTiles::new(
+///     Priority::P0,
+///     RegularBackgroundSize::Background32x32,
+///     TileFormat::FourBpp,
+/// );
+/// bg.fill_with(&backgrounds::BEACH);
 /// # }
 /// ```
 ///
-/// Including from the out directory is supported through the `$OUT_DIR` token.
+/// ## Combining modifiers
 ///
-/// ```rust,ignore
-/// # #![no_std]
-/// # #![no_main]
-/// # use agb::include_background_gfx;
-/// include_background_gfx!(mod generated_background, "000000", DATA => "$OUT_DIR/generated_background.aseprite");
-/// ```
-///
-/// You can also make the exported background a public module which will allow other modules access them. The following
-/// will declare `water_tiles` as a `pub mod` rather than a `mod`.
+/// Modifiers can be combined, so you can import and deduplicate a 256 colour background.
 ///
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
-/// agb::include_background_gfx!(pub mod water_tiles, tiles => "examples/water_tiles.png");
+/// agb::include_background_gfx!(
+///     mod backgrounds,
+///     BEACH => 256 deduplicate "examples/gfx/beach-background.aseprite",
+///     HUD => deduplicate "examples/gfx/hud.aseprite", // you can still import 16-colour backgrounds at the same time
+/// );
 /// ```
 pub use agb_image_converter::include_background_gfx;
 
