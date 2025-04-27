@@ -18,7 +18,7 @@ In a single invocation of `include_aseprite` the palettes are all optimised toge
 For example, you might use the following to import some sprites.
 
 ```rust
-agb::include_aseprite(mod sprites, "sprites.aseprite", "other_sprites.aseprite");
+agb::include_aseprite!(mod sprites, "sprites.aseprite", "other_sprites.aseprite");
 ```
 
 You can import 255 colour sprites using the `include_aseprite_256` macro similarly.
@@ -71,11 +71,12 @@ The affine matrix instance can be thought of as an affine matrix stored in oam.
 
 The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an `AffineMatrixObject` that is suitable for use in objects which then has the `oam` version of `AffineMatrixInstance`.
 When using a single affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
+You can use up to 32 affine matrices.
 
 Affine objects have two display modes, the regular and the double modes.
 The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off the outside.
 You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
-Note that the double affine objects do not display where you would expect them to but are offset.
+As double affine objects are twice the size and the top left of the corner is dictated by the position given the sprite will be offset compared to regular sprites by the size of the sprite.
 
 
 ## Dynamic sprites
