@@ -231,7 +231,7 @@ impl RegularBackgroundTiles {
     /// backgrounds.
     ///
     /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx) and
-    /// that it is exactly the same size as the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
+    /// that it is at least the size of the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
     ///
     /// ## Example
     ///
@@ -257,10 +257,15 @@ impl RegularBackgroundTiles {
     /// ```
     pub fn fill_with(&mut self, tile_data: &TileData) {
         assert!(
-            tile_data.tile_settings.len() >= 20 * 30,
-            "Don't have a full screen's worth of tile data"
+            tile_data.width >= 30,
+            "Don't have a full screen's width of tile data, got: {}",
+            tile_data.width
         );
-
+        assert!(
+            tile_data.height >= 20,
+            "Don't have a full screen's height worth of tile data, got: {}",
+            tile_data.height
+        );
         assert_eq!(
             tile_data.tiles.format(),
             self.tiles.colours(),
@@ -271,7 +276,7 @@ impl RegularBackgroundTiles {
 
         for y in 0..20 {
             for x in 0..30 {
-                let tile_id = y * 30 + x;
+                let tile_id = y * tile_data.width + x;
                 let tile_pos = y * 32 + x;
                 self.set_tile_at_pos(tile_pos, &tile_data.tiles, tile_data.tile_settings[tile_id]);
             }
