@@ -110,7 +110,7 @@ impl Parse for BackgroundGfxOption {
 
 struct IncludeBackgroundGfxInput {
     module_name: syn::Ident,
-    as_pub: bool,
+    visibility: syn::Visibility,
     crate_prefix: String,
     transparent_colour: Colour,
     background_gfx_options: Vec<BackgroundGfxOption>,
@@ -128,14 +128,7 @@ impl Parse for IncludeBackgroundGfxInput {
             format_ident!("agb")
         };
 
-        let lookahead = input.lookahead1();
-
-        let as_pub = if lookahead.peek(Token![pub]) {
-            let _: Token![pub] = input.parse()?;
-            true
-        } else {
-            false
-        };
+        let visibility: syn::Visibility = input.parse()?;
 
         let _: Token![mod] = input.parse()?;
         let module_name: syn::Ident = input.parse()?;
@@ -158,7 +151,7 @@ impl Parse for IncludeBackgroundGfxInput {
 
         Ok(Self {
             module_name,
-            as_pub,
+            visibility,
             crate_prefix: crate_prefix.to_string(),
             transparent_colour,
             background_gfx_options: background_gfx_options.into_iter().collect(),
@@ -199,13 +192,13 @@ pub fn include_background_gfx(input: TokenStream) -> TokenStream {
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
 
     let module_name = config.module_name.clone();
-    let as_pub = config.as_pub;
-    include_gfx_from_config(config, as_pub, module_name, Path::new(&root))
+    let visibility = config.visibility.clone();
+    include_gfx_from_config(config, visibility, module_name, Path::new(&root))
 }
 
 fn include_gfx_from_config(
     config: Box<dyn config::Config>,
-    as_pub: bool,
+    visibility: syn::Visibility,
     module_name: syn::Ident,
     parent: &Path,
 ) -> TokenStream {
@@ -272,21 +265,11 @@ fn include_gfx_from_config(
     let palette_code =
         rust_generator::generate_palette_code(&optimisation_results, &config.crate_prefix());
 
-    let module = if as_pub {
-        quote! {
-            pub mod #module_name {
-                #palette_code
+    let module = quote! {
+        #visibility mod #module_name {
+            #palette_code
 
-                #(#image_code)*
-            }
-        }
-    } else {
-        quote! {
-            mod #module_name {
-                #palette_code
-
-                #(#image_code)*
-            }
+            #(#image_code)*
         }
     };
 
