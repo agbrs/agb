@@ -72,7 +72,10 @@ The affine matrix instance can be thought of as an affine matrix stored in oam.
 The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an `AffineMatrixObject` that is suitable for use in objects which then has the `oam` version of `AffineMatrixInstance`.
 When using a single affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
 
-
+Affine objects have two display modes, the regular and the double modes.
+The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off the outside.
+You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
+Note that the double affine objects do not display where you would expect them to but are offset.
 
 
 ## Dynamic sprites
