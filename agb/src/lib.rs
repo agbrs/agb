@@ -70,6 +70,19 @@
 /// );
 /// ```
 ///
+/// # Palettes
+///
+/// The Game Boy Advance, in 16-colour mode can have at most 16 palettes each of size 16.
+/// Each tile can only refer to a single one of those palettes.
+/// `include_background_gfx!` will try its best to arrange the colours in the palettes
+/// such that the passed background file can be displayed.
+///
+/// However, this isn't always possible if your background has too many colours in one tile,
+/// or too many varieties of palettes between the individual tiles.
+/// If this happens, then the call to `include_background_gfx!` will fail at compile time.
+/// You can fix this by either importing as 256 colours, or by changing your backgrounds to
+/// use fewer colour variations.
+///
 /// # Transparent backgrounds
 ///
 /// The GBA supports a single transparent colour. Any pixels marked with full alpha transparency
