@@ -22,7 +22,7 @@ agb::include_aseprite!(mod sprites, "sprites.aseprite", "other_sprites.aseprite"
 ```
 
 You can import 255 colour sprites using the `include_aseprite_256` macro similarly.
-
+You have 15 colour and 255 colours because the 0th index of the palette is always fully transparent.
 
 ## ROM and VRAM
 
