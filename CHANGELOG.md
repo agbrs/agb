@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - You can now pass any constant expression to the `num!` macro.
 - Added `round` methods for `Num` and `Vector2D` that rounds towards the nearest integer.
 - Added `clamp_point` and corner methods to `Rect`.
+- Added `width` and `height` to `TileData` to track the original size of your backgrounds.
 
 ### Changed
 
