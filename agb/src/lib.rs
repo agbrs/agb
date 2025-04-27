@@ -130,13 +130,18 @@
 /// # Module visibility
 ///
 /// The resulting module that's being exported can have a different visibility if you want it to.
-/// So for instance you could make the resulting module `pub` as follows:
+/// So for instance you could make the resulting module `pub` or `pub(crate)` as follows:
 ///
 /// ```rust,no_run
 /// ##![no_std]
 /// ##![no_main]
 /// agb::include_background_gfx!(
 ///     pub mod backgrounds,
+///     BEACH => "examples/gfx/beach-background.aseprite",
+/// );
+///
+/// agb::include_background_gfx!(
+///     pub(crate) mod backgrounds2,
 ///     BEACH => "examples/gfx/beach-background.aseprite",
 /// );
 /// ```
