@@ -50,6 +50,9 @@ pub(crate) fn generate_code(
     let crate_prefix = format_ident!("{}", crate_prefix);
     let output_variable_name = format_ident!("{}", output_variable_name);
 
+    let width = image.width / 8;
+    let height = image.height / 8;
+
     let (image, dedup_data) = if deduplicate {
         let (new_image, dedup_data) =
             crate::deduplicator::deduplicate_image(image, assignment_offset.is_some());
@@ -148,7 +151,7 @@ pub(crate) fn generate_code(
                 #(#tile_settings),*
             ];
 
-            #crate_prefix::display::tile_data::TileData::new(TILE_SET, TILE_SETTINGS)
+            #crate_prefix::display::tile_data::TileData::new(TILE_SET, TILE_SETTINGS, #width, #height)
         };
     }
 }
