@@ -37,8 +37,9 @@ pub fn include_wav(input: TokenStream) -> TokenStream {
             struct AlignmentWrapper<const N: usize>([u8; N]);
 
             const _: &[u8] = include_bytes!(#include_path);
+            static DATA: &[u8] = &AlignmentWrapper(*#samples).0;
 
-            &AlignmentWrapper(*#samples).0
+            unsafe { SoundData::new(DATA) }
         }
     };
 

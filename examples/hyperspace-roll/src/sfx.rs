@@ -1,8 +1,8 @@
 use agb::fixnum::num;
-use agb::sound::mixer::{ChannelId, Mixer, SoundChannel};
+use agb::sound::mixer::{ChannelId, Mixer, SoundChannel, SoundData};
 use agb::{include_wav, rng};
 
-static DICE_ROLLS: &[&[u8]] = &[
+static DICE_ROLLS: &[SoundData] = &[
     include_wav!("sfx/SingleRoll_1.wav"),
     include_wav!("sfx/SingleRoll_2.wav"),
     include_wav!("sfx/SingleRoll_3.wav"),
@@ -10,7 +10,7 @@ static DICE_ROLLS: &[&[u8]] = &[
     include_wav!("sfx/SingleRoll_5.wav"),
 ];
 
-static MULTI_ROLLS: &[&[u8]] = &[
+static MULTI_ROLLS: &[SoundData] = &[
     include_wav!("sfx/MultiRoll_1.wav"),
     include_wav!("sfx/MultiRoll_2.wav"),
     include_wav!("sfx/MultiRoll_3.wav"),
@@ -18,24 +18,24 @@ static MULTI_ROLLS: &[&[u8]] = &[
     include_wav!("sfx/MultiRoll_5.wav"),
 ];
 
-static MENU_BGM: &[u8] = include_wav!("sfx/BGM_Menu.wav");
-static BATTLE_BGM: &[u8] = include_wav!("sfx/BGM_Fight.wav");
-static TITLE_BGM: &[u8] = include_wav!("sfx/BGM_Title.wav");
+static MENU_BGM: SoundData = include_wav!("sfx/BGM_Menu.wav");
+static BATTLE_BGM: SoundData = include_wav!("sfx/BGM_Fight.wav");
+static TITLE_BGM: SoundData = include_wav!("sfx/BGM_Title.wav");
 
-static SHOOT: &[u8] = include_wav!("sfx/shoot.wav");
-static SHOT_HIT: &[u8] = include_wav!("sfx/shot_hit.wav");
-static SHIP_EXPLODE: &[u8] = include_wav!("sfx/ship_explode.wav");
-static MOVE_CURSOR: &[u8] = include_wav!("sfx/move_cursor.wav");
-static SELECT: &[u8] = include_wav!("sfx/select.wav");
-static BACK: &[u8] = include_wav!("sfx/back.wav");
-static ACCEPT: &[u8] = include_wav!("sfx/accept.wav");
-static SHIELD_DOWN: &[u8] = include_wav!("sfx/shield_down.wav");
-static SHIELD_UP: &[u8] = include_wav!("sfx/shield_up.wav");
-static SHIELD_DEFEND: &[u8] = include_wav!("sfx/shield_defend.wav");
-static DISRUPT: &[u8] = include_wav!("sfx/disrupt.wav");
-static HEAL: &[u8] = include_wav!("sfx/heal.wav");
-static SEND_BURST_SHIELD: &[u8] = include_wav!("sfx/send_burst_shield.wav");
-static BURST_SHIELD_HIT: &[u8] = include_wav!("sfx/burst_shield_hit.wav");
+static SHOOT: SoundData = include_wav!("sfx/shoot.wav");
+static SHOT_HIT: SoundData = include_wav!("sfx/shot_hit.wav");
+static SHIP_EXPLODE: SoundData = include_wav!("sfx/ship_explode.wav");
+static MOVE_CURSOR: SoundData = include_wav!("sfx/move_cursor.wav");
+static SELECT: SoundData = include_wav!("sfx/select.wav");
+static BACK: SoundData = include_wav!("sfx/back.wav");
+static ACCEPT: SoundData = include_wav!("sfx/accept.wav");
+static SHIELD_DOWN: SoundData = include_wav!("sfx/shield_down.wav");
+static SHIELD_UP: SoundData = include_wav!("sfx/shield_up.wav");
+static SHIELD_DEFEND: SoundData = include_wav!("sfx/shield_defend.wav");
+static DISRUPT: SoundData = include_wav!("sfx/disrupt.wav");
+static HEAL: SoundData = include_wav!("sfx/heal.wav");
+static SEND_BURST_SHIELD: SoundData = include_wav!("sfx/send_burst_shield.wav");
+static BURST_SHIELD_HIT: SoundData = include_wav!("sfx/burst_shield_hit.wav");
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum BattleOrMenu {

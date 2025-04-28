@@ -261,7 +261,16 @@ macro_rules! include_font {
 /// ```
 pub use agb_macros::entry;
 
-pub use agb_sound_converter::include_wav;
+#[doc(hidden)]
+pub use agb_sound_converter::include_wav as include_wav_inner;
+
+#[macro_export]
+macro_rules! include_wav {
+    ($filepath: literal) => {{
+        use $crate::sound::mixer::SoundData;
+        $crate::include_wav_inner!($filepath)
+    }};
+}
 
 extern crate alloc;
 mod agb_alloc;
