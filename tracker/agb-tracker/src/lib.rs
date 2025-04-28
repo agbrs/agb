@@ -676,7 +676,9 @@ fn main(_gba: agb::Gba) -> ! {
 impl SoundChannel for agb::sound::mixer::SoundChannel {
     fn new(data: &alloc::borrow::Cow<'static, [u8]>) -> Self {
         Self::new(match data {
-            alloc::borrow::Cow::Borrowed(data) => data,
+            alloc::borrow::Cow::Borrowed(data) =>
+            // Safety: should be good by construction, but it'll blow up if you try and play it and it isn't aligned
+            unsafe { agb::sound::mixer::SoundData::new(data) },
             alloc::borrow::Cow::Owned(_) => {
                 unimplemented!("Must use borrowed COW data for tracker")
             }

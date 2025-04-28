@@ -1,22 +1,22 @@
 use agb::{
     fixnum::num,
     include_wav,
-    sound::mixer::{Mixer, SoundChannel},
+    sound::mixer::{Mixer, SoundChannel, SoundData},
 };
 use agb_tracker::{Track, Tracker, include_xm};
 
 static MUSIC: Track = include_xm!("sfx/gwilym-theme2.xm");
 
-static BAD_SELECTION: &[u8] = include_wav!("sfx/bad.wav");
-static SELECT: &[u8] = include_wav!("sfx/select.wav");
-static PLACE: &[u8] = include_wav!("sfx/place.wav");
+static BAD_SELECTION: SoundData = include_wav!("sfx/bad.wav");
+static SELECT: SoundData = include_wav!("sfx/select.wav");
+static PLACE: SoundData = include_wav!("sfx/place.wav");
 
-static SLIME_DEATH: &[u8] = include_wav!("sfx/slime_death.wav");
-static SWORD_PICKUP: &[u8] = include_wav!("sfx/sword_pickup.wav");
-static WALL_HIT: &[u8] = include_wav!("sfx/wall_hit.wav");
-static DOOR_OPEN: &[u8] = include_wav!("sfx/door_open.wav");
+static SLIME_DEATH: SoundData = include_wav!("sfx/slime_death.wav");
+static SWORD_PICKUP: SoundData = include_wav!("sfx/sword_pickup.wav");
+static WALL_HIT: SoundData = include_wav!("sfx/wall_hit.wav");
+static DOOR_OPEN: SoundData = include_wav!("sfx/door_open.wav");
 
-static SWICTH_TOGGLES: &[&[u8]] = &[include_wav!("sfx/switch_toggle1.wav")];
+static SWICTH_TOGGLES: &[SoundData] = &[include_wav!("sfx/switch_toggle1.wav")];
 
 pub struct Sfx<'a> {
     mixer: &'a mut Mixer<'a>,
@@ -79,7 +79,7 @@ impl<'a> Sfx<'a> {
         }
     }
 
-    fn play_effect(&mut self, effect: &'static [u8]) {
+    fn play_effect(&mut self, effect: SoundData) {
         let mut channel = SoundChannel::new(effect);
         channel.playback(num!(0.5));
         self.mixer.play_sound(channel);
