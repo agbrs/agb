@@ -46,9 +46,9 @@ fn main(mut gba: Gba) -> ! {
         let after_step_cycles =
             ((after_step_cycles_high as u32) << 16) + after_step_cycles_low as u32;
 
-        let step_cycles = after_step_cycles - before_mixing_cycles;
-        let mixing_cycles = after_mixing_cycles - before_mixing_cycles;
-        let total_cycles = after_mixing_cycles.wrapping_sub(before_mixing_cycles);
+        let step_cycles = after_step_cycles.wrapping_sub(before_mixing_cycles);
+        let mixing_cycles = after_mixing_cycles.wrapping_sub(after_step_cycles);
+        let total_cycles = step_cycles + mixing_cycles;
 
         agb::println!(
             "step = {step_cycles}, mixing = {mixing_cycles}, total = {total_cycles} cycles"
