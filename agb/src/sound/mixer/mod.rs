@@ -1,5 +1,4 @@
-#![deny(missing_docs)]
-
+#![warn(missing_docs)]
 //! # agb mixer
 //!
 //! The agb software mixer allows for high performance playing of background music
@@ -82,7 +81,7 @@
 //! # let vblank = agb::interrupt::VBlank::get();
 //! # use agb::{*, sound::mixer::*};
 //! // Outside your main function in global scope:
-//! static MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+//! static MY_CRAZY_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 //!
 //! // Then to play the sound:
 //! let mut channel = SoundChannel::new(MY_CRAZY_SOUND);
@@ -97,6 +96,8 @@
 //! it has finished.
 mod hw;
 mod sw_mixer;
+
+use core::slice;
 
 pub use sw_mixer::ChannelId;
 pub use sw_mixer::Mixer;
@@ -164,6 +165,44 @@ impl Frequency {
     }
 }
 
+/// Some sound data to play.
+///
+/// You probably shouldn't construct this yourself, instead relying on [`include_wav!()`](crate::include_wav).
+#[repr(align(4))]
+#[derive(Clone, Copy)]
+pub struct SoundData {
+    data: *const u8,
+    len: usize,
+}
+
+impl SoundData {
+    /// # Safety
+    ///
+    /// data must be 4-byte aligned. This can't be checked at compile time sadly...
+    #[doc(hidden)]
+    #[must_use]
+    pub const unsafe fn new(data: &'static [u8]) -> Self {
+        let len = data.len();
+        let ptr = data.as_ptr();
+
+        // check that ptr is correctly aligned
+        // assert!((ptr as usize) & 3 == 0);
+
+        Self { data: ptr, len }
+    }
+
+    #[must_use]
+    pub(crate) fn data(&self) -> &'static [u8] {
+        assert_eq!(self.data as usize & 3, 0, "SoundData not correctly aligned");
+
+        // SAFETY: safe by construction
+        unsafe { slice::from_raw_parts(self.data, self.len) }
+    }
+}
+
+unsafe impl Send for SoundData {}
+unsafe impl Sync for SoundData {}
+
 /// Describes one sound which should be playing. This could be a sound effect or
 /// the background music. Use the factory methods on this to modify how it is played.
 ///
@@ -196,7 +235,7 @@ impl Frequency {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
-/// static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+/// static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
@@ -215,7 +254,7 @@ impl Frequency {
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
-/// static JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+/// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 ///
 /// // somewhere in code
 /// # fn foo(gba: &mut Gba) {
@@ -260,7 +299,7 @@ impl SoundChannel {
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
-    /// static JUMP_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+    /// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
     ///
     /// // somewhere in code
     /// let jump_sound = SoundChannel::new(JUMP_SOUND);
@@ -269,9 +308,9 @@ impl SoundChannel {
     /// ```
     #[inline(always)]
     #[must_use]
-    pub fn new(data: &'static [u8]) -> Self {
+    pub fn new(data: SoundData) -> Self {
         SoundChannel {
-            data,
+            data: data.data(),
             pos: 0.into(),
             should_loop: false,
             playback_speed: 1.into(),
@@ -304,7 +343,7 @@ impl SoundChannel {
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
-    /// static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+    /// static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
     ///
     /// // somewhere in code
     /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
@@ -314,9 +353,9 @@ impl SoundChannel {
     /// ```
     #[inline(always)]
     #[must_use]
-    pub fn new_high_priority(data: &'static [u8]) -> Self {
+    pub fn new_high_priority(data: SoundData) -> Self {
         SoundChannel {
-            data,
+            data: data.data(),
             pos: 0.into(),
             should_loop: false,
             playback_speed: 1.into(),

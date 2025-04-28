@@ -87,7 +87,7 @@ unsafe extern "C" {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # let vblank = agb::interrupt::VBlank::get();
 /// // Outside your main function in global scope:
-/// static MY_CRAZY_SOUND: &[u8] = include_wav!("examples/sfx/jump.wav");
+/// static MY_CRAZY_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 ///
 /// // in your main function:
 /// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
@@ -131,7 +131,7 @@ pub struct Mixer<'gba> {
 /// # use agb::*;
 /// # fn foo(gba: &mut Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-/// # static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+/// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
 /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
 /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
 ///
@@ -263,7 +263,7 @@ impl Mixer<'_> {
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// # static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+    /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
     /// # }
@@ -312,7 +312,7 @@ impl Mixer<'_> {
     /// # use agb::*;
     /// # fn foo(gba: &mut Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// # static MY_BGM: &[u8] = include_wav!("examples/sfx/my_bgm.wav");
+    /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
     /// let bgm_channel_id = mixer.play_sound(channel).unwrap(); // will always be Some if high priority
     ///

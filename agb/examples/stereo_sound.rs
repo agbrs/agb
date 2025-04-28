@@ -14,13 +14,13 @@ use agb::{
         },
     },
     include_font, include_wav,
-    sound::mixer::{Frequency, SoundChannel},
+    sound::mixer::{Frequency, SoundChannel, SoundData},
 };
 
 use alloc::format;
 
 // Music - "Let it in" by Josh Woodward, free download at http://joshwoodward.com
-static LET_IT_IN: &[u8] = include_wav!("examples/JoshWoodward-LetItIn.wav");
+static LET_IT_IN: SoundData = include_wav!("examples/JoshWoodward-LetItIn.wav");
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 

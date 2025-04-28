@@ -3,11 +3,11 @@
 
 use agb::fixnum::Num;
 use agb::input::{Button, ButtonController, Tri};
-use agb::sound::mixer::{Frequency, SoundChannel};
+use agb::sound::mixer::{Frequency, SoundChannel, SoundData};
 use agb::{Gba, fixnum::num, include_wav};
 
 // Music - "Dead Code" by Josh Woodward, free download at http://joshwoodward.com
-static DEAD_CODE: &[u8] = include_wav!("examples/JoshWoodward-DeadCode.wav");
+static DEAD_CODE: SoundData = include_wav!("examples/JoshWoodward-DeadCode.wav");
 
 #[agb::entry]
 fn main(mut gba: Gba) -> ! {

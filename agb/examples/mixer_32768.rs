@@ -14,13 +14,13 @@ use agb::{
         },
     },
     include_font, include_wav,
-    sound::mixer::{Frequency, SoundChannel},
+    sound::mixer::{Frequency, SoundChannel, SoundData},
 };
 
 use alloc::format;
 
 // Music - "Crazy glue" by Josh Woodward, free download at http://joshwoodward.com
-static CRAZY_GLUE: &[u8] = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
+static CRAZY_GLUE: SoundData = include_wav!("examples/JoshWoodward-CrazyGlue.wav");
 
 static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
