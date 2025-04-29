@@ -13,26 +13,26 @@ It also provides features around adding tags for grouping sprites to form animat
 This makes it very useful for creating art for use by agb.
 
 
-You can import 15 colour sprites using the `include_aseprite` macro.
-In a single invocation of `include_aseprite` the palettes are all optimised together.
+You can import 15 colour sprites using the [`include_aseprite`](https://docs.rs/agb/latest/agb/macro.include_aseprite.html) macro.
+In a single invocation of [`include_aseprite`](https://docs.rs/agb/latest/agb/macro.include_aseprite.html) the palettes are all optimised together.
 For example, you might use the following to import some sprites.
 
 ```rust
 agb::include_aseprite!(mod sprites, "sprites.aseprite", "other_sprites.aseprite");
 ```
 
-You can import 255 colour sprites using the `include_aseprite_256` macro similarly.
+You can import 255 colour sprites using the [`include_aseprite_256`](https://docs.rs/agb/latest/agb/macro.include_aseprite_256.html) macro similarly.
 You have 15 colour and 255 colours because the 0th index of the palette is always fully transparent.
 
 ## ROM and VRAM
 
 Sprites must be in VRAM to be displayed on screen.
-The `SpriteVram` type represents a sprite in VRAM.
-This implements the `From` trait from `&'static Sprite`.
+The [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) type represents a sprite in VRAM.
+This implements the `From` trait from [`&'static Sprite`](https://docs.rs/agb/latest/agb/display/object/struct.Sprite.html).
 The `From` implementation will deduplicate the sprites in VRAM, this means that you can repeatedly use the same sprite and it won't blow up your VRAM usage.
 This deduplication does have the performance implication of requiring a HashMap lookup, although for many games this will a rather small penalty.
-By storing and reusing the `SpriteVram` you can avoid this lookup.
-Furthermore, `SpriteVram` is reference counted, so `Clone`ing it is cheap and doesn't allocate more `VRAM`.
+By storing and reusing the [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) you can avoid this lookup.
+Furthermore, [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) is reference counted, so `Clone`ing it is cheap and doesn't allocate more `VRAM`.
 
 
 ```rust
@@ -47,8 +47,8 @@ let clone = sprite.clone();
 ## Regular objects
 
 When you have a sprite, you will want to display it to the screen.
-This is an `Object`.
-Like many things in agb, you can display to the screen using the `show` method on `Object` on the frame.
+This is an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html).
+Like many things in agb, you can display to the screen using the `show` method on [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) on the frame.
 
 ```rust
 use agb::display::{GraphicsFrame, object::Object};
@@ -67,12 +67,12 @@ fn chicken(frame: &mut GraphicsFrame) {
 ## Affine objects
 
 Affine objects can be rotated and scaled by an affine transformation.
-These objects are created using the `ObjectAffine` type.
-This like an `Object` requires a sprite but also requires an `AffineMatrixInstance` and an `AffineMode`.
+These objects are created using the [`ObjectAffine`](https://docs.rs/agb/latest/agb/display/object/struct.ObjectAffine.html) type.
+This like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) requires a sprite but also requires an [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html) and an `AffineMode`.
 The affine matrix instance can be thought of as an affine matrix stored in oam.
 
-The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an `AffineMatrixObject` that is suitable for use in objects which then has the `oam` version of `AffineMatrixInstance`.
-When using a single affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
+The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/affine/struct.AffineMatrixObject.html) that is suitable for use in objects which then has the `oam` version of [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html).
+When using a single affine matrix for multiple sprites, it is important to reuse the [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html) as otherwise you may run out of affine matrices.
 You can use up to 32 affine matrices.
 
 Affine objects have two display modes, the regular and the double modes.
@@ -85,10 +85,10 @@ As double affine objects are twice the size and the top left of the corner is di
 
 
 A dynamic sprite is a sprite whose data is defined during runtime rather than at compile time.
-Agb has two kinds of dynamic sprites: `DynamicSprite16` and `DynamicSprite256`.
+Agb has two kinds of dynamic sprites: [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and [`DynamicSprite256`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite256.html).
 These are naturally for sprites that use a single palette and those that use multiple.
 
-The easiest way to create a dynamic sprite is through the relevant type, for example here is creating a `DynamicSprite16` and setting a couple of pixels.
+The easiest way to create a dynamic sprite is through the relevant type, for example here is creating a [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and setting a couple of pixels.
 
 ```rust
 use agb::display::object::{DynamicSprite16, Size};
@@ -101,7 +101,7 @@ sprite.set_pixel(5, 5, 1);
 let in_vram = sprite.to_vram(todo!());
 ```
 
-And you could then go on to use the sprite however you like with `Object` as normal.
+And you could then go on to use the sprite however you like with [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) as normal.
 
 ## How to handle the camera position?
 
@@ -130,8 +130,8 @@ impl MyObject {
 }
 ```
 
-While you can get the position of an `Object`, do not try using this to correct for the camera position as it will not work.
-The precision that positions are stored in the `Object` are enough to be displayed to the screen and not much more.
+While you can get the position of an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html), do not try using this to correct for the camera position as it will not work.
+The precision that positions are stored in the [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) are enough to be displayed to the screen and not much more.
 Trying to use this for world coordinates will fail.
 
 ## See also
