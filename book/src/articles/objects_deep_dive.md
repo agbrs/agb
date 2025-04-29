@@ -36,9 +36,11 @@ Furthermore, `SpriteVram` is reference counted, so `Clone`ing it is cheap and do
 
 
 ```rust
+use agb::display::object::SpriteVram;
+
 agb::include_aseprite(mod sprites, "examples/chicken.aseprite");
 
-let sprite = agb::display::object::SpriteVram = sprites::IDLE.sprite(0).into();
+let sprite = SpriteVram::from(sprites::IDLE.sprite(0));
 let clone = sprite.clone();
 ```
 
