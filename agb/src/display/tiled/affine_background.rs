@@ -129,6 +129,10 @@ impl AffineBackgroundTiles {
         self.transform = transform.into();
     }
 
+    pub fn set_wrap_behaviour(&mut self, wrap_behaviour: AffineBackgroundWrapBehaviour) {
+        self.wrap_behaviour = wrap_behaviour;
+    }
+
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) {
         let old_tile = self.tiles.get(pos);
 
