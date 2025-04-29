@@ -141,6 +141,15 @@ impl ButtonController {
         (up, down).into()
     }
 
+    /// Returns [Tri::Positive] if R is pressed, [Tri::Negative] if L is pressed and [Tri::Zero] if neither or both are pressed.
+    #[must_use]
+    pub fn lr_tri(&self) -> Tri {
+        let l = self.is_pressed(Button::L);
+        let r = self.is_pressed(Button::R);
+
+        (l, r).into()
+    }
+
     /// Returns a vector which represents the current direction being pressed.
     #[must_use]
     pub fn vector<T>(&self) -> Vector2D<T>
@@ -151,7 +160,7 @@ impl ButtonController {
     }
 
     #[must_use]
-    /// Returns [Tri::Positive] if left was just pressed, [Tri::Negative] if right was just pressed and [Tri::Zero] if neither or both are just pressed.
+    /// Returns [Tri::Positive] if right was just pressed, [Tri::Negative] if left was just pressed and [Tri::Zero] if neither or both are just pressed.
     ///
     /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_x_tri(&self) -> Tri {
