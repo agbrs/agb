@@ -10,6 +10,7 @@ All objects can be flipped and affine objects can have an affine transformation 
 Sprites are imported from aseprite files.
 Aseprite is an excellent pixel sprite editor that can be acquired for low cost or compiled yourself for free.
 It also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
+[The aseprite documentation contains detail on tags.](https://www.aseprite.org/docs/tags/)
 This makes it very useful for creating art for use by agb.
 
 
@@ -20,6 +21,8 @@ For example, you might use the following to import some sprites.
 ```rust
 agb::include_aseprite!(mod sprites, "sprites.aseprite", "other_sprites.aseprite");
 ```
+
+This will create a module called `sprites` that contains `static`s corresponding to every tag in the provided aseprite files as an agb [`Tag`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html).
 
 You can import 255 colour sprites using the [`include_aseprite_256`](https://docs.rs/agb/latest/agb/macro.include_aseprite_256.html) macro similarly.
 You have 15 colour and 255 colours because the 0th index of the palette is always fully transparent.
