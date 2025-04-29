@@ -35,13 +35,20 @@ use super::DISPLAY_CONTROL;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct AffineBackgroundId(pub(crate) u8);
-
 impl BackgroundId {
     #[must_use]
     pub fn x_scroll_dma(self) -> DmaControllable<u16> {
         unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct AffineBackgroundId(pub(crate) u8);
+
+impl AffineBackgroundId {
+    #[must_use]
+    pub fn transform_dma(self) -> DmaControllable<AffineMatrixBackground> {
+        unsafe { DmaControllable::new((0x0400_0020 + (self.0 as usize - 2) * 16) as *mut _) }
     }
 }
 

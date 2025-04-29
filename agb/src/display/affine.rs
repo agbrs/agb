@@ -241,14 +241,15 @@ impl Default for AffineMatrix {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C, packed(4))]
+#[allow(missing_docs)]
 /// An affine matrix that can be used in affine backgrounds
 pub struct AffineMatrixBackground {
-    a: Num<i16, 8>,
-    b: Num<i16, 8>,
-    c: Num<i16, 8>,
-    d: Num<i16, 8>,
-    x: Num<i32, 8>,
-    y: Num<i32, 8>,
+    pub a: Num<i16, 8>,
+    pub b: Num<i16, 8>,
+    pub c: Num<i16, 8>,
+    pub d: Num<i16, 8>,
+    pub x: Num<i32, 8>,
+    pub y: Num<i32, 8>,
 }
 
 impl Default for AffineMatrixBackground {
