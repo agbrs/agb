@@ -61,8 +61,8 @@
 /// You can import multiple files at once, and the palette data will be combined so they can all be visible.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => "examples/gfx/beach-background.aseprite",
@@ -178,10 +178,10 @@
 /// This example uses [`RegularBackgroundTiles::fill_with`](display::tiled::RegularBackgroundTiles::fill_with)
 /// to fill the screen with a screen-sized image.
 ///
-/// ```rust,no_run
+/// ```rust
 /// ##![no_std]
 /// ##![no_main]
-/// #
+/// # core::include!("doctest_runner.rs");
 /// use agb::{
 ///     display::{
 ///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackgroundTiles, VRAM_MANAGER},
@@ -195,7 +195,7 @@
 ///     BEACH => "examples/gfx/beach-background.aseprite",
 /// );
 ///
-/// # fn load_tileset() {
+/// # fn test(_: agb::Gba) {
 /// VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 ///
 /// let mut bg = RegularBackgroundTiles::new(
@@ -449,7 +449,7 @@ impl Gba {
 ///
 /// ```rust,ignore
 /// #[test_case]
-/// fn test_ping_pong(_gba: &mut Gba) {
+/// fn dummy_test(_gba: &mut Gba) {
 ///     assert_eq!(1, 1);
 /// }
 /// ```

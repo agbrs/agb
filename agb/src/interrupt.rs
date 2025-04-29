@@ -239,10 +239,11 @@ unsafe fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # fn foo() {
+/// # core::include!("doctest_runner.rs");
+/// # fn test(_: agb::Gba) {
 /// use critical_section::CriticalSection;
 /// use agb::interrupt::{add_interrupt_handler, Interrupt};
 /// // Safety: doesn't allocate

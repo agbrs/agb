@@ -90,12 +90,17 @@ impl Debug for Rgb {
 ///
 /// ## Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_main]
 /// # #![no_std]
+/// # core::include!("../doctest_runner.rs");
 /// use agb::{include_colours, display::Rgb15};
 ///
+/// # fn test(gba: agb::Gba) {
 /// static PALETTE: &[Rgb15] = &include_colours!("gfx/pastel.png");
+///
+/// assert_eq!(PALETTE.len(), 64);
+/// # }
 /// ```
 #[macro_export]
 macro_rules! include_colours {

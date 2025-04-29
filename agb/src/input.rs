@@ -8,11 +8,13 @@ use bitflags::bitflags;
 /// Note that [Tri] can be converted directly to a signed integer, so can easily be used to update positions of things in games
 ///
 /// # Examples
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
+/// # #![no_main]
+/// # core::include!("doctest_runner.rs");
 /// use agb::input::Tri;
 ///
-/// # fn main() {
+/// # fn test(_: agb::Gba) {
 /// let x = 5;
 /// let tri = Tri::Positive; // e.g. from button_controller.x_tri()
 ///

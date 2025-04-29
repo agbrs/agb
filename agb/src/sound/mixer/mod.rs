@@ -28,11 +28,12 @@
 //! To create a sound mixer, you will need to get it out of the [`Gba`](crate::Gba) struct
 //! as follows:
 //!
-//! ```rust,no_run
+//! ```rust
 //! # #![no_std]
 //! # #![no_main]
+//! # core::include!("../../doctest_runner.rs");
 //! use agb::sound::mixer::Frequency;
-//! # fn foo(gba: &mut agb::Gba) {
+//! # fn test(mut gba: agb::Gba) {
 //! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 //! mixer.enable();
 //! # }
@@ -52,11 +53,12 @@
 //! In order to avoid skipping audio, call the [`Mixer::frame()`] function at least once per frame
 //! as shown below:
 //!
-//! ```rust,no_run
+//! ```rust
 //! # #![no_std]
 //! # #![no_main]
+//! # core::include!("../../doctest_runner.rs");
 //! use agb::sound::mixer::Frequency;
-//! # fn foo(gba: &mut agb::Gba) {
+//! # fn test(mut gba: agb::Gba) {
 //! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 //! let vblank = agb::interrupt::VBlank::get();
 //! // Somewhere in your main loop:
@@ -73,14 +75,14 @@
 //! Use the [`include_wav!`](crate::include_wav) macro in order to load the sound. This will produce
 //! an error if your wav file is of the wrong frequency.
 //!
-//! ```rust,no_run
+//! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # fn foo(gba: &mut agb::Gba) {
+//! # core::include!("../../doctest_runner.rs");
+//! # fn test(mut gba: agb::Gba) {
 //! # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 //! # let vblank = agb::interrupt::VBlank::get();
 //! # use agb::{*, sound::mixer::*};
-//! // Outside your main function in global scope:
 //! static MY_CRAZY_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 //!
 //! // Then to play the sound:
@@ -229,16 +231,16 @@ unsafe impl Sync for SoundData {}
 /// play regardless of whether you have lots of sound effects playing. You create a high
 /// priority sound channel using [`new_high_priority`](SoundChannel::new_high_priority).
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
-/// // in global scope:
 /// static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
 ///
 /// // somewhere in code
-/// # fn foo(gba: &mut Gba) {
+/// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
 /// bgm.stereo().should_loop();
@@ -248,16 +250,17 @@ unsafe impl Sync for SoundData {}
 ///
 /// ## Playing a sound effect
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
 /// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 ///
 /// // somewhere in code
-/// # fn foo(gba: &mut Gba) {
+/// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let jump_sound = SoundChannel::new(JUMP_SOUND);
 /// let _ = mixer.play_sound(jump_sound);
@@ -291,12 +294,13 @@ impl SoundChannel {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
+    /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
     /// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
@@ -335,12 +339,13 @@ impl SoundChannel {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
+    /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
     /// static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");

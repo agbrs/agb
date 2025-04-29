@@ -208,12 +208,13 @@ impl DynamicTile16 {
     /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
     /// do something like:
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// core::include!("../../doctest_runner.rs");
     /// use agb::display::tiled::DynamicTile16;
     ///
-    /// # fn test() {
+    /// # fn test(gba: agb::Gba) {
     /// let my_new_tile = DynamicTile16::new().fill_with(0);
     /// # }
     /// ```

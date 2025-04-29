@@ -102,7 +102,7 @@ impl RegularBackgroundSize {
 /// # #![no_std]
 /// #
 /// # use agb::Gba;
-/// # fn t(gba: &mut Gba) {
+/// # fn foo(gba: &mut Gba) {
 /// use agb::display::{
 ///     Priority,
 ///     tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
@@ -235,9 +235,10 @@ impl RegularBackgroundTiles {
     ///
     /// ## Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_main]
     /// # #![no_std]
+    /// # core::include!("../../doctest_runner.rs");
     /// use agb::{
     ///     display::{
     ///         Priority,
@@ -248,7 +249,7 @@ impl RegularBackgroundTiles {
     ///
     /// include_background_gfx!(mod logo, logo => deduplicate "gfx/test_logo.png");
     ///
-    /// # fn foo() {
+    /// # fn test(gba: agb::Gba) {
     /// VRAM_MANAGER.set_background_palettes(logo::PALETTES);
     /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
     ///
