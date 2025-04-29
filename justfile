@@ -137,7 +137,7 @@ build-site-examples: build-release
         just gbafix "$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE" --output="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba"
         cp "agb/examples/$EXAMPLE_NAME" "website/agb/src/roms/examples/$EXAMPLE_NAME"
         gzip -9 -c $CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba > website/agb/src/roms/examples/$EXAMPLE.gba.gz
-        just generate-screenshot --rom="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba" --frames=10 --output=website/agb/src/roms/examples/$EXAMPLE.png
+        just generate-screenshot --rom="$CARGO_TARGET_DIR/thumbv4t-none-eabi/release/examples/$EXAMPLE.gba" --frames=100 --output=website/agb/src/roms/examples/$EXAMPLE.png
         EXAMPLE_IMAGE_IMPORTS="$EXAMPLE_IMAGE_IMPORTS import $EXAMPLE from './$EXAMPLE.png';"
         EXAMPLE_DEFINITIONS="$EXAMPLE_DEFINITIONS {url: new URL('./$EXAMPLE.gba.gz', import.meta.url), example_name: '$EXAMPLE', screenshot: $EXAMPLE},"
     done
