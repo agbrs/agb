@@ -21,7 +21,7 @@ const FLAPPING_GRAVITY: Number = Number::from_raw(GRAVITY.to_raw() / 3);
 const JUMP_VELOCITY: Number = Number::from_raw(1 << 9);
 const TERMINAL_VELOCITY: Number = Number::from_raw(1 << 7);
 
-const CAYOTE_FRAMES: usize = 20;
+const COYOTE_FRAMES: usize = 20;
 
 #[derive(PartialEq, Eq)]
 enum State {
@@ -41,20 +41,23 @@ struct Chicken {
     velocity: Vector,
 }
 
-fn tile_is_collidable(tile: Vector2D<i32>) -> bool {
-    if tile.x < 0 || tile.x > 30 * 5 || tile.y < 0 || tile.y > 32 {
+const MAP_WIDTH: i32 = background::map.width as i32;
+const MAP_HEIGHT: i32 = background::map.height as i32;
+
+fn tile_is_colliding(tile: Vector2D<i32>) -> bool {
+    if tile.x < 0 || tile.x > MAP_WIDTH || tile.y < 0 || tile.y > MAP_HEIGHT {
         true
     } else {
-        let idx = tile.x + tile.y * 30 * 5;
+        let idx = tile.x + tile.y * MAP_WIDTH;
         let tile = background::map.tile_settings[idx as usize].tile_id();
 
-        // I just grabbed the indexes of the 2 collidable tiles from aseprite
-        const COLLIDABLE_TILES: &[u16] = &[
+        // I just grabbed the indexes of the 2 colliding tiles from aseprite
+        const COLLIDING_TILES: &[u16] = &[
             background::map.tile_settings[1053].tile_id(),
             background::map.tile_settings[1653].tile_id(),
         ];
 
-        COLLIDABLE_TILES.contains(&tile)
+        COLLIDING_TILES.contains(&tile)
     }
 }
 
@@ -95,10 +98,10 @@ fn entry(mut gba: agb::Gba) -> ! {
             vec2(camera_position.x.round(), camera_position.y.floor()),
             |pos| {
                 let (x, y) = (pos.x, pos.y);
-                let tile_idx = if !(0..30 * 5).contains(&x) || !(0..20).contains(&y) {
+                let tile_idx = if !(0..MAP_WIDTH).contains(&x) || !(0..20).contains(&y) {
                     0
                 } else {
-                    x as usize + y as usize * 30 * 5
+                    (x + y * MAP_WIDTH) as usize
                 };
 
                 (
@@ -143,7 +146,7 @@ impl Chicken {
         self.velocity.x += ACCELERATION * (input.x_tri() as i32);
         self.velocity.x = (self.velocity.x * 61) / 64;
 
-        if self.left_ground_frames < CAYOTE_FRAMES && input.is_just_pressed(Button::A) {
+        if self.left_ground_frames < COYOTE_FRAMES && input.is_just_pressed(Button::A) {
             self.left_ground_frames = 200;
             self.velocity.y = -JUMP_VELOCITY;
         }
@@ -182,7 +185,7 @@ impl Chicken {
     fn restrict_to_screen(&mut self) {
         let bounding_rect = Rect::new(
             vec2(num!(4), num!(4)),
-            vec2(num!(WIDTH * 5 - 8), num!(HEIGHT - 8)),
+            vec2(num!(MAP_WIDTH * 8 - 8), num!(HEIGHT - 8)),
         );
 
         let previous = self.position;
@@ -198,14 +201,14 @@ impl Chicken {
     fn handle_collision_component(
         velocity: &mut Number,
         position: &mut Number,
-        collidable: &dyn Fn(i32) -> bool,
+        colliding: &dyn Fn(i32) -> bool,
     ) {
         let potential = *position + *velocity;
         let potential_external = potential + velocity.to_raw().signum() * 4;
 
         let target_tile = potential_external.floor() / 8;
 
-        if !collidable(target_tile) {
+        if !colliding(target_tile) {
             *position = potential;
         } else {
             let center_of_target_tile = target_tile * 8 + 4;
@@ -218,15 +221,15 @@ impl Chicken {
 
     fn update_collision(&mut self) {
         Self::handle_collision_component(&mut self.velocity.x, &mut self.position.x, &|x| {
-            tile_is_collidable(vec2(x, self.position.y.floor() / 8))
+            tile_is_colliding(vec2(x, self.position.y.floor() / 8))
         });
         Self::handle_collision_component(&mut self.velocity.y, &mut self.position.y, &|y| {
-            tile_is_collidable(vec2(self.position.x.floor() / 8, y))
+            tile_is_colliding(vec2(self.position.x.floor() / 8, y))
         });
 
         self.state = State::Ground;
 
-        if !tile_is_collidable(
+        if !tile_is_colliding(
             (self.position + vec2(0.into(), Number::new(4) + Number::from_raw(1))).floor() / 8,
         ) {
             if self.velocity.y < 0.into() {
