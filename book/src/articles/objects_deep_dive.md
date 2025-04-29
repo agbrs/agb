@@ -38,7 +38,7 @@ Furthermore, `SpriteVram` is reference counted, so `Clone`ing it is cheap and do
 ```rust
 use agb::display::object::SpriteVram;
 
-agb::include_aseprite(mod sprites, "examples/chicken.aseprite");
+agb::include_aseprite!(mod sprites, "examples/chicken.aseprite");
 
 let sprite = SpriteVram::from(sprites::IDLE.sprite(0));
 let clone = sprite.clone();
@@ -53,7 +53,7 @@ Like many things in agb, you can display to the screen using the `show` method o
 ```rust
 use agb::display::{GraphicsFrame, object::Object};
 
-agb::include_aseprite(mod sprites, "examples/chicken.aseprite");
+agb::include_aseprite!(mod sprites, "examples/chicken.aseprite");
 
 fn chicken(frame: &mut GraphicsFrame) {
     // Object::new takes anything that implements Into<SpriteVram>, so we can pass in a static sprite.
