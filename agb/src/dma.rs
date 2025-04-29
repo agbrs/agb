@@ -104,7 +104,7 @@ where
         }
 
         dma.ctrl_addr.set(
-            (0b10 << 0x15) | // keep destination address fixed
+            (0b11 << 0x15) | // keep destination address fixed
             // (0b00 << 0x17) | // increment the source address each time
             (1 << 0x19) | // repeat the copy each hblank
             // 0 << 0x1a | // copy in half words (see n_transfers above)
