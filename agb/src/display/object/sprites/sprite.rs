@@ -2,7 +2,7 @@ use core::alloc::Layout;
 
 use crate::display::palette16::Palette16;
 
-use super::BYTES_PER_TILE_4BPP;
+use super::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP};
 
 /// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
@@ -439,6 +439,18 @@ impl Size {
             8,
         )
         .unwrap()
+    }
+
+    /// The size in bytes for a sprite of this size in 16 colour mode
+    #[must_use]
+    pub fn size_bytes_16(self) -> usize {
+        self.number_of_tiles() * BYTES_PER_TILE_4BPP
+    }
+
+    /// The size in bytes for a sprite of this size in 256 colour mode
+    #[must_use]
+    pub fn size_bytes_256(self) -> usize {
+        self.number_of_tiles() * BYTES_PER_TILE_8BPP
     }
 
     #[must_use]

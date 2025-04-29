@@ -71,6 +71,34 @@ macro_rules! dynamic_sprite_defn {
                 Self::try_new(size).expect("couldn't allocate dynamic sprite")
             }
 
+            /// Attempts to allocate the sprite in vram and copies the data from the given slice.
+            pub fn try_copy_from(size: Size, data: &[u8]) -> Result<Self, LoaderError> {
+                let layout = size.layout($multi);
+                assert_eq!(layout.size(), data.len());
+
+                let allocation = SpriteAllocator
+                    .allocate(layout)
+                    .expect("cannot allocate dynamic sprite");
+
+                let allocation = core::ptr::slice_from_raw_parts_mut(
+                    allocation.as_ptr() as *mut _,
+                    allocation.len() / 2,
+                );
+
+                let data = unsafe { Box::from_raw_in(allocation, SpriteAllocator) };
+
+                Ok(Self { data, size })
+            }
+
+            /// Attempts to allocate the sprite in vram and copies the data from the given slice.
+            ///
+            /// # Panics
+            /// Panics if there is no space to allocate sprites into
+            #[must_use]
+            pub fn copy_from(size: Size, data: &[u8]) -> Self {
+                Self::try_copy_from(size, data).expect("couldn't allocate dynamic sprite")
+            }
+
             /// Set the pixel of a sprite to a given colour index from the palette.
             ///
             /// # Panics

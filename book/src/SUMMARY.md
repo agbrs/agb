@@ -24,7 +24,7 @@
 
 - [Frame lifecycle](./articles/frame_lifecycle.md)
 - [Backgrounds deep dive](./articles/backgrounds.md)
-- [Objects deep dive]()
+- [Objects deep dive](./articles/objects_deep_dive.md)
 - [Text rendering]()
 - [Blending, windows and DMA effects]()
 - [Music and sound effects]()
