@@ -68,14 +68,17 @@ pub(crate) use impl_zst_allocator;
 /// This implements the allocator trait, so is meant to be used in specifying where certain structures should be
 /// allocated.
 ///
-/// ```rust,no_run
+/// ```rust
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::ExternalAllocator;
-/// # extern crate alloc;
-/// # use alloc::vec::Vec;
-/// # fn foo(gba: &mut agb::Gba) {
+/// # core::include!("../doctest_runner.rs");
+/// # fn test(gba: agb::Gba) {
+/// extern crate alloc;
+///
+/// use agb::ExternalAllocator;
+/// use alloc::vec::Vec;
+///
 /// let mut v = Vec::new_in(ExternalAllocator);
 /// v.push("hello, world");
 /// assert!(
@@ -93,14 +96,17 @@ impl_zst_allocator!(ExternalAllocator, GLOBAL_ALLOC);
 /// allocator trait, so is meant to be used in specifying where certain
 /// structures should be allocated.
 ///
-/// ```rust,no_run
+/// ```rust
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # use agb::InternalAllocator;
-/// # extern crate alloc;
-/// # use alloc::vec::Vec;
-/// # fn foo(gba: &mut agb::Gba) {
+/// # core::include!("../doctest_runner.rs");
+/// # fn test(gba: agb::Gba) {
+/// extern crate alloc;
+///
+/// use agb::InternalAllocator;
+/// use alloc::vec::Vec;
+///
 /// let mut v = Vec::new_in(InternalAllocator);
 /// v.push("hello, world");
 /// assert!(

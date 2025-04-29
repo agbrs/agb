@@ -70,9 +70,10 @@ impl TileSetting {
     ///
     /// Use this instead of a fully blank tile in your tile set if possible, since it is special cased to be more performant.
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../doctest_runner.rs");
     /// use agb::{
     ///     display::Priority,
     ///     display::tiled::{
@@ -84,7 +85,7 @@ impl TileSetting {
     ///
     /// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
     ///
-    /// # fn foo() {
+    /// # fn test(gba: agb::Gba) {
     /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
     ///
     /// // put something in the background

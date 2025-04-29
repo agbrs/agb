@@ -11,6 +11,12 @@ rustflags = [
     "-Ctarget-cpu=arm7tdmi",
     "-Cforce-frame-pointers=yes",
 ]
+rustdocflags = [
+    "-Clink-arg=-Tgba.ld",
+    "-Ctarget-cpu=arm7tdmi",
+    "-Cforce-frame-pointers=yes",
+]
+
 runner = ["mgba-qt", "-C", "logToStdout=1", "-C", "logLevel.gba.debug=127"]
 
 [target.armv4t-none-eabi]
@@ -19,4 +25,10 @@ rustflags = [
     "-Ctarget-cpu=arm7tdmi",
     "-Cforce-frame-pointers=yes",
 ]
+rustdocflags = [
+    "-Clink-arg=-Tgba.ld",
+    "-Ctarget-cpu=arm7tdmi",
+    "-Cforce-frame-pointers=yes",
+]
+
 runner = ["mgba-qt", "-C", "logToStdout=1", "-C", "logLevel.gba.debug=127"]

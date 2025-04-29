@@ -66,12 +66,13 @@ unsafe extern "C" {
 /// You should not create this struct directly, instead creating it through the [`Gba`](crate::Gba)
 /// struct as follows:
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
-/// # fn foo(gba: &mut Gba) {
+/// # fn test(mut gba: Gba) {
 /// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// # }
 /// ```
@@ -124,12 +125,13 @@ pub struct Mixer<'gba> {
 ///
 /// # Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
-/// # fn foo(gba: &mut Gba) {
+/// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
 /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
@@ -256,12 +258,13 @@ impl Mixer<'_> {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
+    /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
@@ -305,12 +308,13 @@ impl Mixer<'_> {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
+    /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
     /// let mut channel = SoundChannel::new_high_priority(MY_BGM);
