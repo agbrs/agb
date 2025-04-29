@@ -65,7 +65,7 @@ where
 
         let mut copied_values = Box::into_pin(Box::new([const { MaybeUninit::uninit() }; 161]));
         copied_values[..160].copy_from_slice(unsafe {
-            core::mem::transmute::<&[Item], &[MaybeUninit<Item>]>(values)
+            core::mem::transmute::<&[Item], &[MaybeUninit<Item>]>(&values[..160])
         });
 
         copied_values[160].write(values[0]);
