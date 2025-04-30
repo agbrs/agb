@@ -4,13 +4,14 @@
 use agb::{
     display::{
         GraphicsFrame, HEIGHT, Priority, WIDTH,
+        object::Object,
         tiled::{
             RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileSetting, VRAM_MANAGER,
         },
     },
     dma::HBlankDmaDefinition,
     fixnum::{Num, Vector2D, num, vec2},
-    include_background_gfx,
+    include_aseprite, include_background_gfx,
 };
 
 use alloc::{vec, vec::Vec};
@@ -20,6 +21,8 @@ extern crate alloc;
 include_background_gfx!(mod backgrounds, "639bff",
     MONSTER => "examples/gfx/blob-monster-tiles.aseprite",
 );
+
+include_aseprite!(mod sprites, "examples/gfx/monster-features.aseprite");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
@@ -99,7 +102,24 @@ impl BlobMonster {
     }
 
     pub fn show(&self, frame: &mut GraphicsFrame) {
-        let width_starts_pairs = (0..160)
+        let bg_id = self.bg.show(frame);
+
+        let eye_pos = self.position + vec2(-15, 10);
+        let eye_sprite = sprites::EYE
+            .sprites()
+            .get((self.frame % 128) as usize)
+            .unwrap_or_else(|| sprites::EYE.sprite(0));
+
+        Object::new(eye_sprite)
+            .set_position(eye_pos)
+            .set_priority(Priority::P0)
+            .show(frame);
+
+        HBlankDmaDefinition::new(bg_id.scroll_dma(), &self.width_start_pairs()).show(frame);
+    }
+
+    fn width_start_pairs(&self) -> Vec<Vector2D<u16>> {
+        (0..160)
             .map(|y| {
                 if y < self.position.y {
                     vec2(0, 0)
@@ -126,11 +146,7 @@ impl BlobMonster {
                 // we have to subtract the y position because the gba takes this into account when rendering
                 vec2(pos.x, pos.y.wrapping_sub(y as u16))
             })
-            .collect::<Vec<_>>();
-
-        let bg_id = self.bg.show(frame);
-
-        HBlankDmaDefinition::new(bg_id.scroll_dma(), &width_starts_pairs).show(frame);
+            .collect()
     }
 }
 
