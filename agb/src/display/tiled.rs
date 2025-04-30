@@ -40,6 +40,16 @@ impl BackgroundId {
     pub fn x_scroll_dma(self) -> DmaControllable<u16> {
         unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
     }
+
+    #[must_use]
+    pub fn y_scroll_dma(self) -> DmaControllable<u16> {
+        unsafe { DmaControllable::new((0x0400_0012 + self.0 as usize * 4) as *mut _) }
+    }
+
+    #[must_use]
+    pub fn scroll_dma(self) -> DmaControllable<Vector2D<u16>> {
+        unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

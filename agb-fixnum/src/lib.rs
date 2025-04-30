@@ -692,6 +692,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 /// A vector of two points: (x, y) represented by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct Vector2D<T: Number> {
     /// The x coordinate
     pub x: T,
