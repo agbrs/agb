@@ -7,6 +7,7 @@ import { Dungeon } from "./data/tapir/dungeon/dungeon";
 import { Leviathan } from "./data/drawing-a-leviathan/leviathan";
 import { Tactics } from "./data/tapir/tactics/tactics";
 import { Khiera } from "./data/tapir/khiera/khiera";
+import { BlobGoes3d } from "./data/milanfin/blob-goes-3d/blob_goes_3d";
 
 export interface ShowcaseGame {
   name: string;
@@ -37,4 +38,5 @@ export const Games: ShowcaseGame[] = shuffle([
   Leviathan,
   Tactics,
   Khiera,
+  BlobGoes3d,
 ]);
