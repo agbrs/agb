@@ -25,9 +25,9 @@ let mut paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
 let mut paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
 let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
 
-paddle_start.set_position((20, 20));
-paddle_mid.set_position((20, 20 + 16));
-paddle_end.set_position((20, 20 + 16 * 2));
+paddle_start.set_pos((20, 20));
+paddle_mid.set_pos((20, 20 + 16));
+paddle_end.set_pos((20, 20 + 16 * 2));
 ```
 
 If you add this to your program and show it, you'll see the paddle. But wait! The bottom of
@@ -60,18 +60,18 @@ impl Paddle {
             end: paddle_end,
         };
 
-        paddle.set_position(start_x, start_y);
+        paddle.set_pos(start_x, start_y);
 
         paddle
     }
 
-    fn set_position(&mut self, x: i32, y: i32) {
-        // new! use of the `set_position` method. This is a helper feature using
+    fn set_pos(&mut self, x: i32, y: i32) {
+        // new! use of the `set_pos` method. This is a helper feature using
         // agb's vector types. For now we can just use it to avoid adding them
         // separately
-        self.start.set_position((x, y));
-        self.mid.set_position((x, y + 16));
-        self.end.set_position((x, y + 32));
+        self.start.set_pos((x, y));
+        self.mid.set_pos((x, y + 16));
+        self.end.set_pos((x, y + 32));
     }
 
     fn show(&self, frame: &mut OamFrame) {
@@ -83,7 +83,7 @@ impl Paddle {
 ```
 
 Here we've made a struct to hold our paddle objects and added a convenient
-`new`, `set_position`, and `show` function and methods to help us use it. Now we
+`new`, `set_pos`, and `show` function and methods to help us use it. Now we
 can easily create two paddles (one on each side of the screen).
 
 ```rust

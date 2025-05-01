@@ -4,7 +4,6 @@ An object is a sprite drawn to an arbitrary part of the screen.
 They are typically used for anything that moves such as characters and NPCs.
 All objects can be flipped and affine objects can have an affine transformation applied to them that can rotate and scale them.
 
-
 ## Importing sprites
 
 Sprites are imported from aseprite files.
@@ -12,7 +11,6 @@ Aseprite is an excellent pixel sprite editor that can be acquired for low cost o
 It also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
 [The aseprite documentation contains detail on tags.](https://www.aseprite.org/docs/tags/)
 This makes it very useful for creating art for use by agb.
-
 
 You can import 15 colour sprites using the [`include_aseprite`](https://docs.rs/agb/latest/agb/macro.include_aseprite.html) macro.
 In a single invocation of [`include_aseprite`](https://docs.rs/agb/latest/agb/macro.include_aseprite.html) the palettes are all optimised together.
@@ -37,7 +35,6 @@ This deduplication does have the performance implication of requiring a HashMap 
 By storing and reusing the [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) you can avoid this lookup.
 Furthermore, [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) is reference counted, so `Clone`ing it is cheap and doesn't allocate more `VRAM`.
 
-
 ```rust
 use agb::display::object::SpriteVram;
 
@@ -61,7 +58,7 @@ agb::include_aseprite!(mod sprites, "examples/chicken.aseprite");
 fn chicken(frame: &mut GraphicsFrame) {
     // Object::new takes anything that implements Into<SpriteVram>, so we can pass in a static sprite.
     Object::new(sprites::IDLE.sprite(0))
-        .set_position((32, 32))
+        .set_pos((32, 32))
         .set_hflip(true)
         .show(frame);
 }
@@ -83,9 +80,7 @@ The double mode allows for the sprite to be scaled to twice the size of the orig
 You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
 As double affine objects are twice the size and the top left of the corner is dictated by the position given the sprite will be offset compared to regular sprites by the size of the sprite.
 
-
 ## Dynamic sprites
-
 
 A dynamic sprite is a sprite whose data is defined during runtime rather than at compile time.
 Agb has two kinds of dynamic sprites: [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and [`DynamicSprite256`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite256.html).
@@ -128,7 +123,7 @@ struct MyObject {
 
 impl MyObject {
     fn show(&self, camera: Vector2D<Num<i32, 8>>, frame: &mut GraphicsFrame) {
-        Object::new(SOME_SPRITE).set_position((self.position - camera).round()).show(frame);
+        Object::new(SOME_SPRITE).set_pos((self.position - camera).round()).show(frame);
     }
 }
 ```
@@ -139,4 +134,4 @@ Trying to use this for world coordinates will fail.
 
 ## See also
 
-* The pong tutorial goes over the [basics of sprites](../pong/03_sprites.md).
+- The pong tutorial goes over the [basics of sprites](../pong/03_sprites.md).

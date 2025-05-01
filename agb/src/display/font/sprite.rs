@@ -26,7 +26,7 @@ impl SpriteTextRenderer {
         }
 
         let mut object = Object::new(sprite.to_vram(self.palette.clone()));
-        object.set_position(offset + group.position());
+        object.set_pos(offset + group.position());
 
         object
     }

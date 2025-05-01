@@ -194,7 +194,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
             })
             .map(|(idx, pos)| {
                 let mut obj = Object::new(squares[idx % squares.len()].clone());
-                obj.set_position(pos.floor());
+                obj.set_pos(pos.floor());
                 obj
             })
             .collect();

@@ -57,8 +57,8 @@ impl BattleScreenDisplay {
         let mut player_obj = Object::new(player_sprite);
         let mut enemy_obj = Object::new(enemy_sprite);
 
-        player_obj.set_position((player_x, player_y));
-        enemy_obj.set_position((enemy_x, player_y));
+        player_obj.set_pos((player_x, player_y));
+        enemy_obj.set_pos((enemy_x, player_y));
 
         misc_sprites.push(player_obj);
         misc_sprites.push(enemy_obj);
@@ -70,7 +70,7 @@ impl BattleScreenDisplay {
             .map(|(i, (face, _))| {
                 let mut die_obj = Object::new(FACE_SPRITES.sprite_for_face(face));
 
-                die_obj.set_position((i as i32 * 40 + 28, 120));
+                die_obj.set_pos((i as i32 * 40 + 28, 120));
 
                 die_obj
             })
@@ -87,7 +87,7 @@ impl BattleScreenDisplay {
         let player_shield: Vec<_> = (0..5)
             .map(|i| {
                 let mut shield_obj = Object::new(shield_sprite);
-                shield_obj.set_position((player_x + 18 + 11 * i, player_y));
+                shield_obj.set_pos((player_x + 18 + 11 * i, player_y));
 
                 shield_obj
             })
@@ -97,7 +97,7 @@ impl BattleScreenDisplay {
             .map(|i| {
                 let mut shield_obj = Object::new(shield_sprite);
                 shield_obj
-                    .set_position((enemy_x - 16 - 11 * i, player_y))
+                    .set_pos((enemy_x - 16 - 11 * i, player_y))
                     .set_hflip(true);
 
                 shield_obj
@@ -134,7 +134,7 @@ impl BattleScreenDisplay {
                     Object::new(ENEMY_ATTACK_SPRITES.sprite_for_attack(EnemyAttackType::Attack));
 
                 let attack_obj_position = Vector2D::new(120, 56 + 32 * i);
-                attack_obj.set_position(attack_obj_position);
+                attack_obj.set_pos(attack_obj_position);
 
                 let attack_cooldown = HealthBar::new(attack_obj_position + (32, 8).into(), 48);
 
@@ -372,7 +372,7 @@ impl AnimationStateHolder {
     ) -> AnimationUpdateState {
         match &mut self.state {
             AnimationState::PlayerShoot { bullet, x } => {
-                bullet.set_position((*x, 36));
+                bullet.set_pos((*x, 36));
                 bullet.show(frame);
 
                 *x += 4;
@@ -384,7 +384,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::PlayerDisrupt { bullet, x } => {
-                bullet.set_position((*x, 36));
+                bullet.set_pos((*x, 36));
                 bullet.show(frame);
 
                 *x += 2;
@@ -415,7 +415,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::EnemyShoot { bullet, x } => {
-                bullet.set_hflip(true).set_position((*x, 36));
+                bullet.set_hflip(true).set_pos((*x, 36));
                 bullet.show(frame);
 
                 *x -= 4;
@@ -469,7 +469,7 @@ impl AnimationStateHolder {
                 }
             }
             AnimationState::PlayerSendBurstShield { bullet, x } => {
-                bullet.set_position((*x, 36));
+                bullet.set_pos((*x, 36));
                 bullet.show(frame);
 
                 *x += 1;

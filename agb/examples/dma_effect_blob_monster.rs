@@ -128,7 +128,7 @@ impl BlobMonster {
         let eye_pos = self.position + vec2(-15, 10);
 
         Object::new(eye_sprite)
-            .set_position(eye_pos)
+            .set_pos(eye_pos)
             .set_priority(Priority::P0)
             .show(frame);
 

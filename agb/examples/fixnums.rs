@@ -38,7 +38,7 @@ fn integer(
         let mut frame = gfx.frame();
 
         Object::new(sprite.clone())
-            .set_position(position)
+            .set_pos(position)
             .show(&mut frame);
 
         bg.show(&mut frame);
@@ -73,7 +73,7 @@ fn fixed(
         let mut frame = gfx.frame();
 
         Object::new(sprite.clone())
-            .set_position(position.floor())
+            .set_pos(position.floor())
             .show(&mut frame);
 
         bg.show(&mut frame);

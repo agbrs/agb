@@ -95,7 +95,7 @@ fn create_dice_display(dice: &PlayerDice) -> Vec<Object> {
     let mut objects = Vec::new();
     for (idx, dice) in dice.dice.iter().enumerate() {
         let mut obj = Object::new(FACE_SPRITES.sprite_for_face(dice.faces[1]));
-        obj.set_position((idx as i32 * 32 - 24 / 2 + 20, 16 - 24 / 2));
+        obj.set_pos((idx as i32 * 32 - 24 / 2 + 20, 16 - 24 / 2));
 
         objects.push(obj);
     }
@@ -107,7 +107,7 @@ fn create_net(die: &Die, modified: &[usize]) -> Vec<Object> {
     for (idx, &face) in die.faces.iter().enumerate() {
         let mut obj = Object::new(FACE_SPRITES.sprite_for_face(face));
         let (x, y) = screen_position_for_index(idx);
-        obj.set_position((x - 24 / 2, y - 24 / 2));
+        obj.set_pos((x - 24 / 2, y - 24 / 2));
 
         objects.push(obj);
     }
@@ -115,7 +115,7 @@ fn create_net(die: &Die, modified: &[usize]) -> Vec<Object> {
     for &m in modified.iter().chain(core::iter::once(&3)) {
         let mut obj = Object::new(MODIFIED_BOX);
         let (x, y) = screen_position_for_index(m);
-        obj.set_position((x - 32 / 2, y - 32 / 2));
+        obj.set_pos((x - 32 / 2, y - 32 / 2));
 
         objects.push(obj);
     }
@@ -132,7 +132,7 @@ fn create_upgrade_objects(upgrades: &[Face]) -> Vec<Object> {
     for (idx, &upgrade) in upgrades.iter().enumerate() {
         let mut obj = Object::new(FACE_SPRITES.sprite_for_face(upgrade));
         let (x, y) = upgrade_position(idx);
-        obj.set_position((x - 24 / 2, y - 24 / 2));
+        obj.set_pos((x - 24 / 2, y - 24 / 2));
 
         objects.push(obj);
     }
@@ -231,10 +231,10 @@ pub(crate) fn customise_screen(
                     );
                 }
 
-                select_box.set_position((cursor.dice as i32 * 32 - 32 / 2 + 20, 0));
+                select_box.set_pos((cursor.dice as i32 * 32 - 32 / 2 + 20, 0));
 
                 if input.is_just_pressed(Button::A) {
-                    selected_dice.set_position((cursor.dice as i32 * 32 - 32 / 2 + 20, 0));
+                    selected_dice.set_pos((cursor.dice as i32 * 32 - 32 / 2 + 20, 0));
                     state = CustomiseState::Face;
                     agb.sfx.select();
                 }
@@ -246,7 +246,7 @@ pub(crate) fn customise_screen(
                 cursor.face = move_net_position_ud(cursor.face, ud);
 
                 let (x, y) = screen_position_for_index(cursor.face);
-                select_box.set_position((x - 32 / 2, y - 32 / 2));
+                select_box.set_pos((x - 32 / 2, y - 32 / 2));
 
                 if input.is_just_pressed(Button::B) {
                     state = CustomiseState::Dice;
@@ -259,7 +259,7 @@ pub(crate) fn customise_screen(
                         upgrade: 0,
                     })
                 {
-                    selected_face.set_position((x - 32 / 2, y - 32 / 2));
+                    selected_face.set_pos((x - 32 / 2, y - 32 / 2));
 
                     cursor.upgrade += upgrades.len();
 
@@ -285,7 +285,7 @@ pub(crate) fn customise_screen(
                 }
 
                 let (x, y) = upgrade_position(cursor.upgrade);
-                select_box.set_position((x - 32 / 2, y - 32 / 2));
+                select_box.set_pos((x - 32 / 2, y - 32 / 2));
 
                 if input.is_just_pressed(Button::B) {
                     state = CustomiseState::Face;

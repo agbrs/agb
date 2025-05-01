@@ -76,13 +76,13 @@ fn draw_bar(
 
     for sprite_idx in 0..number_of_sprites {
         Object::new(sprites[0].clone())
-            .set_position(position + (sprite_idx * 8, 0).into())
+            .set_pos(position + (sprite_idx * 8, 0).into())
             .show(frame);
     }
 
     if size_of_last != 0 {
         Object::new(sprites[8 - size_of_last as usize].clone())
-            .set_position(position + (number_of_sprites * 8, 0).into())
+            .set_pos(position + (number_of_sprites * 8, 0).into())
             .show(frame);
     }
 }
@@ -112,7 +112,7 @@ fn draw_number(
 
     for digit in digits {
         Object::new(sprite_cache.numbers[digit as usize].clone())
-            .set_position(current_position)
+            .set_pos(current_position)
             .show(frame);
 
         current_position -= (4, 0).into();
@@ -245,8 +245,7 @@ impl Game {
                 angle_affine_matrix.to_object_wrapping(),
             ));
 
-            saw.object
-                .set_position(saw.position.floor() - (16, 16).into());
+            saw.object.set_pos(saw.position.floor() - (16, 16).into());
 
             if (saw.position - self.head_position).magnitude_squared()
                 < ((16 + 4) * (16 + 4)).into()
@@ -279,7 +278,7 @@ impl Game {
             );
             let position = (300, rng::next_i32().rem_euclid(display::HEIGHT));
 
-            saw.set_position(position);
+            saw.set_pos(position);
 
             let rotation_speed = rotation_magnitude * rotation_direction;
             let saw = Saw {
@@ -314,7 +313,7 @@ impl Game {
                 Colour::Red => sprite_cache.red.clone(),
                 Colour::Blue => sprite_cache.blue.clone(),
             })
-            .set_position(circle.position.floor() - (4, 4).into())
+            .set_pos(circle.position.floor() - (4, 4).into())
             .show(frame);
         }
     }

@@ -37,7 +37,7 @@ impl Player {
 
     pub fn show(&self, frame: &mut GraphicsFrame) {
         Object::new(self.sprite.clone())
-            .set_position(self.location.floor())
+            .set_pos(self.location.floor())
             .show(frame);
     }
 }

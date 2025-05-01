@@ -249,7 +249,7 @@ impl Entity {
 
     fn show(&mut self, background_position: Vector2D<FixedNumberType>, frame: &mut GraphicsFrame) {
         let position = (self.position - background_position).floor();
-        self.sprite.set_position(position - (8, 8).into());
+        self.sprite.set_pos(position - (8, 8).into());
         if !(position.x < -8
             || position.x > WIDTH + 8
             || position.y < -8

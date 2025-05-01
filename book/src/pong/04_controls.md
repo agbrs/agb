@@ -41,7 +41,7 @@ loop {
     x_velocity = input.x_tri() as i32;
     y_velocity = input.y_tri() as i32;
 
-    ball.set_position((ball_x, ball_y));
+    ball.set_pos((ball_x, ball_y));
 
     let mut frame = object.frame();
     ball.show(&mut frame);
