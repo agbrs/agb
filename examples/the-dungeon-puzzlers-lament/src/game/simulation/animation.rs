@@ -194,7 +194,7 @@ impl Animation {
 
                 let pos = (entity.rendered_position + attached_offset() * attach_progress).floor()
                     + attached.map_entity_offset();
-                object.set_position(pos);
+                object.set_pos(pos);
 
                 cache.push(RenderCache {
                     object,
@@ -212,7 +212,7 @@ impl Animation {
 
             let mut object = Object::new(sprite);
             let position = entity.rendered_position.floor() + entity.entity.map_entity_offset();
-            object.set_position(position);
+            object.set_pos(position);
 
             cache.push(RenderCache {
                 object,

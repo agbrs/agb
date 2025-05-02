@@ -144,7 +144,7 @@ impl HealthBar {
         let sprites = (0..(max / 8))
             .map(|i| {
                 let mut health_object = Object::new(SMALL_SPRITES.red_bar(0));
-                health_object.set_position(pos + (i as i32 * 8, 0).into());
+                health_object.set_pos(pos + (i as i32 * 8, 0).into());
                 health_object
             })
             .collect();
@@ -187,18 +187,18 @@ impl FractionDisplay {
 
         for i in 0..digits {
             let mut left_digit = Object::new(SMALL_SPRITES.number(0));
-            left_digit.set_position(pos + (i as i32 * 4, 0).into());
+            left_digit.set_pos(pos + (i as i32 * 4, 0).into());
 
             sprites.push(left_digit);
 
             let mut right_digit = Object::new(SMALL_SPRITES.number(0));
-            right_digit.set_position(pos + (i as i32 * 4 + digits as i32 * 4 + 7, 0).into());
+            right_digit.set_pos(pos + (i as i32 * 4 + digits as i32 * 4 + 7, 0).into());
 
             sprites.push(right_digit);
         }
 
         let mut slash = Object::new(SMALL_SPRITES.slash());
-        slash.set_position(pos + (digits as i32 * 4 + 1, 0).into());
+        slash.set_pos(pos + (digits as i32 * 4 + 1, 0).into());
         sprites.push(slash);
 
         Self {
@@ -264,7 +264,7 @@ impl NumberDisplay {
         if let Some(mut new_value) = new_value {
             if new_value == 0 {
                 let mut zero_object = Object::new(SMALL_SPRITES.number(0));
-                zero_object.set_position(self.position);
+                zero_object.set_pos(self.position);
 
                 self.objects.push(zero_object);
                 return;
@@ -277,7 +277,7 @@ impl NumberDisplay {
 
                 let mut current_value_obj = Object::new(SMALL_SPRITES.number(current_value_digit));
 
-                current_value_obj.set_position(self.position - (digit * 4, 0).into());
+                current_value_obj.set_pos(self.position - (digit * 4, 0).into());
 
                 digit += 1;
 

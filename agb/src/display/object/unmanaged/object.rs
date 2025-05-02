@@ -222,8 +222,8 @@ impl Object {
     }
 
     /// Sets the position of the object.  
-    /// Use [position](Self::position) to get the value
-    pub fn set_position(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
+    /// Use [pos](Self::pos) to get the value
+    pub fn set_pos(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         let position = position.into();
         self.attributes.set_y(position.y.rem_euclid(1 << 9) as u16);
         self.attributes.set_x(position.x.rem_euclid(1 << 9) as u16);
@@ -232,9 +232,9 @@ impl Object {
     }
 
     /// Returns the position of the object  
-    /// Use [set_position](Self::set_position) to set the value
+    /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
-    pub fn position(&self) -> Vector2D<i32> {
+    pub fn pos(&self) -> Vector2D<i32> {
         Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
     }
 
@@ -360,8 +360,8 @@ impl ObjectAffine {
     }
 
     /// Sets the position of the object.  
-    /// Use [position](Self::position) to get the value
-    pub fn set_position(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
+    /// Use [pos](Self::pos) to get the value
+    pub fn set_pos(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         let position = position.into();
         self.attributes.set_y(position.y.rem_euclid(1 << 9) as u16);
         self.attributes.set_x(position.x.rem_euclid(1 << 9) as u16);
@@ -370,9 +370,9 @@ impl ObjectAffine {
     }
 
     /// Returns the position of the object  
-    /// Use [set_position](Self::set_position) to set the value
+    /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
-    pub fn position(&self) -> Vector2D<i32> {
+    pub fn pos(&self) -> Vector2D<i32> {
         Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
     }
 

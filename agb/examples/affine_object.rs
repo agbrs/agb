@@ -25,18 +25,18 @@ fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame)
 
     for idx in 0..3 {
         Object::new(square.clone())
-            .set_position((x(idx), height))
+            .set_pos((x(idx), height))
             .show(frame);
     }
 
     Object::new(crab.clone())
-        .set_position((x(0), height))
+        .set_pos((x(0), height))
         .show(frame);
     ObjectAffine::new(crab.clone(), instance.clone(), AffineMode::Affine)
-        .set_position((x(1), height))
+        .set_pos((x(1), height))
         .show(frame);
     ObjectAffine::new(crab.clone(), instance.clone(), AffineMode::AffineDouble)
-        .set_position((x(2), height))
+        .set_pos((x(2), height))
         .show(frame);
 }
 

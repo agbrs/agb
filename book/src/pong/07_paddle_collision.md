@@ -46,18 +46,18 @@ You can now simplify the calculation:
         }
 
         // Set the position of the ball to match our new calculated position
-        ball.set_position(ball_pos);
+        ball.set_pos(ball_pos);
 ```
 
 ## Vector2D for the paddle position
 
-You can change the `set_position()` method on `Paddle` to take a `Vector2D<i32>` instead of separate `x` and `y` arguments as follows:
+You can change the `set_pos()` method on `Paddle` to take a `Vector2D<i32>` instead of separate `x` and `y` arguments as follows:
 
 ```rust
-    fn set_position(&mut self, pos: Vector2D<i32>) {
-        self.start.set_position(pos);
-        self.mid.set_position(pos + vec2(0, 16));
-        self.end.set_position(pos + vec2(0, 32));
+    fn set_pos(&mut self, pos: Vector2D<i32>) {
+        self.start.set_pos(pos);
+        self.mid.set_pos(pos + vec2(0, 16));
+        self.end.set_pos(pos + vec2(0, 32));
     }
 ```
 

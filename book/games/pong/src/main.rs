@@ -45,20 +45,20 @@ impl Paddle {
             end: paddle_end,
         };
 
-        paddle.set_position(pos);
+        paddle.set_pos(pos);
 
         paddle
     }
 
-    fn set_position(&mut self, pos: Vector2D<i32>) {
-        self.start.set_position(pos);
-        self.mid.set_position(pos + vec2(0, 16));
-        self.end.set_position(pos + vec2(0, 32));
+    fn set_pos(&mut self, pos: Vector2D<i32>) {
+        self.start.set_pos(pos);
+        self.mid.set_pos(pos + vec2(0, 16));
+        self.end.set_pos(pos + vec2(0, 32));
     }
 
     fn move_by(&mut self, y: i32) {
-        let current_pos = self.start.position();
-        self.set_position(current_pos + vec2(0, y));
+        let current_pos = self.start.pos();
+        self.set_pos(current_pos + vec2(0, y));
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
@@ -68,7 +68,7 @@ impl Paddle {
     }
 
     fn collision_rect(&self) -> Rect<i32> {
-        Rect::new(self.start.position(), vec2(16, 16 * 3))
+        Rect::new(self.start.pos(), vec2(16, 16 * 3))
     }
 }
 
@@ -86,7 +86,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut ball = Object::new(sprites::BALL.sprite(0));
 
     // Place this at some point on the screen, (50, 50) for example
-    ball.set_position((50, 50));
+    ball.set_pos((50, 50));
 
     let mut paddle_a = Paddle::new(vec2(8, 8));
     let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
@@ -124,7 +124,7 @@ fn main(mut gba: agb::Gba) -> ! {
         ball_pos += ball_velocity;
 
         // Set the position of the ball to match our new calculated position
-        ball.set_position(ball_pos);
+        ball.set_pos(ball_pos);
 
         let mut frame = gfx.frame();
 

@@ -179,7 +179,7 @@ impl Chicken {
         }
 
         self.object
-            .set_position((self.position - camera_position).round() - vec2(4, 4));
+            .set_pos((self.position - camera_position).round() - vec2(4, 4));
     }
 
     fn restrict_to_screen(&mut self) {

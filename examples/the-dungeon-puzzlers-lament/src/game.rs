@@ -326,9 +326,9 @@ impl PauseMenu {
 
         let mut indicator = Object::new(self.indicator_sprite.clone());
         match self.selection {
-            PauseSelectionInner::Restart => indicator.set_position(Vector2D::new(16, HEIGHT / 4)),
+            PauseSelectionInner::Restart => indicator.set_pos(Vector2D::new(16, HEIGHT / 4)),
             PauseSelectionInner::LevelSelect => {
-                indicator.set_position(Vector2D::new(16, HEIGHT / 4 + 20))
+                indicator.set_pos(Vector2D::new(16, HEIGHT / 4 + 20))
             }
         };
         indicator.show(frame);

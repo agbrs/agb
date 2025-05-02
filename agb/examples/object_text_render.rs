@@ -79,7 +79,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 if group.tag() & 0b1 == 0 {
                     objects.push(sprite);
                 } else {
-                    wiggly_objects.push((sprite.position(), sprite));
+                    wiggly_objects.push((sprite.pos(), sprite));
                 }
 
                 if group.text().ends_with([',', '.', '!', '?', '\n']) {
@@ -106,7 +106,7 @@ fn main(mut gba: agb::Gba) -> ! {
                     clippy::modulo_one,
                     reason = "This isn't always 0, the number is fixed point"
                 )]
-                object.set_position(
+                object.set_pos(
                     *resting
                         + vec2(
                             Num::<i32, 12>::from_raw(next_i32()) % 1,

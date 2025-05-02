@@ -233,7 +233,7 @@ impl GameState {
             let sprite_idx = if Some(i) == current_turn { 1 } else { 0 };
 
             Object::new(arrow_for_direction(*direction).sprite(sprite_idx))
-                .set_position(arrow_position)
+                .set_pos(arrow_position)
                 .show(frame);
         }
     }
@@ -243,7 +243,7 @@ impl GameState {
         let is_odd_frame = frame_index % 2 == 1;
 
         Object::new(resources::CURSOR.sprite(0))
-            .set_position(self.cursor_state.get_position(is_odd_frame))
+            .set_pos(self.cursor_state.get_position(is_odd_frame))
             .show(frame);
 
         let level = self.level;
@@ -263,7 +263,7 @@ impl GameState {
             let item_position = placed_position(self.cursor_state.board_position, item);
 
             Object::new(item.tag().animation_sprite(frame_index))
-                .set_position(item_position)
+                .set_pos(item_position)
                 .show(frame);
         }
 
@@ -285,7 +285,7 @@ impl GameState {
             Some((item_position, item))
         }) {
             Object::new(item.tag().animation_sprite(frame_index))
-                .set_position(item_position)
+                .set_pos(item_position)
                 .show(frame);
         }
 
@@ -293,7 +293,7 @@ impl GameState {
             let entity_position = entity.1 * 16 + entity.0.map_entity_offset();
 
             Object::new(entity.0.shadow_tag().sprite(0))
-                .set_position(entity_position)
+                .set_pos(entity_position)
                 .show(frame);
         }
     }

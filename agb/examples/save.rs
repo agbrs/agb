@@ -86,7 +86,7 @@ fn main(mut gba: agb::Gba) -> ! {
         save.write(&mut gba.save).expect("able to write save data");
 
         Object::new(sprites::IDLE.sprite(0))
-            .set_position(save.position.floor())
+            .set_pos(save.position.floor())
             .show(&mut frame);
 
         frame.commit();
