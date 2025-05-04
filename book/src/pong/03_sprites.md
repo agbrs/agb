@@ -54,7 +54,7 @@ include_aseprite!(
 This uses the `include_aseprite` macro to include the sprites in the given aseprite file.
 Now, let's put this on screen by firstly creating the object manager and then creating an object, this will also involve the creation of the main entry function using the `entry` macro.
 The signature of this function takes the `Gba` struct and has the never return type, this means Rust will enforce that this function never returns, for now we will achieve this using a busy loop.
-Using the `Gba` struct we get the [`Oam` struct](https://docs.rs/agb/latest/agb/display/object/struct.Oam.html) which manages displaying sprites to the screen each frame.
+Using the `Gba` struct we get the [`Graphics`](https://docs.rs/agb/latest/agb/display/struct.Graphics.html) we get a [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html) and pass it to `.show`.
 
 ```rust
 #[agb::entry]
@@ -117,7 +117,7 @@ loop {
     ball.set_pos((ball_x, ball_y));
 
     // prepare the frame
-    let mut frame = object.frame();
+    let mut frame = gfx.frame();
     ball.show(&mut frame);
 
     frame.commit();
