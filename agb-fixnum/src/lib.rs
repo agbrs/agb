@@ -172,6 +172,23 @@ impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits:
     }
 }
 
+impl<I: FixedWidthUnsignedInteger + num_traits::Bounded, const N: usize> num_traits::Bounded
+    for Num<I, N>
+{
+    fn min_value() -> Self {
+        Num::from_raw(I::min_value())
+    }
+
+    fn max_value() -> Self {
+        Num::from_raw(I::max_value())
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger + num_traits::Unsigned, const N: usize> num_traits::Unsigned
+    for Num<I, N>
+{
+}
+
 /// An often convenient representation for the Game Boy Advance using word sized
 /// internal representation for maximum efficiency
 pub type FixedNum<const N: usize> = Num<i32, N>;
