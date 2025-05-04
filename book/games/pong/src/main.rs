@@ -12,9 +12,13 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{object::Object, GraphicsFrame},
-    fixnum::{vec2, Rect, Vector2D},
-    include_aseprite,
+    display::{
+        GraphicsFrame, Priority,
+        object::Object,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+    },
+    fixnum::{Rect, Vector2D, vec2},
+    include_aseprite, include_background_gfx,
     input::ButtonController,
 };
 
@@ -25,6 +29,11 @@ include_aseprite!(
     "gfx/sprites.aseprite"
 );
 
+include_background_gfx!(
+    mod background,
+    PLAY_FIELD => deduplicate "gfx/background.aseprite",
+);
+
 struct Paddle {
     pos: Vector2D<i32>,
 }
@@ -32,10 +41,6 @@ struct Paddle {
 impl Paddle {
     fn new(pos: Vector2D<i32>) -> Self {
         Self { pos }
-    }
-
-    fn set_pos(&mut self, pos: Vector2D<i32>) {
-        self.pos = pos;
     }
 
     fn move_by(&mut self, y: i32) {
@@ -67,6 +72,16 @@ impl Paddle {
 fn main(mut gba: agb::Gba) -> ! {
     // Get the graphics manager
     let mut gfx = gba.graphics.get();
+
+    // Make sure the background palettes are set up
+    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+
+    let mut bg = RegularBackgroundTiles::new(
+        Priority::P3,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+    bg.fill_with(&background::PLAY_FIELD);
 
     let mut button_controller = ButtonController::new();
 
@@ -119,6 +134,8 @@ fn main(mut gba: agb::Gba) -> ! {
         ball.show(&mut frame);
         paddle_a.show(&mut frame);
         paddle_b.show(&mut frame);
+
+        bg.show(&mut frame);
 
         frame.commit();
     }
