@@ -395,3 +395,38 @@ impl<T: Number + Neg<Output = T>> Neg for Vector2D<T> {
         (-self.x, -self.y).into()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::FixedNum;
+
+    use super::*;
+
+    #[test]
+    fn test_vector_multiplication_and_division() {
+        let a: Vector2D<i32> = (1, 2).into();
+        let b = a * 5;
+        let c = b / 5;
+        assert_eq!(b, (5, 10).into());
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn magnitude_accuracy() {
+        let n: Vector2D<Num<i32, 16>> = (3, 4).into();
+        assert!((n.magnitude() - 5).abs() < num!(0.1));
+
+        let n: Vector2D<Num<i32, 8>> = (3, 4).into();
+        assert!((n.magnitude() - 5).abs() < num!(0.1));
+    }
+
+    #[test]
+    fn test_vector_changing() {
+        let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+
+        let v2 = v1.trunc();
+        assert_eq!(v2.get(), (1, 2));
+
+        assert_eq!(v1 + v1, (v2 + v2).into());
+    }
+}

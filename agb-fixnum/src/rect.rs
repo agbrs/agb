@@ -234,3 +234,29 @@ impl<T: Number + Signed> Rect<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    extern crate alloc;
+
+    #[test]
+    fn test_rect_iter() {
+        let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (2_i32, 2_i32).into());
+        assert_eq!(
+            rect.iter().collect::<alloc::vec::Vec<_>>(),
+            &[
+                vec2(5, 5),
+                vec2(6, 5),
+                vec2(7, 5),
+                vec2(5, 6),
+                vec2(6, 6),
+                vec2(7, 6),
+                vec2(5, 7),
+                vec2(6, 7),
+                vec2(7, 7),
+            ]
+        );
+    }
+}
