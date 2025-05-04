@@ -15,7 +15,7 @@ pub struct Vector2D<T: Number> {
     pub y: T,
 }
 
-/// A convenience function for constructing a Vector2D
+/// A convenience function for constructing a `Vector2D`
 ///
 /// ```
 /// use agb_fixnum::{vec2, Vector2D};
@@ -108,6 +108,7 @@ impl<T: Number> SubAssign<Self> for Vector2D<T> {
 
 impl<T: Number + Signed> Vector2D<T> {
     /// Calculates the absolute value of the x and y components.
+    #[must_use]
     pub fn abs(self) -> Self {
         Self {
             x: self.x.abs(),
@@ -115,13 +116,14 @@ impl<T: Number + Signed> Vector2D<T> {
         }
     }
 
-    #[must_use]
-    /// Calculates the manhattan distance, x.abs() + y.abs().
+    /// Calculates the manhattan (or taxicab) distance, `x.abs()` + `y.abs()`.
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = (num!(3.), num!(4.)).into();
     /// assert_eq!(v1.manhattan_distance(), 7.into());
     /// ```
+    #[must_use]
+    #[doc(alias = "taxicab")]
     pub fn manhattan_distance(self) -> T {
         self.x.abs() + self.y.abs()
     }
@@ -144,7 +146,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 
     #[must_use]
-    /// Floors the x and y coordinate, see [Num::floor]
+    /// Floors the x and y coordinate, see [`Num::floor`]
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = vec2(num!(1.56), num!(-2.2));
@@ -159,7 +161,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     }
 
     #[must_use]
-    /// Rounds the x and y coordinate, see [Num::round]
+    /// Rounds the x and y coordinate, see [`Num::round`]
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = vec2(num!(1.56), num!(-2.2));
@@ -224,7 +226,7 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     }
 
     #[must_use]
-    /// Normalises the vector to magnitude of one using [Vector2D::fast_magnitude].
+    /// Normalises the vector to magnitude of one using [`Vector2D::fast_magnitude`].
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<Num<i32, 8>> = (num!(4.), num!(4.)).into();
@@ -255,7 +257,7 @@ impl<T: Number> Vector2D<T> {
 
 impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// Creates a unit vector from an angle, noting that the domain of the angle
-    /// is [0, 1], see [Num::cos] and [Num::sin].
+    /// is [0, 1], see [`Num::cos`] and [`Num::sin`].
     /// ```
     /// # use agb_fixnum::*;
     /// let v: Vector2D<Num<i32, 8>> = Vector2D::new_from_angle(num!(0.0));

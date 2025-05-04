@@ -110,7 +110,7 @@ macro_rules! upcast_multiply_impl {
     ($T: ty, $Upcast: ty) => {
         #[inline(always)]
         fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            (((a as $Upcast) * (b as $Upcast)) >> n) as $T
+            ((<$Upcast>::from(a) * <$Upcast>::from(b)) >> n) as $T
         }
     };
 }
@@ -285,7 +285,7 @@ where
     T: Into<Num<I, N>>,
 {
     fn add_assign(&mut self, rhs: T) {
-        self.0 = (*self + rhs.into()).0
+        self.0 = (*self + rhs.into()).0;
     }
 }
 
@@ -306,7 +306,7 @@ where
     T: Into<Num<I, N>>,
 {
     fn sub_assign(&mut self, rhs: T) {
-        self.0 = (*self - rhs.into()).0
+        self.0 = (*self - rhs.into()).0;
     }
 }
 
@@ -336,7 +336,7 @@ where
     Num<I, N>: Mul<T, Output = Num<I, N>>,
 {
     fn mul_assign(&mut self, rhs: T) {
-        self.0 = (*self * rhs).0
+        self.0 = (*self * rhs).0;
     }
 }
 
@@ -366,7 +366,7 @@ where
     Num<I, N>: Div<T, Output = Num<I, N>>,
 {
     fn div_assign(&mut self, rhs: T) {
-        self.0 = (*self / rhs).0
+        self.0 = (*self / rhs).0;
     }
 }
 
@@ -387,7 +387,7 @@ where
     T: Into<Num<I, N>>,
 {
     fn rem_assign(&mut self, modulus: T) {
-        self.0 = (*self % modulus).0
+        self.0 = (*self % modulus).0;
     }
 }
 
@@ -477,14 +477,16 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
 
     /// Lossily transforms an f32 into a fixed point representation.
     /// You should try not to use this and instead use the [`num!`] macro.
+    #[must_use]
     pub fn from_f32(input: f32) -> Self {
         Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
     }
 
     /// Lossily transforms an f64 into a fixed point representation.
     /// You should try not to use this and instead use the [`num!`] macro.
+    #[must_use]
     pub fn from_f64(input: f64) -> Self {
-        Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
+        Self::from_raw(I::from_as_i32((input * f64::from(1 << N)) as i32))
     }
 
     /// Truncates the fixed point number returning the integral part
@@ -500,7 +502,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     #[must_use]
-    /// Performs the equivalent to the integer rem_euclid.
+    /// Performs the equivalent to the integer `rem_euclid`. (e.g. [`i32::rem_euclid`])
     ///
     /// So `n.rem_euclid(r)` will find the smallest _positive_ value `q` such that
     /// there is an integer `p` with the property `n = p * r + q`.
@@ -583,9 +585,10 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         Self(integral << N)
     }
 
+    /// Called by the [num!] macro in order to create a fixed point number
     #[doc(hidden)]
     #[inline(always)]
-    /// Called by the [num!] macro in order to create a fixed point number
+    #[must_use]
     pub fn new_from_parts(num: (i32, i32)) -> Self {
         Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
     }
@@ -601,6 +604,10 @@ impl<const N: usize> Num<i32, N> {
     /// let n: Num<i32, 8> = num!(2.25);
     /// assert_eq!(n.sqrt(), num!(1.5));
     /// ```
+    ///
+    /// # Panics
+    /// * `N` must be even
+    /// * `self` must be positive
     pub fn sqrt(self) -> Self {
         assert_eq!(N % 2, 0, "N must be even to be able to square root");
         assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
@@ -660,7 +667,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
         let x: i16 = lut::COS[n & 0xFF];
 
-        let n: Num<I, 8> = Num::from_raw(I::from_as_i32(x as i32));
+        let n: Num<I, 8> = Num::from_raw(I::from_as_i32(i32::from(x)));
 
         n.change_base()
     }
@@ -926,8 +933,8 @@ mod test {
 
         assert_eq!(
             a * b,
-            Num::from_raw(((a.to_raw() as i64 * b.to_raw() as i64) >> 16) as i32)
-        )
+            Num::from_raw(((i64::from(a.to_raw()) * i64::from(b.to_raw())) >> 16) as i32)
+        );
     }
 
     #[test]

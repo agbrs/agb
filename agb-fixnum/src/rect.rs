@@ -90,29 +90,15 @@ impl<T: Number> Rect<T> {
             return None;
         }
 
-        fn max<E: Number>(x: E, y: E) -> E {
-            if x > y { x } else { y }
-        }
-        fn min<E: Number>(x: E, y: E) -> E {
-            if x > y { y } else { x }
-        }
+        let top_left = vec2(
+            self.position.x.max(other.position.x),
+            self.position.y.max(other.position.y),
+        );
 
-        let top_left: Vector2D<T> = (
-            max(self.position.x, other.position.x),
-            max(self.position.y, other.position.y),
-        )
-            .into();
-        let bottom_right: Vector2D<T> = (
-            min(
-                self.position.x + self.size.x,
-                other.position.x + other.size.x,
-            ),
-            min(
-                self.position.y + self.size.y,
-                other.position.y + other.size.y,
-            ),
-        )
-            .into();
+        let self_br = self.bottom_right();
+        let other_br = other.bottom_right();
+
+        let bottom_right = vec2(self_br.x.min(other_br.x), self_br.y.min(other_br.y));
 
         Some(Rect::new(top_left, bottom_right - top_left))
     }
@@ -237,6 +223,7 @@ impl<T: Number + Signed> Rect<T> {
     /// // unless you normalize the one with negative area
     /// assert_eq!(r.abs(), normalized_rect);
     /// ```
+    #[must_use]
     pub fn abs(self) -> Self {
         Self {
             position: (
