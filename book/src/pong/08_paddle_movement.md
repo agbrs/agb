@@ -22,8 +22,7 @@ Firstly, we'll add a `move_by()` method to `Paddle`.
 
 ```rust
     fn move_by(&mut self, y: i32) {
-        let current_pos = self.start.position();
-        self.set_pos(current_pos + vec2(0, y));
+        self.pos += vec2(0, y);
     }
 ```
 
