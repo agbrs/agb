@@ -17,27 +17,28 @@ impl<T: Number> Rect<T> {
     /// Creates a rectangle from it's position and size
     /// ```
     /// # use agb_fixnum::*;
-    /// let r = Rect::new(vec2(1,1), vec2(2,3));
-    /// assert_eq!(r.position, vec2(1,1));
-    /// assert_eq!(r.size, vec2(2,3));
+    /// let r = Rect::new(vec2(1, 1), vec2(2, 3));
+    /// assert_eq!(r.position, vec2(1, 1));
+    /// assert_eq!(r.size, vec2(2, 3));
     /// ```
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
 
-    /// Returns true if the rectangle contains the point given, note that the boundary counts as containing the rectangle.
+    /// Returns true if the rectangle contains the point given, note that the boundary counts part of the rectangle.
+    ///
     /// ```
     /// # use agb_fixnum::*;
-    /// let r = Rect::new(vec2(1,1), vec2(3,3));
-    /// assert!(r.contains_point(vec2(1,1)));
-    /// assert!(r.contains_point(vec2(2,2)));
-    /// assert!(r.contains_point(vec2(3,3)));
-    /// assert!(r.contains_point(vec2(4,4)));
+    /// let r = Rect::new(vec2(1, 1), vec2(3, 3));
+    /// assert!(r.contains_point(vec2(1, 1)));
+    /// assert!(r.contains_point(vec2(2, 2)));
+    /// assert!(r.contains_point(vec2(3, 3)));
+    /// assert!(r.contains_point(vec2(4, 4)));
     ///
-    /// assert!(!r.contains_point(vec2(0,2)));
-    /// assert!(!r.contains_point(vec2(5,2)));
-    /// assert!(!r.contains_point(vec2(2,0)));
-    /// assert!(!r.contains_point(vec2(2,5)));
+    /// assert!(!r.contains_point(vec2(0, 2)));
+    /// assert!(!r.contains_point(vec2(5, 2)));
+    /// assert!(!r.contains_point(vec2(2, 0)));
+    /// assert!(!r.contains_point(vec2(2, 5)));
     /// ```
     pub fn contains_point(&self, point: Vector2D<T>) -> bool {
         point.x >= self.position.x
@@ -49,14 +50,14 @@ impl<T: Number> Rect<T> {
     /// Returns true if the other rectangle touches or overlaps the first.
     /// ```
     /// # use agb_fixnum::*;
-    /// let r = Rect::new(vec2(1,1), vec2(3,3));
+    /// let r = Rect::new(vec2(1, 1), vec2(3, 3));
     ///
     /// assert!(r.touches(r));
     ///
-    /// let r1 = Rect::new(vec2(2,2), vec2(3,3));
+    /// let r1 = Rect::new(vec2(2, 3), vec2(3, 3));
     /// assert!(r.touches(r1));
     ///
-    /// let r2 = Rect::new(vec2(-10,-10), vec2(3,3));
+    /// let r2 = Rect::new(vec2(-10, -10), vec2(3, 3));
     /// assert!(!r.touches(r2));
     /// ```
     pub fn touches(&self, other: Rect<T>) -> bool {
@@ -71,16 +72,16 @@ impl<T: Number> Rect<T> {
     /// common, or [None] if they don't overlap
     /// ```
     /// # use agb_fixnum::*;
-    /// let r = Rect::new(vec2(1,1), vec2(3,3));
-    /// let r2 = Rect::new(vec2(2,2), vec2(3,3));
+    /// let r = Rect::new(vec2(1, 1), vec2(3, 3));
+    /// let r2 = Rect::new(vec2(2, 2), vec2(3, 3));
     ///
-    /// assert_eq!(r.overlapping_rect(r2), Some(Rect::new(vec2(2,2), vec2(2,2))));
+    /// assert_eq!(r.overlapping_rect(r2), Some(Rect::new(vec2(2, 2), vec2(2, 2))));
     /// ```
     ///
     /// ```
     /// # use agb_fixnum::*;
-    /// let r = Rect::new(vec2(1,1), vec2(3,3));
-    /// let r2 = Rect::new(vec2(-10,-10), vec2(3,3));
+    /// let r = Rect::new(vec2(1, 1), vec2(3, 3));
+    /// let r2 = Rect::new(vec2(-10, -10), vec2(3, 3));
     ///
     /// assert_eq!(r.overlapping_rect(r2), None);
     /// ```
@@ -194,9 +195,9 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
     /// Iterate over the points in a rectangle in row major order.
     /// ```
     /// use agb_fixnum::{Rect, vec2};
-    /// let r = Rect::new(vec2(1,1), vec2(1,2));
+    /// let r = Rect::new(vec2(1, 1), vec2(1, 2));
     ///
-    /// let expected_points = vec![vec2(1,1), vec2(2,1), vec2(1,2), vec2(2,2), vec2(1,3), vec2(2,3)];
+    /// let expected_points = vec![vec2(1, 1), vec2(2, 1), vec2(1, 2), vec2(2, 2), vec2(1, 3), vec2(2, 3)];
     /// let rect_points: Vec<_> = r.iter().collect();
     ///
     /// assert_eq!(rect_points, expected_points);
