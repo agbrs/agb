@@ -224,6 +224,19 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
 
 impl<T: Number + Signed> Rect<T> {
     /// Makes a rectangle that represents the equivalent location in space but with a positive size
+    ///
+    /// ```
+    /// use agb_fixnum::{Rect, vec2};
+    ///
+    /// let r: Rect<i32> = Rect::new(vec2(5, 5), vec2(-3, -2));
+    ///
+    /// let normalized_rect = Rect::new(vec2(2, 3), vec2(3, 2));
+    ///
+    /// // even though they represent the same area, they are not consider equivalent
+    /// assert_ne!(r, normalized_rect);
+    /// // unless you normalize the one with negative area
+    /// assert_eq!(r.abs(), normalized_rect);
+    /// ```
     pub fn abs(self) -> Self {
         Self {
             position: (
