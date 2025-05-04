@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Where `agb` used to accept `u16` values for colours, it now expects the new `Rgb15` type to avoid type confusion.
 - The mixer now uses `SoundData` rather than `&[u8]` sound effects and music.
+- In debug mode, `Num` will now panic if you're multiplying or dividing when it has too much precision set.
 
 ### Removed
 
