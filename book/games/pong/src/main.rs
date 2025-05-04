@@ -12,8 +12,8 @@
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
 use agb::{
-    display::{GraphicsFrame, object::Object},
-    fixnum::{Rect, Vector2D, vec2},
+    display::{object::Object, GraphicsFrame},
+    fixnum::{vec2, Rect, Vector2D},
     include_aseprite,
     input::ButtonController,
 };
@@ -26,49 +26,37 @@ include_aseprite!(
 );
 
 struct Paddle {
-    start: Object,
-    mid: Object,
-    end: Object,
+    pos: Vector2D<i32>,
 }
 
 impl Paddle {
     fn new(pos: Vector2D<i32>) -> Self {
-        let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
-        let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
-        let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
-
-        paddle_end.set_vflip(true);
-
-        let mut paddle = Self {
-            start: paddle_start,
-            mid: paddle_mid,
-            end: paddle_end,
-        };
-
-        paddle.set_pos(pos);
-
-        paddle
+        Self { pos }
     }
 
     fn set_pos(&mut self, pos: Vector2D<i32>) {
-        self.start.set_pos(pos);
-        self.mid.set_pos(pos + vec2(0, 16));
-        self.end.set_pos(pos + vec2(0, 32));
+        self.pos = pos;
     }
 
     fn move_by(&mut self, y: i32) {
-        let current_pos = self.start.pos();
-        self.set_pos(current_pos + vec2(0, y));
-    }
-
-    fn show(&self, frame: &mut GraphicsFrame) {
-        self.start.show(frame);
-        self.mid.show(frame);
-        self.end.show(frame);
+        self.pos += vec2(0, y);
     }
 
     fn collision_rect(&self) -> Rect<i32> {
-        Rect::new(self.start.pos(), vec2(16, 16 * 3))
+        Rect::new(self.pos, vec2(16, 16 * 3))
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos(self.pos)
+            .show(frame);
+        Object::new(sprites::PADDLE_MID.sprite(0))
+            .set_pos(self.pos + vec2(0, 16))
+            .show(frame);
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos(self.pos + vec2(0, 32))
+            .set_vflip(true)
+            .show(frame);
     }
 }
 

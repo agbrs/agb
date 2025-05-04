@@ -30,7 +30,7 @@ paddle_mid.set_pos((20, 20 + 16));
 paddle_end.set_pos((20, 20 + 16 * 2));
 ```
 
-If you add this to your program and show it, you'll see the paddle. But wait! The bottom of
+If you add this to your program and `show()` all of them, you'll see the paddle. But wait! The bottom of
 the paddle is the wrong way around! Fortunately, the GBA can horizontally and vertically flip sprites.
 
 ```rust
@@ -41,17 +41,12 @@ Now the paddle will display correctly. It's rather awkward to use, however, havi
 
 ```rust
 struct Paddle {
-    start: Object,
-    mid: Object,
-    end: Object,
+    x: i32,
+    y: i32,
 }
 
 impl Paddle {
     fn new(start_x: i32, start_y: i32) -> Self {
-        let paddle_start = Object::new(sprites::PADDLE_END.sprite(0));
-        let paddle_mid = Object::new(sprites::PADDLE_MID.sprite(0));
-        let mut paddle_end = Object::new(sprites::PADDLE_END.sprite(0));
-
         paddle_end.set_vflip(true);
 
         let mut paddle = Self {
@@ -74,10 +69,17 @@ impl Paddle {
         self.end.set_pos((x, y + 32));
     }
 
-    fn show(&self, frame: &mut OamFrame) {
-        self.start.show(frame);
-        self.mid.show(frame);
-        self.end.show(frame);
+    fn show(&self, frame: &mut GraphicsFrame) {
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos((self.x, self.y))
+            .show(frame);
+        Object::new(sprites::PADDLE_MID.sprite(0))
+            .set_pos((self.x, self.y + 16))
+            .show(frame);
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos((self.x, self.y + 32))
+            .set_vflip(true)
+            .show(frame);
     }
 }
 ```

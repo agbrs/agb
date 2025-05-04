@@ -51,15 +51,37 @@ You can now simplify the calculation:
 
 ## Vector2D for the paddle position
 
+You can store the paddle position as `pos` instead of `x` and `y` separately:
+
+```rust
+struct Paddle {
+    pos: Vector2D<i32>,
+}
+```
+
 You can change the `set_pos()` method on `Paddle` to take a `Vector2D<i32>` instead of separate `x` and `y` arguments as follows:
 
 ```rust
     fn set_pos(&mut self, pos: Vector2D<i32>) {
-        self.start.set_pos(pos);
-        self.mid.set_pos(pos + vec2(0, 16));
-        self.end.set_pos(pos + vec2(0, 32));
+        self.pos = pos;
     }
 ```
+
+And when rendering:
+
+````rust
+    fn show(frame: &mut GraphicsFrame) {
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos(self.pos)
+            .show(frame);
+        Object::new(sprites::PADDLE_MID.sprite(0))
+            .set_pos(self.pos + vec2(0, 16))
+            .show(frame);
+        Object::new(sprites::PADDLE_END.sprite(0))
+            .set_pos(self.pos + vec2(0, 32))
+            .set_vflip(true)
+            .show(frame);
+    }
 
 ### Mini exercise
 
@@ -76,9 +98,9 @@ Lets add a simple method to the `Paddle` impl which returns the collision rectan
 
 ```rust
     fn collision_rect(&self) -> Rect<i32> {
-        Rect::new(self.start.position(), vec2(16, 16 * 3))
+        Rect::new(self.pos, vec2(16, 16 * 3))
     }
-```
+````
 
 Don't forget to update the `use` statement:
 
