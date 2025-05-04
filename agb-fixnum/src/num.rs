@@ -1,0 +1,785 @@
+use core::{
+    fmt::{Debug, Display},
+    ops::{
+        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
+        Sub, SubAssign,
+    },
+};
+
+use num_traits::Signed;
+
+mod lut {
+    include!(concat!(env!("OUT_DIR"), "/lut.rs"));
+}
+
+/// Can be thought of having the signature `num!(float) -> Num<I, N>`.
+/// ```
+/// # use agb_fixnum::{Num, num};
+/// let n: Num<i32, 8> = num!(0.75);
+/// assert_eq!(n, Num::new(3) / 4, "0.75 == 3/4");
+/// assert_eq!(n, num!(3. / 4.));
+/// ```
+#[macro_export]
+macro_rules! num {
+    ($value:expr) => {
+        $crate::Num::new_from_parts(
+            const {
+                use $crate::__private::const_soft_float::soft_f64::SoftF64;
+
+                let v = SoftF64($value as f64);
+                let integer = v.trunc().to_f64();
+                let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
+
+                let integer = integer as i32;
+                let fractional = fractional as i32;
+
+                (integer, fractional)
+            },
+        )
+    };
+}
+
+/// A trait for everything required to use as the internal representation of the
+/// fixed point number.
+pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
+impl<I: FixedWidthUnsignedInteger> Number for I {}
+
+/// A trait for integers that don't implement unary negation
+pub trait FixedWidthUnsignedInteger:
+    Copy
+    + PartialOrd
+    + Ord
+    + Shl<usize, Output = Self>
+    + Shr<usize, Output = Self>
+    + BitAnd<Output = Self>
+    + Debug
+    + Display
+    + num_traits::Num
+    + Not<Output = Self>
+    + num_traits::AsPrimitive<usize>
+{
+    /// Converts an i32 to it's own representation, panics on failure
+    fn from_as_i32(v: i32) -> Self;
+    /// Returns (a * b) >> N
+    fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
+}
+
+/// Trait for an integer that includes negation
+pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Signed {}
+
+impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
+
+macro_rules! fixed_width_unsigned_integer_impl {
+    ($T: ty, $Upcast: ident) => {
+        impl FixedWidthUnsignedInteger for $T {
+            #[inline(always)]
+            fn from_as_i32(v: i32) -> Self {
+                v as $T
+            }
+
+            upcast_multiply_impl!($T, $Upcast);
+        }
+    };
+}
+
+macro_rules! upcast_multiply_impl {
+    ($T: ty, optimised_64_bit) => {
+        #[inline(always)]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            use num_traits::One;
+
+            let mask = (Self::one() << n).wrapping_sub(1);
+
+            let a_floor = a >> n;
+            let a_frac = a & mask;
+
+            let b_floor = b >> n;
+            let b_frac = b & mask;
+
+            (a_floor.wrapping_mul(b_floor) << n)
+                .wrapping_add(
+                    a_floor
+                        .wrapping_mul(b_frac)
+                        .wrapping_add(b_floor.wrapping_mul(a_frac)),
+                )
+                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
+        }
+    };
+    ($T: ty, $Upcast: ty) => {
+        #[inline(always)]
+        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
+            (((a as $Upcast) * (b as $Upcast)) >> n) as $T
+        }
+    };
+}
+
+fixed_width_unsigned_integer_impl!(i8, i32);
+fixed_width_unsigned_integer_impl!(u8, u32);
+fixed_width_unsigned_integer_impl!(i16, i32);
+fixed_width_unsigned_integer_impl!(u16, u32);
+
+fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
+fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
+
+/// A fixed point number represented using `I` with `N` bits of fractional precision.
+///
+/// These provide an alternative to floating point numbers (`f32`, `f64`) by providing
+/// fractional numbers at the cost of losing the ability to store very small and very large numbers.
+/// The up-side is that these are very efficient on platforms without a floating point unit
+/// making arithmetic operations like `+` and `*` as fast (or almost as fast) as working
+/// with integers.
+///
+/// # Integer type (`I`)
+///
+/// The `Num<I, N>` struct stores a fixed point number. The `I` represents the underlying
+/// integer type for your fixed point number (e.g. `i32`, `u32`, `i16`) and `N` is the number
+/// of bits you want to use for the fractional component.
+///
+/// We recommend using `i32` (or `u32` if you never need the number to be negative) as the
+/// primitive integer type unless you have good reason not to.
+///
+/// # Fractional precision (`N`)
+///
+/// It is hard to provide general advice for how many fractional bits you will need.
+/// The larger `N` is, the more precise your numbers can be, but it also reduces the maximum possible value.
+/// The smallest positive number that can be represented for a given `N` will be `1 / 2^N`, and the maximum
+/// will be `type::MAX / 2^N`.
+///
+/// <div class="warning">
+/// You should ensure that `N` is less than or equal to _half_ of the number of bits in the underlying integer type.
+/// So for an `i32`, you should use an `N` of _at most_ `16`.
+/// </div>
+///
+/// # Construction
+///
+/// You can construct `Num` values in several ways. And which you use will depend on the circumstance.
+///
+/// ## 1. The [`num!`] macro (recommended)
+///
+/// This macro effectively has the signature `num!(value) -> Num<I, N>` where `value` is anything which can be evaluated a compile time.
+/// So you can only pass constants into the [`num!`] macro, or `const` values, but not variables.
+///
+/// ## 2. The [`Num::new`] method (if `non-const` context)
+///
+/// This takes an integer value and returns a new `Num` with that _integer_ value (see the example below).
+/// You can also use the `From` implementation (or `.into()`) instead of `Num::new`.
+///
+/// ## 3. The [`Num::from_raw`] method (not recommended)
+///
+/// This takes a value of type `I` which is from the underlying storage of the `Num` value.
+/// You can get the raw value with [`Num::to_raw`].
+/// This is mainly useful if you're storing the num values in some other mechanism (e.g. save data) and want to restore them.
+/// You should prefer the other two methods for any other use-cases.
+///
+/// # Examples
+///
+/// ```rust
+/// use agb_fixnum::{Num, num};
+///
+/// // Use the num! macro to construct using a floating point value. This will be done at compile time so
+/// // the underlying platform won't ever have to do floating point calculations
+/// let my_fixnum: Num<i32, 8> = num!(0.14);
+/// // The new method creates with the given integer value.
+/// let my_other_fixnum: Num<i32, 8> = Num::new(3);
+///
+/// assert_eq!(my_fixnum + my_other_fixnum, num!(3.14));
+///
+/// // You can add integers directly to fixnums
+/// assert_eq!(my_fixnum + 3, num!(3.14));
+///
+/// // You can also use `.into()` or `Num::from`.
+/// let my_value: Num<i32, 8> = 5.into();
+/// assert_eq!(my_value, Num::from(5));
+/// assert_eq!(my_value, num!(5));
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(transparent)]
+pub struct Num<I: FixedWidthUnsignedInteger, const N: usize>(I);
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::Zero for Num<I, N> {
+    fn zero() -> Self {
+        Self::new(I::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.to_raw() == I::zero()
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> num_traits::One for Num<I, N> {
+    fn one() -> Self {
+        Self::new(I::one())
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger + num_traits::Num, const N: usize> num_traits::Num for Num<I, N> {
+    type FromStrRadixErr = <f64 as num_traits::Num>::FromStrRadixErr;
+
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        // for some reason, if I don't have this it's an error, and if I do it is unused
+        #[allow(unused_imports)]
+        use num_traits::float::FloatCore;
+
+        let v: f64 = f64::from_str_radix(str, radix)?;
+
+        let integer = v.trunc();
+        let fractional = v.fract() * (1u64 << 30) as f64;
+
+        Ok(Self::new_from_parts((integer as i32, fractional as i32)))
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger + num_traits::Bounded, const N: usize> num_traits::Bounded
+    for Num<I, N>
+{
+    fn min_value() -> Self {
+        Num::from_raw(I::min_value())
+    }
+
+    fn max_value() -> Self {
+        Num::from_raw(I::max_value())
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger + num_traits::Unsigned, const N: usize> num_traits::Unsigned
+    for Num<I, N>
+{
+}
+
+/// An often convenient representation for the Game Boy Advance using word sized
+/// internal representation for maximum efficiency
+pub type FixedNum<const N: usize> = Num<i32, N>;
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> From<I> for Num<I, N> {
+    fn from(value: I) -> Self {
+        Num(value << N)
+    }
+}
+
+impl<I, const N: usize> Default for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    fn default() -> Self {
+        Num(I::zero())
+    }
+}
+
+impl<I, T, const N: usize> Add<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    type Output = Self;
+    fn add(self, rhs: T) -> Self::Output {
+        Num(self.0 + rhs.into().0)
+    }
+}
+
+impl<I, T, const N: usize> AddAssign<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    fn add_assign(&mut self, rhs: T) {
+        self.0 = (*self + rhs.into()).0
+    }
+}
+
+impl<I, T, const N: usize> Sub<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    type Output = Self;
+    fn sub(self, rhs: T) -> Self::Output {
+        Num(self.0 - rhs.into().0)
+    }
+}
+
+impl<I, T, const N: usize> SubAssign<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    fn sub_assign(&mut self, rhs: T) {
+        self.0 = (*self - rhs.into()).0
+    }
+}
+
+impl<I, const N: usize> Mul<Num<I, N>> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    type Output = Self;
+    fn mul(self, rhs: Num<I, N>) -> Self::Output {
+        Num(I::upcast_multiply(self.0, rhs.0, N))
+    }
+}
+
+impl<I, const N: usize> Mul<I> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    type Output = Self;
+    fn mul(self, rhs: I) -> Self::Output {
+        Num(self.0 * rhs)
+    }
+}
+
+impl<I, T, const N: usize> MulAssign<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    Num<I, N>: Mul<T, Output = Num<I, N>>,
+{
+    fn mul_assign(&mut self, rhs: T) {
+        self.0 = (*self * rhs).0
+    }
+}
+
+impl<I, const N: usize> Div<Num<I, N>> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    type Output = Self;
+    fn div(self, rhs: Num<I, N>) -> Self::Output {
+        Num((self.0 << N) / rhs.0)
+    }
+}
+
+impl<I, const N: usize> Div<I> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+{
+    type Output = Self;
+    fn div(self, rhs: I) -> Self::Output {
+        Num(self.0 / rhs)
+    }
+}
+
+impl<I, T, const N: usize> DivAssign<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    Num<I, N>: Div<T, Output = Num<I, N>>,
+{
+    fn div_assign(&mut self, rhs: T) {
+        self.0 = (*self / rhs).0
+    }
+}
+
+impl<I, T, const N: usize> Rem<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    type Output = Self;
+    fn rem(self, modulus: T) -> Self::Output {
+        Num(self.0 % modulus.into().0)
+    }
+}
+
+impl<I, T, const N: usize> RemAssign<T> for Num<I, N>
+where
+    I: FixedWidthUnsignedInteger,
+    T: Into<Num<I, N>>,
+{
+    fn rem_assign(&mut self, modulus: T) {
+        self.0 = (*self % modulus).0
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> Neg for Num<I, N> {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Num(-self.0)
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
+    /// Performs the conversion between two integer types and between two different fractional precisions
+    pub fn change_base<J: FixedWidthUnsignedInteger + From<I>, const M: usize>(self) -> Num<J, M> {
+        let n: J = self.0.into();
+        if N < M {
+            Num(n << (M - N))
+        } else {
+            Num(n >> (N - M))
+        }
+    }
+
+    /// Attempts to perform the conversion between two integer types and between
+    /// two different fractional precisions
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let a: Num<i32, 8> = 1.into();
+    /// let b: Option<Num<u8, 4>> = a.try_change_base();
+    /// assert_eq!(b, Some(1.into()));
+    ///
+    /// let a: Num<i32, 8> = 18.into();
+    /// let b: Option<Num<u8, 4>> = a.try_change_base();
+    /// assert_eq!(b, None);
+    /// ```
+    pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
+        self,
+    ) -> Option<Num<J, M>> {
+        if size_of::<I>() > size_of::<J>() {
+            // I bigger than J, perform the shift in I to preserve precision
+            let n = if N < M {
+                self.0 << (M - N)
+            } else {
+                self.0 >> (N - M)
+            };
+
+            let n = n.try_into().ok()?;
+
+            Some(Num(n))
+        } else {
+            // J bigger than I, perform the shift in J to preserve precision
+            let n: J = self.0.try_into().ok()?;
+
+            let n = if N < M { n << (M - N) } else { n >> (N - M) };
+
+            Some(Num(n))
+        }
+    }
+
+    /// A bit for bit conversion from a number to a fixed num.
+    /// Mainly useful for serializing numbers where you don't have access to `serde`.
+    ///
+    /// Get the value from the [`Num::to_raw`] method.
+    ///
+    /// ```
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// let pi: Num<i32, 12> = num!(3.142);
+    /// assert_eq!(Num::from_raw(pi.to_raw()), pi);
+    /// ```
+    pub const fn from_raw(n: I) -> Self {
+        Num(n)
+    }
+
+    /// The internal representation of the fixed point number
+    /// Mainly useful for serializing numbers where you don't have access to `serde`.
+    ///
+    /// Turn this back into a `Num` with `from_raw`.
+    ///
+    /// ```
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// let pi: Num<i32, 12> = num!(6.283);
+    /// assert_eq!(Num::from_raw(pi.to_raw()), pi);
+    /// ```
+    pub const fn to_raw(self) -> I {
+        self.0
+    }
+
+    /// Lossily transforms an f32 into a fixed point representation.
+    /// You should try not to use this and instead use the [`num!`] macro.
+    pub fn from_f32(input: f32) -> Self {
+        Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
+    }
+
+    /// Lossily transforms an f64 into a fixed point representation.
+    /// You should try not to use this and instead use the [`num!`] macro.
+    pub fn from_f64(input: f64) -> Self {
+        Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
+    }
+
+    /// Truncates the fixed point number returning the integral part
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// assert_eq!(n.trunc(), 5);
+    /// let n: Num<i32, 8> = num!(-5.67);
+    /// assert_eq!(n.trunc(), -5);
+    /// ```
+    pub fn trunc(self) -> I {
+        self.0 / (I::one() << N)
+    }
+
+    #[must_use]
+    /// Performs the equivalent to the integer rem_euclid.
+    ///
+    /// So `n.rem_euclid(r)` will find the smallest _positive_ value `q` such that
+    /// there is an integer `p` with the property `n = p * r + q`.
+    ///
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// let r: Num<i32, 8> = num!(4.);
+    /// assert_eq!(n.rem_euclid(r), num!(1.67));
+    ///
+    /// let n: Num<i32, 8> = num!(-1.5);
+    /// let r: Num<i32, 8> = num!(4.);
+    /// assert_eq!(n.rem_euclid(r), num!(2.5));
+    /// ```
+    pub fn rem_euclid(self, rhs: Self) -> Self {
+        let r = self % rhs;
+        if r < I::zero().into() {
+            if rhs < I::zero().into() {
+                r - rhs
+            } else {
+                r + rhs
+            }
+        } else {
+            r
+        }
+    }
+
+    /// Performs rounding towards negative infinity
+    /// ```rust
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.67);
+    /// assert_eq!(n.floor(), 5);
+    /// let n: Num<i32, 8> = num!(-5.67);
+    /// assert_eq!(n.floor(), -6);
+    /// ```
+    pub fn floor(self) -> I {
+        self.0 >> N
+    }
+
+    /// Rounds towards the nearest integer and rounds towards positive infinity
+    /// for values half way between two integers. Equivalent to `(self + num!(0.5)).floor()`.
+    ///
+    /// ```rust
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// fn make(a: Num<i32, 8>) -> Num<i32, 8> {
+    ///     a
+    /// }
+    ///
+    /// assert_eq!(make(num!(0.2)).round(), 0);
+    /// assert_eq!(make(num!(4.5)).round(), 5);
+    /// assert_eq!(make(num!(9.75)).round(), 10);
+    ///
+    /// assert_eq!(make(num!(-9.2)).round(), -9);
+    /// assert_eq!(make(num!(-11.8)).round(), -12);
+    /// assert_eq!(make(num!(-2.5)).round(), -2);
+    /// ```
+    pub fn round(self) -> I {
+        (self + num!(0.5)).floor()
+    }
+
+    /// Returns the fractional component of a number as it's integer representation
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.5);
+    /// assert_eq!(n.frac(), 1 << 7);
+    /// ```
+    pub fn frac(self) -> I {
+        self.0 & ((I::one() << N) - I::one())
+    }
+
+    /// Creates an integer represented by a fixed point number
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = Num::new(5);
+    /// assert_eq!(n.frac(), 0); // no fractional component
+    /// assert_eq!(n, num!(5.)); // just equals the number 5
+    /// ```
+    pub fn new(integral: I) -> Self {
+        Self(integral << N)
+    }
+
+    #[doc(hidden)]
+    #[inline(always)]
+    /// Called by the [num!] macro in order to create a fixed point number
+    pub fn new_from_parts(num: (i32, i32)) -> Self {
+        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    }
+}
+
+impl<const N: usize> Num<i32, N> {
+    #[must_use]
+    /// Returns the square root of a number, it is calculated a digit at a time.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(16.);
+    /// assert_eq!(n.sqrt(), num!(4.));
+    /// let n: Num<i32, 8> = num!(2.25);
+    /// assert_eq!(n.sqrt(), num!(1.5));
+    /// ```
+    pub fn sqrt(self) -> Self {
+        assert_eq!(N % 2, 0, "N must be even to be able to square root");
+        assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
+        let mut d = 1 << 30;
+        let mut x = self.0;
+        let mut c = 0;
+
+        while d > self.0 {
+            d >>= 2;
+        }
+
+        while d != 0 {
+            if x >= c + d {
+                x -= c + d;
+                c = (c >> 1) + d;
+            } else {
+                c >>= 1;
+            }
+            d >>= 2;
+        }
+        Self(c << (N / 2))
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
+    #[must_use]
+    /// Returns the absolute value of a fixed point number
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(5.5);
+    /// assert_eq!(n.abs(), num!(5.5));
+    /// let n: Num<i32, 8> = num!(-5.5);
+    /// assert_eq!(n.abs(), num!(5.5));
+    /// ```
+    pub fn abs(self) -> Self {
+        Num(self.0.abs())
+    }
+
+    /// Calculates the cosine of a fixed point number with the domain of [0, 1].
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(0.);   // 0 radians
+    /// assert_eq!(n.cos(), num!(1.));
+    /// let n: Num<i32, 8> = num!(0.25); // pi / 2 radians
+    /// assert_eq!(n.cos(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.5);  // pi radians
+    /// assert_eq!(n.cos(), num!(-1.));
+    /// let n: Num<i32, 8> = num!(0.75); // 3pi/2 radians
+    /// assert_eq!(n.cos(), num!(0.));
+    /// let n: Num<i32, 8> = num!(1.);   // 2 pi radians (whole rotation)
+    /// assert_eq!(n.cos(), num!(1.));
+    /// ```
+    #[must_use]
+    pub fn cos(self) -> Self {
+        let n: Num<I, 8> = self.change_base();
+        let n: usize = n.to_raw().as_();
+
+        let x: i16 = lut::COS[n & 0xFF];
+
+        let n: Num<I, 8> = Num::from_raw(I::from_as_i32(x as i32));
+
+        n.change_base()
+    }
+
+    /// Calculates the sine of a number with domain of [0, 1].
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let n: Num<i32, 8> = num!(0.);   // 0 radians
+    /// assert_eq!(n.sin(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.25); // pi / 2 radians
+    /// assert_eq!(n.sin(), num!(1.));
+    /// let n: Num<i32, 8> = num!(0.5);  // pi radians
+    /// assert_eq!(n.sin(), num!(0.));
+    /// let n: Num<i32, 8> = num!(0.75); // 3pi/2 radians
+    /// assert_eq!(n.sin(), num!(-1.));
+    /// let n: Num<i32, 8> = num!(1.);   // 2 pi radians (whole rotation)
+    /// assert_eq!(n.sin(), num!(0.));
+    /// ```
+    #[must_use]
+    pub fn sin(self) -> Self {
+        (self - num!(0.25)).cos()
+    }
+}
+
+impl<I: FixedWidthSignedInteger, const N: usize> Signed for Num<I, N> {
+    fn abs(&self) -> Self {
+        Self::abs(*self)
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        Self(self.0.abs_sub(&other.0))
+    }
+
+    fn signum(&self) -> Self {
+        Self(self.0.signum())
+    }
+
+    fn is_positive(&self) -> bool {
+        self.0.is_positive()
+    }
+
+    fn is_negative(&self) -> bool {
+        self.0.is_negative()
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut integral = self.0 >> N;
+        let mask: I = (I::one() << N) - I::one();
+
+        let mut fractional = self.0 & mask;
+
+        // Negative fixnums are awkward to print if they have non zero fractional part.
+        // This is because you can think of them as `number + non negative fraction`.
+        //
+        // But if you think of a negative number, you'd like it to be `negative number - non negative fraction`
+        // So we have to add 1 to the integral bit, and take 1 - fractional bit
+        let sign = if fractional != I::zero() && integral < I::zero() {
+            integral = integral + I::one();
+            fractional = (I::one() << N) - fractional;
+            -1
+        } else {
+            1
+        };
+
+        let ten = I::from_as_i32(10);
+
+        if let Some(precision) = f.precision() {
+            let precision_multiplier = I::from_as_i32(10_i32.pow(precision as u32));
+
+            let fractional_as_integer = fractional * precision_multiplier * ten;
+            let mut fractional_as_integer = fractional_as_integer >> N;
+
+            if fractional_as_integer % ten >= I::from_as_i32(5) {
+                fractional_as_integer = fractional_as_integer + ten;
+            }
+
+            let mut fraction_to_write = fractional_as_integer / ten;
+
+            if fraction_to_write >= precision_multiplier {
+                integral = integral + I::from_as_i32(sign);
+                fraction_to_write = fraction_to_write - precision_multiplier;
+            }
+
+            if sign == -1 && integral == I::zero() && fraction_to_write != I::zero() {
+                write!(f, "-")?;
+            }
+
+            write!(f, "{integral}")?;
+
+            if precision != 0 {
+                write!(f, ".{fraction_to_write:#0precision$}")?;
+            }
+        } else {
+            if sign == -1 && integral == I::zero() {
+                write!(f, "-")?;
+            }
+            write!(f, "{integral}")?;
+
+            if fractional != I::zero() {
+                write!(f, ".")?;
+            }
+
+            while fractional & mask != I::zero() {
+                fractional = fractional * ten;
+                write!(f, "{}", (fractional & !mask) >> N)?;
+                fractional = fractional & mask;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use core::any::type_name;
+
+        write!(f, "Num<{}, {}>({})", type_name::<I>(), N, self)
+    }
+}
