@@ -147,7 +147,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// Floors the x and y coordinate, see [Num::floor]
     /// ```
     /// # use agb_fixnum::*;
-    /// let v1: Vector2D<Num<i32, 8>> = Vector2D::new(num!(1.56), num!(-2.2));
+    /// let v1: Vector2D<Num<i32, 8>> = vec2(num!(1.56), num!(-2.2));
     /// let v2: Vector2D<i32> = (1, -3).into();
     /// assert_eq!(v1.floor(), v2);
     /// ```
@@ -162,7 +162,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// Rounds the x and y coordinate, see [Num::round]
     /// ```
     /// # use agb_fixnum::*;
-    /// let v1: Vector2D<Num<i32, 8>> = Vector2D::new(num!(1.56), num!(-2.2));
+    /// let v1: Vector2D<Num<i32, 8>> = vec2(num!(1.56), num!(-2.2));
     /// let v2: Vector2D<i32> = (2, -2).into();
     /// assert_eq!(v1.round(), v2);
     /// ```
@@ -178,10 +178,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     pub fn try_change_base<J: FixedWidthUnsignedInteger + TryFrom<I>, const M: usize>(
         self,
     ) -> Option<Vector2D<Num<J, M>>> {
-        Some(Vector2D::new(
-            self.x.try_change_base()?,
-            self.y.try_change_base()?,
-        ))
+        Some(vec2(self.x.try_change_base()?, self.y.try_change_base()?))
     }
 }
 
@@ -240,7 +237,7 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
 
 impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
     fn from(f: (P, P)) -> Self {
-        Vector2D::new(f.0.into(), f.1.into())
+        vec2(f.0.into(), f.1.into())
     }
 }
 
@@ -248,7 +245,7 @@ impl<T: Number> Vector2D<T> {
     /// Converts the representation of the vector to another type
     /// ```
     /// # use agb_fixnum::*;
-    /// let v1: Vector2D<i16> = Vector2D::new(1, 2);
+    /// let v1: Vector2D<i16> = vec2(1, 2);
     /// let v2: Vector2D<i32> = v1.change_base();
     /// ```
     pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
@@ -282,7 +279,9 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
 }
 
 impl<T: Number> Vector2D<T> {
-    /// Created a vector from the given coordinates
+    /// Created a vector from the given coordinates.
+    ///
+    /// You should use [`vec2()`] instead.
     /// ```
     /// # use agb_fixnum::*;
     /// let v = Vector2D::new(1, 2);
@@ -296,7 +295,7 @@ impl<T: Number> Vector2D<T> {
     /// Returns the tuple of the coordinates
     /// ```
     /// # use agb_fixnum::*;
-    /// let v = Vector2D::new(1, 2);
+    /// let v = vec2(1, 2);
     /// assert_eq!(v.get(), (1, 2));
     /// ```
     pub fn get(self) -> (T, T) {
@@ -307,11 +306,11 @@ impl<T: Number> Vector2D<T> {
     /// Calculates the hadamard product of two vectors
     /// ```
     /// # use agb_fixnum::*;
-    /// let v1 = Vector2D::new(2, 3);
-    /// let v2 = Vector2D::new(4, 5);
+    /// let v1 = vec2(2, 3);
+    /// let v2 = vec2(4, 5);
     ///
     /// let r = v1.hadamard(v2);
-    /// assert_eq!(r, Vector2D::new(v1.x * v2.x, v1.y * v2.y));
+    /// assert_eq!(r, vec2(v1.x * v2.x, v1.y * v2.y));
     /// ```
     pub fn hadamard(self, other: Self) -> Self {
         Self {
@@ -323,10 +322,10 @@ impl<T: Number> Vector2D<T> {
     #[doc(alias = "scalar_product")]
     /// Calculates the dot product / scalar product of two vectors
     /// ```
-    /// use agb_fixnum::Vector2D;
+    /// use agb_fixnum::vec2;
     ///
-    /// let v1 = Vector2D::new(3, 5);
-    /// let v2 = Vector2D::new(7, 11);
+    /// let v1 = vec2(3, 5);
+    /// let v2 = vec2(7, 11);
     ///
     /// let dot = v1.dot(v2);
     /// assert_eq!(dot, 76);
@@ -341,10 +340,10 @@ impl<T: Number> Vector2D<T> {
     /// Calculates the *z* component of the cross product / vector product of two
     /// vectors
     /// ```
-    /// use agb_fixnum::Vector2D;
+    /// use agb_fixnum::vec2;
     ///
-    /// let v1 = Vector2D::new(3, 5);
-    /// let v2 = Vector2D::new(7, 11);
+    /// let v1 = vec2(3, 5);
+    /// let v2 = vec2(7, 11);
     ///
     /// let dot = v1.cross(v2);
     /// assert_eq!(dot, -2);
@@ -366,8 +365,8 @@ impl<T: Number> Vector2D<T> {
     /// Swaps the x and y coordinate
     /// ```
     /// # use agb_fixnum::*;
-    /// let v1 = Vector2D::new(2, 3);
-    /// assert_eq!(v1.swap(), Vector2D::new(3, 2));
+    /// let v1 = vec2(2, 3);
+    /// assert_eq!(v1.swap(), vec2(3, 2));
     /// ```
     pub fn swap(self) -> Self {
         Self {
@@ -422,7 +421,7 @@ mod test {
 
     #[test]
     fn test_vector_changing() {
-        let v1: Vector2D<FixedNum<8>> = Vector2D::new(1.into(), 2.into());
+        let v1: Vector2D<FixedNum<8>> = vec2(1.into(), 2.into());
 
         let v2 = v1.trunc();
         assert_eq!(v2.get(), (1, 2));
