@@ -70,8 +70,6 @@ pub trait FixedWidthUnsignedInteger:
     + Not<Output = Self>
     + num_traits::AsPrimitive<usize>
 {
-    /// Returns the representation of ten
-    fn ten() -> Self;
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
     /// Returns (a * b) >> N
@@ -86,10 +84,6 @@ impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
 macro_rules! fixed_width_unsigned_integer_impl {
     ($T: ty, $Upcast: ident) => {
         impl FixedWidthUnsignedInteger for $T {
-            #[inline(always)]
-            fn ten() -> Self {
-                10
-            }
             #[inline(always)]
             fn from_as_i32(v: i32) -> Self {
                 v as $T
@@ -634,17 +628,19 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
             1
         };
 
+        let ten = I::from_as_i32(10);
+
         if let Some(precision) = f.precision() {
             let precision_multiplier = I::from_as_i32(10_i32.pow(precision as u32));
 
-            let fractional_as_integer = fractional * precision_multiplier * I::ten();
+            let fractional_as_integer = fractional * precision_multiplier * ten;
             let mut fractional_as_integer = fractional_as_integer >> N;
 
-            if fractional_as_integer % I::ten() >= I::from_as_i32(5) {
-                fractional_as_integer = fractional_as_integer + I::ten();
+            if fractional_as_integer % ten >= I::from_as_i32(5) {
+                fractional_as_integer = fractional_as_integer + ten;
             }
 
-            let mut fraction_to_write = fractional_as_integer / I::ten();
+            let mut fraction_to_write = fractional_as_integer / ten;
 
             if fraction_to_write >= precision_multiplier {
                 integral = integral + I::from_as_i32(sign);
@@ -671,7 +667,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Display for Num<I, N> {
             }
 
             while fractional & mask != I::zero() {
-                fractional = fractional * I::ten();
+                fractional = fractional * ten;
                 write!(f, "{}", (fractional & !mask) >> N)?;
                 fractional = fractional & mask;
             }
