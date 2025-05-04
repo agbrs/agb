@@ -1,6 +1,9 @@
 #![no_std]
 #![deny(missing_docs)]
 //! Fixed point number implementation for representing non integers efficiently.
+//!
+//! If you are using this crate from within `agb`, you should refer to it as `agb::fixnum` rather than `agb_fixnum`.
+//! This crate is updated in lockstep with `agb`.
 
 use core::{
     cmp::{Eq, Ord, PartialEq, PartialOrd},
@@ -133,7 +136,77 @@ fixed_width_unsigned_integer_impl!(u16, u32);
 fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
 fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
 
-/// A fixed point number represented using `I` with `N` bits of fractional precision
+/// A fixed point number represented using `I` with `N` bits of fractional precision.
+///
+/// These provide an alternative to floating point numbers (`f32`, `f64`) by providing
+/// fractional numbers at the cost of losing the ability to store very small and very large numbers.
+/// The up-side is that these are very efficient on platforms without a floating point unit
+/// making arithmetic operations like `+` and `*` as fast (or almost as fast) as working
+/// with integers.
+///
+/// # Integer type (`I`)
+///
+/// The `Num<I, N>` struct stores a fixed point number. The `I` represents the underlying
+/// integer type for your fixed point number (e.g. `i32`, `u32`, `i16`) and `N` is the number
+/// of bits you want to use for the fractional component.
+///
+/// We recommend using `i32` (or `u32` if you never need the number to be negative) as the
+/// primitive integer type unless you have good reason not to.
+///
+/// # Fractional precision (`N`)
+///
+/// It is hard to provide general advice for how many fractional bits you will need.
+/// The larger `N` is, the more precise your numbers can be, but it also reduces the maximum possible value.
+/// The smallest positive number that can be represented for a given `N` will be `1 / 2^N`, and the maximum
+/// will be `type::MAX / 2^N`.
+///
+/// <div class="warning">
+/// You should ensure that `N` is less than or equal to _half_ of the number of bits in the underlying integer type.
+/// So for an `i32`, you should use an `N` of _at most_ `16`.
+/// </div>
+///
+/// # Construction
+///
+/// You can construct `Num` values in several ways. And which you use will depend on the circumstance.
+///
+/// ## 1. The [`num!`] macro (recommended)
+///
+/// This macro effectively has the signature `num!(value) -> Num<I, N>` where `value` is anything which can be evaluated a compile time.
+/// So you can only pass constants into the [`num!`] macro, or `const` values, but not variables.
+///
+/// ## 2. The [`Num::new`] method (if `non-const` context)
+///
+/// This takes an integer value and returns a new `Num` with that _integer_ value (see the example below).
+/// You can also use the `From` implementation (or `.into()`) instead of `Num::new`.
+///
+/// ## 3. The [`Num::from_raw`] method (not recommended)
+///
+/// This takes a value of type `I` which is from the underlying storage of the `Num` value.
+/// You can get the raw value with [`Num::to_raw`].
+/// This is mainly useful if you're storing the num values in some other mechanism (e.g. save data) and want to restore them.
+/// You should prefer the other two methods for any other use-cases.
+///
+/// # Examples
+///
+/// ```rust
+/// use agb_fixnum::{Num, num};
+///
+/// // Use the num! macro to construct using a floating point value. This will be done at compile time so
+/// // the underlying platform won't ever have to do floating point calculations
+/// let my_fixnum: Num<i32, 8> = num!(0.14);
+/// // The new method creates with the given integer value.
+/// let my_other_fixnum: Num<i32, 8> = Num::new(3);
+///
+/// assert_eq!(my_fixnum + my_other_fixnum, num!(3.14));
+///
+/// // You can add integers directly to fixnums
+/// assert_eq!(my_fixnum + 3, num!(3.14));
+///
+/// // You can also use `.into()` or `Num::from`.
+/// let my_value: Num<i32, 8> = 5.into();
+/// assert_eq!(my_value, Num::from(5));
+/// assert_eq!(my_value, num!(5));
+/// ```
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
@@ -385,26 +458,44 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
         }
     }
 
-    /// A bit for bit conversion from a number to a fixed num
+    /// A bit for bit conversion from a number to a fixed num.
+    /// Mainly useful for serializing numbers where you don't have access to `serde`.
+    ///
+    /// Get the value from the [`Num::to_raw`] method.
+    ///
+    /// ```
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// let pi: Num<i32, 12> = num!(3.142);
+    /// assert_eq!(Num::from_raw(pi.to_raw()), pi);
+    /// ```
     pub const fn from_raw(n: I) -> Self {
         Num(n)
     }
 
     /// The internal representation of the fixed point number
+    /// Mainly useful for serializing numbers where you don't have access to `serde`.
+    ///
+    /// Turn this back into a `Num` with `from_raw`.
+    ///
+    /// ```
+    /// use agb_fixnum::{Num, num};
+    ///
+    /// let pi: Num<i32, 12> = num!(6.283);
+    /// assert_eq!(Num::from_raw(pi.to_raw()), pi);
+    /// ```
     pub const fn to_raw(self) -> I {
         self.0
     }
 
-    /// Lossily transforms an f32 into a fixed point representation. This is not const
-    /// because you cannot currently do floating point operations in const contexts, so
-    /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
+    /// Lossily transforms an f32 into a fixed point representation.
+    /// You should try not to use this and instead use the [`num!`] macro.
     pub fn from_f32(input: f32) -> Self {
         Self::from_raw(I::from_as_i32((input * (1 << N) as f32) as i32))
     }
 
-    /// Lossily transforms an f64 into a fixed point representation. This is not const
-    /// because you cannot currently do floating point operations in const contexts, so
-    /// you should use the `num!` macro from agb-macros if you want a const from_f32/f64
+    /// Lossily transforms an f64 into a fixed point representation.
+    /// You should try not to use this and instead use the [`num!`] macro.
     pub fn from_f64(input: f64) -> Self {
         Self::from_raw(I::from_as_i32((input * (1 << N) as f64) as i32))
     }
@@ -422,7 +513,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     }
 
     #[must_use]
-    /// Performs the equivalent to the integer rem_euclid, which is modulo numbering.
+    /// Performs the equivalent to the integer rem_euclid.
+    ///
+    /// So `n.rem_euclid(r)` will find the smallest _positive_ value `q` such that
+    /// there is an integer `p` with the property `n = p * r + q`.
+    ///
     /// ```rust
     /// # use agb_fixnum::*;
     /// let n: Num<i32, 8> = num!(5.67);
