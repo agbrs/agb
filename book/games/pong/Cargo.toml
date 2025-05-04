@@ -6,6 +6,7 @@ edition = "2024"
 
 [dependencies]
 agb = { version = "0.21.3", path = "../../../agb" }
+agb_tracker = { version = "0.21.3", path = "../../../tracker/agb-tracker" }
 
 [profile.dev]
 opt-level = 3

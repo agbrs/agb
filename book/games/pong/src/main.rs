@@ -11,6 +11,8 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
+extern crate alloc;
+
 use agb::{
     display::{
         GraphicsFrame, Priority,
@@ -18,9 +20,12 @@ use agb::{
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Rect, Vector2D, vec2},
-    include_aseprite, include_background_gfx,
+    include_aseprite, include_background_gfx, include_wav,
     input::ButtonController,
+    sound::mixer::{Frequency, Mixer, SoundChannel, SoundData},
 };
+
+use agb_tracker::{Track, Tracker, include_xm};
 
 // Import the sprites in to this static. This holds the sprite
 // and palette data in a way that is manageable by agb.
@@ -33,6 +38,9 @@ include_background_gfx!(
     mod background,
     PLAY_FIELD => deduplicate "gfx/background.aseprite",
 );
+
+static BALL_PADDLE_HIT: SoundData = include_wav!("sfx/ball-paddle-hit.wav");
+static BGM: Track = include_xm!("sfx/bgm.xm");
 
 struct Paddle {
     pos: Vector2D<i32>,
@@ -73,6 +81,8 @@ fn main(mut gba: agb::Gba) -> ! {
     // Get the graphics manager
     let mut gfx = gba.graphics.get();
 
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
+
     // Make sure the background palettes are set up
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
@@ -97,6 +107,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut ball_pos = vec2(50, 50);
     let mut ball_velocity = vec2(1, 1);
 
+    let mut tracker = Tracker::new(&BGM);
+    mixer.enable();
+
     loop {
         button_controller.update();
 
@@ -109,10 +122,12 @@ fn main(mut gba: agb::Gba) -> ! {
         let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
         if paddle_a.collision_rect().touches(ball_rect) {
             ball_velocity.x = 1;
+            play_hit(&mut mixer);
         }
 
         if paddle_b.collision_rect().touches(ball_rect) {
             ball_velocity.x = -1;
+            play_hit(&mut mixer);
         }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
@@ -137,6 +152,13 @@ fn main(mut gba: agb::Gba) -> ! {
 
         bg.show(&mut frame);
 
+        tracker.step(&mut mixer);
+        mixer.frame();
         frame.commit();
     }
+}
+
+fn play_hit(mixer: &mut Mixer) {
+    let hit_sound = SoundChannel::new(BALL_PADDLE_HIT);
+    mixer.play_sound(hit_sound);
 }

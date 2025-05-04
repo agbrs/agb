@@ -19,6 +19,8 @@
   - [Paddle collision](./pong/07_paddle_collision.md)
   - [Paddle movement](./pong/08_paddle_movement.md)
   - [Backgrounds](./pong/09_background.md)
+  - [Fixnums](./pong/10_fixnums.md)
+  - [Background music](./pong/11_bgm.md)
 
 # Articles
 
