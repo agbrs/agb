@@ -316,6 +316,13 @@ where
 {
     type Output = Self;
     fn mul(self, rhs: Num<I, N>) -> Self::Output {
+        debug_assert!(
+            N * 2 <= core::mem::size_of::<I>() * 8,
+            "Multiplication requires N <= number of bits / 2, but have N = {} and number of bits = {}",
+            N,
+            core::mem::size_of::<I>() * 8
+        );
+
         Num(I::upcast_multiply(self.0, rhs.0, N))
     }
 }
@@ -346,6 +353,13 @@ where
 {
     type Output = Self;
     fn div(self, rhs: Num<I, N>) -> Self::Output {
+        debug_assert!(
+            N * 2 <= core::mem::size_of::<I>() * 8,
+            "Division requires N <= number of bits / 2, but have N = {} and number of bits = {}",
+            N,
+            core::mem::size_of::<I>() * 8
+        );
+
         Num((self.0 << N) / rhs.0)
     }
 }
@@ -1111,5 +1125,25 @@ mod test {
 
             assert_eq!((fix_num * fix_num).to_raw(), upcasted);
         }
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic]
+    fn test_panics_if_invalid_multiply() {
+        let x: Num<i32, 18> = num!(5);
+        let y: Num<i32, 18> = num!(5);
+
+        let _ = x * y;
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic]
+    fn test_panics_if_invalid_division() {
+        let x: Num<i32, 18> = num!(5);
+        let y: Num<i32, 18> = num!(5);
+
+        let _ = x / y;
     }
 }
