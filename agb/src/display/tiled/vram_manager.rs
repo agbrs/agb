@@ -1,10 +1,12 @@
 #![warn(missing_docs)]
-use core::{alloc::Layout, fmt::Debug, mem::MaybeUninit, ptr::NonNull};
+use core::{fmt::Debug, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
+use tile_allocator::TileAllocator;
+
+mod tile_allocator;
 
 use crate::{
-    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::{Palette16, Rgb15},
     dma,
     hash_map::{Entry, HashMap},
@@ -12,21 +14,10 @@ use crate::{
     util::SyncUnsafeCell,
 };
 
-use super::{CHARBLOCK_SIZE, VRAM_START};
+use super::VRAM_START;
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<Rgb15, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
-
-static TILE_ALLOCATOR: BlockAllocator = unsafe {
-    BlockAllocator::new(StartEnd {
-        start: || VRAM_START + 8 * 8,
-        end: || VRAM_START + CHARBLOCK_SIZE * 2,
-    })
-};
-
-const fn layout_of(format: TileFormat) -> Layout {
-    unsafe { Layout::from_size_align_unchecked(format.tile_size(), format.tile_size()) }
-}
 
 /// Represents the pixel format of a tile in VRAM.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -501,9 +492,7 @@ impl VRamManagerInner {
     fn new_dynamic_tile(&mut self) -> DynamicTile16 {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
-        let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
-            .unwrap()
-            .cast();
+        let new_reference: NonNull<u32> = unsafe { TileAllocator.alloc_for_regular(tile_format) };
         let tile_reference = TileReference(new_reference);
 
         let index = Self::index_from_reference(tile_reference, tile_format);
@@ -562,9 +551,7 @@ impl VRamManagerInner {
         }
 
         let new_reference: NonNull<u32> =
-            unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
-                .expect("Ran out of video RAM for tiles")
-                .cast();
+            unsafe { TileAllocator.alloc_for_regular(tile_set.format) };
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);
 
@@ -613,10 +600,7 @@ impl VRamManagerInner {
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
-                TILE_ALLOCATOR.dealloc(
-                    tile_reference.0.cast().as_ptr(),
-                    layout_of(tile_index.format()),
-                );
+                TileAllocator.dealloc(tile_reference.0, tile_index.format());
             }
 
             self.tile_set_to_vram.remove(tile_ref);
