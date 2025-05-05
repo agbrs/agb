@@ -39,6 +39,7 @@ mgba
 gbafix
 binutils
 mdbook
+sfxr
 
 rustc
 rustup
