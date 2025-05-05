@@ -45,6 +45,17 @@ impl TileAllocator {
         .cast()
     }
 
+    pub unsafe fn alloc_for_affine(self) -> NonNull<u32> {
+        let layout = layout_of(TileFormat::EightBpp);
+
+        unsafe {
+            AFFINE_TILE_ALLOCATOR
+                .alloc(layout)
+                .expect("Ran out of video RAM for tiles")
+        }
+        .cast()
+    }
+
     pub unsafe fn dealloc(self, ptr: NonNull<u32>, tile_format: TileFormat) {
         let layout = layout_of(tile_format);
 

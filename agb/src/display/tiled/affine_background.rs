@@ -137,7 +137,7 @@ impl AffineBackgroundTiles {
         let old_tile = self.tiles.get(pos);
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
-            let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index);
+            let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index, true);
             if new_tile_idx.raw_index() > u8::MAX as u16 {
                 VRAM_MANAGER.remove_tile(new_tile_idx);
                 0

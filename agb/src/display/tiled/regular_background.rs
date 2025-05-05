@@ -290,7 +290,7 @@ impl RegularBackgroundTiles {
         let tile_index = tile_setting.tile_id();
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
-            let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index);
+            let new_tile_idx = VRAM_MANAGER.add_tile(tileset, tile_index, false);
             Tile::new(new_tile_idx, tile_setting)
         } else {
             Tile::default()
