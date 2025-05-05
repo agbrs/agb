@@ -1,12 +1,18 @@
 use super::{Font, special::AGB_PRIVATE_USE_RANGE};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Ways of aligning text
 pub enum AlignmentKind {
+    /// Text is aligned such that the left edge aligns with the left of the given width
     Left,
+    /// Text is aligned such the the right edge aligns with the right of the given width
     Right,
+    /// Spacing is adjusted such that the left and right edges align with the left and right extents of the width
     Justify,
     #[doc(alias = "Center")]
+    /// Text is aligned such that the centre of the text is at the centre of the given width
     Centre,
+    /// Like left alignment, but the width is not considered at all and efficiently renders in a single line
     None,
 }
 
