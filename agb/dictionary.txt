@@ -70,8 +70,14 @@ EWRAM
 ### Commercial games ###
 
 minish
+platformer
 
 ### Chip manufacturers
 Atmel
 Macronix
 Sanyo
+
+### Technology
+EEPROM
+syscall
+syscalls
