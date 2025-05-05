@@ -30,6 +30,6 @@
 - [Objects deep dive](./articles/objects_deep_dive.md)
 - [Fixnums](./articles/fixed_point_numbers.md)
 - [Affine backgrounds and objects](./articles/affine.md)
-- [Text rendering]()
+- [Text rendering](./articles/text_rendering.md)
 - [Blending, windows and DMA effects]()
 - [Music and sound effects]()
