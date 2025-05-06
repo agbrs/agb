@@ -245,8 +245,9 @@ pub use agb_image_converter::include_colours_inner;
 pub use agb_image_converter::include_aseprite_256_inner;
 
 #[macro_export]
-/// Includes a ttf font to be usable by dynamic font rendering. The first
-/// parameter is the filepath and the second is the point size of the font.
+/// Includes a ttf font to be usable by dynamic font rendering.
+///
+/// The first parameter is the filepath and the second is the point size of the font.
 ///
 /// ```rust
 /// # #![no_std]
