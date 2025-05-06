@@ -48,8 +48,8 @@
 ///
 /// You import them using:
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => "examples/gfx/beach-background.aseprite"
@@ -105,8 +105,8 @@
 /// You can configure which colour that will be with the optional second argument to `include_background_gfx!`
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     "00bdfe", // the sky colour hex code
@@ -126,8 +126,8 @@
 /// could be flipped horizontally or vertically (or both) and combined with other tiles.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => deduplicate "examples/gfx/beach-background.aseprite",
@@ -141,8 +141,8 @@
 /// required to use 256 colour backgrounds with affine tiles.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => 256 "examples/gfx/beach-background.aseprite",
@@ -156,8 +156,8 @@
 /// So for instance you could make the resulting module `pub` or `pub(crate)` as follows:
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     pub mod backgrounds,
 ///     BEACH => "examples/gfx/beach-background.aseprite",
@@ -189,8 +189,8 @@
 /// to fill the screen with a screen-sized image.
 ///
 /// ```rust
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// # core::include!("doctest_runner.rs");
 /// use agb::{
 ///     display::{
@@ -222,8 +222,8 @@
 /// Modifiers can be combined, so you can import and deduplicate a 256 colour background.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => 256 deduplicate "examples/gfx/beach-background.aseprite",

@@ -22,8 +22,8 @@ pub fn eprintln(args: Arguments) {
 /// This is mainly useful for debugging, and is reasonably slow.
 ///
 /// ```rust
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// # core::include!("doctest_runner.rs");
 ///
 /// # fn test(_: agb::Gba) {
@@ -46,8 +46,8 @@ macro_rules! println {
 /// This is mainly intended for debugging, and is reasonably slow.
 ///
 /// ```rust
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// # core::include!("doctest_runner.rs");
 ///
 /// # fn test(_: agb::Gba) {
