@@ -1,10 +1,12 @@
 #![warn(missing_docs)]
-use core::{alloc::Layout, fmt::Debug, mem::MaybeUninit, ptr::NonNull};
+use core::{fmt::Debug, mem::MaybeUninit, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
+use tile_allocator::TileAllocator;
+
+mod tile_allocator;
 
 use crate::{
-    agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd},
     display::{Palette16, Rgb15},
     dma,
     hash_map::{Entry, HashMap},
@@ -12,21 +14,10 @@ use crate::{
     util::SyncUnsafeCell,
 };
 
-use super::{CHARBLOCK_SIZE, VRAM_START};
+use super::VRAM_START;
 
 const PALETTE_BACKGROUND: MemoryMapped1DArray<Rgb15, 256> =
     unsafe { MemoryMapped1DArray::new(0x0500_0000) };
-
-static TILE_ALLOCATOR: BlockAllocator = unsafe {
-    BlockAllocator::new(StartEnd {
-        start: || VRAM_START + 8 * 8,
-        end: || VRAM_START + CHARBLOCK_SIZE * 2,
-    })
-};
-
-const fn layout_of(format: TileFormat) -> Layout {
-    unsafe { Layout::from_size_align_unchecked(format.tile_size(), format.tile_size()) }
-}
 
 /// Represents the pixel format of a tile in VRAM.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -119,17 +110,19 @@ impl TileIndex {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct TileReference(NonNull<u32>);
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct TileInTileSetReference {
     tileset: NonNull<[u8]>,
     tile: u16,
+    is_affine: bool,
 }
 
 impl TileInTileSetReference {
-    fn new(tileset: &'_ TileSet<'_>, tile: u16) -> Self {
+    fn new(tileset: &'_ TileSet<'_>, tile: u16, is_affine: bool) -> Self {
         Self {
             tileset: tileset.reference(),
             tile,
+            is_affine,
         }
     }
 }
@@ -365,8 +358,13 @@ impl VRamManager {
         self.with(|inner| inner.increase_reference(index));
     }
 
-    pub(crate) fn add_tile(&self, tile_set: &TileSet<'_>, tile_index: u16) -> TileIndex {
-        self.with(|inner| inner.add_tile(tile_set, tile_index))
+    pub(crate) fn add_tile(
+        &self,
+        tile_set: &TileSet<'_>,
+        tile_index: u16,
+        is_affine: bool,
+    ) -> TileIndex {
+        self.with(|inner| inner.add_tile(tile_set, tile_index, is_affine))
     }
 
     pub(crate) fn gc(&self) {
@@ -396,6 +394,9 @@ impl VRamManager {
     ///
     /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
     /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _regular_ backgrounds. Tiles in affine backgrounds should use
+    /// [`replace_tile_affine()`](Self::replace_tile_affine).
     pub fn replace_tile(
         &self,
         source_tile_set: &TileSet<'_>,
@@ -404,7 +405,40 @@ impl VRamManager {
         target_tile: u16,
     ) {
         self.with(|inner| {
-            inner.replace_tile(source_tile_set, source_tile, target_tile_set, target_tile);
+            inner.replace_tile(
+                source_tile_set,
+                source_tile,
+                target_tile_set,
+                target_tile,
+                false,
+            );
+        });
+    }
+
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _affine_ backgrounds. Tiles in regular backgrounds should use
+    /// [`replace_tile()`](Self::replace_tile).
+    pub fn replace_tile_affine(
+        &self,
+        source_tile_set: &TileSet<'_>,
+        source_tile: u16,
+        target_tile_set: &TileSet<'_>,
+        target_tile: u16,
+    ) {
+        self.with(|inner| {
+            inner.replace_tile(
+                source_tile_set,
+                source_tile,
+                target_tile_set,
+                target_tile,
+                true,
+            );
         });
     }
 
@@ -501,9 +535,7 @@ impl VRamManagerInner {
     fn new_dynamic_tile(&mut self) -> DynamicTile16 {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
-        let new_reference: NonNull<u32> = unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_format)) }
-            .unwrap()
-            .cast();
+        let new_reference: NonNull<u32> = unsafe { TileAllocator.alloc_for_regular(tile_format) };
         let tile_reference = TileReference(new_reference);
 
         let index = Self::index_from_reference(tile_reference, tile_format);
@@ -515,15 +547,13 @@ impl VRamManagerInner {
 
         let tile_set = TileSet::new(tiles, tile_format);
 
-        self.tile_set_to_vram.insert(
-            TileInTileSetReference::new(&tile_set, index.raw_index()),
-            tile_reference,
-        );
+        let tileset_reference = TileInTileSetReference::new(&tile_set, index.raw_index(), false);
+        self.tile_set_to_vram
+            .insert(tileset_reference, tile_reference);
 
         self.reference_counts
             .resize(self.reference_counts.len().max(key + 1), Default::default());
-        self.reference_counts[key] =
-            TileReferenceCount::new(TileInTileSetReference::new(&tile_set, index.raw_index()));
+        self.reference_counts[key] = TileReferenceCount::new(tileset_reference);
 
         DynamicTile16 {
             tile_data: unsafe {
@@ -549,10 +579,9 @@ impl VRamManagerInner {
     }
 
     #[inline(never)]
-    fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16) -> TileIndex {
-        let reference = self
-            .tile_set_to_vram
-            .entry(TileInTileSetReference::new(tile_set, tile));
+    fn add_tile(&mut self, tile_set: &TileSet<'_>, tile: u16, is_affine: bool) -> TileIndex {
+        let tileset_reference = TileInTileSetReference::new(tile_set, tile, is_affine);
+        let reference = self.tile_set_to_vram.entry(tileset_reference);
 
         if let Entry::Occupied(reference) = reference {
             let tile_index = Self::index_from_reference(*reference.get(), tile_set.format);
@@ -561,10 +590,11 @@ impl VRamManagerInner {
             return tile_index;
         }
 
-        let new_reference: NonNull<u32> =
-            unsafe { TILE_ALLOCATOR.alloc(layout_of(tile_set.format)) }
-                .expect("Ran out of video RAM for tiles")
-                .cast();
+        let new_reference: NonNull<u32> = if is_affine {
+            unsafe { TileAllocator.alloc_for_affine() }
+        } else {
+            unsafe { TileAllocator.alloc_for_regular(tile_set.format) }
+        };
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);
 
@@ -576,8 +606,7 @@ impl VRamManagerInner {
         self.reference_counts
             .resize(self.reference_counts.len().max(key + 1), Default::default());
 
-        self.reference_counts[key] =
-            TileReferenceCount::new(TileInTileSetReference::new(tile_set, tile));
+        self.reference_counts[key] = TileReferenceCount::new(tileset_reference);
 
         index
     }
@@ -613,10 +642,7 @@ impl VRamManagerInner {
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
-                TILE_ALLOCATOR.dealloc(
-                    tile_reference.0.cast().as_ptr(),
-                    layout_of(tile_index.format()),
-                );
+                TileAllocator.dealloc(tile_reference.0, tile_index.format());
             }
 
             self.tile_set_to_vram.remove(tile_ref);
@@ -630,16 +656,18 @@ impl VRamManagerInner {
         source_tile: u16,
         target_tile_set: &TileSet<'_>,
         target_tile: u16,
+        is_affine: bool,
     ) {
         assert_eq!(
             source_tile_set.format, target_tile_set.format,
             "Must replace a tileset with the same format"
         );
 
-        if let Some(&reference) = self
-            .tile_set_to_vram
-            .get(&TileInTileSetReference::new(source_tile_set, source_tile))
-        {
+        if let Some(&reference) = self.tile_set_to_vram.get(&TileInTileSetReference::new(
+            source_tile_set,
+            source_tile,
+            is_affine,
+        )) {
             self.copy_tile_to_location(target_tile_set, target_tile, reference);
         }
     }
