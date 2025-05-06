@@ -25,21 +25,31 @@
 #![deny(rustdoc::invalid_html_tags)]
 
 //! # agb
-//! `agb` is a library for making games on the Game Boy Advance using the Rust
-//! programming language. It attempts to be a high level abstraction over the
-//! internal workings of the Game Boy Advance whilst still being high
-//! performance and memory efficient.
+//! `agb` is a library for making games on the Game Boy Advance using rust.
 //!
-//! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
+//! The library's main focus is to provide an abstraction that allows you to develop games which take advantage of the GBA's
+//! capabilities without needing to have extensive knowledge of its low-level implementation.
+//!
+//! `agb` provides the following features:
+//! * Simple build process with minimal dependencies
+//! * Built in importing of sprites, backgrounds, music and sound effects
+//! * High performance audio mixer
+//! * Easy to use sprite and tiled background usage
+//! * A global allocator allowing for use of both core and alloc
+//!
+//! A more detailed walkthrough can be found in [the book](https://agbrs.dev/book), or you can play with the
+//! [interactive examples](https://agbrs.dev/examples) to get a better feel of what's possible.
 
+/// Include background tiles from a png, bmp or aseprite file.
+///
 /// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
 /// Suppose you have a file in `examples/gfx/beach-background.aseprite` which contains some tiles you'd like to use.
 ///
 /// You import them using:
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => "examples/gfx/beach-background.aseprite"
@@ -95,8 +105,8 @@
 /// You can configure which colour that will be with the optional second argument to `include_background_gfx!`
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     "00bdfe", // the sky colour hex code
@@ -116,8 +126,8 @@
 /// could be flipped horizontally or vertically (or both) and combined with other tiles.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => deduplicate "examples/gfx/beach-background.aseprite",
@@ -131,8 +141,8 @@
 /// required to use 256 colour backgrounds with affine tiles.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => 256 "examples/gfx/beach-background.aseprite",
@@ -146,8 +156,8 @@
 /// So for instance you could make the resulting module `pub` or `pub(crate)` as follows:
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     pub mod backgrounds,
 ///     BEACH => "examples/gfx/beach-background.aseprite",
@@ -179,8 +189,8 @@
 /// to fill the screen with a screen-sized image.
 ///
 /// ```rust
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// # core::include!("doctest_runner.rs");
 /// use agb::{
 ///     display::{
@@ -212,8 +222,8 @@
 /// Modifiers can be combined, so you can import and deduplicate a 256 colour background.
 ///
 /// ```rust,no_run
-/// ##![no_std]
-/// ##![no_main]
+/// # #![no_std]
+/// # #![no_main]
 /// agb::include_background_gfx!(
 ///     mod backgrounds,
 ///     BEACH => 256 deduplicate "examples/gfx/beach-background.aseprite",
@@ -235,8 +245,9 @@ pub use agb_image_converter::include_colours_inner;
 pub use agb_image_converter::include_aseprite_256_inner;
 
 #[macro_export]
-/// Includes a ttf font to be usable by dynamic font rendering. The first
-/// parameter is the filepath and the second is the point size of the font.
+/// Includes a ttf font to be usable by dynamic font rendering.
+///
+/// The first parameter is the filepath and the second is the point size of the font.
 ///
 /// ```rust
 /// # #![no_std]
@@ -276,6 +287,19 @@ pub use agb_macros::entry;
 #[doc(hidden)]
 pub use agb_sound_converter::include_wav as include_wav_inner;
 
+/// Include a wav file to be used for sound effects or music.
+///
+/// The parameter is the path to the sound file relative to the root of your crate.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("doctest_runner.rs");
+/// use agb::{sound::mixer::SoundData, include_wav};
+///
+/// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
+/// # fn test(gba: agb::Gba) {}
+/// ```
 #[macro_export]
 macro_rules! include_wav {
     ($filepath: literal) => {{
@@ -292,11 +316,11 @@ mod agbabi;
 mod backtrace;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
-/// Provides access to the GBA's direct memory access (DMA) which is used for advanced effects
+/// Provides access to the GBA's direct memory access (DMA) for advanced graphical effects.
 pub mod dma;
 /// Button inputs to the system.
 pub mod input;
-/// Interacting with the GBA interrupts
+/// Interacting with the GBA interrupts.
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
@@ -310,7 +334,7 @@ mod panics_render;
 #[doc(hidden)]
 pub mod print;
 pub(crate) mod refcount;
-/// Simple random number generator
+/// Simple random number generator.
 pub mod rng;
 pub mod save;
 mod single;
@@ -320,18 +344,20 @@ pub mod sound;
 mod sync;
 /// System BIOS calls / syscalls.
 pub(crate) mod syscall;
-/// Interactions with the internal timers
+/// Interactions with the internal timers.
 pub mod timer;
 pub(crate) mod util;
 
 mod no_game;
-
-use display::tiled::VRAM_MANAGER;
-/// Default game
 pub use no_game::no_game;
 
 mod global_asm;
 
+/// Re-exports of situationally useful crates for GBA development
+///
+/// `agb` will refer to these types directly, so if you need anything from
+/// any of the referred to crates, you can use these references to avoid needing
+/// to match version numbers in your game vs. the `agb` crate's version.
 pub mod external {
     pub use critical_section;
     pub use once_cell;
@@ -387,10 +413,10 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
     }
 }
 
-/// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
-/// borrow checker's responsibility to ensure no clashes of global resources.
+/// Controls access to the Game Boy Advance's hardware.
 ///
-/// This is will be created for you via the [`#[agb::entry]`][entry] attribute.
+/// This struct exists to make it the borrow checker's responsibility to ensure no clashes of global resources.
+/// It will be created for you via the [`#[agb::entry]`][entry] attribute.
 ///
 /// # Examples
 ///
@@ -431,8 +457,7 @@ impl Gba {
     pub unsafe fn new_in_entry() -> Self {
         unsafe {
             display::object::SPRITE_LOADER.init();
-
-            VRAM_MANAGER.initialise();
+            display::tiled::VRAM_MANAGER.initialise();
 
             Self::single_new()
         }
@@ -476,7 +501,7 @@ pub fn halt() {
 }
 
 #[cfg(any(test, feature = "testing"))]
-/// *Unstable* support for running tests using `agb`
+/// *Unstable* support for running tests using `agb`.
 ///
 /// In order to use this, you need to enable the unstable `custom_test_framework` feature and copy-paste
 /// the following into the top of your application:

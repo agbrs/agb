@@ -21,6 +21,7 @@ hblank
 scanline
 
 lossily
+situationally
 
 cloneable
 
@@ -73,12 +74,14 @@ EWRAM
 minish
 platformer
 
-### Chip manufacturers
+### Chip manufacturers ###
+
 Atmel
 Macronix
 Sanyo
 
-### Technology
+### Technology ###
+
 EEPROM
 syscall
 syscalls
