@@ -1,3 +1,7 @@
+//! A hash map implementation optimised for the Game Boy Advance.
+//!
+//! The main structs are [`HashMap`] and [`HashSet`].
+//!
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
 #![no_std]
