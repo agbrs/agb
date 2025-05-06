@@ -75,7 +75,7 @@ jobs:
       - name: Setup wasm
         run: just setup-cargo-wasm
       - name: Build website
-        run: just podman_command=docker build-site
+        run: just podman_command=docker _build-site-ci
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
