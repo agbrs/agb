@@ -7,23 +7,17 @@ use alloc::boxed::Box;
 
 use agb::{
     display::{
-        HEIGHT, example_logo,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        HEIGHT,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDmaDefinition,
+    include_background_gfx,
 };
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    let mut map = RegularBackgroundTiles::new(
-        agb::display::Priority::P0,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-
-    example_logo::display_logo(&mut map);
+    let map = get_logo();
 
     let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
 
@@ -43,4 +37,19 @@ fn main(mut gba: agb::Gba) -> ! {
 
         frame.commit();
     }
+}
+
+fn get_logo() -> RegularBackgroundTiles {
+    include_background_gfx!(mod backgrounds, LOGO => "examples/gfx/test_logo.aseprite");
+
+    let mut map = RegularBackgroundTiles::new(
+        agb::display::Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+    map.fill_with(&backgrounds::LOGO);
+
+    map
 }

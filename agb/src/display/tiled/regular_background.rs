@@ -247,7 +247,7 @@ impl RegularBackgroundTiles {
     ///     include_background_gfx,
     /// };
     ///
-    /// include_background_gfx!(mod logo, logo => deduplicate "gfx/test_logo.png");
+    /// include_background_gfx!(mod logo, logo => deduplicate "examples/gfx/test_logo.aseprite");
     ///
     /// # fn test(gba: agb::Gba) {
     /// VRAM_MANAGER.set_background_palettes(logo::PALETTES);
