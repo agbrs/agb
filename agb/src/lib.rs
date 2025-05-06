@@ -288,13 +288,15 @@ pub mod input;
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
-pub mod mgba;
+pub(crate) mod mgba;
 #[doc(inline)]
 pub use agb_fixnum as fixnum;
 /// Contains an implementation of a hashmap which suits the Game Boy Advance's hardware.
 pub use agb_hashmap as hash_map;
 #[cfg(feature = "backtrace")]
 mod panics_render;
+#[doc(hidden)]
+pub mod print;
 pub(crate) mod refcount;
 /// Simple random number generator
 pub mod rng;
