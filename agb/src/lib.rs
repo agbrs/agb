@@ -302,7 +302,7 @@ mod agbabi;
 mod backtrace;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
-/// Provides access to the GBA's direct memory access (DMA) which is used for advanced effects
+/// Provides access to the GBA's direct memory access (DMA) for advanced graphical effects
 pub mod dma;
 /// Button inputs to the system.
 pub mod input;
