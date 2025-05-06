@@ -13,6 +13,6 @@ fn save_setup(gba: &mut agb::Gba) {
 #[agb::entry]
 fn entry(_gba: agb::Gba) -> ! {
     loop {
-        agb::syscall::halt();
+        agb::halt();
     }
 }
