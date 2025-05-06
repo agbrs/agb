@@ -5,12 +5,14 @@ extern crate alloc;
 
 use agb::{
     display::{
-        HEIGHT, WIDTH, WinIn, example_logo,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        HEIGHT, WIDTH, WinIn,
+        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDmaDefinition,
     fixnum::{Num, Rect, Vector2D},
+    include_background_gfx,
 };
+
 use alloc::{boxed::Box, vec};
 
 type FNum = Num<i32, 8>;
@@ -23,13 +25,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    let mut map = RegularBackgroundTiles::new(
-        agb::display::Priority::P0,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-
-    example_logo::display_logo(&mut map);
+    let map = get_logo();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
@@ -86,4 +82,19 @@ fn main(mut gba: agb::Gba) -> ! {
 
         frame.commit();
     }
+}
+
+fn get_logo() -> RegularBackgroundTiles {
+    include_background_gfx!(mod backgrounds, LOGO => "examples/gfx/test_logo.aseprite");
+
+    let mut map = RegularBackgroundTiles::new(
+        agb::display::Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+    map.fill_with(&backgrounds::LOGO);
+
+    map
 }

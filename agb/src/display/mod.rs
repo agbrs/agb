@@ -13,8 +13,6 @@ pub use palette16::Palette16;
 /// Graphics mode 3. Bitmap mode that provides a 16-bit colour framebuffer.
 pub(crate) mod bitmap3;
 mod colours;
-/// Test logo of agb.
-pub mod example_logo;
 pub mod object;
 /// Palette type.
 mod palette16;
