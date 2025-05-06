@@ -421,15 +421,14 @@ mod tests {
     fn object_usage(gba: &mut crate::Gba) {
         include_aseprite!(
             mod sprites,
-            "../examples/the-purple-night/gfx/objects.aseprite",
-            "../examples/the-purple-night/gfx/boss.aseprite"
+            "examples/gfx/crab.aseprite",
         );
 
         let mut gfx = gba.graphics.get();
 
         {
             let mut frame = gfx.frame();
-            let obj = Object::new(sprites::BOSS.sprite(2));
+            let obj = Object::new(sprites::IDLE.sprite(0));
 
             obj.show(&mut frame);
             obj.show(&mut frame);

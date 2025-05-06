@@ -53,6 +53,7 @@ pub struct Tag {
 }
 
 pub struct Expanded {
+    pub input_files: Vec<String>,
     pub sprites: Vec<DynamicImage>,
     pub tags: Vec<Tag>,
 }
@@ -80,6 +81,7 @@ impl Sprite {
 }
 
 pub struct PreOptimisation {
+    pub input_files: Vec<String>,
     pub sprites: Vec<Sprite>,
     pub tags: Vec<Tag>,
 }
@@ -124,14 +126,25 @@ impl Input {
                 sprites.push(image);
             }
         }
+        let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+        let root = Path::new(&root);
 
-        Ok(Expanded { sprites, tags })
+        Ok(Expanded {
+            input_files: self
+                .files
+                .iter()
+                .map(|x| root.join(Path::new(x)).to_string_lossy().into_owned())
+                .collect(),
+            sprites,
+            tags,
+        })
     }
 }
 
 impl Expanded {
     pub fn to_pre_optimisation(&self) -> Result<PreOptimisation, Box<dyn Error>> {
         Ok(PreOptimisation {
+            input_files: self.input_files.clone(),
             tags: self.tags.clone(),
             sprites: self
                 .sprites
