@@ -118,6 +118,9 @@ build-combo-rom-site:
     mkdir -p website/agb/src/roms
     gzip -9 -c examples/target/examples/combo.gba > website/agb/src/roms/combo.gba.gz
 
+build-screenshot-generator:
+    (cd emulator/screenshot-generator; cargo build --release)
+
 generate-screenshot *args:
     "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}}
 
@@ -155,16 +158,16 @@ package-site-dependencies: build-site-dependencies
 unpackage-site-dependencies:
     tar -xvf target/site-deps.tar.gz
 
-setup-app-build: build-mgba-wasm build-website-backtrace unpackage-site-dependencies
+setup-app-build: build-mgba-wasm build-website-backtrace
     (cd website/agb && npm install --no-save --prefer-offline --no-audit)
 
-build-site-app: setup-app-build
+_build-site-app: setup-app-build
     (cd website/agb && npm run build)
 
-serve-site-dev: setup-app-build
+serve-site-dev: build-screenshot-generator build-site-dependencies setup-app-build
     (cd website/agb && npm run dev)
 
-build-site: build-site-app
+_build-site-ci: unpackage-site-dependencies _build-site-app
     rm -rf website/build
     cp website/agb/out website/build -r
     cp book/book website/build/book -r
