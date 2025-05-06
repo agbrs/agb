@@ -4,6 +4,51 @@ use crate::display::object::{DynamicSprite16, Object, PaletteVramSingle, Size};
 
 use super::LetterGroup;
 
+/// The sprite based render backend for [`LetterGroup`]s. Takes a
+/// [`LetterGroup`] and gives an [`Object`] containing the text. A simple use of
+/// the renderer is
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
+/// extern crate alloc;
+/// use alloc::vec::Vec;
+/// use agb::display::{
+///     Palette16, Rgb15,
+///     font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+///     object::Size,
+/// };
+///
+/// static SIMPLE_PALETTE: &Palette16 = {
+///     let mut palette = [Rgb15::BLACK; 16];
+///     palette[1] = Rgb15::WHITE;
+///     &Palette16::new(palette)
+/// };
+/// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+///
+/// # fn test(mut gba: agb::Gba) {
+/// let mut text_elements = Vec::new();
+///
+/// // the actual text rendering
+///
+/// let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+/// let text_renderer = SpriteTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
+///
+/// for letter_group in layout {
+///     text_elements.push(text_renderer.show(&letter_group, (0, 0)));
+/// }
+///
+/// // display the objects in the usual means
+///
+/// let mut gfx = gba.graphics.get();
+/// let mut frame = gfx.frame();
+///
+/// for obj in text_elements.iter() {
+///     obj.show(&mut frame);
+/// }
+/// # }
+/// ```
 pub struct SpriteTextRenderer {
     palette: PaletteVramSingle,
     size: Size,
@@ -11,11 +56,18 @@ pub struct SpriteTextRenderer {
 
 impl SpriteTextRenderer {
     #[must_use]
+    /// Creates a [`SpriteTextRenderer`]. The palette is the palette that will
+    /// be used by each [`Object`] returned by [`SpriteTextRenderer::show`]. The
+    /// [`Size`] is the size of each sprite used by each [`Object`], the
+    /// [`Size`] should be larger than the letter group size given to the
+    /// [`Layout`][super::Layout].
     pub fn new(palette: PaletteVramSingle, size: Size) -> Self {
         Self { palette, size }
     }
 
     #[must_use]
+    /// Generates an object that represents the given [`LetterGroup`]. The
+    /// position of the text can be adjusted using the offset parameter.
     pub fn show(&self, group: &LetterGroup, offset: impl Into<Vector2D<i32>>) -> Object {
         let offset = offset.into();
         let mut sprite = DynamicSprite16::new(self.size);

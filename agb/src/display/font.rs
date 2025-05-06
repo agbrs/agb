@@ -1,3 +1,147 @@
+//! A system for including, rendering, and displaying dynamic text.
+//!
+//! The agb text rendering system has support for:
+//! * Unicode
+//! * Variable sized letters
+//! * Kerning
+//! * Left, right, centre, and justified alignments
+//! * Left to right text only
+//!
+//! It is designed such that there are two phases to the rendering:
+//! * the [`Layout`] system which decides where groups of letters should be
+//!   rendered.
+//! * the [`SpriteTextRenderer`] and [`RegularBackgroundTextRenderer`] which
+//!   take those groups of letters and display them to their relevant targets.
+//!
+//! These two phases interact through the [`LetterGroup`] that the [`Layout`]
+//! generates.
+//!
+//! # Layout
+//!
+//! An iterator over the [`LetterGroup`]s. These allow for chunks of text to be
+//! displayed in a single draw call and also enables the designer to track what
+//! text is being manipulated should you want to perform any effects. For
+//! example, you could play certain sounds after encountering text containing
+//! certain characters.
+//!
+//! ```rust
+//! # #![no_std]
+//! # #![no_main]
+//! # core::include!("../doctest_runner.rs");
+//! use agb::display::font::{Layout, AlignmentKind, Font};
+//!
+//! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+//!
+//! # fn test(_: agb::Gba) {
+//! let mut layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 32, 200);
+//!
+//! let n = layout.next().unwrap();
+//! assert_eq!(n.text(), "Hello,");
+//! assert_eq!(n.position(), (0, 0).into());
+//!
+//! let n = layout.next().unwrap();
+//! assert_eq!(n.text(), "world!");
+//!
+//! assert!(layout.next().is_none());
+//! # }
+//! ```
+//!
+//! # Object based target
+//!
+//! The [`SpriteTextRenderer`] creates objects that can be stored and displayed
+//! later. A simple renderer could look like
+//!
+//! ```rust
+//! # #![no_std]
+//! # #![no_main]
+//! # core::include!("../doctest_runner.rs");
+//! extern crate alloc;
+//! use alloc::vec::Vec;
+//! use agb::display::{
+//!     Palette16, Rgb15,
+//!     font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+//!     object::Size,
+//! };
+//!
+//! static SIMPLE_PALETTE: &Palette16 = {
+//!     let mut palette = [Rgb15::BLACK; 16];
+//!     palette[1] = Rgb15::WHITE;
+//!     &Palette16::new(palette)
+//! };
+//! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+//!
+//! # fn test(mut gba: agb::Gba) {
+//! let mut text_elements = Vec::new();
+//!
+//! // the actual text rendering
+//!
+//! let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+//! let text_renderer = SpriteTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
+//!
+//! for letter_group in layout {
+//!     text_elements.push(text_renderer.show(&letter_group, (0, 0)));
+//! }
+//!
+//! // display the objects in the usual means
+//!
+//! let mut gfx = gba.graphics.get();
+//! let mut frame = gfx.frame();
+//!
+//! for obj in text_elements.iter() {
+//!     obj.show(&mut frame);
+//! }
+//! # }
+//! ```
+//!
+//! # Background tile based renderer
+//!
+//! The [`RegularBackgroundTextRenderer`] uses backgrounds and tiles to display
+//! text. A simple renderer could look like
+//!
+//! ```rust
+//! # #![no_std]
+//! # #![no_main]
+//! # core::include!("../doctest_runner.rs");
+//! use agb::display::{
+//!     Palette16, Rgb15, Priority,
+//!     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+//!     tiled::{RegularBackgroundTiles, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
+//! };
+//!
+//! static SIMPLE_PALETTE: &Palette16 = {
+//!     let mut palette = [Rgb15::BLACK; 16];
+//!     palette[1] = Rgb15::WHITE;
+//!     &Palette16::new(palette)
+//! };
+//! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+//!
+//! # fn test(mut gba: agb::Gba) {
+//! VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
+//! let mut bg = RegularBackgroundTiles::new(
+//!     Priority::P0,
+//!     RegularBackgroundSize::Background32x32,
+//!     TileFormat::FourBpp,
+//! );
+//!
+//! // the actual text rendering
+//!
+//! let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 40, 200);
+//! let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
+//!
+//! for letter_group in layout {
+//!     text_renderer.show(&mut bg, &letter_group);
+//! }
+//!
+//! // display the background in the usual means
+//!
+//! let mut gfx = gba.graphics.get();
+//! let mut frame = gfx.frame();
+//!
+//! bg.show(&mut frame);
+//! # }
+//! ```
+
+#![warn(missing_docs)]
 mod align;
 mod layout;
 mod special;
@@ -11,9 +155,7 @@ pub use tiled::RegularBackgroundTextRenderer;
 
 pub use special::{ChangeColour, SetTag, UnsetTag};
 
-/// The text renderer renders a variable width fixed size
-/// bitmap font using dynamic tiles as a rendering surface.
-/// For usage see the `text_render.rs` example
+/// A single letter's data required to render it.
 pub struct FontLetter {
     pub(crate) character: char,
     pub(crate) width: u8,
@@ -28,6 +170,8 @@ pub struct FontLetter {
 impl FontLetter {
     #[must_use]
     #[allow(clippy::too_many_arguments)] // only used in macro
+    #[doc(hidden)]
+    /// Unstable interface for creating a new Font, should only be used by the [`crate::include_font`] macro
     pub const fn new(
         character: char,
         width: u8,
@@ -69,6 +213,8 @@ impl FontLetter {
     }
 }
 
+/// A font that was imported using the [`include_font`] macro.
+/// This can be used by creating a [`Layout`] that uses this font.
 pub struct Font {
     letters: &'static [FontLetter],
     line_height: i32,
@@ -77,6 +223,8 @@ pub struct Font {
 
 impl Font {
     #[must_use]
+    #[doc(hidden)]
+    /// Unstable interface for creating a new Font, should only be used by the [`crate::include_font`] macro
     pub const fn new(letters: &'static [FontLetter], line_height: i32, ascent: i32) -> Self {
         Self {
             letters,
@@ -101,6 +249,7 @@ impl Font {
     }
 
     #[must_use]
+    /// The height of a line for this font
     pub fn line_height(&self) -> i32 {
         self.line_height
     }

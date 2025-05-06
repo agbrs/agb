@@ -6,12 +6,59 @@ use crate::{
     fixnum::{Vector2D, vec2},
 };
 
+/// The background tile based renderer backend for [`LetterGroup`]s. A simple
+/// use of the renderer is
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
+/// use agb::display::{
+///     Palette16, Rgb15, Priority,
+///     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+///     tiled::{RegularBackgroundTiles, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
+/// };
+///
+/// static SIMPLE_PALETTE: &Palette16 = {
+///     let mut palette = [Rgb15::BLACK; 16];
+///     palette[1] = Rgb15::WHITE;
+///     &Palette16::new(palette)
+/// };
+/// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+///
+/// # fn test(mut gba: agb::Gba) {
+/// VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
+/// let mut bg = RegularBackgroundTiles::new(
+///     Priority::P0,
+///     RegularBackgroundSize::Background32x32,
+///     TileFormat::FourBpp,
+/// );
+///
+/// // the actual text rendering
+///
+/// let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 40, 200);
+/// let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
+///
+/// for letter_group in layout {
+///     text_renderer.show(&mut bg, &letter_group);
+/// }
+///
+/// // display the background in the usual means
+///
+/// let mut gfx = gba.graphics.get();
+/// let mut frame = gfx.frame();
+///
+/// bg.show(&mut frame);
+/// # }
+/// ```
 pub struct RegularBackgroundTextRenderer {
     tiles: Vec<Vec<Option<DynamicTile16>>>,
     origin: Vector2D<i32>,
 }
 
 impl RegularBackgroundTextRenderer {
+    /// Creates a new background renderer with a given origin. All text is
+    /// rendered with respect to this origin.
     pub fn new(origin: impl Into<Vector2D<i32>>) -> Self {
         Self {
             tiles: Vec::new(),
@@ -19,6 +66,7 @@ impl RegularBackgroundTextRenderer {
         }
     }
 
+    /// Displays the given letter group on the given background.
     pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
         self.ensure_drawing_space(bg, group);
 

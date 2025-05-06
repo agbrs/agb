@@ -9,6 +9,29 @@ use super::{
     align::{Align, AlignmentKind, Line},
 };
 
+/// An iterator over [`LetterGroup`]s. Incrementally lays out the given text into drawable chunks.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
+/// use agb::display::font::{Layout, AlignmentKind, Font};
+///
+/// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
+///
+/// # fn test(_: agb::Gba) {
+/// let mut layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 32, 200);
+///
+/// let n = layout.next().unwrap();
+/// assert_eq!(n.text(), "Hello,");
+/// assert_eq!(n.position(), (0, 0).into());
+///
+/// let n = layout.next().unwrap();
+/// assert_eq!(n.text(), "world!");
+///
+/// assert!(layout.next().is_none());
+/// # }
+/// ```
 pub struct Layout {
     text: Rc<str>,
     font: &'static Font,
@@ -25,6 +48,9 @@ pub struct Layout {
 
 impl Layout {
     #[must_use]
+    /// Creates a new layout for the given text, font, and alignment. Generates
+    /// [`LetterGroup`]s of width up to the `max_group_width`. The length of
+    /// each line of text is given by `max_line_length`.
     pub fn new(
         text: &str,
         font: &'static Font,
@@ -50,6 +76,7 @@ impl Layout {
     }
 }
 
+/// A collection of letters and a position for them
 pub struct LetterGroup {
     tag: u16,
     str: Rc<str>,
@@ -69,11 +96,34 @@ impl core::fmt::Debug for LetterGroup {
 
 impl LetterGroup {
     #[must_use]
+    /// The underlying chunk of text this letter group contains
     pub fn text(&self) -> &str {
         &self.str[self.range.clone()]
     }
 
     #[must_use]
+    /// Tags are user controlled data for the text. They can be used to support
+    /// special text effects. Tags are set and unset using [`SetTag`] and
+    /// [`UnsetTag`]. There are 16 possible tags identified using each bit of
+    /// the [`u16`] given.
+    ///
+    /// ```rust
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
+    /// extern crate alloc;
+    /// use agb::display::font::{Font, Layout, SetTag, UnsetTag, AlignmentKind};
+    /// use agb::include_font;
+    /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
+    ///
+    /// # fn test(_: agb::Gba) {
+    /// let text = alloc::format!("#{}!{}?", SetTag::new(7), UnsetTag::new(7));
+    /// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
+    /// assert_eq!(layout.next().unwrap().tag(), 0);
+    /// assert_eq!(layout.next().unwrap().tag(), 1 << 7);
+    /// assert_eq!(layout.next().unwrap().tag(), 0);
+    /// # }
+    /// ```
     pub fn tag(&self) -> u16 {
         self.tag
     }
@@ -87,16 +137,19 @@ impl LetterGroup {
     }
 
     #[must_use]
+    /// The full precision position the letters should be drawn to
     pub fn position(&self) -> Vector2D<i32> {
         self.position
     }
 
     #[must_use]
+    /// The line count of the text
     pub fn line(&self) -> i32 {
         self.line
     }
 
     #[must_use]
+    /// The width and height the group occupies
     pub fn bounds(&self) -> Vector2D<i32> {
         let height = self
             .text()
@@ -111,6 +164,9 @@ impl LetterGroup {
         vec2(self.width, height)
     }
 
+    /// An iterator over each pixel of the text provided as 8 packed pixels at a
+    /// time. This can be used to display the text more efficiently by allowing
+    /// you to render 8 pixels at a time.
     pub fn pixels_packed(&self) -> impl Iterator<Item = (Vector2D<i32>, u32)> {
         let font = self.font();
         let mut previous_char = None;
@@ -173,6 +229,7 @@ impl LetterGroup {
         })
     }
 
+    /// An iterator over each pixel of the text
     pub fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
         let font = self.font();
         let mut previous_char = None;
