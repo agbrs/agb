@@ -416,10 +416,10 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
     }
 }
 
-/// The Gba struct is used to control access to the Game Boy Advance's hardware in a way which makes it the
-/// borrow checker's responsibility to ensure no clashes of global resources.
+/// Controls access to the Game Boy Advance's hardware.
 ///
-/// This is will be created for you via the [`#[agb::entry]`][entry] attribute.
+/// This struct exists to make it the borrow checker's responsibility to ensure no clashes of global resources.
+/// It will be created for you via the [`#[agb::entry]`][entry] attribute.
 ///
 /// # Examples
 ///
