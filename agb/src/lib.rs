@@ -25,12 +25,20 @@
 #![deny(rustdoc::invalid_html_tags)]
 
 //! # agb
-//! `agb` is a library for making games on the Game Boy Advance using the Rust
-//! programming language. It attempts to be a high level abstraction over the
-//! internal workings of the Game Boy Advance whilst still being high
-//! performance and memory efficient.
+//! `agb` is a library for making games on the Game Boy Advance using rust.
 //!
-//! To get started with agb, you should clone the [template repo](https://github.com/agbrs/template) and work from there.
+//! The library's main focus is to provide an abstraction that allows you to develop games which take advantage of the GBA's
+//! capabilities without needing to have extensive knowledge of its low-level implementation.
+//!
+//! `agb` provides the following features:
+//! * Simple build process with minimal dependencies
+//! * Built in importing of sprites, backgrounds, music and sound effects
+//! * High performance audio mixer
+//! * Easy to use sprite and tiled background usage
+//! * A global allocator allowing for use of both core and alloc
+//!
+//! A more detailed walkthrough can be found in [the book](https://agbrs.dev/book), or you can play with the
+//! [interactive examples](https://agbrs.dev/examples) to get a better feel of what's possible.
 
 /// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
