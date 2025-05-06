@@ -85,6 +85,7 @@ impl Debug for Rgb {
 }
 
 /// Includes the colours of an image in the order that they appear as an array of [`Rgb15`].
+///
 /// Useful for passing to a DMA from
 /// [`VRamManager::background_palette_colour_dma`](crate::display::tiled::VRamManager::background_palette_colour_dma)
 ///

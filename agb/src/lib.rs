@@ -40,6 +40,8 @@
 //! A more detailed walkthrough can be found in [the book](https://agbrs.dev/book), or you can play with the
 //! [interactive examples](https://agbrs.dev/examples) to get a better feel of what's possible.
 
+/// Include background tiles from a png, bmp or aseprite file.
+///
 /// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
 ///
 /// Suppose you have a file in `examples/gfx/beach-background.aseprite` which contains some tiles you'd like to use.
