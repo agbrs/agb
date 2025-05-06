@@ -62,7 +62,11 @@ macro_rules! impl_zst_allocator {
 
 pub(crate) use impl_zst_allocator;
 
-/// This is the allocator for the External Working Ram.
+/// This is the allocator for External Working RAM.
+///
+/// External Working RAM (EWRAM) is the most plentiful RAM (256kb) but can be quite slow to access.
+/// If you need to store data in faster to access RAM, then you may want to use the
+/// [`InternalAllocator`] instead of this one.
 ///
 /// This is currently equivalent to the Global Allocator (where things are allocated if no allocator is provided).
 /// This implements the allocator trait, so is meant to be used in specifying where certain structures should be
@@ -92,8 +96,15 @@ pub struct ExternalAllocator;
 
 impl_zst_allocator!(ExternalAllocator, GLOBAL_ALLOC);
 
-/// This is the allocator for the Internal Working Ram. This implements the
-/// allocator trait, so is meant to be used in specifying where certain
+/// This is the allocator for Internal Working RAM.
+///
+/// Internal Working RAM (IWRAM) is the fastest RAM on the Game Boy Advance but is also the
+/// very limited in quantity (32kb). The default allocator for `agb` is the [`ExternalAllocator`]
+/// which allocates into External Working RAM (EWRAM). EWRAM is more plentiful (256kb), so you
+/// should prefer to allocate into that and only allocate into IWRAM if you have specific cases
+/// you need to be faster.
+///
+/// This implements the allocator trait, so is meant to be used in specifying where certain
 /// structures should be allocated.
 ///
 /// ```rust
