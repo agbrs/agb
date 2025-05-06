@@ -342,6 +342,11 @@ pub use no_game::no_game;
 
 mod global_asm;
 
+/// Re-exports of situationally useful crates for GBA development
+///
+/// `agb` will refer to these types directly, so if you need anything from
+/// any of the referred to crates, you can use these references to avoid needing
+/// to match version numbers in your game vs. the `agb` crate's version.
 pub mod external {
     pub use critical_section;
     pub use once_cell;
