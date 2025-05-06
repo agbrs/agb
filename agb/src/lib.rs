@@ -305,7 +305,7 @@ pub mod sound;
 /// A module containing functions and utilities useful for synchronizing state.
 mod sync;
 /// System BIOS calls / syscalls.
-pub mod syscall;
+pub(crate) mod syscall;
 /// Interactions with the internal timers
 pub mod timer;
 pub(crate) mod util;
@@ -349,7 +349,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
 
     #[cfg(not(feature = "backtrace"))]
     loop {
-        syscall::halt();
+        halt();
     }
 }
 
@@ -366,7 +366,7 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
             );
         }
         loop {
-            syscall::halt();
+            halt();
         }
     } else {
         IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
@@ -390,7 +390,9 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
 /// fn main(mut gba: Gba) -> ! {
 ///     // Do whatever you need to do with gba
 ///
-///     loop {}
+///     loop {
+///         agb::halt();
+///     }
 /// }
 /// ```
 #[non_exhaustive]
@@ -430,6 +432,33 @@ impl Gba {
             timers: timer::TimerController::new(),
         }
     }
+}
+
+/// Halts the CPU until an interrupt occurs.
+///
+/// The CPU is switched to a low-power mode but all other subsystems continue running.
+/// You would mainly use this if you are stopping the game, and want to put an infinite loop without
+/// using 100% of the CPU.
+///
+/// Once an interrupt occurs, this function will return.
+///
+/// ```rust,no_run
+/// #![no_std]
+/// #![no_main]
+///
+/// use agb::Gba;
+///
+/// #[agb::entry]
+/// fn main(mut gba: Gba) -> ! {
+///     // your game code here    
+///
+///     loop {
+///         agb::halt();
+///     }
+/// }
+/// ```
+pub fn halt() {
+    syscall::halt();
 }
 
 #[cfg(any(test, feature = "testing"))]

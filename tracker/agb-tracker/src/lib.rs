@@ -668,7 +668,7 @@ impl TrackerChannel {
 #[agb::entry]
 fn main(_gba: agb::Gba) -> ! {
     loop {
-        agb::syscall::halt();
+        agb::halt();
     }
 }
 

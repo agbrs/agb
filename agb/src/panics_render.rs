@@ -7,7 +7,7 @@ use crate::{
     ExternalAllocator, backtrace,
     display::{HEIGHT, WIDTH, bitmap3::Bitmap3, busy_wait_for_vblank},
     dma::dma3_exclusive,
-    mgba, syscall,
+    mgba,
 };
 
 mod text;
@@ -63,7 +63,7 @@ pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
         }
 
         loop {
-            syscall::halt();
+            crate::halt();
         }
     })
 }
