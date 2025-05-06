@@ -235,6 +235,18 @@ pub use agb_image_converter::include_colours_inner;
 pub use agb_image_converter::include_aseprite_256_inner;
 
 #[macro_export]
+/// Includes a ttf font to be usable by dynamic font rendering. The first
+/// parameter is the filepath and the second is the point size of the font.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("doctest_runner.rs");
+/// use agb::{display::font::Font, include_font};
+///
+/// static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
+/// # fn test(gba: agb::Gba) {}
+/// ```
 macro_rules! include_font {
     ($font_path: literal, $font_size: literal) => {{
         use $crate::display::font::{Font, FontLetter};
