@@ -9,7 +9,7 @@ use agb::{
         affine::AffineMatrix,
         tiled::{
             AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
-            RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,
+            AffineMatrixBackground, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,
         },
     },
     dma::HBlankDmaDefinition,
@@ -69,7 +69,9 @@ fn main(mut gba: agb::Gba) -> ! {
         let transforms = scale_transform_matrices
             .iter()
             .map(|&line_matrix| {
-                (AffineMatrix::from_translation(-pos) * line_matrix).to_background_wrapping()
+                AffineMatrixBackground::from_affine_wrapping(
+                    AffineMatrix::from_translation(-pos) * line_matrix,
+                )
             })
             .collect::<Vec<_>>();
         HBlankDmaDefinition::new(transform_dma, &transforms).show(&mut frame);

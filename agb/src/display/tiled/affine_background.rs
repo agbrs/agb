@@ -3,7 +3,11 @@ use bilge::prelude::*;
 use core::alloc::Layout;
 
 use crate::{
-    display::{GraphicsFrame, Priority, affine::AffineMatrixBackground, tiled::TileFormat},
+    display::{
+        GraphicsFrame, Priority,
+        affine::{AffineMatrix, OverflowError},
+        tiled::TileFormat,
+    },
     fixnum::{Num, Vector2D},
 };
 
@@ -193,5 +197,116 @@ impl AffineBackgroundTiles {
     #[must_use]
     pub fn size(&self) -> AffineBackgroundSize {
         self.screenblock.size()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(C, packed(4))]
+#[allow(missing_docs)]
+/// An affine matrix that can be used in affine backgrounds
+pub struct AffineMatrixBackground {
+    pub a: Num<i16, 8>,
+    pub b: Num<i16, 8>,
+    pub c: Num<i16, 8>,
+    pub d: Num<i16, 8>,
+    pub x: Num<i32, 8>,
+    pub y: Num<i32, 8>,
+}
+
+impl Default for AffineMatrixBackground {
+    fn default() -> Self {
+        Self::from_affine_wrapping(AffineMatrix::identity())
+    }
+}
+
+impl TryFrom<AffineMatrix> for AffineMatrixBackground {
+    type Error = OverflowError;
+
+    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
+        Self::from_affine(value)
+    }
+}
+
+impl AffineMatrixBackground {
+    /// Attempts to convert the matrix to one which can be used in affine
+    /// backgrounds.
+    pub fn from_affine(affine: AffineMatrix) -> Result<Self, OverflowError> {
+        Ok(Self {
+            a: affine.a.try_change_base().ok_or(OverflowError(()))?,
+            b: affine.b.try_change_base().ok_or(OverflowError(()))?,
+            c: affine.c.try_change_base().ok_or(OverflowError(()))?,
+            d: affine.d.try_change_base().ok_or(OverflowError(()))?,
+            x: affine.x,
+            y: affine.y,
+        })
+    }
+
+    /// Converts the matrix to one which can be used in affine backgrounds
+    /// wrapping any value which is too large to be represented there.
+    #[must_use]
+    pub fn from_affine_wrapping(affine: AffineMatrix) -> Self {
+        Self {
+            a: Num::from_raw(affine.a.to_raw() as i16),
+            b: Num::from_raw(affine.b.to_raw() as i16),
+            c: Num::from_raw(affine.c.to_raw() as i16),
+            d: Num::from_raw(affine.d.to_raw() as i16),
+            x: affine.x,
+            y: affine.y,
+        }
+    }
+
+    #[must_use]
+    /// Converts to the affine matrix that is usable in performing efficient
+    /// calculations.
+    pub fn to_affine_matrix(&self) -> AffineMatrix {
+        AffineMatrix {
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    #[must_use]
+    /// Creates a transformation matrix using GBA specific syscalls.
+    /// This can be done using the standard transformation matrices like
+    ///
+    /// ```rust,no_run
+    /// # #![no_std]
+    /// # #![no_main]
+    /// # use agb_fixnum::{Vector2D, Num};
+    /// use agb::display::affine::AffineMatrix;
+    /// # fn from_scale_rotation_position(
+    /// #     transform_origin: Vector2D<Num<i32, 8>>,
+    /// #     scale: Vector2D<Num<i32, 8>>,
+    /// #     rotation: Num<i32, 16>,
+    /// #     position: Vector2D<Num<i32, 8>>,
+    /// # ) {
+    /// let A = AffineMatrix::from_translation(-transform_origin)
+    ///     * AffineMatrix::from_scale(scale)
+    ///     * AffineMatrix::from_rotation(rotation)
+    ///     * AffineMatrix::from_translation(position);
+    /// # }
+    /// ```
+    pub fn from_scale_rotation_position(
+        transform_origin: impl Into<Vector2D<Num<i32, 8>>>,
+        scale: impl Into<Vector2D<Num<i32, 8>>>,
+        rotation: Num<i32, 16>,
+        position: impl Into<Vector2D<i16>>,
+    ) -> Self {
+        crate::syscall::bg_affine_matrix(
+            transform_origin.into(),
+            position.into(),
+            scale.into().try_change_base().unwrap(),
+            rotation.rem_euclid(1.into()).try_change_base().unwrap(),
+        )
+    }
+}
+
+impl From<AffineMatrixBackground> for AffineMatrix {
+    fn from(mat: AffineMatrixBackground) -> Self {
+        mat.to_affine_matrix()
     }
 }

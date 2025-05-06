@@ -6,10 +6,10 @@ mod vram_manager;
 
 use core::marker::PhantomData;
 
-pub use super::affine::AffineMatrixBackground;
 use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
     AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
+    AffineMatrixBackground,
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
