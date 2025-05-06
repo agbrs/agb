@@ -349,7 +349,7 @@ fn panic_implementation(info: &core::panic::PanicInfo) -> ! {
 
     #[cfg(not(feature = "backtrace"))]
     loop {
-        syscall::halt();
+        halt();
     }
 }
 
@@ -366,7 +366,7 @@ fn avoid_double_panic(info: &core::panic::PanicInfo) {
             );
         }
         loop {
-            syscall::halt();
+            halt();
         }
     } else {
         IS_PANICKING.store(true, portable_atomic::Ordering::SeqCst);
