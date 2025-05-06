@@ -287,6 +287,19 @@ pub use agb_macros::entry;
 #[doc(hidden)]
 pub use agb_sound_converter::include_wav as include_wav_inner;
 
+/// Include a wav file to be used for sound effects or music.
+///
+/// The parameter is the path to the sound file relative to the root of your crate.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("doctest_runner.rs");
+/// use agb::{sound::mixer::SoundData, include_wav};
+///
+/// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
+/// # fn test(gba: agb::Gba) {}
+/// ```
 #[macro_export]
 macro_rules! include_wav {
     ($filepath: literal) => {{
