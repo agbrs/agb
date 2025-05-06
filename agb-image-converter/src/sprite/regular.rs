@@ -57,6 +57,7 @@ impl SpriteIndexed {
 }
 
 struct Optimised {
+    input_files: Vec<String>,
     palettes: Vec<Palette16>,
     sprites: Vec<SpriteIndexed>,
     tags: Vec<Tag>,
@@ -69,6 +70,7 @@ struct SpriteCompacted {
 }
 
 struct Output {
+    input_files: Vec<String>,
     palettes: Vec<Palette16>,
     sprites: Vec<SpriteCompacted>,
     tags: Vec<Tag>,
@@ -87,6 +89,7 @@ impl PreOptimisation {
         let optimised_palettes = optimiser.optimise_palettes()?;
 
         Ok(Optimised {
+            input_files: self.input_files.clone(),
             sprites: self
                 .sprites
                 .iter()
@@ -121,6 +124,7 @@ impl PreOptimisation {
 impl Optimised {
     fn to_output(&self) -> Result<Output, Box<dyn Error>> {
         Ok(Output {
+            input_files: self.input_files.clone(),
             palettes: self.palettes.clone(),
             sprites: self
                 .sprites
@@ -174,7 +178,15 @@ impl ToTokens for Output {
             }
         });
 
+        let input_files = self.input_files.iter().map(|file| {
+            quote! {
+                const _: &[u8] = include_bytes!(#file);
+            }
+        });
+
         tokens.extend(quote! {
+            #(#input_files)*
+
             static PALETTES: &[Palette16] = &[#(#palettes),*];
             static SPRITES: &[Sprite] = &[#(#sprites),*];
 
