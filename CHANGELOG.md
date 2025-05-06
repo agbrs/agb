@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer
 - Removed `VRamManager.set_background_palette_raw` since it is actually unsafe and didn't work as intended for smaller palettes in release mode
+- Removed the `syscall` module and put the useful `halt` method in `agb::halt()`.
 
 ## [0.21.3] - 2025/02/01
 
