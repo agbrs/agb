@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `round` methods for `Num` and `Vector2D` that rounds towards the nearest integer.
 - Added `clamp_point` and corner methods to `Rect`.
 - Added `width` and `height` to `TileData` to track the original size of your backgrounds.
+- Added an `eprintln!()` macro which prints at error level for mgba
 
 ### Changed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer
 - Removed `VRamManager.set_background_palette_raw` since it is actually unsafe and didn't work as intended for smaller palettes in release mode
 - Removed the `syscall` module and put the useful `halt` method in `agb::halt()`.
+- Removed the `mgba` module since you should do all printing via the `println!()` macro.
 
 ## [0.21.3] - 2025/02/01
 
