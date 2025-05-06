@@ -316,11 +316,11 @@ mod agbabi;
 mod backtrace;
 /// Implements everything relating to things that are displayed on screen.
 pub mod display;
-/// Provides access to the GBA's direct memory access (DMA) for advanced graphical effects
+/// Provides access to the GBA's direct memory access (DMA) for advanced graphical effects.
 pub mod dma;
 /// Button inputs to the system.
 pub mod input;
-/// Interacting with the GBA interrupts
+/// Interacting with the GBA interrupts.
 pub mod interrupt;
 mod memory_mapped;
 /// Implements logging to the mgba emulator.
@@ -334,7 +334,7 @@ mod panics_render;
 #[doc(hidden)]
 pub mod print;
 pub(crate) mod refcount;
-/// Simple random number generator
+/// Simple random number generator.
 pub mod rng;
 pub mod save;
 mod single;
@@ -344,14 +344,11 @@ pub mod sound;
 mod sync;
 /// System BIOS calls / syscalls.
 pub(crate) mod syscall;
-/// Interactions with the internal timers
+/// Interactions with the internal timers.
 pub mod timer;
 pub(crate) mod util;
 
 mod no_game;
-
-use display::tiled::VRAM_MANAGER;
-/// Default game
 pub use no_game::no_game;
 
 mod global_asm;
@@ -460,8 +457,7 @@ impl Gba {
     pub unsafe fn new_in_entry() -> Self {
         unsafe {
             display::object::SPRITE_LOADER.init();
-
-            VRAM_MANAGER.initialise();
+            display::tiled::VRAM_MANAGER.initialise();
 
             Self::single_new()
         }
@@ -505,7 +501,7 @@ pub fn halt() {
 }
 
 #[cfg(any(test, feature = "testing"))]
-/// *Unstable* support for running tests using `agb`
+/// *Unstable* support for running tests using `agb`.
 ///
 /// In order to use this, you need to enable the unstable `custom_test_framework` feature and copy-paste
 /// the following into the top of your application:

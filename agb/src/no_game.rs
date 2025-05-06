@@ -1,5 +1,3 @@
-//! The no game screen is what is displayed if there isn't a game made yet.
-
 use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
@@ -138,6 +136,7 @@ fn generate_sprites() -> Box<[SpriteVram]> {
     sprites.into_boxed_slice()
 }
 
+/// The no game screen is what is displayed if there isn't a game made yet.
 pub fn no_game(mut gba: crate::Gba) -> ! {
     let mut gfx: crate::display::Graphics<'_> = gba.graphics.get();
 

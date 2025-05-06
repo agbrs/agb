@@ -16,7 +16,7 @@ pub fn eprintln(args: Arguments) {
     }
 }
 
-/// Works like [`std::println`](https://doc.rust-lang.org/stable/std/macro.println.html)
+/// Works like [`std::println`](https://doc.rust-lang.org/stable/std/macro.println.html).
 ///
 /// Prints to the standard output when running under the mgba emulator.
 /// This is mainly useful for debugging, and is reasonably slow.
@@ -40,7 +40,7 @@ macro_rules! println {
     };
 }
 
-/// Works like [`std::println`](https://doc.rust-lang.org/stable/std/macro.println.html)
+/// Works like [`std::println`](https://doc.rust-lang.org/stable/std/macro.println.html).
 ///
 /// Prints to the standard output when running under the mgba emulator but with the error level internally
 /// This is mainly intended for debugging, and is reasonably slow.
