@@ -303,7 +303,7 @@ mod memory_mapped;
 pub(crate) mod mgba;
 #[doc(inline)]
 pub use agb_fixnum as fixnum;
-/// Contains an implementation of a hashmap which suits the Game Boy Advance's hardware.
+#[doc(inline)]
 pub use agb_hashmap as hash_map;
 #[cfg(feature = "backtrace")]
 mod panics_render;
