@@ -77,12 +77,52 @@ impl AffineBackgroundSize {
     }
 }
 
-/// Display affine backgrounds to the screen.
+/// Represents a collection of tiles ready to display as an affine background.
 ///
 /// Affine backgrounds work slightly differently to regular backgrounds.
 /// You can have at most 2 of them on display at once, and they can only use 256-colour tiles.
 /// Also, no per-tile transformations are possible.
 /// Finally, only 256 distinct tiles can be used at once across all affine backgrounds.
+///
+/// Note that while this is in scope, space in
+/// the GBA's VRAM will be allocated and unavailable for other backgrounds. You should use the
+/// smallest [`AffineBackgroundSize`] you can while still being able to render the scene you want.
+///
+/// You can show up to 2 affine backgrounds at once (or 1 affine background and 2 [regular backgrounds](super::RegularBackgroundTiles)).
+///
+/// to display a given affine background to the screen, you need to call its [show()](AffineBackgroundTiles::show()) method on
+/// a given [`GraphicsFrame`](crate::display::GraphicsFrame).
+///
+/// ## Example
+///
+/// ```rust,no_run
+/// # #![no_main]
+/// # #![no_std]
+/// #
+/// # use agb::Gba;
+/// # fn foo(gba: &mut Gba) {
+/// use agb::display::{
+///     Priority,
+///     tiled::{AffineBackgroundTiles, AffineBackgroundSize, AffineBackgroundWrapBehaviour, VRAM_MANAGER},
+/// };
+///
+/// let mut gfx = gba.graphics.get();
+///
+/// let bg = AffineBackgroundTiles::new(
+///     Priority::P0,
+///     AffineBackgroundSize::Background16x16,
+///     AffineBackgroundWrapBehaviour::NoWrap,
+/// );
+///
+/// // load the background with some tiles
+///
+/// loop {
+///     let mut frame = gfx.frame();
+///     bg.show(&mut frame);
+///     frame.commit();
+/// }
+/// # }
+/// ```
 pub struct AffineBackgroundTiles {
     priority: Priority,
 
@@ -98,7 +138,18 @@ pub struct AffineBackgroundTiles {
 }
 
 impl AffineBackgroundTiles {
-    /// Create a new affine background with given settings.
+    /// Create a new affine background with given `priority`, `size` and `warp_behaviour`.
+    ///
+    /// This allocates some space in VRAM to store the actual tile data, but doesn't show anything
+    /// until you call the [`show()`](AffineBackgroundTiles::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
+    ///
+    /// You can have more `AffineBackgroundTiles` instances then there are available backgrounds
+    /// to show at once, but you can only show 2 at once in a given frame (or 1 and a up to 2
+    /// [regular backgrounds](super::RegularBackgroundTiles)).
+    ///
+    /// For [`Priority`], a higher priority is rendered first, so is behind lower priorities.
+    /// Therefore, `P0` will be rendered at the _front_ and `P3` at the _back_. For equal priorities,
+    /// backgrounds are rendered _behind_ objects.
     #[must_use]
     pub fn new(
         priority: Priority,
@@ -136,7 +187,11 @@ impl AffineBackgroundTiles {
     /// Because of limitations of the Game Boy Advance, this does not take a [`TileSetting`](super::TileSetting)
     /// but instead just a tile index.
     ///
-    /// The `tileset` must also be a 256 colour background imported with the 256 option.
+    /// The `tileset` must also be a 256 colour background imported with the 256 option in
+    /// [`include_background_gfx!`](crate::include_background_gfx!).
+    ///
+    /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
+    /// in the background will reference that same tile only once to reduce video RAM usage.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
@@ -207,9 +262,19 @@ impl AffineBackgroundTiles {
         self
     }
 
-    /// Show this background on the current `frame`.
+    /// Show this background on the given frame.
     ///
-    /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background.
+    /// The background itself won't be visible until you call [`commit()`](GraphicsFrame::commit()) on the provided [`GraphicsFrame`].
+    ///
+    /// After this call, you can safely drop the background and the provided [`GraphicsFrame`] will maintain the
+    /// references needed until the frame is drawn on screen.
+    ///
+    /// Note that after this call, any modifications made to the background will _not_ show this frame. Effectively
+    /// calling `show()` takes a snapshot of the current state of the background, so you can even modify
+    /// the background and `show()` it again and both will show in the frame.
+    ///
+    /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background
+    /// such as applying [dma effects](crate::display::dma).
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
         let commit_data = if self.is_dirty {
             Some(AffineBackgroundCommitData {
@@ -247,6 +312,8 @@ impl AffineBackgroundTiles {
     }
 
     /// Set the current priority for the background.
+    ///
+    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show())
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self

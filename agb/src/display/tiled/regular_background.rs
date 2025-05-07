@@ -86,13 +86,15 @@ impl RegularBackgroundSize {
     }
 }
 
-/// Represents a collections of background tiles. Note that while this is in scope, space in
+/// Represents a collections of background tiles.
+///
+/// Note that while this is in scope, space in
 /// the GBA's VRAM will be allocated and unavailable for other backgrounds. You should use the
 /// smallest [`RegularBackgroundSize`] you can while still being able to render the scene you want.
 ///
 /// You can show up to 4 regular backgrounds at once (or 2 regular backgrounds and 1 [affine background](super::AffineBackgroundTiles)).
 ///
-/// To display a regular background to the screen, you need to call it's [`show()`](RegularBackgroundTiles::show())
+/// To display a regular background to the screen, you need to call its [`show()`](RegularBackgroundTiles::show())
 /// method on a given [`GraphicsFrame`](crate::display::GraphicsFrame).
 ///
 /// ## Example
@@ -137,9 +139,10 @@ pub struct RegularBackgroundTiles {
 }
 
 impl RegularBackgroundTiles {
-    /// Create a new RegularBackground with given `priority`, `size` and `colours`. This allocates some space
-    /// in VRAM to store the actual tile data, but doesn't show anything until you call the [`show()`](RegularBackgroundTiles::show()) function
-    /// on a [`GraphicsFrame`](crate::display::GraphicsFrame).
+    /// Create a new RegularBackground with given `priority`, `size` and `colours`.
+    ///
+    /// This allocates some space in VRAM to store the actual tile data, but doesn't show anything until you call
+    /// the [`show()`](RegularBackgroundTiles::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
     ///
     /// You can have more `RegularBackgroundTile` instances then there are backgrounds, but you can only show
     /// 4 at once in a given frame (or 2 and a single [affine background](super::AffineBackgroundTiles)).
@@ -161,16 +164,21 @@ impl RegularBackgroundTiles {
         }
     }
 
-    /// Sets the scroll position of the background. This determines the pixel coordinate of the _screen_
+    /// Sets the scroll position of the background.
+    ///
+    /// This determines the pixel coordinate of the _screen_
     /// in the background. So increasing the `x` coordinate of the scroll position moves the screen to the right,
     /// effectively rendering the background more to the left.
     ///
     /// To get the current scroll position, you can call [`scroll_pos()`](RegularBackgroundTiles::scroll_pos()).
-    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i32>>) {
+    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i32>>) -> &mut Self {
         self.scroll = scroll.into();
+        self
     }
 
-    /// Gets the current scroll position of the background. This determines the pixel coordinate of the _screen_
+    /// Gets the current scroll position of the background.
+    ///
+    /// This determines the pixel coordinate of the _screen_
     /// in the background. So increasing the `x` coordinate of the scroll position moves the screen to the right,
     /// effectively rendering the background more to the left.
     ///
@@ -180,9 +188,10 @@ impl RegularBackgroundTiles {
         self.scroll
     }
 
-    /// Sets a tile at the given position to the given [`TileSet`] / [`TileSetting`] combination. The number of colours
-    /// which you set when creating the background (in the [`TileFormat`] argument) must match the number of colours in
-    /// the tileset you are creating.
+    /// Sets a tile at the given position to the given [`TileSet`] / [`TileSetting`] combination.
+    ///
+    /// The number of colours which you set when creating the background (in the [`TileFormat`] argument)
+    /// must match the number of colours in the tileset you are creating.
     ///
     /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
     /// in the background will reference that same tile only once to reduce video RAM usage.
@@ -204,8 +213,9 @@ impl RegularBackgroundTiles {
         self.set_tile_at_pos(pos, tileset, tile_setting);
     }
 
-    /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination. This only works on a
-    /// [16 colour background](TileFormat::FourBpp).
+    /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination.
+    ///
+    /// This only works on a [16 colour background](TileFormat::FourBpp).
     pub fn set_tile_dynamic16(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
@@ -227,8 +237,9 @@ impl RegularBackgroundTiles {
         );
     }
 
-    /// Fills the screen with the data given in `tile_data`. This is useful mainly e.g. title screens or other full screen
-    /// backgrounds.
+    /// Fills the screen with the data given in `tile_data`.
+    ///
+    /// This is useful mainly e.g. title screens or other full screen backgrounds.
     ///
     /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx) and
     /// that it is at least the size of the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
@@ -309,8 +320,9 @@ impl RegularBackgroundTiles {
         self.is_dirty = true;
     }
 
-    /// Show this background on a given frame. The background itself won't be visible until you call
-    /// [`commit()`](GraphicsFrame::commit()) on the provided [`GraphicsFrame`].
+    /// Show this background on a given frame.
+    ///
+    /// The background itself won't be visible until you call [`commit()`](GraphicsFrame::commit()) on the provided [`GraphicsFrame`].
     ///
     /// After this call, you can safely drop the background and the provided [`GraphicsFrame`] will maintain the
     /// references needed until the frame is drawn on screen.
@@ -319,7 +331,8 @@ impl RegularBackgroundTiles {
     /// calling `show()` takes a snapshot of the current state of the background, so you can even modify
     /// the background and `show()` it again and both will show in the frame.
     ///
-    /// The returned [`BackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window).
+    /// The returned [`BackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window),
+    /// or used for [dma effects](crate::display::dma).
     ///
     /// # Panics
     ///
@@ -354,9 +367,12 @@ impl RegularBackgroundTiles {
         self.priority
     }
 
-    /// Sets the [`Priority`] of this background. This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show())
-    pub fn set_priority(&mut self, priority: Priority) {
+    /// Sets the [`Priority`] of this background.
+    ///
+    /// This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show())
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
+        self
     }
 
     fn bg_ctrl_value(&self) -> BackgroundControlRegister {
