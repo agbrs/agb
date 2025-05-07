@@ -3,7 +3,7 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 
 use agb::{
     display::{
@@ -11,6 +11,7 @@ use agb::{
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDmaDefinition,
+    fixnum::Num,
     include_background_gfx,
 };
 
@@ -19,7 +20,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
     let map = get_logo();
 
-    let offsets: Box<[_]> = (0..(32 * 16 + HEIGHT as u16)).collect();
+    let offsets: Box<[Num<i32, 8>]> = (0..(32 * 8 + HEIGHT))
+        .map(|y| (Num::new(y) / 16).sin())
+        .collect();
 
     let mut frame_count = 0;
 
@@ -32,8 +35,12 @@ fn main(mut gba: agb::Gba) -> ! {
             frame_count = 0;
         }
 
-        HBlankDmaDefinition::new(background_id.x_scroll_dma(), &offsets[frame_count..])
-            .show(&mut frame);
+        let offsets: Vec<_> = (0..160i16)
+            .map(|y| (offsets[frame_count + y as usize] * 3).floor() as i16)
+            .map(|offset| offset as u16)
+            .collect();
+
+        HBlankDmaDefinition::new(background_id.x_scroll_dma(), &offsets).show(&mut frame);
 
         frame.commit();
     }
