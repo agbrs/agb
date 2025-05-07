@@ -14,11 +14,11 @@
       "languageId": "rust",
       "includeRegExpList": [
         // only include stuff in doc comments
-        "/\\/\\/\\/.*/"
+        "/\\/\\/[\\/!].*/"
       ],
       "ignoreRegExpList": [
         // but skip example code in doc comments
-        "/\\/\\/\\/ ```[\\s\\S]+?```/g",
+        "/\\/\\/[\\/!] ```[\\s\\S]+?```/g",
         // skip in links
         "/\\[`[^`]+?`\\]/g",
         // and anything else in `s. Weirdly just this still catches the one in links so we need both

@@ -251,9 +251,12 @@ pub enum GraphicsMode {
     #[default]
     /// The sprite rendered as you expect
     Normal,
-    /// This object is part of blending
+    /// This object will be alpha blended if the relevant [`Blend`](crate::display::Blend) mode is enabled.
     AlphaBlending,
     /// This object is a mask of the object window
+    ///
+    /// The object is not rendered at all, and instead any non-transparent pixel is considered part
+    /// of the [`object window`](crate::display::Windows::win_obj).
     Window,
 }
 

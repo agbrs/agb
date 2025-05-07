@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use alloc::rc::Rc;
 use bilge::prelude::*;
 use core::alloc::Layout;
@@ -23,19 +24,27 @@ mod tiles;
 pub(crate) use screenblock::AffineBackgroundScreenBlock;
 pub(crate) use tiles::Tiles;
 
+/// The size of the affine background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
 pub enum AffineBackgroundSize {
+    /// 16x16 tiles or 128x128px
     Background16x16 = 0,
+    /// 32x32 tiles or 256x256px
     Background32x32 = 1,
+    /// 64x64 tiles or 512x512px
     Background64x64 = 2,
+    /// 128x128 tiles or 1024x1024px
     Background128x128 = 3,
 }
 
+/// Whether the background should wrap at the edges.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
 pub enum AffineBackgroundWrapBehaviour {
+    /// Don't wrap and instead show the default background colour.
     NoWrap = 0,
+    /// Wrap at the edges similar to the behaviour for regular backgrounds.
     Wrap = 1,
 }
 
@@ -68,6 +77,52 @@ impl AffineBackgroundSize {
     }
 }
 
+/// Represents a collection of tiles ready to display as an affine background.
+///
+/// Affine backgrounds work slightly differently to regular backgrounds.
+/// You can have at most 2 of them on display at once, and they can only use 256-colour tiles.
+/// Also, no per-tile transformations are possible.
+/// Finally, only 256 distinct tiles can be used at once across all affine backgrounds.
+///
+/// Note that while this is in scope, space in
+/// the GBA's VRAM will be allocated and unavailable for other backgrounds. You should use the
+/// smallest [`AffineBackgroundSize`] you can while still being able to render the scene you want.
+///
+/// You can show up to 2 affine backgrounds at once (or 1 affine background and 2 [regular backgrounds](super::RegularBackgroundTiles)).
+///
+/// to display a given affine background to the screen, you need to call its [show()](AffineBackgroundTiles::show()) method on
+/// a given [`GraphicsFrame`](crate::display::GraphicsFrame).
+///
+/// ## Example
+///
+/// ```rust,no_run
+/// # #![no_main]
+/// # #![no_std]
+/// #
+/// # use agb::Gba;
+/// # fn foo(gba: &mut Gba) {
+/// use agb::display::{
+///     Priority,
+///     tiled::{AffineBackgroundTiles, AffineBackgroundSize, AffineBackgroundWrapBehaviour, VRAM_MANAGER},
+/// };
+///
+/// let mut gfx = gba.graphics.get();
+///
+/// let bg = AffineBackgroundTiles::new(
+///     Priority::P0,
+///     AffineBackgroundSize::Background16x16,
+///     AffineBackgroundWrapBehaviour::NoWrap,
+/// );
+///
+/// // load the background with some tiles
+///
+/// loop {
+///     let mut frame = gfx.frame();
+///     bg.show(&mut frame);
+///     frame.commit();
+/// }
+/// # }
+/// ```
 pub struct AffineBackgroundTiles {
     priority: Priority,
 
@@ -83,6 +138,18 @@ pub struct AffineBackgroundTiles {
 }
 
 impl AffineBackgroundTiles {
+    /// Create a new affine background with given `priority`, `size` and `warp_behaviour`.
+    ///
+    /// This allocates some space in VRAM to store the actual tile data, but doesn't show anything
+    /// until you call the [`show()`](AffineBackgroundTiles::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
+    ///
+    /// You can have more `AffineBackgroundTiles` instances then there are available backgrounds
+    /// to show at once, but you can only show 2 at once in a given frame (or 1 and a up to 2
+    /// [regular backgrounds](super::RegularBackgroundTiles)).
+    ///
+    /// For [`Priority`], a higher priority is rendered first, so is behind lower priorities.
+    /// Therefore, `P0` will be rendered at the _front_ and `P3` at the _back_. For equal priorities,
+    /// backgrounds are rendered _behind_ objects.
     #[must_use]
     pub fn new(
         priority: Priority,
@@ -104,15 +171,27 @@ impl AffineBackgroundTiles {
         }
     }
 
+    /// Set the current scroll position.
     pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) {
         self.scroll = scroll.into();
     }
 
+    /// Get the current scroll position.
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<Num<i32, 8>> {
         self.scroll
     }
 
+    /// Set a tile at a given position to the given tile index.
+    ///
+    /// Because of limitations of the Game Boy Advance, this does not take a [`TileSetting`](super::TileSetting)
+    /// but instead just a tile index.
+    ///
+    /// The `tileset` must also be a 256 colour background imported with the 256 option in
+    /// [`include_background_gfx!`](crate::include_background_gfx!).
+    ///
+    /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
+    /// in the background will reference that same tile only once to reduce video RAM usage.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
@@ -129,15 +208,34 @@ impl AffineBackgroundTiles {
         self.set_tile_at_pos(pos, tileset, tile_index);
     }
 
-    pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) {
+    /// Set the current transformation matrix.
+    pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) -> &mut Self {
         self.transform = transform.into();
+        self
     }
 
-    pub fn set_wrap_behaviour(&mut self, wrap_behaviour: AffineBackgroundWrapBehaviour) {
+    /// Get the current transformation matrix.
+    #[must_use]
+    pub fn transform(&self) -> AffineMatrixBackground {
+        self.transform
+    }
+
+    /// Set the wrapping behaviour.
+    pub fn set_wrap_behaviour(
+        &mut self,
+        wrap_behaviour: AffineBackgroundWrapBehaviour,
+    ) -> &mut Self {
         self.wrap_behaviour = wrap_behaviour;
+        self
     }
 
-    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) {
+    /// Gets the wrapping behaviour.
+    #[must_use]
+    pub fn wrap_behaviour(&self) -> AffineBackgroundWrapBehaviour {
+        self.wrap_behaviour
+    }
+
+    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) -> &mut Self {
         let old_tile = self.tiles.get(pos);
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
@@ -156,14 +254,27 @@ impl AffineBackgroundTiles {
             VRAM_MANAGER.remove_tile(TileIndex::EightBpp(old_tile as u16));
         }
 
-        if old_tile == new_tile {
-            return;
+        if old_tile != new_tile {
+            self.tiles.tiles_mut()[pos] = new_tile;
+            self.is_dirty = true;
         }
 
-        self.tiles.tiles_mut()[pos] = new_tile;
-        self.is_dirty = true;
+        self
     }
 
+    /// Show this background on the given frame.
+    ///
+    /// The background itself won't be visible until you call [`commit()`](GraphicsFrame::commit()) on the provided [`GraphicsFrame`].
+    ///
+    /// After this call, you can safely drop the background and the provided [`GraphicsFrame`] will maintain the
+    /// references needed until the frame is drawn on screen.
+    ///
+    /// Note that after this call, any modifications made to the background will _not_ show this frame. Effectively
+    /// calling `show()` takes a snapshot of the current state of the background, so you can even modify
+    /// the background and `show()` it again and both will show in the frame.
+    ///
+    /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background
+    /// such as applying [dma effects](crate::dma).
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
         let commit_data = if self.is_dirty {
             Some(AffineBackgroundCommitData {
@@ -194,9 +305,24 @@ impl AffineBackgroundTiles {
         background_control_register
     }
 
+    /// Returns the size of the affine background.
     #[must_use]
     pub fn size(&self) -> AffineBackgroundSize {
         self.screenblock.size()
+    }
+
+    /// Set the current priority for the background.
+    ///
+    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show())
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.priority = priority;
+        self
+    }
+
+    /// Gets the current priority for the background.
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.priority
     }
 }
 

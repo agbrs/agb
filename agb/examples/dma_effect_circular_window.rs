@@ -9,13 +9,11 @@ use agb::{
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDmaDefinition,
-    fixnum::{Num, Rect, Vector2D},
+    fixnum::{Num, Rect, Vector2D, vec2},
     include_background_gfx,
 };
 
 use alloc::{boxed::Box, vec};
-
-type FNum = Num<i32, 8>;
 
 #[agb::entry]
 fn entry(mut gba: agb::Gba) -> ! {
@@ -27,8 +25,8 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let map = get_logo();
 
-    let mut pos: Vector2D<FNum> = (10, 10).into();
-    let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
+    let mut pos: Vector2D<Num<i32, 8>> = vec2(10.into(), 10.into());
+    let mut velocity = vec2(1.into(), 1.into());
 
     let circle: Box<[_]> = (1..64i32)
         .map(|i| {
@@ -37,11 +35,11 @@ fn main(mut gba: agb::Gba) -> ! {
             let x1 = 32 - x;
             let x2 = 32 + x;
 
-            ((x1 as u16) << 8) | (x2 as u16)
+            vec2(x2 as u8, x1 as u8)
         })
         .collect();
 
-    let mut circle_poses = vec![0; 160];
+    let mut circle_poses = vec![vec2(0, 0); 160];
 
     loop {
         pos += velocity;
@@ -56,11 +54,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
         let x_pos = pos.x.floor().max(0) as u16;
         let y_pos = pos.y.floor().max(0);
-        let x_adjustment = (x_pos << 8) | x_pos;
+        let x_adjustment = vec2(x_pos as u8, x_pos as u8);
         for (i, value) in circle_poses.iter_mut().enumerate() {
             let i = i as i32;
             if i <= y_pos || i >= y_pos + 64 {
-                *value = 0;
+                *value = vec2(0, 0);
                 continue;
             }
 

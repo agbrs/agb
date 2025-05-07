@@ -1,6 +1,8 @@
 #![warn(missing_docs)]
 //! The window feature of the GBA.
 
+use agb_fixnum::Vector2D;
+
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
 use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
@@ -10,6 +12,9 @@ use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 /// The windows feature can selectively display backgrounds or objects on the screen
 /// and can selectively enable and disable effects. This gives out references and
 /// holds changes before they can be committed.
+///
+/// The window for the current frame can be accessed using the
+/// [`.windows()`](super::GraphicsFrame::windows()) method on the current [`GraphicsFrame`](super::GraphicsFrame).
 pub struct Windows {
     wins: [MovableWindow; 2],
     out: Window,
@@ -21,7 +26,10 @@ const REG_VERTICAL_BASE: *mut u16 = 0x0400_0044 as *mut _;
 
 const REG_WINDOW_CONTROL_BASE: *mut u16 = 0x0400_0048 as *mut _;
 
-/// The two Windows that have an effect inside of them
+/// The two Windows that have an effect inside of them.
+///
+/// These are represented by [`MovableWindow`] instances and you can get those
+/// by using the [`win_in()`](Windows::win_in()) method.
 pub enum WinIn {
     /// The higher priority window
     Win0,
@@ -50,15 +58,13 @@ impl Windows {
         self.wins[id as usize].enable()
     }
 
-    /// Gives a reference to the window that is controlled by sprites and objects
+    /// Gives a reference to the window that is controlled by objects with the
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) `Window`.
     #[inline(always)]
     pub fn win_obj(&mut self) -> &mut Window {
         self.obj.enable()
     }
 
-    /// Commits the state of the windows as dictated by the various functions to
-    /// modify them. This should be done during vblank shortly after the wait
-    /// for next vblank call.
     pub(crate) fn commit(&self) {
         for win in &self.wins {
             win.commit();
@@ -107,21 +113,21 @@ impl Window {
         self.window_bits |= (value as u8) << bit;
     }
 
-    /// Sets whether the blend is enabled inside of this window, must call
+    /// Sets whether the blend is enabled inside of this window.
     #[inline(always)]
     pub fn enable_blending(&mut self) -> &mut Self {
         self.set_bit(5, true);
 
         self
     }
-    /// Sets whether the given background will be rendered inside this window
+    /// Sets whether the given background will be rendered inside this window.
     #[inline(always)]
     pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
         self.set_bit(back.0 as usize, true);
 
         self
     }
-    /// Sets whether objects will be rendered inside this window
+    /// Sets whether objects will be rendered inside this window.
     #[inline(always)]
     pub fn enable_objects(&mut self) -> &mut Self {
         self.set_bit(4, true);
@@ -159,19 +165,19 @@ impl MovableWindow {
         self.inner.is_enabled()
     }
 
-    /// Sets whether the blend is enabled inside of this window
+    /// Sets whether the blend is enabled inside of this window.
     #[inline(always)]
     pub fn enable_blending(&mut self) -> &mut Self {
         self.inner.enable_blending();
         self
     }
-    /// Sets whether the given background will be rendered inside this window
+    /// Sets whether the given background will be rendered inside this window.
     #[inline(always)]
     pub fn enable_background(&mut self, back: BackgroundId) -> &mut Self {
         self.inner.enable_background(back);
         self
     }
-    /// Sets whether objects will be rendered inside this window
+    /// Sets whether objects will be rendered inside this window.
     #[inline(always)]
     pub fn enable_objects(&mut self) -> &mut Self {
         self.inner.enable_objects();
@@ -192,9 +198,6 @@ impl MovableWindow {
         }
     }
 
-    /// Sets the area of what is inside the window using [u8] representation,
-    /// which is closest to what the GBA uses. Most of the time
-    /// [MovableWindow::set_pos] should be used.
     #[inline(always)]
     fn set_pos_u8(&mut self, rect: Rect<u8>) -> &mut Self {
         self.rect = rect;
@@ -216,13 +219,15 @@ impl MovableWindow {
         self.set_pos_u8(new_rect)
     }
 
-    /// DMA to control the horizontal position of the window. The lower 8 bits are
-    /// the left hand side, and the upper 8 bits are the right hand side.
+    /// DMA to control the horizontal position of the window.
+    ///
+    /// The [`Vector2D`] returned here isn't an `x` and `y` component but instead represents the
+    /// left and right hand sides of the window.
     ///
     /// When you use this, you should also set the height of the window appropriately using
     /// [`set_pos`](Self::set_pos).
     #[must_use]
-    pub fn horizontal_pos_dma(&self) -> dma::DmaControllable<u16> {
-        unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id)) }
+    pub fn horizontal_pos_dma(&self) -> dma::DmaControllable<Vector2D<u8>> {
+        unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id).cast()) }
     }
 }

@@ -45,7 +45,7 @@
 //!
 //! ## Doing the per-frame work
 //!
-//! Despite being high performance, the mixer still takes a sizable portion of CPU time (6-10%
+//! Despite being high performance, the mixer still takes a sizeable portion of CPU time (6-10%
 //! depending on number of channels and frequency) to do the per-frame tasks, so should be done
 //! towards the end of the frame time (just before waiting for vblank) in order to give as much
 //! time during vblank as possible for rendering related tasks.

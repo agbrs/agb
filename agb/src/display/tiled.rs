@@ -1,3 +1,13 @@
+//! Anything to do with tiled backgrounds
+//!
+//! Most games made for the Game Boy Advance use tiled backgrounds.
+//! You can create and manage regular backgrounds using the [`RegularBackgroundTiles`] struct,
+//! and affine backgrounds using the [`AffineBackgroundTiles`] struct.
+//!
+//! Palettes are managed using the [`VRAM_MANAGER`] global value.
+//!
+//! See the [background deep dive](https://agbrs.dev/book/articles/backgrounds.html) for further details about backgrounds.
+#![warn(missing_docs)]
 mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
@@ -32,30 +42,51 @@ use crate::{
 
 use super::DISPLAY_CONTROL;
 
+/// Represents a [regular background](RegularBackgroundTiles) that's about to be displayed.
+///
+/// This is returned by the [`show()`](RegularBackgroundTiles::show) method. You'll need this if you want
+/// to apply additional effects on the background while it is being displayed, such as adding it to a
+/// [`Window`](super::Window::enable_background) or using one of the DMA registers.
+///
+/// See the `dma_effect_background_*` [examples](https://agbrs.dev/examples) for examples of how to use the DMA functions.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundId(pub(crate) u8);
 
 impl BackgroundId {
+    /// Control the x scroll position every scan line
     #[must_use]
     pub fn x_scroll_dma(self) -> DmaControllable<u16> {
         unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
     }
 
+    /// Control the y scroll position every scan line
     #[must_use]
     pub fn y_scroll_dma(self) -> DmaControllable<u16> {
         unsafe { DmaControllable::new((0x0400_0012 + self.0 as usize * 4) as *mut _) }
     }
 
+    /// Control the current scroll position every scan line
     #[must_use]
     pub fn scroll_dma(self) -> DmaControllable<Vector2D<u16>> {
         unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
     }
 }
 
+/// Represents an [affine background](AffineBackgroundTiles) that's about to be displayed.
+///
+/// This is returned by the [`show()`](AffineBackgroundTiles::show) method. You'll need this if you
+/// want to apply additional effects such as using it with DMA.
+///
+/// See the `dma_effect_affine_background_*` [examples](https://agbrs.dev/examples) for examples of how to use the DMA transform function.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct AffineBackgroundId(pub(crate) u8);
 
 impl AffineBackgroundId {
+    /// Change the transformation matrix every scan line
+    ///
+    /// Note that the current scroll position resets if you change the background transform as part of the DMA
+    /// (unlike the regular background DMA), so you may need to add the current `y` offset to the position if you
+    /// are looking for it to be displayed normally.
     #[must_use]
     pub fn transform_dma(self) -> DmaControllable<AffineMatrixBackground> {
         unsafe { DmaControllable::new((0x0400_0020 + (self.0 as usize - 2) * 16) as *mut _) }
@@ -65,6 +96,9 @@ impl AffineBackgroundId {
 const TRANSPARENT_TILE_INDEX: u16 = 0xffff;
 
 /// The `TileSetting` holds the index for the tile in the tile set, and which effects it should be rendered with.
+///
+/// You will mainly get a TileSetting from [`TileData.tile_settings`](super::tile_data::TileData::tile_settings) which
+/// is produced by the [`include_background_gfx!`](crate::include_background_gfx) macro.
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(align(4))]
 pub struct TileSetting {
