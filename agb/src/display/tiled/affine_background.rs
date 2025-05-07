@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use alloc::rc::Rc;
 use bilge::prelude::*;
 use core::alloc::Layout;
@@ -23,19 +24,27 @@ mod tiles;
 pub(crate) use screenblock::AffineBackgroundScreenBlock;
 pub(crate) use tiles::Tiles;
 
+/// The size of the affine background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
 pub enum AffineBackgroundSize {
+    /// 16x16 tiles or 128x128px
     Background16x16 = 0,
+    /// 32x32 tiles or 256x256px
     Background32x32 = 1,
+    /// 64x64 tiles or 512x512px
     Background64x64 = 2,
+    /// 128x128 tiles or 1024x1024px
     Background128x128 = 3,
 }
 
+/// Whether the background should wrap at the edges.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u16)]
 pub enum AffineBackgroundWrapBehaviour {
+    /// Don't wrap and instead show the default background colour.
     NoWrap = 0,
+    /// Wrap at the edges similar to the behaviour for regular backgrounds.
     Wrap = 1,
 }
 
@@ -68,6 +77,12 @@ impl AffineBackgroundSize {
     }
 }
 
+/// Display affine backgrounds to the screen.
+///
+/// Affine backgrounds work slightly differently to regular backgrounds.
+/// You can have at most 2 of them on display at once, and they can only use 256-colour tiles.
+/// Also, no per-tile transformations are possible.
+/// Finally, only 256 distinct tiles can be used at once across all affine backgrounds.
 pub struct AffineBackgroundTiles {
     priority: Priority,
 
@@ -83,6 +98,7 @@ pub struct AffineBackgroundTiles {
 }
 
 impl AffineBackgroundTiles {
+    /// Create a new affine background with given settings.
     #[must_use]
     pub fn new(
         priority: Priority,
@@ -104,15 +120,23 @@ impl AffineBackgroundTiles {
         }
     }
 
+    /// Set the current scroll position.
     pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) {
         self.scroll = scroll.into();
     }
 
+    /// Get the current scroll position.
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<Num<i32, 8>> {
         self.scroll
     }
 
+    /// Set a tile at a given position to the given tile index.
+    ///
+    /// Because of limitations of the Game Boy Advance, this does not take a [`TileSetting`](super::TileSetting)
+    /// but instead just a tile index.
+    ///
+    /// The `tileset` must also be a 256 colour background imported with the 256 option.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
@@ -129,15 +153,34 @@ impl AffineBackgroundTiles {
         self.set_tile_at_pos(pos, tileset, tile_index);
     }
 
-    pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) {
+    /// Set the current transformation matrix.
+    pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) -> &mut Self {
         self.transform = transform.into();
+        self
     }
 
-    pub fn set_wrap_behaviour(&mut self, wrap_behaviour: AffineBackgroundWrapBehaviour) {
+    /// Get the current transformation matrix.
+    #[must_use]
+    pub fn transform(&self) -> AffineMatrixBackground {
+        self.transform
+    }
+
+    /// Set the wrapping behaviour.
+    pub fn set_wrap_behaviour(
+        &mut self,
+        wrap_behaviour: AffineBackgroundWrapBehaviour,
+    ) -> &mut Self {
         self.wrap_behaviour = wrap_behaviour;
+        self
     }
 
-    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) {
+    /// Gets the wrapping behaviour.
+    #[must_use]
+    pub fn wrap_behaviour(&self) -> AffineBackgroundWrapBehaviour {
+        self.wrap_behaviour
+    }
+
+    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) -> &mut Self {
         let old_tile = self.tiles.get(pos);
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
@@ -156,14 +199,17 @@ impl AffineBackgroundTiles {
             VRAM_MANAGER.remove_tile(TileIndex::EightBpp(old_tile as u16));
         }
 
-        if old_tile == new_tile {
-            return;
+        if old_tile != new_tile {
+            self.tiles.tiles_mut()[pos] = new_tile;
+            self.is_dirty = true;
         }
 
-        self.tiles.tiles_mut()[pos] = new_tile;
-        self.is_dirty = true;
+        self
     }
 
+    /// Show this background on the current `frame`.
+    ///
+    /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background.
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
         let commit_data = if self.is_dirty {
             Some(AffineBackgroundCommitData {
@@ -194,9 +240,22 @@ impl AffineBackgroundTiles {
         background_control_register
     }
 
+    /// Returns the size of the affine background.
     #[must_use]
     pub fn size(&self) -> AffineBackgroundSize {
         self.screenblock.size()
+    }
+
+    /// Set the current priority for the background.
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.priority = priority;
+        self
+    }
+
+    /// Gets the current priority for the background.
+    #[must_use]
+    pub fn priority(&self) -> Priority {
+        self.priority
     }
 }
 
