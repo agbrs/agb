@@ -87,18 +87,29 @@ impl Ball {
         Self { pos, velocity }
     }
 
-    fn update(&mut self, paddle_a: &Paddle, paddle_b: &Paddle) {
+    fn update(&mut self, paddle_a: &Paddle, paddle_b: &Paddle, mixer: &mut Mixer) {
         // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
         // edge of the map or a paddle.
         let potential_ball_pos = self.pos + self.velocity;
 
         let ball_rect = Rect::new(potential_ball_pos, vec2(num!(16), num!(16)));
+
         if paddle_a.collision_rect().touches(ball_rect) {
-            self.velocity.x = num!(1);
+            play_hit(mixer);
+
+            self.velocity.x = self.velocity.x.abs();
+
+            let y_difference = (ball_rect.centre().y - paddle_a.collision_rect().centre().y) / 32;
+            self.velocity.y += y_difference;
         }
 
         if paddle_b.collision_rect().touches(ball_rect) {
-            self.velocity.x = num!(-1);
+            play_hit(mixer);
+
+            self.velocity.x = -self.velocity.x.abs();
+
+            let y_difference = (ball_rect.centre().y - paddle_b.collision_rect().centre().y) / 32;
+            self.velocity.y += y_difference;
         }
 
         // We check if the ball reaches the edge of the screen and reverse it's direction
@@ -145,7 +156,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut button_controller = ButtonController::new();
 
-    let mut ball = Ball::new(vec2(num!(50), num!(50)), vec2(num!(1), num!(1)));
+    let mut ball = Ball::new(vec2(num!(50), num!(50)), vec2(num!(2), num!(0.5)));
 
     let mut paddle_a = Paddle::new(vec2(num!(8), num!(8)));
     let paddle_b = Paddle::new(vec2(num!(240 - 16 - 8), num!(8)));
@@ -157,7 +168,7 @@ fn main(mut gba: agb::Gba) -> ! {
         button_controller.update();
 
         paddle_a.move_by(Fixed::from(button_controller.y_tri() as i32));
-        ball.update(&paddle_a, &paddle_b);
+        ball.update(&paddle_a, &paddle_b, &mut mixer);
 
         let mut frame = gfx.frame();
 
