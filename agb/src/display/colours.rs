@@ -1,8 +1,10 @@
 #![warn(missing_docs)]
 use core::fmt::Debug;
 
-/// Represents a pixel on the GBA. This is stored as a 15 bit number as `0b0bbbbbgggggrrrrr`. You can see
-/// what would happen to your true-colour value by using the [utility site](https://agbrs.dev/colour) in the agbrs.dev website.
+/// Represents a pixel on the GBA.
+///
+/// This is stored as a 15 bit number as `0b0bbbbbgggggrrrrr`. You can see what would happen to your true-colour
+/// value by using the [utility site](https://agbrs.dev/colour) in the agbrs.dev website.
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Rgb15(pub u16);
@@ -34,8 +36,9 @@ impl Debug for Rgb15 {
     }
 }
 
-/// Represents a full true-colour (24-bit) RGB colour. You can convert (lossily) between this and
-/// [`Rgb15`] values which actually get displayed on the GBA screen.
+/// Represents a full true-colour (24-bit) RGB colour.
+///
+/// You can convert (lossily) between this and the [`Rgb15`] values which actually get displayed on the GBA screen.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Rgb {
     /// The red component
