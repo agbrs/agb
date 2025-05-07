@@ -7,6 +7,7 @@
 //! Palettes are managed using the [`VRAM_MANAGER`] global value.
 //!
 //! See the [background deep dive](https://agbrs.dev/book/articles/backgrounds.html) for further details about backgrounds.
+#![warn(missing_docs)]
 mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
