@@ -403,7 +403,19 @@ impl ObjectAffine {
         self
     }
 
-    /// Sets the graphics mode of the object
+    /// Sets the graphics mode of the object.
+    ///
+    /// The various graphics modes interact with [`Windows`](crate::display::Windows) or
+    /// [`Blend`](crate::display::Blend).
+    ///
+    /// The default is [`GraphicsMode::Normal`] which results in the sprite being rendered as you'd expect.
+    ///
+    /// [`GraphicsMode::AlphaBlending`] will mean this object is alpha blended into any target layers
+    /// given by the current [`Blend`](crate::display::Blend) settings.
+    ///
+    /// [`GraphicsMode::Window`] will result in the sprite not being rendered at all, and instead it is
+    /// considered part of the [`object window`](crate::display::Windows::win_obj), and any non-transparent
+    /// pixels will be considered as part of the window.
     pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
         self.attributes.set_graphics_mode(mode);
 
