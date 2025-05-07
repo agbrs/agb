@@ -21,6 +21,7 @@
   - [Backgrounds](./pong/09_background.md)
   - [Fixnums](./pong/10_fixnums.md)
   - [Background music](./pong/11_bgm.md)
+  - [Keeping score](./pong/12_keeping_score.md)
 
 # Articles
 
