@@ -1,3 +1,12 @@
+//! Anything to do with tiled backgrounds
+//!
+//! Most games made for the Game Boy Advance use tiled backgrounds.
+//! You can create and manage regular backgrounds using the [`RegularBackgroundTiles`] struct,
+//! and affine backgrounds using the [`AffineBackgroundTiles`] struct.
+//!
+//! Palettes are managed using the [`VRAM_MANAGER`] global value.
+//!
+//! See the [background deep dive](https://agbrs.dev/book/articles/backgrounds.html) for further details about backgrounds.
 mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
