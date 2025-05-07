@@ -73,6 +73,49 @@ impl Paddle {
     }
 }
 
+struct Ball {
+    pos: Vector2D<i32>,
+    velocity: Vector2D<i32>,
+}
+
+impl Ball {
+    fn new(pos: Vector2D<i32>, velocity: Vector2D<i32>) -> Self {
+        Self { pos, velocity }
+    }
+
+    fn update(&mut self, paddle_a: &Paddle, paddle_b: &Paddle) {
+        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
+        // edge of the map or a paddle.
+        let potential_ball_pos = self.pos + self.velocity;
+
+        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+        if paddle_a.collision_rect().touches(ball_rect) {
+            self.velocity.x = 1;
+        }
+
+        if paddle_b.collision_rect().touches(ball_rect) {
+            self.velocity.x = -1;
+        }
+
+        // We check if the ball reaches the edge of the screen and reverse it's direction
+        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
+            self.velocity.x *= -1;
+        }
+
+        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
+            self.velocity.y *= -1;
+        }
+
+        self.pos += self.velocity;
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        Object::new(sprites::BALL.sprite(0))
+            .set_pos(self.pos)
+            .show(frame);
+    }
+}
+
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly.
@@ -95,17 +138,10 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut button_controller = ButtonController::new();
 
-    // Create an object with the ball sprite
-    let mut ball = Object::new(sprites::BALL.sprite(0));
-
-    // Place this at some point on the screen, (50, 50) for example
-    ball.set_pos((50, 50));
+    let mut ball = Ball::new(vec2(50, 50), vec2(1, 1));
 
     let mut paddle_a = Paddle::new(vec2(8, 8));
     let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
-
-    let mut ball_pos = vec2(50, 50);
-    let mut ball_velocity = vec2(1, 1);
 
     let mut tracker = Tracker::new(&BGM);
     mixer.enable();
@@ -114,35 +150,7 @@ fn main(mut gba: agb::Gba) -> ! {
         button_controller.update();
 
         paddle_a.move_by(button_controller.y_tri() as i32);
-
-        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
-        // edge of the map or a paddle.
-        let potential_ball_pos = ball_pos + ball_velocity;
-
-        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
-        if paddle_a.collision_rect().touches(ball_rect) {
-            ball_velocity.x = 1;
-            play_hit(&mut mixer);
-        }
-
-        if paddle_b.collision_rect().touches(ball_rect) {
-            ball_velocity.x = -1;
-            play_hit(&mut mixer);
-        }
-
-        // We check if the ball reaches the edge of the screen and reverse it's direction
-        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
-            ball_velocity.x *= -1;
-        }
-
-        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
-            ball_velocity.y *= -1;
-        }
-
-        ball_pos += ball_velocity;
-
-        // Set the position of the ball to match our new calculated position
-        ball.set_pos(ball_pos);
+        ball.update(&paddle_a, &paddle_b);
 
         let mut frame = gfx.frame();
 
