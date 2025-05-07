@@ -274,7 +274,7 @@ impl AffineBackgroundTiles {
     /// the background and `show()` it again and both will show in the frame.
     ///
     /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background
-    /// such as applying [dma effects](crate::display::dma).
+    /// such as applying [dma effects](crate::dma).
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
         let commit_data = if self.is_dirty {
             Some(AffineBackgroundCommitData {

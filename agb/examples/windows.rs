@@ -3,7 +3,7 @@
 
 use agb::{
     display::{
-        BlendLayer, HEIGHT, WIDTH, WinIn,
+        HEIGHT, Layer, WIDTH, WinIn,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Num, Rect, Vector2D, num},
@@ -52,11 +52,9 @@ fn main(mut gba: agb::Gba) -> ! {
         let blend = frame.blend();
         blend
             .alpha()
-            .set_layer_alpha(BlendLayer::Top, blend_amount.try_change_base().unwrap());
-        blend
-            .layer(BlendLayer::Top)
-            .enable_background(background_id);
-        blend.layer(BlendLayer::Bottom).enable_backdrop();
+            .set_layer_alpha(Layer::Top, blend_amount.try_change_base().unwrap());
+        blend.layer(Layer::Top).enable_background(background_id);
+        blend.layer(Layer::Bottom).enable_backdrop();
 
         let window = frame.windows();
         window

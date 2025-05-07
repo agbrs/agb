@@ -61,7 +61,6 @@
 //!
 //! This method takes ownership of the current `frame` instance, so you won't be able to use it for any further calls once this is done.
 //! You will need to create a new frame object from the `gfx` instance.
-//!
 use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
 
 use alloc::boxed::Box;
@@ -96,7 +95,7 @@ pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
 pub use blend::{
-    Blend, BlendAlphaEffect, BlendFadeEffect, BlendObjectTransparency, Layer as BlendLayer,
+    Blend, BlendAlphaEffect, BlendFadeEffect, BlendLayer, BlendObjectTransparency, Layer,
 };
 
 pub use window::{MovableWindow, WinIn, Window, Windows};

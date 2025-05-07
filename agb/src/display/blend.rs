@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 mod registers;
 
 use registers::{BlendControlAlpha, BlendControlBrightness, BlendControlRegister};
@@ -19,6 +20,29 @@ pub enum Layer {
     Bottom = 1,
 }
 
+/// Control the blending of two layers on the frame.
+///
+/// The Game Boy Advance offers very little in the way of alpha blending, which is something
+/// you may be more familiar with if you've used other game engines or the layer settings in
+/// image editors.
+///
+/// You can blend between a single [Top](Layer::Top) and [Bottom](Layer::Bottom) layer, and
+/// only in one mode.
+///
+/// - [`alpha`](Blend::alpha) where some configurable amount of each layer will be rendered
+///   to the screen.
+/// - [`brighten`](Blend::brighten) where you fade the `Top` layer towards white
+/// - [`darken`](Blend::darken) where you fade the `Top` layer towards black
+/// - [`object_transparency`](Blend::object_transparency) which enables object transparency for certain objects
+///
+/// You can set what is in the `Top` and `Bottom` layer with the [`.layer()`](Blend::layer) method.
+///
+/// Note that for blending to actually work, whatever is in the `Top` layer has to be drawn after
+/// anything in the `Bottom` layer (i.e. the `Top` layer's [`Priority`](crate::display::Priority)
+/// must be _lower_ than the `Bottom` layer's `Priority`).
+///
+/// If you are using [`Windows`](super::Windows), blending won't happen unless you enable blending with
+/// them, and then it will only work within the boundary of the window.
 pub struct Blend {
     blend_control: registers::BlendControlRegister,
     alpha: registers::BlendControlAlpha,
@@ -34,28 +58,37 @@ impl Blend {
         }
     }
 
+    /// Setup for a given [`Layer`].
+    ///
+    /// See the [`BlendLayer`] documentation for what they can be.
     pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_> {
         BlendLayer { blend: self, layer }
     }
 
+    /// Sets this blend effect to `alpha` which allows for a configurable amount of each layer to
+    /// be rendered onto the screen.
     pub fn alpha(&mut self) -> BlendAlphaEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
         BlendAlphaEffect { blend: self }
     }
 
+    /// Fade the `Top` layer towards white by a configurable amount.
     pub fn brighten(&mut self) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
         BlendFadeEffect { blend: self }
     }
 
+    /// Fade the `Top` layer towards black by a configurable amount.
     pub fn darken(&mut self) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
         BlendFadeEffect { blend: self }
     }
 
+    /// Enable object transparency for every object which has its
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
     pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::None);
@@ -116,34 +149,56 @@ impl Blend {
     }
 }
 
+/// Configure what can be blended on this layer.
+///
+/// By default, nothing is configured to be enabled. You can enable any amount of things on
+/// a blend layer.
 pub struct BlendLayer<'blend> {
     blend: &'blend mut Blend,
     layer: Layer,
 }
 
 impl BlendLayer<'_> {
-    /// Enables a background for blending on this layer
+    /// Enables a background for blending on this layer.
     pub fn enable_background(&mut self, background: BackgroundId) -> &mut Self {
         self.blend.set_background_enable(self.layer, background);
         self
     }
 
+    /// Enables object blending on this layer.
+    ///
+    /// This will only work for objects which have a
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
     pub fn enable_object(&mut self) -> &mut Self {
         self.blend.set_object_enable(self.layer);
         self
     }
 
+    /// Enables the backdrop for this layer.
+    ///
+    /// The backdrop is the 0th colour in the palette. It is the colour that is displayed
+    /// when there is no background displaying anything at that location.
     pub fn enable_backdrop(&mut self) -> &mut Self {
         self.blend.set_backdrop_enable(self.layer);
         self
     }
 }
 
+/// Configure the alpha setting for an alpha blend
 pub struct BlendAlphaEffect<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendAlphaEffect<'_> {
+    /// The amount to blend this layer by.
+    ///
+    /// The final colour will be a weighted sum of the colours of each layer multiplied by `value`.
+    /// So a `value` of `num!(0.5)` for both the top and the bottom layers will mean you get
+    /// half of each colour added together.
+    ///
+    /// Any pixels which aren't shared by both layers will be drawn at their full pixel value.
+    ///
+    /// `value` must be between 0 and 1 inclusive. This function panics if value > 1.
     pub fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer alpha must be <= 1");
         self.blend.set_layer_alpha(layer, value);
@@ -151,29 +206,43 @@ impl BlendAlphaEffect<'_> {
     }
 }
 
+/// Configure the fade effect for a darken or lighten blend
+///
+/// You can also enable object transparency while using `darken` or `lighten` using the
+/// [`object_transparency()`](BlendFadeEffect::object_transparency()) function.
 pub struct BlendFadeEffect<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendFadeEffect<'_> {
+    /// Set how much this layer should fade to black or white.
+    ///
+    /// The `value` must be between 0 and 1 inclusive. This function panics if `value` > 1.
     pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer fade must be <= 1");
         self.blend.set_fade(value);
         self
     }
 
-    pub fn set_object_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Object alpha must be <= 1");
-        self.blend.set_layer_alpha(Layer::Top, value);
-        self
+    /// Control the object transparency as well if needed.
+    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
+        BlendObjectTransparency { blend: self.blend }
     }
 }
 
+/// Make given objects transparent to some level.
+///
+/// Every object with the [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`
+/// will have the same transparency level.
 pub struct BlendObjectTransparency<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendObjectTransparency<'_> {
+    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
+    /// set to `AlphaBlending` to `value`.
+    ///
+    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
     pub fn set_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Object alpha must be <= 1");
         self.blend.set_layer_alpha(Layer::Top, value);

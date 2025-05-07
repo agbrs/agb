@@ -332,7 +332,7 @@ impl RegularBackgroundTiles {
     /// the background and `show()` it again and both will show in the frame.
     ///
     /// The returned [`BackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window),
-    /// or used for [dma effects](crate::display::dma).
+    /// or used for [dma effects](crate::dma).
     ///
     /// # Panics
     ///
