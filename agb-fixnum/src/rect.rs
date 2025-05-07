@@ -175,6 +175,18 @@ impl<T: Number> Rect<T> {
     pub fn bottom_right(self) -> Vector2D<T> {
         self.position + self.size
     }
+
+    /// Returns the centre point of the rectangle
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.centre(), vec2(15, 15));
+    /// ```
+    #[inline(always)]
+    pub fn centre(self) -> Vector2D<T> {
+        self.position + self.size / (T::one() + T::one())
+    }
 }
 
 impl<T: FixedWidthUnsignedInteger> Rect<T> {

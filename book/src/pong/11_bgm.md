@@ -121,6 +121,11 @@ mixer.frame();
 
 You will now have background music playing.
 
+## What we did
+
+We've now got some sound effects playing when the ball hits the paddle, and some background music playing.
+Next we'll add score tracking and finish off the game.
+
 ## Exercise
 
 - Add a new sound effect for when the ball hits the wall rather than a paddle.

@@ -15,11 +15,11 @@ extern crate alloc;
 
 use agb::{
     display::{
-        GraphicsFrame, Priority,
+        GraphicsFrame, Priority, WIDTH,
         object::Object,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
-    fixnum::{Rect, Vector2D, vec2},
+    fixnum::{Num, Rect, Vector2D, num, vec2},
     include_aseprite, include_background_gfx, include_wav,
     input::ButtonController,
     sound::mixer::{Frequency, Mixer, SoundChannel, SoundData},
@@ -27,48 +27,119 @@ use agb::{
 
 use agb_tracker::{Track, Tracker, include_xm};
 
+type Fixed = Num<i32, 8>;
+
 // Import the sprites in to this static. This holds the sprite
 // and palette data in a way that is manageable by agb.
 include_aseprite!(
     mod sprites,
-    "gfx/sprites.aseprite"
+    "gfx/sprites.aseprite",
+    "gfx/cpu-health.aseprite",
 );
 
 include_background_gfx!(
     mod background,
     PLAY_FIELD => deduplicate "gfx/background.aseprite",
+    SCORE => deduplicate "gfx/player-health.aseprite",
 );
 
 static BALL_PADDLE_HIT: SoundData = include_wav!("sfx/ball-paddle-hit.wav");
 static BGM: Track = include_xm!("sfx/bgm.xm");
 
 struct Paddle {
-    pos: Vector2D<i32>,
+    pos: Vector2D<Fixed>,
+    health: i32,
 }
 
 impl Paddle {
-    fn new(pos: Vector2D<i32>) -> Self {
-        Self { pos }
+    fn new(pos: Vector2D<Fixed>) -> Self {
+        Self { pos, health: 3 }
     }
 
-    fn move_by(&mut self, y: i32) {
-        self.pos += vec2(0, y);
+    fn move_by(&mut self, y: Fixed) {
+        self.pos += vec2(num!(0), y);
     }
 
-    fn collision_rect(&self) -> Rect<i32> {
-        Rect::new(self.pos, vec2(16, 16 * 3))
+    fn collision_rect(&self) -> Rect<Fixed> {
+        Rect::new(self.pos, vec2(num!(16), num!(16 * 3)))
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
+        let sprite_pos = self.pos.floor();
+
         Object::new(sprites::PADDLE_END.sprite(0))
-            .set_pos(self.pos)
+            .set_pos(sprite_pos)
+            .set_priority(Priority::P1)
             .show(frame);
         Object::new(sprites::PADDLE_MID.sprite(0))
-            .set_pos(self.pos + vec2(0, 16))
+            .set_pos(sprite_pos + vec2(0, 16))
+            .set_priority(Priority::P1)
             .show(frame);
         Object::new(sprites::PADDLE_END.sprite(0))
-            .set_pos(self.pos + vec2(0, 32))
+            .set_pos(sprite_pos + vec2(0, 32))
+            .set_priority(Priority::P1)
             .set_vflip(true)
+            .show(frame);
+    }
+}
+
+struct Ball {
+    pos: Vector2D<Fixed>,
+    velocity: Vector2D<Fixed>,
+}
+
+impl Ball {
+    fn new(pos: Vector2D<Fixed>, velocity: Vector2D<Fixed>) -> Self {
+        Self { pos, velocity }
+    }
+
+    fn update(&mut self, paddle_a: &mut Paddle, paddle_b: &mut Paddle, mixer: &mut Mixer) {
+        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
+        // edge of the map or a paddle.
+        let potential_ball_pos = self.pos + self.velocity;
+
+        let ball_rect = Rect::new(potential_ball_pos, vec2(num!(16), num!(16)));
+
+        if paddle_a.collision_rect().touches(ball_rect) {
+            play_hit(mixer);
+
+            self.velocity.x = self.velocity.x.abs();
+
+            let y_difference = (ball_rect.centre().y - paddle_a.collision_rect().centre().y) / 32;
+            self.velocity.y += y_difference;
+        }
+
+        if paddle_b.collision_rect().touches(ball_rect) {
+            play_hit(mixer);
+
+            self.velocity.x = -self.velocity.x.abs();
+
+            let y_difference = (ball_rect.centre().y - paddle_b.collision_rect().centre().y) / 32;
+            self.velocity.y += y_difference;
+        }
+
+        // We check if the ball reaches the edge of the screen and reverse it's direction
+        if potential_ball_pos.x <= num!(0) {
+            self.velocity.x *= -1;
+            paddle_a.health -= 1;
+        } else if potential_ball_pos.x >= num!(agb::display::WIDTH - 16) {
+            self.velocity.x *= -1;
+            paddle_b.health -= 1;
+        }
+
+        if potential_ball_pos.y <= num!(0)
+            || potential_ball_pos.y >= num!(agb::display::HEIGHT - 16)
+        {
+            self.velocity.y *= -1;
+        }
+
+        self.pos += self.velocity;
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        Object::new(sprites::BALL.sprite(0))
+            .set_pos(self.pos.floor())
+            .set_priority(Priority::P1)
             .show(frame);
     }
 }
@@ -93,19 +164,28 @@ fn main(mut gba: agb::Gba) -> ! {
     );
     bg.fill_with(&background::PLAY_FIELD);
 
+    let mut player_health_background = RegularBackgroundTiles::new(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    for i in 0..4 {
+        player_health_background.set_tile(
+            (i, 0),
+            &background::SCORE.tiles,
+            background::SCORE.tile_settings[i as usize],
+        );
+    }
+
+    player_health_background.set_scroll_pos((-4, -4));
+
     let mut button_controller = ButtonController::new();
 
-    // Create an object with the ball sprite
-    let mut ball = Object::new(sprites::BALL.sprite(0));
+    let mut ball = Ball::new(vec2(num!(50), num!(50)), vec2(num!(2), num!(0.5)));
 
-    // Place this at some point on the screen, (50, 50) for example
-    ball.set_pos((50, 50));
-
-    let mut paddle_a = Paddle::new(vec2(8, 8));
-    let paddle_b = Paddle::new(vec2(240 - 16 - 8, 8));
-
-    let mut ball_pos = vec2(50, 50);
-    let mut ball_velocity = vec2(1, 1);
+    let mut paddle_a = Paddle::new(vec2(num!(8), num!(8)));
+    let mut paddle_b = Paddle::new(vec2(num!(240 - 16 - 8), num!(8)));
 
     let mut tracker = Tracker::new(&BGM);
     mixer.enable();
@@ -113,36 +193,17 @@ fn main(mut gba: agb::Gba) -> ! {
     loop {
         button_controller.update();
 
-        paddle_a.move_by(button_controller.y_tri() as i32);
+        paddle_a.move_by(Fixed::from(button_controller.y_tri() as i32));
+        ball.update(&mut paddle_a, &mut paddle_b, &mut mixer);
 
-        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
-        // edge of the map or a paddle.
-        let potential_ball_pos = ball_pos + ball_velocity;
-
-        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
-        if paddle_a.collision_rect().touches(ball_rect) {
-            ball_velocity.x = 1;
-            play_hit(&mut mixer);
+        for i in 0..3 {
+            let tile_index = if i < paddle_a.health { 4 } else { 5 };
+            player_health_background.set_tile(
+                (i + 4, 0),
+                &background::SCORE.tiles,
+                background::SCORE.tile_settings[tile_index],
+            );
         }
-
-        if paddle_b.collision_rect().touches(ball_rect) {
-            ball_velocity.x = -1;
-            play_hit(&mut mixer);
-        }
-
-        // We check if the ball reaches the edge of the screen and reverse it's direction
-        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
-            ball_velocity.x *= -1;
-        }
-
-        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
-            ball_velocity.y *= -1;
-        }
-
-        ball_pos += ball_velocity;
-
-        // Set the position of the ball to match our new calculated position
-        ball.set_pos(ball_pos);
 
         let mut frame = gfx.frame();
 
@@ -151,6 +212,8 @@ fn main(mut gba: agb::Gba) -> ! {
         paddle_b.show(&mut frame);
 
         bg.show(&mut frame);
+        player_health_background.show(&mut frame);
+        show_cpu_health(&paddle_b, &mut frame);
 
         tracker.step(&mut mixer);
         mixer.frame();
@@ -161,4 +224,31 @@ fn main(mut gba: agb::Gba) -> ! {
 fn play_hit(mixer: &mut Mixer) {
     let hit_sound = SoundChannel::new(BALL_PADDLE_HIT);
     mixer.play_sound(hit_sound);
+}
+
+fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
+    // The text CPU: ends at exactly the edge of the sprite (which the player text doesn't).
+    // so we add a 3 pixel gap between the text and the start of the hearts to make it look a bit nicer.
+    const TEXT_HEART_GAP: i32 = 3;
+
+    // The top left of the CPU health. The text is 2 tiles wide and the hearts are 3.
+    // We also offset the y value by 4 pixels to keep it from the edge of the screen.
+    let top_left = vec2(WIDTH - 4 - (2 + 3) * 8 - TEXT_HEART_GAP, 4);
+
+    // Display the text `CPU:`
+    Object::new(sprites::CPU.sprite(0))
+        .set_pos(top_left)
+        .show(frame);
+    Object::new(sprites::CPU.sprite(1))
+        .set_pos(top_left + vec2(8, 0))
+        .show(frame);
+
+    // For each heart frame, show that too
+    for i in 0..3 {
+        let heart_frame = if i < paddle.health { 0 } else { 1 };
+
+        Object::new(sprites::HEART.sprite(heart_frame))
+            .set_pos(top_left + vec2(16 + i * 8 + TEXT_HEART_GAP, 0))
+            .show(frame);
+    }
 }
