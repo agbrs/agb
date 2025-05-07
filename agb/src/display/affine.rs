@@ -51,10 +51,10 @@
 //!
 //! Beware if you are used to the other way around!
 //!
-//! ## Example, rotation around the center
+//! ## Example, rotation around the centre
 //!
-//! To rotate something around its center, you will need to move the thing such
-//! that the center is at (0, 0) and then you can rotate it. After that you can
+//! To rotate something around its centre, you will need to move the thing such
+//! that the centre is at (0, 0) and then you can rotate it. After that you can
 //! move it where you actually want it.
 //!
 //! These can be done in the order I stated, **A** = **Move To Origin** ×
