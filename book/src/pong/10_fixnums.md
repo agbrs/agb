@@ -134,6 +134,8 @@ fn show(&self, frame: &mut GraphicsFrame) {
 }
 ```
 
+It is best to use [`.round()`](https://docs.rs/agb/lastest/agb/fixnum/struct.Vector2D.html#method.round) rather than `.floor()` for converting from fixnums back to integers because it works better when approaching integer locations (will become more relevant if you add some smooth animations in future).
+
 The call to `paddle_a.move_by()` needs updating using `Fixed::from(...)` rather than `num!(...)` because the [`num!()`](https://docs.rs/agb/latest/agb/fixnum/macro.num.html) macro requires a constant value.
 
 Once you've done all these changes and the code now compiles, if you run the game, it will be exactly the same as before.

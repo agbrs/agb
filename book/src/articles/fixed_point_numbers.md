@@ -141,6 +141,12 @@ Therefore, when designing your game logic, especially performance-critical secti
 For instance, if you need to scale a value by a factor that isn't a power of two, consider whether you can achieve a similar effect by dividing by a near power of 2 (so if you wanted to divide by 10, can you get away with dividing by 8 instead?).
 You can also multiply by the inverse if the precision is okay. Rather than dividing by `10`, instead multiply by `num!(0.1)`.
 
+## Bridging back into integers
+
+Often you'll have something calculated using fixed points (like the position of a player character) and you'll want to now display something on the screen.
+Because the screen works in whole pixel coordinates, you'll need to convert your fixnums into integers.
+The best method for this is the [`.round()`](https://docs.rs/agb/latest/agb/fixnum/struct.Num.html#method.round) method because it has better behaviour when approaching the target integer.
+
 ## `Vector2D` and `Rect`
 
 In addition to the `Num` type, `agb::fixnum` also includes a few additional types which will be useful in many applications.
@@ -176,6 +182,8 @@ assert_eq!(
     vec2(num!(10), num!(0))
 );
 ```
+
+Like `Num`, `Vector2D` also provides the [`.round()`](https://docs.rs/agb/lastest/agb/fixnum/struct.Vector2D.html#method.round) which is the method you should use if converting back into integer coordinates (like setting the position of an object given fixnum positions before).
 
 See the [`Vector2D` documentation](https://docs.rs/agb/latest/agb/fixnum/struct.Vector2D.html) for more details.
 
