@@ -119,7 +119,7 @@ integer to show the paddle in a specific location:
 
 ```rust
 fn show(&self, frame: &mut GraphicsFrame) {
-    let sprite_pos = self.pos.floor();
+    let sprite_pos = self.pos.round();
 
     Object::new(sprites::PADDLE_END.sprite(0))
         .set_pos(sprite_pos)

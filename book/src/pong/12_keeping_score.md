@@ -108,7 +108,7 @@ Priority `P1` is a sensible option for these objects, so we'll do that for the b
 
 ```rust
 Object::new(sprites::BALL.sprite(0))
-    .set_pos(self.pos.floor())
+    .set_pos(self.pos.round())
     .set_priority(Priority::P1)
     .show(frame);
 ```
