@@ -84,7 +84,7 @@ If you run this you should now see the ball for this pong game somewhere in the 
 The GBA renders to the screen one pixel at a time a line at a time from left to right.
 After it has finished rendering to each pixel of the screen, it briefly pauses rendering before starting again.
 This period of no drawing is called the 'vertical blanking interval' which is shortened to `vblank`.
-There is also a 'horizontal blanking interval', but that is outside of the scope of this book.
+There is also a 'horizontal blanking interval', but that is outside of the scope of this tutorial.
 
 The `frame.commit()` method automatically waits for this `vblank` state before rendering your sprites to avoid moving a sprite during the rendering which could cause tearing of your objects[^hblank].
 
@@ -130,4 +130,4 @@ In this section, we covered why sprites are important, how to create and manage 
 
 [^hblank]:
     Timing this can give you some really cool effects allowing you to push the hardware.
-    `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this book.
+    `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this tutorial.
