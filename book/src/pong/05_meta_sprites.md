@@ -47,26 +47,15 @@ struct Paddle {
 
 impl Paddle {
     fn new(start_x: i32, start_y: i32) -> Self {
-        paddle_end.set_vflip(true);
-
-        let mut paddle = Self {
-            start: paddle_start,
-            mid: paddle_mid,
-            end: paddle_end,
-        };
-
-        paddle.set_pos(start_x, start_y);
-
-        paddle
+        Self {
+            x: start_x,
+            y: start_y,
+        }
     }
 
     fn set_pos(&mut self, x: i32, y: i32) {
-        // new! use of the `set_pos` method. This is a helper feature using
-        // agb's vector types. For now we can just use it to avoid adding them
-        // separately
-        self.start.set_pos((x, y));
-        self.mid.set_pos((x, y + 16));
-        self.end.set_pos((x, y + 32));
+        self.x = x;
+        self.y = y;
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {

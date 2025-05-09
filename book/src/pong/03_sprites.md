@@ -7,7 +7,7 @@ We'll briefly cover vblank, and by the end of this section, you'll have a ball b
 
 The Game Boy Advance has a 240x160px screen with 15-bit RGB color support. Setting the color for each pixel manually would require updating 38,400 pixels per frame, or 2,304,000 pixels per second at 60 fps.
 With a 16 MHz processor, this means calculating 1 pixel every 8 clock cycles, which is pretty much impossible.
-he Game Boy Advance provides two ways to easily put pixels on the screen: tiles and sprites.
+The Game Boy Advance provides two ways to easily put pixels on the screen: tiles and sprites.
 
 Tiles are 8x8 pixels in size and can be placed in a grid on the screen.
 You can also scroll the whole tile layer to arbitrary positions, but the tiles will remain in this 8x8 pixel grid.
@@ -83,7 +83,7 @@ If you run this you should now see the ball for this pong game somewhere in the 
 
 The GBA renders to the screen one pixel at a time a line at a time from left to right.
 After it has finished rendering to each pixel of the screen, it briefly pauses rendering before starting again.
-This period of no drawing is called `vblank`, which stands for the 'vertical blanking interval'.
+This period of no drawing is called the 'vertical blanking interval' which is shortened to `vblank`.
 There is also a 'horizontal blanking interval', but that is outside of the scope of this book.
 
 The `frame.commit()` method automatically waits for this `vblank` state before rendering your sprites to avoid moving a sprite during the rendering which could cause tearing of your objects[^hblank].
@@ -91,7 +91,7 @@ The `frame.commit()` method automatically waits for this `vblank` state before r
 Making the sprite move 1 pixel every frame (so 60 pixels per second) can be done as follows:
 
 ```rust
-// replace the call to object.commit() with the following:
+// replace the loop with this
 
 let mut ball_x = 50;
 let mut ball_y = 50;
@@ -130,4 +130,4 @@ In this section, we covered why sprites are important, how to create and manage 
 
 [^hblank]:
     Timing this can give you some really cool effects allowing you to push the hardware.
-    However, `agb` does not by default provide the timing accuracy needed to fully take advantage of this, erring on the side of making it easier to make games rather than squeezing every last drop of performance from the console.
+    `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this book.

@@ -69,7 +69,7 @@ You can change the `set_pos()` method on `Paddle` to take a `Vector2D<i32>` inst
 
 And when rendering:
 
-````rust
+```rust
     fn show(frame: &mut GraphicsFrame) {
         Object::new(sprites::PADDLE_END.sprite(0))
             .set_pos(self.pos)
@@ -82,6 +82,7 @@ And when rendering:
             .set_vflip(true)
             .show(frame);
     }
+```
 
 ### Mini exercise
 
@@ -100,7 +101,7 @@ Lets add a simple method to the `Paddle` impl which returns the collision rectan
     fn collision_rect(&self) -> Rect<i32> {
         Rect::new(self.pos, vec2(16, 16 * 3))
     }
-````
+```
 
 Don't forget to update the `use` statement:
 

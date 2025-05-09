@@ -12,7 +12,7 @@ This allows rust's borrow checker to ensure that access to the Game Boy Advance 
 
 # How all agb games start
 
-To use the Gba struct in your agb game, you'll need to create a function (normally called `main`) which takes an owned reference to the Gba instance.
+To use the Gba struct in your agb game, you'll need to create a function (normally called `main`) has the Gba instance moved into it.
 The recommended way to do this is by using the `#[agb::entry]` attribute macro provided by the `agb` crate.
 
 Replace the content of the `main` function with the following:
