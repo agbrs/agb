@@ -27,9 +27,22 @@ This command will compile the agb template in release mode.
 The resulting binary file can be found in the `target/thumbv4t-none-eabi/release` directory.
 Depending on your platform, the file will have either a `.elf` extension or no extension.
 
-## 3. Convert the binary to a GBA file
 
-In order to run the game on an emulator, we need to convert the binary file to a GBA file.
+This command will add the correct GBA header to the template.gba file and it will be playable on real hardware or an emulator.
+
+## 3. Run the game
+
+If you have mgba-qt installed on your machine, you can run the game directly from the command line using the following command:
+
+```sh
+cargo run --release
+```
+
+This will build and run the agb template in a single step.
+
+## 4. Convert the binary to a GBA file
+
+In order to build the game for releasing it, you will need to create a GBA file.
 To do this, we'll use the tool `agb-gbafix`.
 
 Run the following command to convert the binary file to a GBA ROM:
@@ -43,20 +56,4 @@ or
 ```sh
 agb-gbafix target/thumbv4t-none-eabi/release/agb_template.elf -o agb_template.gba
 ```
-
-This command will add the correct GBA header to the template.gba file and it will be playable on real hardware or an emulator.
-
-## 4. Run the game
-
-Finally, you can run the game on your emulator of choice.
-Load the template.gba file in your emulator, and you should see the agb template running.
-
-If you have mgba-qt installed on your machine, you can run the game directly from the command line using the following command:
-
-```sh
-cargo run --release
-```
-
-This will build and run the agb template in a single step.
-
-That's it! You now have a working agb template that you can use as a starting point for your own GBA game.
+You can use this GBA file in an emulator or on real hardware

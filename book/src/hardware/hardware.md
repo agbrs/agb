@@ -6,8 +6,7 @@ The console was developed as a successor to the Game Boy Color and was internall
 
 # What makes the GBA unique?
 
-The Game Boy Advance is a (fairly) unique console among retro handheld consoles.
-It was developed at a time when processors were not powerful enough to push an entire screen of pixels to the screen every frame.
+The GBA was developed at a time when processors were not powerful enough to push an entire screen of pixels to the screen every frame.
 As a result, it features a special Pixel Processing Unit (PPU) that is similar to a modern-day graphics card, but is optimized for gaming.
 The console has a concept of "hardware sprites" and "hardware backgrounds," which we will explain in more detail in the next section.
 These hardware 2D capabilities give the GBA its unique characteristics.
@@ -15,6 +14,8 @@ These hardware 2D capabilities give the GBA its unique characteristics.
 Despite being a retro console, the GBA is still compatible with modern tools and programming languages thanks to the ARM CPU it contains.
 The CPU is modern enough to be supported by LLVM and Rust, which provide a reasonably trouble-free experience.
 This allows developers to take advantage of modern tooling while experiencing what it was like to program for retro consoles at the time.
+
+The combination of this weak hardware and retro PPU with support of modern tooling makes the GBA fairly unique among retro consoles.
 
 # Capabilities of the hardware
 
