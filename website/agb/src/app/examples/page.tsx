@@ -27,6 +27,7 @@ export default function ShowcasePage() {
 
 function Game({ example }: { example: (typeof Examples)[number] }) {
   const screenshot = example.screenshot;
+  const gameNameWithSpaces = example.example_name.replaceAll("_", " ");
   return (
     <GameDisplay
       href={`./examples/${slugify(example.example_name)}`}
@@ -36,7 +37,7 @@ function Game({ example }: { example: (typeof Examples)[number] }) {
         src={screenshot}
         alt={`Screenshot of ${example.example_name}`}
       />
-      <h2>{example.example_name}</h2>
+      <h2>{gameNameWithSpaces}</h2>
     </GameDisplay>
   );
 }
