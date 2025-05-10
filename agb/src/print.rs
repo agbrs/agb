@@ -25,7 +25,7 @@ pub fn eprintln(args: Arguments) {
 /// # #![no_std]
 /// # #![no_main]
 /// # core::include!("doctest_runner.rs");
-///
+/// #
 /// # fn test(_: agb::Gba) {
 /// agb::println!("Hello, World!");
 ///
@@ -40,7 +40,7 @@ macro_rules! println {
     };
 }
 
-/// Works like [`std::println`](https://doc.rust-lang.org/stable/std/macro.println.html).
+/// Works like [`std::eprintln`](https://doc.rust-lang.org/stable/std/macro.eprintln.html).
 ///
 /// Prints to the standard output when running under the mgba emulator but with the error level internally
 /// This is mainly intended for debugging, and is reasonably slow.
@@ -49,7 +49,7 @@ macro_rules! println {
 /// # #![no_std]
 /// # #![no_main]
 /// # core::include!("doctest_runner.rs");
-///
+/// #
 /// # fn test(_: agb::Gba) {
 /// agb::eprintln!("error: Could not load save file");
 /// # }
