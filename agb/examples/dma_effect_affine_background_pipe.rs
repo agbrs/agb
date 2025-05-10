@@ -1,3 +1,5 @@
+//! Shows how to use DMA with affine backgrounds transformations to display a rotating pipe effect
+//! which you can move around in.
 #![no_main]
 #![no_std]
 
@@ -21,7 +23,7 @@ use alloc::vec::Vec;
 
 agb::include_background_gfx!(mod backgrounds,
     GRID => 256 "examples/gfx/grid-tiles.aseprite",
-    HELP => "examples/gfx/grid-tiles-help.aseprite",
+    HELP => deduplicate "examples/gfx/grid-tiles-help.aseprite",
 );
 
 #[agb::entry]
