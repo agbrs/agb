@@ -1,3 +1,4 @@
+//! Shows how backgrounds can be scrolled and how they wrap around.
 #![no_std]
 #![no_main]
 
