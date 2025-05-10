@@ -1,6 +1,6 @@
-//! An example of a very simple platformer game where you can run around
-//! and jump playing as a chicken character. This was one of the first games
-//! ever made using the `agb` crate.
+//! An example of a very simple platformer game where you can run around and
+//! jump playing as a chicken character. This was the first game ever made using
+//! the `agb` crate.
 #![no_std]
 #![no_main]
 
@@ -18,12 +18,15 @@ use agb::{
     input::{Button, ButtonController},
 };
 
+// Try modifying these constants to see how the gameplay changes
 const ACCELERATION: Number = Number::from_raw(1 << 4);
 const GRAVITY: Number = Number::from_raw(1 << 4);
 const FLAPPING_GRAVITY: Number = Number::from_raw(GRAVITY.to_raw() / 3);
 const JUMP_VELOCITY: Number = Number::from_raw(1 << 9);
 const TERMINAL_VELOCITY: Number = Number::from_raw(1 << 7);
 
+// This is the number of frames of grace period you have after walking off a
+// surface before jumping no longer works
 const COYOTE_FRAMES: usize = 20;
 
 #[derive(PartialEq, Eq)]
