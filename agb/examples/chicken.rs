@@ -1,3 +1,6 @@
+//! An example of a very simple platformer game where you can run around
+//! and jump playing as a chicken character. This was one of the first games
+//! ever made using the `agb` crate.
 #![no_std]
 #![no_main]
 
