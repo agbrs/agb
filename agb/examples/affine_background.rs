@@ -1,3 +1,5 @@
+//! In this example, we show an affine background used to create a scrollable area (using the D-Pad)
+//! which rotates and zooms slightly as you move around.
 #![no_std]
 #![no_main]
 
@@ -13,6 +15,8 @@ use agb::{
     include_background_gfx,
 };
 
+// Import the background. This must be in 256 colour mode because that is the tile format
+// required for affine backgrounds.
 include_background_gfx!(mod backgrounds,
     "000000",
     NUMBERS => 256 "examples/gfx/number-background.aseprite",
@@ -22,21 +26,9 @@ include_background_gfx!(mod backgrounds,
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    let tileset = &backgrounds::NUMBERS.tiles;
-
     VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 
-    let mut bg = AffineBackgroundTiles::new(
-        Priority::P0,
-        AffineBackgroundSize::Background32x32,
-        AffineBackgroundWrapBehaviour::Wrap,
-    );
-
-    for y in 0..32u16 {
-        for x in 0..32u16 {
-            bg.set_tile((x, y), tileset, y / 4);
-        }
-    }
+    let mut bg = create_background();
 
     let mut input = agb::input::ButtonController::new();
     let mut position: Vector2D<Num<i32, 8>> = vec2(num!(0), num!(0));
@@ -49,6 +41,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
         position += input.vector();
 
+        // linearly interpolate towards the target rotation for smooth motion
         let target_rotation = match input.x_tri() {
             agb::input::Tri::Positive => num!(-0.01),
             agb::input::Tri::Zero => num!(0.0),
@@ -56,6 +49,7 @@ fn main(mut gba: agb::Gba) -> ! {
         };
         rotation = rotation * num!(0.9) + target_rotation * num!(0.1);
         if rotation.abs() <= num!(0.0005) {
+            // because of precision issues, we need to make this check since we'll never actually reach 0 otherwise
             rotation = num!(0);
         }
 
@@ -81,4 +75,24 @@ fn main(mut gba: agb::Gba) -> ! {
 
         frame.commit();
     }
+}
+
+fn create_background() -> AffineBackgroundTiles {
+    let mut bg = AffineBackgroundTiles::new(
+        Priority::P0,
+        AffineBackgroundSize::Background32x32,
+        AffineBackgroundWrapBehaviour::Wrap,
+    );
+
+    let tileset = &backgrounds::NUMBERS.tiles;
+
+    // Set up the background tiles. There are 8 numbers and the background is 32 tiles
+    // tall so y / 4 will result in 4 repititions of each number.
+    for y in 0..32u16 {
+        for x in 0..32u16 {
+            bg.set_tile((x, y), tileset, y / 4);
+        }
+    }
+
+    bg
 }
