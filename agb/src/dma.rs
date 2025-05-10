@@ -48,12 +48,12 @@ impl<Item> DmaControllable<Item> {
     }
 }
 
-pub struct HBlankDmaDefinition<Item> {
+pub struct HBlankDma<Item> {
     controllable: DmaControllable<Item>,
     values: Pin<Box<[Item; 161]>>,
 }
 
-impl<Item> HBlankDmaDefinition<Item>
+impl<Item> HBlankDma<Item>
 where
     Item: Copy + Unpin + 'static,
 {
@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<Item> DmaFrame for HBlankDmaDefinition<Item>
+impl<Item> DmaFrame for HBlankDma<Item>
 where
     Item: Copy + 'static,
 {

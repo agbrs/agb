@@ -24,7 +24,7 @@ pub enum Interrupt {
     VBlank = 0,
     /// Triggers on the start of each horizontal blanking interval. The
     /// interrupt is most often used in agb as part of the
-    /// [`HBlankDmaDefinition`][crate::dma::HBlankDmaDefinition]
+    /// [`HBlankDma`][crate::dma::HBlankDma]
     HBlank = 1,
     /// You may specify a particular line that this gets triggered on. Can be
     /// thought of as a more flexible VBlank interrupt as it can trigger on any

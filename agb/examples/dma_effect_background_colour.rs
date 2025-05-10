@@ -8,7 +8,7 @@ use agb::{
         Rgb, Rgb15,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
-    dma::HBlankDmaDefinition,
+    dma::HBlankDma,
     include_background_gfx, include_colours,
     input::{Button, ButtonController},
 };
@@ -48,7 +48,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut frame = gfx.frame();
 
         if should_do_dma {
-            HBlankDmaDefinition::new(
+            HBlankDma::new(
                 VRAM_MANAGER.background_palette_colour_dma(0, background_colour_index),
                 &SKY_GRADIENT,
             )

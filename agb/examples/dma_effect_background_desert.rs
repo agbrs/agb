@@ -10,7 +10,7 @@ use agb::{
         HEIGHT,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
-    dma::HBlankDmaDefinition,
+    dma::HBlankDma,
     fixnum::Num,
     include_background_gfx,
 };
@@ -40,7 +40,7 @@ fn main(mut gba: agb::Gba) -> ! {
             .map(|offset| offset as u16)
             .collect();
 
-        HBlankDmaDefinition::new(background_id.y_scroll_dma(), &offsets).show(&mut frame);
+        HBlankDma::new(background_id.y_scroll_dma(), &offsets).show(&mut frame);
 
         frame.commit();
     }
