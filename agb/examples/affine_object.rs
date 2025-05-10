@@ -1,3 +1,5 @@
+//! This example shows how you can use affine objects to rotate and scale. It also shows
+//! the importance of the `AffineDouble` display mode.
 #![no_std]
 #![no_main]
 
@@ -12,13 +14,17 @@ use agb::{
     include_aseprite,
 };
 
-include_aseprite!(mod sprites, "examples/gfx/crab.aseprite", "examples/gfx/box.aseprite");
-
-fn x(idx: i32) -> i32 {
-    (WIDTH / 4) * (idx + 1) - 16
-}
+include_aseprite!(mod sprites,
+    "examples/gfx/crab.aseprite",
+    "examples/gfx/box.aseprite",
+);
 
 fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame) {
+    /// Calculate the x coordinate for a crab with a given index
+    fn x(idx: i32) -> i32 {
+        (WIDTH / 4) * (idx + 1) - 16
+    }
+
     let crab = SpriteVram::from(sprites::IDLE.sprite(0));
     let square = SpriteVram::from(sprites::BOX.sprite(0));
     let instance = AffineMatrixInstance::new(matrix.to_object_wrapping());

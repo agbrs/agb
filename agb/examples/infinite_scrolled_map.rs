@@ -1,3 +1,5 @@
+//! How to use the infinite scrolled map to make a background that's bigger than the maximum background
+//! size on the game boy advance. Creates a wrapping map which you can look around.
 #![no_std]
 #![no_main]
 
@@ -41,7 +43,8 @@ fn main(mut gba: agb::Gba) -> ! {
             // The map is 60x40 tiles in size. And we use `rem_euclid` because that will effectively do
             // what % does but will always return a positive result, being exactly what we need for this
             // wrapped map.
-            let tile_index = p.x.rem_euclid(60) as usize + p.y.rem_euclid(40) as usize * 60;
+            let tile_index = p.x.rem_euclid(big_map::big_map.width as i32) as usize
+                + p.y.rem_euclid(big_map::big_map.height as i32) as usize * 60;
 
             (
                 &big_map::big_map.tiles,

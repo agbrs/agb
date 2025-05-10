@@ -1,3 +1,4 @@
+//! The default if there is no game written yet
 #![no_std]
 #![no_main]
 

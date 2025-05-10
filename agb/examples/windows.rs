@@ -1,14 +1,22 @@
+//! This example shows how you can use windows to selectively display different
+//! backgrounds in a rectangle.
 #![no_std]
 #![no_main]
 
 use agb::{
     display::{
-        HEIGHT, Layer, WIDTH, WinIn,
+        HEIGHT, WIDTH, WinIn,
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
     },
-    fixnum::{Num, Rect, Vector2D, num},
+    fixnum::{Num, Rect, Vector2D},
     include_background_gfx,
 };
+
+include_background_gfx!(
+    mod backgrounds,
+    LOGO => deduplicate "examples/gfx/test_logo.aseprite",
+    BEACH => deduplicate "examples/gfx/beach-background.aseprite",
+);
 
 type FNum = Num<i32, 8>;
 
@@ -18,15 +26,15 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
+    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+
     let mut gfx = gba.graphics.get();
 
-    let map = get_logo();
+    let logo_bg = get_logo();
+    let beach_bg = get_beach();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
     let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
-
-    let mut blend_amount: Num<i32, 8> = num!(0.5);
-    let mut blend_velocity: Num<i32, 8> = Num::new(1) / 128;
 
     loop {
         pos += velocity;
@@ -39,49 +47,42 @@ fn main(mut gba: agb::Gba) -> ! {
             velocity.y *= -1;
         }
 
-        blend_amount += blend_velocity;
-        if blend_amount > num!(0.75) || blend_amount < num!(0.25) {
-            blend_velocity *= -1;
-        }
-
-        blend_amount = blend_amount.clamp(0.into(), 1.into());
-
         let mut frame = gfx.frame();
-        let background_id = map.show(&mut frame);
-
-        let blend = frame.blend();
-        blend
-            .alpha()
-            .set_layer_alpha(Layer::Top, blend_amount.try_change_base().unwrap());
-        blend.layer(Layer::Top).enable_background(background_id);
-        blend.layer(Layer::Bottom).enable_backdrop();
+        let logo_background_id = logo_bg.show(&mut frame);
+        let beach_background_id = beach_bg.show(&mut frame);
 
         let window = frame.windows();
         window
             .win_in(WinIn::Win0)
-            .enable_background(background_id)
+            .enable_background(beach_background_id)
             .set_pos(Rect::new(pos.floor(), (64, 64).into()));
 
-        window
-            .win_out()
-            .enable_background(background_id)
-            .enable_blending();
+        window.win_out().enable_background(logo_background_id);
 
         frame.commit();
     }
 }
 
 fn get_logo() -> RegularBackgroundTiles {
-    include_background_gfx!(mod backgrounds, LOGO => "examples/gfx/test_logo.aseprite");
-
     let mut map = RegularBackgroundTiles::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
     map.fill_with(&backgrounds::LOGO);
+
+    map
+}
+
+fn get_beach() -> RegularBackgroundTiles {
+    let mut map = RegularBackgroundTiles::new(
+        agb::display::Priority::P1,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    map.fill_with(&backgrounds::BEACH);
 
     map
 }

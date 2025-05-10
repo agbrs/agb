@@ -1,3 +1,5 @@
+//! Shows how to use the save subsystem of agb. Saves the current location of the crab
+//! at the end of each frame, so when you reload the game, it'll be right back where you left it.
 #![no_std]
 #![no_main]
 

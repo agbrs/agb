@@ -1,3 +1,6 @@
+//! This example shows how to create very cheap animations using background tile switches.
+//! It swaps the tile data itself which automatically replaces every instance of that tile currently
+//! visible on the screen without needing to rewrite the actual tile data.
 #![no_std]
 #![no_main]
 
@@ -19,6 +22,7 @@ include_background_gfx!(mod background, platformer => "examples/gfx/platformer-b
 mod background_tile_ids {
     use core::ops::Range;
 
+    // Which tile you'll find the various images
     pub const GRASS: u16 = 0;
     pub const SKY: u16 = 1;
     pub const GROUND: u16 = 2;

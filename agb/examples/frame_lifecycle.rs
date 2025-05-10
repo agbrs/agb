@@ -1,3 +1,5 @@
+//! Shows how the frame lifecycle works. How to draw objects and backgrounds,
+//! and then commit that data to the screen.
 #![no_std]
 #![no_main]
 

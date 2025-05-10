@@ -1,3 +1,7 @@
+//! Shows how you can create smoother motion using fixnums rather than integer coordinates.
+//!
+//! When switching between integer and fixnum versions, the code is identical between them
+//! (applying some acceleration) but it is impossible to produce acceleration slow enough with integers
 #![no_std]
 #![no_main]
 

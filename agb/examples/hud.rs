@@ -1,3 +1,5 @@
+//! Shows how to use multiple backgrounds to create a background for the character to walk around
+//! and a heads-up-display (HUD) which always shows above the character.
 #![no_std]
 #![no_main]
 
