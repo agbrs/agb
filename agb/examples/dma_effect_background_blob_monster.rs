@@ -1,10 +1,10 @@
-// This example demonstrates a way to use a combination of a background and an object to show a
-// more dynamic object on screen.
-//
-// The monster is made up of a single regular background and a sprite for the eye. You could
-// produce this effect with many large sprites, but with this technique, you could make the outside
-// be effected by the player as well e.g. if they attack a certain part of it, it could
-// mark an indent in that location. This wouldn't be possible with sprites.
+//!  This example demonstrates a way to use a combination of a background and an object to show a
+//! more dynamic object on screen.
+//!
+//! The monster is made up of a single regular background and a sprite for the eye. You could
+//! produce this effect with many large sprites, but with this technique, you could make the outside
+//! be effected by the player as well e.g. if they attack a certain part of it, it could
+//! mark an indent in that location. This wouldn't be possible with sprites.
 #![no_main]
 #![no_std]
 
