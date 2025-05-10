@@ -1,4 +1,8 @@
-// Mostly a port of the [tonc mode7](https://gbadev.net/tonc/mode7.html) example
+//! Mostly a port of the [tonc mode7](https://gbadev.net/tonc/mode7.html) example.
+//! Shows a 3d plane that you can move around on. The maths and full explanation of how
+//! it works can be found in the link above.
+//!
+//! This is a prime example of using dma with affine background transformations.
 #![no_main]
 #![no_std]
 extern crate alloc;
@@ -21,7 +25,7 @@ use alloc::vec::Vec;
 include_background_gfx!(mod backgrounds,
     "000000",
     NUMBERS => 256 "examples/gfx/number-background.aseprite",
-    HELP => "examples/gfx/3d-plane-help-text.aseprite",
+    HELP => deduplicate "examples/gfx/3d-plane-help-text.aseprite",
 );
 
 #[agb::entry]
