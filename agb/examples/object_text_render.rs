@@ -1,3 +1,5 @@
+//! An example of what's possible with object text rendering. Uses tags and colour switches
+//! to display some dynamic text.
 #![no_std]
 #![no_main]
 
@@ -7,7 +9,7 @@ use agb::{
         font::{AlignmentKind, ChangeColour, Font, Layout, SetTag, SpriteTextRenderer, UnsetTag},
         object::Size,
     },
-    fixnum::{Num, vec2},
+    fixnum::{Num, num, vec2},
     include_font,
     rng::next_i32,
 };
@@ -24,32 +26,26 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    let timer = gba.timers.timers();
-    let mut timer: agb::timer::Timer = timer.timer2;
-
-    timer.set_enabled(true);
-    timer.set_divider(agb::timer::Divider::Divider256);
-
-    let start = timer.value();
     let player_name = "You";
 
+    // COLOUR_1 is the default colour and refers to palette index 1 within
+    // the palette being used.
     const COLOUR_1: ChangeColour = ChangeColour::new(1);
     const COLOUR_2: ChangeColour = ChangeColour::new(2);
 
-    const SET_TAG_0: SetTag = SetTag::new(0);
-    const UNSET_TAG_0: UnsetTag = UnsetTag::new(0);
+    const START_WIGGLY_TEXT: SetTag = SetTag::new(0);
+    const STOP_WIGGLY_TEXT: UnsetTag = UnsetTag::new(0);
 
-    const SET_TAG_1: SetTag = SetTag::new(1);
-    const UNSET_TAG_1: UnsetTag = UnsetTag::new(1);
+    // Whenever a tag is set or unset, a new letter group is created. So this
+    // allows us to split the individual full stops within the ellipsis into
+    // separate letter groups so that they can be rendered slowly.
+    const START_SLOW_TEXT: SetTag = SetTag::new(1);
+    const STOP_SLOW_TEXT: UnsetTag = UnsetTag::new(1);
 
     let text = format!(
-        "Hey, {COLOUR_2}{player_name}{COLOUR_1}!\nI have a{SET_TAG_1}.{SET_TAG_1}.{SET_TAG_1}.{UNSET_TAG_1} secret.\n{SET_TAG_0}I'm so very scared of what might happen.{UNSET_TAG_0}",
-    );
-    let end = timer.value();
-
-    agb::println!(
-        "Write took {} cycles",
-        256 * (end.wrapping_sub(start) as u32)
+        "Hey, {COLOUR_2}{player_name}{COLOUR_1}!
+This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} objects.
+{START_WIGGLY_TEXT}So you can control exact positions like this.{STOP_WIGGLY_TEXT}",
     );
 
     let mut gfx = gba.graphics.get();
@@ -82,6 +78,7 @@ fn main(mut gba: agb::Gba) -> ! {
                     wiggly_objects.push((sprite.pos(), sprite));
                 }
 
+                // Pause briefly at sentence breaks
                 if group.text().ends_with([',', '.', '!', '?', '\n']) {
                     delay = 16;
                 } else {
@@ -102,15 +99,11 @@ fn main(mut gba: agb::Gba) -> ! {
 
         for (resting, object) in wiggly_objects.iter_mut() {
             if frame_count % 4 == 0 {
-                #[expect(
-                    clippy::modulo_one,
-                    reason = "This isn't always 0, the number is fixed point"
-                )]
                 object.set_pos(
                     *resting
                         + vec2(
-                            Num::<i32, 12>::from_raw(next_i32()) % 1,
-                            Num::from_raw(next_i32()) % 1,
+                            Num::<i32, 12>::from_raw(next_i32()) % num!(1),
+                            Num::from_raw(next_i32()) % num!(1),
                         )
                         .round(),
                 );
