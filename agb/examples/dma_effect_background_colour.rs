@@ -1,3 +1,8 @@
+//! This is an example of using palette colour DMA to change the colour each scan line
+//! resulting in more colours than can fit in the Game Boy Advance's palette.
+//!
+//! There is banding in the final image because of the 15-bit colour used by the
+//! Game Boy Advance so we can't get enough precision to show a smooth colour gradient.
 #![no_std]
 #![no_main]
 
