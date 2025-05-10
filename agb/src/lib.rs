@@ -23,6 +23,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(rustdoc::private_intra_doc_links)]
 #![deny(rustdoc::invalid_html_tags)]
+#![warn(missing_docs)]
 
 //! # agb
 //! `agb` is a library for making games on the Game Boy Advance using rust.
@@ -600,6 +601,14 @@ pub mod test_runner {
         loop {}
     }
 
+    /// Asserts that the current screen matches the provided image
+    ///
+    /// Uses capabilities built into `mgba-test-runner` to assert that the
+    /// current content of the screen matches the image located at the provided
+    /// path. Does nothing if you are not using `mgba-test-runner`.
+    ///
+    /// If the image does not exist, `mgba-test-runner` will write the screen to
+    /// the file and fail.
     pub fn assert_image_output(image: &str) {
         display::busy_wait_for_vblank();
         display::busy_wait_for_vblank();
