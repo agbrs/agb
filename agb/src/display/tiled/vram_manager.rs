@@ -445,7 +445,7 @@ impl VRamManager {
     /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
     /// Very useful if you want a gradient of more colours than the gba can normally handle.
     ///
-    /// See [`HBlankDmaDefinition`](crate::dma::HBlankDmaDefinition) for examples for how to do this, or the
+    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
     /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
     #[must_use]
     pub fn background_palette_colour_dma(
@@ -459,7 +459,7 @@ impl VRamManager {
     /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
     /// Very useful if you want a gradient of more colours than the gba can normally handle.
     ///
-    /// See [`HBlankDmaDefinition`](crate::dma::HBlankDmaDefinition) for examples for how to do this, or the
+    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
     /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
     #[must_use]
     pub fn background_palette_colour_256_dma(

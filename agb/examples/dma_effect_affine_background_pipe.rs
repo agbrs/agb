@@ -12,7 +12,7 @@ use agb::{
             AffineMatrixBackground, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,
         },
     },
-    dma::HBlankDmaDefinition,
+    dma::HBlankDma,
     fixnum::{Num, Vector2D, num, vec2},
     input::{ButtonController, Tri},
 };
@@ -74,7 +74,7 @@ fn main(mut gba: agb::Gba) -> ! {
                 )
             })
             .collect::<Vec<_>>();
-        HBlankDmaDefinition::new(transform_dma, &transforms).show(&mut frame);
+        HBlankDma::new(transform_dma, &transforms).show(&mut frame);
 
         help.show(&mut frame);
 

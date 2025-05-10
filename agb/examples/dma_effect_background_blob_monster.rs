@@ -16,7 +16,7 @@ use agb::{
             RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileSetting, VRAM_MANAGER,
         },
     },
-    dma::HBlankDmaDefinition,
+    dma::HBlankDma,
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_background_gfx,
 };
@@ -132,7 +132,7 @@ impl BlobMonster {
             .set_priority(Priority::P0)
             .show(frame);
 
-        HBlankDmaDefinition::new(bg_id.scroll_dma(), &self.width_start_pairs()).show(frame);
+        HBlankDma::new(bg_id.scroll_dma(), &self.width_start_pairs()).show(frame);
     }
 
     fn width_start_pairs(&self) -> Vec<Vector2D<u16>> {

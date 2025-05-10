@@ -35,9 +35,7 @@ impl Dma {
 
 /// A struct to describe things you can modify using DMA (normally some register within the GBA)
 ///
-/// This is generally used to perform fancy graphics tricks like screen wobble on a per-scanline basis or
-/// to be able to create a track like in mario kart. This is an advanced technique and likely not needed
-/// unless you want to do fancy graphics.
+/// This is generally used to perform fancy graphics tricks by utilising [`HBlankDma`].
 pub struct DmaControllable<Item> {
     memory_location: *mut Item,
 }
@@ -48,15 +46,28 @@ impl<Item> DmaControllable<Item> {
     }
 }
 
-pub struct HBlankDmaDefinition<Item> {
+/// A Dma that copies a value to a given destination each hblank.
+///
+/// This is very useful for creating advanced graphical effects that would
+/// otherwise be impossible on the GBA. For instance, circular windows as used
+/// by many commercial games relies on modifying the width of a window each on
+/// each hblank interval.
+pub struct HBlankDma<Item> {
     controllable: DmaControllable<Item>,
     values: Pin<Box<[Item; 161]>>,
 }
 
-impl<Item> HBlankDmaDefinition<Item>
+impl<Item> HBlankDma<Item>
 where
     Item: Copy + Unpin + 'static,
 {
+    #[must_use]
+    /// Creates a HBlankDma that will write to the given controllable destination each hblank the values give.
+    ///
+    /// Does nothing unless [`show`][Self::show]n to the [`GraphicsFrame`].
+    ///
+    /// # Panics
+    /// If less than 160 values are given (the number of horizontal lines), this will panic.
     pub fn new(controllable: DmaControllable<Item>, values: &[Item]) -> Self {
         assert!(
             values.len() >= 160,
@@ -80,12 +91,13 @@ where
         }
     }
 
+    /// Causes the HBlankDma action to be performed during the graphics frame provided.
     pub fn show(self, frame: &mut GraphicsFrame) {
         frame.add_dma(self);
     }
 }
 
-impl<Item> DmaFrame for HBlankDmaDefinition<Item>
+impl<Item> DmaFrame for HBlankDma<Item>
 where
     Item: Copy + 'static,
 {

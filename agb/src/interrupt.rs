@@ -7,20 +7,53 @@ use portable_atomic::{AtomicBool, AtomicUsize, Ordering};
 use crate::{display::DISPLAY_STATUS, memory_mapped::MemoryMapped, util::SyncUnsafeCell};
 
 #[derive(Clone, Copy)]
+/// All the available interrupts for the GBA.
+///
+/// These are unlikely to be useful in user code and any interesting usages
+/// should have a easy to use wrapper for it. Game logic generally should not
+/// rely on any of these and instead should be purely based on creating a new
+/// state each frame.
+///
+/// Examples of such easy wrappers that use interrupts are provided where
+/// relevant.
 pub enum Interrupt {
+    /// Triggers on the start of each vertical blanking interval, useful for
+    /// timing actions that should occur once per frame. Most often used
+    /// automatically by agb as part of the
+    /// [`GraphicsFrame`][crate::display::GraphicsFrame].
     VBlank = 0,
+    /// Triggers on the start of each horizontal blanking interval. The
+    /// interrupt is most often used in agb as part of the
+    /// [`HBlankDma`][crate::dma::HBlankDma]
     HBlank = 1,
+    /// You may specify a particular line that this gets triggered on. Can be
+    /// thought of as a more flexible VBlank interrupt as it can trigger on any
+    /// line rather than only one.
     VCounter = 2,
+    /// Triggers when timer 0 overflows.
     Timer0 = 3,
+    /// Triggers when timer 1 overflows.
     Timer1 = 4,
+    /// Triggers when timer 1 overflows.
     Timer2 = 5,
+    /// Triggers when timer 1 overflows.
     Timer3 = 6,
+    /// Triggers when the serial transfer finishes. Not used available in agb.
     Serial = 7,
+    /// Triggers when Dma 0 completes.
     Dma0 = 8,
+    /// Triggers when Dma 1 completes.
     Dma1 = 9,
+    /// Triggers when Dma 2 completes.
     Dma2 = 10,
+    /// Triggers when Dma 3 completes.
     Dma3 = 11,
+    /// Triggers when specified keys are pressed. Useful in combination with a
+    /// timer to generate randomness by utilising cycle precision counters to
+    /// seed a random number generator.
     Keypad = 12,
+    /// Triggers when the cartridge (called a game pak) is removed from the
+    /// system.
     Gamepak = 13,
 }
 
@@ -203,6 +236,13 @@ impl Drop for InterruptInner {
     }
 }
 
+/// An opaque handle for an interrupt.
+///
+/// Dropping this stop this handler from running and free it's resources.
+/// Forgetting it will detach the handler and make the interrupt impossible to
+/// stop from running.
+///
+/// Created by [`add_interrupt_handler`].
 pub struct InterruptHandler {
     _inner: Pin<Box<InterruptInner>>,
 }
@@ -304,6 +344,24 @@ static NUM_VBLANKS: AtomicUsize = AtomicUsize::new(0); // overflows after 2.27 y
 static HAS_CREATED_INTERRUPT: AtomicBool = AtomicBool::new(false);
 
 #[non_exhaustive]
+/// A light weight VBlank handle.
+///
+/// Will set up the VBlank interrupt handler such that the VBlank interrupt can
+/// be waited for. Has internal logic to make missing the VBlank less of an
+/// issue by keeping track of the number of VBlanks that has occurred.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// # core::include!("doctest_runner.rs");
+/// use agb::interrupt::VBlank;
+///
+/// # fn test(gba: agb::Gba) {
+/// let vblank = VBlank::get();
+///
+/// vblank.wait_for_vblank();
+/// # }
+/// ```
 pub struct VBlank {
     last_waited_number: Cell<usize>,
 }
