@@ -1,3 +1,6 @@
+//! Uses DMA and a window to create a circular window. Normally windows have to be
+//! rectangles, but if we change the boundaries each scan line, then we can turn the
+//! window into a circle instead.
 #![no_std]
 #![no_main]
 
