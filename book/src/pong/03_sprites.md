@@ -128,6 +128,5 @@ loop {
 
 In this section, we covered why sprites are important, how to create and manage them using the `Frame` in `agb` and make a ball bounce around the screen.
 
-[^hblank]:
-    Timing this can give you some really cool effects allowing you to push the hardware.
+[^hblank]: Timing this can give you some really cool effects allowing you to push the hardware.
     `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this tutorial.
