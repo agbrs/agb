@@ -135,6 +135,7 @@ export default function Home() {
             Docs
           </ExternalLink>
           <ExternalLink href="./showcase">Showcase</ExternalLink>
+          <ExternalLink href="./examples">Examples</ExternalLink>
         </ExternalLinkBlock>
       </ContentBlock>
     </>
