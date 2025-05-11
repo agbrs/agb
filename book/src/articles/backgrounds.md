@@ -276,10 +276,6 @@ This is controlled by the `.vflip` and `.hflip` methods on [`TileSetting`](https
 You can also set the palette index using the `TileSetting`.
 But for backgrounds imported using `include_background_gfx!()` you probably don't need that, since the palettes will have been optimised and aren't guaranteed to be the same each time you compile your game.
 
-## Affine backgrounds
-
-See the main affine background documentation for details on affine backgrounds and their use.
-
 ## Animated tiles
 
 If you have some tiles you'd like to animate (such as some flowing water, or flowers blowing in the breeze), it can be quite inefficient to replace every instance of a tile with the animation every frame.
@@ -337,3 +333,102 @@ my_background.set_tile_dynamic16((0, 5), dynamic_tile, TileEffect::default());
 
 See [the dynamic tiles](https://agbrs.dev/examples/dynamic_tiles) example for a really basic example, or the [tiled background text renderer](https://github.com/agbrs/agb/blob/master/agb/src/display/font/tiled.rs) for a much more in-depth example.
 If you have any examples where dynamic tiles are the correct tool which isn't font rendering, please let us know by opening an issue in the [agb repo](https://github.com/agbrs/agb).
+
+# Affine backgrounds
+
+The Game Boy Advance can perform basic transformations like rotation and scaling to backgrounds and objects before they are displayed on screen.
+These transformations are used to perform many of the graphical tricks which give Game Boy Advance games their unique aesthetic.
+
+## Affine background limitations
+
+One thing to note before using affine backgrounds for everything in your game is that they come with some fairly strict limitations which make them harder to use than regular backgrounds
+
+1. **You can have at most 2 affine backgrounds at once.**
+   Each affine background takes up 2 regular background slots, so you can have 2 affine backgrounds, 1 affine and 2 regular or 4 regular backgrounds.
+2. **Affine backgrounds only support 256-colour mode (8 bits per pixel).**
+   Therefore, each tile uses up more video RAM than using the normal 16-colour mode (4 bits per pixel).
+   So make sure to import tiles using the 256 colour option in [`include_background_gfx!`](https://docs.rs/agb/latest/agb/macro.include_background_gfx.html).
+   However, this isn't so much of a problem because:
+3. **Affine backgrounds can only have 256 distinct tiles.**
+   Whereas regular backgrounds can fill the entire screen with distinct tiles, affine backgrounds can't. 256 tiles runs out very quickly. And to make matters worse:
+4. **Affine background tiles cannot be flipped.**
+   Each tile appears as it does when copied over to video RAM.
+   So you cannot use the same deduplicate trick used in regular backgrounds.
+
+However, if you can work around these limitations, you'll have the ability to make graphical effects like the ones shown in the [affine backgrounds](https://agbrs.dev/examples/affine_background) example, where we add a subtle camera rotation and zoom while moving around.
+Do note that these limitations are actual hardware limitations[^distinct-tiles].
+
+[^distinct-tiles]:
+    Technically you could have 256 distinct tiles per affine background so you could get 512 total between both backgrounds.
+    However, `agb`'s tile allocation isn't sophisticated enough for this, and you would also need to specify at creation time whether you'd want this
+    because you could not deduplicate between the backgrounds. To avoid this complication, `agb` doesn't support this mechanism.
+
+## Affine background creation
+
+Before we dig into the transformations themselves, we'll quickly cover how to create and display affine backgrounds.
+
+### Importing the graphics
+
+Affine background tiles are imported using the same [`include_background_gfx!`](https://docs.rs/agb/latest/agb/macro.include_background_gfx.html) macro as regular backgrounds.
+However, ensure that you pass the `256` option to import them as 256-colour tiles, and that you **do not** pass the `deduplicate` option.
+
+```rust
+use agb::include_background_gfx;
+
+include_background_gfx!(
+    mod background,
+    TILES => 256 "gfx/background-tiles.aseprite",
+);
+```
+
+### Setup the palette
+
+Palette setup works in exactly the same way as [regular backgrounds](./backgrounds.md#palette-setup).
+
+```rust
+use agb::display::tiled::VRAM_MANAGER;
+
+VRAM_MANAGER.set_backgroud_palettes(background::PALETTES);
+```
+
+### Create the `AffineBackgroundTiles`
+
+These also work very similarly to [regular backgrounds](./backgrounds.md#regularbackgroundtiles).
+However, the constructor for [`AffineBackgroundTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.new) takes some different arguments.
+
+The [`priority`](https://docs.rs/agb/latest/agb/display/enum.Priority.html) works in exactly the same way as regular backgrounds, with higher priorities being rendered first, so backgrounds with the lower priority are drawn on top of backgrounds with a higher priority.
+And similarly, objects with the same priority as an affine background are rendered above the background.
+
+The [sizes](https://docs.rs/agb/latest/agb/display/tiled/enum.AffineBackgroundSize.html) available to affine backgrounds are different to regular backgrounds.
+Affine backgrounds can only be square, and the smallest one (16x16 tiles) is smaller than the console's screen and the largest (128x128 tiles) is many times the size.
+You have similar trade-offs with the amount of video RAM used for the actual background data as with regular backgrounds.
+You should use the smallest background you can which fits the game you're making on it.
+
+While all regular backgrounds wrap around the screen (so scrolling to the right far enough will eventually show the left hand side of the background), affine backgrounds have the option not to wrap around the screen.
+This is provided by the [`AffineBackgroundWrapBehaviour`](https://docs.rs/agb/latest/agb/display/tiled/enum.AffineBackgroundWrapBehaviour.html).
+
+Play around with some of the [affine background examples](https://agbrs.dev/examples) to see how changing these settings alters how it works.
+
+### Putting tiles on screen
+
+The [`set_tile`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_tile) method takes different arguments to the regular background case.
+Instead of taking `TileSettings`, you give it a single `tile_index`.
+This is due to the limitation of affine backgrounds that you cannot flip tiles, so there are no settings to tweak.
+
+### Showing the background on the screen
+
+As with most graphical things in `agb`, you show `AffineBackgroundTiles` on the screen by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.show) method passing in the current frame.
+
+```rust
+let mut gfx = gba.graphics.get();
+
+loop {
+    let mut frame = gfx.frame();
+    background.show(&mut frame);
+    frame.commit();
+}
+```
+
+## Transformations
+
+Please see the dedicated [affine backgrounds and objects](./affine.md) chapter to see how to do transformations.
