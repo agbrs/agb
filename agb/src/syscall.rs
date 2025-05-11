@@ -16,14 +16,7 @@ const fn swi_map(thumb_id: u32) -> u32 {
 
 pub fn halt() {
     unsafe {
-        asm!(
-            "swi {SWI}",
-            SWI = const { swi_map(0x02) },
-            lateout("r0") _,
-            lateout("r1") _,
-            lateout("r2") _,
-            lateout("r3") _
-        );
+        asm!("swi {SWI}", SWI = const { swi_map(0x02) }, clobber_abi("C"));
     }
 }
 
@@ -31,14 +24,7 @@ pub fn halt() {
 /// used instead of calling this function directly.
 pub(crate) fn wait_for_vblank() {
     unsafe {
-        asm!(
-            "swi {SWI}",
-            SWI = const { swi_map(0x05) },
-            lateout("r0") _,
-            lateout("r1") _,
-            lateout("r2") _,
-            lateout("r3") _
-        );
+        asm!("swi {SWI}", SWI = const { swi_map(0x05) }, clobber_abi("C"));
     }
 }
 
@@ -78,11 +64,11 @@ pub(crate) fn bg_affine_matrix(
         asm!(
             "swi {SWI}",
             SWI = const { swi_map(0x0E) },
-            in("r0") &input as *const Input,
-            in("r1") output.as_mut_ptr(),
+            in("r0") &input,
+            in("r1") &mut output,
             in("r2") 1,
 
-            clobber_abi("C")
+            clobber_abi("C"),
         );
     }
 
