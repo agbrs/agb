@@ -9,7 +9,7 @@ use alloc::{format, vec, vec::Vec};
 use agb::{
     display::{
         GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
-        affine::AffineMatrix,
+        affine::{AffineMatrix, AffineMatrixObject},
         font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, Size, SpriteVram},
         tiled::VRAM_MANAGER,
@@ -139,7 +139,8 @@ impl AffineDemonstration {
 
         let matrix = self.demonstration.matrix(self.position);
 
-        let obj_matrix = AffineMatrixInstance::new(matrix.to_object_wrapping());
+        let obj_matrix =
+            AffineMatrixInstance::new(AffineMatrixObject::from_affine_wrapping(matrix));
 
         ObjectAffine::new(
             self.crab_sprite.clone(),
@@ -203,7 +204,7 @@ impl AffineTransformKind {
         }
     }
 
-    fn matrix(self, values: Vector2D<Num<i32, 8>>) -> AffineMatrix {
+    fn matrix(self, values: Vector2D<Num<i32, 8>>) -> AffineMatrix<Num<i32, 8>> {
         match self {
             AffineTransformKind::Translation => {
                 // spin in a circle

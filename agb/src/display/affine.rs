@@ -83,9 +83,7 @@
 
 use core::ops::{Mul, MulAssign};
 
-use agb_fixnum::{Num, Vector2D};
-
-type AffineMatrixElement = Num<i32, 8>;
+use crate::fixnum::{FixedWidthSignedInteger, Num, SignedNumber, Vector2D, num, vec2};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// An affine matrix stored in a way that is efficient for the GBA to perform
@@ -97,13 +95,13 @@ type AffineMatrixElement = Num<i32, 8>;
 /// 0 0 0
 /// ```
 #[allow(missing_docs)]
-pub struct AffineMatrix {
-    pub a: AffineMatrixElement,
-    pub b: AffineMatrixElement,
-    pub c: AffineMatrixElement,
-    pub d: AffineMatrixElement,
-    pub x: AffineMatrixElement,
-    pub y: AffineMatrixElement,
+pub struct AffineMatrix<T> {
+    pub a: T,
+    pub b: T,
+    pub c: T,
+    pub d: T,
+    pub x: T,
+    pub y: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,25 +109,79 @@ pub struct AffineMatrix {
 /// overflowing the destination data size
 pub struct OverflowError(pub(crate) ());
 
-impl AffineMatrix {
+impl<T: SignedNumber> AffineMatrix<T> {
     #[must_use]
     /// The Identity matrix. The identity matrix can be thought of as 1 and is
     /// represented by `I`. For a matrix `A`, `A ≡ A * I ≡ I * A`.
     pub fn identity() -> Self {
         AffineMatrix {
-            a: 1.into(),
-            b: 0.into(),
-            c: 0.into(),
-            d: 1.into(),
-            x: 0.into(),
-            y: 0.into(),
+            a: T::one(),
+            b: T::zero(),
+            c: T::zero(),
+            d: T::one(),
+            x: T::zero(),
+            y: T::zero(),
+        }
+    }
+
+    // Identity for rotation / scale / skew
+    /// Generates the matrix that represents a translation by the position
+    #[must_use]
+    pub fn from_translation(position: Vector2D<T>) -> Self {
+        AffineMatrix {
+            a: T::one(),
+            b: T::zero(),
+            c: T::zero(),
+            d: T::one(),
+            x: -position.x,
+            y: -position.y,
         }
     }
 
     #[must_use]
+    /// The position fields of the matrix
+    pub fn position(&self) -> Vector2D<T> {
+        vec2(-self.x, -self.y)
+    }
+
+    #[must_use]
+    /// Creates an affine matrix from a given (x, y) scaling. This will scale by
+    /// the inverse, ie (2, 2) will produce half the size.
+    pub fn from_scale(scale: Vector2D<T>) -> Self {
+        Self {
+            a: scale.x,
+            b: T::zero(),
+            c: T::zero(),
+            d: scale.y,
+            x: T::zero(),
+            y: T::zero(),
+        }
+    }
+
+    #[must_use]
+    /// Creates an affine matrix from a given (λ, μ) shearing.
+    pub fn from_shear(shear: Vector2D<T>) -> AffineMatrix<T> {
+        AffineMatrix {
+            a: shear.x * shear.y + T::one(),
+            b: shear.x,
+            c: shear.y,
+            d: T::one(),
+            x: T::zero(),
+            y: T::zero(),
+        }
+    }
+}
+
+impl<I, const N: usize> AffineMatrix<Num<I, N>>
+where
+    I: FixedWidthSignedInteger,
+{
+    #[must_use]
     /// Generates the matrix that represents a rotation
-    pub fn from_rotation<const N: usize>(angle: Num<i32, N>) -> Self {
-        fn from_rotation(angle: Num<i32, 8>) -> AffineMatrix {
+    pub fn from_rotation<const M: usize>(angle: Num<I, M>) -> Self {
+        fn from_rotation<I: FixedWidthSignedInteger, const N: usize, const M: usize>(
+            angle: Num<I, M>,
+        ) -> AffineMatrix<Num<I, N>> {
             let cos = angle.cos().change_base();
             let sin = angle.sin().change_base();
 
@@ -141,88 +193,53 @@ impl AffineMatrix {
                 b: -sin,
                 c: sin,
                 d: cos,
-                x: 0.into(),
-                y: 0.into(),
+                x: num!(0),
+                y: num!(0),
             }
         }
-        from_rotation(angle.rem_euclid(1.into()).change_base())
+        from_rotation(angle.rem_euclid(num!(1)))
     }
 
-    // Identity for rotation / scale / skew
-    /// Generates the matrix that represents a translation by the position
+    /// Change from one `Num` kind to another where the conversion is loss-less
     #[must_use]
-    pub fn from_translation(position: Vector2D<Num<i32, 8>>) -> Self {
+    pub fn change_base<J, const M: usize>(self) -> AffineMatrix<Num<J, M>>
+    where
+        J: FixedWidthSignedInteger + From<I>,
+    {
         AffineMatrix {
-            a: 1.into(),
-            b: 0.into(),
-            c: 0.into(),
-            d: 1.into(),
-            x: -position.x,
-            y: -position.y,
-        }
-    }
-
-    #[must_use]
-    /// The position fields of the matrix
-    pub fn position(&self) -> Vector2D<Num<i32, 8>> {
-        (-self.x, -self.y).into()
-    }
-
-    /// Attempts to convert the matrix to one which can be used in affine
-    /// objects.
-    pub fn try_to_object(&self) -> Result<AffineMatrixObject, OverflowError> {
-        Ok(AffineMatrixObject {
-            a: self.a.try_change_base().ok_or(OverflowError(()))?,
-            b: self.b.try_change_base().ok_or(OverflowError(()))?,
-            c: self.c.try_change_base().ok_or(OverflowError(()))?,
-            d: self.d.try_change_base().ok_or(OverflowError(()))?,
-        })
-    }
-
-    #[must_use]
-    /// Converts the matrix to one which can be used in affine objects
-    /// wrapping any value which is too large to be represented there.
-    pub fn to_object_wrapping(&self) -> AffineMatrixObject {
-        AffineMatrixObject {
-            a: Num::from_raw(self.a.to_raw() as i16),
-            b: Num::from_raw(self.b.to_raw() as i16),
-            c: Num::from_raw(self.c.to_raw() as i16),
-            d: Num::from_raw(self.d.to_raw() as i16),
-        }
-    }
-
-    #[must_use]
-    /// Creates an affine matrix from a given (x, y) scaling. This will scale by
-    /// the inverse, ie (2, 2) will produce half the size.
-    pub fn from_scale(scale: Vector2D<Num<i32, 8>>) -> AffineMatrix {
-        AffineMatrix {
-            a: scale.x,
-            b: 0.into(),
-            c: 0.into(),
-            d: scale.y,
-            x: 0.into(),
-            y: 0.into(),
-        }
-    }
-
-    #[must_use]
-    /// Creates an affine matrix from a given (λ, μ) shearing. This will shear by
-    /// the inverse, i.e. (2, 0) shear along the x-axis by 0.5 units per y
-    pub fn from_shear(shear: Vector2D<Num<i32, 8>>) -> AffineMatrix {
-        AffineMatrix {
-            a: shear.x * shear.y + 1,
-            b: shear.x,
-            c: shear.y,
-            d: 1.into(),
-            x: 0.into(),
-            y: 0.into(),
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
+            x: self.x.change_base(),
+            y: self.y.change_base(),
         }
     }
 }
 
-impl Default for AffineMatrix {
+impl<T: SignedNumber> Default for AffineMatrix<T> {
     fn default() -> Self {
         AffineMatrix::identity()
+    }
+}
+
+impl<T: SignedNumber> Mul for AffineMatrix<T> {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        AffineMatrix {
+            a: self.a * rhs.a + self.b * rhs.c,
+            b: self.a * rhs.b + self.b * rhs.d,
+            c: self.c * rhs.a + self.d * rhs.c,
+            d: self.c * rhs.b + self.d * rhs.d,
+            x: self.a * rhs.x + self.b * rhs.y + self.x,
+            y: self.c * rhs.x + self.d * rhs.y + self.y,
+        }
+    }
+}
+
+impl<T: SignedNumber> MulAssign for AffineMatrix<T> {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }
 
@@ -244,15 +261,22 @@ pub struct AffineMatrixObject {
 
 impl Default for AffineMatrixObject {
     fn default() -> Self {
-        AffineMatrix::identity().to_object_wrapping()
+        Self::from(AffineMatrix::<Num<i16, 8>>::identity())
     }
 }
 
-impl TryFrom<AffineMatrix> for AffineMatrixObject {
-    type Error = OverflowError;
-
-    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
-        value.try_to_object()
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+where
+    I: FixedWidthSignedInteger,
+    i16: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+        Self {
+            a: value.a.change_base(),
+            b: value.b.change_base(),
+            c: value.c.change_base(),
+            d: value.d.change_base(),
+        }
     }
 }
 
@@ -260,7 +284,7 @@ impl AffineMatrixObject {
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
-    pub fn to_affine_matrix(&self) -> AffineMatrix {
+    pub fn to_affine_matrix(&self) -> AffineMatrix<Num<i16, 8>> {
         AffineMatrix {
             a: self.a.change_base(),
             b: self.b.change_base(),
@@ -268,6 +292,26 @@ impl AffineMatrixObject {
             d: self.d.change_base(),
             x: 0.into(),
             y: 0.into(),
+        }
+    }
+
+    #[must_use]
+    /// Converts from an affine matrix, wrapping if it overflows
+    pub fn from_affine_wrapping<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        let a: Num<i32, 8> = affine.a.change_base();
+        let b: Num<i32, 8> = affine.b.change_base();
+        let c: Num<i32, 8> = affine.c.change_base();
+        let d: Num<i32, 8> = affine.d.change_base();
+
+        Self {
+            a: Num::from_raw(a.to_raw() as i16),
+            b: Num::from_raw(b.to_raw() as i16),
+            c: Num::from_raw(c.to_raw() as i16),
+            d: Num::from_raw(d.to_raw() as i16),
         }
     }
 
@@ -281,29 +325,9 @@ impl AffineMatrixObject {
     }
 }
 
-impl From<AffineMatrixObject> for AffineMatrix {
+impl From<AffineMatrixObject> for AffineMatrix<Num<i16, 8>> {
     fn from(mat: AffineMatrixObject) -> Self {
         mat.to_affine_matrix()
-    }
-}
-
-impl Mul for AffineMatrix {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        AffineMatrix {
-            a: self.a * rhs.a + self.b * rhs.c,
-            b: self.a * rhs.b + self.b * rhs.d,
-            c: self.c * rhs.a + self.d * rhs.c,
-            d: self.c * rhs.b + self.d * rhs.d,
-            x: self.a * rhs.x + self.b * rhs.y + self.x,
-            y: self.c * rhs.x + self.d * rhs.y + self.y,
-        }
-    }
-}
-
-impl MulAssign for AffineMatrix {
-    fn mul_assign(&mut self, rhs: Self) {
-        *self = *self * rhs;
     }
 }
 
@@ -315,7 +339,7 @@ mod tests {
 
     #[test_case]
     fn test_simple_multiply(_: &mut crate::Gba) {
-        let position = (20, 10).into();
+        let position: Vector2D<Num<i32, 8>> = (20, 10).into();
 
         let a = AffineMatrix::from_translation(position);
         let b = AffineMatrix::default();
@@ -324,7 +348,7 @@ mod tests {
 
         assert_eq!(c.position(), position);
 
-        let d = AffineMatrix::from_rotation::<2>(num!(0.5));
+        let d = AffineMatrix::from_rotation::<12>(num!(0.5));
 
         let e = a * d;
 

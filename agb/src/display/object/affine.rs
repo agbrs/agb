@@ -31,12 +31,12 @@ impl AffineMatrixInstance {
     /// Creates an instance of an affine matrix from its object form. Check out
     /// the docs for [AffineMatrix][crate::display::affine::AffineMatrix] to see
     /// how you can use them to create effects.
-    pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrixInstance {
+    pub fn new(affine_matrix: impl Into<AffineMatrixObject>) -> AffineMatrixInstance {
         AffineMatrixInstance {
             location: AffineMatrixVram(Rc::new(AffineMatrixData {
                 frame_count: Cell::new(u32::MAX),
                 location: Cell::new(u32::MAX),
-                matrix: affine_matrix,
+                matrix: affine_matrix.into(),
             })),
         }
     }

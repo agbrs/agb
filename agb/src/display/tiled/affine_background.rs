@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+use agb_fixnum::FixedWidthSignedInteger;
 use alloc::rc::Rc;
 use bilge::prelude::*;
 use core::alloc::Layout;
@@ -353,14 +354,19 @@ pub struct AffineMatrixBackground {
 
 impl Default for AffineMatrixBackground {
     fn default() -> Self {
-        Self::from_affine_wrapping(AffineMatrix::identity())
+        Self::from_affine_wrapping::<i16, 8>(AffineMatrix::identity())
     }
 }
 
-impl TryFrom<AffineMatrix> for AffineMatrixBackground {
+impl<I, const N: usize> TryFrom<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
+where
+    I: FixedWidthSignedInteger,
+    i16: TryFrom<I>,
+    i32: TryFrom<I>,
+{
     type Error = OverflowError;
 
-    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
+    fn try_from(value: AffineMatrix<Num<I, N>>) -> Result<Self, Self::Error> {
         Self::from_affine(value)
     }
 }
@@ -368,35 +374,51 @@ impl TryFrom<AffineMatrix> for AffineMatrixBackground {
 impl AffineMatrixBackground {
     /// Attempts to convert the matrix to one which can be used in affine
     /// backgrounds.
-    pub fn from_affine(affine: AffineMatrix) -> Result<Self, OverflowError> {
+    pub fn from_affine<I, const N: usize>(
+        affine: AffineMatrix<Num<I, N>>,
+    ) -> Result<Self, OverflowError>
+    where
+        I: FixedWidthSignedInteger,
+        i16: TryFrom<I>,
+        i32: TryFrom<I>,
+    {
         Ok(Self {
             a: affine.a.try_change_base().ok_or(OverflowError(()))?,
             b: affine.b.try_change_base().ok_or(OverflowError(()))?,
             c: affine.c.try_change_base().ok_or(OverflowError(()))?,
             d: affine.d.try_change_base().ok_or(OverflowError(()))?,
-            x: affine.x,
-            y: affine.y,
+            x: affine.x.try_change_base().ok_or(OverflowError(()))?,
+            y: affine.y.try_change_base().ok_or(OverflowError(()))?,
         })
     }
 
     /// Converts the matrix to one which can be used in affine backgrounds
     /// wrapping any value which is too large to be represented there.
     #[must_use]
-    pub fn from_affine_wrapping(affine: AffineMatrix) -> Self {
+    pub fn from_affine_wrapping<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        let a: Num<i32, 8> = affine.a.change_base();
+        let b: Num<i32, 8> = affine.b.change_base();
+        let c: Num<i32, 8> = affine.c.change_base();
+        let d: Num<i32, 8> = affine.d.change_base();
+
         Self {
-            a: Num::from_raw(affine.a.to_raw() as i16),
-            b: Num::from_raw(affine.b.to_raw() as i16),
-            c: Num::from_raw(affine.c.to_raw() as i16),
-            d: Num::from_raw(affine.d.to_raw() as i16),
-            x: affine.x,
-            y: affine.y,
+            a: Num::from_raw(a.to_raw() as i16),
+            b: Num::from_raw(b.to_raw() as i16),
+            c: Num::from_raw(c.to_raw() as i16),
+            d: Num::from_raw(d.to_raw() as i16),
+            x: affine.x.change_base(),
+            y: affine.y.change_base(),
         }
     }
 
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
-    pub fn to_affine_matrix(&self) -> AffineMatrix {
+    pub fn to_affine_matrix(&self) -> AffineMatrix<Num<i32, 8>> {
         AffineMatrix {
             a: self.a.change_base(),
             b: self.b.change_base(),
@@ -443,7 +465,7 @@ impl AffineMatrixBackground {
     }
 }
 
-impl From<AffineMatrixBackground> for AffineMatrix {
+impl From<AffineMatrixBackground> for AffineMatrix<Num<i32, 8>> {
     fn from(mat: AffineMatrixBackground) -> Self {
         mat.to_affine_matrix()
     }
