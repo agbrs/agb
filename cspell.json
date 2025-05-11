@@ -32,7 +32,9 @@
         "/```[\\s\\S]+?```/g",
         "/\\B`[^`\n]+?`\\B/g",
         // skip img tags which are checked for some reason
-        "/src=\"[^\"]+\"/g"
+        "/src=\"[^\"]+\"/g",
+        // skip inside math blocks
+        "/\\\\\\\\\\[[\\s\\S]+?\\\\\\\\\\]/g"
       ]
     }
   ],
