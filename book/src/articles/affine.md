@@ -25,7 +25,7 @@ However, it might be easiest to think of affine transformations as any combinati
 
 You can see all these transformations in action in the [affine transformations](https://agbrs.dev/examples/affine_transformations) example.
 
-> The most important thing to note about transformation matrices in the Game Boy Advance is that they are inverted
+> The most important thing to note about transformation matrices in the Game Boy Advance is that they are inverted.
 
 What we mean by this is that if you're looking to double the size of an object, you may construct a matrix like the following:
 
@@ -56,8 +56,10 @@ use agb::{
     fixnum::{Num, num}
 };
 
-let rot_mat = AffineMatrix::from_rotation(num!(0.25));
-let scale_mat = AffineMatrix::from_scale(vec2(num!(0.5), num!(0.5)));
+let rot_mat: AffineMatrix<Num<i32, 8>> =
+    AffineMatrix::from_rotation::<8>(num!(0.25));
+let scale_mat: AffineMatrix<Num<i32, 8>> =
+    AffineMatrix::from_scale(vec2(num!(0.5), num!(0.5)));
 
 let final_transform: AffineMatrix<Num<i32, 8>> = rot_mat * scale_mat;
 ```
@@ -65,18 +67,53 @@ let final_transform: AffineMatrix<Num<i32, 8>> = rot_mat * scale_mat;
 Remember that the transform is transforming _screen_ coordinates to _object_ coordinates.
 So this will first halve the size of the screen and then rotate it (effectively showing it at double the size).
 
+You can construct an `AffineMatrix` for each of the basic transformations above.
+All the fields are `pub`, so you can also construct one using:
+
+```rust
+use agb::display::AffineMatrix;
+
+let mat = AffineMatrix {
+    a, b, c, d, x, y
+};
+```
+
+which is the matrix:
+
+\\[
+\begin{pmatrix}
+a & b & x \\\\
+c & d & y \\\\
+0 & 0 & 0
+\end{pmatrix}
+\\]
+
 ## Affine backgrounds
 
 To create affine backgrounds, please see the relevant section in the [backgrounds deep dive](./backgrounds.md#affine-backgrounds).
 
 You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_transform) method and passing in the desired affine matrix.
 `set_transform()` takes an [`AffineMatrixBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html) rather than an `AffineMatrix` directly because they have different size requirements.
+
 You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` or `from_affine_wrapping()` constructors.
 The former returns a `Result` because your matrix values might be too large to fit in the `i16` of background matrices.
-However, it is unlikely to be the case, so you can probably use the `from_affine_wrapping()` in most cases.
+However, this is unlikely to be the case, so you can probably use the `from_affine_wrapping()` function in most cases.
 
 ## Affine objects
 
 Affine objects behave slightly differently to backgrounds.
 They only use the `a`, `b`, `c` and `d` components of the matrix and ignore the transformation part of it.
 So you'll also need to set the position of the sprite separately.
+
+```rust
+let affine_matrix = calculate_affine_matrix();
+let affine_matrix_instance = AffineMatrixInstance::new(
+    AffineMatrixObject::from_affine_wrapping(affine_matrix)
+);
+
+ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
+    .set_position(affine_matrix.position().round())
+    .show(frame);
+```
+
+See the [affine section](./objects_deep_dive.md#affine-objects) of the object deep dive for more details.

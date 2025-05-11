@@ -71,14 +71,33 @@ These objects are created using the [`ObjectAffine`](https://docs.rs/agb/latest/
 This like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) requires a sprite but also requires an [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html) and an `AffineMode`.
 The affine matrix instance can be thought of as an affine matrix stored in oam.
 
-The [`affine` module](https://docs.rs/agb/latest/agb/display/affine/index.html) goes over some detail in how to create affine matrices, the relevant part is `AffineMatrix::to_object_wrapping` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/affine/struct.AffineMatrixObject.html) that is suitable for use in objects which then has the `oam` version of [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html).
-When using a single affine matrix for multiple sprites, it is important to reuse the [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html) as otherwise you may run out of affine matrices.
-You can use up to 32 affine matrices.
+The [affine article](./affine.md) goes over some detail in how to create affine matrices.
+With a given affine matrix, you can use `AffineMatrixObject::from_affine_wrapping` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) that is suitable for use in objects.
+You can turn different `AffineMatrixObject` instances into individual [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html).
+
+When using the same affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
+You can use up to 32 affine matrices at once.
+`AffineMatrixInstance` implements `Clone`, and cloning is very cheap as it just increases a reference count.
+
+An `AffineMatrix` also stores a translation component.
+However, creating the `AffineMatrixObject` will lose this translation component, so you'll also need to set it as the position as follows:
+
+```rust
+let affine_matrix = calculate_affine_matrix();
+let affine_matrix_instance = AffineMatrixInstance::new(
+    AffineMatrixObject::from_affine_wrapping(affine_matrix)
+);
+
+ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
+    .set_position(affine_matrix.position().round())
+    .show(frame);
+```
+
+Beware that the position of an affine object is the centre of the sprite, and not the top left corner like it is for regular sprites.
 
 Affine objects have two display modes, the regular and the double modes.
-The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off the outside.
+The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off anything outside of the regular bounding box.
 You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
-As double affine objects are twice the size and the top left of the corner is dictated by the position given the sprite will be offset compared to regular sprites by the size of the sprite.
 
 ## Dynamic sprites
 
