@@ -45,8 +45,38 @@ So you need to make sure that any matrix you pass is thought of as mapping pixel
 
 ## Affine matrices in `agb`
 
+The key affine matrix type provided by `agb` is the [`AffineMatrix`](https://docs.rs/agb/latest/agb/display/struct.AffineMatrix.html).
+This represents the full affine transformation including translation, and provides a multiplication overload which you use to combine transformations.
+
+For example, if we want to do both a rotation and a scale, you could use something like this:
+
+```rust
+use agb::{
+    display::AffineMatrix,
+    fixnum::{Num, num}
+};
+
+let rot_mat = AffineMatrix::from_rotation(num!(0.25));
+let scale_mat = AffineMatrix::from_scale(vec2(num!(0.5), num!(0.5)));
+
+let final_transform: AffineMatrix<Num<i32, 8>> = rot_mat * scale_mat;
+```
+
+Remember that the transform is transforming _screen_ coordinates to _object_ coordinates.
+So this will first halve the size of the screen and then rotate it (effectively showing it at double the size).
+
 ## Affine backgrounds
 
 To create affine backgrounds, please see the relevant section in the [backgrounds deep dive](./backgrounds.md#affine-backgrounds).
 
 You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_transform) method and passing in the desired affine matrix.
+`set_transform()` takes an [`AffineMatrixBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html) rather than an `AffineMatrix` directly because they have different size requirements.
+You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` or `from_affine_wrapping()` constructors.
+The former returns a `Result` because your matrix values might be too large to fit in the `i16` of background matrices.
+However, it is unlikely to be the case, so you can probably use the `from_affine_wrapping()` in most cases.
+
+## Affine objects
+
+Affine objects behave slightly differently to backgrounds.
+They only use the `a`, `b`, `c` and `d` components of the matrix and ignore the transformation part of it.
+So you'll also need to set the position of the sprite separately.
