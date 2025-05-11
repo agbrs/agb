@@ -242,6 +242,17 @@ impl<T: SignedNumber> MulAssign for AffineMatrix<T> {
     }
 }
 
+impl<T: SignedNumber> Mul<Vector2D<T>> for AffineMatrix<T> {
+    type Output = Vector2D<T>;
+
+    fn mul(self, rhs: Vector2D<T>) -> Self::Output {
+        vec2(
+            self.a * rhs.x + self.b * rhs.y + self.x,
+            self.c * rhs.x + self.d * rhs.y + self.y,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::fixnum::num;
