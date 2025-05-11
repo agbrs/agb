@@ -64,11 +64,11 @@ pub(crate) fn bg_affine_matrix(
         asm!(
             "swi {SWI}",
             SWI = const { swi_map(0x0E) },
-            in("r0") &input as *const Input,
-            in("r1") output.as_mut_ptr(),
+            in("r0") &input,
+            in("r1") &mut output,
             in("r2") 1,
 
-            clobber_abi("C")
+            clobber_abi("C"),
         );
     }
 
