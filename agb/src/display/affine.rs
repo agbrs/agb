@@ -204,6 +204,20 @@ impl AffineMatrix {
             y: 0.into(),
         }
     }
+
+    #[must_use]
+    /// Creates an affine matrix from a given (λ, μ) shearing. This will shear by
+    /// the inverse, i.e. (2, 0) shear along the x-axis by 0.5 units per y
+    pub fn from_shear(shear: Vector2D<Num<i32, 8>>) -> AffineMatrix {
+        AffineMatrix {
+            a: shear.x * shear.y + 1,
+            b: shear.x,
+            c: shear.y,
+            d: 1.into(),
+            x: 0.into(),
+            y: 0.into(),
+        }
+    }
 }
 
 impl Default for AffineMatrix {
