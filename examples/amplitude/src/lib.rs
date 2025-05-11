@@ -11,9 +11,11 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        self, GraphicsFrame, Palette16, Rgb15,
-        affine::AffineMatrix,
-        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
+        self, AffineMatrix, GraphicsFrame, Palette16, Rgb15,
+        object::{
+            AffineMatrixInstance, AffineMatrixObject, AffineMode, Object, ObjectAffine, SpriteVram,
+            Tag,
+        },
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num},
@@ -239,10 +241,11 @@ impl Game {
             }
             saw.angle += saw.rotation_speed;
 
-            let angle_affine_matrix = AffineMatrix::from_rotation(saw.angle);
+            let angle_affine_matrix: AffineMatrix<Num<i32, 8>> =
+                AffineMatrix::from_rotation(saw.angle);
 
             saw.object.set_affine_matrix(AffineMatrixInstance::new(
-                angle_affine_matrix.to_object_wrapping(),
+                AffineMatrixObject::from_affine_wrapping(angle_affine_matrix),
             ));
 
             saw.object.set_pos(saw.position.floor() - (16, 16).into());
@@ -273,7 +276,7 @@ impl Game {
 
             let mut saw = ObjectAffine::new(
                 sprite_cache.saw.clone(),
-                AffineMatrixInstance::new(AffineMatrix::identity().to_object_wrapping()),
+                AffineMatrixInstance::new(AffineMatrixObject::default()),
                 AffineMode::Affine,
             );
             let position = (300, rng::next_i32().rem_euclid(display::HEIGHT));
