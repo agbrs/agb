@@ -437,7 +437,7 @@ impl AffineMatrixBackground {
     /// # #![no_std]
     /// # #![no_main]
     /// # use agb_fixnum::{Vector2D, Num};
-    /// use agb::display::affine::AffineMatrix;
+    /// use agb::display::AffineMatrix;
     /// # fn from_scale_rotation_position(
     /// #     transform_origin: Vector2D<Num<i32, 8>>,
     /// #     scale: Vector2D<Num<i32, 8>>,

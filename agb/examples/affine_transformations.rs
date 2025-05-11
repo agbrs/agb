@@ -8,10 +8,12 @@ use alloc::{format, vec, vec::Vec};
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
-        affine::{AffineMatrix, AffineMatrixObject},
+        AffineMatrix, GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
         font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
-        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, Size, SpriteVram},
+        object::{
+            AffineMatrixInstance, AffineMatrixObject, AffineMode, Object, ObjectAffine, Size,
+            SpriteVram,
+        },
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num, vec2},

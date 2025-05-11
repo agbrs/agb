@@ -7,8 +7,7 @@ extern crate alloc;
 
 use agb::{
     display::{
-        Priority, WIDTH,
-        affine::AffineMatrix,
+        AffineMatrix, Priority, WIDTH,
         tiled::{
             AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
             AffineMatrixBackground, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,

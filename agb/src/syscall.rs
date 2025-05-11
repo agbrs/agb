@@ -77,7 +77,7 @@ pub(crate) fn bg_affine_matrix(
 
 #[cfg(test)]
 mod tests {
-    use crate::display::affine::AffineMatrix;
+    use crate::display::AffineMatrix;
 
     use super::*;
 

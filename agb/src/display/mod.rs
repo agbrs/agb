@@ -84,7 +84,8 @@ mod palette16;
 pub mod tile_data;
 pub mod tiled;
 
-pub mod affine;
+mod affine;
+pub use affine::AffineMatrix;
 mod blend;
 mod window;
 

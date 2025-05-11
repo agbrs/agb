@@ -5,9 +5,10 @@
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Rgb15, WIDTH,
-        affine::{AffineMatrix, AffineMatrixObject},
-        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram},
+        AffineMatrix, GraphicsFrame, HEIGHT, Rgb15, WIDTH,
+        object::{
+            AffineMatrixInstance, AffineMatrixObject, AffineMode, Object, ObjectAffine, SpriteVram,
+        },
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, num, vec2},

@@ -1,8 +1,97 @@
 use core::cell::Cell;
 
+use agb_fixnum::{FixedWidthSignedInteger, Num};
 use alloc::rc::Rc;
 
-use crate::display::affine::AffineMatrixObject;
+use crate::display::affine::AffineMatrix;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(C, packed(4))]
+/// An affine matrix that can be used in affine objects
+///
+/// ```txt
+/// a b
+/// c d
+/// ```
+#[allow(missing_docs)]
+pub struct AffineMatrixObject {
+    pub a: Num<i16, 8>,
+    pub b: Num<i16, 8>,
+    pub c: Num<i16, 8>,
+    pub d: Num<i16, 8>,
+}
+
+impl Default for AffineMatrixObject {
+    fn default() -> Self {
+        Self::from(AffineMatrix::<Num<i16, 8>>::identity())
+    }
+}
+
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+where
+    I: FixedWidthSignedInteger,
+    i16: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+        Self {
+            a: value.a.change_base(),
+            b: value.b.change_base(),
+            c: value.c.change_base(),
+            d: value.d.change_base(),
+        }
+    }
+}
+
+impl AffineMatrixObject {
+    #[must_use]
+    /// Converts to the affine matrix that is usable in performing efficient
+    /// calculations.
+    pub fn to_affine_matrix(self) -> AffineMatrix<Num<i16, 8>> {
+        AffineMatrix {
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
+            x: 0.into(),
+            y: 0.into(),
+        }
+    }
+
+    #[must_use]
+    /// Converts from an affine matrix, wrapping if it overflows
+    pub fn from_affine_wrapping<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        let a: Num<i32, 8> = affine.a.change_base();
+        let b: Num<i32, 8> = affine.b.change_base();
+        let c: Num<i32, 8> = affine.c.change_base();
+        let d: Num<i32, 8> = affine.d.change_base();
+
+        Self {
+            a: Num::from_raw(a.to_raw() as i16),
+            b: Num::from_raw(b.to_raw() as i16),
+            c: Num::from_raw(c.to_raw() as i16),
+            d: Num::from_raw(d.to_raw() as i16),
+        }
+    }
+
+    pub(crate) fn components(self) -> [u16; 4] {
+        [
+            self.a.to_raw() as u16,
+            self.b.to_raw() as u16,
+            self.c.to_raw() as u16,
+            self.d.to_raw() as u16,
+        ]
+    }
+}
+
+impl From<AffineMatrixObject> for AffineMatrix<Num<i16, 8>> {
+    fn from(mat: AffineMatrixObject) -> Self {
+        mat.to_affine_matrix()
+    }
+}
 
 #[derive(Debug)]
 struct AffineMatrixData {
