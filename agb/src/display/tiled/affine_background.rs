@@ -172,8 +172,11 @@ impl AffineBackgroundTiles {
     }
 
     /// Set the current scroll position.
-    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) {
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) -> &mut Self {
         self.scroll = scroll.into();
+        self
     }
 
     /// Get the current scroll position.
@@ -192,12 +195,14 @@ impl AffineBackgroundTiles {
     ///
     /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
     /// in the background will reference that same tile only once to reduce video RAM usage.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
         tileset: &TileSet<'_>,
         tile_index: u16,
-    ) {
+    ) -> &mut Self {
         assert_eq!(
             tileset.format(),
             TileFormat::EightBpp,
@@ -206,9 +211,13 @@ impl AffineBackgroundTiles {
 
         let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_index);
+
+        self
     }
 
     /// Set the current transformation matrix.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) -> &mut Self {
         self.transform = transform.into();
         self
@@ -221,6 +230,8 @@ impl AffineBackgroundTiles {
     }
 
     /// Set the wrapping behaviour.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_wrap_behaviour(
         &mut self,
         wrap_behaviour: AffineBackgroundWrapBehaviour,
@@ -313,7 +324,8 @@ impl AffineBackgroundTiles {
 
     /// Set the current priority for the background.
     ///
-    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show())
+    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show()).
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self
