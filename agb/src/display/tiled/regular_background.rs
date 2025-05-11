@@ -171,6 +171,8 @@ impl RegularBackgroundTiles {
     /// effectively rendering the background more to the left.
     ///
     /// To get the current scroll position, you can call [`scroll_pos()`](RegularBackgroundTiles::scroll_pos()).
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i32>>) -> &mut Self {
         self.scroll = scroll.into();
         self
@@ -195,12 +197,14 @@ impl RegularBackgroundTiles {
     ///
     /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
     /// in the background will reference that same tile only once to reduce video RAM usage.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
         tileset: &TileSet<'_>,
         tile_setting: TileSetting,
-    ) {
+    ) -> &mut Self {
         assert_eq!(
             tileset.format(),
             self.tiles.colours(),
@@ -211,17 +215,21 @@ impl RegularBackgroundTiles {
 
         let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_setting);
+
+        self
     }
 
     /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination.
     ///
     /// This only works on a [16 colour background](TileFormat::FourBpp).
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_tile_dynamic16(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
         tile: &DynamicTile16,
         effect: TileEffect,
-    ) {
+    ) -> &mut Self {
         assert_eq!(
             self.tiles.colours(),
             TileFormat::FourBpp,
@@ -235,6 +243,8 @@ impl RegularBackgroundTiles {
             &tile.tile_set(),
             TileSetting::new(tile.tile_id(), effect),
         );
+
+        self
     }
 
     /// Fills the screen with the data given in `tile_data`.
@@ -267,7 +277,9 @@ impl RegularBackgroundTiles {
     /// bg.fill_with(&logo::logo);
     /// # }
     /// ```
-    pub fn fill_with(&mut self, tile_data: &TileData) {
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn fill_with(&mut self, tile_data: &TileData) -> &mut Self {
         assert!(
             tile_data.width >= 30,
             "Don't have a full screen's width of tile data, got: {}",
@@ -293,6 +305,8 @@ impl RegularBackgroundTiles {
                 self.set_tile_at_pos(tile_pos, &tile_data.tiles, tile_data.tile_settings[tile_id]);
             }
         }
+
+        self
     }
 
     fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
@@ -369,7 +383,9 @@ impl RegularBackgroundTiles {
 
     /// Sets the [`Priority`] of this background.
     ///
-    /// This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show())
+    /// This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show()).
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self

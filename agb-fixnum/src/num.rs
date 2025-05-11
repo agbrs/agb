@@ -42,6 +42,9 @@ macro_rules! num {
 /// A trait for everything required to use as the internal representation of the
 /// fixed point number.
 pub trait Number: Copy + PartialOrd + Ord + num_traits::Num {}
+/// A trait for a signed [`Number`]
+pub trait SignedNumber: Number + num_traits::Signed {}
+impl<N> SignedNumber for N where N: Number + num_traits::Signed {}
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
 impl<I: FixedWidthUnsignedInteger> Number for I {}

@@ -36,7 +36,7 @@ pub(crate) fn load_help_text(
             (x + at_tile.0, at_tile.1),
             &help_tiledata.tiles,
             help_tiledata.tile_settings[tile_id as usize],
-        )
+        );
     }
 }
 
@@ -54,7 +54,7 @@ pub(crate) fn load_description(face_id: usize, descriptions_map: &mut RegularBac
                 (x, y),
                 &description_data.tiles,
                 description_data.tile_settings[tile_id as usize],
-            )
+            );
         }
     }
 }

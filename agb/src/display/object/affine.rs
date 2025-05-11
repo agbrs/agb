@@ -1,8 +1,92 @@
 use core::cell::Cell;
 
+use agb_fixnum::{FixedWidthSignedInteger, Num};
 use alloc::rc::Rc;
 
-use crate::display::affine::AffineMatrixObject;
+use crate::display::affine::AffineMatrix;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(C, packed(4))]
+/// An affine matrix that can be used in affine objects
+///
+/// ```txt
+/// a b
+/// c d
+/// ```
+#[allow(missing_docs)]
+pub struct AffineMatrixObject {
+    pub a: Num<i16, 8>,
+    pub b: Num<i16, 8>,
+    pub c: Num<i16, 8>,
+    pub d: Num<i16, 8>,
+}
+
+impl Default for AffineMatrixObject {
+    fn default() -> Self {
+        Self::from(AffineMatrix::<Num<i16, 8>>::identity())
+    }
+}
+
+impl AffineMatrixObject {
+    #[must_use]
+    /// Converts to the affine matrix that is usable in performing efficient
+    /// calculations.
+    pub fn to_affine_matrix(self) -> AffineMatrix<Num<i16, 8>> {
+        AffineMatrix {
+            a: self.a.change_base(),
+            b: self.b.change_base(),
+            c: self.c.change_base(),
+            d: self.d.change_base(),
+            x: 0.into(),
+            y: 0.into(),
+        }
+    }
+
+    #[must_use]
+    /// Converts from an affine matrix, wrapping if it overflows
+    pub fn from_affine<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        let a: Num<i32, 8> = affine.a.change_base();
+        let b: Num<i32, 8> = affine.b.change_base();
+        let c: Num<i32, 8> = affine.c.change_base();
+        let d: Num<i32, 8> = affine.d.change_base();
+
+        Self {
+            a: Num::from_raw(a.to_raw() as i16),
+            b: Num::from_raw(b.to_raw() as i16),
+            c: Num::from_raw(c.to_raw() as i16),
+            d: Num::from_raw(d.to_raw() as i16),
+        }
+    }
+
+    pub(crate) fn components(self) -> [u16; 4] {
+        [
+            self.a.to_raw() as u16,
+            self.b.to_raw() as u16,
+            self.c.to_raw() as u16,
+            self.d.to_raw() as u16,
+        ]
+    }
+}
+
+impl From<AffineMatrixObject> for AffineMatrix<Num<i16, 8>> {
+    fn from(mat: AffineMatrixObject) -> Self {
+        mat.to_affine_matrix()
+    }
+}
+
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+where
+    I: FixedWidthSignedInteger,
+    i32: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+        AffineMatrixObject::from_affine(value)
+    }
+}
 
 #[derive(Debug)]
 struct AffineMatrixData {
@@ -17,7 +101,7 @@ pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 /// An affine matrix that can be used on objects.
 ///
 /// It is just in time copied to vram, so you can have as many as you like
-/// of these but you can only use up to 16 in one frame. They are reference
+/// of these but you can only use up to 32 in one frame. They are reference
 /// counted (Cloning is cheap) and immutable, if you want to change a matrix
 /// you must make a new one and set it
 /// on all your objects.
@@ -31,12 +115,12 @@ impl AffineMatrixInstance {
     /// Creates an instance of an affine matrix from its object form. Check out
     /// the docs for [AffineMatrix][crate::display::affine::AffineMatrix] to see
     /// how you can use them to create effects.
-    pub fn new(affine_matrix: AffineMatrixObject) -> AffineMatrixInstance {
+    pub fn new(affine_matrix: impl Into<AffineMatrixObject>) -> AffineMatrixInstance {
         AffineMatrixInstance {
             location: AffineMatrixVram(Rc::new(AffineMatrixData {
                 frame_count: Cell::new(u32::MAX),
                 location: Cell::new(u32::MAX),
-                matrix: affine_matrix,
+                matrix: affine_matrix.into(),
             })),
         }
     }

@@ -5,8 +5,7 @@
 
 use agb::{
     display::{
-        GraphicsFrame, HEIGHT, Rgb15, WIDTH,
-        affine::AffineMatrix,
+        AffineMatrix, GraphicsFrame, HEIGHT, Rgb15, WIDTH,
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram},
         tiled::VRAM_MANAGER,
     },
@@ -19,7 +18,7 @@ include_aseprite!(mod sprites,
     "examples/gfx/box.aseprite",
 );
 
-fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame) {
+fn show_with_boxes(matrix: AffineMatrix<Num<i32, 8>>, height: i32, frame: &mut GraphicsFrame) {
     /// Calculate the x coordinate for a crab with a given index
     fn x(idx: i32) -> i32 {
         (WIDTH / 4) * (idx + 1) - 16
@@ -27,7 +26,7 @@ fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame)
 
     let crab = SpriteVram::from(sprites::IDLE.sprite(0));
     let square = SpriteVram::from(sprites::BOX.sprite(0));
-    let instance = AffineMatrixInstance::new(matrix.to_object_wrapping());
+    let instance = AffineMatrixInstance::new(matrix);
 
     for idx in 0..3 {
         Object::new(square.clone())

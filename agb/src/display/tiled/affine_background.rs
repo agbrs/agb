@@ -1,14 +1,11 @@
 #![warn(missing_docs)]
+use agb_fixnum::FixedWidthSignedInteger;
 use alloc::rc::Rc;
 use bilge::prelude::*;
 use core::alloc::Layout;
 
 use crate::{
-    display::{
-        GraphicsFrame, Priority,
-        affine::{AffineMatrix, OverflowError},
-        tiled::TileFormat,
-    },
+    display::{GraphicsFrame, Priority, affine::AffineMatrix, tiled::TileFormat},
     fixnum::{Num, Vector2D},
 };
 
@@ -172,8 +169,11 @@ impl AffineBackgroundTiles {
     }
 
     /// Set the current scroll position.
-    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) {
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<Num<i32, 8>>>) -> &mut Self {
         self.scroll = scroll.into();
+        self
     }
 
     /// Get the current scroll position.
@@ -192,12 +192,14 @@ impl AffineBackgroundTiles {
     ///
     /// This will resulting in copying the tile data to video RAM. However, setting the same tile across multiple locations
     /// in the background will reference that same tile only once to reduce video RAM usage.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
         tileset: &TileSet<'_>,
         tile_index: u16,
-    ) {
+    ) -> &mut Self {
         assert_eq!(
             tileset.format(),
             TileFormat::EightBpp,
@@ -206,9 +208,13 @@ impl AffineBackgroundTiles {
 
         let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_index);
+
+        self
     }
 
     /// Set the current transformation matrix.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_transform(&mut self, transform: impl Into<AffineMatrixBackground>) -> &mut Self {
         self.transform = transform.into();
         self
@@ -221,6 +227,8 @@ impl AffineBackgroundTiles {
     }
 
     /// Set the wrapping behaviour.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_wrap_behaviour(
         &mut self,
         wrap_behaviour: AffineBackgroundWrapBehaviour,
@@ -313,7 +321,8 @@ impl AffineBackgroundTiles {
 
     /// Set the current priority for the background.
     ///
-    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show())
+    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show()).
+    /// Returns self so you can chain with other `set_` calls.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self
@@ -341,50 +350,48 @@ pub struct AffineMatrixBackground {
 
 impl Default for AffineMatrixBackground {
     fn default() -> Self {
-        Self::from_affine_wrapping(AffineMatrix::identity())
+        Self::from_affine::<i16, 8>(AffineMatrix::identity())
     }
 }
 
-impl TryFrom<AffineMatrix> for AffineMatrixBackground {
-    type Error = OverflowError;
-
-    fn try_from(value: AffineMatrix) -> Result<Self, Self::Error> {
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
+where
+    I: FixedWidthSignedInteger,
+    i32: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
         Self::from_affine(value)
     }
 }
 
 impl AffineMatrixBackground {
-    /// Attempts to convert the matrix to one which can be used in affine
-    /// backgrounds.
-    pub fn from_affine(affine: AffineMatrix) -> Result<Self, OverflowError> {
-        Ok(Self {
-            a: affine.a.try_change_base().ok_or(OverflowError(()))?,
-            b: affine.b.try_change_base().ok_or(OverflowError(()))?,
-            c: affine.c.try_change_base().ok_or(OverflowError(()))?,
-            d: affine.d.try_change_base().ok_or(OverflowError(()))?,
-            x: affine.x,
-            y: affine.y,
-        })
-    }
-
     /// Converts the matrix to one which can be used in affine backgrounds
     /// wrapping any value which is too large to be represented there.
     #[must_use]
-    pub fn from_affine_wrapping(affine: AffineMatrix) -> Self {
+    pub fn from_affine<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        let a: Num<i32, 8> = affine.a.change_base();
+        let b: Num<i32, 8> = affine.b.change_base();
+        let c: Num<i32, 8> = affine.c.change_base();
+        let d: Num<i32, 8> = affine.d.change_base();
+
         Self {
-            a: Num::from_raw(affine.a.to_raw() as i16),
-            b: Num::from_raw(affine.b.to_raw() as i16),
-            c: Num::from_raw(affine.c.to_raw() as i16),
-            d: Num::from_raw(affine.d.to_raw() as i16),
-            x: affine.x,
-            y: affine.y,
+            a: Num::from_raw(a.to_raw() as i16),
+            b: Num::from_raw(b.to_raw() as i16),
+            c: Num::from_raw(c.to_raw() as i16),
+            d: Num::from_raw(d.to_raw() as i16),
+            x: affine.x.change_base(),
+            y: affine.y.change_base(),
         }
     }
 
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
-    pub fn to_affine_matrix(&self) -> AffineMatrix {
+    pub fn to_affine_matrix(&self) -> AffineMatrix<Num<i32, 8>> {
         AffineMatrix {
             a: self.a.change_base(),
             b: self.b.change_base(),
@@ -403,7 +410,7 @@ impl AffineMatrixBackground {
     /// # #![no_std]
     /// # #![no_main]
     /// # use agb_fixnum::{Vector2D, Num};
-    /// use agb::display::affine::AffineMatrix;
+    /// use agb::display::AffineMatrix;
     /// # fn from_scale_rotation_position(
     /// #     transform_origin: Vector2D<Num<i32, 8>>,
     /// #     scale: Vector2D<Num<i32, 8>>,
@@ -431,7 +438,7 @@ impl AffineMatrixBackground {
     }
 }
 
-impl From<AffineMatrixBackground> for AffineMatrix {
+impl From<AffineMatrixBackground> for AffineMatrix<Num<i32, 8>> {
     fn from(mat: AffineMatrixBackground) -> Self {
         mat.to_affine_matrix()
     }
