@@ -72,7 +72,7 @@ This like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Obj
 The affine matrix instance can be thought of as an affine matrix stored in oam.
 
 The [affine article](./affine.md) goes over some detail in how to create affine matrices.
-With a given affine matrix, you can use `AffineMatrixObject::from_affine_wrapping` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) that is suitable for use in objects.
+With a given affine matrix, you can use `AffineMatrixObject::from_affine` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) that is suitable for use in objects.
 You can turn different `AffineMatrixObject` instances into individual [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html).
 
 When using the same affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
@@ -84,9 +84,7 @@ However, creating the `AffineMatrixObject` will lose this translation component,
 
 ```rust
 let affine_matrix = calculate_affine_matrix();
-let affine_matrix_instance = AffineMatrixInstance::new(
-    AffineMatrixObject::from_affine_wrapping(affine_matrix)
-);
+let affine_matrix_instance = AffineMatrixInstance::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
     .set_position(affine_matrix.position().round())

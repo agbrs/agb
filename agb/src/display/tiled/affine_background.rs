@@ -5,11 +5,7 @@ use bilge::prelude::*;
 use core::alloc::Layout;
 
 use crate::{
-    display::{
-        GraphicsFrame, Priority,
-        affine::{AffineMatrix, OverflowError},
-        tiled::TileFormat,
-    },
+    display::{GraphicsFrame, Priority, affine::AffineMatrix, tiled::TileFormat},
     fixnum::{Num, Vector2D},
 };
 
@@ -354,48 +350,25 @@ pub struct AffineMatrixBackground {
 
 impl Default for AffineMatrixBackground {
     fn default() -> Self {
-        Self::from_affine_wrapping::<i16, 8>(AffineMatrix::identity())
+        Self::from_affine::<i16, 8>(AffineMatrix::identity())
     }
 }
 
-impl<I, const N: usize> TryFrom<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
 where
     I: FixedWidthSignedInteger,
-    i16: TryFrom<I>,
-    i32: TryFrom<I>,
+    i32: From<I>,
 {
-    type Error = OverflowError;
-
-    fn try_from(value: AffineMatrix<Num<I, N>>) -> Result<Self, Self::Error> {
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
         Self::from_affine(value)
     }
 }
 
 impl AffineMatrixBackground {
-    /// Attempts to convert the matrix to one which can be used in affine
-    /// backgrounds.
-    pub fn from_affine<I, const N: usize>(
-        affine: AffineMatrix<Num<I, N>>,
-    ) -> Result<Self, OverflowError>
-    where
-        I: FixedWidthSignedInteger,
-        i16: TryFrom<I>,
-        i32: TryFrom<I>,
-    {
-        Ok(Self {
-            a: affine.a.try_change_base().ok_or(OverflowError(()))?,
-            b: affine.b.try_change_base().ok_or(OverflowError(()))?,
-            c: affine.c.try_change_base().ok_or(OverflowError(()))?,
-            d: affine.d.try_change_base().ok_or(OverflowError(()))?,
-            x: affine.x.try_change_base().ok_or(OverflowError(()))?,
-            y: affine.y.try_change_base().ok_or(OverflowError(()))?,
-        })
-    }
-
     /// Converts the matrix to one which can be used in affine backgrounds
     /// wrapping any value which is too large to be represented there.
     #[must_use]
-    pub fn from_affine_wrapping<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    pub fn from_affine<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
     where
         I: FixedWidthSignedInteger,
         i32: From<I>,

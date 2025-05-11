@@ -95,9 +95,7 @@ To create affine backgrounds, please see the relevant section in the [background
 You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_transform) method and passing in the desired affine matrix.
 `set_transform()` takes an [`AffineMatrixBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html) rather than an `AffineMatrix` directly because they have different size requirements.
 
-You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` or `from_affine_wrapping()` constructors.
-The former returns a `Result` because your matrix values might be too large to fit in the `i16` of background matrices.
-However, this is unlikely to be the case, so you can probably use the `from_affine_wrapping()` function in most cases.
+You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` constructor or the `.into()` method.
 
 ## Affine objects
 
@@ -107,9 +105,7 @@ So you'll also need to set the position of the sprite separately.
 
 ```rust
 let affine_matrix = calculate_affine_matrix();
-let affine_matrix_instance = AffineMatrixInstance::new(
-    AffineMatrixObject::from_affine_wrapping(affine_matrix)
-);
+let affine_matrix_instance = AffineMatrixInstance::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
     .set_position(affine_matrix.position().round())

@@ -10,10 +10,7 @@ use agb::{
     display::{
         AffineMatrix, GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
         font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
-        object::{
-            AffineMatrixInstance, AffineMatrixObject, AffineMode, Object, ObjectAffine, Size,
-            SpriteVram,
-        },
+        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, Size, SpriteVram},
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num, vec2},
@@ -141,8 +138,7 @@ impl AffineDemonstration {
 
         let matrix = self.demonstration.matrix(self.position);
 
-        let obj_matrix =
-            AffineMatrixInstance::new(AffineMatrixObject::from_affine_wrapping(matrix));
+        let obj_matrix = AffineMatrixInstance::new(matrix);
 
         ObjectAffine::new(
             self.crab_sprite.clone(),

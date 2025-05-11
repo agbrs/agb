@@ -27,21 +27,6 @@ impl Default for AffineMatrixObject {
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
-where
-    I: FixedWidthSignedInteger,
-    i16: From<I>,
-{
-    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
-        Self {
-            a: value.a.change_base(),
-            b: value.b.change_base(),
-            c: value.c.change_base(),
-            d: value.d.change_base(),
-        }
-    }
-}
-
 impl AffineMatrixObject {
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
@@ -59,7 +44,7 @@ impl AffineMatrixObject {
 
     #[must_use]
     /// Converts from an affine matrix, wrapping if it overflows
-    pub fn from_affine_wrapping<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
+    pub fn from_affine<I, const N: usize>(affine: AffineMatrix<Num<I, N>>) -> Self
     where
         I: FixedWidthSignedInteger,
         i32: From<I>,
@@ -90,6 +75,16 @@ impl AffineMatrixObject {
 impl From<AffineMatrixObject> for AffineMatrix<Num<i16, 8>> {
     fn from(mat: AffineMatrixObject) -> Self {
         mat.to_affine_matrix()
+    }
+}
+
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+where
+    I: FixedWidthSignedInteger,
+    i32: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+        AffineMatrixObject::from_affine(value)
     }
 }
 

@@ -70,9 +70,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let transforms = scale_transform_matrices
             .iter()
             .map(|&line_matrix| {
-                AffineMatrixBackground::from_affine_wrapping(
-                    AffineMatrix::from_translation(-pos) * line_matrix,
-                )
+                AffineMatrixBackground::from(AffineMatrix::from_translation(-pos) * line_matrix)
             })
             .collect::<Vec<_>>();
         HBlankDma::new(transform_dma, &transforms).show(&mut frame);
