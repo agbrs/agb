@@ -1,4 +1,4 @@
-FROM rust:1.86.0-bookworm
+FROM rust:1.87.0-bookworm
 
 RUN cargo install agb-gbafix
 
