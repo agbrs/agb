@@ -107,18 +107,17 @@ impl EntityMap {
                 }
 
                 Action::Direction(direction) | Action::ChangeDirection(direction) => {
-                    if matches!(action, Action::ChangeDirection(_)) {
-                        if let Some(change) = self
+                    if matches!(action, Action::ChangeDirection(_))
+                        && let Some(change) = self
                             .map
                             .get_mut(entity_key)
                             .and_then(|e| e.change_direction())
-                        {
-                            animations.push(AnimationInstruction::PriorityChange(
-                                entity_key,
-                                change,
-                                self.map.get(entity_key).and_then(|e| e.change_effect()),
-                            ));
-                        }
+                    {
+                        animations.push(AnimationInstruction::PriorityChange(
+                            entity_key,
+                            change,
+                            self.map.get(entity_key).and_then(|e| e.change_effect()),
+                        ));
                     }
 
                     let Some(entity) = &self.map.get(entity_key) else {
@@ -632,37 +631,37 @@ impl Entity {
     }
 
     fn switch(&mut self, system: SwitchSystem) -> Option<level::Item> {
-        if let EntityType::SwitchedDoor(door) = &mut self.entity {
-            if door.system == system {
-                door.active = !door.active;
-                return Some(if door.active {
-                    level::Item::SwitchedOpenDoor
-                } else {
-                    level::Item::SwitchedClosedDoor
-                });
-            }
+        if let EntityType::SwitchedDoor(door) = &mut self.entity
+            && door.system == system
+        {
+            door.active = !door.active;
+            return Some(if door.active {
+                level::Item::SwitchedOpenDoor
+            } else {
+                level::Item::SwitchedClosedDoor
+            });
         }
 
-        if let EntityType::Switch(switch) = &mut self.entity {
-            if switch.system == system {
-                switch.active = !switch.active;
-                return Some(if switch.active {
-                    level::Item::SwitchPressed
-                } else {
-                    level::Item::Switch
-                });
-            }
+        if let EntityType::Switch(switch) = &mut self.entity
+            && switch.system == system
+        {
+            switch.active = !switch.active;
+            return Some(if switch.active {
+                level::Item::SwitchPressed
+            } else {
+                level::Item::Switch
+            });
         }
 
-        if let EntityType::Spikes(switch) = &mut self.entity {
-            if switch.system == system {
-                switch.active = !switch.active;
-                return Some(if switch.active {
-                    level::Item::SpikesUp
-                } else {
-                    level::Item::SpikesDown
-                });
-            }
+        if let EntityType::Spikes(switch) = &mut self.entity
+            && switch.system == system
+        {
+            switch.active = !switch.active;
+            return Some(if switch.active {
+                level::Item::SpikesUp
+            } else {
+                level::Item::SpikesDown
+            });
         }
 
         None

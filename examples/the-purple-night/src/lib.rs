@@ -1621,11 +1621,11 @@ impl Boss {
                     self.explode(enemies);
                     self.state = BossActiveState::WaitingUntilDamaged(60 * 5);
                 }
-                if let Some(hurt) = &player.hurtbox {
-                    if hurt.touches(self.entity.collider()) {
-                        self.health -= 1;
-                        self.state = BossActiveState::Damaged(30);
-                    }
+                if let Some(hurt) = &player.hurtbox
+                    && hurt.touches(self.entity.collider())
+                {
+                    self.health -= 1;
+                    self.state = BossActiveState::Damaged(30);
                 }
             }
             BossActiveState::WaitUntilKilled => {}
