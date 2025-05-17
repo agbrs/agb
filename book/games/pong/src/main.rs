@@ -17,7 +17,7 @@ use agb::{
     display::{
         GraphicsFrame, Priority, WIDTH,
         object::Object,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Num, Rect, Vector2D, num, vec2},
     include_aseprite, include_background_gfx, include_wav,
@@ -157,14 +157,14 @@ fn main(mut gba: agb::Gba) -> ! {
     // Make sure the background palettes are set up
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         Priority::P3,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
     bg.fill_with(&background::PLAY_FIELD);
 
-    let mut player_health_background = RegularBackgroundTiles::new(
+    let mut player_health_background = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

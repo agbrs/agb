@@ -186,7 +186,7 @@
 ///
 /// ## `fill_with` and displaying a full screen background
 ///
-/// This example uses [`RegularBackgroundTiles::fill_with`](display::tiled::RegularBackgroundTiles::fill_with)
+/// This example uses [`RegularBackground::fill_with`](display::tiled::RegularBackground::fill_with)
 /// to fill the screen with a screen-sized image.
 ///
 /// ```rust
@@ -195,7 +195,7 @@
 /// # core::include!("doctest_runner.rs");
 /// use agb::{
 ///     display::{
-///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackgroundTiles, VRAM_MANAGER},
+///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackground, VRAM_MANAGER},
 ///         Priority,
 ///     },
 ///     include_background_gfx,
@@ -209,7 +209,7 @@
 /// # fn test(_: agb::Gba) {
 /// VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 ///
-/// let mut bg = RegularBackgroundTiles::new(
+/// let mut bg = RegularBackground::new(
 ///     Priority::P0,
 ///     RegularBackgroundSize::Background32x32,
 ///     TileFormat::FourBpp,

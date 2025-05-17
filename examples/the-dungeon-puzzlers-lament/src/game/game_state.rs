@@ -2,7 +2,7 @@ use agb::{
     display::{
         GraphicsFrame,
         object::{Object, Tag},
-        tiled::RegularBackgroundTiles,
+        tiled::RegularBackground,
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -88,7 +88,7 @@ impl GameState {
         )
     }
 
-    pub fn load_level_background(&self, map: &mut RegularBackgroundTiles) {
+    pub fn load_level_background(&self, map: &mut RegularBackground) {
         crate::backgrounds::load_level_background(map, self.level_number);
     }
 

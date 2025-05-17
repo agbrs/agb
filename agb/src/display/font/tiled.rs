@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use super::LetterGroup;
 use crate::{
-    display::tiled::{DynamicTile16, RegularBackgroundTiles, TileEffect},
+    display::tiled::{DynamicTile16, RegularBackground, TileEffect},
     fixnum::{Vector2D, vec2},
 };
 
@@ -16,7 +16,7 @@ use crate::{
 /// use agb::display::{
 ///     Palette16, Rgb15, Priority,
 ///     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
-///     tiled::{RegularBackgroundTiles, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
+///     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
 /// };
 ///
 /// static SIMPLE_PALETTE: &Palette16 = {
@@ -28,7 +28,7 @@ use crate::{
 ///
 /// # fn test(mut gba: agb::Gba) {
 /// VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
-/// let mut bg = RegularBackgroundTiles::new(
+/// let mut bg = RegularBackground::new(
 ///     Priority::P0,
 ///     RegularBackgroundSize::Background32x32,
 ///     TileFormat::FourBpp,
@@ -67,7 +67,7 @@ impl RegularBackgroundTextRenderer {
     }
 
     /// Displays the given letter group on the given background.
-    pub fn show(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
+    pub fn show(&mut self, bg: &mut RegularBackground, group: &LetterGroup) {
         self.ensure_drawing_space(bg, group);
 
         let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
@@ -92,7 +92,7 @@ impl RegularBackgroundTextRenderer {
         }
     }
 
-    fn ensure_drawing_space(&mut self, bg: &mut RegularBackgroundTiles, group: &LetterGroup) {
+    fn ensure_drawing_space(&mut self, bg: &mut RegularBackground, group: &LetterGroup) {
         let dynamic_origin = vec2(self.origin.x.rem_euclid(8), self.origin.y.rem_euclid(8));
         let tile_offset = vec2(self.origin.x / 8, self.origin.y / 8);
 
@@ -156,7 +156,7 @@ mod test {
 
         VRAM_MANAGER.set_background_palette(0, &PALETTE);
 
-        let mut bg = RegularBackgroundTiles::new(
+        let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
@@ -199,7 +199,7 @@ mod test {
 
         VRAM_MANAGER.set_background_palette(0, &PALETTE);
 
-        let mut bg = RegularBackgroundTiles::new(
+        let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x64,
             TileFormat::FourBpp,
@@ -236,7 +236,7 @@ mod test {
 
         VRAM_MANAGER.set_background_palette(0, &PALETTE);
 
-        let mut bg = RegularBackgroundTiles::new(
+        let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x64,
             TileFormat::FourBpp,

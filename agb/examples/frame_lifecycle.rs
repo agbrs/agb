@@ -7,7 +7,7 @@ use agb::{
     display::{
         GraphicsFrame, Priority,
         object::{Object, SpriteVram},
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_background_gfx,
@@ -55,7 +55,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut player = Player::new(vec2(num!(100.), num!(100.)));
     let mut button_controller = ButtonController::new();
 
-    let mut bg_tiles = RegularBackgroundTiles::new(
+    let mut bg_tiles = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

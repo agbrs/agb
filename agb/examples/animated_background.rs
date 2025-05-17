@@ -9,9 +9,7 @@ use core::cmp::Ordering;
 use agb::{
     display::{
         Priority,
-        tiled::{
-            RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileSetting, VRAM_MANAGER,
-        },
+        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting, VRAM_MANAGER},
     },
     include_background_gfx,
 };
@@ -39,7 +37,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         Priority::P3,
         RegularBackgroundSize::Background32x32,
         tileset.format(),
@@ -61,7 +59,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    let mut foreground = RegularBackgroundTiles::new(
+    let mut foreground = RegularBackground::new(
         Priority::P2,
         RegularBackgroundSize::Background32x32,
         tileset.format(),

@@ -3,7 +3,7 @@ use agb::{
         GraphicsFrame, HEIGHT, Palette16, Priority, Rgb15, WIDTH,
         font::{AlignmentKind, Layout, ObjectTextRenderer},
         object::{Object, PaletteVramSingle, Size, SpriteVram},
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::Vector2D,
     input::{Button, ButtonController, Tri},
@@ -36,7 +36,7 @@ struct Lament {
     text_layout: Layout,
     text_objects: Vec<Object>,
     text_render: ObjectTextRenderer,
-    background: RegularBackgroundTiles,
+    background: RegularBackground,
 }
 
 fn generate_text_palette() -> PaletteVramSingle {
@@ -71,7 +71,7 @@ impl Lament {
             text_layout: layout,
             text_objects: Vec::new(),
             text_render: ObjectTextRenderer::new(palette, Size::S32x16),
-            background: RegularBackgroundTiles::new(
+            background: RegularBackground::new(
                 Priority::P1,
                 RegularBackgroundSize::Background32x32,
                 TileFormat::FourBpp,
@@ -102,13 +102,13 @@ impl Lament {
 
 struct Construction {
     game: GameState,
-    background: RegularBackgroundTiles,
+    background: RegularBackground,
 }
 
 impl Construction {
     fn new(level: usize) -> Self {
         let game = GameState::new(level);
-        let mut background = RegularBackgroundTiles::new(
+        let mut background = RegularBackground::new(
             Priority::P1,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,

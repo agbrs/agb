@@ -11,8 +11,8 @@ use agb::{
     display::{
         Priority,
         tiled::{
-            AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
-            AffineMatrixBackground, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,
+            AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
+            AffineMatrixBackground, RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
         },
     },
     dma::HBlankDma,
@@ -36,7 +36,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut wrap_behaviour = AffineBackgroundWrapBehaviour::NoWrap;
 
-    let mut bg = AffineBackgroundTiles::new(
+    let mut bg = AffineBackground::new(
         Priority::P1,
         AffineBackgroundSize::Background32x32,
         wrap_behaviour,
@@ -48,7 +48,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    let mut help_bg = RegularBackgroundTiles::new(
+    let mut help_bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::HELP.tiles.format(),

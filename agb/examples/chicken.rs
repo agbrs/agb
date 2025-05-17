@@ -9,8 +9,7 @@ use agb::{
         GraphicsFrame, HEIGHT, WIDTH,
         object::{Object, Sprite},
         tiled::{
-            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
-            VRAM_MANAGER,
+            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
     fixnum::{Num, Rect, Vector2D, num, vec2},
@@ -78,7 +77,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
-    let background = RegularBackgroundTiles::new(
+    let background = RegularBackground::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

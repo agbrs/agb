@@ -9,7 +9,7 @@ use agb::{
     display::{
         Graphics,
         object::{Object, SpriteVram},
-        tiled::{RegularBackgroundTiles, VRAM_MANAGER},
+        tiled::{RegularBackground, VRAM_MANAGER},
     },
     fixnum::{Num, Vector2D, vec2},
     include_aseprite, include_background_gfx,
@@ -21,7 +21,7 @@ include_background_gfx!(mod background, bg => deduplicate "examples/gfx/fixed_po
 
 fn integer(
     gfx: &mut Graphics,
-    bg: &RegularBackgroundTiles,
+    bg: &RegularBackground,
     initial_position: Vector2D<i32>,
     initial_velocity: Vector2D<i32>,
 ) -> (Vector2D<i32>, Vector2D<i32>) {
@@ -56,7 +56,7 @@ fn integer(
 
 fn fixed(
     gfx: &mut Graphics,
-    bg: &RegularBackgroundTiles,
+    bg: &RegularBackground,
     initial_position: Vector2D<i32>,
     initial_velocity: Vector2D<i32>,
 ) -> (Vector2D<i32>, Vector2D<i32>) {
@@ -93,7 +93,7 @@ fn fixed(
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         agb::display::Priority::P0,
         agb::display::tiled::RegularBackgroundSize::Background32x32,
         agb::display::tiled::TileFormat::FourBpp,

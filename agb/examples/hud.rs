@@ -9,7 +9,7 @@ use agb::{
     display::{
         GraphicsFrame, Priority,
         object::{Object, SpriteVram},
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_background_gfx,
@@ -65,14 +65,14 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut player = Player::new(vec2(num!(100.), num!(100.)));
     let mut button_controller = ButtonController::new();
 
-    let mut bg_tiles = RegularBackgroundTiles::new(
+    let mut bg_tiles = RegularBackground::new(
         Priority::P3,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
     bg_tiles.fill_with(&backgrounds::BEACH);
 
-    let mut hud_tiles = RegularBackgroundTiles::new(
+    let mut hud_tiles = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -105,7 +105,7 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 }
 
-fn populate_hud(hud_tiles: &mut RegularBackgroundTiles) {
+fn populate_hud(hud_tiles: &mut RegularBackground) {
     // write out 'HEALTH:'
 
     for i in HEALTH_TEXT {

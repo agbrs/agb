@@ -7,7 +7,7 @@ use agb::{
     display::{
         HEIGHT, Priority, WIDTH,
         tiled::{
-            AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
+            AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
             AffineMatrixBackground, VRAM_MANAGER,
         },
     },
@@ -77,8 +77,8 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 }
 
-fn create_background() -> AffineBackgroundTiles {
-    let mut bg = AffineBackgroundTiles::new(
+fn create_background() -> AffineBackground {
+    let mut bg = AffineBackground::new(
         Priority::P0,
         AffineBackgroundSize::Background32x32,
         AffineBackgroundWrapBehaviour::Wrap,

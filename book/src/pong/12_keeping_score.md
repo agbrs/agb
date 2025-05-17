@@ -67,7 +67,7 @@ With these tiles imported, we now need to create a new background to store the p
 So next to where the current background gets created, create the player health background
 
 ```rust
-let mut player_health_background = RegularBackgroundTiles::new(
+let mut player_health_background = RegularBackground::new(
     Priority::P0,
     RegularBackgroundSize::Background32x32,
     TileFormat::FourBpp,
