@@ -372,18 +372,17 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 } else {
                     envelope_state.frame += 1;
 
-                    if !envelope_state.finished {
-                        if let Some(sustain) = envelope.sustain {
-                            if envelope_state.frame >= sustain {
-                                envelope_state.frame = sustain;
-                            }
-                        }
+                    if !envelope_state.finished
+                        && let Some(sustain) = envelope.sustain
+                        && envelope_state.frame >= sustain
+                    {
+                        envelope_state.frame = sustain;
                     }
 
-                    if let Some(loop_end) = envelope.loop_end {
-                        if envelope_state.frame >= loop_end {
-                            envelope_state.frame = envelope.loop_start.unwrap_or(0);
-                        }
+                    if let Some(loop_end) = envelope.loop_end
+                        && envelope_state.frame >= loop_end
+                    {
+                        envelope_state.frame = envelope.loop_start.unwrap_or(0);
                     }
 
                     if envelope_state.frame >= envelope.amount.len() {

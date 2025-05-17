@@ -203,7 +203,7 @@ debug *args:
     (cd agb-debug && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/agb-debug" {{args}})
 
 _all-crates target:
-    for CARGO_PROJECT_FILE in agb/Cargo.toml tracker/agb-tracker/Cargo.toml ./Cargo.toml; do \
+    for CARGO_PROJECT_FILE in agb/Cargo.toml tracker/agb-tracker/Cargo.toml tracker/desktop-player/Cargo.toml ./Cargo.toml; do \
         PROJECT_DIR=$(dirname "$CARGO_PROJECT_FILE"); \
         just "{{target}}" "$PROJECT_DIR" || exit $?; \
     done
