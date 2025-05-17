@@ -125,11 +125,9 @@ mod tests {
             16,
             200,
         );
-        let sprite_text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
+        let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
-        let objects: Vec<_> = layout
-            .map(|x| sprite_text_render.show(&x, vec2(16, 16)))
-            .collect();
+        let objects: Vec<_> = layout.map(|x| text_render.show(&x, vec2(16, 16))).collect();
 
         let mut frame = gfx.frame();
 
@@ -162,11 +160,9 @@ mod tests {
             32,
             200,
         );
-        let sprite_text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
+        let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
 
-        let objects: Vec<_> = layout
-            .map(|x| sprite_text_render.show(&x, vec2(16, 16)))
-            .collect();
+        let objects: Vec<_> = layout.map(|x| text_render.show(&x, vec2(16, 16))).collect();
 
         let mut frame = gfx.frame();
 
