@@ -33,9 +33,6 @@ test-release:
     just _test-release tracker/agb-tracker
     just _test-release-arm agb
 
-doctest-agb:
-    (cd agb && cargo test --doc -Z doctest-xcompile)
-
 check-docs:
     (cd agb && cargo doc --target=thumbv4t-none-eabi --no-deps)
     (cd tracker/agb-tracker && cargo doc --target=thumbv4t-none-eabi --no-deps)
@@ -72,7 +69,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy fmt-check spellcheck test miri build-release test-release doctest-agb build-roms build-book check-docs
+ci: build-debug clippy fmt-check spellcheck test miri build-release test-release build-roms build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
