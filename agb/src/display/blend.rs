@@ -210,6 +210,30 @@ impl BlendAlphaEffect<'_> {
 ///
 /// You can also enable object transparency while using `darken` or `lighten` using the
 /// [`object_transparency()`](BlendFadeEffect::object_transparency()) function.
+///
+/// Fade effects will blend the [`Layer::Top`] layer towards either black or white by the amount
+/// in [`.set_fade()`](BlendFadeEffect::set_fade()). This is useful if you want to fade part
+/// of the screen to white or black, or apply some other effects like adding lightning to the
+/// background.
+///
+/// Due to hardware restrictions, there are only 6 levels of fade available. Therefore, this
+/// probably isn't the best effect for smoothly fading in and out as a transition, and that
+/// is better left to changing the colour palette.
+///
+/// ```rust,no_run
+/// # #![no_main]
+/// # #![no_std]
+/// use agb::fixnum::num;
+///
+/// # fn test(frame: &mut agb::display::GraphicsFrame, bg_id: agb::display::tiled::BackgroundId) {
+/// frame
+///    .blend()
+///    .brighten()
+///    .set_fade(num!(0.5))
+///    .layer()
+///    .enable_background(bg_id);
+/// # }
+/// ```
 pub struct BlendFadeEffect<'blend> {
     blend: &'blend mut Blend,
 }
@@ -218,6 +242,7 @@ impl BlendFadeEffect<'_> {
     /// Set how much this layer should fade to black or white.
     ///
     /// The `value` must be between 0 and 1 inclusive. This function panics if `value` > 1.
+    /// Since the value is a `Num<u8, 4>`, there are only 6 possible levels of fading.
     pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer fade must be <= 1");
         self.blend.set_fade(value);
@@ -227,6 +252,13 @@ impl BlendFadeEffect<'_> {
     /// Control the object transparency as well if needed.
     pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
         BlendObjectTransparency { blend: self.blend }
+    }
+
+    /// Get the [`Layer`] the fade will effect.
+    ///
+    /// Equivalent to `frame.blend().layer(Layer::Top)`.
+    pub fn layer(&mut self) -> BlendLayer<'_> {
+        self.blend.layer(Layer::Top)
     }
 }
 
