@@ -8,7 +8,7 @@ description = "CLI utility to convert ELF file to valid GBA ROM"
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-elf = "0.7"
+elf = "0.8"
 anyhow = "1"
 clap = "4"
 rmp-serde = "1"
