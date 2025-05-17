@@ -9,7 +9,7 @@ use core::ops::Range;
 
 use agb::{
     display::{
-        GraphicsFrame, Layer, Priority,
+        GraphicsFrame, Priority,
         object::{Object, SpriteVram},
         tiled::{
             BackgroundId, RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER,
@@ -139,8 +139,12 @@ impl ThunderStatus {
 
     fn show(&self, frame: &mut GraphicsFrame, bg_id: BackgroundId) {
         if let ThunderStatus::Flash(value) = self {
-            frame.blend().brighten().set_fade(*value);
-            frame.blend().layer(Layer::Top).enable_background(bg_id);
+            frame
+                .blend()
+                .brighten()
+                .set_fade(*value)
+                .layer()
+                .enable_background(bg_id);
         }
     }
 }
