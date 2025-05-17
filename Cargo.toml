@@ -20,7 +20,7 @@ members = [
     # "tracker/agb-tracker",
     "tracker/agb-xm",
     "tracker/agb-xm-core",
-    "tracker/desktop-player",
+    # "tracker/desktop-player" - needs nightly
 
     "tools",
 
@@ -36,6 +36,7 @@ exclude = [
     "agb",
 
     "tracker/agb-tracker",
+    "tracker/desktop-player",
 
     "examples/amplitude",
     "examples/combo",

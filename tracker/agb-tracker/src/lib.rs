@@ -26,10 +26,12 @@
 //! #![no_std]
 //! #![no_main]
 //!
+//! extern crate alloc;
+//!
 //! use agb::{Gba, sound::mixer::Frequency};
 //! use agb_tracker::{include_xm, Track, Tracker};
 //!
-//! static DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
+//! static BACKGROUND_MUSIC: Track = include_xm!("examples/tracks/peak_and_drozerix_-_spectrum.xm");
 //!
 //! #[agb::entry]
 //! fn main(mut gba: Gba) -> ! {
@@ -38,7 +40,7 @@
 //!     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 //!     mixer.enable();
 //!
-//!     let mut tracker = Tracker::new(&DB_TOFFE);
+//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC);
 //!
 //!     loop {
 //!         tracker.step(&mut mixer);
@@ -372,18 +374,17 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 } else {
                     envelope_state.frame += 1;
 
-                    if !envelope_state.finished {
-                        if let Some(sustain) = envelope.sustain {
-                            if envelope_state.frame >= sustain {
-                                envelope_state.frame = sustain;
-                            }
-                        }
+                    if !envelope_state.finished
+                        && let Some(sustain) = envelope.sustain
+                        && envelope_state.frame >= sustain
+                    {
+                        envelope_state.frame = sustain;
                     }
 
-                    if let Some(loop_end) = envelope.loop_end {
-                        if envelope_state.frame >= loop_end {
-                            envelope_state.frame = envelope.loop_start.unwrap_or(0);
-                        }
+                    if let Some(loop_end) = envelope.loop_end
+                        && envelope_state.frame >= loop_end
+                    {
+                        envelope_state.frame = envelope.loop_start.unwrap_or(0);
                     }
 
                     if envelope_state.frame >= envelope.amount.len() {

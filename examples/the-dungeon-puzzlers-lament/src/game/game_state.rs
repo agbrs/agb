@@ -116,12 +116,12 @@ impl GameState {
                         ItemState::NotPlaced => false,
                     });
 
-                if placeable_item_at_location.is_none() {
-                    if let Some(held_item) = self.cursor_state.held_item {
-                        self.item_states[held_item] =
-                            ItemState::Placed(self.cursor_state.board_position);
-                        self.cursor_state.held_item = None;
-                    }
+                if placeable_item_at_location.is_none()
+                    && let Some(held_item) = self.cursor_state.held_item
+                {
+                    self.item_states[held_item] =
+                        ItemState::Placed(self.cursor_state.board_position);
+                    self.cursor_state.held_item = None;
                 }
             }
         }

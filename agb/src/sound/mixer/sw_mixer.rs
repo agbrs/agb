@@ -273,10 +273,10 @@ impl Mixer<'_> {
     /// ```
     pub fn play_sound(&mut self, new_channel: SoundChannel) -> Option<ChannelId> {
         for (i, channel) in self.channels.iter_mut().enumerate() {
-            if let Some(some_channel) = channel {
-                if !some_channel.is_done {
-                    continue;
-                }
+            if let Some(some_channel) = channel
+                && !some_channel.is_done
+            {
+                continue;
             }
 
             channel.replace(new_channel);
@@ -325,10 +325,11 @@ impl Mixer<'_> {
     /// # }
     /// ```
     pub fn channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
-        if let Some(channel) = &mut self.channels[id.0] {
-            if self.indices[id.0] == id.1 && !channel.is_done {
-                return Some(channel);
-            }
+        if let Some(channel) = &mut self.channels[id.0]
+            && self.indices[id.0] == id.1
+            && !channel.is_done
+        {
+            return Some(channel);
         }
 
         None

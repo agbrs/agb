@@ -12,7 +12,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # RUSTUP_TOOLCHAIN: ${{ !github.event.schedule && 'nightly-2025-04-25' || 'nightly' }}
-  RUSTUP_TOOLCHAIN: "nightly"
+  # RUSTUP_TOOLCHAIN: "nightly"
 
 jobs:
   build:
@@ -25,8 +25,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install build-essential libelf-dev zip libasound-dev -y
       - name: Install Miri
         run: |
-          rustup component add miri clippy rustfmt
-          cargo miri setup
+          rustup component add miri clippy rustfmt --toolchain=nightly
+          cargo +nightly miri setup
       - uses: actions/checkout@v4
       - name: Cache
         uses: actions/cache@v4

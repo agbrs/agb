@@ -184,10 +184,11 @@ impl agb_tracker::Mixer for Mixer {
     type SoundChannel = SoundChannel;
 
     fn channel(&mut self, channel_id: &Self::ChannelId) -> Option<&mut Self::SoundChannel> {
-        if let Some(channel) = &mut self.channels[channel_id.0] {
-            if self.indices[channel_id.0] == channel_id.1 && !channel.is_done {
-                return Some(channel);
-            }
+        if let Some(channel) = &mut self.channels[channel_id.0]
+            && self.indices[channel_id.0] == channel_id.1
+            && !channel.is_done
+        {
+            return Some(channel);
         }
 
         None
@@ -195,10 +196,10 @@ impl agb_tracker::Mixer for Mixer {
 
     fn play_sound(&mut self, new_channel: Self::SoundChannel) -> Option<Self::ChannelId> {
         for (i, channel) in self.channels.iter_mut().enumerate() {
-            if let Some(channel) = channel {
-                if !channel.is_done {
-                    continue;
-                }
+            if let Some(channel) = channel
+                && !channel.is_done
+            {
+                continue;
             }
 
             channel.replace(new_channel);

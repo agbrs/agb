@@ -232,10 +232,10 @@ impl BlockAllocatorInner {
                     }
                 };
 
-                if is_block_directly_after {
-                    if let Some(_split) = Self::allocate_into_block(list_to_block, difference) {
-                        return NonNull::new(ptr);
-                    }
+                if is_block_directly_after
+                    && let Some(_split) = Self::allocate_into_block(list_to_block, difference)
+                {
+                    return NonNull::new(ptr);
                 }
             }
 
