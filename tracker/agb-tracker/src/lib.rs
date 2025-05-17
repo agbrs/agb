@@ -26,10 +26,12 @@
 //! #![no_std]
 //! #![no_main]
 //!
+//! extern crate alloc;
+//!
 //! use agb::{Gba, sound::mixer::Frequency};
 //! use agb_tracker::{include_xm, Track, Tracker};
 //!
-//! static DB_TOFFE: Track = include_xm!("examples/db_toffe.xm");
+//! static BACKGROUND_MUSIC: Track = include_xm!("examples/tracks/peak_and_drozerix_-_spectrum.xm");
 //!
 //! #[agb::entry]
 //! fn main(mut gba: Gba) -> ! {
@@ -38,7 +40,7 @@
 //!     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 //!     mixer.enable();
 //!
-//!     let mut tracker = Tracker::new(&DB_TOFFE);
+//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC);
 //!
 //!     loop {
 //!         tracker.step(&mut mixer);
