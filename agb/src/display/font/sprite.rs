@@ -16,7 +16,7 @@ use super::LetterGroup;
 /// use alloc::vec::Vec;
 /// use agb::display::{
 ///     Palette16, Rgb15,
-///     font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+///     font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
 ///     object::Size,
 /// };
 ///
@@ -33,7 +33,7 @@ use super::LetterGroup;
 /// // the actual text rendering
 ///
 /// let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
-/// let text_renderer = SpriteTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
+/// let text_renderer = ObjectTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
 ///
 /// for letter_group in layout {
 ///     text_elements.push(text_renderer.show(&letter_group, (0, 0)));
@@ -49,15 +49,15 @@ use super::LetterGroup;
 /// }
 /// # }
 /// ```
-pub struct SpriteTextRenderer {
+pub struct ObjectTextRenderer {
     palette: PaletteVramSingle,
     size: Size,
 }
 
-impl SpriteTextRenderer {
+impl ObjectTextRenderer {
     #[must_use]
-    /// Creates a [`SpriteTextRenderer`]. The palette is the palette that will
-    /// be used by each [`Object`] returned by [`SpriteTextRenderer::show`]. The
+    /// Creates a [`ObjectTextRenderer`]. The palette is the palette that will
+    /// be used by each [`Object`] returned by [`ObjectTextRenderer::show`]. The
     /// [`Size`] is the size of each sprite used by each [`Object`], the
     /// [`Size`] should be larger than the letter group size given to the
     /// [`Layout`][super::Layout].
@@ -125,7 +125,7 @@ mod tests {
             16,
             200,
         );
-        let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
+        let sprite_text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
         let objects: Vec<_> = layout
             .map(|x| sprite_text_render.show(&x, vec2(16, 16)))
@@ -162,7 +162,7 @@ mod tests {
             32,
             200,
         );
-        let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S32x16);
+        let sprite_text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
 
         let objects: Vec<_> = layout
             .map(|x| sprite_text_render.show(&x, vec2(16, 16)))

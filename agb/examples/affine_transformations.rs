@@ -9,7 +9,7 @@ use alloc::{format, vec, vec::Vec};
 use agb::{
     display::{
         AffineMatrix, GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
-        font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+        font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
         object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, Size, SpriteVram},
         tiled::VRAM_MANAGER,
     },
@@ -56,7 +56,7 @@ struct AffineDemonstration {
     position_objs: Vec<Object>,
     text: Option<Layout>,
 
-    text_renderer: SpriteTextRenderer,
+    text_renderer: ObjectTextRenderer,
 
     position: Vector2D<Num<i32, 8>>,
     demonstration: AffineTransformKind,
@@ -73,7 +73,7 @@ impl AffineDemonstration {
             Palette16::new(palette)
         };
 
-        let text_renderer = SpriteTextRenderer::new((&PALETTE).into(), Size::S32x16);
+        let text_renderer = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
 
         let demonstration = AffineTransformKind::default();
 
