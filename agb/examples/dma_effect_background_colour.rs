@@ -11,7 +11,7 @@ extern crate alloc;
 use agb::{
     display::{
         Rgb, Rgb15,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDma,
     include_background_gfx, include_colours,
@@ -29,7 +29,7 @@ static SKY_GRADIENT: [Rgb15; 160] =
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    let mut map = RegularBackgroundTiles::new(
+    let mut map = RegularBackground::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

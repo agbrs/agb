@@ -43,7 +43,7 @@
 //! ## `.show(frame: &mut GraphicsFrame)`
 //!
 //! The most common pattern involving [`GraphicsFrame`] you'll see in the `agb` library is a `.show()` method which typically
-//! accepts a mutable reference to a [`GraphicsFrame`] e.g. [`RegularBackgroundTiles::show`](tiled::RegularBackgroundTiles::show) and
+//! accepts a mutable reference to a [`GraphicsFrame`] e.g. [`RegularBackground::show`](tiled::RegularBackground::show) and
 //! [`Object::show`](object::Object::show).
 //!
 //! Due to this naming convention, it is also conventional in games written using `agb` to name the `render` method `show()`
@@ -134,13 +134,13 @@ impl GraphicsDist {
 /// # fn test(mut gba: Gba) {
 /// use agb::display::{
 ///     Priority,
-///     tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+///     tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
 /// };
 ///
 /// // This is an instance of Graphics
 /// let mut gfx = gba.graphics.get();
 ///
-/// let bg = RegularBackgroundTiles::new(
+/// let bg = RegularBackground::new(
 ///     Priority::P0,
 ///     RegularBackgroundSize::Background32x32,
 ///     TileFormat::FourBpp
@@ -203,7 +203,7 @@ impl<'gba> Graphics<'gba> {
 /// [`gfx.frame()`](Graphics::frame) and [`frame.commit()`](GraphicsFrame::commit).
 ///
 /// Normally you'll want to pass the current `&mut frame` to a `.show()` method
-/// for example [`RegularBackgroundTiles::show`](tiled::RegularBackgroundTiles::show)
+/// for example [`RegularBackground::show`](tiled::RegularBackground::show)
 /// or [`Object::show`](object::Object::show).
 pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,

@@ -13,7 +13,7 @@ fn test_commit_in_basic_case(gba: &mut Gba) {
     let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
-    let mut bg_data = RegularBackgroundTiles::new(
+    let mut bg_data = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -42,7 +42,7 @@ fn test_commit_when_background_tiles_are_modified_after_show(gba: &mut Gba) {
     let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
-    let mut bg_data = RegularBackgroundTiles::new(
+    let mut bg_data = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -79,7 +79,7 @@ fn test_commit_when_background_tiles_are_dropped_after_show(gba: &mut Gba) {
     let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
-    let mut bg_data = RegularBackgroundTiles::new(
+    let mut bg_data = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -112,7 +112,7 @@ fn test_commit_when_background_tiles_rendered_twice(gba: &mut Gba) {
     let mut graphics = gba.graphics.get();
     VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
 
-    let mut bg_data = RegularBackgroundTiles::new(
+    let mut bg_data = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

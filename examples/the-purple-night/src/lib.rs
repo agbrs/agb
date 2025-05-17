@@ -17,8 +17,7 @@ use agb::{
         GraphicsFrame, HEIGHT, Priority, Rgb15, WIDTH,
         object::{Object, Sprite, Tag},
         tiled::{
-            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
-            VRAM_MANAGER,
+            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
     fixnum::{FixedNum, Rect, Vector2D, num, vec2},
@@ -2092,19 +2091,19 @@ fn game_with_level(gba: &mut agb::Gba) {
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
     loop {
-        let backdrop = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+        let backdrop = InfiniteScrolledMap::new(RegularBackground::new(
             Priority::P2,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
         ));
 
-        let foreground = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+        let foreground = InfiniteScrolledMap::new(RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
         ));
 
-        let clouds = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+        let clouds = InfiniteScrolledMap::new(RegularBackground::new(
             Priority::P3,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,

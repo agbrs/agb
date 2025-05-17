@@ -6,7 +6,7 @@ use agb::{
     display::{
         Priority, Rgb15,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     include_font,
 };
@@ -19,7 +19,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palette_colour(0, 1, Rgb15::WHITE);
 
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

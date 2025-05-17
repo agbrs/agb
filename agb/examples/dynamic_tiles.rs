@@ -4,7 +4,7 @@
 use agb::display::{
     Palette16, Priority, Rgb15,
     tiled::{
-        DynamicTile16, RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileFormat,
+        DynamicTile16, RegularBackground, RegularBackgroundSize, TileEffect, TileFormat,
         VRAM_MANAGER,
     },
 };
@@ -21,7 +21,7 @@ fn main(mut gba: agb::Gba) -> ! {
         .map(Rgb15::new),
     )]);
 
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

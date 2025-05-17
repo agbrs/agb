@@ -1,9 +1,7 @@
 use agb::{
     display::{
         GraphicsFrame, Priority,
-        tiled::{
-            RegularBackgroundSize, RegularBackgroundTiles, TileSet, TileSetting, VRAM_MANAGER,
-        },
+        tiled::{RegularBackground, RegularBackgroundSize, TileSet, TileSetting, VRAM_MANAGER},
     },
     include_background_gfx, rng,
 };
@@ -23,7 +21,7 @@ pub fn load_palettes() {
 }
 
 pub(crate) fn load_help_text(
-    background: &mut RegularBackgroundTiles,
+    background: &mut RegularBackground,
     help_text_line: u16,
     at_tile: (u16, u16),
 ) {
@@ -40,7 +38,7 @@ pub(crate) fn load_help_text(
     }
 }
 
-pub(crate) fn load_description(face_id: usize, descriptions_map: &mut RegularBackgroundTiles) {
+pub(crate) fn load_description(face_id: usize, descriptions_map: &mut RegularBackground) {
     let description_data = if face_id < 10 {
         &backgrounds::descriptions1
     } else {
@@ -60,8 +58,8 @@ pub(crate) fn load_description(face_id: usize, descriptions_map: &mut RegularBac
 }
 
 // Expects a 64x32 map
-fn create_background_map(stars_tileset: &TileSet) -> RegularBackgroundTiles {
-    let mut map = RegularBackgroundTiles::new(
+fn create_background_map(stars_tileset: &TileSet) -> RegularBackground {
+    let mut map = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background64x32,
         stars_tileset.format(),
@@ -87,8 +85,8 @@ fn create_background_map(stars_tileset: &TileSet) -> RegularBackgroundTiles {
     map
 }
 
-pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackgroundTiles {
-    let mut background = RegularBackgroundTiles::new(
+pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackground {
+    let mut background = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::title.tiles.format(),
@@ -103,8 +101,8 @@ pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackgroundTiles {
 }
 
 pub struct StarBackground {
-    background1: RegularBackgroundTiles,
-    background2: RegularBackgroundTiles,
+    background1: RegularBackground,
+    background2: RegularBackground,
 
     background1_timer: u32,
     background2_timer: u32,

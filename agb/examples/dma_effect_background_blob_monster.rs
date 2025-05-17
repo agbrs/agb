@@ -12,9 +12,7 @@ use agb::{
     display::{
         GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::Object,
-        tiled::{
-            RegularBackgroundSize, RegularBackgroundTiles, TileEffect, TileSetting, VRAM_MANAGER,
-        },
+        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting, VRAM_MANAGER},
     },
     dma::HBlankDma,
     fixnum::{Num, Vector2D, num, vec2},
@@ -61,7 +59,7 @@ struct BlobMonster {
 
     /// The background in use. This is a simple triangle pattern, but we use scroll offset DMA
     /// to breathe some life into the monster.
-    bg: RegularBackgroundTiles,
+    bg: RegularBackground,
 
     /// The current frame, used for animations
     frame: i32,
@@ -175,8 +173,8 @@ impl BlobMonster {
 
 // The blob monster background is a simple triangle. We use DMA to control the scroll position
 // in order to show the blob monster as something more than just a single triangle
-fn blob_monster_background() -> RegularBackgroundTiles {
-    let mut bg = RegularBackgroundTiles::new(
+fn blob_monster_background() -> RegularBackground {
+    let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::MONSTER.tiles.format(),

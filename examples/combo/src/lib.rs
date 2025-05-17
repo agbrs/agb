@@ -10,8 +10,7 @@ use agb::{
         Priority,
         tile_data::TileData,
         tiled::{
-            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
-            VRAM_MANAGER,
+            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
     fixnum::{Num, Vector2D},
@@ -56,7 +55,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
 
     VRAM_MANAGER.set_background_palettes(games::PALETTES);
 
-    let mut bg = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+    let mut bg = InfiniteScrolledMap::new(RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::EightBpp,

@@ -92,7 +92,7 @@ c & d & y \\\\
 
 To create affine backgrounds, please see the relevant section in the [backgrounds deep dive](./backgrounds.md#affine-backgrounds).
 
-You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_transform) method and passing in the desired affine matrix.
+You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackground.html#method.set_transform) method and passing in the desired affine matrix.
 `set_transform()` takes an [`AffineMatrixBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html) rather than an `AffineMatrix` directly because they have different size requirements.
 
 You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` constructor or the `.into()` method.

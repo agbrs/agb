@@ -92,9 +92,9 @@ impl RegularBackgroundSize {
 /// the GBA's VRAM will be allocated and unavailable for other backgrounds. You should use the
 /// smallest [`RegularBackgroundSize`] you can while still being able to render the scene you want.
 ///
-/// You can show up to 4 regular backgrounds at once (or 2 regular backgrounds and 1 [affine background](super::AffineBackgroundTiles)).
+/// You can show up to 4 regular backgrounds at once (or 2 regular backgrounds and 1 [affine background](super::AffineBackground)).
 ///
-/// To display a regular background to the screen, you need to call its [`show()`](RegularBackgroundTiles::show())
+/// To display a regular background to the screen, you need to call its [`show()`](RegularBackground::show())
 /// method on a given [`GraphicsFrame`](crate::display::GraphicsFrame).
 ///
 /// ## Example
@@ -107,12 +107,12 @@ impl RegularBackgroundSize {
 /// # fn foo(gba: &mut Gba) {
 /// use agb::display::{
 ///     Priority,
-///     tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+///     tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
 /// };
 ///
 /// let mut gfx = gba.graphics.get();
 ///
-/// let bg = RegularBackgroundTiles::new(
+/// let bg = RegularBackground::new(
 ///     Priority::P0,
 ///     RegularBackgroundSize::Background32x32,
 ///     TileFormat::FourBpp
@@ -127,7 +127,7 @@ impl RegularBackgroundSize {
 /// }
 /// # }
 /// ```
-pub struct RegularBackgroundTiles {
+pub struct RegularBackground {
     priority: Priority,
 
     tiles: Tiles,
@@ -138,14 +138,14 @@ pub struct RegularBackgroundTiles {
     scroll: Vector2D<i32>,
 }
 
-impl RegularBackgroundTiles {
+impl RegularBackground {
     /// Create a new RegularBackground with given `priority`, `size` and `colours`.
     ///
     /// This allocates some space in VRAM to store the actual tile data, but doesn't show anything until you call
-    /// the [`show()`](RegularBackgroundTiles::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
+    /// the [`show()`](RegularBackground::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
     ///
     /// You can have more `RegularBackgroundTile` instances then there are backgrounds, but you can only show
-    /// 4 at once in a given frame (or 2 and a single [affine background](super::AffineBackgroundTiles)).
+    /// 4 at once in a given frame (or 2 and a single [affine background](super::AffineBackground)).
     ///
     /// For [`Priority`], a higher priority is rendered first, so is behind lower priorities. Therefore, `P0`
     /// will be rendered at the _front_ and `P3` at the _back_. For equal priorities, backgrounds are rendered
@@ -170,7 +170,7 @@ impl RegularBackgroundTiles {
     /// in the background. So increasing the `x` coordinate of the scroll position moves the screen to the right,
     /// effectively rendering the background more to the left.
     ///
-    /// To get the current scroll position, you can call [`scroll_pos()`](RegularBackgroundTiles::scroll_pos()).
+    /// To get the current scroll position, you can call [`scroll_pos()`](RegularBackground::scroll_pos()).
     ///
     /// Returns self so you can chain with other `set_` calls.
     pub fn set_scroll_pos(&mut self, scroll: impl Into<Vector2D<i32>>) -> &mut Self {
@@ -184,7 +184,7 @@ impl RegularBackgroundTiles {
     /// in the background. So increasing the `x` coordinate of the scroll position moves the screen to the right,
     /// effectively rendering the background more to the left.
     ///
-    /// To set the current scroll position, you can call [`set_scroll_pos()`](RegularBackgroundTiles::set_scroll_pos()).
+    /// To set the current scroll position, you can call [`set_scroll_pos()`](RegularBackground::set_scroll_pos()).
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<i32> {
         self.scroll
@@ -263,7 +263,7 @@ impl RegularBackgroundTiles {
     /// use agb::{
     ///     display::{
     ///         Priority,
-    ///         tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+    ///         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     ///     },
     ///     include_background_gfx,
     /// };
@@ -272,7 +272,7 @@ impl RegularBackgroundTiles {
     ///
     /// # fn test(gba: agb::Gba) {
     /// VRAM_MANAGER.set_background_palettes(logo::PALETTES);
-    /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
+    /// let mut bg = RegularBackground::new(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);
     ///
     /// bg.fill_with(&logo::logo);
     /// # }
@@ -383,7 +383,7 @@ impl RegularBackgroundTiles {
 
     /// Sets the [`Priority`] of this background.
     ///
-    /// This won't take effect until the next call to [`show()`](RegularBackgroundTiles::show()).
+    /// This won't take effect until the next call to [`show()`](RegularBackground::show()).
     ///
     /// Returns self so you can chain with other `set_` calls.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {

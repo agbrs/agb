@@ -1,5 +1,5 @@
 use agb::{
-    display::tiled::{RegularBackgroundTiles, VRAM_MANAGER},
+    display::tiled::{RegularBackground, VRAM_MANAGER},
     include_background_gfx,
 };
 
@@ -18,7 +18,7 @@ pub fn load_palettes() {
     VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 }
 
-pub fn load_ui(map: &mut RegularBackgroundTiles) {
+pub fn load_ui(map: &mut RegularBackground) {
     let ui_tileset = &backgrounds::ui.tiles;
 
     for y in 0..20u16 {
@@ -31,7 +31,7 @@ pub fn load_ui(map: &mut RegularBackgroundTiles) {
     }
 }
 
-pub fn load_level_background(map: &mut RegularBackgroundTiles, level_number: usize) {
+pub fn load_level_background(map: &mut RegularBackground, level_number: usize) {
     let level_map = &tilemaps::LEVELS_MAP[level_number];
 
     let level_tileset = &backgrounds::level.tiles;
@@ -46,6 +46,6 @@ pub fn load_level_background(map: &mut RegularBackgroundTiles, level_number: usi
     }
 }
 
-pub fn load_ending_page(map: &mut RegularBackgroundTiles) {
+pub fn load_ending_page(map: &mut RegularBackground) {
     map.fill_with(&backgrounds::ending);
 }

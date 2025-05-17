@@ -11,8 +11,7 @@ use agb::{
         GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::Object,
         tiled::{
-            InfiniteScrolledMap, RegularBackgroundSize, RegularBackgroundTiles, TileFormat,
-            VRAM_MANAGER,
+            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
     fixnum::{FixedNum, Vector2D},
@@ -785,12 +784,12 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
             sfx.frame();
 
-            let mut background = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+            let mut background = InfiniteScrolledMap::new(RegularBackground::new(
                 Priority::P2,
                 RegularBackgroundSize::Background32x64,
                 TileFormat::FourBpp,
             ));
-            let mut foreground = InfiniteScrolledMap::new(RegularBackgroundTiles::new(
+            let mut foreground = InfiniteScrolledMap::new(RegularBackground::new(
                 Priority::P0,
                 RegularBackgroundSize::Background64x32,
                 TileFormat::FourBpp,

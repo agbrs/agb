@@ -7,7 +7,7 @@
 use agb::{
     display::{
         Graphics, GraphicsFrame, Priority,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     input::{Button, ButtonController},
     sound::mixer::Frequency,
@@ -56,13 +56,13 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     let _ = save::init_save(&mut gba);
 
     let gfx = gba.graphics.get();
-    let mut ui_bg = RegularBackgroundTiles::new(
+    let mut ui_bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    let mut ending_bg = RegularBackgroundTiles::new(
+    let mut ending_bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

@@ -1,8 +1,8 @@
 //! Anything to do with tiled backgrounds
 //!
 //! Most games made for the Game Boy Advance use tiled backgrounds.
-//! You can create and manage regular backgrounds using the [`RegularBackgroundTiles`] struct,
-//! and affine backgrounds using the [`AffineBackgroundTiles`] struct.
+//! You can create and manage regular backgrounds using the [`RegularBackground`] struct,
+//! and affine backgrounds using the [`AffineBackground`] struct.
 //!
 //! Palettes are managed using the [`VRAM_MANAGER`] global value.
 //!
@@ -18,13 +18,12 @@ use core::marker::PhantomData;
 
 use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
-    AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
-    AffineMatrixBackground,
+    AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, AffineMatrixBackground,
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 use regular_background::RegularBackgroundScreenblock;
-pub use regular_background::{RegularBackgroundSize, RegularBackgroundTiles};
+pub use regular_background::{RegularBackground, RegularBackgroundSize};
 pub use vram_manager::{DynamicTile16, TileFormat, TileSet, VRAM_MANAGER, VRamManager};
 
 pub(crate) use vram_manager::TileIndex;
@@ -42,9 +41,9 @@ use crate::{
 
 use super::DISPLAY_CONTROL;
 
-/// Represents a [regular background](RegularBackgroundTiles) that's about to be displayed.
+/// Represents a [regular background](RegularBackground) that's about to be displayed.
 ///
-/// This is returned by the [`show()`](RegularBackgroundTiles::show) method. You'll need this if you want
+/// This is returned by the [`show()`](RegularBackground::show) method. You'll need this if you want
 /// to apply additional effects on the background while it is being displayed, such as adding it to a
 /// [`Window`](super::Window::enable_background) or using one of the DMA registers.
 ///
@@ -72,9 +71,9 @@ impl BackgroundId {
     }
 }
 
-/// Represents an [affine background](AffineBackgroundTiles) that's about to be displayed.
+/// Represents an [affine background](AffineBackground) that's about to be displayed.
 ///
-/// This is returned by the [`show()`](AffineBackgroundTiles::show) method. You'll need this if you
+/// This is returned by the [`show()`](AffineBackground::show) method. You'll need this if you
 /// want to apply additional effects such as using it with DMA.
 ///
 /// See the `dma_effect_affine_background_*` [examples](https://agbrs.dev/examples) for examples of how to use the DMA transform function.
@@ -128,7 +127,7 @@ impl TileSetting {
     /// use agb::{
     ///     display::Priority,
     ///     display::tiled::{
-    ///         RegularBackgroundTiles, RegularBackgroundSize, TileEffect, TileSetting,
+    ///         RegularBackground, RegularBackgroundSize, TileEffect, TileSetting,
     ///         VRAM_MANAGER,
     ///     },
     ///     include_background_gfx,
@@ -137,7 +136,7 @@ impl TileSetting {
     /// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
     ///
     /// # fn test(gba: agb::Gba) {
-    /// let mut bg = RegularBackgroundTiles::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
+    /// let mut bg = RegularBackground::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
     ///
     /// // put something in the background
     /// bg.set_tile((0, 0), &water_tiles::tiles.tiles, water_tiles::tiles.tile_settings[1]);

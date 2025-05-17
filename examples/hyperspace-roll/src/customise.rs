@@ -2,7 +2,7 @@ use agb::{
     display::{
         HEIGHT, Priority, WIDTH,
         object::Object,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     input::{Button, Tri},
 };
@@ -144,13 +144,13 @@ pub(crate) fn customise_screen(
     mut player_dice: PlayerDice,
     level: u32,
 ) -> PlayerDice {
-    let mut descriptions_map = RegularBackgroundTiles::new(
+    let mut descriptions_map = RegularBackground::new(
         Priority::P1,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    let mut help_background = RegularBackgroundTiles::new(
+    let mut help_background = RegularBackground::new(
         Priority::P1,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

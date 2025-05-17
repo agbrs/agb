@@ -6,7 +6,7 @@
 use agb::{
     display::{
         HEIGHT, WIDTH, WinIn,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Num, Rect, Vector2D},
     include_background_gfx,
@@ -63,8 +63,8 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 }
 
-fn get_logo() -> RegularBackgroundTiles {
-    let mut map = RegularBackgroundTiles::new(
+fn get_logo() -> RegularBackground {
+    let mut map = RegularBackground::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -75,8 +75,8 @@ fn get_logo() -> RegularBackgroundTiles {
     map
 }
 
-fn get_beach() -> RegularBackgroundTiles {
-    let mut map = RegularBackgroundTiles::new(
+fn get_beach() -> RegularBackground {
+    let mut map = RegularBackground::new(
         agb::display::Priority::P1,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

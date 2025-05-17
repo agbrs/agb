@@ -5,7 +5,7 @@
 use agb::{
     display::{
         Priority, WIDTH,
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     include_background_gfx,
 };
@@ -23,7 +23,7 @@ fn main(mut gba: agb::Gba) -> ! {
     // Get access to the graphics struct which is used to manage the frame lifecycle
     let mut gfx = gba.graphics.get();
 
-    let mut scrolling_tiles = RegularBackgroundTiles::new(
+    let mut scrolling_tiles = RegularBackground::new(
         Priority::P1,
         RegularBackgroundSize::Background64x32,
         TileFormat::FourBpp,
@@ -41,7 +41,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    let mut help_tiles = RegularBackgroundTiles::new(
+    let mut help_tiles = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

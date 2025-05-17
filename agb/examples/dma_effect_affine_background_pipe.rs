@@ -9,8 +9,8 @@ use agb::{
     display::{
         AffineMatrix, Priority, WIDTH,
         tiled::{
-            AffineBackgroundSize, AffineBackgroundTiles, AffineBackgroundWrapBehaviour,
-            AffineMatrixBackground, RegularBackgroundSize, RegularBackgroundTiles, VRAM_MANAGER,
+            AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
+            AffineMatrixBackground, RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
         },
     },
     dma::HBlankDma,
@@ -81,8 +81,8 @@ fn main(mut gba: agb::Gba) -> ! {
     }
 }
 
-fn grid_background() -> AffineBackgroundTiles {
-    let mut bg = AffineBackgroundTiles::new(
+fn grid_background() -> AffineBackground {
+    let mut bg = AffineBackground::new(
         Priority::P1,
         AffineBackgroundSize::Background64x64,
         AffineBackgroundWrapBehaviour::Wrap,
@@ -98,8 +98,8 @@ fn grid_background() -> AffineBackgroundTiles {
     bg
 }
 
-fn help_background() -> RegularBackgroundTiles {
-    let mut bg = RegularBackgroundTiles::new(
+fn help_background() -> RegularBackground {
+    let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::HELP.tiles.format(),

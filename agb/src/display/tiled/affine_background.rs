@@ -85,9 +85,9 @@ impl AffineBackgroundSize {
 /// the GBA's VRAM will be allocated and unavailable for other backgrounds. You should use the
 /// smallest [`AffineBackgroundSize`] you can while still being able to render the scene you want.
 ///
-/// You can show up to 2 affine backgrounds at once (or 1 affine background and 2 [regular backgrounds](super::RegularBackgroundTiles)).
+/// You can show up to 2 affine backgrounds at once (or 1 affine background and 2 [regular backgrounds](super::RegularBackground)).
 ///
-/// to display a given affine background to the screen, you need to call its [show()](AffineBackgroundTiles::show()) method on
+/// to display a given affine background to the screen, you need to call its [show()](AffineBackground::show()) method on
 /// a given [`GraphicsFrame`](crate::display::GraphicsFrame).
 ///
 /// ## Example
@@ -100,12 +100,12 @@ impl AffineBackgroundSize {
 /// # fn foo(gba: &mut Gba) {
 /// use agb::display::{
 ///     Priority,
-///     tiled::{AffineBackgroundTiles, AffineBackgroundSize, AffineBackgroundWrapBehaviour, VRAM_MANAGER},
+///     tiled::{AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, VRAM_MANAGER},
 /// };
 ///
 /// let mut gfx = gba.graphics.get();
 ///
-/// let bg = AffineBackgroundTiles::new(
+/// let bg = AffineBackground::new(
 ///     Priority::P0,
 ///     AffineBackgroundSize::Background16x16,
 ///     AffineBackgroundWrapBehaviour::NoWrap,
@@ -120,7 +120,7 @@ impl AffineBackgroundSize {
 /// }
 /// # }
 /// ```
-pub struct AffineBackgroundTiles {
+pub struct AffineBackground {
     priority: Priority,
 
     tiles: Tiles,
@@ -134,15 +134,15 @@ pub struct AffineBackgroundTiles {
     wrap_behaviour: AffineBackgroundWrapBehaviour,
 }
 
-impl AffineBackgroundTiles {
+impl AffineBackground {
     /// Create a new affine background with given `priority`, `size` and `warp_behaviour`.
     ///
     /// This allocates some space in VRAM to store the actual tile data, but doesn't show anything
-    /// until you call the [`show()`](AffineBackgroundTiles::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
+    /// until you call the [`show()`](AffineBackground::show()) function on a [`GraphicsFrame`](crate::display::GraphicsFrame).
     ///
-    /// You can have more `AffineBackgroundTiles` instances then there are available backgrounds
+    /// You can have more `AffineBackground` instances then there are available backgrounds
     /// to show at once, but you can only show 2 at once in a given frame (or 1 and a up to 2
-    /// [regular backgrounds](super::RegularBackgroundTiles)).
+    /// [regular backgrounds](super::RegularBackground)).
     ///
     /// For [`Priority`], a higher priority is rendered first, so is behind lower priorities.
     /// Therefore, `P0` will be rendered at the _front_ and `P3` at the _back_. For equal priorities,
@@ -321,7 +321,7 @@ impl AffineBackgroundTiles {
 
     /// Set the current priority for the background.
     ///
-    /// This won't take effect until the next time you call [`show()`](AffineBackgroundTiles::show()).
+    /// This won't take effect until the next time you call [`show()`](AffineBackground::show()).
     /// Returns self so you can chain with other `set_` calls.
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;

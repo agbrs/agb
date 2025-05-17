@@ -5,7 +5,7 @@ use crate::{
 };
 use agb::display::Priority;
 use agb::display::object::Object;
-use agb::display::tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat};
+use agb::display::tiled::{RegularBackground, RegularBackgroundSize, TileFormat};
 use agb::{hash_map::HashMap, input::Button};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -490,7 +490,7 @@ pub(crate) fn battle_screen(
     agb.sfx.battle();
     agb.sfx.frame();
 
-    let mut help_background = RegularBackgroundTiles::new(
+    let mut help_background = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,

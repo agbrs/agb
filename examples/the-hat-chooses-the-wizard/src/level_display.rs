@@ -1,6 +1,6 @@
 use agb::display::{
     GraphicsFrame, HEIGHT, Priority, WIDTH,
-    tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, TileSet, TileSetting},
+    tiled::{RegularBackground, RegularBackgroundSize, TileFormat, TileSet, TileSetting},
 };
 
 const LEVEL_START: usize = 12 * 28;
@@ -9,12 +9,12 @@ const HYPHEN: usize = 12 * 28 + 11;
 pub const BLANK: usize = 11 * 28;
 
 pub struct LevelDisplay {
-    map: RegularBackgroundTiles,
+    map: RegularBackground,
 }
 
 impl LevelDisplay {
     pub fn new(tileset: &'_ TileSet<'_>, tile_settings: &[TileSetting]) -> Self {
-        let mut map = RegularBackgroundTiles::new(
+        let mut map = RegularBackground::new(
             Priority::P3,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,

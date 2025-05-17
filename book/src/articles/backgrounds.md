@@ -65,13 +65,13 @@ fn main() -> ! {
 }
 ```
 
-## `RegularBackgroundTiles`
+## `RegularBackground`
 
 With a `TileSet` ready and a palette set up, we need to actually declare which tiles to show where on the screen.
-This is done using the [`RegularBackgroundTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html) struct.
-The `RegularBackgroundTiles` reserves some video RAM to store which tile goes where and other metadata about it like it's palette number and whether it should be flipped.
+This is done using the [`RegularBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html) struct.
+The `RegularBackground` reserves some video RAM to store which tile goes where and other metadata about it like it's palette number and whether it should be flipped.
 
-[`RegularBackgroundTiles::new`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.new) takes 3 arguments.
+[`RegularBackground::new`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.new) takes 3 arguments.
 The `priority` (which we'll set to `Priority::P0` for now), a tile format which you can get from `background::BEACH.format()` and a `size`.
 
 The size of the background can be one of [4 values](https://docs.rs/agb/latest/agb/display/tiled/enum.RegularBackgroundSize.html).
@@ -90,7 +90,7 @@ For this example, we'll just create a 32x32 background, but it is important to a
 use agb::{
     display::Priority,
     display::tiled::{
-        RegularBackgroundTiles, RegularBackgroundSize,
+        RegularBackground, RegularBackgroundSize,
         VRAM_MANAGER,
     },
     include_background_gfx,
@@ -106,7 +106,7 @@ fn main() -> ! {
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
     // Create the background tiles ready for us to display on the screen
-    let mut tiles = RegularBackgroundTiles::new(
+    let mut tiles = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         background::BEACH.tiles.format()
@@ -117,7 +117,7 @@ fn main() -> ! {
 ```
 
 You'll now want to put tiles onto the background, ready to display them.
-This is done using the [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_tile) method.
+This is done using the [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.set_tile) method.
 Let's loop over the width and height of the Game Boy Advance screen and set the tile in the background, so after the tiles are created, something like:
 
 ```rust
@@ -138,7 +138,7 @@ Note that if you run this, you still won't get anything showing on screen until 
 
 ## Showing a background on the screen
 
-To show a background on the screen, you'll need to to call the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.show) method passing in the current [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html).
+To show a background on the screen, you'll need to to call the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show) method passing in the current [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html).
 
 See the [`frame lifecycle`](./frame_lifecycle.md) article for more information about frame lifecycles, but to show our example so far, replace the loop with the following
 
@@ -157,7 +157,7 @@ loop {
 One of the key things you can use backgrounds to do is to display something scrolling.
 You can use this to make your level bigger than the world map, or to do some parallax effect in the background.
 
-You can scroll the background with the [`.set_scroll_pos()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_scroll_pos) method.
+You can scroll the background with the [`.set_scroll_pos()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.set_scroll_pos) method.
 The `scroll_pos` passed to the `.set_scroll_pos()` method is effectively the 'camera' position.
 It chooses where the top left camera position should be.
 So increasing the `x` coordinate will slide the background to the right, to ensure that the top-left corner of the Game Boy Advance's screen is at that pixel.
@@ -172,7 +172,7 @@ These can be layered on top of each other to create different effects like the p
 
 ### Displaying multiple backgrounds
 
-You can display multiple backgrounds at once by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.show) method on each background passing the same [`frame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) instance.
+You can display multiple backgrounds at once by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show) method on each background passing the same [`frame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) instance.
 If you try to show more than 4 backgrounds, then the call to `.show()` will panic.
 
 ### Transparency
@@ -206,7 +206,7 @@ fn main() -> ! {
 }
 ```
 
-There is also a special tile setting you can use in the call to [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_tile), [`TileSetting::BLANK`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html#associatedconstant.BLANK).
+There is also a special tile setting you can use in the call to [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.set_tile), [`TileSetting::BLANK`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html#associatedconstant.BLANK).
 This is a fully transparent tile, and if you ever want a tile in your background to be fully transparent, it is better to use this one for performance.
 
 ### Priority and interaction with objects
@@ -265,7 +265,7 @@ include_background_gfx!(
 );
 ```
 
-Also ensure that when you create the `RegularBackgroundTiles`, you pass [`TileFormat::EightBpp`](https://docs.rs/agb/latest/agb/display/tiled/enum.TileFormat.html#variant.EightBpp) (or using the `.format()` method on the tile data like we've been using in the other examples here).
+Also ensure that when you create the `RegularBackground`, you pass [`TileFormat::EightBpp`](https://docs.rs/agb/latest/agb/display/tiled/enum.TileFormat.html#variant.EightBpp) (or using the `.format()` method on the tile data like we've been using in the other examples here).
 A background must be in one of `FourBpp` or `EightBpp` mode.
 
 ## Tile effects
@@ -310,7 +310,7 @@ Sometimes you don't know what needs to be drawn on a tile ahead of time.
 [`DynamicTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.DynamicTile16.html) are a powerful way to show tiles whose contents are decided at runtime in your game.
 Their current main use is for text rendering, where they are used as the target for rendering text.
 
-Currently only 16-colour dynamic tiles are supported and can only be shown on 4 bits per pixel backgrounds via the [set_tile_dynamic16()](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.set_tile_dynamic16) method on `RegularBackgroundTiles`.
+Currently only 16-colour dynamic tiles are supported and can only be shown on 4 bits per pixel backgrounds via the [set_tile_dynamic16()](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.set_tile_dynamic16) method on `RegularBackground`.
 
 ```rust
 // by default, `DynamicTile`s are left with whatever was in video RAM before it
@@ -320,7 +320,7 @@ let dynamic_tile = DynamicTile16::new().fill_with(0);
 
 // my_background here must have FourBpp set as it's TileFormat or you won't be able
 // to use DynamicTile16 on it.
-let my_background = RegularBackgroundTiles::new(
+let my_background = RegularBackground::new(
     Priority::P0,
     RegularBackgroundSize::Background32x32,
     TileFormat::FourBpp
@@ -391,10 +391,10 @@ use agb::display::tiled::VRAM_MANAGER;
 VRAM_MANAGER.set_backgroud_palettes(background::PALETTES);
 ```
 
-### Create the `AffineBackgroundTiles`
+### Create the `AffineBackground`
 
-These also work very similarly to [regular backgrounds](./backgrounds.md#regularbackgroundtiles).
-However, the constructor for [`AffineBackgroundTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.new) takes some different arguments.
+These also work very similarly to [regular backgrounds](./backgrounds.md#RegularBackground).
+However, the constructor for [`AffineBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackground.html#method.new) takes some different arguments.
 
 The [`priority`](https://docs.rs/agb/latest/agb/display/enum.Priority.html) works in exactly the same way as regular backgrounds, with higher priorities being rendered first, so backgrounds with the lower priority are drawn on top of backgrounds with a higher priority.
 And similarly, objects with the same priority as an affine background are rendered above the background.
@@ -411,13 +411,13 @@ Play around with some of the [affine background examples](https://agbrs.dev/exam
 
 ### Putting tiles on screen
 
-The [`set_tile`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.set_tile) method takes different arguments to the regular background case.
+The [`set_tile`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackground.html#method.set_tile) method takes different arguments to the regular background case.
 Instead of taking `TileSettings`, you give it a single `tile_index`.
 This is due to the limitation of affine backgrounds that you cannot flip tiles, so there are no settings to tweak.
 
 ### Showing the background on the screen
 
-As with most graphical things in `agb`, you show `AffineBackgroundTiles` on the screen by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackgroundTiles.html#method.show) method passing in the current frame.
+As with most graphical things in `agb`, you show `AffineBackground` on the screen by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackground.html#method.show) method passing in the current frame.
 
 ```rust
 let mut gfx = gba.graphics.get();

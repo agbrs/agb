@@ -4,7 +4,7 @@ use crate::{
     fixnum::{Rect, Vector2D, vec2},
 };
 
-use super::{BackgroundId, RegularBackgroundTiles, TileSet, TileSetting};
+use super::{BackgroundId, RegularBackground, TileSet, TileSetting};
 
 /// In tiles
 const ONE_MORE_THAN_SCREEN_HEIGHT: i32 = HEIGHT / 8 + 1;
@@ -41,25 +41,25 @@ impl Position {
 ///
 /// Note that the `InfiniteScrolledMap` only works with _regular backgrounds_ and not affine backgrounds.
 ///
-/// You create an `InfiniteScrolledMap` by passing a [`RegularBackgroundTiles`] you've created before. Then,
+/// You create an `InfiniteScrolledMap` by passing a [`RegularBackground`] you've created before. Then,
 /// call [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) to control the position of the scrolling.
 ///
 /// See [here](https://agbrs.dev/examples/infinite_scrolled_map) for an example of how to use it.
 pub struct InfiniteScrolledMap {
-    map: RegularBackgroundTiles,
+    map: RegularBackground,
 
     current_pos: Position,
 }
 
 impl InfiniteScrolledMap {
-    /// Creates a new [`InfiniteScrolledMap`] taking ownership of the [`RegularBackgroundTiles`]. Until you call
+    /// Creates a new [`InfiniteScrolledMap`] taking ownership of the [`RegularBackground`]. Until you call
     /// [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) calling [`.show()`](InfiniteScrolledMap::show) on this will
     /// do no more than calling `.show` would have on the `map`.
     ///
     /// You need to call [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) in order to actually render something to the
     /// map.
     #[must_use]
-    pub fn new(map: RegularBackgroundTiles) -> Self {
+    pub fn new(map: RegularBackground) -> Self {
         Self {
             map,
 
@@ -185,7 +185,7 @@ impl InfiniteScrolledMap {
     /// Scrolls the [`InfiniteScrolledMap`] to the provided location and does the minimum amount of
     /// rendering required in order to make the illusion that we have a map that's larger than the
     /// maximum background size provided by the Game Boy Advance. The behaviour is the same as
-    /// [`RegularBackgroundTiles::set_scroll_pos`] except without the wrapping behaviour.
+    /// [`RegularBackground::set_scroll_pos`] except without the wrapping behaviour.
     ///
     /// You should pass a function to the `tile` argument which, given a position, returns the tile
     /// that should be rendered in that location. Calling this with a new position that keeps some of
@@ -227,24 +227,24 @@ impl InfiniteScrolledMap {
         }
     }
 
-    /// Gets the current scroll position. See [`RegularBackgroundTiles::scroll_pos`]
+    /// Gets the current scroll position. See [`RegularBackground::scroll_pos`]
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<i32> {
         self.map.scroll_pos()
     }
 
-    /// Sets the priority of the underlying map. See [`RegularBackgroundTiles::set_priority`]
+    /// Sets the priority of the underlying map. See [`RegularBackground::set_priority`]
     pub fn set_priority(&mut self, priority: Priority) {
         self.map.set_priority(priority);
     }
 
-    /// Gets the current priority of the underlying map. See [`RegularBackgroundTiles::priority`]
+    /// Gets the current priority of the underlying map. See [`RegularBackground::priority`]
     #[must_use]
     pub fn priority(&self) -> Priority {
         self.map.priority()
     }
 
-    /// Shows this map on the given [`GraphicsFrame`]. See [`RegularBackgroundTiles::show`] for more
+    /// Shows this map on the given [`GraphicsFrame`]. See [`RegularBackground::show`] for more
     /// details.
     pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
         self.map.show(frame)

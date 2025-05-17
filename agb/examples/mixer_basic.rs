@@ -7,7 +7,7 @@ use agb::{
     display::{
         Priority, Rgb15, WIDTH,
         font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
-        tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::num,
     include_font, include_wav,
@@ -23,7 +23,7 @@ fn main(mut gba: Gba) -> ! {
     let mut input = ButtonController::new();
 
     let mut gfx = gba.graphics.get();
-    let mut bg = RegularBackgroundTiles::new(
+    let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
@@ -80,7 +80,7 @@ fn main(mut gba: Gba) -> ! {
     }
 }
 
-fn init_background(bg: &mut RegularBackgroundTiles) {
+fn init_background(bg: &mut RegularBackground) {
     static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
 
     VRAM_MANAGER.set_background_palette_colour(0, 1, Rgb15::WHITE);

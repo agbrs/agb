@@ -60,15 +60,15 @@ VRAM_MANAGER.set_background_palettes(background::PALETTES);
 
 ### 2. Creating the background tiles
 
-Backgrounds are arranged in instances of [`RegularBackgroundTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html).
+Backgrounds are arranged in instances of [`RegularBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html).
 
 ```rust
 use agb::display::{
     Priority,
-    tiled::{RegularBackgroundTiles, RegularBackgroundSize, TileFormat},
+    tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
 };
 
-let mut bg = RegularBackgroundTiles::new(
+let mut bg = RegularBackground::new(
     Priority::P3,
     RegularBackgroundSize::Background32x32,
     TileFormat::FourBpp
@@ -83,7 +83,7 @@ This will mean that it is rendered below every background, and below any objects
 
 ### 3. Showing the tiles
 
-Just before the call to `frame.commit()`, call [`bg.show(&mut frame)`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackgroundTiles.html#method.show).
+Just before the call to `frame.commit()`, call [`bg.show(&mut frame)`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show).
 
 ```rust
 bg.show(&mut frame);
