@@ -10,7 +10,7 @@
 //! It is designed such that there are two phases to the rendering:
 //! * the [`Layout`] system which decides where groups of letters should be
 //!   rendered.
-//! * the [`SpriteTextRenderer`] and [`RegularBackgroundTextRenderer`] which
+//! * the [`ObjectTextRenderer`] and [`RegularBackgroundTextRenderer`] which
 //!   take those groups of letters and display them to their relevant targets.
 //!
 //! These two phases interact through the [`LetterGroup`] that the [`Layout`]
@@ -48,7 +48,7 @@
 //!
 //! # Object based target
 //!
-//! The [`SpriteTextRenderer`] creates objects that can be stored and displayed
+//! The [`ObjectTextRenderer`] creates objects that can be stored and displayed
 //! later. A simple renderer could look like
 //!
 //! ```rust
@@ -59,7 +59,7 @@
 //! use alloc::vec::Vec;
 //! use agb::display::{
 //!     Palette16, Rgb15,
-//!     font::{AlignmentKind, Font, Layout, SpriteTextRenderer},
+//!     font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
 //!     object::Size,
 //! };
 //!
@@ -76,7 +76,7 @@
 //! // the actual text rendering
 //!
 //! let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
-//! let text_renderer = SpriteTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
+//! let text_renderer = ObjectTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
 //!
 //! for letter_group in layout {
 //!     text_elements.push(text_renderer.show(&letter_group, (0, 0)));
@@ -144,13 +144,13 @@
 #![warn(missing_docs)]
 mod align;
 mod layout;
+mod object;
 mod special;
-mod sprite;
 mod tiled;
 
 pub use align::AlignmentKind;
 pub use layout::{Layout, LetterGroup};
-pub use sprite::SpriteTextRenderer;
+pub use object::ObjectTextRenderer;
 pub use tiled::RegularBackgroundTextRenderer;
 
 pub use special::{ChangeColour, SetTag, UnsetTag};

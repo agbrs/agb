@@ -6,7 +6,7 @@
 use agb::{
     display::{
         Palette16, Rgb15,
-        font::{AlignmentKind, ChangeColour, Font, Layout, SetTag, SpriteTextRenderer, UnsetTag},
+        font::{AlignmentKind, ChangeColour, Font, Layout, ObjectTextRenderer, SetTag, UnsetTag},
         object::Size,
     },
     fixnum::{Num, num, vec2},
@@ -58,7 +58,7 @@ This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} 
     };
 
     let mut layout = Layout::new(&text, &FONT, AlignmentKind::Centre, 16, 200);
-    let sprite_text_render = SpriteTextRenderer::new((&PALETTE).into(), Size::S16x16);
+    let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
     let mut objects = Vec::new();
     let mut wiggly_objects = Vec::new();
@@ -71,7 +71,7 @@ This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} 
 
         if delay == 0 {
             if let Some(group) = layout.next() {
-                let sprite = sprite_text_render.show(&group, vec2(16, 16));
+                let sprite = text_render.show(&group, vec2(16, 16));
                 if group.tag() & 0b1 == 0 {
                     objects.push(sprite);
                 } else {

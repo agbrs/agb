@@ -1,7 +1,7 @@
 use agb::{
     display::{
         GraphicsFrame, HEIGHT, Palette16, Priority, Rgb15, WIDTH,
-        font::{AlignmentKind, Layout, SpriteTextRenderer},
+        font::{AlignmentKind, Layout, ObjectTextRenderer},
         object::{Object, PaletteVramSingle, Size, SpriteVram},
         tiled::{RegularBackgroundSize, RegularBackgroundTiles, TileFormat},
     },
@@ -35,7 +35,7 @@ struct Lament {
     level: usize,
     text_layout: Layout,
     text_objects: Vec<Object>,
-    text_render: SpriteTextRenderer,
+    text_render: ObjectTextRenderer,
     background: RegularBackgroundTiles,
 }
 
@@ -70,7 +70,7 @@ impl Lament {
             level,
             text_layout: layout,
             text_objects: Vec::new(),
-            text_render: SpriteTextRenderer::new(palette, Size::S32x16),
+            text_render: ObjectTextRenderer::new(palette, Size::S32x16),
             background: RegularBackgroundTiles::new(
                 Priority::P1,
                 RegularBackgroundSize::Background32x32,
@@ -260,7 +260,7 @@ struct PauseMenu {
 
 impl PauseMenu {
     fn text_at_position(text: &str, position: Vector2D<i32>) -> Vec<Object> {
-        let text_renderer = SpriteTextRenderer::new(generate_text_palette(), Size::S32x16);
+        let text_renderer = ObjectTextRenderer::new(generate_text_palette(), Size::S32x16);
 
         Layout::new(text, &FONT, AlignmentKind::Left, 32, WIDTH)
             .map(|lg| text_renderer.show(&lg, position))
