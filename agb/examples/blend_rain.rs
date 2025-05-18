@@ -11,7 +11,9 @@ use agb::{
     display::{
         GraphicsFrame, Priority,
         object::{Object, SpriteVram},
-        tiled::{BackgroundId, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{
+            RegularBackground, RegularBackgroundId, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
+        },
     },
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_background_gfx, include_wav,
@@ -135,7 +137,7 @@ impl ThunderStatus {
         }
     }
 
-    fn show(&self, frame: &mut GraphicsFrame, bg_id: BackgroundId) {
+    fn show(&self, frame: &mut GraphicsFrame, bg_id: RegularBackgroundId) {
         if let ThunderStatus::Flash(value) = self {
             frame
                 .blend()
@@ -172,7 +174,7 @@ impl ThunderEffect {
         }
     }
 
-    fn show(&self, frame: &mut GraphicsFrame, bg_id: BackgroundId) {
+    fn show(&self, frame: &mut GraphicsFrame, bg_id: RegularBackgroundId) {
         self.status.show(frame, bg_id);
     }
 }

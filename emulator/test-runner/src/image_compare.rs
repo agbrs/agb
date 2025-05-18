@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use image::io::Reader;
+use image::{Rgba, io::Reader};
 
 pub struct ComparisonResult {
     matches: bool,
@@ -15,11 +15,14 @@ impl ComparisonResult {
 pub const WIDTH: usize = 240;
 pub const HEIGHT: usize = 160;
 
-fn convert_rgba_to_nearest_gba_colour(c: [u8; 4]) -> [u8; 4] {
-    let mut n = c;
-    n.iter_mut()
-        .for_each(|a| *a = ((((*a as u32 >> 3) << 3) * 0x21) >> 5) as u8);
-    n
+#[derive(Eq, PartialEq, Clone, Copy)]
+struct Rgb15(u16);
+
+impl Rgb15 {
+    fn from_rgba(rgba: Rgba<u8>) -> Self {
+        let (r, g, b) = (rgba.0[0] as u16, rgba.0[1] as u16, rgba.0[2] as u16);
+        Rgb15(((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10))
+    }
 }
 
 pub fn compare_image(
@@ -37,10 +40,10 @@ pub fn compare_image(
     for y in 0..HEIGHT {
         for x in 0..WIDTH {
             let video_pixel = video_buffer[x + y * WIDTH];
-            let image_pixel = expected_buffer.get_pixel(x as u32, y as u32);
-            let image_pixel = convert_rgba_to_nearest_gba_colour(image_pixel.0);
+            let video_pixel = Rgba::from(video_pixel.to_le_bytes());
+            let image_pixel = *expected_buffer.get_pixel(x as u32, y as u32);
 
-            if image_pixel[0..3] != video_pixel.to_le_bytes()[0..3] {
+            if Rgb15::from_rgba(video_pixel) != Rgb15::from_rgba(image_pixel) {
                 return Ok(ComparisonResult { matches: false });
             }
         }
