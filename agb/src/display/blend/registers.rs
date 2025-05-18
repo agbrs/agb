@@ -1,7 +1,7 @@
 use agb_fixnum::Num;
 use bilge::prelude::*;
 
-use crate::display::tiled::RegularBackgroundId;
+use crate::display::tiled::BackgroundId;
 
 #[bitsize(6)]
 #[derive(FromBits, Default, Clone, Copy)]
@@ -12,8 +12,8 @@ pub(crate) struct BlendTarget {
 }
 
 impl BlendTarget {
-    pub fn enable_background(&mut self, background_id: RegularBackgroundId) {
-        self.set_backgrounds(self.backgrounds() | u4::new(1u8 << background_id.0));
+    pub fn enable_background(&mut self, background_id: impl Into<BackgroundId>) {
+        self.set_backgrounds(self.backgrounds() | u4::new(1u8 << background_id.into().0));
     }
 
     pub fn enable_object(&mut self) {

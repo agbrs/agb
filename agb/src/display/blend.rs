@@ -3,7 +3,7 @@ mod registers;
 
 use registers::{BlendControlAlpha, BlendControlBrightness, BlendControlRegister};
 
-use super::tiled::RegularBackgroundId;
+use super::tiled::BackgroundId;
 use crate::{fixnum::Num, memory_mapped::MemoryMapped};
 
 const BLEND_CONTROL: MemoryMapped<BlendControlRegister> = unsafe { MemoryMapped::new(0x0400_0050) };
@@ -95,7 +95,7 @@ impl Blend {
         BlendObjectTransparency { blend: self }
     }
 
-    fn set_background_enable(&mut self, layer: Layer, background_id: RegularBackgroundId) {
+    fn set_background_enable(&mut self, layer: Layer, background_id: impl Into<BackgroundId>) {
         self.with_target(layer, |mut target| {
             target.enable_background(background_id);
             target
@@ -160,7 +160,7 @@ pub struct BlendLayer<'blend> {
 
 impl BlendLayer<'_> {
     /// Enables a background for blending on this layer.
-    pub fn enable_background(&mut self, background: RegularBackgroundId) -> &mut Self {
+    pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
         self.blend.set_background_enable(self.layer, background);
         self
     }

@@ -5,7 +5,7 @@ use agb_fixnum::Vector2D;
 
 use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
 
-use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::RegularBackgroundId};
+use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 
 /// Access to the windows feature of the Game Boy Advance.
 ///
@@ -122,8 +122,8 @@ impl Window {
     }
     /// Sets whether the given background will be rendered inside this window.
     #[inline(always)]
-    pub fn enable_background(&mut self, back: RegularBackgroundId) -> &mut Self {
-        self.set_bit(back.0 as usize, true);
+    pub fn enable_background(&mut self, back: impl Into<BackgroundId>) -> &mut Self {
+        self.set_bit(back.into().0 as usize, true);
 
         self
     }
@@ -173,7 +173,7 @@ impl MovableWindow {
     }
     /// Sets whether the given background will be rendered inside this window.
     #[inline(always)]
-    pub fn enable_background(&mut self, back: RegularBackgroundId) -> &mut Self {
+    pub fn enable_background(&mut self, back: impl Into<BackgroundId>) -> &mut Self {
         self.inner.enable_background(back);
         self
     }

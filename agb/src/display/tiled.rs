@@ -41,6 +41,25 @@ use crate::{
 
 use super::DISPLAY_CONTROL;
 
+/// Represents a background which can be either [regular](RegularBackground) or [affine](AffineBackground).
+///
+/// You never need to create this directly, instead using the `From` implementation from [`AffineBackgroundId`] or
+/// [`RegularBackgroundId`].
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct BackgroundId(pub(crate) u8);
+
+impl From<RegularBackgroundId> for BackgroundId {
+    fn from(value: RegularBackgroundId) -> Self {
+        Self(value.0)
+    }
+}
+
+impl From<AffineBackgroundId> for BackgroundId {
+    fn from(value: AffineBackgroundId) -> Self {
+        Self(value.0)
+    }
+}
+
 /// Represents a [regular background](RegularBackground) that's about to be displayed.
 ///
 /// This is returned by the [`show()`](RegularBackground::show) method. You'll need this if you want
