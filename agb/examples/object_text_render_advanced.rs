@@ -74,7 +74,7 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
         if delay == 0 {
             if let Some(group) = layout.next() {
                 let sprite = text_render.show(&group, vec2(16, 16));
-                if !group.tag().contains(WIGGLY_TEXT) {
+                if !group.has_tag(WIGGLY_TEXT) {
                     objects.push(sprite);
                 } else {
                     wiggly_objects.push((sprite.pos(), sprite));
@@ -87,7 +87,7 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
                     delay = 4;
                 }
 
-                if group.tag().contains(SLOW_TEXT) {
+                if group.has_tag(SLOW_TEXT) {
                     delay *= 2;
                 }
             }

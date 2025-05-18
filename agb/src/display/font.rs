@@ -149,7 +149,7 @@ mod special;
 mod tiled;
 
 pub use align::AlignmentKind;
-pub use layout::{Layout, LetterGroup, Tags};
+pub use layout::{Layout, LetterGroup};
 pub use object::ObjectTextRenderer;
 pub use tiled::RegularBackgroundTextRenderer;
 

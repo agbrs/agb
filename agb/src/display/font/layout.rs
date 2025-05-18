@@ -94,20 +94,6 @@ impl core::fmt::Debug for LetterGroup {
     }
 }
 
-/// A set of tags currently present on the group.
-///
-/// Can be interrogated using the [`Self::contains`] method.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Tags(u16);
-
-impl Tags {
-    /// Returns true if the tag is set on this collection of tags
-    #[must_use]
-    pub fn contains(self, tag: Tag) -> bool {
-        (self.0 >> tag.0) & 1 == 1
-    }
-}
-
 impl LetterGroup {
     #[must_use]
     /// The underlying chunk of text this letter group contains
@@ -133,13 +119,13 @@ impl LetterGroup {
     /// static MY_TAG: Tag = Tag::new(7);
     /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
     /// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
-    /// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
-    /// assert!(layout.next().unwrap().tag().contains(MY_TAG));
-    /// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
+    /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
+    /// assert!(layout.next().unwrap().has_tag(MY_TAG));
+    /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
     /// # }
     /// ```
-    pub fn tag(&self) -> Tags {
-        Tags(self.tag)
+    pub fn has_tag(&self, tag: Tag) -> bool {
+        (self.tag >> tag.0) & 1 == 1
     }
 
     pub(crate) fn palette_index(&self) -> u8 {

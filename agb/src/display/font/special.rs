@@ -78,9 +78,9 @@ impl Display for ChangeColour {
 /// static MY_TAG: Tag = Tag::new(7);
 /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
 /// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
-/// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
-/// assert!(layout.next().unwrap().tag().contains(MY_TAG));
-/// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
+/// assert!(!layout.next().unwrap().has_tag(MY_TAG));
+/// assert!(layout.next().unwrap().has_tag(MY_TAG));
+/// assert!(!layout.next().unwrap().has_tag(MY_TAG));
 /// # }
 /// ```
 pub struct Tag(pub(crate) u8);
