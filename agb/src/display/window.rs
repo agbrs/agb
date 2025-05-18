@@ -231,3 +231,125 @@ impl MovableWindow {
         unsafe { dma::DmaControllable::new(REG_HORIZONTAL_BASE.add(self.id).cast()) }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{
+        Gba,
+        display::{
+            AffineMatrix, Priority,
+            tiled::{
+                AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
+                RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
+            },
+        },
+        fixnum::{Num, num, vec2},
+        include_background_gfx,
+        test_runner::assert_image_output,
+    };
+
+    include_background_gfx!(crate, mod background,
+        LOGO => deduplicate "gfx/test_logo.aseprite",
+        LOGO_256 => 256 "gfx/test_logo.aseprite",
+    );
+
+    #[test_case]
+    fn can_draw_window_box(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .windows()
+            .win_in(WinIn::Win0)
+            .enable_background(bg_id)
+            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/window/regular_box.png");
+    }
+
+    #[test_case]
+    fn can_draw_inverse_window_box(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .windows()
+            .win_in(WinIn::Win0)
+            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+        frame
+            .windows()
+            .win_in(WinIn::Win1)
+            .set_pos(Rect::new(vec2(130, 70), vec2(50, 50)));
+        frame.windows().win_out().enable_background(bg_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/window/regular_box_outside.png");
+    }
+
+    #[test_case]
+    fn can_do_affine_background_windows(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = AffineBackground::new(
+            Priority::P0,
+            AffineBackgroundSize::Background32x32,
+            AffineBackgroundWrapBehaviour::Wrap,
+        );
+
+        for i in 0..32 {
+            for j in 0..32 {
+                bg.set_tile(
+                    (i, j),
+                    &background::LOGO_256.tiles,
+                    3 * 30 + 3 + (i + j) as u16 % 5,
+                );
+            }
+        }
+
+        bg.set_transform(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .windows()
+            .win_in(WinIn::Win0)
+            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+        frame
+            .windows()
+            .win_in(WinIn::Win1)
+            .set_pos(Rect::new(vec2(130, 70), vec2(50, 50)));
+        frame.windows().win_out().enable_background(bg_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/window/affine_background_outside.png");
+    }
+}
