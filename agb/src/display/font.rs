@@ -149,11 +149,11 @@ mod special;
 mod tiled;
 
 pub use align::AlignmentKind;
-pub use layout::{Layout, LetterGroup};
+pub use layout::{Layout, LetterGroup, Tags};
 pub use object::ObjectTextRenderer;
 pub use tiled::RegularBackgroundTextRenderer;
 
-pub use special::{ChangeColour, SetTag, UnsetTag};
+pub use special::{ChangeColour, Tag};
 
 /// A single letter's data required to render it.
 pub struct FontLetter {

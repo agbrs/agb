@@ -5,7 +5,7 @@ use alloc::rc::Rc;
 use crate::fixnum::{Vector2D, vec2};
 
 use super::{
-    ChangeColour, Font, FontLetter, SetTag, UnsetTag,
+    ChangeColour, Font, FontLetter, Tag,
     align::{Align, AlignmentKind, Line},
 };
 
@@ -94,6 +94,20 @@ impl core::fmt::Debug for LetterGroup {
     }
 }
 
+/// A set of tags currently present on the group.
+///
+/// Can be interrogated using the [`Self::contains`] method.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Tags(u16);
+
+impl Tags {
+    /// Returns true if the tag is set on this collection of tags
+    #[must_use]
+    pub fn contains(self, tag: Tag) -> bool {
+        (self.0 >> tag.0) & 1 == 1
+    }
+}
+
 impl LetterGroup {
     #[must_use]
     /// The underlying chunk of text this letter group contains
@@ -103,29 +117,29 @@ impl LetterGroup {
 
     #[must_use]
     /// Tags are user controlled data for the text. They can be used to support
-    /// special text effects. Tags are set and unset using [`SetTag`] and
-    /// [`UnsetTag`]. There are 16 possible tags identified using each bit of
-    /// the [`u16`] given.
+    /// special text effects. Tags are set and unset using the `set` and `unset`
+    /// characters provided by [`Tag`].
     ///
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
     /// # core::include!("../../doctest_runner.rs");
     /// extern crate alloc;
-    /// use agb::display::font::{Font, Layout, SetTag, UnsetTag, AlignmentKind};
+    /// use agb::display::font::{Font, Layout, Tag, AlignmentKind};
     /// use agb::include_font;
     /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
     ///
     /// # fn test(_: agb::Gba) {
-    /// let text = alloc::format!("#{}!{}?", SetTag::new(7), UnsetTag::new(7));
+    /// static MY_TAG: Tag = Tag::new(7);
+    /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
     /// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
-    /// assert_eq!(layout.next().unwrap().tag(), 0);
-    /// assert_eq!(layout.next().unwrap().tag(), 1 << 7);
-    /// assert_eq!(layout.next().unwrap().tag(), 0);
+    /// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
+    /// assert!(layout.next().unwrap().tag().contains(MY_TAG));
+    /// assert!(!layout.next().unwrap().tag().contains(MY_TAG));
     /// # }
     /// ```
-    pub fn tag(&self) -> u16 {
-        self.tag
+    pub fn tag(&self) -> Tags {
+        Tags(self.tag)
     }
 
     pub(crate) fn palette_index(&self) -> u8 {
@@ -324,7 +338,7 @@ impl Iterator for Layout {
                 }
             }
 
-            if let Some(set_tag) = SetTag::try_from_char(char) {
+            if let Some(set_tag) = Tag::new_set(char) {
                 self.tag |= 1 << set_tag.0;
                 if letter_group.range.is_empty() {
                     self.grouper.current_idx += char.len_utf8();
@@ -336,7 +350,7 @@ impl Iterator for Layout {
                 }
             }
 
-            if let Some(unset_tag) = UnsetTag::try_from_char(char) {
+            if let Some(unset_tag) = Tag::new_unset(char) {
                 self.tag &= !(1 << unset_tag.0);
                 if letter_group.range.is_empty() {
                     self.grouper.current_idx += char.len_utf8();
