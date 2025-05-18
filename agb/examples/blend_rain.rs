@@ -141,8 +141,7 @@ impl ThunderStatus {
         if let ThunderStatus::Flash(value) = self {
             frame
                 .blend()
-                .brighten()
-                .set_fade(*value)
+                .brighten(*value)
                 .layer()
                 .enable_background(bg_id);
         }

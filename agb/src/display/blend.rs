@@ -74,17 +74,27 @@ impl Blend {
     }
 
     /// Fade the `Top` layer towards white by a configurable amount.
-    pub fn brighten(&mut self) -> BlendFadeEffect<'_> {
+    ///
+    /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
+    /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
+    pub fn brighten(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
-        BlendFadeEffect { blend: self }
+        let mut fade_effect = BlendFadeEffect { blend: self };
+        fade_effect.set_fade(amount);
+        fade_effect
     }
 
     /// Fade the `Top` layer towards black by a configurable amount.
-    pub fn darken(&mut self) -> BlendFadeEffect<'_> {
+    ///
+    /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
+    /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
+    pub fn darken(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
-        BlendFadeEffect { blend: self }
+        let mut fade_effect = BlendFadeEffect { blend: self };
+        fade_effect.set_fade(amount);
+        fade_effect
     }
 
     /// Enable object transparency for every object which has its
@@ -209,10 +219,10 @@ impl BlendAlphaEffect<'_> {
 /// Configure the fade effect for a darken or lighten blend
 ///
 /// You can also enable object transparency while using `darken` or `lighten` using the
-/// [`object_transparency()`](BlendFadeEffect::object_transparency()) function.
+/// [`set_object_alpha()`](BlendFadeEffect::set_object_alpha()) function.
 ///
 /// Fade effects will blend the [`Layer::Top`] layer towards either black or white by the amount
-/// in [`.set_fade()`](BlendFadeEffect::set_fade()). This is useful if you want to fade part
+/// given to the `.brighten()` or `.darken()` methods on [`Blend`]. This is useful if you want to fade part
 /// of the screen to white or black, or apply some other effects like adding lightning to the
 /// background.
 ///
@@ -228,8 +238,7 @@ impl BlendAlphaEffect<'_> {
 /// # fn test(frame: &mut agb::display::GraphicsFrame, bg_id: agb::display::tiled::BackgroundId) {
 /// frame
 ///    .blend()
-///    .brighten()
-///    .set_fade(num!(0.5))
+///    .brighten(num!(0.5))
 ///    .layer()
 ///    .enable_background(bg_id);
 /// # }
@@ -239,11 +248,7 @@ pub struct BlendFadeEffect<'blend> {
 }
 
 impl BlendFadeEffect<'_> {
-    /// Set how much this layer should fade to black or white.
-    ///
-    /// The `value` must be between 0 and 1 inclusive. This function panics if `value` > 1.
-    /// Since the value is a `Num<u8, 4>`, there are only 6 possible levels of fading.
-    pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
+    fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer fade must be <= 1");
         self.blend.set_fade(value);
         self
@@ -322,8 +327,7 @@ mod test {
 
         frame
             .blend()
-            .brighten()
-            .set_fade(num!(0.5))
+            .brighten(num!(0.5))
             .layer()
             .enable_background(bg_id);
 
@@ -350,8 +354,7 @@ mod test {
 
         frame
             .blend()
-            .brighten()
-            .set_fade(num!(0.5))
+            .brighten(num!(0.5))
             .layer()
             .enable_background(bg_id);
         frame
@@ -435,8 +438,7 @@ mod test {
 
         frame
             .blend()
-            .darken()
-            .set_fade(num!(0.5))
+            .darken(num!(0.5))
             .layer()
             .enable_background(bg_id);
 
