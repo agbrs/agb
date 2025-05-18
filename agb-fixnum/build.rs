@@ -13,7 +13,7 @@ where
 
         let x = (i as f64) / conversion;
         let c = f(x);
-        let p = c * conversion;
+        let p = c * f64::from(1 << 11);
 
         *v = p as i16;
     }

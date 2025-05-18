@@ -684,9 +684,30 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
         let x: i16 = lut::COS[n & 0xFF];
 
-        let n: Num<I, 8> = Num::from_raw(I::from_as_i32(i32::from(x)));
+        let x: Num<I, 11> = Num::from_raw(I::from_as_i32(i32::from(x)));
 
-        n.change_base()
+        if N <= 8 {
+            return x.change_base();
+        }
+
+        let fractional_difference_mask = (I::one() << (N - 8)) - I::one();
+        let fractional_difference = self.to_raw() & fractional_difference_mask;
+
+        if fractional_difference == I::zero() {
+            return x.change_base(); // we are perfectly on the boundary
+        }
+
+        // there is a small difference, so linearly interpolate the last bit
+        let next_x: i16 = lut::COS[(n + 1) & 0xFF];
+        let next_x: Num<I, 11> = Num::from_raw(I::from_as_i32(i32::from(next_x)));
+
+        let x: Self = x.change_base();
+        let next_x: Self = next_x.change_base();
+
+        // using t * next_x + (1 - t) * x doesn't have enough precision, so we use the rewritten
+        // version of `t * (next_x - x) + x` and manually write out the multiplication since
+        // we know that this won't overflow so we don't have to do any strange multiplication dance.
+        Num::from_raw(((next_x - x) * fractional_difference).to_raw() >> (N - 8)) + x
     }
 
     /// Calculates the sine of a number with domain of [0, 1].
@@ -812,6 +833,8 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Debug for Num<I, N> {
 mod test {
     extern crate alloc;
 
+    use core::f64::consts::TAU;
+
     use super::*;
     use alloc::format;
 
@@ -932,15 +955,6 @@ mod test {
         test_base::<9>();
         // and a prime
         test_base::<11>();
-    }
-
-    #[test]
-    fn check_cos_accuracy() {
-        let n: Num<i32, 8> = Num::new(1) / 32;
-        assert_eq!(
-            n.cos(),
-            Num::from_f64((2. * core::f64::consts::PI / 32.).cos())
-        );
     }
 
     #[test]
@@ -1149,4 +1163,33 @@ mod test {
 
         let _ = x / y;
     }
+
+    macro_rules! cos_test {
+        ($name:ident, $N:literal, $amount:expr) => {
+            #[test]
+            fn $name() {
+                let diff: Num<i32, $N> = Num::from_raw(1);
+
+                for i in 0.. {
+                    let i = diff * i;
+
+                    if i > 1.into() {
+                        break;
+                    }
+
+                    let i_f64 = f64::from(i.to_raw()) / f64::from(1 << $N);
+
+                    let i_cos = i.cos();
+                    let i_f64cos = (i_f64 * TAU).cos();
+                    let diff = f64::from(i_cos.to_raw()) / f64::from(1 << $N) - i_f64cos;
+
+                    assert!(diff.abs() < $amount, "Difference: {} at {}", diff, i);
+                }
+            }
+        };
+    }
+
+    cos_test!(cos_is_reasonably_close_14, 14, 0.0011);
+    cos_test!(cos_is_reasonably_close_8, 8, 0.004);
+    cos_test!(cos_is_reasonably_close_4, 4, 0.07);
 }
