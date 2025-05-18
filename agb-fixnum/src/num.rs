@@ -684,7 +684,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
         let x: i16 = lut::COS[n & 0xFF];
 
-        let x: Num<I, 8> = Num::from_raw(I::from_as_i32(i32::from(x)));
+        let x: Num<I, 11> = Num::from_raw(I::from_as_i32(i32::from(x)));
 
         if N <= 8 {
             return x.change_base();
@@ -699,7 +699,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
 
         // there is a small difference, so linearly interpolate the last bit
         let next_x: i16 = lut::COS[(n + 1) & 0xFF];
-        let next_x: Num<I, 8> = Num::from_raw(I::from_as_i32(i32::from(next_x)));
+        let next_x: Num<I, 11> = Num::from_raw(I::from_as_i32(i32::from(next_x)));
 
         let x: Self = x.change_base();
         let next_x: Self = next_x.change_base();
@@ -1164,24 +1164,32 @@ mod test {
         let _ = x / y;
     }
 
-    #[test]
-    fn cos_is_reasonably_close() {
-        let diff: Num<i32, 14> = Num::from_raw(1);
+    macro_rules! cos_test {
+        ($name:ident, $N:literal, $amount:expr) => {
+            #[test]
+            fn $name() {
+                let diff: Num<i32, $N> = Num::from_raw(1);
 
-        for i in 0.. {
-            let i = diff * i;
+                for i in 0.. {
+                    let i = diff * i;
 
-            if i > 1.into() {
-                break;
+                    if i > 1.into() {
+                        break;
+                    }
+
+                    let i_f64 = f64::from(i.to_raw()) / f64::from(1 << $N);
+
+                    let i_cos = i.cos();
+                    let i_f64cos = (i_f64 * TAU).cos();
+                    let diff = f64::from(i_cos.to_raw()) / f64::from(1 << $N) - i_f64cos;
+
+                    assert!(diff.abs() < $amount, "Difference: {} at {}", diff, i);
+                }
             }
-
-            let i_f64 = f64::from(i.to_raw()) / f64::from(1 << 14);
-
-            let i_cos = i.cos();
-            let i_f64cos = (i_f64 * TAU).cos();
-            let diff = f64::from(i_cos.to_raw()) / f64::from(1 << 14) - i_f64cos;
-
-            assert!(diff.abs() < 0.004);
-        }
+        };
     }
+
+    cos_test!(cos_is_reasonably_close_14, 14, 0.0011);
+    cos_test!(cos_is_reasonably_close_8, 8, 0.004);
+    cos_test!(cos_is_reasonably_close_4, 4, 0.07);
 }
