@@ -139,12 +139,7 @@ impl ThunderStatus {
 
     fn show(&self, frame: &mut GraphicsFrame, bg_id: RegularBackgroundId) {
         if let ThunderStatus::Flash(value) = self {
-            frame
-                .blend()
-                .brighten()
-                .set_fade(*value)
-                .layer()
-                .enable_background(bg_id);
+            frame.blend().brighten(*value).enable_background(bg_id);
         }
     }
 }

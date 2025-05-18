@@ -96,9 +96,7 @@ const DISPLAY_CONTROL: MemoryMapped<DisplayControlRegister> =
 pub(crate) const DISPLAY_STATUS: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0004) };
 const VCOUNT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0400_0006) };
 
-pub use blend::{
-    Blend, BlendAlphaEffect, BlendFadeEffect, BlendLayer, BlendObjectTransparency, Layer,
-};
+pub use blend::{Blend, BlendAlphaEffect, BlendFadeEffect, BlendObjectTransparency, Layer};
 
 pub use window::{MovableWindow, WinIn, Window, Windows};
 

@@ -35,8 +35,6 @@ pub enum Layer {
 /// - [`darken`](Blend::darken) where you fade the `Top` layer towards black
 /// - [`object_transparency`](Blend::object_transparency) which enables object transparency for certain objects
 ///
-/// You can set what is in the `Top` and `Bottom` layer with the [`.layer()`](Blend::layer) method.
-///
 /// Note that for blending to actually work, whatever is in the `Top` layer has to be drawn after
 /// anything in the `Bottom` layer (i.e. the `Top` layer's [`Priority`](crate::display::Priority)
 /// must be _lower_ than the `Bottom` layer's `Priority`).
@@ -58,33 +56,51 @@ impl Blend {
         }
     }
 
-    /// Setup for a given [`Layer`].
-    ///
-    /// See the [`BlendLayer`] documentation for what they can be.
-    pub fn layer(&mut self, layer: Layer) -> BlendLayer<'_> {
-        BlendLayer { blend: self, layer }
-    }
-
     /// Sets this blend effect to `alpha` which allows for a configurable amount of each layer to
     /// be rendered onto the screen.
-    pub fn alpha(&mut self) -> BlendAlphaEffect<'_> {
+    ///
+    /// The final colour will be a weighted sum of the colours of each layer multiplied by `value`.
+    /// So a `value` of `num!(0.5)` for both the top and the bottom layers will mean you get
+    /// half of each colour added together.
+    ///
+    /// Any pixels which aren't shared by both layers will be drawn at their full pixel value.
+    ///
+    /// Values must be between 0 and 1 inclusive. This function panics if value > 1.
+    pub fn alpha(
+        &mut self,
+        top_layer_alpha: Num<u8, 4>,
+        bottom_layer_alpha: Num<u8, 4>,
+    ) -> BlendAlphaEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
-        BlendAlphaEffect { blend: self }
+        let mut alpha_effect = BlendAlphaEffect { blend: self };
+        alpha_effect.set_layer_alpha(Layer::Top, top_layer_alpha);
+        alpha_effect.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
+        alpha_effect
     }
 
     /// Fade the `Top` layer towards white by a configurable amount.
-    pub fn brighten(&mut self) -> BlendFadeEffect<'_> {
+    ///
+    /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
+    /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
+    pub fn brighten(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
-        BlendFadeEffect { blend: self }
+        let mut fade_effect = BlendFadeEffect { blend: self };
+        fade_effect.set_fade(amount);
+        fade_effect
     }
 
     /// Fade the `Top` layer towards black by a configurable amount.
-    pub fn darken(&mut self) -> BlendFadeEffect<'_> {
+    ///
+    /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
+    /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
+    pub fn darken(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
-        BlendFadeEffect { blend: self }
+        let mut fade_effect = BlendFadeEffect { blend: self };
+        fade_effect.set_fade(amount);
+        fade_effect
     }
 
     /// Enable object transparency for every object which has its
@@ -149,70 +165,54 @@ impl Blend {
     }
 }
 
-/// Configure what can be blended on this layer.
-///
-/// By default, nothing is configured to be enabled. You can enable any amount of things on
-/// a blend layer.
-pub struct BlendLayer<'blend> {
-    blend: &'blend mut Blend,
-    layer: Layer,
-}
-
-impl BlendLayer<'_> {
-    /// Enables a background for blending on this layer.
-    pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
-        self.blend.set_background_enable(self.layer, background);
-        self
-    }
-
-    /// Enables object blending on this layer.
-    ///
-    /// This will only work for objects which have a
-    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
-    pub fn enable_object(&mut self) -> &mut Self {
-        self.blend.set_object_enable(self.layer);
-        self
-    }
-
-    /// Enables the backdrop for this layer.
-    ///
-    /// The backdrop is the 0th colour in the palette. It is the colour that is displayed
-    /// when there is no background displaying anything at that location.
-    pub fn enable_backdrop(&mut self) -> &mut Self {
-        self.blend.set_backdrop_enable(self.layer);
-        self
-    }
-}
-
 /// Configure the alpha setting for an alpha blend
 pub struct BlendAlphaEffect<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendAlphaEffect<'_> {
-    /// The amount to blend this layer by.
-    ///
-    /// The final colour will be a weighted sum of the colours of each layer multiplied by `value`.
-    /// So a `value` of `num!(0.5)` for both the top and the bottom layers will mean you get
-    /// half of each colour added together.
-    ///
-    /// Any pixels which aren't shared by both layers will be drawn at their full pixel value.
-    ///
-    /// `value` must be between 0 and 1 inclusive. This function panics if value > 1.
-    pub fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
+    fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer alpha must be <= 1");
         self.blend.set_layer_alpha(layer, value);
         self
     }
+
+    /// Enables a background for blending on `layer`.
+    pub fn enable_background(
+        &mut self,
+        layer: Layer,
+        background: impl Into<BackgroundId>,
+    ) -> &mut Self {
+        self.blend.set_background_enable(layer, background);
+        self
+    }
+
+    /// Enables object blending on `layer`.
+    ///
+    /// This will only work for objects which have a
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
+    pub fn enable_object(&mut self, layer: Layer) -> &mut Self {
+        self.blend.set_object_enable(layer);
+        self
+    }
+
+    /// Enables the backdrop for `layer`.
+    ///
+    /// The backdrop is the 0th colour in the palette. It is the colour that is displayed
+    /// when there is no background displaying anything at that location.
+    pub fn enable_backdrop(&mut self, layer: Layer) -> &mut Self {
+        self.blend.set_backdrop_enable(layer);
+        self
+    }
 }
 
-/// Configure the fade effect for a darken or lighten blend
+/// Configure the fade effect for a darken or lighten blend.
 ///
 /// You can also enable object transparency while using `darken` or `lighten` using the
-/// [`object_transparency()`](BlendFadeEffect::object_transparency()) function.
+/// [`set_object_alpha()`](BlendFadeEffect::set_object_alpha()) function.
 ///
 /// Fade effects will blend the [`Layer::Top`] layer towards either black or white by the amount
-/// in [`.set_fade()`](BlendFadeEffect::set_fade()). This is useful if you want to fade part
+/// given to the `.brighten()` or `.darken()` methods on [`Blend`]. This is useful if you want to fade part
 /// of the screen to white or black, or apply some other effects like adding lightning to the
 /// background.
 ///
@@ -228,9 +228,7 @@ impl BlendAlphaEffect<'_> {
 /// # fn test(frame: &mut agb::display::GraphicsFrame, bg_id: agb::display::tiled::BackgroundId) {
 /// frame
 ///    .blend()
-///    .brighten()
-///    .set_fade(num!(0.5))
-///    .layer()
+///    .brighten(num!(0.5))
 ///    .enable_background(bg_id);
 /// # }
 /// ```
@@ -239,26 +237,44 @@ pub struct BlendFadeEffect<'blend> {
 }
 
 impl BlendFadeEffect<'_> {
-    /// Set how much this layer should fade to black or white.
-    ///
-    /// The `value` must be between 0 and 1 inclusive. This function panics if `value` > 1.
-    /// Since the value is a `Num<u8, 4>`, there are only 6 possible levels of fading.
-    pub fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
+    fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
         assert!(value <= 1.into(), "Layer fade must be <= 1");
         self.blend.set_fade(value);
         self
     }
 
-    /// Control the object transparency as well if needed.
-    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
-        BlendObjectTransparency { blend: self.blend }
+    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
+    /// set to `AlphaBlending` to `value`.
+    ///
+    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
+    pub fn set_object_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
+        assert!(value <= 1.into(), "Object alpha must be <= 1");
+        self.blend.set_layer_alpha(Layer::Top, value);
+        self
     }
 
-    /// Get the [`Layer`] the fade will effect.
+    /// Enables a background for blending.
+    pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
+        self.blend.set_background_enable(Layer::Top, background);
+        self
+    }
+
+    /// Enables object blending.
     ///
-    /// Equivalent to `frame.blend().layer(Layer::Top)`.
-    pub fn layer(&mut self) -> BlendLayer<'_> {
-        self.blend.layer(Layer::Top)
+    /// This will only work for objects which have a
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
+    pub fn enable_object(&mut self) -> &mut Self {
+        self.blend.set_object_enable(Layer::Top);
+        self
+    }
+
+    /// Enables the backdrop for this layer.
+    ///
+    /// The backdrop is the 0th colour in the palette. It is the colour that is displayed
+    /// when there is no background displaying anything at that location.
+    pub fn enable_backdrop(&mut self) -> &mut Self {
+        self.blend.set_backdrop_enable(Layer::Top);
+        self
     }
 }
 
@@ -320,12 +336,7 @@ mod test {
         let mut frame = gfx.frame();
         let bg_id = bg.show(&mut frame);
 
-        frame
-            .blend()
-            .brighten()
-            .set_fade(num!(0.5))
-            .layer()
-            .enable_background(bg_id);
+        frame.blend().brighten(num!(0.5)).enable_background(bg_id);
 
         frame.commit();
 
@@ -348,12 +359,7 @@ mod test {
         let mut frame = gfx.frame();
         let bg_id = bg.show(&mut frame);
 
-        frame
-            .blend()
-            .brighten()
-            .set_fade(num!(0.5))
-            .layer()
-            .enable_background(bg_id);
+        frame.blend().brighten(num!(0.5)).enable_background(bg_id);
         frame
             .windows()
             .win_in(WinIn::Win0)
@@ -373,34 +379,25 @@ mod test {
         VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
 
-        let mut bg1 = RegularBackground::new(
+        let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
             background::LOGO.tiles.format(),
         );
 
-        bg1.fill_with(&background::LOGO);
-
-        let mut bg2 = RegularBackground::new(
-            Priority::P1,
-            RegularBackgroundSize::Background32x32,
-            background::LOGO.tiles.format(),
-        );
-        bg2.set_scroll_pos((40, 40));
-
-        bg2.fill_with(&background::LOGO);
+        bg.fill_with(&background::LOGO);
 
         let mut frame = gfx.frame();
-        let bg1_id = bg1.show(&mut frame);
-        let bg2_id = bg2.show(&mut frame);
+        let bg1_id = bg.show(&mut frame);
+
+        bg.set_scroll_pos((40, 40));
+        let bg2_id = bg.show(&mut frame);
 
         frame
             .blend()
-            .alpha()
-            .set_layer_alpha(Layer::Top, num!(0.8))
-            .set_layer_alpha(Layer::Bottom, num!(0.2));
-        frame.blend().layer(Layer::Top).enable_background(bg1_id);
-        frame.blend().layer(Layer::Bottom).enable_background(bg2_id);
+            .alpha(num!(0.8), num!(0.2))
+            .enable_background(Layer::Top, bg1_id)
+            .enable_background(Layer::Bottom, bg2_id);
 
         frame.commit();
 
@@ -433,12 +430,7 @@ mod test {
         let mut frame = gfx.frame();
         let bg_id = bg.show(&mut frame);
 
-        frame
-            .blend()
-            .darken()
-            .set_fade(num!(0.5))
-            .layer()
-            .enable_background(bg_id);
+        frame.blend().darken(num!(0.5)).enable_background(bg_id);
 
         frame.commit();
 
