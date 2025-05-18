@@ -49,9 +49,9 @@ use super::DISPLAY_CONTROL;
 ///
 /// See the `dma_effect_background_*` [examples](https://agbrs.dev/examples) for examples of how to use the DMA functions.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct BackgroundId(pub(crate) u8);
+pub struct RegularBackgroundId(pub(crate) u8);
 
-impl BackgroundId {
+impl RegularBackgroundId {
     /// Control the x scroll position every scan line
     #[must_use]
     pub fn x_scroll_dma(self) -> DmaControllable<u16> {
@@ -337,11 +337,11 @@ pub(crate) struct BackgroundFrame<'bg> {
 }
 
 impl BackgroundFrame<'_> {
-    fn set_next_regular(&mut self, data: RegularBackgroundData) -> BackgroundId {
+    fn set_next_regular(&mut self, data: RegularBackgroundData) -> RegularBackgroundId {
         let bg_index = self.next_regular_index();
 
         self.regular_backgrounds[bg_index] = data;
-        BackgroundId(bg_index as u8)
+        RegularBackgroundId(bg_index as u8)
     }
 
     fn next_regular_index(&mut self) -> usize {

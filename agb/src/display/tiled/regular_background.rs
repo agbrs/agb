@@ -9,8 +9,8 @@ use crate::{
 };
 
 use super::{
-    BackgroundControlRegister, BackgroundId, DynamicTile16, RegularBackgroundCommitData,
-    RegularBackgroundData, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileEffect, TileFormat,
+    BackgroundControlRegister, DynamicTile16, RegularBackgroundCommitData, RegularBackgroundData,
+    RegularBackgroundId, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileEffect, TileFormat,
     TileSet, TileSetting, VRAM_MANAGER,
 };
 
@@ -345,14 +345,14 @@ impl RegularBackground {
     /// calling `show()` takes a snapshot of the current state of the background, so you can even modify
     /// the background and `show()` it again and both will show in the frame.
     ///
-    /// The returned [`BackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window),
+    /// The returned [`RegularBackgroundId`] can be passed to a [`Blend`](crate::display::Blend) or [`Window`](crate::display::Window),
     /// or used for [dma effects](crate::dma).
     ///
     /// # Panics
     ///
     /// If you try to show more than 4 regular backgrounds, or more than 2 backgrounds and a single affine background,
     /// or if there are already 2 affine backgrounds.
-    pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> BackgroundId {
+    pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> RegularBackgroundId {
         let commit_data = if self.is_dirty {
             Some(RegularBackgroundCommitData {
                 tiles: self.tiles.clone(),

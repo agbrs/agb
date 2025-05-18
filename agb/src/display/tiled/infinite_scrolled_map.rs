@@ -4,7 +4,7 @@ use crate::{
     fixnum::{Rect, Vector2D, vec2},
 };
 
-use super::{BackgroundId, RegularBackground, TileSet, TileSetting};
+use super::{RegularBackground, RegularBackgroundId, TileSet, TileSetting};
 
 /// In tiles
 const ONE_MORE_THAN_SCREEN_HEIGHT: i32 = HEIGHT / 8 + 1;
@@ -246,7 +246,7 @@ impl InfiniteScrolledMap {
 
     /// Shows this map on the given [`GraphicsFrame`]. See [`RegularBackground::show`] for more
     /// details.
-    pub fn show(&self, frame: &mut GraphicsFrame) -> BackgroundId {
+    pub fn show(&self, frame: &mut GraphicsFrame) -> RegularBackgroundId {
         self.map.show(frame)
     }
 }
