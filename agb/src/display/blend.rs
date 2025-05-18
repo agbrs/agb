@@ -281,3 +281,167 @@ impl BlendObjectTransparency<'_> {
         self
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{
+        Gba,
+        display::{
+            AffineMatrix, Priority, WinIn,
+            tiled::{
+                AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
+                RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
+            },
+        },
+        fixnum::{Num, Rect, num, vec2},
+        include_background_gfx,
+        test_runner::assert_image_output,
+    };
+
+    include_background_gfx!(crate, mod background,
+        LOGO => deduplicate "gfx/test_logo.aseprite",
+        LOGO_256 => 256 "gfx/test_logo.aseprite",
+    );
+
+    #[test_case]
+    fn can_blend_to_white(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .brighten()
+            .set_fade(num!(0.5))
+            .layer()
+            .enable_background(bg_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/regular_to_white.png");
+    }
+
+    #[test_case]
+    fn can_blend_to_white_in_window(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .brighten()
+            .set_fade(num!(0.5))
+            .layer()
+            .enable_background(bg_id);
+        frame
+            .windows()
+            .win_in(WinIn::Win0)
+            .enable_background(bg_id)
+            .enable_blending()
+            .set_pos(Rect::new(vec2(20, 20), vec2(100, 100)));
+
+        frame.windows.win_out().enable_background(bg_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/regular_to_white_in_window.png");
+    }
+
+    #[test_case]
+    fn can_blend_two_layers_into_each_other(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg1 = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg1.fill_with(&background::LOGO);
+
+        let mut bg2 = RegularBackground::new(
+            Priority::P1,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+        bg2.set_scroll_pos((40, 40));
+
+        bg2.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg1_id = bg1.show(&mut frame);
+        let bg2_id = bg2.show(&mut frame);
+
+        frame
+            .blend()
+            .alpha()
+            .set_layer_alpha(Layer::Top, num!(0.8))
+            .set_layer_alpha(Layer::Bottom, num!(0.2));
+        frame.blend().layer(Layer::Top).enable_background(bg1_id);
+        frame.blend().layer(Layer::Bottom).enable_background(bg2_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_two_layers_into_each_other.png");
+    }
+
+    #[test_case]
+    fn can_blend_affine_backgrounds(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = AffineBackground::new(
+            Priority::P0,
+            AffineBackgroundSize::Background32x32,
+            AffineBackgroundWrapBehaviour::Wrap,
+        );
+
+        for i in 0..32 {
+            for j in 0..32 {
+                bg.set_tile(
+                    (i, j),
+                    &background::LOGO_256.tiles,
+                    3 * 30 + 3 + (i + j) as u16 % 5,
+                );
+            }
+        }
+
+        bg.set_transform(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .darken()
+            .set_fade(num!(0.5))
+            .layer()
+            .enable_background(bg_id);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_affine_darken.png");
+    }
+}
