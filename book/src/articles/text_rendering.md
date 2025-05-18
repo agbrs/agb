@@ -49,9 +49,11 @@ It also lets you export the settings which we encourage you to keep in version c
 The [`Layout`](https://docs.rs/agb/latest/agb/display/font/struct.Layout.html) is an `Iterator` over [`LetterGroup`](https://docs.rs/agb/latest/agb/display/font/struct.LetterGroup.html)s.
 A `LetterGroup` is a set of letters to be drawn at once.
 The `Layout` handles correctly positioning the letter groups including performing line breaks where required and correctly aligning the text.
+It does this incrementally, doing as little work as possible to generate the next groups position.
+
 
 ```rust
-let mut text_layout = Layout::new(
+let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
     AlignmentKind::Left,
@@ -59,4 +61,51 @@ let mut text_layout = Layout::new(
     200,
 );
 ```
+
+## Palette changes
+
+To have multiple colours in your text, you can use [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html).
+
+
+You might want to use static text rather than using Rust's text formatting, in that case see the documentation for [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html) where it documents the exact code points you need to use.
+
+## Tags
+
+You might want to treat certain parts of your text differently to other parts.
+Maybe some text should wiggle around, maybe some text should be delayed in the time taken to display it.
+You can encode this user state using the tag system.
+
+# Renderers
+
+The groups that come from the `Layout` can be used in the render backends.
+There is a backend for displaying text using `Object`s and another for using background tiles.
+
+## ObjectTextRenderer
+
+The `ObjectTextRenderer` takes in a `LetterGroup` and gives back an `Object` that represents that group.
+To create one, you need to provide a palette and the size of sprites to use.
+It is important that the size of sprite is greater than or equal to the maximum group size that is specified in the `Layout`.
+
+A simple example of the `ObjectTextRender` would look like
+```rust
+let text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    AlignmentKind::Left,
+    16, // minimum group size is 16, so the sprite size I use should be at least 16 wide
+    200,
+);
+
+// using an appropriate sprite size, palette should come from somewhere
+let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
+let objects: Vec<_> = text_layout.map(|x| text_render.show(&x, vec2(16, 16))).collect();
+
+// then show the objects in the usual way
+```
+The full example can be found in the [`object_text_render_simple`](https://agbrs.dev/examples/object_text_render_simple) example.
+
+One of the main reasons to use objects for your text is to be able to individually manipulate your objects to create special effects.
+The [`object_text_render_advanced`](https://agbrs.dev/examples/object_text_render_advanced) example showcases this use case.
+
+## RegularBackgroundTextRenderer
 
