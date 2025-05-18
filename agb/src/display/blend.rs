@@ -379,26 +379,19 @@ mod test {
         VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
 
-        let mut bg1 = RegularBackground::new(
+        let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x32,
             background::LOGO.tiles.format(),
         );
 
-        bg1.fill_with(&background::LOGO);
-
-        let mut bg2 = RegularBackground::new(
-            Priority::P1,
-            RegularBackgroundSize::Background32x32,
-            background::LOGO.tiles.format(),
-        );
-        bg2.set_scroll_pos((40, 40));
-
-        bg2.fill_with(&background::LOGO);
+        bg.fill_with(&background::LOGO);
 
         let mut frame = gfx.frame();
-        let bg1_id = bg1.show(&mut frame);
-        let bg2_id = bg2.show(&mut frame);
+        let bg1_id = bg.show(&mut frame);
+
+        bg.set_scroll_pos((40, 40));
+        let bg2_id = bg.show(&mut frame);
 
         frame
             .blend()
