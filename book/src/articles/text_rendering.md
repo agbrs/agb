@@ -66,6 +66,12 @@ let text_layout = Layout::new(
 
 To have multiple colours in your text, you can use [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html).
 
+```rust
+const COLOUR_1: ChangeColour = ChangeColour::new(1);
+const COLOUR_2: ChangeColour = ChangeColour::new(2);
+
+let text = format!("Hey, {COLOUR_2}you{COLOUR_1}!",);
+```
 
 You might want to use static text rather than using Rust's text formatting, in that case see the documentation for [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html) where it documents the exact code points you need to use.
 
@@ -74,6 +80,25 @@ You might want to use static text rather than using Rust's text formatting, in t
 You might want to treat certain parts of your text differently to other parts.
 Maybe some text should wiggle around, maybe some text should be delayed in the time taken to display it.
 You can encode this user state using the tag system.
+
+The tag system gives 16 user controllable bits that you can set and unset during processing of text.
+Here's a simple example that shows how this works with `LetterGroup`s.
+
+```rust
+const MY_TAG: Tag = Tag::new(0);
+// set the tag with `set` and unset with `unset`.
+let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
+let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 32, 100);
+
+// get whether the tag is set with `has_tag` on `LetterGroup`.
+assert!(!layout.next().unwrap().has_tag(MY_TAG));
+assert!(layout.next().unwrap().has_tag(MY_TAG));
+assert!(!layout.next().unwrap().has_tag(MY_TAG));
+```
+
+which can be extended within your text display system.
+A complete example of this can be seen in the [advanced object text rendering example](https://agbrs.dev/examples/object_text_render_advanced).
+If you want to use Tags without using Rust's text formatting, the documentation for [`Tag`]((https://docs.rs/agb/latest/agb/display/font/struct.Tag.html)) documents the exact code points you need to use.
 
 # Renderers
 
