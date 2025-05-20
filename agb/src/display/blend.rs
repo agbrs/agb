@@ -258,6 +258,9 @@ impl BlendFadeEffect<'_> {
     }
 
     /// Enables a background for blending.
+    ///
+    /// This will cause the background to be faded towards black or white (depending on whether
+    /// this is darken or lighten).
     pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
         self.blend.set_background_enable(Layer::Top, background);
         self
@@ -266,7 +269,9 @@ impl BlendFadeEffect<'_> {
     /// Enables object blending.
     ///
     /// This will only work for objects which have a
-    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending` and will
+    /// cause any object with that graphics mode to blend towards white / black (depending on
+    /// whether this is lighten or darken).
     pub fn enable_object(&mut self) -> &mut Self {
         self.blend.set_object_enable(Layer::Top);
         self
@@ -478,5 +483,61 @@ mod test {
         frame.commit();
 
         assert_image_output("gfx/test_output/blend/blend_object_transparency.png");
+    }
+
+    #[test_case]
+    fn can_blend_object_to_white(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+
+        frame.blend().brighten(num!(0.5)).enable_object();
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_lighten.png");
+    }
+
+    #[test_case]
+    fn can_blend_object_to_black(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+
+        frame.blend().darken(num!(0.75)).enable_object();
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_darken.png");
     }
 }
