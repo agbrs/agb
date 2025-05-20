@@ -6,7 +6,7 @@
 use agb::{
     display::{
         Palette16, Rgb15,
-        font::{AlignmentKind, ChangeColour, Font, Layout, ObjectTextRenderer, SetTag, UnsetTag},
+        font::{AlignmentKind, ChangeColour, Font, Layout, ObjectTextRenderer, Tag},
         object::Size,
     },
     fixnum::{Num, num, vec2},
@@ -33,19 +33,21 @@ fn main(mut gba: agb::Gba) -> ! {
     const COLOUR_1: ChangeColour = ChangeColour::new(1);
     const COLOUR_2: ChangeColour = ChangeColour::new(2);
 
-    const START_WIGGLY_TEXT: SetTag = SetTag::new(0);
-    const STOP_WIGGLY_TEXT: UnsetTag = UnsetTag::new(0);
+    const WIGGLY_TEXT: Tag = Tag::new(0);
 
     // Whenever a tag is set or unset, a new letter group is created. So this
     // allows us to split the individual full stops within the ellipsis into
     // separate letter groups so that they can be rendered slowly.
-    const START_SLOW_TEXT: SetTag = SetTag::new(1);
-    const STOP_SLOW_TEXT: UnsetTag = UnsetTag::new(1);
+    const SLOW_TEXT: Tag = Tag::new(1);
 
     let text = format!(
         "Hey, {COLOUR_2}{player_name}{COLOUR_1}!
-This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} objects.
-{START_WIGGLY_TEXT}So you can control exact positions like this.{STOP_WIGGLY_TEXT}",
+This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
+{start_wiggly}So you can control exact positions like this.{end_wiggly}",
+        start_slow = SLOW_TEXT.set(),
+        end_slow = SLOW_TEXT.unset(),
+        start_wiggly = WIGGLY_TEXT.set(),
+        end_wiggly = WIGGLY_TEXT.unset(),
     );
 
     let mut gfx = gba.graphics.get();
@@ -72,7 +74,7 @@ This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} 
         if delay == 0 {
             if let Some(group) = layout.next() {
                 let sprite = text_render.show(&group, vec2(16, 16));
-                if group.tag() & 0b1 == 0 {
+                if !group.has_tag(WIGGLY_TEXT) {
                     objects.push(sprite);
                 } else {
                     wiggly_objects.push((sprite.pos(), sprite));
@@ -85,7 +87,7 @@ This uses{START_SLOW_TEXT}.{START_SLOW_TEXT}.{START_SLOW_TEXT}.{STOP_SLOW_TEXT} 
                     delay = 4;
                 }
 
-                if group.tag() & 0b10 != 0 {
+                if group.has_tag(SLOW_TEXT) {
                     delay *= 2;
                 }
             }

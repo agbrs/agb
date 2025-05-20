@@ -153,7 +153,7 @@ pub use layout::{Layout, LetterGroup};
 pub use object::ObjectTextRenderer;
 pub use tiled::RegularBackgroundTextRenderer;
 
-pub use special::{ChangeColour, SetTag, UnsetTag};
+pub use special::{ChangeColour, Tag};
 
 /// A single letter's data required to render it.
 pub struct FontLetter {
