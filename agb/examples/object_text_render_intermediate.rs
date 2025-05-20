@@ -1,6 +1,4 @@
-//! A simple example of object text rendering that demonstrates the most simple
-//! way of using it. Normally you would divide the work over a few frames, which
-//! this does not do.
+//! Text rendering onto Objects where the work is divided over multiple frames
 #![no_std]
 #![no_main]
 
