@@ -311,19 +311,25 @@ mod test {
         Gba,
         display::{
             AffineMatrix, Priority, WinIn,
+            object::{GraphicsMode, Object},
             tiled::{
                 AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
             },
         },
         fixnum::{Num, Rect, num, vec2},
-        include_background_gfx,
+        include_aseprite, include_background_gfx,
         test_runner::assert_image_output,
     };
 
     include_background_gfx!(crate, mod background,
         LOGO => deduplicate "gfx/test_logo.aseprite",
         LOGO_256 => 256 "gfx/test_logo.aseprite",
+    );
+
+    include_aseprite!(
+        mod sprites,
+        "examples/gfx/crab.aseprite",
     );
 
     #[test_case]
@@ -441,5 +447,36 @@ mod test {
         frame.commit();
 
         assert_image_output("gfx/test_output/blend/blend_affine_darken.png");
+    }
+
+    #[test_case]
+    fn can_blend_objects_to_create_transparency_effects(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .object_transparency(num!(0.5), num!(0.5))
+            .enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_transparency.png");
     }
 }
