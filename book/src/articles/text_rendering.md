@@ -44,6 +44,8 @@ If you have created your own pixel font, you can convert it to ttf using [YAL's 
 This tool lets you define a font from an image including variable sized letters and kerning pairs.
 It also lets you export the settings which we encourage you to keep in version control.
 
+You can find pixel fonts with many under permissive licenses on the [https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/](bitfontmaker2)'s website.
+
 # Layout
 
 The [`Layout`](https://docs.rs/agb/latest/agb/display/font/struct.Layout.html) is an `Iterator` over [`LetterGroup`](https://docs.rs/agb/latest/agb/display/font/struct.LetterGroup.html)s.
