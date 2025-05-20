@@ -13,21 +13,20 @@ use crate::display::affine::AffineMatrix;
 /// a b
 /// c d
 /// ```
-#[allow(missing_docs)]
-pub struct AffineMatrixObject {
+struct AffineMatrixObjectElements {
     pub a: Num<i16, 8>,
     pub b: Num<i16, 8>,
     pub c: Num<i16, 8>,
     pub d: Num<i16, 8>,
 }
 
-impl Default for AffineMatrixObject {
+impl Default for AffineMatrixObjectElements {
     fn default() -> Self {
         Self::from(AffineMatrix::<Num<i16, 8>>::identity())
     }
 }
 
-impl AffineMatrixObject {
+impl AffineMatrixObjectElements {
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
@@ -72,19 +71,19 @@ impl AffineMatrixObject {
     }
 }
 
-impl From<AffineMatrixObject> for AffineMatrix<Num<i16, 8>> {
-    fn from(mat: AffineMatrixObject) -> Self {
+impl From<AffineMatrixObjectElements> for AffineMatrix<Num<i16, 8>> {
+    fn from(mat: AffineMatrixObjectElements) -> Self {
         mat.to_affine_matrix()
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObjectElements
 where
     I: FixedWidthSignedInteger,
     i32: From<I>,
 {
     fn from(value: AffineMatrix<Num<I, N>>) -> Self {
-        AffineMatrixObject::from_affine(value)
+        AffineMatrixObjectElements::from_affine(value)
     }
 }
 
@@ -92,7 +91,7 @@ where
 struct AffineMatrixData {
     frame_count: Cell<u32>,
     location: Cell<u32>,
-    matrix: AffineMatrixObject,
+    matrix: AffineMatrixObjectElements,
 }
 
 #[derive(Debug, Clone)]
@@ -106,27 +105,51 @@ pub(crate) struct AffineMatrixVram(Rc<AffineMatrixData>);
 /// you must make a new one and set it
 /// on all your objects.
 #[derive(Debug, Clone)]
-pub struct AffineMatrixInstance {
+pub struct AffineMatrixObject {
     location: AffineMatrixVram,
 }
 
-impl AffineMatrixInstance {
-    #[must_use]
-    /// Creates an instance of an affine matrix from its object form. Check out
-    /// the docs for [AffineMatrix][crate::display::affine::AffineMatrix] to see
-    /// how you can use them to create effects.
-    pub fn new(affine_matrix: impl Into<AffineMatrixObject>) -> AffineMatrixInstance {
-        AffineMatrixInstance {
+impl AffineMatrixObject {
+    fn new_inner(affine_matrix: AffineMatrixObjectElements) -> AffineMatrixObject {
+        AffineMatrixObject {
             location: AffineMatrixVram(Rc::new(AffineMatrixData {
                 frame_count: Cell::new(u32::MAX),
                 location: Cell::new(u32::MAX),
-                matrix: affine_matrix.into(),
+                matrix: affine_matrix,
             })),
         }
     }
 
+    #[must_use]
+    /// Creates an instance of an affine matrix from its object form. Check out
+    /// the docs for [AffineMatrix][crate::display::affine::AffineMatrix] to see
+    /// how you can use them to create effects.
+    pub fn new<I, const N: usize>(affine_matrix: AffineMatrix<Num<I, N>>) -> Self
+    where
+        I: FixedWidthSignedInteger,
+        i32: From<I>,
+    {
+        Self::new_inner(affine_matrix.into())
+    }
+
     pub(crate) fn vram(self) -> AffineMatrixVram {
         self.location
+    }
+}
+
+impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
+where
+    I: FixedWidthSignedInteger,
+    i32: From<I>,
+{
+    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+        AffineMatrixObject::new(value)
+    }
+}
+
+impl Default for AffineMatrixObject {
+    fn default() -> Self {
+        Self::new_inner(AffineMatrixObjectElements::default())
     }
 }
 
@@ -166,8 +189,8 @@ mod tests {
     #[test_case]
     fn niche_optimisation(_gba: &mut crate::Gba) {
         assert_eq!(
-            core::mem::size_of::<AffineMatrixInstance>(),
-            core::mem::size_of::<Option<AffineMatrixInstance>>()
+            core::mem::size_of::<AffineMatrixObject>(),
+            core::mem::size_of::<Option<AffineMatrixObject>>()
         );
     }
 }

@@ -6,7 +6,7 @@
 use agb::{
     display::{
         AffineMatrix, GraphicsFrame, HEIGHT, Rgb15, WIDTH,
-        object::{AffineMatrixInstance, AffineMode, Object, ObjectAffine, SpriteVram},
+        object::{AffineMatrixObject, AffineMode, Object, ObjectAffine, SpriteVram},
         tiled::VRAM_MANAGER,
     },
     fixnum::{Num, num, vec2},
@@ -26,7 +26,7 @@ fn show_with_boxes(matrix: AffineMatrix<Num<i32, 8>>, height: i32, frame: &mut G
 
     let crab = SpriteVram::from(sprites::IDLE.sprite(0));
     let square = SpriteVram::from(sprites::BOX.sprite(0));
-    let instance = AffineMatrixInstance::new(matrix);
+    let instance = AffineMatrixObject::new(matrix);
 
     for idx in 0..3 {
         Object::new(square.clone())
