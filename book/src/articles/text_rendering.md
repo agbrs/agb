@@ -1,6 +1,6 @@
 # Text rendering
 
-There are many techniques for displaying text using agb with varying levels of support.
+There are many techniques for displaying text using `agb` with varying levels of support.
 Perhaps the simplest is to produce sprites or background tiles that contain text that you show using the usual means.
 This technique can get you very far!
 For instance: text in title screens, options in menus, and any text in the HUD could (and as we will discuss, should) all be pre-rendered.
@@ -8,10 +8,10 @@ For detail on how to do these, see the [backgrounds](./backgrounds.md) or [objec
 
 What we will discuss here is *dynamic* rendering of text. Where the text can be decided at runtime.
 
-# Agb text rendering principles
+# `agb` text rendering principles
 
-The text rendering system in agb has support for:
-* Unicode support
+The text rendering system in `agb` has support for:
+* Unicode
 * Variable size letters
 * Kerning
 * Left, right, centre, and justified alignments
