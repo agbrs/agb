@@ -174,6 +174,65 @@ The [`object_text_render_advanced`](https://agbrs.dev/examples/object_text_rende
 
 ## RegularBackgroundTextRenderer
 
+You can also put text on a background.
+This you provide with a `RegularBackground` and a `LetterGroup` and it will display that `LetterGroup` on that `RegularBackground`.
+
+```rust
+let mut bg = RegularBackground::new(
+    Priority::P0,
+    RegularBackgroundSize::Background32x32,
+    TileFormat::FourBpp,
+);
+
+let text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    AlignmentKind::Left,
+    32,
+    200,
+);
+
+// this takes the position of the text
+let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
+
+for letter in text_layout {
+    text_renderer.show(&mut bg, &letter);
+}
+```
+
+Normally you will want to split this over multiple frames to prevent skipped frames or audio skipping.
+
+```rust
+let mut bg = RegularBackground::new(
+    Priority::P0,
+    RegularBackgroundSize::Background32x32,
+    TileFormat::FourBpp,
+);
+
+let text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    AlignmentKind::Left,
+    32,
+    200,
+);
+
+let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
+
+loop {
+    if let Some(letter) = text_layout.next() {
+        text_renderer.show(&mut bg, &letter);
+    }
+
+    let mut frame = gfx.frame();
+    
+    bg.show(&mut frame)
+
+    frame.commit();
+}
+```
+
+This can be found in the [`background_text_render`](https://agbrs.dev/examples/background_text_render) example.
 
 
 ## Custom
