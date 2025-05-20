@@ -33,22 +33,30 @@ fn entry(gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
+    // use the standard graphics system
     let mut gfx = gba.graphics.get();
 
-    let layout = Layout::new(
+    // this is now mutable as we will be calling `next` on it
+    let mut text_layout = Layout::new(
         "Hello, this is some text that I want to display!",
         &FONT,
         AlignmentKind::Left,
         16,
         200,
     );
-    let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
 
-    let objects: Vec<_> = layout.map(|x| text_render.show(&x, vec2(16, 16))).collect();
+    let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
+    let mut objects = Vec::new();
 
     loop {
+        // each frame try to grab a letter group and add it to the objects list
+        if let Some(letter) = text_layout.next() {
+            objects.push(text_render.show(&letter, vec2(16, 16)));
+        }
+
         let mut frame = gfx.frame();
 
+        // render everything in the objects list
         for object in objects.iter() {
             object.show(&mut frame);
         }

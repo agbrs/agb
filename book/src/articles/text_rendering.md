@@ -131,8 +131,52 @@ let objects: Vec<_> = text_layout.map(|x| text_render.show(&x, vec2(16, 16))).co
 ```
 The full example can be found in the [`object_text_render_simple`](https://agbrs.dev/examples/object_text_render_simple) example.
 
+Normally you would divide this work over multiple frames.
+This is to minimise the work for layout and rendering which could otherwise cause frames to be skipped or audio to be skipped.
+
+```rust
+// use the standard graphics system
+let mut gfx = gba.graphics.get();
+
+// this is now mutable as we will be calling `next` on it
+let mut text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    AlignmentKind::Left,
+    16,
+    200,
+);
+
+let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
+let mut objects = Vec::new();
+
+loop {
+    // each frame try to grab a letter group and add it to the objects list
+    if let Some(letter) = text_layout.next() {
+        objects.push(text_render.show(&letter, vec2(16, 16)));
+    }
+
+    let mut frame = gfx.frame();
+    
+    // render everything in the objects list
+    for object in objects.iter() {
+        object.show(&mut frame);
+    }
+
+    frame.commit();
+}
+```
+
+The full example for this pattern can be found in [`object_text_render_intermediate`](https://agbrs.dev/examples/object_text_render_intermediate).
+
 One of the main reasons to use objects for your text is to be able to individually manipulate your objects to create special effects.
 The [`object_text_render_advanced`](https://agbrs.dev/examples/object_text_render_advanced) example showcases this use case.
 
 ## RegularBackgroundTextRenderer
 
+
+
+## Custom
+
+`LetterGroup`s provide a `pixels` method which is an iterator over all the pixels that need to be set to draw those characters.
+Using this you can have your own backends, although I'm not sure what exactly you would use them for!
