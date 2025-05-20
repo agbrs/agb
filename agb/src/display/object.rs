@@ -13,7 +13,7 @@ pub use sprites::{
 
 pub(crate) use sprites::SPRITE_LOADER;
 
-pub use affine::{AffineMatrixInstance, AffineMatrixObject};
+pub use affine::AffineMatrixObject;
 pub use unmanaged::{AffineMode, GraphicsMode, Object, ObjectAffine};
 pub(crate) use unmanaged::{Oam, OamFrame};
 

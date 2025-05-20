@@ -6,8 +6,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use crate::display::{
     GraphicsFrame, Priority,
     object::{
-        AffineMatrixInstance, OBJECT_ATTRIBUTE_MEMORY, affine::AffineMatrixVram,
-        sprites::SpriteVram,
+        AffineMatrixObject, OBJECT_ATTRIBUTE_MEMORY, affine::AffineMatrixVram, sprites::SpriteVram,
     },
 };
 
@@ -290,12 +289,12 @@ impl ObjectAffine {
     /// Creates an unmanaged object from a sprite in vram.
     pub fn new(
         sprite: impl Into<SpriteVram>,
-        affine_matrix: AffineMatrixInstance,
+        affine_matrix: AffineMatrixObject,
         affine_mode: AffineMode,
     ) -> Self {
         fn new(
             sprite: SpriteVram,
-            affine_matrix: AffineMatrixInstance,
+            affine_matrix: AffineMatrixObject,
             affine_mode: AffineMode,
         ) -> ObjectAffine {
             let sprite_location = sprite.location();
@@ -338,7 +337,7 @@ impl ObjectAffine {
     }
 
     /// Sets the affine matrix to an instance of a matrix
-    pub fn set_affine_matrix(&mut self, matrix: AffineMatrixInstance) -> &mut Self {
+    pub fn set_affine_matrix(&mut self, matrix: AffineMatrixObject) -> &mut Self {
         self.matrix = matrix.vram();
 
         self
