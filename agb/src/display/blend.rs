@@ -540,4 +540,38 @@ mod test {
 
         assert_image_output("gfx/test_output/blend/blend_object_darken.png");
     }
+
+    #[test_case]
+    fn can_blend_object_shape_to_black(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame.blend().darken(num!(0.75)).enable_background(bg_id);
+        frame
+            .windows()
+            .win_obj()
+            .enable_blending()
+            .enable_background(bg_id);
+        frame.windows().win_out().enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::Window)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_darken_window.png");
+    }
 }
