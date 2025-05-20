@@ -105,9 +105,26 @@ impl Blend {
 
     /// Enable object transparency for every object which has its
     /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
-    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
+    ///
+    /// The final colour will be a weighted sum of the colours of each pixel in the object multiplied
+    /// by `top_layer_alpha` and any enabled background layers by `bottom_layer_alpha`.
+    ///
+    /// So an `alpha` of `num!(0.5)` for both the top and the bottom layers will mean you get
+    /// half of each colour added together. You'll probably want `top_layer_alpha` + `bottom_layer_alpha`
+    /// to equal `1`, although this isn't required if you want some crazy effects.
+    pub fn object_transparency(
+        &mut self,
+        top_layer_alpha: Num<u8, 4>,
+        bottom_layer_alpha: Num<u8, 4>,
+    ) -> BlendObjectTransparency<'_> {
+        assert!(top_layer_alpha <= 1.into());
+        assert!(bottom_layer_alpha <= 1.into());
+
         self.blend_control
             .set_colour_effect(registers::Effect::None);
+        self.set_layer_alpha(Layer::Top, top_layer_alpha);
+        self.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
+
         BlendObjectTransparency { blend: self }
     }
 
@@ -208,9 +225,6 @@ impl BlendAlphaEffect<'_> {
 
 /// Configure the fade effect for a darken or lighten blend.
 ///
-/// You can also enable object transparency while using `darken` or `lighten` using the
-/// [`set_object_alpha()`](BlendFadeEffect::set_object_alpha()) function.
-///
 /// Fade effects will blend the [`Layer::Top`] layer towards either black or white by the amount
 /// given to the `.brighten()` or `.darken()` methods on [`Blend`]. This is useful if you want to fade part
 /// of the screen to white or black, or apply some other effects like adding lightning to the
@@ -243,16 +257,6 @@ impl BlendFadeEffect<'_> {
         self
     }
 
-    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
-    /// set to `AlphaBlending` to `value`.
-    ///
-    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
-    pub fn set_object_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Object alpha must be <= 1");
-        self.blend.set_layer_alpha(Layer::Top, value);
-        self
-    }
-
     /// Enables a background for blending.
     pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
         self.blend.set_background_enable(Layer::Top, background);
@@ -278,22 +282,24 @@ impl BlendFadeEffect<'_> {
     }
 }
 
-/// Make given objects transparent to some level.
+/// Configure the fade effect for making objects optionally transparent.
 ///
 /// Every object with the [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`
-/// will have the same transparency level.
+/// will have the same transparency level. Objects will only blend into backgrounds which have
+/// been enabled via the [`enable_background`](BlendObjectTransparency::enable_background) method
+/// called on them. Otherwise, the object will be rendered as-if there was no blending at all.
 pub struct BlendObjectTransparency<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendObjectTransparency<'_> {
-    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
-    /// set to `AlphaBlending` to `value`.
+    /// Enables a given background to have transparent objects on top.
     ///
-    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
-    pub fn set_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Object alpha must be <= 1");
-        self.blend.set_layer_alpha(Layer::Top, value);
+    /// The [`BackgroundId`] will likely come from a call to `show()`
+    /// from either [regular backgrounds](crate::display::tiled::RegularBackground::show) or
+    /// [affine backgrounds](crate::display::tiled::AffineBackground::show).
+    pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
+        self.blend.set_background_enable(Layer::Bottom, background);
         self
     }
 }
