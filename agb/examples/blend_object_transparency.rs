@@ -1,3 +1,5 @@
+//! An example of using blending to make an object transparent. Only the objects marked with
+//! GraphicsMode::AlphaBlending will show as transparent.
 #![no_std]
 #![no_main]
 
