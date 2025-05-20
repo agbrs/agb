@@ -68,30 +68,29 @@ fn chicken(frame: &mut GraphicsFrame) {
 
 Affine objects can be rotated and scaled by an affine transformation.
 These objects are created using the [`ObjectAffine`](https://docs.rs/agb/latest/agb/display/object/struct.ObjectAffine.html) type.
-This like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) requires a sprite but also requires an [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html) and an `AffineMode`.
-The affine matrix instance can be thought of as an affine matrix stored in oam.
+This, like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html), requires a sprite but also requires an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) and an `AffineMode`.
+The affine matrix object can be thought of as an affine matrix stored in oam.
 
 The [affine article](./affine.md) goes over some detail in how to create affine matrices.
-With a given affine matrix, you can use `AffineMatrixObject::from_affine` which creates an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) that is suitable for use in objects.
-You can turn different `AffineMatrixObject` instances into individual [`AffineMatrixInstance`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixInstance.html).
+With a given affine matrix, you can use `AffineMatrixObject::new` or the `From` impl to create an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html).
 
-When using the same affine matrix for multiple sprites, it is important to reuse the `AffineMatrixInstance` as otherwise you may run out of affine matrices.
+When using the same affine matrix for multiple sprites, it is important to reuse the `AffineMatrixObject` as otherwise you may run out of affine matrices.
 You can use up to 32 affine matrices at once.
-`AffineMatrixInstance` implements `Clone`, and cloning is very cheap as it just increases a reference count.
+`AffineMatrixObject` implements `Clone`, and cloning is very cheap as it just increases a reference count.
 
 An `AffineMatrix` also stores a translation component.
 However, creating the `AffineMatrixObject` will lose this translation component, so you'll also need to set it as the position as follows:
 
 ```rust
 let affine_matrix = calculate_affine_matrix();
-let affine_matrix_instance = AffineMatrixInstance::new(affine_matrix);
+let affine_matrix_instance = AffineMatrixObject::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
     .set_position(affine_matrix.position().round())
     .show(frame);
 ```
 
-Beware that the position of an affine object is the centre of the sprite, and not the top left corner like it is for regular sprites.
+Be aware that the position of an affine object is the centre of the sprite, and not the top left corner like it is for regular sprites.
 
 Affine objects have two display modes, the regular and the double modes.
 The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off anything outside of the regular bounding box.

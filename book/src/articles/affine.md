@@ -105,7 +105,7 @@ So you'll also need to set the position of the sprite separately.
 
 ```rust
 let affine_matrix = calculate_affine_matrix();
-let affine_matrix_instance = AffineMatrixInstance::new(affine_matrix);
+let affine_matrix_instance = AffineMatrixObject::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
     .set_position(affine_matrix.position().round())
