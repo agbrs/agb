@@ -56,6 +56,12 @@ impl Blend {
         }
     }
 
+    fn reset(&mut self) {
+        self.blend_control = Default::default();
+        self.alpha = Default::default();
+        self.brightness = Default::default();
+    }
+
     /// Sets this blend effect to `alpha` which allows for a configurable amount of each layer to
     /// be rendered onto the screen.
     ///
@@ -71,12 +77,14 @@ impl Blend {
         top_layer_alpha: Num<u8, 4>,
         bottom_layer_alpha: Num<u8, 4>,
     ) -> BlendAlphaEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
-        let mut alpha_effect = BlendAlphaEffect { blend: self };
-        alpha_effect.set_layer_alpha(Layer::Top, top_layer_alpha);
-        alpha_effect.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
-        alpha_effect
+        self.set_layer_alpha(Layer::Top, top_layer_alpha);
+        self.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
+
+        BlendAlphaEffect { blend: self }
     }
 
     /// Fade the `Top` layer towards white by a configurable amount.
@@ -84,11 +92,13 @@ impl Blend {
     /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
     /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
     pub fn brighten(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
-        let mut fade_effect = BlendFadeEffect { blend: self };
-        fade_effect.set_fade(amount);
-        fade_effect
+        self.set_fade(amount);
+
+        BlendFadeEffect { blend: self }
     }
 
     /// Fade the `Top` layer towards black by a configurable amount.
@@ -96,18 +106,39 @@ impl Blend {
     /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
     /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
     pub fn darken(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
-        let mut fade_effect = BlendFadeEffect { blend: self };
-        fade_effect.set_fade(amount);
-        fade_effect
+        self.set_fade(amount);
+
+        BlendFadeEffect { blend: self }
     }
 
     /// Enable object transparency for every object which has its
     /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
-    pub fn object_transparency(&mut self) -> BlendObjectTransparency<'_> {
+    ///
+    /// The final colour will be a weighted sum of the colours of each pixel in the object multiplied
+    /// by `top_layer_alpha` and any enabled background layers by `bottom_layer_alpha`.
+    ///
+    /// So an `alpha` of `num!(0.5)` for both the top and the bottom layers will mean you get
+    /// half of each colour added together. You'll probably want `top_layer_alpha` + `bottom_layer_alpha`
+    /// to equal `1`, although this isn't required if you want some crazy effects.
+    pub fn object_transparency(
+        &mut self,
+        top_layer_alpha: Num<u8, 4>,
+        bottom_layer_alpha: Num<u8, 4>,
+    ) -> BlendObjectTransparency<'_> {
+        self.reset();
+
+        assert!(top_layer_alpha <= 1.into());
+        assert!(bottom_layer_alpha <= 1.into());
+
         self.blend_control
             .set_colour_effect(registers::Effect::None);
+        self.set_layer_alpha(Layer::Top, top_layer_alpha);
+        self.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
+
         BlendObjectTransparency { blend: self }
     }
 
@@ -148,6 +179,8 @@ impl Blend {
     }
 
     fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) {
+        assert!(value <= 1.into());
+
         match layer {
             Layer::Top => self.alpha.set_first_blend(value),
             Layer::Bottom => self.alpha.set_second_blend(value),
@@ -155,6 +188,7 @@ impl Blend {
     }
 
     fn set_fade(&mut self, value: Num<u8, 4>) {
+        assert!(value <= 1.into());
         self.brightness.set(value);
     }
 
@@ -171,12 +205,6 @@ pub struct BlendAlphaEffect<'blend> {
 }
 
 impl BlendAlphaEffect<'_> {
-    fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Layer alpha must be <= 1");
-        self.blend.set_layer_alpha(layer, value);
-        self
-    }
-
     /// Enables a background for blending on `layer`.
     pub fn enable_background(
         &mut self,
@@ -208,9 +236,6 @@ impl BlendAlphaEffect<'_> {
 
 /// Configure the fade effect for a darken or lighten blend.
 ///
-/// You can also enable object transparency while using `darken` or `lighten` using the
-/// [`set_object_alpha()`](BlendFadeEffect::set_object_alpha()) function.
-///
 /// Fade effects will blend the [`Layer::Top`] layer towards either black or white by the amount
 /// given to the `.brighten()` or `.darken()` methods on [`Blend`]. This is useful if you want to fade part
 /// of the screen to white or black, or apply some other effects like adding lightning to the
@@ -237,23 +262,10 @@ pub struct BlendFadeEffect<'blend> {
 }
 
 impl BlendFadeEffect<'_> {
-    fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Layer fade must be <= 1");
-        self.blend.set_fade(value);
-        self
-    }
-
-    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
-    /// set to `AlphaBlending` to `value`.
-    ///
-    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
-    pub fn set_object_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Object alpha must be <= 1");
-        self.blend.set_layer_alpha(Layer::Top, value);
-        self
-    }
-
     /// Enables a background for blending.
+    ///
+    /// This will cause the background to be faded towards black or white (depending on whether
+    /// this is darken or lighten).
     pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
         self.blend.set_background_enable(Layer::Top, background);
         self
@@ -262,7 +274,14 @@ impl BlendFadeEffect<'_> {
     /// Enables object blending.
     ///
     /// This will only work for objects which have a
-    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`.
+    /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending` and will
+    /// cause any object with that graphics mode to blend towards white / black (depending on
+    /// whether this is lighten or darken).
+    ///
+    /// This interacts with object transparency in a strange way. If object transparency is also
+    /// enabled as part of this blend, then the parts of the sprite which overlap with the enabled
+    /// backgrounds will show as transparent but anything which doesn't overlap with the background
+    /// will be shown as faded towards black or white.
     pub fn enable_object(&mut self) -> &mut Self {
         self.blend.set_object_enable(Layer::Top);
         self
@@ -276,24 +295,43 @@ impl BlendFadeEffect<'_> {
         self.blend.set_backdrop_enable(Layer::Top);
         self
     }
+
+    /// Configure object transparency in addition to the fading.
+    ///
+    /// Any part of the object which intersects with the enabled layer will show as transparent by
+    /// the given amount, and any which isn't will (if `enable_object()` was called) show
+    /// as faded towards black / white.
+    pub fn object_transparency(
+        &mut self,
+        top_fade_amount: Num<u8, 4>,
+        bottom_fade_amount: Num<u8, 4>,
+    ) -> BlendObjectTransparency<'_> {
+        self.blend.set_layer_alpha(Layer::Top, top_fade_amount);
+        self.blend
+            .set_layer_alpha(Layer::Bottom, bottom_fade_amount);
+
+        BlendObjectTransparency { blend: self.blend }
+    }
 }
 
-/// Make given objects transparent to some level.
+/// Configure the fade effect for making objects optionally transparent.
 ///
 /// Every object with the [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending`
-/// will have the same transparency level.
+/// will have the same transparency level. Objects will only blend into backgrounds which have
+/// been enabled via the [`enable_background`](BlendObjectTransparency::enable_background) method
+/// called on them. Otherwise, the object will be rendered as-if there was no blending at all.
 pub struct BlendObjectTransparency<'blend> {
     blend: &'blend mut Blend,
 }
 
 impl BlendObjectTransparency<'_> {
-    /// Sets the transparency for all objects with their [`GraphicsMode`](crate::display::object::GraphicsMode)
-    /// set to `AlphaBlending` to `value`.
+    /// Enables a given background to have transparent objects on top.
     ///
-    /// `value` must be a number between 0 and 1 inclusive, and will panic if `value` is greater than 1.
-    pub fn set_alpha(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Object alpha must be <= 1");
-        self.blend.set_layer_alpha(Layer::Top, value);
+    /// The [`BackgroundId`] will likely come from a call to `show()`
+    /// from either [regular backgrounds](crate::display::tiled::RegularBackground::show) or
+    /// [affine backgrounds](crate::display::tiled::AffineBackground::show).
+    pub fn enable_background(&mut self, background: impl Into<BackgroundId>) -> &mut Self {
+        self.blend.set_background_enable(Layer::Bottom, background);
         self
     }
 }
@@ -305,19 +343,25 @@ mod test {
         Gba,
         display::{
             AffineMatrix, Priority, WinIn,
+            object::{AffineMatrixObject, AffineMode, GraphicsMode, Object, ObjectAffine},
             tiled::{
                 AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
             },
         },
         fixnum::{Num, Rect, num, vec2},
-        include_background_gfx,
+        include_aseprite, include_background_gfx,
         test_runner::assert_image_output,
     };
 
     include_background_gfx!(crate, mod background,
         LOGO => deduplicate "gfx/test_logo.aseprite",
         LOGO_256 => 256 "gfx/test_logo.aseprite",
+    );
+
+    include_aseprite!(
+        mod sprites,
+        "examples/gfx/crab.aseprite",
     );
 
     #[test_case]
@@ -435,5 +479,191 @@ mod test {
         frame.commit();
 
         assert_image_output("gfx/test_output/blend/blend_affine_darken.png");
+    }
+
+    #[test_case]
+    fn can_blend_objects_to_create_transparency_effects(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .object_transparency(num!(0.5), num!(0.5))
+            .enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_transparency.png");
+    }
+
+    #[test_case]
+    fn can_blend_object_to_white(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+
+        frame.blend().brighten(num!(0.5)).enable_object();
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_lighten.png");
+    }
+
+    #[test_case]
+    fn can_blend_object_to_black(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+
+        frame.blend().darken(num!(0.75)).enable_object();
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_darken.png");
+    }
+
+    #[test_case]
+    fn can_blend_object_shape_to_black(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame.blend().darken(num!(0.75)).enable_background(bg_id);
+        frame
+            .windows()
+            .win_obj()
+            .enable_blending()
+            .enable_background(bg_id);
+        frame.windows().win_out().enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::Window)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_darken_window.png");
+    }
+
+    #[test_case]
+    fn can_blend_affine_object_to_black(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+
+        frame.blend().darken(num!(0.75)).enable_object();
+
+        let matrix =
+            AffineMatrixObject::from(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+
+        ObjectAffine::new(sprites::IDLE.sprite(0), matrix, AffineMode::AffineDouble)
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_affine_darken.png");
+    }
+
+    #[test_case]
+    fn can_fade_and_have_object_transparency(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+        bg.set_scroll_pos((-116, -116));
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .darken(num!(0.75))
+            .enable_object()
+            .object_transparency(num!(0.5), num!(0.5))
+            .enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_fade_transparent.png");
     }
 }

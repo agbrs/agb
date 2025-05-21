@@ -31,5 +31,6 @@
 - [Fixnums](./articles/fixed_point_numbers.md)
 - [Affine backgrounds and objects](./articles/affine.md)
 - [Text rendering](./articles/text_rendering.md)
-- [Blending, windows and DMA effects]()
+- [Blending and windows](./articles/blending_and_windows.md)
+- [DMA]()
 - [Music and sound effects]()
