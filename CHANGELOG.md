@@ -7,27 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This release comes with a major change to everything in `agb::display`. Mostly built around the new `GraphicsFrame`
+used to show both backgrounds and objects to the screen. See the newly expanded [book](https://agbrs.dev/book)
+which covers many topics including advanced articles for more exciting graphical effects and completed
+[tutorial](https://agbrs.dev/book/pong/01_introduction.html).
+
+You can now also try all the examples [online](https://agbrs.dev/examples) on your browser, including modifying the
+code and seeing how that changes the behaviour of the example!
+
 ### Added
 
+- `GraphicsFrame` is now how you manage what gets displayed to the screen. Both for backgrounds and objects.
+- Lots more examples.
+
+- The crate is 100% documented!
+- `#[agb::entry]` now produces code which is compatible with rust 2024.
 - Introduced `agb::display::{Rgb15, Rgb}` to represent colours and allow for basic interpolation and conversion.
 - You can now pass any constant expression to the `num!` macro.
 - Added `round` methods for `Num` and `Vector2D` that rounds towards the nearest integer.
 - Added `clamp_point` and corner methods to `Rect`.
 - Added `width` and `height` to `TileData` to track the original size of your backgrounds.
-- Added an `eprintln!()` macro which prints at error level for mgba
+- Added an `eprintln!()` macro which prints at error level for mgba.
+- More `num_traits` have been implemeted for `Num<I, N>`.
+- The template now includes `extern crate alloc;` to avoid any confusion about whether alloc is supported.
+- Blending and windows now work with affine backgrounds as well as regular backgrounds
+- `AnimationIterator` and `RepeatingAnimationIterator` to iterate over the frames in an animation more simply.
+- You can now write your own doc tests using the `agb::doctest` macro.
 
 ### Changed
 
+- The VRamManager is now global, accessed via the `VRAM_MANAGER`.
+- You no longer need to pick a tiled mode, instead this is managed by the `GraphicsFrame`.
+- Blending, windows and DMA are managed via the `GraphicsFrame`.
+- DMA is now entirely safe and is managed by `HBlankDma`.
+- The `agb::display` module has been flattened quite significantly.
+- `InfiniteScrolledMap` now takes the tile generation function in `set_pos` rather than in the constructor.
+- There are getters and setters for almost all properties in `RegularBackground` and `AffineBackground`.
+- Affine tile allocation is now much more reliable, rather than it basically being pure luck whether a tile successfully displays.
 - Where `agb` used to accept `u16` values for colours, it now expects the new `Rgb15` type to avoid type confusion.
 - The mixer now uses `SoundData` rather than `&[u8]` sound effects and music.
 - In debug mode, `Num` will now panic if you're multiplying or dividing when it has too much precision set.
+- Palette16 is now in the `agb::display` module.
+- You get the `graphics` from `gba.graphics` rather than `gba.display.graphics`.
+- DynamicTiles are now automatically freed when they are dropped, so you don't need to manually manage that memory any more.
+- Font rendering for backgrounds and objects have been unified via the `Layout` struct, and are rendered using the new
+  `ObjectFontRenderer` and `BackgroundFontRenderer`. Both fully support colour changes and other arbitrary tags.
+- `AffineMatrixInstance` is now `AffineMatrixObject` and the existing `AffineMatrixObject` has been removed to simplify the conversion.
+- `AffineMatrix` is now generic on the integer type.
+- `sin` and `cos` for `Num<I, N>` has been improved to use a look-up table with linear interpolation rather than a 3rd order polynomial.
+- Object's `set_position()` function was renamed to `set_pos()`.
+- `include_background_gfx!` now requires a `mod` keyword before the module name.
+- `inculde_aseprite!` now creates static variables for each tag rather than using constant string matching.
+- Unmanaged objects are now managed by the `GraphicsFrame` rather than `OamIterator` and now only make their changes when `.commit()` is called.
+- `ObjectUnmanaged` is now `Object`.
+- Affine objects are now a separate type `ObjectAffine`.
+- For compatibility with rust 2024, `rng::gen()` has been renamed to `rng::next_u32()`.
 
 ### Removed
 
-- Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer
-- Removed `VRamManager.set_background_palette_raw` since it is actually unsafe and didn't work as intended for smaller palettes in release mode
+- Removed bitmap modes. These were accidentally unsound and don't play well with objects or other tiled backgrounds. Some thought needs to go
+  into the API to bring these back.
+- Removed the dmg audio module. It will return in future but with a better thought out API which will work together with the existing mixer.
+- Removed `VRamManager.set_background_palette_raw` since it is actually unsafe and didn't work as intended for smaller palettes in release mode.
 - Removed the `syscall` module and put the useful `halt` method in `agb::halt()`.
 - Removed the `mgba` module since you should do all printing via the `println!()` macro.
+- Removed 'managed' objects. The new `GraphicsFrame` uses a similar paradigm to the old 'unmanaged objects'. But these are now just `Object`.
+- Removed `mixer.enable()`. This is now done by default so you just don't need to call it.
 
 ## [0.21.3] - 2025/02/01
 
