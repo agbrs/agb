@@ -343,10 +343,7 @@ mod test {
         Gba,
         display::{
             AffineMatrix, Priority, WinIn,
-            object::{
-                AffineMatrixInstance, AffineMatrixObject, AffineMode, GraphicsMode, Object,
-                ObjectAffine,
-            },
+            object::{AffineMatrixObject, AffineMode, GraphicsMode, Object, ObjectAffine},
             tiled::{
                 AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
@@ -624,9 +621,7 @@ mod test {
         frame.blend().darken(num!(0.75)).enable_object();
 
         let matrix =
-            AffineMatrixInstance::new(AffineMatrixObject::from_affine(
-                AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)),
-            ));
+            AffineMatrixObject::from(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
 
         ObjectAffine::new(sprites::IDLE.sprite(0), matrix, AffineMode::AffineDouble)
             .set_pos((100, 100))
