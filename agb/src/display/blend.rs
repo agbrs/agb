@@ -81,10 +81,10 @@ impl Blend {
 
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
-        let mut alpha_effect = BlendAlphaEffect { blend: self };
-        alpha_effect.set_layer_alpha(Layer::Top, top_layer_alpha);
-        alpha_effect.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
-        alpha_effect
+        self.set_layer_alpha(Layer::Top, top_layer_alpha);
+        self.set_layer_alpha(Layer::Bottom, bottom_layer_alpha);
+
+        BlendAlphaEffect { blend: self }
     }
 
     /// Fade the `Top` layer towards white by a configurable amount.
@@ -96,9 +96,9 @@ impl Blend {
 
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
-        let mut fade_effect = BlendFadeEffect { blend: self };
-        fade_effect.set_fade(amount);
-        fade_effect
+        self.set_fade(amount);
+
+        BlendFadeEffect { blend: self }
     }
 
     /// Fade the `Top` layer towards black by a configurable amount.
@@ -110,9 +110,9 @@ impl Blend {
 
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
-        let mut fade_effect = BlendFadeEffect { blend: self };
-        fade_effect.set_fade(amount);
-        fade_effect
+        self.set_fade(amount);
+
+        BlendFadeEffect { blend: self }
     }
 
     /// Enable object transparency for every object which has its
@@ -179,6 +179,8 @@ impl Blend {
     }
 
     fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) {
+        assert!(value <= 1.into());
+
         match layer {
             Layer::Top => self.alpha.set_first_blend(value),
             Layer::Bottom => self.alpha.set_second_blend(value),
@@ -186,6 +188,7 @@ impl Blend {
     }
 
     fn set_fade(&mut self, value: Num<u8, 4>) {
+        assert!(value <= 1.into());
         self.brightness.set(value);
     }
 
@@ -202,12 +205,6 @@ pub struct BlendAlphaEffect<'blend> {
 }
 
 impl BlendAlphaEffect<'_> {
-    fn set_layer_alpha(&mut self, layer: Layer, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Layer alpha must be <= 1");
-        self.blend.set_layer_alpha(layer, value);
-        self
-    }
-
     /// Enables a background for blending on `layer`.
     pub fn enable_background(
         &mut self,
@@ -265,12 +262,6 @@ pub struct BlendFadeEffect<'blend> {
 }
 
 impl BlendFadeEffect<'_> {
-    fn set_fade(&mut self, value: Num<u8, 4>) -> &mut Self {
-        assert!(value <= 1.into(), "Layer fade must be <= 1");
-        self.blend.set_fade(value);
-        self
-    }
-
     /// Enables a background for blending.
     ///
     /// This will cause the background to be faded towards black or white (depending on whether
@@ -286,6 +277,11 @@ impl BlendFadeEffect<'_> {
     /// [`GraphicsMode`](crate::display::object::GraphicsMode) set to `AlphaBlending` and will
     /// cause any object with that graphics mode to blend towards white / black (depending on
     /// whether this is lighten or darken).
+    ///
+    /// This interacts with object transparency in a strange way. If object transparency is also
+    /// enabled as part of this blend, then the parts of the sprite which overlap with the enabled
+    /// backgrounds will show as transparent but anything which doesn't overlap with the background
+    /// will be shown as faded towards black or white.
     pub fn enable_object(&mut self) -> &mut Self {
         self.blend.set_object_enable(Layer::Top);
         self
@@ -298,6 +294,23 @@ impl BlendFadeEffect<'_> {
     pub fn enable_backdrop(&mut self) -> &mut Self {
         self.blend.set_backdrop_enable(Layer::Top);
         self
+    }
+
+    /// Configure object transparency in addition to the fading.
+    ///
+    /// Any part of the object which intersects with the enabled layer will show as transparent by
+    /// the given amount, and any which isn't will (if `enable_object()` was called) show
+    /// as faded towards black / white.
+    pub fn object_transparency(
+        &mut self,
+        top_fade_amount: Num<u8, 4>,
+        bottom_fade_amount: Num<u8, 4>,
+    ) -> BlendObjectTransparency<'_> {
+        self.blend.set_layer_alpha(Layer::Top, top_fade_amount);
+        self.blend
+            .set_layer_alpha(Layer::Bottom, bottom_fade_amount);
+
+        BlendObjectTransparency { blend: self.blend }
     }
 }
 
@@ -593,7 +606,7 @@ mod test {
     }
 
     #[test_case]
-    fn can_blend_object_to_black(gba: &mut Gba) {
+    fn can_blend_affine_object_to_black(gba: &mut Gba) {
         VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
 
@@ -623,5 +636,39 @@ mod test {
         frame.commit();
 
         assert_image_output("gfx/test_output/blend/blend_object_affine_darken.png");
+    }
+
+    #[test_case]
+    fn can_fade_and_have_object_transparency(gba: &mut Gba) {
+        VRAM_MANAGER.set_background_palettes(background::PALETTES);
+        let mut gfx = gba.graphics.get();
+
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            background::LOGO.tiles.format(),
+        );
+
+        bg.fill_with(&background::LOGO);
+        bg.set_scroll_pos((-116, -116));
+
+        let mut frame = gfx.frame();
+        let bg_id = bg.show(&mut frame);
+
+        frame
+            .blend()
+            .darken(num!(0.75))
+            .enable_object()
+            .object_transparency(num!(0.5), num!(0.5))
+            .enable_background(bg_id);
+
+        Object::new(sprites::IDLE.sprite(0))
+            .set_pos((100, 100))
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/blend/blend_object_fade_transparent.png");
     }
 }
