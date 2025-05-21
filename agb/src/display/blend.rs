@@ -56,6 +56,12 @@ impl Blend {
         }
     }
 
+    fn reset(&mut self) {
+        self.blend_control = Default::default();
+        self.alpha = Default::default();
+        self.brightness = Default::default();
+    }
+
     /// Sets this blend effect to `alpha` which allows for a configurable amount of each layer to
     /// be rendered onto the screen.
     ///
@@ -71,6 +77,8 @@ impl Blend {
         top_layer_alpha: Num<u8, 4>,
         bottom_layer_alpha: Num<u8, 4>,
     ) -> BlendAlphaEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Alpha);
         let mut alpha_effect = BlendAlphaEffect { blend: self };
@@ -84,6 +92,8 @@ impl Blend {
     /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
     /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
     pub fn brighten(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Increase);
         let mut fade_effect = BlendFadeEffect { blend: self };
@@ -96,6 +106,8 @@ impl Blend {
     /// The `amount` must be between 0 and 1 inclusive. This function panics if `amount` > 1.
     /// Since the amount is a `Num<u8, 4>`, there are only 6 possible levels of fading.
     pub fn darken(&mut self, amount: Num<u8, 4>) -> BlendFadeEffect<'_> {
+        self.reset();
+
         self.blend_control
             .set_colour_effect(registers::Effect::Decrease);
         let mut fade_effect = BlendFadeEffect { blend: self };
@@ -117,6 +129,8 @@ impl Blend {
         top_layer_alpha: Num<u8, 4>,
         bottom_layer_alpha: Num<u8, 4>,
     ) -> BlendObjectTransparency<'_> {
+        self.reset();
+
         assert!(top_layer_alpha <= 1.into());
         assert!(bottom_layer_alpha <= 1.into());
 
