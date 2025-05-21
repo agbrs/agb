@@ -1,3 +1,9 @@
+# Blending and windows
+
+Blending and windows are basic graphical effects you can apply to backgrounds and objects to change how they appear on screen.
+Blending is used to fake transparency, or to fade the screen towards certain colours.
+Windows can be used to change what is actually rendered to the screen in certain places.
+
 # Blending
 
 Blending lets you apply a few effects to the screen as almost a post-process step.
@@ -125,3 +131,50 @@ You can change this colour at any time using
 ```rust
 VRAM_MANAGER.set_background_palette_colour(0, 0, new_colour);
 ```
+
+# Windows
+
+Windows on the Game Boy Advance are used to selectively enable or disable certain backgrounds, objects or effects on some rectangular area of the screen.
+You can use them to only enable blending in certain areas rather than the entire screen, or to cut off a background in some location.
+
+There are two rectangular windows and an object window. We'll cover the rectangular ones first.
+
+## Window areas
+
+<img src="./window/window-area.png" alt="Explanation of window areas" class="right" />
+
+On the right you'll see a diagram of how the two rectangular areas work on the Game Boy Advance.
+Yellow is `Win0` and green is `Win1`.
+
+For each window, you can state what you would like to be visible within that space, this being specific backgrounds, objects or if blending should be enabled.
+A certain pixel will always be a member of one of `Win0` or `Win1` (with `Win0` taking priority over `Win1`), or it'll be outside of both.
+The special `WinOut` (the pink area in the diagram) is any pixel which isn't in a window.
+The `WinOut` is also configurable in the same way as the `Win0` and `Win1` windows are.
+
+If you don't configure anything to render in a certain window area, then it'll only show the backdrop colour.
+
+Windows are configured using the `.windows()` method on the current `frame`.
+
+```rust
+let bg1_id = background1.show(&mut frame);
+let bg2_id = background2.show(&mut frame);
+
+let mut window = frame.windows();
+window
+    .win_in(WinIn::Win0)
+    .enable_background(bg1_id)
+    .set_pos(Rect::new(pos, vec2(64, 64)));
+
+window.win_out().enable_background(bg2_id);
+```
+
+Here we enable background 1 inside `Win0` and background 2 inside `WinOut` so outside of the 64x64 area we see `background2` but inside this area we see `background1`.
+
+## Object windows
+
+You can also use objects as a window.
+Any non-transparent pixel in the object will be considered part of that window.
+Mark an object you want to become a window with the [`GraphicsMode`](https://docs.rs/agb/latest/agb/display/object/enum.GraphicsMode.html) of `Window`.
+Then, configure the `win_obj()` in the same way that you would the rectangular ones.
+
+Again, anything not inside the object windows, or `Win0` and `Win1` will be considered part of `WinOut` and is configured using the `.win_out()`.

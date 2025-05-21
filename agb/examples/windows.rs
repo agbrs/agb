@@ -8,7 +8,7 @@ use agb::{
         HEIGHT, WIDTH, WinIn,
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
-    fixnum::{Num, Rect, Vector2D},
+    fixnum::{Num, Rect, Vector2D, vec2},
     include_background_gfx,
 };
 
@@ -55,7 +55,7 @@ fn main(mut gba: agb::Gba) -> ! {
         window
             .win_in(WinIn::Win0)
             .enable_background(beach_background_id)
-            .set_pos(Rect::new(pos.floor(), (64, 64).into()));
+            .set_pos(Rect::new(pos.floor(), vec2(64, 64)));
 
         window.win_out().enable_background(logo_background_id);
 
