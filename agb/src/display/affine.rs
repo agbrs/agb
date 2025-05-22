@@ -94,7 +94,7 @@ use crate::fixnum::{FixedWidthSignedInteger, Num, SignedNumber, Vector2D, num, v
 /// # }
 /// ```
 #[allow(missing_docs)]
-pub struct AffineMatrix<T> {
+pub struct AffineMatrix<T = Num<i32, 8>> {
     pub a: T,
     pub b: T,
     pub c: T,

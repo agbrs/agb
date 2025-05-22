@@ -354,8 +354,8 @@ impl Default for AffineMatrixBackground {
     }
 }
 
-impl From<AffineMatrix<Num<i32, 8>>> for AffineMatrixBackground {
-    fn from(value: AffineMatrix<Num<i32, 8>>) -> Self {
+impl From<AffineMatrix> for AffineMatrixBackground {
+    fn from(value: AffineMatrix) -> Self {
         Self::from_affine(value)
     }
 }
@@ -387,7 +387,7 @@ impl AffineMatrixBackground {
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
-    pub fn to_affine_matrix(&self) -> AffineMatrix<Num<i32, 8>> {
+    pub fn to_affine_matrix(&self) -> AffineMatrix {
         AffineMatrix {
             a: self.a.change_base(),
             b: self.b.change_base(),
@@ -434,7 +434,7 @@ impl AffineMatrixBackground {
     }
 }
 
-impl From<AffineMatrixBackground> for AffineMatrix<Num<i32, 8>> {
+impl From<AffineMatrixBackground> for AffineMatrix {
     fn from(mat: AffineMatrixBackground) -> Self {
         mat.to_affine_matrix()
     }

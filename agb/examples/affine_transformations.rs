@@ -202,7 +202,7 @@ impl AffineTransformKind {
         }
     }
 
-    fn matrix(self, values: Vector2D<Num<i32, 8>>) -> AffineMatrix<Num<i32, 8>> {
+    fn matrix(self, values: Vector2D<Num<i32, 8>>) -> AffineMatrix {
         match self {
             AffineTransformKind::Translation => {
                 // spin in a circle

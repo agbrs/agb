@@ -349,7 +349,7 @@ mod test {
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
             },
         },
-        fixnum::{Num, Rect, num, vec2},
+        fixnum::{Rect, num, vec2},
         include_aseprite, include_background_gfx,
         test_runner::assert_image_output,
     };
