@@ -177,26 +177,21 @@ where
 {
     #[must_use]
     /// Generates the matrix that represents a rotation
-    pub fn from_rotation<const M: usize>(angle: Num<I, M>) -> Self {
-        fn from_rotation<I: FixedWidthSignedInteger, const N: usize, const M: usize>(
-            angle: Num<I, M>,
-        ) -> AffineMatrix<Num<I, N>> {
-            let cos = angle.cos().change_base();
-            let sin = angle.sin().change_base();
+    pub fn from_rotation(angle: Num<I, N>) -> Self {
+        let cos = angle.cos();
+        let sin = angle.sin();
 
-            // This might look backwards, but the gba does texture mapping, ie a
-            // point in screen base is transformed using the matrix to graphics
-            // space rather than how you might conventionally think of it.
-            AffineMatrix {
-                a: cos,
-                b: -sin,
-                c: sin,
-                d: cos,
-                x: num!(0),
-                y: num!(0),
-            }
+        // This might look backwards, but the gba does texture mapping, ie a
+        // point in screen base is transformed using the matrix to graphics
+        // space rather than how you might conventionally think of it.
+        AffineMatrix {
+            a: cos,
+            b: -sin,
+            c: sin,
+            d: cos,
+            x: num!(0),
+            y: num!(0),
         }
-        from_rotation(angle.rem_euclid(num!(1)))
     }
 
     /// Change from one `Num` kind to another where the conversion is loss-less
@@ -270,7 +265,7 @@ mod tests {
 
         assert_eq!(c.position(), position);
 
-        let d = AffineMatrix::from_rotation::<12>(num!(0.5));
+        let d = AffineMatrix::from_rotation(num!(0.5));
 
         let e = a * d;
 

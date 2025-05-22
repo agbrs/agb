@@ -469,7 +469,7 @@ mod test {
             }
         }
 
-        bg.set_transform(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+        bg.set_transform(AffineMatrix::from_rotation(num!(0.125)));
 
         let mut frame = gfx.frame();
         let bg_id = bg.show(&mut frame);
@@ -620,8 +620,7 @@ mod test {
 
         frame.blend().darken(num!(0.75)).enable_object();
 
-        let matrix =
-            AffineMatrixObject::from(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+        let matrix = AffineMatrixObject::from(AffineMatrix::from_rotation(num!(0.125)));
 
         ObjectAffine::new(sprites::IDLE.sprite(0), matrix, AffineMode::AffineDouble)
             .set_pos((100, 100))

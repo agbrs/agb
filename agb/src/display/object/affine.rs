@@ -137,12 +137,8 @@ impl AffineMatrixObject {
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
-where
-    I: FixedWidthSignedInteger,
-    i32: From<I>,
-{
-    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+impl From<AffineMatrix<Num<i32, 8>>> for AffineMatrixObject {
+    fn from(value: AffineMatrix<Num<i32, 8>>) -> Self {
         AffineMatrixObject::new(value)
     }
 }

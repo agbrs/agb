@@ -354,12 +354,8 @@ impl Default for AffineMatrixBackground {
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
-where
-    I: FixedWidthSignedInteger,
-    i32: From<I>,
-{
-    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+impl From<AffineMatrix<Num<i32, 8>>> for AffineMatrixBackground {
+    fn from(value: AffineMatrix<Num<i32, 8>>) -> Self {
         Self::from_affine(value)
     }
 }
