@@ -132,15 +132,15 @@ impl<T: SignedNumber> AffineMatrix<T> {
             b: T::zero(),
             c: T::zero(),
             d: T::one(),
-            x: -position.x,
-            y: -position.y,
+            x: position.x,
+            y: position.y,
         }
     }
 
     #[must_use]
     /// The position fields of the matrix
     pub fn position(&self) -> Vector2D<T> {
-        vec2(-self.x, -self.y)
+        vec2(self.x, self.y)
     }
 
     #[must_use]
@@ -181,9 +181,6 @@ where
         let cos = angle.cos();
         let sin = angle.sin();
 
-        // This might look backwards, but the gba does texture mapping, ie a
-        // point in screen base is transformed using the matrix to graphics
-        // space rather than how you might conventionally think of it.
         AffineMatrix {
             a: cos,
             b: -sin,

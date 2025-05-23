@@ -44,7 +44,7 @@ fn main(mut gba: agb::Gba) -> ! {
             let y = Num::new(y) - (theta * 2).sin() * 8;
 
             AffineMatrix::from_scale(vec2(num!(1) / scale, num!(-1)))
-                * AffineMatrix::from_translation(vec2(num!(WIDTH / 2), y))
+                * AffineMatrix::from_translation(-vec2(num!(WIDTH / 2), y))
         })
         .collect::<Vec<_>>();
 
@@ -70,7 +70,7 @@ fn main(mut gba: agb::Gba) -> ! {
         let transforms = scale_transform_matrices
             .iter()
             .map(|&line_matrix| {
-                AffineMatrixBackground::from(AffineMatrix::from_translation(-pos) * line_matrix)
+                AffineMatrixBackground::from(AffineMatrix::from_translation(pos) * line_matrix)
             })
             .collect::<Vec<_>>();
         HBlankDma::new(transform_dma, &transforms).show(&mut frame);
