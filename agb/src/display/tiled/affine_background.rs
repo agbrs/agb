@@ -354,12 +354,8 @@ impl Default for AffineMatrixBackground {
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixBackground
-where
-    I: FixedWidthSignedInteger,
-    i32: From<I>,
-{
-    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+impl From<AffineMatrix> for AffineMatrixBackground {
+    fn from(value: AffineMatrix) -> Self {
         Self::from_affine(value)
     }
 }
@@ -391,7 +387,7 @@ impl AffineMatrixBackground {
     #[must_use]
     /// Converts to the affine matrix that is usable in performing efficient
     /// calculations.
-    pub fn to_affine_matrix(&self) -> AffineMatrix<Num<i32, 8>> {
+    pub fn to_affine_matrix(&self) -> AffineMatrix {
         AffineMatrix {
             a: self.a.change_base(),
             b: self.b.change_base(),
@@ -414,7 +410,7 @@ impl AffineMatrixBackground {
     /// # fn from_scale_rotation_position(
     /// #     transform_origin: Vector2D<Num<i32, 8>>,
     /// #     scale: Vector2D<Num<i32, 8>>,
-    /// #     rotation: Num<i32, 16>,
+    /// #     rotation: Num<i32, 8>,
     /// #     position: Vector2D<Num<i32, 8>>,
     /// # ) {
     /// let A = AffineMatrix::from_translation(-transform_origin)
@@ -438,7 +434,7 @@ impl AffineMatrixBackground {
     }
 }
 
-impl From<AffineMatrixBackground> for AffineMatrix<Num<i32, 8>> {
+impl From<AffineMatrixBackground> for AffineMatrix {
     fn from(mat: AffineMatrixBackground) -> Self {
         mat.to_affine_matrix()
     }

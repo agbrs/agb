@@ -56,12 +56,12 @@ use agb::{
     fixnum::{Num, num}
 };
 
-let rot_mat: AffineMatrix<Num<i32, 8>> =
-    AffineMatrix::from_rotation::<8>(num!(0.25));
-let scale_mat: AffineMatrix<Num<i32, 8>> =
+let rot_mat: AffineMatrix =
+    AffineMatrix::from_rotation(num!(0.25));
+let scale_mat: AffineMatrix =
     AffineMatrix::from_scale(vec2(num!(0.5), num!(0.5)));
 
-let final_transform: AffineMatrix<Num<i32, 8>> = rot_mat * scale_mat;
+let final_transform: AffineMatrix = rot_mat * scale_mat;
 ```
 
 Remember that the transform is transforming _screen_ coordinates to _object_ coordinates.

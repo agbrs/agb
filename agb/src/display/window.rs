@@ -333,7 +333,7 @@ mod test {
             }
         }
 
-        bg.set_transform(AffineMatrix::<Num<i32, 8>>::from_rotation::<8>(num!(0.125)));
+        bg.set_transform(AffineMatrix::<Num<i32, 8>>::from_rotation(num!(0.125)));
 
         let mut frame = gfx.frame();
         let bg_id = bg.show(&mut frame);

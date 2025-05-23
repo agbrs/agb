@@ -32,10 +32,10 @@ impl AffineMatrixObjectElements {
     /// calculations.
     pub fn to_affine_matrix(self) -> AffineMatrix<Num<i16, 8>> {
         AffineMatrix {
-            a: self.a.change_base(),
-            b: self.b.change_base(),
-            c: self.c.change_base(),
-            d: self.d.change_base(),
+            a: self.a,
+            b: self.b,
+            c: self.c,
+            d: self.d,
             x: 0.into(),
             y: 0.into(),
         }
@@ -137,12 +137,8 @@ impl AffineMatrixObject {
     }
 }
 
-impl<I, const N: usize> From<AffineMatrix<Num<I, N>>> for AffineMatrixObject
-where
-    I: FixedWidthSignedInteger,
-    i32: From<I>,
-{
-    fn from(value: AffineMatrix<Num<I, N>>) -> Self {
+impl From<AffineMatrix> for AffineMatrixObject {
+    fn from(value: AffineMatrix) -> Self {
         AffineMatrixObject::new(value)
     }
 }

@@ -18,7 +18,7 @@ include_aseprite!(mod sprites,
     "examples/gfx/box.aseprite",
 );
 
-fn show_with_boxes(matrix: AffineMatrix<Num<i32, 8>>, height: i32, frame: &mut GraphicsFrame) {
+fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame) {
     /// Calculate the x coordinate for a crab with a given index
     fn x(idx: i32) -> i32 {
         (WIDTH / 4) * (idx + 1) - 16
