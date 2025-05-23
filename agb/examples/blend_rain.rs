@@ -43,7 +43,6 @@ fn main(mut gba: agb::Gba) -> ! {
     bg_tiles.fill_with(&backgrounds::BEACH);
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
-    mixer.enable();
     let mut rain_channel = SoundChannel::new(RAIN);
     rain_channel.should_loop().volume(num!(0.15));
     mixer.play_sound(rain_channel);

@@ -115,7 +115,6 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let star_background = StarBackground::new();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
-    mixer.enable();
 
     let sfx = Sfx::new(&mut mixer);
 

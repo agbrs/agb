@@ -35,7 +35,6 @@
 //! use agb::sound::mixer::Frequency;
 //! # fn test(mut gba: agb::Gba) {
 //! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
-//! mixer.enable();
 //! # }
 //! ```
 //!
@@ -70,7 +69,7 @@
 //! ## Loading a sample
 //!
 //! To load a sample, you must have it in `wav` format (both stereo and mono work) at exactly the
-//! selected frequency based on the features enabled in the agb crate.
+//! selected frequency based on the frequency passed to the `mixer` function.
 //!
 //! Use the [`include_wav!`](crate::include_wav) macro in order to load the sound. This will produce
 //! an error if your wav file is of the wrong frequency.

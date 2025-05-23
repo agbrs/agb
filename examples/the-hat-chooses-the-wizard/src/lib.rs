@@ -757,7 +757,6 @@ pub fn main(mut agb: agb::Gba) -> ! {
 
     let mut level_display = LevelDisplay::new(tileset, tile_sheet::background.tile_settings);
 
-    mixer.enable();
     let mut sfx = sfx::SfxPlayer::new(&mut mixer);
 
     splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::Start, &mut sfx);

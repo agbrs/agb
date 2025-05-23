@@ -181,7 +181,7 @@ impl Mixer<'_> {
             Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
         working_buffer.resize(frequency.buffer_size() * 2, 0.into());
 
-        Self {
+        let mut result = Self {
             frequency,
             buffer,
             channels: Default::default(),
@@ -194,14 +194,12 @@ impl Mixer<'_> {
             fifo_timer,
 
             phantom: PhantomData,
-        }
+        };
+        result.enable();
+        result
     }
 
-    /// Enable sound output
-    ///
-    /// You must call this method in order to start playing sound. You can do as much set up before
-    /// this as you like, but you will not get any sound out of the console until this method is called.
-    pub fn enable(&mut self) {
+    fn enable(&mut self) {
         hw::set_timer_counter_for_frequency_and_enable(
             &mut self.fifo_timer,
             self.frequency.frequency(),

@@ -188,7 +188,6 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut paddle_b = Paddle::new(vec2(num!(240 - 16 - 8), num!(8)));
 
     let mut tracker = Tracker::new(&BGM);
-    mixer.enable();
 
     loop {
         button_controller.update();
