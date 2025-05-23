@@ -58,6 +58,8 @@ code and seeing how that changes the behaviour of the example!
 - `include_background_gfx!` now requires a `mod` keyword before the module name.
 - `inculde_aseprite!` now creates static variables for each tag rather than using constant string matching.
 - Unmanaged objects are now managed by the `GraphicsFrame` rather than `OamIterator` and now only make their changes when `.commit()` is called.
+- `ObjectUnmanaged` is now `Object`.
+- Affine objects are now a separate type `ObjectAffine`.
 
 ### Removed
 
