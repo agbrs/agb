@@ -41,6 +41,7 @@ gbafix
 binutils
 mdbook
 sfxr
+milkytracker
 
 rustc
 rustup
