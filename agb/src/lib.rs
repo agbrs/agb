@@ -291,6 +291,15 @@ pub use agb_sound_converter::include_wav as include_wav_inner;
 /// Include a wav file to be used for sound effects or music.
 ///
 /// The parameter is the path to the sound file relative to the root of your crate.
+/// This macro can be thought of returning a [`SoundData`](sound::mixer::SoundData).
+///
+/// The `include_wav` macro does not do any resampling, so it is up to you to make
+/// sure that the frequency of the wav file matches the one you've configured the
+/// mixer with. If there is a mismatch, the audio will play at the wrong speed
+/// resulting in a higher or lower pitch.
+///
+/// You can import stereo, but you need to call [`SoundChannel::stereo()`](sound::mixer::SoundChannel::stereo)
+/// or it'll play as mono at half speed.
 ///
 /// ```rust
 /// # #![no_std]

@@ -2080,7 +2080,6 @@ impl Game {
 
 fn game_with_level(gba: &mut agb::Gba) {
     let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
-    mixer.enable();
 
     let mut sfx = sfx::Sfx::new(&mut mixer);
     sfx.purple_night();

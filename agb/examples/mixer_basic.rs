@@ -32,7 +32,6 @@ fn main(mut gba: Gba) -> ! {
     init_background(&mut bg);
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
-    mixer.enable();
 
     let channel = SoundChannel::new(DEAD_CODE);
     let channel_id = mixer.play_sound(channel).unwrap();
