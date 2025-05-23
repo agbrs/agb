@@ -33,4 +33,4 @@
 - [Text rendering](./articles/text_rendering.md)
 - [Blending and windows](./articles/blending_and_windows.md)
 - [DMA]()
-- [Music and sound effects]()
+- [Music and sound effects](./articles/music_and_sfx.md)

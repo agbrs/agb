@@ -79,14 +79,15 @@ unsafe extern "C" {
 ///
 /// # Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
 /// # #![no_main]
+/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
-/// # fn foo(gba: &mut Gba) {
+/// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-/// # let vblank = agb::interrupt::VBlank::get();
+/// # let mut gfx = gba.graphics.get();
 /// // Outside your main function in global scope:
 /// static MY_CRAZY_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 ///
@@ -97,8 +98,11 @@ unsafe extern "C" {
 /// let _ = mixer.play_sound(channel);
 ///
 /// loop {
+///    let mut frame = gfx.frame();
+///    // do your game updating and rendering
 ///    mixer.frame();
-///    vblank.wait_for_vblank();
+///    frame.commit();
+/// # break;
 /// }
 /// # }
 /// ```
@@ -214,21 +218,27 @@ impl Mixer<'_> {
     /// This is where almost all of the CPU time for the mixer is done, and must be done every frame
     /// or you will get crackling sounds.
     ///
-    /// Normally you would run this during vdraw, just before the vblank interrupt.
+    /// It is safe to call this more than once per frame, but it is very important to call it at least once per frame.
+    /// Calling it more than once in a single frame will result in the second call being ignored.
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust
     /// # #![no_std]
     /// # #![no_main]
+    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
-    /// # fn foo(gba: &mut Gba) {
+    /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
-    /// # let vblank = agb::interrupt::VBlank::get();
+    /// # let mut gfx = gba.graphics.get();
+    /// # let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
     /// loop {
-    ///     mixer.frame();
-    ///     vblank.wait_for_vblank();
+    ///    let mut frame = gfx.frame();
+    ///    // do your game updating and rendering
+    ///    mixer.frame();
+    ///    frame.commit();
+    /// # break;
     /// }
     /// # }
     /// ```
