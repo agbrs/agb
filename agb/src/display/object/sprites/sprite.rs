@@ -2,7 +2,7 @@ use core::alloc::Layout;
 
 use crate::display::palette16::Palette16;
 
-use super::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP};
+use super::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP, SpriteVram};
 
 /// Sprite data. Refers to the palette, pixel data, and the size of the sprite.
 pub struct Sprite {
@@ -268,7 +268,7 @@ pub struct RepeatingAnimationIterator {
 }
 
 impl Iterator for RepeatingAnimationIterator {
-    type Item = &'static Sprite;
+    type Item = SpriteVram;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.remaining -= 1;
@@ -282,8 +282,9 @@ impl Iterator for RepeatingAnimationIterator {
 }
 
 /// An infinite iterator over the frames of the animation
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct AnimationIterator {
+    cached_image: SpriteVram,
     frame: i32,
     tag: &'static Tag,
 }
@@ -291,19 +292,8 @@ pub struct AnimationIterator {
 impl AnimationIterator {
     #[must_use]
     /// Gives the current sprite from the animation iterator
-    pub fn peek(self) -> &'static Sprite {
-        match self.tag.direction {
-            Direction::Forward | Direction::Backward => self.tag.sprite(self.frame as usize),
-            Direction::PingPong => {
-                let current = self.frame;
-                if current >= self.tag.sprites.len() as i32 {
-                    let idx = self.tag.sprites.len() * 2 - current as usize - 2;
-                    self.tag.sprite(idx)
-                } else {
-                    self.tag.sprite(current as usize)
-                }
-            }
-        }
+    pub fn peek(&self) -> SpriteVram {
+        self.cached_image.clone()
     }
 
     #[must_use]
@@ -322,25 +312,25 @@ impl AnimationIterator {
 }
 
 impl Iterator for AnimationIterator {
-    type Item = &'static Sprite;
+    type Item = SpriteVram;
 
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.frame;
 
-        match self.tag.direction {
+        let sprite = match self.tag.direction {
             Direction::Forward => {
                 self.frame += 1;
                 if self.frame >= self.tag.sprites.len() as i32 {
                     self.frame = 0;
                 }
-                Some(self.tag.sprite(current as usize))
+                self.tag.sprite(current as usize)
             }
             Direction::Backward => {
                 self.frame -= 1;
                 if self.frame < 0 {
                     self.frame = self.tag.sprites.len() as i32 - 1;
                 }
-                Some(self.tag.sprite(current as usize))
+                self.tag.sprite(current as usize)
             }
             Direction::PingPong => {
                 self.frame += 1;
@@ -350,12 +340,15 @@ impl Iterator for AnimationIterator {
 
                 if current >= self.tag.sprites.len() as i32 {
                     let idx = self.tag.sprites.len() * 2 - current as usize - 2;
-                    Some(self.tag.sprite(idx))
+                    self.tag.sprite(idx)
                 } else {
-                    Some(self.tag.sprite(current as usize))
+                    self.tag.sprite(current as usize)
                 }
             }
-        }
+        };
+
+        self.cached_image = sprite.into();
+        Some(self.cached_image.clone())
     }
 }
 
@@ -403,6 +396,7 @@ impl Tag {
     /// information
     pub fn iter(&'static self) -> AnimationIterator {
         AnimationIterator {
+            cached_image: self.sprite(0).into(),
             frame: match self.direction {
                 Direction::Forward | Direction::PingPong => 0,
                 Direction::Backward => self.sprites.len() as i32 - 1,
@@ -539,14 +533,11 @@ mod tests {
             };
 
             AnimationIterator {
+                cached_image: TAG.sprite(0).into(),
                 frame: 0,
                 tag: &TAG,
             }
         }};
-    }
-
-    fn as_ptr(a: &'static Sprite) -> *const Sprite {
-        a as *const _
     }
 
     #[test_case]
@@ -554,13 +545,10 @@ mod tests {
         let mut iterator = create_iterator!(3, Direction::Forward);
 
         let mut assert_is_at_idx = |idx: usize| {
-            assert_eq!(
-                iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.tag.sprite(idx)))
-            );
+            iterator.next();
+            assert_eq!(iterator.frame, idx as i32);
         };
 
-        assert_is_at_idx(0);
         assert_is_at_idx(1);
         assert_is_at_idx(2);
         assert_is_at_idx(0);
@@ -574,13 +562,10 @@ mod tests {
         let mut iterator = create_iterator!(3, Direction::Backward);
 
         let mut assert_is_at_idx = |idx: usize| {
-            assert_eq!(
-                iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.tag.sprite(idx)))
-            );
+            iterator.next();
+            assert_eq!(iterator.frame, idx as i32);
         };
 
-        assert_is_at_idx(0);
         assert_is_at_idx(2);
         assert_is_at_idx(1);
         assert_is_at_idx(0);
@@ -594,24 +579,17 @@ mod tests {
         let mut iterator = create_iterator!(3, Direction::PingPong);
 
         let mut assert_is_at_idx = |idx: usize| {
-            assert_eq!(
-                iterator.next().map(as_ptr).and_then(|s| iterator
-                    .tag
-                    .sprites
-                    .iter()
-                    .position(|x| core::ptr::eq(s, as_ptr(x)))),
-                Some(idx)
-            );
+            iterator.next();
+            assert_eq!(iterator.frame, idx as i32);
         };
 
+        assert_is_at_idx(1);
+        assert_is_at_idx(2);
+        assert_is_at_idx(3);
         assert_is_at_idx(0);
         assert_is_at_idx(1);
         assert_is_at_idx(2);
-        assert_is_at_idx(1);
-        assert_is_at_idx(0);
-        assert_is_at_idx(1);
-        assert_is_at_idx(2);
-        assert_is_at_idx(1);
+        assert_is_at_idx(3);
         assert_is_at_idx(0);
     }
 
@@ -622,13 +600,10 @@ mod tests {
         let mut iterator = iterator.repeat(3);
 
         let mut assert_is_at_idx = |idx: usize| {
-            assert_eq!(
-                iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.inner.tag.sprite(idx)))
-            );
+            iterator.next();
+            assert_eq!(iterator.inner.frame, idx as i32);
         };
 
-        assert_is_at_idx(0);
         assert_is_at_idx(0);
         assert_is_at_idx(0);
 
