@@ -34,3 +34,5 @@
 - [Blending and windows](./articles/blending_and_windows.md)
 - [DMA]()
 - [Music and sound effects](./articles/music_and_sfx.md)
+- [Unit testing](./articles/unit_tests.md)
+- [Miscellaneous](./articles/misc.md)
