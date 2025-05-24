@@ -40,9 +40,8 @@ fn main(mut gba: agb::Gba) -> ! {
             frame_count = 0;
         }
 
-        let offsets: Vec<_> = (0..160i16)
-            .map(|y| (offsets[frame_count + y as usize] * 3).floor() as i16)
-            .map(|offset| offset as u16)
+        let offsets: Vec<_> = (0..160)
+            .map(|y| (offsets[frame_count + y] * 3).floor() as u16)
             .collect();
 
         HBlankDma::new(background_id.x_scroll_dma(), &offsets).show(&mut frame);

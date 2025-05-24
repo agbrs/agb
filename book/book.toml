@@ -8,3 +8,4 @@ title = "The agb book"
 [output.html]
 playground.runnable = false
 mathjax-support = true
+additional-css = ["src/agb.css"]

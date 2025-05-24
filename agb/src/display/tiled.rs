@@ -77,7 +77,10 @@ impl RegularBackgroundId {
         unsafe { DmaControllable::new((0x0400_0010 + self.0 as usize * 4) as *mut _) }
     }
 
-    /// Control the y scroll position every scan line
+    /// Control the y scroll position every scan line.
+    ///
+    /// A thing to note here is that this is _not_ the y value drawn at each scan line.
+    /// The current scan line is added to this value, and that is the line that is rendered (you are actually controlling the y-scroll position).
     #[must_use]
     pub fn y_scroll_dma(self) -> DmaControllable<u16> {
         unsafe { DmaControllable::new((0x0400_0012 + self.0 as usize * 4) as *mut _) }

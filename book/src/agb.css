@@ -1,0 +1,18 @@
+.showcase {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.showcase img {
+    min-width: 240px;
+    border-radius: 2px;
+}
+
+.showcase-tile {
+    flex: 0 0;
+    border: 1px solid var(--quote-border);
+    background-color: var(--quote-bg);
+    padding: 3px;
+    border-radius: 3px;
+}
