@@ -60,6 +60,7 @@ code and seeing how that changes the behaviour of the example!
 - Unmanaged objects are now managed by the `GraphicsFrame` rather than `OamIterator` and now only make their changes when `.commit()` is called.
 - `ObjectUnmanaged` is now `Object`.
 - Affine objects are now a separate type `ObjectAffine`.
+- For compatibility with rust 2024, `rng::gen()` has been renamed to `rng::next_u32()`.
 
 ### Removed
 
