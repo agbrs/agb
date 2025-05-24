@@ -261,39 +261,46 @@ pub struct Tag {
 
 /// An [`AnimationIterator`] that repeats each frame of the animation a certain
 /// number of times. It is created by the [`AnimationIterator::repeat`] method.
-pub struct RepeatingAnimationIterator(u16, u16, AnimationIterator);
+pub struct RepeatingAnimationIterator {
+    remaining: u16,
+    repetitions: u16,
+    inner: AnimationIterator,
+}
 
 impl Iterator for RepeatingAnimationIterator {
     type Item = &'static Sprite;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0 -= 1;
-        if self.0 == 0 {
-            self.0 = self.1;
-            self.2.next()
+        self.remaining -= 1;
+        if self.remaining == 0 {
+            self.remaining = self.repetitions;
+            self.inner.next()
         } else {
-            Some(self.2.peek())
+            Some(self.inner.peek())
         }
     }
 }
 
 /// An infinite iterator over the frames of the animation
 #[derive(Clone, Copy)]
-pub struct AnimationIterator(i32, &'static Tag);
+pub struct AnimationIterator {
+    frame: i32,
+    tag: &'static Tag,
+}
 
 impl AnimationIterator {
     #[must_use]
     /// Gives the current sprite from the animation iterator
     pub fn peek(self) -> &'static Sprite {
-        match self.1.direction {
-            Direction::Forward | Direction::Backward => self.1.sprite(self.0 as usize),
+        match self.tag.direction {
+            Direction::Forward | Direction::Backward => self.tag.sprite(self.frame as usize),
             Direction::PingPong => {
-                let current = self.0;
-                if current >= self.1.sprites.len() as i32 {
-                    let idx = self.1.sprites.len() * 2 - current as usize - 2;
-                    self.1.sprite(idx)
+                let current = self.frame;
+                if current >= self.tag.sprites.len() as i32 {
+                    let idx = self.tag.sprites.len() * 2 - current as usize - 2;
+                    self.tag.sprite(idx)
                 } else {
-                    self.1.sprite(current as usize)
+                    self.tag.sprite(current as usize)
                 }
             }
         }
@@ -306,7 +313,11 @@ impl AnimationIterator {
     /// Panics if the number of times to repeat is zero
     pub fn repeat(self, times: u16) -> RepeatingAnimationIterator {
         assert!(times > 0);
-        RepeatingAnimationIterator(times, times, self)
+        RepeatingAnimationIterator {
+            remaining: times,
+            repetitions: times,
+            inner: self,
+        }
     }
 }
 
@@ -314,34 +325,34 @@ impl Iterator for AnimationIterator {
     type Item = &'static Sprite;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.0;
+        let current = self.frame;
 
-        match self.1.direction {
+        match self.tag.direction {
             Direction::Forward => {
-                self.0 += 1;
-                if self.0 >= self.1.sprites.len() as i32 {
-                    self.0 = 0;
+                self.frame += 1;
+                if self.frame >= self.tag.sprites.len() as i32 {
+                    self.frame = 0;
                 }
-                Some(self.1.sprite(current as usize))
+                Some(self.tag.sprite(current as usize))
             }
             Direction::Backward => {
-                self.0 -= 1;
-                if self.0 < 0 {
-                    self.0 = self.1.sprites.len() as i32 - 1;
+                self.frame -= 1;
+                if self.frame < 0 {
+                    self.frame = self.tag.sprites.len() as i32 - 1;
                 }
-                Some(self.1.sprite(current as usize))
+                Some(self.tag.sprite(current as usize))
             }
             Direction::PingPong => {
-                self.0 += 1;
-                if self.0 >= self.1.sprites.len() as i32 * 2 - 2 {
-                    self.0 = 0;
+                self.frame += 1;
+                if self.frame >= self.tag.sprites.len() as i32 * 2 - 2 {
+                    self.frame = 0;
                 }
 
-                if current >= self.1.sprites.len() as i32 {
-                    let idx = self.1.sprites.len() * 2 - current as usize - 2;
-                    Some(self.1.sprite(idx))
+                if current >= self.tag.sprites.len() as i32 {
+                    let idx = self.tag.sprites.len() * 2 - current as usize - 2;
+                    Some(self.tag.sprite(idx))
                 } else {
-                    Some(self.1.sprite(current as usize))
+                    Some(self.tag.sprite(current as usize))
                 }
             }
         }
@@ -391,13 +402,13 @@ impl Tag {
     /// divide operation but does mean you may need to keep track of more
     /// information
     pub fn iter(&'static self) -> AnimationIterator {
-        AnimationIterator(
-            match self.direction {
+        AnimationIterator {
+            frame: match self.direction {
                 Direction::Forward | Direction::PingPong => 0,
                 Direction::Backward => self.sprites.len() as i32 - 1,
             },
-            self,
-        )
+            tag: self,
+        }
     }
 
     #[doc(hidden)]
@@ -527,7 +538,10 @@ mod tests {
                 direction: $direction,
             };
 
-            AnimationIterator(0, &TAG)
+            AnimationIterator {
+                frame: 0,
+                tag: &TAG,
+            }
         }};
     }
 
@@ -542,7 +556,7 @@ mod tests {
         let mut assert_is_at_idx = |idx: usize| {
             assert_eq!(
                 iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.1.sprite(idx)))
+                Some(as_ptr(iterator.tag.sprite(idx)))
             );
         };
 
@@ -562,7 +576,7 @@ mod tests {
         let mut assert_is_at_idx = |idx: usize| {
             assert_eq!(
                 iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.1.sprite(idx)))
+                Some(as_ptr(iterator.tag.sprite(idx)))
             );
         };
 
@@ -582,7 +596,7 @@ mod tests {
         let mut assert_is_at_idx = |idx: usize| {
             assert_eq!(
                 iterator.next().map(as_ptr).and_then(|s| iterator
-                    .1
+                    .tag
                     .sprites
                     .iter()
                     .position(|x| core::ptr::eq(s, as_ptr(x)))),
@@ -610,7 +624,7 @@ mod tests {
         let mut assert_is_at_idx = |idx: usize| {
             assert_eq!(
                 iterator.next().map(as_ptr),
-                Some(as_ptr(iterator.2.1.sprite(idx)))
+                Some(as_ptr(iterator.inner.tag.sprite(idx)))
             );
         };
 
