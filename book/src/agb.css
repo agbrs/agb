@@ -66,20 +66,25 @@
         color: var(--fg);
         line-height: 1.5em;
         font-size: 0.875em;
+        overflow: hidden;
     }
 
-    #table-of-contents a:hover {
-        background-color: var(--sidebar-bg);
-        color: var(--sidebar-fg);
-    }
-
+    #table-of-contents a:hover,
     #table-of-contents a.active {
-        font-weight: bold; 
         color: var(--sidebar-active);
+        background-color: var(--sidebar-bg);
+        margin-left: -3px;
+        padding-left: 3px;
+        padding-right: 5px;
     }
 
-    #table-of-contents li.secondary {
-        font-weight: normal;
+    #table-of-contents li.secondary a {
         padding-left: 5px;
+        padding-right: 0;
+    }
+
+    #table-of-contents li.secondary a:hover,
+    #table-of-contents li.secondary a.active {
+        padding-left: 8px;
     }
 }
