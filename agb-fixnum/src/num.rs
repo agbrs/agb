@@ -624,10 +624,10 @@ impl<const N: usize> Num<i32, N> {
     ///
     /// # Panics
     /// * `N` must be even
-    /// * `self` must be positive
+    /// * `self` must be non-negative
     pub fn sqrt(self) -> Self {
         assert_eq!(N % 2, 0, "N must be even to be able to square root");
-        assert!(self.0 >= 0, "sqrt is only valid for positive numbers");
+        assert!(self.0 >= 0, "sqrt is only valid for non-negative");
         let mut d = 1 << 30;
         let mut x = self.0;
         let mut c = 0;
