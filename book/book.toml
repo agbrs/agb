@@ -9,3 +9,4 @@ title = "The agb book"
 playground.runnable = false
 mathjax-support = true
 additional-css = ["src/agb.css"]
+additional-js = ["src/agb.js"]
