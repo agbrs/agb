@@ -32,7 +32,7 @@
 - [Affine backgrounds and objects](./articles/affine.md)
 - [Text rendering](./articles/text_rendering.md)
 - [Blending and windows](./articles/blending_and_windows.md)
-- [DMA]()
+- [DMA](./articles/dma.md)
 - [Music and sound effects](./articles/music_and_sfx.md)
 - [Unit testing](./articles/unit_tests.md)
 - [Miscellaneous](./articles/misc.md)
