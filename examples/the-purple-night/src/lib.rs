@@ -25,7 +25,8 @@ use agb::{
     rng,
     sound::mixer::Frequency,
 };
-use generational_arena::Arena;
+
+type Arena<T> = slotmap::SlotMap<slotmap::DefaultKey, T>;
 
 agb::include_aseprite!(mod sprites, "gfx/objects.aseprite", "gfx/boss.aseprite");
 
