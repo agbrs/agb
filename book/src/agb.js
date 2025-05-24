@@ -1,5 +1,5 @@
+// Table of contents
 (() => {
-  // create the table of contents
   document.addEventListener("DOMContentLoaded", () => {
     // find the main content
     const mainContent = document.querySelector("#content > main");
@@ -98,4 +98,18 @@
   }
 
   window.addEventListener("scroll", markCurrentHeaderAsActive);
+})();
+
+// Make external links go to a different site
+(() => {
+  document.addEventListener("DOMContentLoaded", () => {
+    for (const aTag of document.querySelectorAll("a")) {
+      const host = new URL(aTag.href).host;
+
+      if (host !== location.host || aTag.href.includes("/examples/")) {
+        aTag.target = "_blank";
+        aTag.rel = "noopener";
+      }
+    }
+  });
 })();
