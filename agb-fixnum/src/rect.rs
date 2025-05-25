@@ -306,7 +306,10 @@ mod test {
     fn test_rect_clamp_point() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(10, 10));
         assert_eq!(rect.clamp_point(Vector2D::new(5, 5)), Vector2D::new(5, 5));
-        assert_eq!(rect.clamp_point(Vector2D::new(-5, 15)), Vector2D::new(0, 10));
+        assert_eq!(
+            rect.clamp_point(Vector2D::new(-5, 15)),
+            Vector2D::new(0, 10)
+        );
     }
 
     #[test]

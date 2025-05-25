@@ -443,7 +443,10 @@ mod test {
     fn test_fast_magnitude() {
         let n: Vector2D<Num<i32, 16>> = (3, 4).into();
         let result = n.fast_magnitude();
-        assert!((result - (num!(4) * num!(0.960433870103) + num!(3) * num!(0.397824734759))).abs() < num!(0.1));
+        assert!(
+            (result - (num!(4) * num!(0.960433870103) + num!(3) * num!(0.397824734759))).abs()
+                < num!(0.1)
+        );
     }
 
     #[test]
