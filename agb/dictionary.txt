@@ -57,6 +57,8 @@ libelf
 proc
 asefile
 subcrates
+doctest
+doctests
 
 ### GBA hardware terms ###
 
