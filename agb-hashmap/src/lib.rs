@@ -989,20 +989,20 @@ mod test {
     use super::*;
 
     #[test]
-    fn can_create_with_size(){
+    fn can_create_with_size() {
         let map: HashMap<i32, i32, Global> = HashMap::with_size_in(2, Global);
         assert_eq!(map.len(), 0);
     }
 
     #[test]
-    fn can_create_with_capacity(){
+    fn can_create_with_capacity() {
         let map: HashMap<i32, i32, Global> = HashMap::with_capacity_in(0, Global);
         assert_eq!(map.len(), 0);
     }
 
     #[test]
     #[should_panic]
-    fn cannot_create_with_overflows(){
+    fn cannot_create_with_overflows() {
         let _ = HashMap::<i32, i32, Global>::with_capacity_in((1 << 31) * 3 / 5, Global);
     }
 
@@ -1092,7 +1092,7 @@ mod test {
     }
 
     #[test]
-    fn can_entry_or_insert(){
+    fn can_entry_or_insert() {
         let mut map = HashMap::new();
         map.insert(1, 10);
         let v = map.entry(1).or_insert(20);
@@ -1100,7 +1100,7 @@ mod test {
     }
 
     #[test]
-    fn can_entry_or_insert_with(){
+    fn can_entry_or_insert_with() {
         let mut map = HashMap::new();
         map.insert(3, 15);
         let v = map.entry(3).or_insert_with(|| 25);
@@ -1108,7 +1108,7 @@ mod test {
     }
 
     #[test]
-    fn can_entry_or_insert_with_key(){
+    fn can_entry_or_insert_with_key() {
         let mut map = HashMap::new();
         map.insert(5, 50);
         let v = map.entry(5).or_insert_with_key(|k| k * 10);
@@ -1116,7 +1116,7 @@ mod test {
     }
 
     #[test]
-    fn can_entry_or_default_for_existing_key(){
+    fn can_entry_or_default_for_existing_key() {
         let mut map = HashMap::new();
         map.insert(9, 9);
         let v = map.entry(9).or_default();
@@ -1124,7 +1124,7 @@ mod test {
     }
 
     #[test]
-    fn can_entry_or_default_for_missing_key(){
+    fn can_entry_or_default_for_missing_key() {
         let mut map = HashMap::new();
         let v = map.entry(10).or_default();
         assert_eq!(*v, 0);
@@ -1355,7 +1355,7 @@ mod test {
     }
 
     #[test]
-    fn test_value_mut(){
+    fn test_value_mut() {
         let mut map = HashMap::new();
         map.insert("x", 1);
         for v in map.values_mut() {
@@ -1365,7 +1365,7 @@ mod test {
     }
 
     #[test]
-    fn test_iter_mut(){
+    fn test_iter_mut() {
         let mut map = HashMap::new();
         map.insert(1, 1);
         map.insert(2, 2);
@@ -1599,7 +1599,7 @@ mod test {
     }
 
     #[test]
-    fn test_fast_mod(){
+    fn test_fast_mod() {
         let h = HashType(10);
         assert_eq!(h.fast_mod(8), 2);
     }

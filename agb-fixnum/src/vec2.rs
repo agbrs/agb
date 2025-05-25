@@ -432,7 +432,7 @@ mod test {
     }
 
     #[test]
-    fn test_vector_manhattan_distance(){
+    fn test_vector_manhattan_distance() {
         let v = Vector2D::<i32> { x: -3, y: 4 };
         assert_eq!(v.manhattan_distance(), 7);
         let v2 = Vector2D::<i32>::default();
@@ -440,14 +440,14 @@ mod test {
     }
 
     #[test]
-    fn test_fast_magnitude(){
+    fn test_fast_magnitude() {
         let n: Vector2D<Num<i32, 16>> = (3, 4).into();
         let result = n.fast_magnitude();
         assert!((result - (num!(4) * num!(0.960433870103) + num!(3) * num!(0.397824734759))).abs() < num!(0.1));
     }
 
     #[test]
-    fn test_normalise(){
+    fn test_normalise() {
         let n: Vector2D<Num<i32, 16>> = (3, 4).into();
         let result = n.normalise();
         assert!((result.x - num!(3) / num!(5)).abs() < num!(0.1));
@@ -455,7 +455,7 @@ mod test {
     }
 
     #[test]
-    fn test_fast_normalise(){
+    fn test_fast_normalise() {
         let n: Vector2D<Num<i32, 16>> = (3, 4).into();
         let mag = n.fast_magnitude();
         let result = n.fast_normalise();
@@ -464,7 +464,7 @@ mod test {
     }
 
     #[test]
-    fn test_vector_new_from_angle(){
+    fn test_vector_new_from_angle() {
         let angle: Num<i32, 8> = Default::default();
         let vec = Vector2D::<Num<i32, 8>>::new_from_angle(angle);
         assert_eq!(vec.x, Num::<i32, 8>::from_f64(1.0));

@@ -909,7 +909,7 @@ mod test {
     }
 
     #[test]
-    fn test_new_from_parts(){
+    fn test_new_from_parts() {
         let n = Num::<i32, 4>::new_from_parts((2, 1 << 26));
         assert_eq!(n.to_raw(), (2 << 4) + 1);
     }
@@ -924,7 +924,7 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn sqrt_must_be_positive(){
+    fn sqrt_must_be_positive() {
         let n: Num<i32, 8> = Num::new(-1);
         let _ = n.sqrt();
     }

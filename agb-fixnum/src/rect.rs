@@ -274,7 +274,7 @@ mod test {
     }
 
     #[test]
-    fn test_rect_contains_point(){
+    fn test_rect_contains_point() {
         let rect1: Rect<i32> = Rect::new(Vector2D::new(-1, -1), Vector2D::new(2, 2));
         assert!(rect1.contains_point(Vector2D::default()));
         let rect2: Rect<i32> = Rect::new(Vector2D::new(1, 1), Vector2D::new(2, 2));
@@ -282,7 +282,7 @@ mod test {
     }
 
     #[test]
-    fn test_rect_touches(){
+    fn test_rect_touches() {
         let a: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(2, 2));
         let b: Rect<i32> = Rect::new(Vector2D::new(1, 1), Vector2D::new(2, 2));
         let c: Rect<i32> = Rect::new(Vector2D::new(3, 3), Vector2D::new(1, 1));
@@ -291,7 +291,7 @@ mod test {
     }
 
     #[test]
-    fn test_rect_overlapping(){
+    fn test_rect_overlapping() {
         let a: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(2, 2));
         let b: Rect<i32> = Rect::new(Vector2D::new(3, 3), Vector2D::new(1, 1));
         assert_eq!(a.overlapping_rect(b), None);
@@ -303,44 +303,44 @@ mod test {
     }
 
     #[test]
-    fn test_rect_clamp_point(){
+    fn test_rect_clamp_point() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(10, 10));
         assert_eq!(rect.clamp_point(Vector2D::new(5, 5)), Vector2D::new(5, 5));
         assert_eq!(rect.clamp_point(Vector2D::new(-5, 15)), Vector2D::new(0, 10));
     }
 
     #[test]
-    fn test_rect_top_left(){
+    fn test_rect_top_left() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(3, 4), Vector2D::new(1, 1));
         assert_eq!(rect.top_left(), Vector2D::new(3, 4));
     }
 
     #[test]
-    fn test_rect_top_right(){
+    fn test_rect_top_right() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
         assert_eq!(rect.top_right(), Vector2D::new(4, 2));
     }
 
     #[test]
-    fn test_rect_bottom_left(){
+    fn test_rect_bottom_left() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
         assert_eq!(rect.bottom_left(), Vector2D::new(1, 6));
     }
 
     #[test]
-    fn test_rect_bottom_right(){
+    fn test_rect_bottom_right() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
         assert_eq!(rect.bottom_right(), Vector2D::new(4, 6));
     }
 
     #[test]
-    fn test_rect_centre(){
+    fn test_rect_centre() {
         let rect: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(4, 6));
         assert_eq!(rect.centre(), Vector2D::new(2, 3));
     }
 
     #[test]
-    fn test_rect_abs(){
+    fn test_rect_abs() {
         let rect = Rect::new(Vector2D::new(1_i32, 2_i32), Vector2D::new(3_i32, 4_i32));
         let result = rect.abs();
         assert_eq!(result.position, Vector2D::new(1_i32, 2_i32));
