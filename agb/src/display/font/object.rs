@@ -11,7 +11,6 @@ use super::LetterGroup;
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 /// use agb::display::{
@@ -27,6 +26,7 @@ use super::LetterGroup;
 /// };
 /// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 ///
+/// # #[agb::doctest]
 /// # fn test(mut gba: agb::Gba) {
 /// let mut text_elements = Vec::new();
 ///

@@ -11,9 +11,9 @@ use bitflags::bitflags;
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// use agb::input::Tri;
 ///
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// let x = 5;
 /// let tri = Tri::Positive; // e.g. from button_controller.x_tri()

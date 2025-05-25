@@ -6,8 +6,8 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../doctest_runner.rs");
 //! use agb::display::GraphicsFrame;
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //!
 //! let mut my_game = MyGame::new();
@@ -127,8 +127,8 @@ impl GraphicsDist {
 /// ```rust,no_run
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../doctest_runner.rs");
 /// # use agb::Gba;
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// use agb::display::{
 ///     Priority,

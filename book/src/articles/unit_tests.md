@@ -83,4 +83,30 @@ Any test which uses `assert_image_output()` will automatically take a few frames
 
 ## Doc tests
 
-Currently there is no supported mechanism of running `agb` doc tests, so you will need to mark all your code blocks in documentation comments as [`no_run`](https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#attributes).
+To write a doctest for your game in `agb`, create a function and mark it with the [`#[agb::doctest]`](https://docs.rs/agb/latest/agb/attr.doctest.html) attribute macro.
+
+````rust
+/// This is a cool rust function with some epic documentation which is checked
+/// at compile time and the doctest will run when running the tests.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// #
+/// # #[agb::doctest]
+/// # fn test(gba: agb::Gba) {
+/// assert_eq!(my_crate::my_cool_function(), 7);
+/// # }
+/// ```
+fn my_cool_function() -> i32 {
+    return 7;
+}
+````
+
+You probably want to hide the boilerplate for the doctest as shown above to make it easier for your users to understand the relevant section.
+
+These will run by default when running the `cargo test` command listed above, and you can run them explicitly with
+
+```sh
+CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test --doc
+```

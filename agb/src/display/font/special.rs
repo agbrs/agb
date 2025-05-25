@@ -68,12 +68,12 @@ impl Display for ChangeColour {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// extern crate alloc;
 /// use agb::display::font::{Font, Layout, Tag, AlignmentKind};
 /// use agb::include_font;
 /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
 ///
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// static MY_TAG: Tag = Tag::new(7);
 /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());

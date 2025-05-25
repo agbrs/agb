@@ -204,9 +204,9 @@ impl DynamicTile16 {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// core::include!("../../doctest_runner.rs");
     /// use agb::display::tiled::DynamicTile16;
     ///
+    /// # #[agb::doctest]
     /// # fn test(gba: agb::Gba) {
     /// let my_new_tile = DynamicTile16::new().fill_with(0);
     /// # }

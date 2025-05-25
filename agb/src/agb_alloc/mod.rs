@@ -76,7 +76,7 @@ pub(crate) use impl_zst_allocator;
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../doctest_runner.rs");
+/// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {
 /// extern crate alloc;
 ///
@@ -111,7 +111,7 @@ impl_zst_allocator!(ExternalAllocator, GLOBAL_ALLOC);
 /// #![feature(allocator_api)]
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../doctest_runner.rs");
+/// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {
 /// extern crate alloc;
 ///

@@ -282,7 +282,7 @@ unsafe fn interrupt_to_root(interrupt: Interrupt) -> &'static InterruptRoot {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// use critical_section::CriticalSection;
 /// use agb::interrupt::{add_interrupt_handler, Interrupt};
@@ -353,9 +353,9 @@ static HAS_CREATED_INTERRUPT: AtomicBool = AtomicBool::new(false);
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// use agb::interrupt::VBlank;
 ///
+/// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {
 /// let vblank = VBlank::get();
 ///

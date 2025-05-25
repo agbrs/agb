@@ -24,8 +24,7 @@ pub fn eprintln(args: Arguments) {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
-/// #
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// agb::println!("Hello, World!");
 ///
@@ -48,8 +47,8 @@ macro_rules! println {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// #
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// agb::eprintln!("error: Could not load save file");
 /// # }
