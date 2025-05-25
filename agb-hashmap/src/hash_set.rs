@@ -97,7 +97,7 @@ impl<K, ALLOCATOR: ClonableAllocator> HashSet<K, ALLOCATOR> {
     ///
     /// # Panics
     ///
-    /// Panics if capacity is larger than 2^32 * .85
+    /// Panics if capacity >= 2^31 * 0.6
     #[must_use]
     pub fn with_capacity_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         Self {
