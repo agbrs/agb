@@ -285,6 +285,25 @@ macro_rules! include_font {
 /// ```
 pub use agb_macros::entry;
 
+/// This macro can be used to write a doc test
+///
+/// If you want to write a doc test using agb, use this macro.
+/// You probably want to hide the use of `doctest` in your actual code (see the other examples in the agb codebase).
+/// It works very similarly to [`agb::entry`](entry), except that the function should return or the test will run forever.
+///
+/// You still need to include the `#![no_std]` and `#![no_main]` or it won't compile.
+///
+/// ```rust
+/// #![no_std]
+/// #![no_main]
+///
+/// #[agb::doctest]
+/// fn test(gba: agb::Gba) {
+///     assert_eq!(1, 1);
+/// }
+/// ```
+pub use agb_macros::doctest;
+
 #[doc(hidden)]
 pub use agb_sound_converter::include_wav as include_wav_inner;
 
