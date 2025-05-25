@@ -433,7 +433,7 @@ mod test {
 
     #[test]
     fn test_vector_manhattan_distance(){
-        let mut v = Vector2D::<i32> { x: -3, y: 4 };
+        let v = Vector2D::<i32> { x: -3, y: 4 };
         assert_eq!(v.manhattan_distance(), 7);
         let v2 = Vector2D::<i32>::default();
         assert_eq!(v2.manhattan_distance(), 0);
