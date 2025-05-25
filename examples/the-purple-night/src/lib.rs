@@ -1876,11 +1876,18 @@ impl Game {
                 }
                 UpdateInstruction::None => {}
             }
-            enemy.entity.show(frame, this_frame_offset);
+        }
+
+        for i in remove {
+            self.enemies.remove(i);
         }
 
         self.player.show(frame, this_frame_offset);
         self.boss.show(frame, this_frame_offset);
+
+        for enemy in self.enemies.values_mut() {
+            enemy.entity.show(frame, this_frame_offset);
+        }
 
         let background_offset = vec2(this_frame_offset.floor().x, 8);
 
@@ -1919,10 +1926,6 @@ impl Game {
                         as usize],
                 )
             });
-
-        for i in remove {
-            self.enemies.remove(i);
-        }
 
         let mut remove = Vec::with_capacity(10);
 
