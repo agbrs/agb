@@ -125,6 +125,33 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
+#[proc_macro_attribute]
+pub fn doctest(args: TokenStream, input: TokenStream) -> TokenStream {
+    let f: ItemFn = match syn::parse(input.clone()) {
+        Ok(it) => it,
+        Err(_) => return input,
+    };
+
+    let fn_name = f.sig.ident.clone();
+
+    entry(
+        args,
+        quote! {
+            fn doctest_main(gba: agb::Gba) -> ! {
+                #f
+
+                #fn_name(gba);
+                agb::println!("Tests finished successfully");
+
+                loop {
+                    agb::halt();
+                }
+            }
+        }
+        .into(),
+    )
+}
+
 fn hashed_ident<T: Hash>(f: &T) -> Ident {
     let hash = calculate_hash(f);
     Ident::new(&format!("_agb_main_func_{hash}"), Span::call_site())
