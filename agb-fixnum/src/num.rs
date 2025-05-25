@@ -926,7 +926,7 @@ mod test {
     #[should_panic]
     fn sqrt_must_be_positive(){
         let n: Num<i32, 8> = Num::new(-1);
-        n.sqrt();
+        let _ = n.sqrt();
     }
 
     #[test]
