@@ -69,9 +69,9 @@ unsafe extern "C" {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 /// # }
@@ -82,9 +82,9 @@ unsafe extern "C" {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # let mut gfx = gba.graphics.get();
@@ -132,9 +132,9 @@ pub struct Mixer<'gba> {
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
@@ -226,9 +226,9 @@ impl Mixer<'_> {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
+    /// # #[agb::doctest]
     /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # let mut gfx = gba.graphics.get();
@@ -269,9 +269,9 @@ impl Mixer<'_> {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
+    /// # #[agb::doctest]
     /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
@@ -319,9 +319,9 @@ impl Mixer<'_> {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
+    /// # #[agb::doctest]
     /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// # static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");

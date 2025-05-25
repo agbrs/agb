@@ -145,7 +145,6 @@ impl TileSetting {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../doctest_runner.rs");
     /// use agb::{
     ///     display::Priority,
     ///     display::tiled::{
@@ -157,6 +156,7 @@ impl TileSetting {
     ///
     /// agb::include_background_gfx!(mod water_tiles, tiles => "examples/water_tiles.png");
     ///
+    /// # #[agb::doctest]
     /// # fn test(gba: agb::Gba) {
     /// let mut bg = RegularBackground::new(Priority::P0, RegularBackgroundSize::Background32x32, water_tiles::tiles.tiles.format());
     ///

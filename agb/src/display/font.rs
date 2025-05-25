@@ -27,11 +27,11 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../doctest_runner.rs");
 //! use agb::display::font::{Layout, AlignmentKind, Font};
 //!
 //! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 //!
+//! # #[agb::doctest]
 //! # fn test(_: agb::Gba) {
 //! let mut layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 32, 200);
 //!
@@ -54,7 +54,6 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../doctest_runner.rs");
 //! extern crate alloc;
 //! use alloc::vec::Vec;
 //! use agb::display::{
@@ -69,7 +68,7 @@
 //!     &Palette16::new(palette)
 //! };
 //! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
-//!
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //! let mut text_elements = Vec::new();
 //!
@@ -101,7 +100,6 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../doctest_runner.rs");
 //! use agb::display::{
 //!     Palette16, Rgb15, Priority,
 //!     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
@@ -115,6 +113,7 @@
 //! };
 //! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 //!
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //! VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
 //! let mut bg = RegularBackground::new(

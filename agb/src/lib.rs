@@ -192,7 +192,6 @@
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// use agb::{
 ///     display::{
 ///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackground, VRAM_MANAGER},
@@ -206,6 +205,7 @@
 ///     BEACH => "examples/gfx/beach-background.aseprite",
 /// );
 ///
+/// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
 ///
@@ -253,10 +253,11 @@ pub use agb_image_converter::include_aseprite_256_inner;
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// use agb::{display::font::Font, include_font};
 ///
 /// static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
+///
+/// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {}
 /// ```
 macro_rules! include_font {
@@ -323,10 +324,10 @@ pub use agb_sound_converter::include_wav as include_wav_inner;
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("doctest_runner.rs");
 /// use agb::{sound::mixer::SoundData, include_wav};
 ///
 /// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
+/// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {}
 /// ```
 #[macro_export]

@@ -12,7 +12,6 @@ use crate::{
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// use agb::display::{
 ///     Palette16, Rgb15, Priority,
 ///     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
@@ -26,6 +25,7 @@ use crate::{
 /// };
 /// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 ///
+/// # #[agb::doctest]
 /// # fn test(mut gba: agb::Gba) {
 /// VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
 /// let mut bg = RegularBackground::new(

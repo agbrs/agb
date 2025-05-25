@@ -259,7 +259,6 @@ impl RegularBackground {
     /// ```rust
     /// # #![no_main]
     /// # #![no_std]
-    /// # core::include!("../../doctest_runner.rs");
     /// use agb::{
     ///     display::{
     ///         Priority,
@@ -270,6 +269,7 @@ impl RegularBackground {
     ///
     /// include_background_gfx!(mod logo, logo => deduplicate "examples/gfx/test_logo.aseprite");
     ///
+    /// # #[agb::doctest]
     /// # fn test(gba: agb::Gba) {
     /// VRAM_MANAGER.set_background_palettes(logo::PALETTES);
     /// let mut bg = RegularBackground::new(Priority::P0, RegularBackgroundSize::Background32x32, TileFormat::FourBpp);

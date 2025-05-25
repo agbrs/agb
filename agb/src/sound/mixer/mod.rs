@@ -31,8 +31,9 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../../doctest_runner.rs");
 //! use agb::sound::mixer::Frequency;
+//!
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 //! # }
@@ -55,8 +56,8 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../../doctest_runner.rs");
 //! use agb::sound::mixer::Frequency;
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //! let mut mixer = gba.mixer.mixer(Frequency::Hz10512);
 //! let vblank = agb::interrupt::VBlank::get();
@@ -77,7 +78,7 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! # core::include!("../../doctest_runner.rs");
+//! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
 //! # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 //! # let vblank = agb::interrupt::VBlank::get();
@@ -233,12 +234,12 @@ unsafe impl Sync for SoundData {}
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// static MY_BGM: SoundData = include_wav!("examples/sfx/my_bgm.wav");
 ///
 /// // somewhere in code
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let mut bgm = SoundChannel::new_high_priority(MY_BGM);
@@ -252,13 +253,13 @@ unsafe impl Sync for SoundData {}
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// # core::include!("../../doctest_runner.rs");
 /// # use agb::sound::mixer::*;
 /// # use agb::*;
 /// // in global scope:
 /// static JUMP_SOUND: SoundData = include_wav!("examples/sfx/jump.wav");
 ///
 /// // somewhere in code
+/// # #[agb::doctest]
 /// # fn test(mut gba: Gba) {
 /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
 /// let jump_sound = SoundChannel::new(JUMP_SOUND);
@@ -296,9 +297,9 @@ impl SoundChannel {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
+    /// # #[agb::doctest]
     /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
@@ -341,9 +342,9 @@ impl SoundChannel {
     /// ```rust
     /// # #![no_std]
     /// # #![no_main]
-    /// # core::include!("../../doctest_runner.rs");
     /// # use agb::sound::mixer::*;
     /// # use agb::*;
+    /// # #[agb::doctest]
     /// # fn test(mut gba: Gba) {
     /// # let mut mixer = gba.mixer.mixer(agb::sound::mixer::Frequency::Hz10512);
     /// // in global scope:
