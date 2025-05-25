@@ -229,7 +229,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     ///
     /// # Panics
     ///
-    /// Panics if capacity is larger than 2^32 * .85
+    /// Panics if capacity >= 2^31 * 0.6
     #[must_use]
     pub fn with_capacity_in(capacity: usize, alloc: ALLOCATOR) -> Self {
         for i in 0..32 {
@@ -989,6 +989,24 @@ mod test {
     use super::*;
 
     #[test]
+    fn can_create_with_size() {
+        let map: HashMap<i32, i32, Global> = HashMap::with_size_in(2, Global);
+        assert_eq!(map.len(), 0);
+    }
+
+    #[test]
+    fn can_create_with_capacity() {
+        let map: HashMap<i32, i32, Global> = HashMap::with_capacity_in(0, Global);
+        assert_eq!(map.len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn cannot_create_with_overflows() {
+        let _ = HashMap::<i32, i32, Global>::with_capacity_in((1 << 31) * 3 / 5, Global);
+    }
+
+    #[test]
     fn can_store_and_retrieve_8_elements() {
         let mut map = HashMap::new();
 
@@ -1071,6 +1089,46 @@ mod test {
         for i in 0..65 {
             assert_eq!(map.get(&i), Some(&(i % 4)));
         }
+    }
+
+    #[test]
+    fn can_entry_or_insert() {
+        let mut map = HashMap::new();
+        map.insert(1, 10);
+        let v = map.entry(1).or_insert(20);
+        assert_eq!(*v, 10);
+    }
+
+    #[test]
+    fn can_entry_or_insert_with() {
+        let mut map = HashMap::new();
+        map.insert(3, 15);
+        let v = map.entry(3).or_insert_with(|| 25);
+        assert_eq!(*v, 15);
+    }
+
+    #[test]
+    fn can_entry_or_insert_with_key() {
+        let mut map = HashMap::new();
+        map.insert(5, 50);
+        let v = map.entry(5).or_insert_with_key(|k| k * 10);
+        assert_eq!(*v, 50);
+    }
+
+    #[test]
+    fn can_entry_or_default_for_existing_key() {
+        let mut map = HashMap::new();
+        map.insert(9, 9);
+        let v = map.entry(9).or_default();
+        assert_eq!(*v, 9);
+    }
+
+    #[test]
+    fn can_entry_or_default_for_missing_key() {
+        let mut map = HashMap::new();
+        let v = map.entry(10).or_default();
+        assert_eq!(*v, 0);
+        assert_eq!(map.get(&10), Some(&0));
     }
 
     struct NoisyDrop {
@@ -1297,6 +1355,28 @@ mod test {
     }
 
     #[test]
+    fn test_value_mut() {
+        let mut map = HashMap::new();
+        map.insert("x", 1);
+        for v in map.values_mut() {
+            *v += 1;
+        }
+        assert_eq!(map.get(&"x"), Some(&2));
+    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut map = HashMap::new();
+        map.insert(1, 1);
+        map.insert(2, 2);
+        for (k, v) in map.iter_mut() {
+            *v += *k;
+        }
+        assert_eq!(map.get(&1), Some(&2));
+        assert_eq!(map.get(&2), Some(&4));
+    }
+
+    #[test]
     fn test_retain() {
         let mut map = HashMap::new();
 
@@ -1516,6 +1596,12 @@ mod test {
             assert!(map_str == "{1: 2, 3: 4}" || map_str == "{3: 4, 1: 2}");
             assert_eq!(format!("{empty:?}"), "{}");
         }
+    }
+
+    #[test]
+    fn test_fast_mod() {
+        let h = HashType(10);
+        assert_eq!(h.fast_mod(8), 2);
     }
 
     #[cfg(not(miri))]
