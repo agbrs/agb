@@ -14,8 +14,6 @@ mod registers;
 mod regular_background;
 mod vram_manager;
 
-use core::marker::PhantomData;
-
 use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
     AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, AffineMatrixBackground,
@@ -326,31 +324,8 @@ struct AffineBackgroundData {
     commit_data: Option<AffineBackgroundCommitData>,
 }
 
-pub(crate) struct TiledBackground<'gba> {
-    _phantom: PhantomData<&'gba ()>,
-}
-
-impl TiledBackground<'_> {
-    pub(crate) unsafe fn new() -> Self {
-        Self {
-            _phantom: PhantomData,
-        }
-    }
-
-    pub(crate) fn iter(&mut self) -> BackgroundFrame<'_> {
-        BackgroundFrame {
-            _phantom: PhantomData,
-            num_regular: 0,
-            regular_backgrounds: Default::default(),
-            num_affine: 0,
-            affine_backgrounds: Default::default(),
-        }
-    }
-}
-
-pub(crate) struct BackgroundFrame<'bg> {
-    _phantom: PhantomData<&'bg ()>,
-
+#[derive(Default)]
+pub(crate) struct BackgroundFrame {
     num_regular: usize,
     regular_backgrounds: [RegularBackgroundData; 4],
 
@@ -358,7 +333,7 @@ pub(crate) struct BackgroundFrame<'bg> {
     affine_backgrounds: [AffineBackgroundData; 2],
 }
 
-impl BackgroundFrame<'_> {
+impl BackgroundFrame {
     fn set_next_regular(&mut self, data: RegularBackgroundData) -> RegularBackgroundId {
         let bg_index = self.next_regular_index();
 
@@ -400,7 +375,7 @@ impl BackgroundFrame<'_> {
         index + 2 // first affine BG is bg2
     }
 
-    pub fn commit(mut self) {
+    pub fn commit(&mut self) {
         let video_mode = self.num_affine as u16;
         let enabled_backgrounds =
             ((1u16 << self.num_regular) - 1) | (((1 << self.num_affine) - 1) << 2);
@@ -411,11 +386,6 @@ impl BackgroundFrame<'_> {
         display_control_register.set_forced_blank(false);
 
         DISPLAY_CONTROL.set(display_control_register);
-
-        // It seems weird to put the GC call here, but the `commit_data` could be the last pointer to the
-        // actual tile data we want to show, and we want to ensure that all tiles that we're about to print stay alive
-        // until the next call to commit.
-        VRAM_MANAGER.gc();
 
         for (i, regular_background) in self
             .regular_backgrounds
@@ -431,7 +401,7 @@ impl BackgroundFrame<'_> {
             let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 4) };
             bg_y_offset.set(regular_background.scroll_offset.y);
 
-            if let Some(commit_data) = regular_background.commit_data.take() {
+            if let Some(commit_data) = regular_background.commit_data.as_ref() {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
@@ -457,7 +427,7 @@ impl BackgroundFrame<'_> {
             let affine_transform_offset = unsafe { MemoryMapped::new(0x0400_0020 + (i - 2) * 16) };
             affine_transform_offset.set(affine_background.affine_transform);
 
-            if let Some(commit_data) = affine_background.commit_data.take() {
+            if let Some(commit_data) = affine_background.commit_data.as_ref() {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }

@@ -67,7 +67,7 @@ use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
 use alloc::boxed::Box;
 use bilge::prelude::*;
 
-use tiled::{BackgroundFrame, DisplayControlRegister, TiledBackground};
+use tiled::{BackgroundFrame, DisplayControlRegister, VRAM_MANAGER};
 
 use object::{Oam, OamFrame, initilise_oam};
 
@@ -115,7 +115,7 @@ impl GraphicsDist {
     /// Get the [`Graphics`] from the [`Gba`](crate::Gba) struct.
     pub fn get(&mut self) -> Graphics<'_> {
         unsafe { initilise_oam() };
-        Graphics::new(Oam::new(), unsafe { TiledBackground::new() }, VBlank::get())
+        Graphics::new(Oam::new(), VBlank::get())
     }
 }
 
@@ -156,7 +156,6 @@ impl GraphicsDist {
 /// ```
 pub struct Graphics<'gba> {
     oam: Oam<'gba>,
-    tiled: TiledBackground<'gba>,
     others: Others,
 }
 
@@ -171,10 +170,9 @@ struct Others {
 }
 
 impl<'gba> Graphics<'gba> {
-    fn new(oam: Oam<'gba>, tiled: TiledBackground<'gba>, vblank: VBlank) -> Self {
+    fn new(oam: Oam<'gba>, vblank: VBlank) -> Self {
         Self {
             oam,
-            tiled,
             others: Others { vblank, dma: None },
         }
     }
@@ -186,7 +184,7 @@ impl<'gba> Graphics<'gba> {
     pub fn frame(&mut self) -> GraphicsFrame<'_> {
         GraphicsFrame {
             oam_frame: self.oam.frame(),
-            bg_frame: self.tiled.iter(),
+            bg_frame: BackgroundFrame::default(),
             blend: Blend::new(),
             windows: Windows::new(),
             next_dma: None,
@@ -205,7 +203,7 @@ impl<'gba> Graphics<'gba> {
 /// or [`Object::show`](object::Object::show).
 pub struct GraphicsFrame<'frame> {
     pub(crate) oam_frame: OamFrame<'frame>,
-    pub(crate) bg_frame: BackgroundFrame<'frame>,
+    pub(crate) bg_frame: BackgroundFrame,
     blend: Blend,
     windows: Windows,
     next_dma: Option<Box<dyn DmaFrame>>,
@@ -234,6 +232,11 @@ impl GraphicsFrame<'_> {
         if let Some(dma) = self.others.dma.as_mut() {
             dma.commit();
         }
+
+        // the bg_frame for this frame is still valid, so the GC won't remove anything that
+        // is actually still visible, but will remove as much as possible to leave room for
+        // the next frame's graphics.
+        VRAM_MANAGER.gc();
     }
 
     /// Control the blending for this frame.
