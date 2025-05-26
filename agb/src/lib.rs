@@ -41,6 +41,9 @@
 //! A more detailed walkthrough can be found in [the book](https://agbrs.dev/book), or you can play with the
 //! [interactive examples](https://agbrs.dev/examples) to get a better feel of what's possible.
 
+// needed to be able to refer to this crate as `agb`
+extern crate self as agb;
+
 /// Include background tiles from a png, bmp or aseprite file.
 ///
 /// This macro is used to convert a png, bmp or aseprite file into a format usable by the Game Boy Advance.
@@ -605,14 +608,6 @@ pub mod test_runner {
             mgba::DebugLevel::Info,
         )
         .unwrap();
-    }
-
-    // needed to fudge the #[entry] below
-    #[cfg(test)]
-    mod agb {
-        pub mod test_runner {
-            pub use super::super::agb_start_tests;
-        }
     }
 
     #[cfg(test)]

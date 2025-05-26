@@ -9,7 +9,7 @@ use syn::{parse_macro_input, punctuated::Punctuated};
 use std::collections::HashMap;
 use std::{path::Path, str};
 
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
 
 mod aseprite;
 mod colour;
@@ -111,23 +111,12 @@ impl Parse for BackgroundGfxOption {
 struct IncludeBackgroundGfxInput {
     module_name: syn::Ident,
     visibility: syn::Visibility,
-    crate_prefix: String,
     transparent_colour: Colour,
     background_gfx_options: Vec<BackgroundGfxOption>,
 }
 
 impl Parse for IncludeBackgroundGfxInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        let crate_prefix: syn::Ident = if lookahead.peek(Token![crate]) {
-            let _: Token![crate] = input.parse()?;
-            let _: Token![,] = input.parse()?;
-            format_ident!("crate")
-        } else {
-            format_ident!("agb")
-        };
-
         let visibility: syn::Visibility = input.parse()?;
 
         let _: Token![mod] = input.parse()?;
@@ -152,7 +141,6 @@ impl Parse for IncludeBackgroundGfxInput {
         Ok(Self {
             module_name,
             visibility,
-            crate_prefix: crate_prefix.to_string(),
             transparent_colour,
             background_gfx_options: background_gfx_options.into_iter().collect(),
         })
@@ -160,10 +148,6 @@ impl Parse for IncludeBackgroundGfxInput {
 }
 
 impl config::Config for IncludeBackgroundGfxInput {
-    fn crate_prefix(&self) -> String {
-        self.crate_prefix.clone()
-    }
-
     fn images(&self) -> HashMap<String, &dyn config::Image> {
         self.background_gfx_options
             .iter()
@@ -247,14 +231,12 @@ fn include_gfx_from_config(
             image,
             parent,
             image_name,
-            &config.crate_prefix(),
             &optimisation_results,
             assignment_offset,
         ));
     }
 
-    let palette_code =
-        rust_generator::generate_palette_code(&optimisation_results, &config.crate_prefix());
+    let palette_code = rust_generator::generate_palette_code(&optimisation_results);
 
     let module = quote! {
         #visibility mod #module_name {
@@ -337,7 +319,6 @@ fn convert_image(
     settings: &dyn config::Image,
     parent: &Path,
     variable_name: &str,
-    crate_prefix: &str,
     optimisation_results: &Palette16OptimisationResults,
     assignment_offset: Option<usize>,
 ) -> proc_macro2::TokenStream {
@@ -350,7 +331,6 @@ fn convert_image(
         optimisation_results,
         &image,
         &image_filename.to_string_lossy(),
-        crate_prefix.to_owned(),
         assignment_offset,
         deduplicate,
     )
