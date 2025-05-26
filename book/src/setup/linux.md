@@ -13,10 +13,19 @@ If you have already installed rustup, you can update it with `rustup update`.
 
 The source code for the game is hosted on github, so you will need to install git.
 
-* On Debian and derivatives (like Ubuntu): `sudo apt install git`
-* On Arch Linux and derivatives: `pacman -S git`
+- On Debian and derivatives (like Ubuntu): `sudo apt install git`
+- On Arch Linux and derivatives: `sudo pacman -S git`
+- On Fedora: `sudo dnf install git`
 
-# 3. gbafix
+# 3. mGBA
+
+We recommend using the mGBA emulator, which is available on most distro's repositories.
+
+- On Debian and derivatives (like Ubuntu): `sudo apt install mgba-qt`
+- On Arch Linux and derivatives: `sudo pacman -S mgba-qt`
+- On Fedora, you can get it from [a flatpak](https://flathub.org/apps/io.mgba.mGBA)
+
+# 4. gbafix
 
 In order to be able to play games made with agb on real hardware or on some emulators, you will need to install 'agb-gbafix'.
 Agb's implementation can be installed very easily using `cargo install agb-gbafix`.
