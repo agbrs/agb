@@ -15,6 +15,7 @@ The source code for the game is hosted on github, so you will need to install gi
 
 - On Debian and derivatives (like Ubuntu): `sudo apt install git`
 - On Arch Linux and derivatives: `sudo pacman -S git`
+- On Fedora: `sudo dnf install git`
 
 # 3. mGBA
 
@@ -22,6 +23,7 @@ We recommend using the mGBA emulator, which is available on most distro's reposi
 
 - On Debian and derivatives (like Ubuntu): `sudo apt install mgba-qt`
 - On Arch Linux and derivatives: `sudo pacman -S mgba-qt`
+- On Fedora, you can get it from [a flatpak](https://flathub.org/apps/io.mgba.mGBA)
 
 # 4. gbafix
 
