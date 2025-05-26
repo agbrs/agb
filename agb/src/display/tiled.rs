@@ -412,11 +412,6 @@ impl BackgroundFrame<'_> {
 
         DISPLAY_CONTROL.set(display_control_register);
 
-        // It seems weird to put the GC call here, but the `commit_data` could be the last pointer to the
-        // actual tile data we want to show, and we want to ensure that all tiles that we're about to print stay alive
-        // until the next call to commit.
-        VRAM_MANAGER.gc();
-
         for (i, regular_background) in self
             .regular_backgrounds
             .iter_mut()
@@ -431,7 +426,7 @@ impl BackgroundFrame<'_> {
             let bg_y_offset = unsafe { MemoryMapped::new(0x0400_0012 + i * 4) };
             bg_y_offset.set(regular_background.scroll_offset.y);
 
-            if let Some(commit_data) = regular_background.commit_data.take() {
+            if let Some(commit_data) = regular_background.commit_data.as_ref() {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
@@ -457,11 +452,13 @@ impl BackgroundFrame<'_> {
             let affine_transform_offset = unsafe { MemoryMapped::new(0x0400_0020 + (i - 2) * 16) };
             affine_transform_offset.set(affine_background.affine_transform);
 
-            if let Some(commit_data) = affine_background.commit_data.take() {
+            if let Some(commit_data) = affine_background.commit_data.as_ref() {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
             }
         }
+
+        VRAM_MANAGER.gc();
     }
 }
