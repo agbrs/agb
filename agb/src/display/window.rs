@@ -249,7 +249,7 @@ mod test {
         test_runner::assert_image_output,
     };
 
-    include_background_gfx!(crate, mod background,
+    include_background_gfx!(mod background,
         LOGO => deduplicate "gfx/test_logo.aseprite",
         LOGO_256 => 256 "gfx/test_logo.aseprite",
     );

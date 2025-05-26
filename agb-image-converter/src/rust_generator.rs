@@ -9,32 +9,27 @@ use quote::{format_ident, quote};
 use std::collections::BTreeMap;
 use std::iter;
 
-pub(crate) fn generate_palette_code(
-    results: &Palette16OptimisationResults,
-    crate_prefix: &str,
-) -> TokenStream {
-    let crate_prefix = format_ident!("{}", crate_prefix);
-
+pub(crate) fn generate_palette_code(results: &Palette16OptimisationResults) -> TokenStream {
     let palettes = results.optimised_palettes.iter().map(|palette| {
         let colours = palette
             .clone()
             .into_iter()
             .map(|colour| {
                 let rgb15 = colour.to_rgb15();
-                quote!(#crate_prefix::display::Rgb15(#rgb15))
+                quote!(agb::display::Rgb15(#rgb15))
             })
-            .chain(iter::repeat(quote!(#crate_prefix::display::Rgb15(0))))
+            .chain(iter::repeat(quote!(agb::display::Rgb15(0))))
             .take(16);
 
         quote! {
-            #crate_prefix::display::Palette16::new([
+            agb::display::Palette16::new([
                 #(#colours),*
             ])
         }
     });
 
     quote! {
-        pub static PALETTES: &[#crate_prefix::display::Palette16] = &[#(#palettes),*];
+        pub static PALETTES: &[agb::display::Palette16] = &[#(#palettes),*];
     }
 }
 
@@ -43,11 +38,9 @@ pub(crate) fn generate_code(
     results: &Palette16OptimisationResults,
     image: &Image,
     image_filename: &str,
-    crate_prefix: String,
     assignment_offset: Option<usize>,
     deduplicate: bool,
 ) -> TokenStream {
-    let crate_prefix = format_ident!("{}", crate_prefix);
     let output_variable_name = format_ident!("{}", output_variable_name);
 
     let width = image.width / 8;
@@ -115,20 +108,20 @@ pub(crate) fn generate_code(
         let index = data.new_index as u16;
 
         quote! {
-            #crate_prefix::display::tiled::TileSetting::new(#index, #crate_prefix::display::tiled::TileEffect::new(#hflipped, #vflipped, #palette_assignment))
+            agb::display::tiled::TileSetting::new(#index, agb::display::tiled::TileEffect::new(#hflipped, #vflipped, #palette_assignment))
         }
     });
 
     let data = ByteString(&tile_data);
     let tile_format = if assignment_offset.is_some() {
-        quote! { #crate_prefix::display::tiled::TileFormat::FourBpp }
+        quote! { agb::display::tiled::TileFormat::FourBpp }
     } else {
-        quote! { #crate_prefix::display::tiled::TileFormat::EightBpp }
+        quote! { agb::display::tiled::TileFormat::EightBpp }
     };
 
     quote! {
         #[allow(non_upper_case_globals)]
-        pub static #output_variable_name: #crate_prefix::display::tile_data::TileData = {
+        pub static #output_variable_name: agb::display::tile_data::TileData = {
             const _: &[u8] = include_bytes!(#image_filename);
 
             const TILE_DATA: &[u8] = {
@@ -145,13 +138,13 @@ pub(crate) fn generate_code(
                 &ALIGNED.bytes
             };
 
-            const TILE_SET: #crate_prefix::display::tiled::TileSet = #crate_prefix::display::tiled::TileSet::new(TILE_DATA, #tile_format);
+            const TILE_SET: agb::display::tiled::TileSet = agb::display::tiled::TileSet::new(TILE_DATA, #tile_format);
 
-            const TILE_SETTINGS: &[#crate_prefix::display::tiled::TileSetting] = &[
+            const TILE_SETTINGS: &[agb::display::tiled::TileSetting] = &[
                 #(#tile_settings),*
             ];
 
-            #crate_prefix::display::tile_data::TileData::new(TILE_SET, TILE_SETTINGS, #width, #height)
+            agb::display::tile_data::TileData::new(TILE_SET, TILE_SETTINGS, #width, #height)
         };
     }
 }
