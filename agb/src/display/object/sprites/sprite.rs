@@ -259,15 +259,18 @@ pub struct Tag {
     direction: Direction,
 }
 
-/// An [`AnimationIterator`] that repeats each frame of the animation a certain
-/// number of times. It is created by the [`AnimationIterator::repeat`] method.
-pub struct RepeatingAnimationIterator {
+/// An animation of a Tag
+///
+/// This can be used instead of [`Tag::animation_sprite`] if you are worried
+/// about the divide that is required in there. Rather than using a divide, this
+/// uses a simple branch.
+pub struct Animation {
     remaining: u16,
     repetitions: u16,
     inner: AnimationIterator,
 }
 
-impl RepeatingAnimationIterator {
+impl Animation {
     /// Gets the next frame of the animation
     pub fn frame(&mut self) -> SpriteVram {
         self.remaining -= 1;
@@ -286,7 +289,7 @@ impl RepeatingAnimationIterator {
     }
 }
 
-impl Iterator for RepeatingAnimationIterator {
+impl Iterator for Animation {
     type Item = SpriteVram;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -296,7 +299,7 @@ impl Iterator for RepeatingAnimationIterator {
 
 /// An infinite iterator over the frames of the animation
 #[derive(Clone)]
-pub struct AnimationIterator {
+struct AnimationIterator {
     cached_image: SpriteVram,
     frame: i32,
     tag: &'static Tag,
@@ -314,9 +317,9 @@ impl AnimationIterator {
     ///
     /// # Panics
     /// Panics if the number of times to repeat is zero
-    pub fn repeat(self, times: u16) -> RepeatingAnimationIterator {
+    pub fn repeat(self, times: u16) -> Animation {
         assert!(times > 0);
-        RepeatingAnimationIterator {
+        Animation {
             remaining: times,
             repetitions: times,
             inner: self,
@@ -412,7 +415,7 @@ impl Tag {
     /// efficient than calling [`Self::animation_sprite`] due to not using a
     /// divide operation but does mean you may need to keep track of more
     /// information
-    pub fn iter(&'static self) -> AnimationIterator {
+    pub fn animation(&'static self, repetitions: u16) -> Animation {
         AnimationIterator {
             cached_image: self.sprite(0).into(),
             frame: match self.direction {
@@ -421,6 +424,7 @@ impl Tag {
             },
             tag: self,
         }
+        .repeat(repetitions)
     }
 
     #[doc(hidden)]
