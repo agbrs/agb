@@ -13,13 +13,13 @@
 
 use agb::{
     display::{
-        Priority,
+        GraphicsFrame, Priority,
         tiled::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, TileSetting,
             VRAM_MANAGER,
         },
     },
-    fixnum::{Num, Rect, Vector2D},
+    fixnum::{Num, Rect, Vector2D, vec2},
     include_background_gfx,
 };
 
@@ -34,6 +34,15 @@ impl Level {
         let idx = (tile.x + tile.y * self.width as i32) as usize;
 
         self.collision_map[idx / 8] & (1 << (idx % 8)) != 0
+    }
+}
+
+impl Level {
+    fn bounds(&self) -> Rect<i32> {
+        Rect::new(
+            vec2(0, 0),
+            vec2(self.width as i32 - 1, self.height as i32 - 1),
+        )
     }
 }
 
@@ -71,40 +80,51 @@ impl Player {
     // }
 }
 
+struct World {
+    level: &'static Level,
+    bg: InfiniteScrolledMap,
+}
+
+impl World {
+    fn new(level: &'static Level) -> Self {
+        let bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
+        let bg = InfiniteScrolledMap::new(bg);
+
+        World { level, bg }
+    }
+
+    fn set_pos(&mut self, pos: Vector2D<i32>) {
+        self.bg.set_scroll_pos(pos, |pos| {
+            let tile = if self.level.bounds().contains_point(pos) {
+                self.level.background[pos.x as usize + pos.y as usize * self.level.width as usize]
+            } else {
+                TileSetting::BLANK
+            };
+
+            (&tiles::TILES.tiles, tile)
+        });
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        self.bg.show(frame);
+    }
+}
+
 // The main function must take 0 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly.
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    let mut level = 0;
-
-    let bg = RegularBackground::new(
-        Priority::P0,
-        RegularBackgroundSize::Background32x32,
-        TileFormat::FourBpp,
-    );
-    let mut bg = InfiniteScrolledMap::new(bg);
-
     VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    let mut bg = World::new(levels::LEVELS[0]);
 
     loop {
-        let current_level = levels::LEVELS[level];
-
-        bg.set_scroll_pos((0, 0), |pos| {
-            let tile = if pos.x < 0
-                || pos.x >= current_level.width as i32
-                || pos.y < 0
-                || pos.y >= current_level.height as i32
-            {
-                TileSetting::BLANK
-            } else {
-                current_level.background
-                    [pos.x as usize + pos.y as usize * current_level.width as usize]
-            };
-
-            (&tiles::TILES.tiles, tile)
-        });
+        bg.set_pos(vec2(0, 0));
 
         let mut frame = gfx.frame();
 

@@ -24,6 +24,7 @@
 - [Learn agb part II - platformer](./platformer/01_introduction.md)
   - [Tiled](./platformer/02_tiled.md)
   - [Importing Tiled levels](./platformer/03_importing_tiled_levels.md)
+  - [Displaying the level](./platformer/04_displaying_the_level.md)
 
 # Articles
 
