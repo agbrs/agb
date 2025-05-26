@@ -192,7 +192,7 @@ impl Blend {
         self.brightness.set(value);
     }
 
-    pub(crate) fn commit(self) {
+    pub(crate) fn commit(&self) {
         BLEND_CONTROL.set(self.blend_control);
         BLEND_ALPHA.set(self.alpha);
         BLEND_BRIGHTNESS.set(self.brightness);
