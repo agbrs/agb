@@ -267,17 +267,30 @@ pub struct RepeatingAnimationIterator {
     inner: AnimationIterator,
 }
 
+impl RepeatingAnimationIterator {
+    /// Gets the next frame of the animation
+    pub fn frame(&mut self) -> SpriteVram {
+        self.remaining -= 1;
+        if self.remaining == 0 {
+            self.remaining = self.repetitions;
+            self.inner.frame()
+        } else {
+            self.inner.peek()
+        }
+    }
+
+    #[must_use]
+    /// Gets the current frame without advancing
+    pub fn peek(&self) -> SpriteVram {
+        self.inner.peek()
+    }
+}
+
 impl Iterator for RepeatingAnimationIterator {
     type Item = SpriteVram;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.remaining -= 1;
-        if self.remaining == 0 {
-            self.remaining = self.repetitions;
-            self.inner.next()
-        } else {
-            Some(self.inner.peek())
-        }
+        Some(self.frame())
     }
 }
 
@@ -309,12 +322,9 @@ impl AnimationIterator {
             inner: self,
         }
     }
-}
 
-impl Iterator for AnimationIterator {
-    type Item = SpriteVram;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    /// Gets the next frame of the animation
+    pub fn frame(&mut self) -> SpriteVram {
         let current = self.frame;
 
         let sprite = match self.tag.direction {
@@ -348,7 +358,15 @@ impl Iterator for AnimationIterator {
         };
 
         self.cached_image = sprite.into();
-        Some(self.cached_image.clone())
+        self.cached_image.clone()
+    }
+}
+
+impl Iterator for AnimationIterator {
+    type Item = SpriteVram;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.frame())
     }
 }
 
