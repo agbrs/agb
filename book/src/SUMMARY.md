@@ -11,16 +11,16 @@
 
 # Tutorials
 
-- [Learn agb part I - pong](./pong/01_introduction.md)
-  - [The Gba struct](./pong/02_the_gba_struct.md)
-  - [Sprites](./pong/03_sprites.md)
-  - [Meta Sprites](./pong/05_meta_sprites.md)
-  - [Paddle movement](./pong/06_paddle_movement.md)
-  - [Paddle collision](./pong/07_paddle_collision.md)
-  - [Backgrounds](./pong/09_background.md)
-  - [Fixnums](./pong/10_fixnums.md)
-  - [Background music](./pong/11_bgm.md)
-  - [Keeping score](./pong/12_keeping_score.md)
+- [Learn agb part I - pong](./pong/00_introduction.md)
+  - [The Gba struct](./pong/01_the_gba_struct.md)
+  - [Sprites](./pong/02_sprites.md)
+  - [Meta Sprites](./pong/03_meta_sprites.md)
+  - [Paddle movement](./pong/04_paddle_movement.md)
+  - [Paddle collision](./pong/05_paddle_collision.md)
+  - [Backgrounds](./pong/06_background.md)
+  - [Fixnums](./pong/07_fixnums.md)
+  - [Background music](./pong/08_bgm.md)
+  - [Keeping score](./pong/09_keeping_score.md)
 
 # Articles
 
