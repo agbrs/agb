@@ -2,12 +2,12 @@
 
 An object is a sprite drawn to an arbitrary part of the screen.
 They are typically used for anything that moves such as characters and NPCs.
-All objects can be flipped and affine objects can have an affine transformation applied to them that can rotate and scale them.
+All objects can be flipped and affine objects can have an [affine](./affine.md) transformation applied to them that can rotate and scale them.
 
-## Importing sprites
+# Importing sprites
 
 Sprites are imported from aseprite files.
-Aseprite is an excellent pixel sprite editor that can be acquired for low cost or compiled yourself for free.
+[Aseprite](https://www.aseprite.org) is an excellent pixel sprite editor that can be acquired for around $20 or compiled yourself for free.
 It also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
 [The aseprite documentation contains detail on tags.](https://www.aseprite.org/docs/tags/)
 This makes it very useful for creating art for use by agb.
@@ -22,18 +22,21 @@ agb::include_aseprite!(mod sprites, "sprites.aseprite", "other_sprites.aseprite"
 
 This will create a module called `sprites` that contains `static`s corresponding to every tag in the provided aseprite files as an agb [`Tag`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html).
 
-You can import 255 colour sprites using the [`include_aseprite_256`](https://docs.rs/agb/latest/agb/macro.include_aseprite_256.html) macro similarly.
+You can also import 255 colour sprites using the [`include_aseprite_256`](https://docs.rs/agb/latest/agb/macro.include_aseprite_256.html) macro, which has the same syntax as `include_aseprite!()`.
 You have 15 colour and 255 colours because the 0th index of the palette is always fully transparent.
 
-## ROM and VRAM
+Similar to backgrounds, 255 colour sprites take twice the amount of video RAM and cartridge ROM space, so prefer using 15 colour sprites as they are faster to copy and you will be able to have more of them on screen at once.
+
+# ROM and VRAM
 
 Sprites must be in VRAM to be displayed on screen.
 The [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) type represents a sprite in VRAM.
 This implements the `From` trait from [`&'static Sprite`](https://docs.rs/agb/latest/agb/display/object/struct.Sprite.html).
-The `From` implementation will deduplicate the sprites in VRAM, this means that you can repeatedly use the same sprite and it won't blow up your VRAM usage.
+The `From` implementation will deduplicate the sprites in VRAM, this means that you can repeatedly use the same sprite and it'll only use the space in VRAM once.
+
 This deduplication does have the performance implication of requiring a HashMap lookup, although for many games this will a rather small penalty.
 By storing and reusing the [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) you can avoid this lookup.
-Furthermore, [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) is reference counted, so `Clone`ing it is cheap and doesn't allocate more `VRAM`.
+Furthermore, [`SpriteVram`](https://docs.rs/agb/latest/agb/display/object/struct.SpriteVram.html) is reference counted, so `Clone`ing it is cheap and doesn't allocate more VRAM.
 
 ```rust
 use agb::display::object::SpriteVram;
@@ -44,7 +47,7 @@ let sprite = SpriteVram::from(sprites::IDLE.sprite(0));
 let clone = sprite.clone();
 ```
 
-## Regular objects
+# Regular objects
 
 When you have a sprite, you will want to display it to the screen.
 This is an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html).
@@ -64,7 +67,7 @@ fn chicken(frame: &mut GraphicsFrame) {
 }
 ```
 
-## Affine objects
+# Affine objects
 
 Affine objects can be rotated and scaled by an affine transformation.
 These objects are created using the [`ObjectAffine`](https://docs.rs/agb/latest/agb/display/object/struct.ObjectAffine.html) type.
@@ -96,28 +99,41 @@ Affine objects have two display modes, the regular and the double modes.
 The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off anything outside of the regular bounding box.
 You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
 
-## Dynamic sprites
+# Dynamic sprites
 
 A dynamic sprite is a sprite whose data is defined during runtime rather than at compile time.
-Agb has two kinds of dynamic sprites: [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and [`DynamicSprite256`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite256.html).
+`agb` has two kinds of dynamic sprites: [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and [`DynamicSprite256`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite256.html).
 These are naturally for sprites that use a single palette and those that use multiple.
 
-The easiest way to create a dynamic sprite is through the relevant type, for example here is creating a [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and setting a couple of pixels.
+The easiest way to create a dynamic sprite is through the relevant type, here is an example of creating a [`DynamicSprite16`](https://docs.rs/agb/latest/agb/display/object/struct.DynamicSprite16.html) and setting a couple of pixels.
 
 ```rust
-use agb::display::object::{DynamicSprite16, Size};
+use agb::display::{
+    Palette16, Rgb15,
+    object::{DynamicSprite16, Size},
+};
 
 let mut sprite = DynamicSprite16::new(Size::S8x8);
+static PALETTE: Palette16 = const {
+    let mut palette = [Rgb15::BLACK; 16];
+    palette[1] = Rgb15::WHITE;
+    Palette16::new(palette)
+};
 
 sprite.set_pixel(4, 4, 1);
 sprite.set_pixel(5, 5, 1);
 
-let in_vram = sprite.to_vram(todo!());
+let in_vram = sprite.to_vram(&PALETTE);
 ```
 
 And you could then go on to use the sprite however you like with [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) as normal.
+For example
 
-## How to handle the camera position?
+```rust
+Object::new(in_vram).set_pos((10, 10)).show(&mut frame);
+```
+
+# How to handle the camera position?
 
 In many games, you will have objects both in screen space and in world space.
 You will find that to correctly draw objects to the screen you will need to convert world space coordinates to screen spaces coordinates before showing it.
@@ -148,6 +164,6 @@ While you can get the position of an [`Object`](https://docs.rs/agb/latest/agb/d
 The precision that positions are stored in the [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html) are enough to be displayed to the screen and not much more.
 Trying to use this for world coordinates will fail.
 
-## See also
+# See also
 
 - The pong tutorial goes over the [basics of sprites](../pong/03_sprites.md).
