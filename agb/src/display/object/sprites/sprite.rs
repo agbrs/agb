@@ -410,6 +410,43 @@ impl Tag {
         }
     }
 
+    /// Takes an index shifts by the divider, if the index is out of bounds of
+    /// the Tag then it will be reset to zero. This is incredibly useful for
+    /// animating sprites efficiently.
+    pub fn animation_frame(&self, idx: &mut usize, divider: u32) -> &'static Sprite {
+        let divided = *idx >> divider;
+        let idx = match self.direction {
+            Direction::Forward => {
+                if divided >= self.sprites.len() {
+                    *idx = 0;
+                    0
+                } else {
+                    divided
+                }
+            }
+            Direction::Backward => {
+                if divided >= self.sprites.len() {
+                    *idx = 0;
+                    self.sprites.len() - 1
+                } else {
+                    self.sprites.len() - 1 - divided
+                }
+            }
+            Direction::PingPong => {
+                if divided >= (self.sprites.len() - 1) * 2 {
+                    *idx = 0;
+                    0
+                } else if divided >= self.sprites.len() {
+                    (self.sprites.len() - 1) * 2 - divided
+                } else {
+                    divided
+                }
+            }
+        };
+
+        &self.sprites[idx]
+    }
+
     #[must_use]
     /// An iterator over the frames of the animation iterator. This is more
     /// efficient than calling [`Self::animation_sprite`] due to not using a
