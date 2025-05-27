@@ -4,10 +4,10 @@ In this section we're going to add some music and sound effects to the game to m
 
 First we'll put some sound effects when the ball hits a paddle, and then we'll add some background music.
 
-## Audio in agb
+# Audio in agb
 
 In `agb`, audio is managed through the [`Mixer`](https://docs.rs/agb/latest/agb/sound/mixer/struct.Mixer.html).
-Create a mixer from the `gba` struct, passing through the frequency you intend to use.
+Create a mixer from the `Gba` struct, passing through the frequency you intend to use.
 For this section, we'll use 32768Hz.
 
 Get yourself a mixer by adding this near the beginning of your `main` function.
@@ -18,19 +18,18 @@ use agb::sound::mixer::Frequency;
 let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 ```
 
-Just before the loop, you'll want to enable the mixer.
-It is best not to enable it too soon, because as soon as you enable the mixer, you should start calling
-[`mixer.frame()`](https://docs.rs/agb/latest/agb/sound/mixer/struct.Mixer.html#method.frame).
-Failing to do so will cause the audio to skip.
+In order to update the mixer and keep it playing audio constantly without skipping, you need to call the
+[`mixer.frame()`](https://docs.rs/agb/latest/agb/sound/mixer/struct.Mixer.html#method.frame) method every frame.
+
 It is best to call this right before `frame.commit()`.
-So let's do this now and add
+So let's do this now and add:
 
 ```rust
 mixer.frame(); // new code here
 frame.commit();
 ```
 
-## Generating the wav files
+# Generating the wav files
 
 `agb` can only play `wav` files.
 You can download the file from [here](ball-paddle-hit.wav), or generate the same sound yourself on [sfxr](https://sfxr.me/#57uBnWbcktkrVgQNCAgSRbsJfYTWqQacVxoPWQ2mduecQZiZfcMwFF6jp4vQs185AwzxKsDDp4dc4p5fLGnQfNpA7dHvnZYBDDWPuH34JrhczFyZq74yWYW3H).
@@ -45,9 +44,9 @@ You can use `ffmpeg` to convert to a file with the correct frequency with a comm
 ffmpeg -i ~/Downloads/laserShoot.wav -ar 32768 sfx/ball-paddle-hit.wav
 ```
 
-## Importing the sound effect
+# Importing the sound effect
 
-Import the wav file using [`include_wav`](https://docs.rs/agb/latest/agb/macro.include_wav.html).
+Import the wav file using [`include_wav!()`](https://docs.rs/agb/latest/agb/macro.include_wav.html).
 
 ```rust
 use agb::{include_wav, mixer::SoundData};
@@ -55,7 +54,7 @@ use agb::{include_wav, mixer::SoundData};
 static BALL_PADDLE_HIT: SoundData = include_wav!("sfx/ball-paddle-hit.wav");
 ```
 
-## Playing the sound effect
+# Playing the sound effect
 
 To play a sound effect, you need to create a [`SoundChannel`](https://docs.rs/agb/latest/agb/sound/mixer/struct.SoundChannel.html).
 
@@ -128,5 +127,4 @@ Next we'll add score tracking and finish off the game.
 
 ## Exercise
 
-- Add a new sound effect for when the ball hits the wall rather than a paddle.
-- Add another new sound effect for when the ball hits the back wall and the player looses.
+Add a new sound effect for when the ball hits the wall rather than a paddle.

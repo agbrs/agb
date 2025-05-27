@@ -9,11 +9,11 @@ You may want to reach out to [floating point numbers](https://en.wikipedia.org/w
 
 The Game Boy Advance doesn't have a [floating point unit](https://en.wikipedia.org/wiki/Floating-point_unit),
 so all work with floating point numbers is done in software, which is really slow, especially on the 16MHz processor of the console.
-Even simple operations like addition of two floating point numbers will take 100s of CPU cycles, so ideally we'd avoid needing to use that.
+Even simple operations, like addition of two floating point numbers will take 100s of CPU cycles, so ideally we'd avoid needing to use that.
 
 The solution to this problem used by almost every Game Boy Advance game is to use 'fixed point numbers' rather than floating point numbers.
 
-## Preliminary refactor
+# Preliminary refactor
 
 Before we go to put fixed point numbers in the game, we need to do a quick change to pull the ball into its own struct.
 
@@ -76,7 +76,7 @@ ball.update(&paddle_a, &paddle_b);
 
 Since we've kept the `.show()` pattern, you don't need to update the call to `ball.show()`.
 
-## Using fixnums
+# Using fixnums
 
 Fixed point numbers (fixnums) store a fixed number of bits for the fractional part of the number, rather than how floating point numbers are stored.
 This allows for very fast addition and multiplication, but you can't store very large or very small numbers any more.
@@ -134,14 +134,14 @@ fn show(&self, frame: &mut GraphicsFrame) {
 }
 ```
 
-It is best to use [`.round()`](https://docs.rs/agb/lastest/agb/fixnum/struct.Vector2D.html#method.round) rather than `.floor()` for converting from fixnums back to integers because it works better when approaching integer locations (will become more relevant if you add some smooth animations in future).
+It is best to use [`.round()`](https://docs.rs/agb/lastest/agb/fixnum/struct.Vector2D.html#method.round) rather than `.floor()` for converting from fixnums back to integers because it works better when approaching integer locations (which becomes more relevant if you add some smooth animations in future).
 
 The call to `paddle_a.move_by()` needs updating using `Fixed::from(...)` rather than `num!(...)` because the [`num!()`](https://docs.rs/agb/latest/agb/fixnum/macro.num.html) macro requires a constant value.
 
 Once you've done all these changes and the code now compiles, if you run the game, it will be exactly the same as before.
 However, we'll now take advantage of those fixed point numbers.
 
-## More dynamic movement
+# More dynamic movement
 
 Let's first make the ball move less vertically by setting the initial ball velocity to `0.5`.
 
@@ -175,16 +175,16 @@ And something similar for the `paddle_b` case.
 
 Now the game feels a lot more dynamic where the game changes depending on where you hit the ball.
 
-## What we did
+# What we did
 
 We learned the basics of using fixed point numbers, and made the game feel more interesting by making the ball movement depend on how you hit it.
 Next we'll add some sound effects and background music to make the game feel a bit more dynamic.
 
-## Exercise
+# Exercise
 
 Change the velocity calculations to instead change the angle but keep the speed the same.
 Then make the ball speed up a bit after each hit so that eventually you won't be able to always return the ball.
 
-## See also
+# See also
 
 The [fixnum deep dive article](../articles/fixed_point_numbers.md).

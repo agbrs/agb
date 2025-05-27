@@ -2,7 +2,7 @@
 
 It is possible to write unit tests using `agb`.
 
-## Installing the `mgba-test-runner` (technically optional)
+# Installing the `mgba-test-runner` (technically optional)
 
 Firstly you'll need to install the `mgba-test-runner` which requires `cmake` and `libelf` installed via whichever mechanism you use to manage software, along with a C and C++ compiler.
 
@@ -12,7 +12,7 @@ Then run
 cargo install --git https://github.com/agbrs/agb.git mgba-test-runner
 ```
 
-## Running unit tests
+# Running unit tests
 
 Running just `cargo test` will launch the test in `mgba`, which isn't particularly useful.
 To run the test using the test runner installed in step 1, use the following command:
@@ -21,7 +21,7 @@ To run the test using the test runner installed in step 1, use the following com
 CARGO_TARGET_THUMBV4T_NONE_EABI_RUNNER=mgba-test-runner cargo test
 ```
 
-## Writing unit tests
+# Writing unit tests
 
 If you don't already have this in your `main.rs` file from the template, you need the following at the top to enable the custom test framework.
 
@@ -64,7 +64,7 @@ fn test_background_shows_correctly(gba: &mut Gba) {
 If the mentioned `png` file doesn't exist, then the `mgba-test-runner` will create the file.
 Subsequent runs will compare the current screen with the expected result and fail the test if it doesn't match.
 
-## Interpreting test output
+# Interpreting test output
 
 When running unit tests, you'll get output that looks similar to this:
 
@@ -81,7 +81,7 @@ This means it took `1,757,950` CPU cycles to run the test, or about `0.1` second
 
 Any test which uses `assert_image_output()` will automatically take a few frames.
 
-## Doc tests
+# Doc tests
 
 To write a doctest for your game in `agb`, create a function and mark it with the [`#[agb::doctest]`](https://docs.rs/agb/latest/agb/attr.doctest.html) attribute macro.
 

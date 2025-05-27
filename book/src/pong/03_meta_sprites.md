@@ -89,7 +89,7 @@ We used multiple sprites to form one game object of a paddle. We also added
 convenience around the use of the paddle to make creating a paddle and setting
 its position easy.
 
-In the next section, we'll cover handling collision between the ball and the paddle.
+In the next section, we'll allow the player paddle to move around.
 
 # Exercise
 

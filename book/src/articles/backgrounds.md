@@ -16,7 +16,7 @@ The following sections build up an example showing a simple scene.
 If you want to follow along, you can download `beach-background.aseprite` from [here](https://github.com/agbrs/agb/blob/master/agb/examples/gfx/beach-background.aseprite).
 Copy this into a `gfx` folder in the same directory as the `src` directory for your project.
 
-## Tile set importing
+# Tile set importing
 
 In order to display tiles on the screen, we'll first need to import it into the game.
 A collection of imported tiles is referred to as a [`TileSet`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSet.html).
@@ -38,7 +38,7 @@ This creates a `background` module which contains a tileset named `BEACH`.
 The `deduplicate` parameter means that `agb` will take tiles with the same content and merge them into the same tile.
 This saves space in the final ROM, and saves video RAM during runtime, since duplicate tiles will only appear once.
 
-## Palette setup
+# Palette setup
 
 Although the Game Boy Advance can display 32,768 colours, the background tiles are stored in either 4 bits per pixel (16 colours) or 8 bits per pixel (256 colours).
 You will need to tell the video hardware what colour to use for each of the pixels in the `TileSet`.
@@ -65,7 +65,7 @@ fn main() -> ! {
 }
 ```
 
-## `RegularBackground`
+# `RegularBackground`
 
 With a `TileSet` ready and a palette set up, we need to actually declare which tiles to show where on the screen.
 This is done using the [`RegularBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html) struct.
@@ -136,7 +136,7 @@ for y in 0..20 {
 
 Note that if you run this, you still won't get anything showing on screen until you show the background on the frame, which we'll do in the next section.
 
-## Showing a background on the screen
+# Showing a background on the screen
 
 To show a background on the screen, you'll need to to call the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show) method passing in the current [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html).
 
@@ -152,7 +152,7 @@ loop {
 }
 ```
 
-## Background scrolling
+# Background scrolling
 
 One of the key things you can use backgrounds to do is to display something scrolling.
 You can use this to make your level bigger than the world map, or to do some parallax effect in the background.
@@ -165,17 +165,17 @@ So increasing the `x` coordinate will slide the background to the right, to ensu
 Backgrounds will wrap around if they are pushed off the edge of the screen.
 See the [scrolling example](https://agbrs.dev/examples/scrolling_background) for an example of using the scroll position.
 
-## Multiple backgrounds and priorities
+# Multiple backgrounds and priorities
 
 The Game Boy Advance has the ability to show up to 4 background concurrently.
 These can be layered on top of each other to create different effects like the parallax effect above or to always show certain things above the rest of the game.
 
-### Displaying multiple backgrounds
+## Displaying multiple backgrounds
 
 You can display multiple backgrounds at once by calling the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show) method on each background passing the same [`frame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) instance.
 If you try to show more than 4 backgrounds, then the call to `.show()` will panic.
 
-### Transparency
+## Transparency
 
 When two backgrounds are rendered on top of each other, the lower background will be visible through the transparent pixels in the backgrounds above.
 Only full transparency is supported, partial transparency is ignored.
@@ -209,7 +209,7 @@ fn main() -> ! {
 There is also a special tile setting you can use in the call to [`set_tile()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.set_tile), [`TileSetting::BLANK`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html#associatedconstant.BLANK).
 This is a fully transparent tile, and if you ever want a tile in your background to be fully transparent, it is better to use this one for performance.
 
-### Priority and interaction with objects
+## Priority and interaction with objects
 
 There are 2 things which impact which background gets displayed above other ones.
 The [priority](https://docs.rs/agb/latest/agb/display/enum.Priority.html), and the order in which you call `.show()`.
@@ -221,7 +221,7 @@ You can use this to display the [Heads Up Display (HUD)](<https://en.wikipedia.o
 
 See the [hud example](https://agbrs.dev/examples/hud) for an example of how to use priorities to draw a heads up display above the scene we've been working on.
 
-## Infinite maps
+# Infinite maps
 
 Often in your game you'll want maps that are larger than the maximum background size of 64x64.
 It could be a platformer with large levels, or a large map in an RPG.
@@ -244,7 +244,7 @@ This will also use less video RAM while the game is running since we need fewer 
 
 Generally, when you're working with `InfiniteScrolledMap`s, you'll want to use 32x32 backgrounds as the underlying size, since there is very little advantage to using larger backgrounds.
 
-## 256 colours
+# 256 colours
 
 So far every example has used 16-colour tiles or 4 bits per pixel.
 Each tile in a 16-colour tile can have at most 16 colours, but you can use different palettes for each tile.
@@ -268,7 +268,7 @@ include_background_gfx!(
 Also ensure that when you create the `RegularBackground`, you pass [`TileFormat::EightBpp`](https://docs.rs/agb/latest/agb/display/tiled/enum.TileFormat.html#variant.EightBpp) (or using the `.format()` method on the tile data like we've been using in the other examples here).
 A background must be in one of `FourBpp` or `EightBpp` mode.
 
-## Tile effects
+# Tile effects
 
 Each tile in the Game Boy Advance can be flipped horizontally or vertically.
 This is controlled by the `.vflip` and `.hflip` methods on [`TileSetting`](https://docs.rs/agb/latest/agb/display/tiled/struct.TileSetting.html).
@@ -276,7 +276,7 @@ This is controlled by the `.vflip` and `.hflip` methods on [`TileSetting`](https
 You can also set the palette index using the `TileSetting`.
 But for backgrounds imported using `include_background_gfx!()` you probably don't need that, since the palettes will have been optimised and aren't guaranteed to be the same each time you compile your game.
 
-## Animated tiles
+# Animated tiles
 
 If you have some tiles you'd like to animate (such as some flowing water, or flowers blowing in the breeze), it can be quite inefficient to replace every instance of a tile with the animation every frame.
 What's much faster is just replacing the one copy of the tile that's been repeated across the background 10s or even 100s of times rather than resetting the entire tile data.
@@ -304,7 +304,7 @@ It will also not change the palette index for those tiles, so only animate tiles
 
 See [this example](https://agbrs.dev/examples/animated_background) for an example of an animated background in a very basic example.
 
-## Dynamic tiles
+# Dynamic tiles
 
 Sometimes you don't know what needs to be drawn on a tile ahead of time.
 [`DynamicTiles`](https://docs.rs/agb/latest/agb/display/tiled/struct.DynamicTile16.html) are a powerful way to show tiles whose contents are decided at runtime in your game.

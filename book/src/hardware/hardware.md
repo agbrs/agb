@@ -28,5 +28,5 @@ The relevant features for this book are:
 - 8-bit sound. You have the ability to send 8-bit raw audio data to the speakers, optionally stereo.
 
 You can read more about the specifics of the GBA on [gbatek](https://rust-console.github.io/gbatek-gbaonly/).
-To simplify the development process, agb abstracts some of the GBA's hardware away from the developer, which reduces the number of things to remember and lessens the chance of something going wrong.
+To simplify the development process, `agb` abstracts some of the GBA's hardware away from the developer, which reduces the number of things to remember and lessens the chance of something going wrong.
 If you wish to experiment with the hardware directly, the best place to look is [tonc](https://www.coranac.com/tonc/text/).

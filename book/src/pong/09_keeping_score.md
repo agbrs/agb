@@ -5,7 +5,8 @@ There is one main question when wanting to display anything to the screen on the
 
 There are advantages and disadvantages to each.
 For backgrounds, there are at most 4 on screen at once, so you need to be careful with the layering of your game to make sure you don't run out.
-With objects, the limit is 128, however RAM for objects is more limited.
+With objects, you can have at most 128 of them on the screen.
+But each unique object requires some video RAM to store the graphics information, and that doesn't have space for 128 large sprites.
 Backgrounds can be scrolled to an arbitrary location, but multiple items on a single background will be offset by the same value.
 With objects, you can put them anywhere you want on the screen.
 
@@ -14,15 +15,15 @@ For our pong game, we'll make the bad decision of displaying the player's score 
 You'll notice that in both cases we're not using a text rendering system for rendering the text.
 This is intentional, it can be quite complicated and CPU intensive to render text, so it is often left for things which have to be dynamic or translatable.
 And for this example, it's not worth learning how to render text yet with `agb`.
-Please refer to the font rendering deep-dive if you're interested in text rendering after you've finished this section.
+Please refer to the [text rendering deep-dive](../articles/text_rendering.md) if you're interested in text rendering after you've finished this section.
 
-## How the score will work in our pong game
+# How the score will work in our pong game
 
 We'll implement a simple 3 life system.
 This will be displayed using a heart icon in the top of the screen which becomes an outline after each loss.
 If you lose while you have 0 lives, you lose the game.
 
-## Tracking score
+# Tracking score
 
 Firstly, let's add the score to the `Paddle` objects:
 
@@ -47,11 +48,18 @@ if potential_ball_pos.x <= num!(0) {
 }
 ```
 
-## The player's score (backgrounds)
+# The player's score (backgrounds)
+
+<img src="./player-health-rendered.png" alt="Player score shown" class="right" />
 
 We'll use the [player-health.aseprite](./player-health.aseprite) file for the assets here.
+In this section, you'll get something similar to to what's shown on the right.
 
-### Static setup
+With the tiles marked, it looks as follows:
+
+![Player health tiles](./player-health-tiles.png)
+
+## Static setup
 
 Since we want the player's score to be displayed above the backdrop of the game, we can import the new tiles and make them available by adding them to the `include_background_gfx!()` call:
 
@@ -115,7 +123,7 @@ Object::new(sprites::BALL.sprite(0))
 
 And similarly for the 3 paddle sprites.
 
-### Dynamic setup
+## Dynamic setup
 
 Now we'll want to display the actual score.
 The full heart is in tile index 4, and the empty one is in tile index 5.
@@ -134,7 +142,7 @@ for i in 0..3 {
 
 This will put the correct number of hearts on the player's side.
 
-## The CPU's score (objects)
+# The CPU's score (objects)
 
 Download the [cpu-health.aseprite](./cpu-health.aseprite) file and add it to your `gfx` folder.
 
@@ -187,7 +195,7 @@ fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
 Running the example again you'll see the health bar for the player and the CPU, and you wouldn't be able
 to tell that they are using completely different rendering mechanisms.
 
-## What we did
+# What we did
 
 This concludes the pong game tutorial.
 In this section you've learned how to use backgrounds and objects to display dynamic information, and have a feel for how to use both for the task.
@@ -202,7 +210,7 @@ In this entire tutorial, you've learned:
 
 Next you can take a look at some of the articles to understand some of the more advanced features of the library and hardware in general.
 
-## Exercises
+# Exercises
 
 1. Add an end to the game in whatever way you see would work. Here are some suggestions:
    - Replace the backgrounds with a new one displaying a win or lose screen, and allow the player to restart the game

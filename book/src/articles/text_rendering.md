@@ -6,18 +6,21 @@ This technique can get you very far!
 For instance: text in title screens, options in menus, and any text in the HUD could (and as we will discuss, should) all be pre-rendered.
 For detail on how to do these, see the [backgrounds](./backgrounds.md) or [objects](./objects_deep_dive.md) articles.
 
-What we will discuss here is *dynamic* rendering of text. Where the text can be decided at runtime.
+What we will discuss here is _dynamic_ rendering of text. Where the text can be decided at runtime.
 
 # `agb` text rendering principles
 
 The text rendering system in `agb` has support for:
-* Unicode
-* Variable size letters
-* Kerning
-* Left, right, centre, and justified alignments
-* Left to right text only
 
-Maybe for this reason, text rendering on the GBA is slow.
+- Unicode
+- Variable size letters
+- Kerning
+- Left, right, centre, and justified alignments
+- Left to right text only
+
+<img src="text_render.gif" alt="Text rendering character by character" class="right" />
+
+However, text rendering on the GBA is slow.
 Even just laying the text out, deciding where to put each character, is slow.
 For this reason, the API for text rendering is designed to spread work over multiple frames as much as possible.
 This naturally results in the effect of only adding a couple characters each frame that is so common in games even today.
@@ -53,7 +56,6 @@ A `LetterGroup` is a set of letters to be drawn at once.
 The `Layout` handles correctly positioning the letter groups including performing line breaks where required and correctly aligning the text.
 It does this incrementally, doing as little work as possible to generate the next groups position.
 
-
 ```rust
 let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
@@ -64,7 +66,7 @@ let text_layout = Layout::new(
 );
 ```
 
-## Palette changes
+# Colour changes
 
 To have multiple colours in your text, you can use [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html).
 
@@ -100,7 +102,7 @@ assert!(!layout.next().unwrap().has_tag(MY_TAG));
 
 which can be extended within your text display system.
 A complete example of this can be seen in the [advanced object text rendering example](https://agbrs.dev/examples/object_text_render_advanced).
-If you want to use Tags without using Rust's text formatting, the documentation for [`Tag`]((https://docs.rs/agb/latest/agb/display/font/struct.Tag.html)) documents the exact code points you need to use.
+If you want to use Tags without using Rust's text formatting, the documentation for [`Tag`](<(https://docs.rs/agb/latest/agb/display/font/struct.Tag.html)>) documents the exact code points you need to use.
 
 # Renderers
 
@@ -114,6 +116,7 @@ To create one, you need to provide a palette and the size of sprites to use.
 It is important that the size of sprite is greater than or equal to the maximum group size that is specified in the `Layout`.
 
 A simple example of the `ObjectTextRender` would look like
+
 ```rust
 let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
@@ -129,6 +132,7 @@ let objects: Vec<_> = text_layout.map(|x| text_render.show(&x, vec2(16, 16))).co
 
 // then show the objects in the usual way
 ```
+
 The full example can be found in the [`object_text_render_simple`](https://agbrs.dev/examples/object_text_render_simple) example.
 
 Normally you would divide this work over multiple frames.
@@ -157,7 +161,7 @@ loop {
     }
 
     let mut frame = gfx.frame();
-    
+
     // render everything in the objects list
     for object in objects.iter() {
         object.show(&mut frame);
@@ -225,7 +229,7 @@ loop {
     }
 
     let mut frame = gfx.frame();
-    
+
     bg.show(&mut frame)
 
     frame.commit();
@@ -234,8 +238,8 @@ loop {
 
 This can be found in the [`background_text_render`](https://agbrs.dev/examples/background_text_render) example.
 
-
 ## Custom
 
 `LetterGroup`s provide a `pixels` method which is an iterator over all the pixels that need to be set to draw those characters.
-Using this you can have your own backends, although I'm not sure what exactly you would use them for!
+Using this you can have your own backends to render text however you want.
+For example, you could use this to create your own effect similar to the [no game](https://agbrs.dev/examples/no_game) example but with dynamic text.

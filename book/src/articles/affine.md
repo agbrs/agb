@@ -6,7 +6,7 @@ These transformations are used to perform many of the graphical tricks which giv
 > Note that this article will assume familiarity with vectors and matrix mathematics.
 > If these are new to you, you should first understand the basics of [linear algebra](https://www.3blue1brown.com/topics/linear-algebra) before delving much deeper into this topic.
 
-## Game Boy Advance affine transformations
+# Game Boy Advance affine transformations
 
 The transformations supported by the Game Boy Advance are [affine transformations](https://en.wikipedia.org/wiki/Affine_transformation)[^affine-cheat].
 The technical definition is that affine transformations preserve lines and parallelism.
@@ -43,7 +43,7 @@ So in order to double the size of the object, you'll need to use a matrix with `
 `agb` does not hide this from you and automatically invert the matrices because inverting a matrix in fixed point numbers still involves a division and can lose quite a lot of precision.
 So you need to make sure that any matrix you pass is thought of as mapping pixels on the screen to the location in your object / background rather than from your object / background to pixels on the screen.
 
-## Affine matrices in `agb`
+# Affine matrices in `agb`
 
 The key affine matrix type provided by `agb` is the [`AffineMatrix`](https://docs.rs/agb/latest/agb/display/struct.AffineMatrix.html).
 This represents the full affine transformation including translation, and provides a multiplication overload which you use to combine transformations.
@@ -88,7 +88,7 @@ c & d & y \\\\
 \end{pmatrix}
 \\]
 
-## Affine backgrounds
+# Affine backgrounds
 
 To create affine backgrounds, please see the relevant section in the [backgrounds deep dive](./backgrounds.md#affine-backgrounds).
 
@@ -97,7 +97,7 @@ You can apply a transformation matrix to an affine background using the [`.set_t
 
 You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` constructor or the `.into()` method.
 
-## Affine objects
+# Affine objects
 
 Affine objects behave slightly differently to backgrounds.
 They only use the `a`, `b`, `c` and `d` components of the matrix and ignore the transformation part of it.
