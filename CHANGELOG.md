@@ -31,7 +31,7 @@ code and seeing how that changes the behaviour of the example!
 - More `num_traits` have been implemeted for `Num<I, N>`.
 - The template now includes `extern crate alloc;` to avoid any confusion about whether alloc is supported.
 - Blending and windows now work with affine backgrounds as well as regular backgrounds
-- `AnimationIterator` and `RepeatingAnimationIterator` to iterate over the frames in an animation more simply.
+- Added `animation_frame` to `Tag` to allow for more efficient sprite animations.
 - You can now write your own doc tests using the `agb::doctest` macro.
 
 ### Changed
