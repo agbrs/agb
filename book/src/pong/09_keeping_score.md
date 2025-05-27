@@ -50,7 +50,14 @@ if potential_ball_pos.x <= num!(0) {
 
 # The player's score (backgrounds)
 
+<img src="./player-health-rendered.png" alt="Player score shown" class="right" />
+
 We'll use the [player-health.aseprite](./player-health.aseprite) file for the assets here.
+In this section, you'll get something similar to to what's shown on the right.
+
+With the tiles marked, it looks as follows:
+
+![Player health tiles](./player-health-tiles.png)
 
 ## Static setup
 
