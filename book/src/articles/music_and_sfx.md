@@ -21,11 +21,11 @@ And with how little CPU time there is, and the fact that the audio hardware prod
     Technically there's a trick you can use to get 9-bit audio out of the Game Boy Advance.
     You will be limited to mono only if you use that trick, and it uses large quantities of ROM space to store the extra information that it generally isn't worth it.
 
-| Frequency | Audio quality                                                       | Approximate CPU usage |
-| --------- | ------------------------------------------------------------------- | --------------------- |
-| 10,512Hz  | Poor - even bad out of the speakers                                 | ~5% per frame         |
-| 18,157Hz  | Low - speakers sound fine but headphones are still a little crunchy | ~10% per frame        |
-| 32,768Hz  | Medium - speakers sound great and headphones are fine               | ~20% per frame        |
+| Frequency | Audio quality                                                       | Approximate CPU usage for 4 channels |
+| --------- | ------------------------------------------------------------------- | ------------------------------------ |
+| 10,512Hz  | Poor - even bad out of the speakers                                 | ~5% per frame                        |
+| 18,157Hz  | Low - speakers sound fine but headphones are still a little crunchy | ~10% per frame                       |
+| 32,768Hz  | Medium - speakers sound great and headphones are fine               | ~20% per frame                       |
 
 ## Preparing the samples
 

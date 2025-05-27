@@ -1,7 +1,7 @@
 # Frame lifecycle
 
 Games written using `agb` typically follow the ['update-render loop'](https://gameprogrammingpatterns.com/game-loop.html).
-The way your components update will be very dependent on the game you are writing, but each frame you would normally do the following:
+The way your components update will vary depending on the game you are writing, but each frame you would normally do the following:
 
 ```rust
 let mut gfx = gba.graphics.get();
@@ -15,9 +15,7 @@ loop {
 }
 ```
 
-This document is goes into detail about the correct usage of the [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html)
-(the `frame` variable you see above) and how to make the most of it.
-Further articles (e.g. [Blending, windows and DMA]()) will go into more detail about other effects you can apply once you've mastered the content of this article.
+Here we will discuss the idiomatic way of using the [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) during the lifecycle of a frame.
 
 ## `.show(frame: &mut GraphicsFrame)`
 
@@ -35,3 +33,12 @@ This will wait for the current frame to finish rendering before quickly setting 
 
 This method takes ownership of the current `frame` instance, so you won't be able to use it for any further calls once this is done.
 You will need to create a new frame object from the `gfx` instance.
+
+# See also
+
+These are the various aspects of `agb` that interact with the `GraphicsFrame` system.
+
+- [Backgrounds](./backgrounds.md)
+- [Objects](./objects_deep_dive.md)
+- [Blending and windows](./blending_and_windows.md)
+- [DMA](./dma.md)
