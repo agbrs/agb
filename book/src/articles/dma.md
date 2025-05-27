@@ -35,7 +35,7 @@ This 3d plane is created by altering the background's transformation matrix
 </div>
 </div>
 
-## How do DMA effects work?
+# How do DMA effects work?
 
 <img src="./dma/render_order.png" alt="A diagram of the GBA's rendering order" class="right" />
 
@@ -51,19 +51,19 @@ You can know if something is controllable each line by looking for methods which
 Note that DMA replaces the value stored in this location with it's own value.
 So setting that value during the frame will get overwritten by the DMA effect.
 
-## Using DMA
+# Using DMA
 
 Once you have a `DmaControllable`, you'll want to actually be able to control it.
 You do this by creating an instance of [`HBlankDma`](https://docs.rs/agb/latest/agb/dma/struct.HBlankDma.html) and calling the `.show()` method on it passing the current `frame`.
 
 Because the Game Boy Advance has a vertical resolution of 160 pixels, there are 160 rows to do the DMA replacement with so you need to pass it a slice of at least 160 values which have the same type as the `DmaControllable` that you pass it.
 
-### A note on performance
+## A note on performance
 
 Although these effects may look like they take a lot of CPU time, the only time actually being spent is creating the array of 160 values.
 If you can do as much of that work outside of your main game loop, then these effects are basically free.
 
-## Vertical gradients using a single palette colour
+# Vertical gradients using a single palette colour
 
 <img src="./dma/background_colour.png" class="right" alt="An example of background palette colour DMA" />
 
@@ -104,7 +104,7 @@ If you wanted the colours to change per frame (or for example animate the gradie
 
 See the [example](https://agbrs.dev/examples/dma_effect_background_colour) for the full code listing.
 
-## `x` and `y` scroll DMAs for regular backgrounds
+# `x` and `y` scroll DMAs for regular backgrounds
 
 The simplest effects you can do with the `x` and `y` scroll DMAs are the [magic spell](https://agbrs.dev/examples/dma_effect_background_magic_spell) and the [desert heat wave](https://agbrs.dev/examples/dma_effect_background_desert) examples.
 These work by altering the x and y scroll values for each line to create this background effect.
@@ -144,7 +144,7 @@ loop {
 }
 ```
 
-## Non-rectangular windows
+# Non-rectangular windows
 
 If you recall from the [windows](./blending_and_windows.md#windows) article, windows must be rectangular or created by an object.
 However, the best way to create non-rectangular windows (such as the circular one in the example above) is by using DMA to change the boundaries of the window each row.
@@ -176,9 +176,9 @@ HBlankDma::new(dma_controllable, &circle_poses).show(&mut frame);
 frame.commit();
 ```
 
-## Non-affine transformations
+# Non-affine transformations
 
-### The pipe effect
+## The pipe effect
 
 <img src="./dma/pipe_example.png" alt="Above is the final example, below is the map being rendered" class="right" />
 
@@ -238,7 +238,7 @@ HBlankDma::new(transform_dma, &transforms).show(&mut frame);
 
 By multiplying each entry by the current location (represented here by `pos`), we can add the illusion of movement to this example.
 
-### The 3d plane effect
+## The 3d plane effect
 
 You can see the full example [here](https://agbrs.dev/examples/dma_effect_affine_background_3d_plane).
 

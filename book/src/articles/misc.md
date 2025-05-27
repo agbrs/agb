@@ -2,7 +2,7 @@
 
 This article covers topics which aren't big enough to be their own section, but are worth covering in a smaller section here.
 
-## Random numbers
+# Random numbers
 
 `agb` provides a simple random number generator in [`agb::rng`](https://docs.rs/agb/latest/agb/rng/index.html).
 To generate a random number, you can either create your own instance of a `RandomNumberGenerator`, or use the global `next_i32()` method.
@@ -22,14 +22,14 @@ loop {
 }
 ```
 
-## HashMaps
+# HashMaps
 
 `alloc` does not provide a `HashMap` implementation, and although you can import the `no_std` version of [`hashbrown`](https://crates.io/crates/hashbrown), it can be quite slow on the Game Boy Advance due to its use of simd and other intrinsics which have to be emulated in software.
 
 Therefore, `agb` provides its own `HashMap` and `HashSet` implementations which are optimised for use on 32-bit embedded devices which you can use from the [`agb::hash_map`](https://docs.rs/agb/latest/agb/hash_map/index.html) module.
 These work exactly like the `HashMap` from the standard library, providing most of the same API, with only a few omissions for rarely used methods or ones which don't make sense with the different backing implementation.
 
-## Allocators
+# Allocators
 
 By default, all allocations in `agb` go into the more plentiful, but slower `EWRAM` (Extended Working RAM).
 `EWRAM` is 256kB in size, which is normally more than enough for even a moderately complex game.

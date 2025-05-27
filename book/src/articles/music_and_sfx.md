@@ -6,7 +6,7 @@ The Game Boy Advance doesn't have built-in hardware support for sound mixing, so
 `agb`'s built-in software mixer allows for up to 8 simultaneous sounds to be played at once at various speeds and volumes.
 It also (through the [`agb-tracker` crate](https://crates.io/crates/agb_tracker)) can play basic [tracker music](https://en.wikipedia.org/wiki/Music_tracker). Usage of both will be covered in this article.
 
-## Choice of frequency
+# Choice of frequency
 
 `agb`'s mixer works at a fixed frequency which you choose when creating it.
 Once chosen, you cannot change the frequency during the game without first dropping the mixer.
@@ -27,7 +27,7 @@ And with how little CPU time there is, and the fact that the audio hardware prod
 | 18,157Hz  | Low - speakers sound fine but headphones are still a little crunchy | ~10% per frame        |
 | 32,768Hz  | Medium - speakers sound great and headphones are fine               | ~20% per frame        |
 
-## Preparing the samples
+# Preparing the samples
 
 The CPU on the Game Boy Advance isn't powerful enough to decompress audio while also being able to play a game at the same time.
 So all audio is stored uncompressed, making them quite big.
@@ -42,7 +42,7 @@ You can use [`ffmpeg`](https://ffmpeg.org/) to resample any audio to your chosen
 ffmpeg -i path/to/audio.mp3 -ar 18157 sfx/audio.wav
 ```
 
-## Loading the sample
+# Loading the sample
 
 You can load the sample by using the [`include_wav!`](https://docs.rs/agb/latest/agb/macro.include_wav.html) macro.
 This returns a [`SoundData`](https://docs.rs/agb/latest/agb/sound/mixer/struct.SoundData.html) which you can later pass to the mixer to play.
@@ -56,7 +56,7 @@ use agb::{
 static BACKGROUND_MUSIC: SoundData = include_wav!("sfx/audio.wav");
 ```
 
-## Managing the mixer
+# Managing the mixer
 
 In order to actually play the music, you'll need a sound mixer which you can get from the `Gba` struct.
 This is where you pass your chosen frequency.
@@ -80,7 +80,7 @@ loop {
 }
 ```
 
-## Playing sounds
+# Playing sounds
 
 Music and sound effects are treated in the same way.
 The mixer manages a number of concurrent channels which will all play at once.
@@ -105,7 +105,7 @@ mixer.play_sound(background_music);
 This function returns an `Option<ChannelId>`.
 You will get `Some` if there was a free space for this channel to be played, and you can later retrieve this same channel using `mixer.channel(channel_id)` in case you want to change how it is being played, or to stop it.
 
-## Sound playback settings
+# Sound playback settings
 
 There are few things you can tweak about how the sound effect is played which is useful in games.
 Note that if you are playing stereo sound, you _cannot_ change any of these properties, and any attempt to do so will be ignored.
@@ -122,7 +122,7 @@ Note that if you are playing stereo sound, you _cannot_ change any of these prop
    On actual Game Boy Advance hardware, there is only 1 speaker, so this only works on emulators or if the player has headphones.
    `-1` is fully to the left, `1` is fully to the right and `0` is the default and plays centrally.
 
-## Modifying playing sounds
+# Modifying playing sounds
 
 With a given `ChannelId` retrieved from the call to `play_sound()`, you can alter how the sound effect is played.
 The `mixer.channel(channel_id)` method will return the `SoundChannel` and then you can apply the effects mentioned above to change how it is played.
@@ -132,7 +132,7 @@ This is useful for level transitions to stop the background music from playing o
 
 And there is `.pause()` and `.resume()` which doesn't free up the current channel, and allows you to resume from where you left off at a later point.
 
-## Sound priorities
+# Sound priorities
 
 By default, sounds are 'low priority'.
 These will _not_ play if there are already 8 sounds playing at once.
@@ -148,7 +148,7 @@ let mut background_music = SoundChannel::new_high_priority(BACKGROUND_MUSIC);
 background_music.stereo();
 ```
 
-## Tracker music
+# Tracker music
 
 You'll find you run out of ROM space very quickly if you start including high quality audio for all the background music you want.
 For example, even just 4 minutes of music at 32,768Hz will take up about 10MB of space (maximum cartridge size is 32MB with most being 16MB).

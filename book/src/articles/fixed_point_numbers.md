@@ -16,7 +16,7 @@ While you lose the ability to store very small and very large numbers, arithmeti
 Storing the coordinates as a fixed point integer is often referred to as the `sub-pixel value` in retro games communities.
 But this book refers to them as 'fixed point integers' or 'fixnums'.
 
-## Fixnums - `Num<T, N>`
+# Fixnums - `Num<T, N>`
 
 The main type for interacting with fixnums is the [`Num<T, N>`](https://docs.rs/agb/latest/agb/fixnum/struct.Num.html) struct found in `agb::fixnum::Num`.
 `T` is underlying integer type for your fixed point number (e.g. `i32`, `u32`, `i16`) and `N` is how many bits you want to use for the fractional component.
@@ -34,9 +34,9 @@ In general, `8` bits offers a good middle ground, allowing for `1/256` precision
 The original Super Mario Bros has 16 sub pixels, which would correspond to an `N` of `4`.
 That was designed to run on a 8-bit processor, so you might as well use a few more.
 
-### Creating fixnums in code
+## Creating fixnums in code
 
-#### The `num!` macro
+### The `num!` macro
 
 The `num!` macro is useful if you want to represent your fixnum as a floating point number in your code.
 You'll often see it when you want to pretend that the code you're working with is actually working as a floating point.
@@ -69,7 +69,7 @@ Instead, you should specify the type:
 let jump_speed: Num<i32, 8> = num!(1.5); // this is now correct
 ```
 
-#### `Num::new()`
+### `Num::new()`
 
 You can also call the `new()` method on `Num` which accepts an integer.
 This is mainly useful if you want a fixnum with that value.
@@ -86,7 +86,7 @@ Note that you will either need to have the number of fractional bits be inferred
 let jump_speed = Num::<i32, 8>::new(5);
 ```
 
-#### `.into()`
+### `.into()`
 
 You can also create integer valued fixnums using `.into()`.
 
@@ -97,7 +97,7 @@ let jump_speed: Num<i32, 8> = 5.into();
 let jump_speed: Num<i32, 8> = Num::from(5);
 ```
 
-### Arithmetic
+## Arithmetic
 
 Fixnums can be used in arithmetic in the ways you would expect.
 They also work with integers directly, so the following examples are all valid:
@@ -114,7 +114,7 @@ let position = distance + speed * num!(1.5);
 There are many more useful methods on `Num` (like `.sqrt()`, `.abs()`), so check out the
 [documentation](https://docs.rs/agb/latest/agb/fixnum/struct.Num.html) for the full list.
 
-### Division with fixnums
+## Division with fixnums
 
 The `Num` type supports standard division using the `/` operator with both other fixnums, or integers.
 
@@ -141,19 +141,19 @@ Therefore, when designing your game logic, especially performance-critical secti
 For instance, if you need to scale a value by a factor that isn't a power of two, consider whether you can achieve a similar effect by dividing by a near power of 2 (so if you wanted to divide by 10, can you get away with dividing by 8 instead?).
 You can also multiply by the inverse if the precision is okay. Rather than dividing by `10`, instead multiply by `num!(0.1)`.
 
-## Bridging back into integers
+# Bridging back into integers
 
 Often you'll have something calculated using fixed points (like the position of a player character) and you'll want to now display something on the screen.
 Because the screen works in whole pixel coordinates, you'll need to convert your fixnums into integers.
 The best method for this is the [`.round()`](https://docs.rs/agb/latest/agb/fixnum/struct.Num.html#method.round) method because it has better behaviour when approaching the target integer.
 
-## `Vector2D` and `Rect`
+# `Vector2D` and `Rect`
 
 In addition to the `Num` type, `agb::fixnum` also includes a few additional types which will be useful in many applications.
 `Vector2D<T>` works with both `Num` and primitive integer types and provides a 2 dimensional vector.
 `Rect<T>` similarly works with both `Num` and primitive integer types and represents an axis aligned rectangle.
 
-### `Vector2D<T>`
+## `Vector2D<T>`
 
 `Vector2D` can be used to represent positions, velocities, points etc.
 It implements the arithmetic operations addition and multiplication by a constant, allowing you to write simpler code when dealing with 2d coordinates.
@@ -187,7 +187,7 @@ Like `Num`, `Vector2D` also provides the [`.round()`](https://docs.rs/agb/lastes
 
 See the [`Vector2D` documentation](https://docs.rs/agb/latest/agb/fixnum/struct.Vector2D.html) for more details.
 
-### `Rect<T>`
+## `Rect<T>`
 
 `Rect<T>` is an axis aligned rectangle that can be used to represent hit boxes.
 It is represented as a position and a size.
@@ -207,7 +207,7 @@ assert!(!r1.touches(r3));
 
 See the [`Rect` documentation](https://docs.rs/agb/latest/agb/fixnum/struct.Rect.html) for more details.
 
-## See also
+# See also
 
 - [Agb fixnum documentation](https://docs.rs/agb/latest/agb/fixnum/index.html)
 - [Tonc's fixed point article](https://gbadev.net/tonc/fixed.html)
