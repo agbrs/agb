@@ -8,6 +8,18 @@ In this section, we'll make the paddle move while pressing the D-Pad.
 The GBA has 10 buttons we can read the state of, and this is the only way a player can directly control the game.
 They are the 4 directions on the D-Pad, A, B, Start, Select, and the L and R triggers.
 
+On a standard QWERTY keyboard, the default configuration on mGBA is as follows:
+
+| GBA button | mGBA       |
+| ---------- | ---------- |
+| D-pad      | Arrow keys |
+| A          | X          |
+| B          | Z          |
+| Start      | Enter      |
+| Select     | Backspace  |
+| L trigger  | A          |
+| R trigger  | S          |
+
 # Reading the button state
 
 To add button control to our game, we will need a [`ButtonController`](https://docs.rs/agb/latest/agb/input/struct.ButtonController.html).
