@@ -5,7 +5,7 @@ We'll also implement collision between the ball and the paddles to start having 
 
 # Using Vector2D<i32>
 
-However, the first thing we're going to do is a quick refactor to using agb's [vector](https://docs.rs/agb/latest/agb/fixnum/struct.Vector2D.html)
+However, the first thing we're going to do is a quick refactor to using `agb`'s [Vector2D](https://docs.rs/agb/latest/agb/fixnum/struct.Vector2D.html)
 type for managing positions more easily.
 Note that this is the [mathematical definition](<https://en.wikipedia.org/wiki/Vector_(mathematics_and_physics)>) of 'vector' rather than the computer science [dynamic array](https://en.wikipedia.org/wiki/Dynamic_array).
 
@@ -17,8 +17,8 @@ Let's change that first.
 Change ball position to:
 
 ```rust
-    let mut ball_pos = vec2(50, 50);
-    let mut ball_velocity = vec2(1, 1);
+let mut ball_pos = vec2(50, 50);
+let mut ball_velocity = vec2(1, 1);
 ```
 
 You will also need to add the relevant import line to the start of the file.
@@ -33,20 +33,20 @@ Note that the `vec2` method is a convenience method which is the same as `Vector
 You can now simplify the calculation:
 
 ```rust
-        // Move the ball
-        ball_pos += ball_velocity;
+// Move the ball
+ball_pos += ball_velocity;
 
-        // We check if the ball reaches the edge of the screen and reverse it's direction
-        if ball_pos.x <= 0 || ball_pos.x >= agb::display::WIDTH - 16 {
-            ball_velocity.x *= -1;
-        }
+// We check if the ball reaches the edge of the screen and reverse it's direction
+if ball_pos.x <= 0 || ball_pos.x >= agb::display::WIDTH - 16 {
+    ball_velocity.x *= -1;
+}
 
-        if ball_pos.y <= 0 || ball_pos.y >= agb::display::HEIGHT - 16 {
-            ball_velocity.y *= -1;
-        }
+if ball_pos.y <= 0 || ball_pos.y >= agb::display::HEIGHT - 16 {
+    ball_velocity.y *= -1;
+}
 
-        // Set the position of the ball to match our new calculated position
-        ball.set_pos(ball_pos);
+// Set the position of the ball to match our new calculated position
+ball.set_pos(ball_pos);
 ```
 
 ## Vector2D for the paddle position
@@ -62,29 +62,29 @@ struct Paddle {
 You can change the `set_pos()` method on `Paddle` to take a `Vector2D<i32>` instead of separate `x` and `y` arguments as follows:
 
 ```rust
-    fn set_pos(&mut self, pos: Vector2D<i32>) {
-        self.pos = pos;
-    }
+fn set_pos(&mut self, pos: Vector2D<i32>) {
+    self.pos = pos;
+}
 ```
 
 And when rendering:
 
 ```rust
-    fn show(frame: &mut GraphicsFrame) {
-        Object::new(sprites::PADDLE_END.sprite(0))
-            .set_pos(self.pos)
-            .show(frame);
-        Object::new(sprites::PADDLE_MID.sprite(0))
-            .set_pos(self.pos + vec2(0, 16))
-            .show(frame);
-        Object::new(sprites::PADDLE_END.sprite(0))
-            .set_pos(self.pos + vec2(0, 32))
-            .set_vflip(true)
-            .show(frame);
-    }
+fn show(frame: &mut GraphicsFrame) {
+    Object::new(sprites::PADDLE_END.sprite(0))
+        .set_pos(self.pos)
+        .show(frame);
+    Object::new(sprites::PADDLE_MID.sprite(0))
+        .set_pos(self.pos + vec2(0, 16))
+        .show(frame);
+    Object::new(sprites::PADDLE_END.sprite(0))
+        .set_pos(self.pos + vec2(0, 32))
+        .set_vflip(true)
+        .show(frame);
+}
 ```
 
-### Mini exercise
+## Mini exercise
 
 You will also need to update the `new()` function and the calls to `Paddle::new`.
 
@@ -98,9 +98,9 @@ We will assume that the ball and the paddle both have axis-aligned bounding boxe
 Lets add a simple method to the `Paddle` impl which returns the collision rectangle for it:
 
 ```rust
-    fn collision_rect(&self) -> Rect<i32> {
-        Rect::new(self.pos, vec2(16, 16 * 3))
-    }
+fn collision_rect(&self) -> Rect<i32> {
+    Rect::new(self.pos, vec2(16, 16 * 3))
+}
 ```
 
 Don't forget to update the `use` statement:
@@ -113,29 +113,29 @@ And then we can get the ball's collision rectangle in a similar way.
 We can now implement collision between the ball and the paddle like so:
 
 ```rust
-        // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
-        // edge of the map or a paddle.
-        let potential_ball_pos = ball_pos + ball_velocity;
+// Speculatively move the ball, we'll update the velocity if this causes it to
+// intersect with either the edge of the map or a paddle.
+let potential_ball_pos = ball_pos + ball_velocity;
 
-        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
-        if paddle_a.collision_rect().touches(ball_rect) {
-            ball_velocity.x = 1;
-        }
+let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+if paddle_a.collision_rect().touches(ball_rect) {
+    ball_velocity.x = 1;
+}
 
-        if paddle_b.collision_rect().touches(ball_rect) {
-            ball_velocity.x = -1;
-        }
+if paddle_b.collision_rect().touches(ball_rect) {
+    ball_velocity.x = -1;
+}
 
-        // We check if the ball reaches the edge of the screen and reverse it's direction
-        if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
-            ball_velocity.x *= -1;
-        }
+// We check if the ball reaches the edge of the screen and reverse it's direction
+if potential_ball_pos.x <= 0 || potential_ball_pos.x >= agb::display::WIDTH - 16 {
+    ball_velocity.x *= -1;
+}
 
-        if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
-            ball_velocity.y *= -1;
-        }
+if potential_ball_pos.y <= 0 || potential_ball_pos.y >= agb::display::HEIGHT - 16 {
+    ball_velocity.y *= -1;
+}
 
-        ball_pos += ball_velocity;
+ball_pos += ball_velocity;
 ```
 
 This now gives us collision between the paddles and the ball.
