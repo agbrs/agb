@@ -180,10 +180,10 @@ macro_rules! dynamic_sprite_defn {
 
             #[must_use]
             /// Transforms the sprite to a reference counted immutable sprite usable by objects
-            pub fn to_vram(self, palette: $palette) -> SpriteVram {
+            pub fn to_vram(self, palette: impl Into<$palette>) -> SpriteVram {
                 let data = unsafe { NonNull::new_unchecked(Box::leak(self.data).as_mut_ptr()) };
 
-                let palette = palette.palette();
+                let palette = palette.into().palette();
 
                 let inner = unsafe {
                     SpriteVramInner::new_from_allocated(
