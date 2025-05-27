@@ -135,7 +135,7 @@ agb::println!("Distance divided by 4: {}", scaled_distance);
 
 When performing division, it is most efficient to do the division with a power of 2 (2, 4, 8, 16, 32, ...) rather than any other value.
 Division by a power of 2 will be optimised by the rust compiler to a simple shift, whereas other constants are much more computationally intensive.
-It is okay to do a few divisions by non-power of 2 values per frame, but it is around 100 times less efficient, so keep them to a small number per frame.
+It is okay to do a few divisions by non-power of 2 values per frame, but it is around 20 times less efficient, so keep them to a small number per frame.
 
 Therefore, when designing your game logic, especially performance-critical sections that many times every frame, try to structure calculations such that divisions are primarily done using powers of two.
 For instance, if you need to scale a value by a factor that isn't a power of two, consider whether you can achieve a similar effect by dividing by a near power of 2 (so if you wanted to divide by 10, can you get away with dividing by 8 instead?).
