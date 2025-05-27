@@ -1,7 +1,6 @@
 # Paddle movement and collision
 
-In this section, we'll be making the paddles move using your knowledge of input handling.
-We'll also implement collision between the ball and the paddles to start having an actual game.
+In this section we'll implement collision between the ball and the paddles to start having an actual game.
 
 # Using Vector2D<i32>
 
@@ -84,6 +83,14 @@ fn show(frame: &mut GraphicsFrame) {
 }
 ```
 
+`move_by()` can also be updated as follows:
+
+```rust
+fn move_by(&mut self, y: i32) {
+    self.y += vec2(0, y);
+}
+```
+
 ## Mini exercise
 
 You will also need to update the `new()` function and the calls to `Paddle::new`.
@@ -147,4 +154,5 @@ We've also now got collision handling between the paddle and the ball, which wil
 
 # Exercise
 
-Play around with the collision code and see if you can make the ball bounce in the `y` direction as well if it hits the shorter edges of the paddle.
+The CPU player could do with some moving now.
+Implement some basic behaviour for them so that they try to return the ball.
