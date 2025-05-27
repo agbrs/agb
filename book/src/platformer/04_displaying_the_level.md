@@ -89,3 +89,8 @@ fn main(mut gba: agb::Gba) -> ! {
 ```
 
 Running this will now display our level on the screen.
+
+# Summary
+
+We've seen how to use the `InfiniteScrolledMap` to display a level that we made with Tiled to the screen.
+Using the `set_pos` method, can you make a bigger level and scroll it around with the dpad?

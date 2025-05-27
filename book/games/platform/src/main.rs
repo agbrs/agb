@@ -14,28 +14,18 @@
 use agb::{
     display::{
         GraphicsFrame, Priority,
+        object::{Object, SpriteVram},
         tiled::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, TileSetting,
             VRAM_MANAGER,
         },
     },
-    fixnum::{Num, Rect, Vector2D, vec2},
-    include_background_gfx,
+    fixnum::{Num, Rect, Vector2D, num, vec2},
+    include_aseprite, include_background_gfx,
+    input::{Button, ButtonController},
 };
 
 extern crate alloc;
-
-impl Level {
-    fn collides(&self, tile: Vector2D<i32>) -> bool {
-        if tile.x < 0 || tile.x > self.width as i32 || tile.y < 0 || tile.y > self.height as i32 {
-            return false;
-        }
-
-        let idx = (tile.x + tile.y * self.width as i32) as usize;
-
-        self.collision_map[idx / 8] & (1 << (idx % 8)) != 0
-    }
-}
 
 impl Level {
     fn bounds(&self) -> Rect<i32> {
@@ -46,7 +36,20 @@ impl Level {
     }
 }
 
+impl Level {
+    fn collides(&self, tile: Vector2D<i32>) -> bool {
+        if !self.bounds().contains_point(tile) {
+            return false;
+        }
+
+        let idx = (tile.x + tile.y * self.width as i32) as usize;
+
+        self.collision_map[idx / 8] & (1 << (idx % 8)) != 0
+    }
+}
+
 include_background_gfx!(mod tiles, "2ce8f4", TILES => "gfx/tilesheet.png");
+include_aseprite!(mod sprites, "gfx/sprites.aseprite");
 
 struct Level {
     width: u32,
@@ -72,12 +75,120 @@ type Vector = Vector2D<Number>;
 struct Player {
     position: Vector,
     velocity: Vector,
+    frame: usize,
+    sprite: SpriteVram,
+    flipped: bool,
 }
 
 impl Player {
-    // fn rect(&self) -> Rect<Number> {
-    //     Rect::new(self.position - Self::SIZE / 2, Self::SIZE)
-    // }
+    fn new(start: Vector2D<i32>) -> Self {
+        Player {
+            position: start.change_base(),
+            velocity: (0, 0).into(),
+            frame: 0,
+            sprite: sprites::STANDING.sprite(0).into(),
+            flipped: false,
+        }
+    }
+
+    fn is_on_ground(&self, level: &Level) -> bool {
+        level.collides(vec2(self.position.x, self.position.y + 8 + Number::from_raw(1)).floor() / 8)
+    }
+
+    fn handle_horizontal_input(&mut self, x_tri: i32, on_ground: bool) {
+        let mut x = x_tri;
+
+        if x_tri.signum() != self.velocity.x.to_raw().signum() {
+            x *= 2;
+        }
+
+        if on_ground {
+            x *= 2;
+        }
+
+        self.velocity.x += Number::new(x) / 16;
+    }
+
+    fn handle_jump(&mut self) {
+        self.velocity.y = Number::new(-2);
+    }
+
+    fn handle_collision_component(
+        velocity: &mut Number,
+        position: &mut Number,
+        half_width: i32,
+        colliding: &dyn Fn(i32) -> bool,
+    ) {
+        let potential = *position + *velocity;
+        let potential_external = potential + velocity.to_raw().signum() * half_width;
+
+        let target_tile = potential_external.floor() / 8;
+
+        if !colliding(target_tile) {
+            *position = potential;
+        } else {
+            let center_of_target_tile = target_tile * 8 + 4;
+            let player_position =
+                center_of_target_tile - velocity.to_raw().signum() * (4 + half_width);
+            *position = player_position.into();
+            *velocity = 0.into();
+        }
+    }
+
+    fn handle_collision(&mut self, level: &Level) {
+        Self::handle_collision_component(&mut self.velocity.x, &mut self.position.x, 4, &|x| {
+            level.collides(vec2(x, self.position.y.floor() / 8))
+        });
+        Self::handle_collision_component(&mut self.velocity.y, &mut self.position.y, 8, &|y| {
+            level.collides(vec2(self.position.x.floor() / 8, y))
+        });
+    }
+
+    fn update_sprite(&mut self) {
+        self.frame += 1;
+
+        if self.velocity.x > num!(0.1) {
+            self.flipped = false;
+        }
+        if self.velocity.x < num!(-0.1) {
+            self.flipped = true;
+        }
+
+        self.sprite = if self.velocity.y < num!(-0.1) {
+            sprites::JUMPING.animation_frame(&mut self.frame, 2)
+        } else if self.velocity.y > num!(0.1) {
+            sprites::FALLING.animation_frame(&mut self.frame, 2)
+        } else if self.velocity.x.abs() > num!(0.05) {
+            sprites::WALKING.animation_frame(&mut self.frame, 2)
+        } else {
+            sprites::STANDING.animation_frame(&mut self.frame, 2)
+        }
+        .into()
+    }
+
+    fn update(&mut self, input: &ButtonController, level: &Level) {
+        let on_ground = self.is_on_ground(level);
+
+        self.handle_horizontal_input(input.x_tri() as i32, on_ground);
+
+        if input.is_just_pressed(Button::A) && on_ground {
+            self.handle_jump();
+        }
+
+        self.velocity.y += num!(0.05);
+        self.velocity.x *= 15;
+        self.velocity.x /= 16;
+        self.handle_collision(level);
+
+        self.update_sprite();
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        Object::new(self.sprite.clone())
+            .set_hflip(self.flipped)
+            .set_pos(self.position.round() - vec2(8, 8))
+            .show(frame);
+    }
 }
 
 struct World {
@@ -100,7 +211,8 @@ impl World {
     fn set_pos(&mut self, pos: Vector2D<i32>) {
         self.bg.set_scroll_pos(pos, |pos| {
             let tile = if self.level.bounds().contains_point(pos) {
-                self.level.background[pos.x as usize + pos.y as usize * self.level.width as usize]
+                let idx = pos.x + pos.y * self.level.width as i32;
+                self.level.background[idx as usize]
             } else {
                 TileSetting::BLANK
             };
@@ -121,14 +233,22 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
     VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
-    let mut bg = World::new(levels::LEVELS[0]);
+
+    let level = levels::LEVELS[0];
+    let mut bg = World::new(level);
+    let mut input = ButtonController::new();
+
+    let mut player = Player::new(level.player_start.into());
 
     loop {
+        input.update();
         bg.set_pos(vec2(0, 0));
+        player.update(&input, level);
 
         let mut frame = gfx.frame();
 
         bg.show(&mut frame);
+        player.show(&mut frame);
 
         frame.commit();
     }

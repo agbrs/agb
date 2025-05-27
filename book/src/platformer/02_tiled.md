@@ -11,7 +11,7 @@ This means that some things that look like features are actually up to us to imp
 You should obtain Tiled using whatever means best supported by your operating system.
 The [documentation for Tiled can be found here](https://doc.mapeditor.org/en/stable/).
 
-## Getting setup to make a level
+# Getting setup to make a level
 
 Open up Tiled and create a new project, _File -> New -> New Project..._ or using the button that should be on the main page.
 Save this project in the directory for your game.
@@ -35,7 +35,7 @@ Make sure that the tile width and height are both 8px and that the map size is f
 
 ![alt text](tiled-map.png)
 
-## Quickly putting a level together
+# Quickly putting a level together
 
 On the right you see your layers and tilesets.
 Rename the layer to be something more useful, for instance `Level`.
@@ -56,3 +56,9 @@ With your object layer selected, in the top bar you should see an `Insert Point`
 Use this to add a point to your level and call the point `PLAYER`.
 
 ![alt text](player-point.png)
+
+# Summary
+
+We've seen how we can use tiled to put a level together.
+I would encourage you to take the opportunity to explore around tiled and get a feel for the tool.
+In the next chapter we will be writing the importer to make our level accessible to the GBA.

@@ -50,13 +50,14 @@ impl ToTokens for Level {
         let collision_map = self.tiles.chunks(8).map(|x| {
             x.iter()
                 .map(|x| x.colliding as u8)
-                .fold(0u8, |a, b| (a << 1) | b)
+                .fold(0u8, |a, b| (a >> 1) | (b << 7))
         });
 
-        let winning_map = self
-            .tiles
-            .chunks(8)
-            .map(|x| x.iter().map(|x| x.win as u8).fold(0u8, |a, b| (a << 1) | b));
+        let winning_map = self.tiles.chunks(8).map(|x| {
+            x.iter()
+                .map(|x| x.win as u8)
+                .fold(0u8, |a, b| (a >> 1) | (b << 7))
+        });
 
         let (player_x, player_y) = self.player_start;
         let (width, height) = self.size;
