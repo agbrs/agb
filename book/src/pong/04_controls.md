@@ -9,10 +9,7 @@ They are the 4 directions on the D-Pad, A, B, Start, Select, and the L and R tri
 
 # Reading the button state
 
-There are two ways to capture the button state in **agb**, interrupts and polling.
-In most games, you will want to use polling, so that is what we will use now.
-
-To add button control to our game, we will need a [ButtonController](https://docs.rs/agb/latest/agb/input/struct.ButtonController.html).
+To add button control to our game, we will need a [`ButtonController`](https://docs.rs/agb/latest/agb/input/struct.ButtonController.html).
 Add this near the top of your main function:
 
 ```rust
