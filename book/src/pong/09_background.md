@@ -110,5 +110,6 @@ Next we'll look at fixnums and how they can make the game feel a little less fla
 
 Take a look at the 256 colour mode for importing backgrounds and displaying them.
 Change the background to use those instead.
+Hint: look at the options in [`include_background_gfx!`](https://docs.rs/agb/latest/agb/macro.include_background_gfx.html), and consider the `TileFormat`.
 
 What are the advantages and disadvantages of using 256 colour mode? Why would you pick it over 16 colour mode?
