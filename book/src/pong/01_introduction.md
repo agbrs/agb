@@ -13,7 +13,7 @@ By following the steps in this section below, you'll gain an understanding of:
 
 With this knowledge, you'll be well equipped to start making your own games for the GBA!
 
-## Getting started
+# Getting started
 
 To get started, create a new repository based on the [agb template](https://github.com/agbrs/template) and name it `pong`.
 
