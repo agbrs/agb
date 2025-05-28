@@ -67,12 +67,40 @@ fn chicken(frame: &mut GraphicsFrame) {
 }
 ```
 
+# Animations
+
+![Organised by tags](./objects/aseprite_tags.png)
+
+With your sprites organised in tags, you can use the [`.animation_sprite()`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html#method.animation_sprite) method to get the specific frame for the animation.
+This method takes into account the 'animation direction' and correctly picks the frame you would want to show.
+
+![Tag properties showing the animation direction](./objects/animation_direction.png)
+
+Often you'll want to divide the current frame by something to show the animation at a speed that is less than 60 frames per second.
+
+For example, if you wanted to display the 'Walking' animation from above, you would use something like this:
+
+```rust
+use agb::display::{GraphicsFrame, object::Object};
+
+agb::include_aseprite!(mod sprites, "gfx/sprites.aseprite");
+
+fn walk(frame: &mut GraphicsFrame, frame_count: usize) {
+    // We divide the frame count by 4 here so that we only update once
+    //  every 4 frames rather than every frame.
+    Object::new(sprites::WALKING.animation_sprite(frame_count / 4))
+        .set_pos((32, 32))
+        .show(frame);
+}
+```
+
 # Affine objects
+
+<img src="./objects/affine_objects.png" alt="Demonstration of rotating and scaling objects" class="right" />
 
 Affine objects can be rotated and scaled by an affine transformation.
 These objects are created using the [`ObjectAffine`](https://docs.rs/agb/latest/agb/display/object/struct.ObjectAffine.html) type.
 This, like an [`Object`](https://docs.rs/agb/latest/agb/display/object/struct.Object.html), requires a sprite but also requires an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html) and an `AffineMode`.
-The affine matrix object can be thought of as an affine matrix stored in oam.
 
 The [affine article](./affine.md) goes over some detail in how to create affine matrices.
 With a given affine matrix, you can use `AffineMatrixObject::new` or the `From` impl to create an [`AffineMatrixObject`](https://docs.rs/agb/latest/agb/display/object/struct.AffineMatrixObject.html).
@@ -89,15 +117,19 @@ let affine_matrix = calculate_affine_matrix();
 let affine_matrix_instance = AffineMatrixObject::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
-    .set_position(affine_matrix.position().round())
+    .set_pos(affine_matrix.position().round())
     .show(frame);
 ```
 
 Be aware that the position of an affine object is the centre of the sprite, and not the top left corner like it is for regular sprites.
 
-Affine objects have two display modes, the regular and the double modes.
-The double mode allows for the sprite to be scaled to twice the size of the original sprite while the single would cut off anything outside of the regular bounding box.
-You can see the behaviour in the [affine objects example](https://agbrs.dev/examples/affine_objects).
+Affine objects have two [display modes](https://docs.rs/agb/latest/agb/display/object/enum.AffineMode.html), regular and double mode.
+In regular mode, the objects pixels will never exceed the original bounding box (which you can see in the image above).
+Double mode allows for the sprite to be scaled to twice the size of the original sprite.
+
+You can see the behaviour of affine modes more interactively in the [affine objects example](https://agbrs.dev/examples/affine_objects).
+
+Affine objects can be animated in the same way as regular objects, by passing a different sprite to the `new` function.
 
 # Dynamic sprites
 
