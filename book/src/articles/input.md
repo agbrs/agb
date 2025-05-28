@@ -11,6 +11,18 @@ The Game Boy Advance provides a total of 10 buttons.
 
 These are represented in `agb` with the [`Button`](https://docs.rs/agb/latest/agb/input/struct.Button.html) struct.
 
+When running the game under an emulator, the default key-mapping on a QWERTY keyboard is as follows:
+
+| GBA button | Emulator   |
+| ---------- | ---------- |
+| D-pad      | Arrow keys |
+| A          | X          |
+| B          | Z          |
+| Start      | Enter      |
+| Select     | Backspace  |
+| L trigger  | A          |
+| R trigger  | S          |
+
 # Reading the current state
 
 To track the currently pressed buttons, you need a [`ButtonController`](https://docs.rs/agb/latest/agb/input/struct.ButtonController.html).
