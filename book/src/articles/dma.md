@@ -9,30 +9,30 @@ DMA is behind most of the 'mode 7' tricks in the Game Boy Advance, but can also 
 Take a look at the [DMA examples](https://agbrs.dev/examples) to see what can be possible with these effects.
 
 <div class="showcase">
-<div class="showcase-tile">
-<img src="./dma/pipe_background.gif" alt="DMA effect for this pipe effect" />
-DMA used on the background's transformation matrix
-</div>
-<div class="showcase-tile">
-<img src="./dma/circular_window.gif" alt="DMA effect for this circular visible section" />
-DMA is used to alter the bounding rectangle of a window each frame
-</div>
-<div class="showcase-tile">
-<img src="./dma/background_colour.png" alt="DMA effect the background colour" />
-The sky gradient is created using DMA to use only 1 palette colour
-</div>
-<div class="showcase-tile">
-<img src="./dma/magic_spell.gif" alt="DMA effect for screen wobble" />
-The wobble here is created using DMA on the x-displacement
-</div>
-<div class="showcase-tile">
-<img src="./dma/background_blob_monster.gif" alt="DMA effect for a monster">
-The monster is created by altering the x and y displacement and is only 6 distinct tiles.
-</div>
-<div class="showcase-tile">
-<img src="./dma/3d_plane.gif" alt="DMA effect for a 3d plane">
-This 3d plane is created by altering the background's transformation matrix
-</div>
+    <div class="showcase-tile">
+        <img src="./dma/pipe_background.gif" alt="DMA effect for this pipe effect" />
+        DMA used on the background's transformation matrix
+    </div>
+    <div class="showcase-tile">
+        <img src="./dma/circular_window.gif" alt="DMA effect for this circular visible section" />
+        DMA is used to alter the bounding rectangle of a window each frame
+    </div>
+    <div class="showcase-tile">
+        <img src="./dma/background_colour.png" alt="DMA effect the background colour" />
+        The sky gradient is created using DMA to use only 1 palette colour
+    </div>
+    <div class="showcase-tile">
+        <img src="./dma/magic_spell.gif" alt="DMA effect for screen wobble" />
+        The wobble here is created using DMA on the x-displacement
+    </div>
+    <div class="showcase-tile">
+        <img src="./dma/background_blob_monster.gif" alt="DMA effect for a monster">
+        The monster is created by altering the x and y displacement and is only 6 distinct tiles.
+    </div>
+    <div class="showcase-tile">
+        <img src="./dma/3d_plane.gif" alt="DMA effect for a 3d plane">
+        This 3d plane is created by altering the background's transformation matrix
+    </div>
 </div>
 
 # How do DMA effects work?
