@@ -25,6 +25,7 @@
 # Articles
 
 - [Frame lifecycle](./articles/frame_lifecycle.md)
+- [Input handling](./articles/input.md)
 - [Backgrounds deep dive](./articles/backgrounds.md)
 - [Objects deep dive](./articles/objects_deep_dive.md)
 - [Fixnums](./articles/fixed_point_numbers.md)

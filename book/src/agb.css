@@ -22,6 +22,11 @@
     margin: 0 auto;
 }
 
+.small-right {
+    float: right;
+    max-width: 50% !important;
+}
+
 @media (max-width: 1486px) {
     #table-of-contents-wrapper {
         display: none;

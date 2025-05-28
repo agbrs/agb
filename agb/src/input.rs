@@ -153,6 +153,28 @@ impl ButtonController {
     }
 
     /// Returns a vector which represents the current direction being pressed.
+    ///
+    /// ```rust
+    /// # #![no_main]
+    /// # #![no_std]
+    /// # #[agb::doctest]
+    /// # fn test(_gba: agb::Gba) {
+    /// use agb::{
+    ///     input::ButtonController,
+    ///     fixnum::{Vector2D, Num, vec2, num},
+    /// };
+    ///
+    /// let mut player_position: Vector2D<Num<i32, 8>> = vec2(num!(10), num!(20));
+    /// let mut button_controller = ButtonController::new();
+    ///
+    /// loop {
+    ///     button_controller.update();
+    ///
+    ///     player_position += button_controller.vector();
+    ///     # break;
+    /// }
+    /// # }
+    /// ```
     #[must_use]
     pub fn vector<T>(&self) -> Vector2D<T>
     where
@@ -181,6 +203,17 @@ impl ButtonController {
         let down = self.is_just_pressed(Button::DOWN);
 
         (up, down).into()
+    }
+
+    #[must_use]
+    /// Returns [Tri::Positive] if `R` was just pressed, [Tri::Negative] if `L` was just pressed and [Tri::Zero] if neither or both are just pressed.
+    ///
+    /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
+    pub fn just_pressed_lr_tri(&self) -> Tri {
+        let l = self.is_just_pressed(Button::L);
+        let r = self.is_just_pressed(Button::R);
+
+        (l, r).into()
     }
 
     #[must_use]
@@ -214,11 +247,13 @@ impl ButtonController {
     /// Very useful for menu navigation or selection if you want the players actions to only happen for one frame.
     ///
     /// # Example
-    /// ```no_run,rust
+    /// ```rust
     /// # #![no_std]
+    /// # #![no_main]
     /// use agb::input::{Button, ButtonController};
     ///
-    /// # fn main() {
+    /// # #[agb::doctest]
+    /// # fn main(_gba: agb::Gba) {
     /// let mut button_controller = ButtonController::new();
     ///
     /// loop {
@@ -227,6 +262,7 @@ impl ButtonController {
     ///     if button_controller.is_just_pressed(Button::A) {
     ///         // A button was just pressed, maybe select the currently selected item
     ///     }
+    ///     # break;
     /// }
     /// # }
     /// ```
