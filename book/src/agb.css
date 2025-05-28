@@ -79,22 +79,18 @@
         overflow: hidden;
     }
 
+    #table-of-contents a {
+        padding-left: 3px;
+    }
+
     #table-of-contents a:hover,
     #table-of-contents a.active {
         color: var(--sidebar-active);
         background-color: var(--sidebar-bg);
-        margin-left: -3px;
-        padding-left: 3px;
-        padding-right: 5px;
     }
 
     #table-of-contents li.secondary a {
         padding-left: 5px;
         padding-right: 0;
-    }
-
-    #table-of-contents li.secondary a:hover,
-    #table-of-contents li.secondary a.active {
-        padding-left: 8px;
     }
 }
