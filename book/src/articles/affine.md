@@ -19,6 +19,10 @@ However, it might be easiest to think of affine transformations as any combinati
 | Rotation       | Rotating the item                      |
 | Shear          | Turning rectangles into parallelograms |
 
+Below is (from left to right) untransformed, scaled, rotated and sheared.
+
+<img src="./affine/affine_transformations.png" alt="Examples of affine transformations" class="image-centre" />
+
 [^affine-cheat]:
     There are tricks you can use to beat the affine transformations and have non-affine transformations.
     The [3d plane](https://agbrs.dev/examples/dma_effect_affine_background_3d_plane) and [pipe background](https://agbrs.dev/examples/dma_effect_affine_background_pipe) examples show what you can do if you change the transformation matrix on every single scanline.
@@ -90,12 +94,35 @@ c & d & y \\\\
 
 # Affine backgrounds
 
+<img src="./affine/affine_background.png" alt="Demonstration of applying affine transformations to a background" class="right" />
+
 To create affine backgrounds, please see the relevant section in the [backgrounds deep dive](./backgrounds.md#affine-backgrounds).
+
+The screenshot to the right is from the [affine background example](https://agbrs.dev/exmaples/affine_background).
 
 You can apply a transformation matrix to an affine background using the [`.set_transform()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineBackground.html#method.set_transform) method and passing in the desired affine matrix.
 `set_transform()` takes an [`AffineMatrixBackground`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html) rather than an `AffineMatrix` directly because they have different size requirements.
 
 You can convert from an `AffineMatrix` to an `AffineMatrixBackground` by using the `from_affine()` constructor or the `.into()` method.
+
+The example above produces the `AffineMatrixBackground` directly using the [`from_scale_rotation_position()`](https://docs.rs/agb/latest/agb/display/tiled/struct.AffineMatrixBackground.html#method.from_scale_rotation_position) method.
+
+```rust
+let transformation = AffineMatrixBackground::from_scale_rotation_position(
+    // we set the origin of the transformation to the middle of the screen
+    position + vec2(num!(WIDTH), num!(HEIGHT)) / 2,
+    // the zoom can be different on the x and y axis, but we don't want to do that here
+    (zoom.change_base(), zoom.change_base()),
+    // rotate slightly
+    rotation,
+    // put the background in the correct place
+    -vec2(position.x.round() as i16, position.y.round() as i16)
+        + vec2(WIDTH as i16, HEIGHT as i16) / 2,
+);
+bg.set_transform(transformation);
+```
+
+However, you can also build up the affine transformation matrix using the `AffineMatrix` for the same effect.
 
 # Affine objects
 
@@ -104,12 +131,14 @@ They only use the `a`, `b`, `c` and `d` components of the matrix and ignore the 
 So you'll also need to set the position of the sprite separately.
 
 ```rust
-let affine_matrix = calculate_affine_matrix();
+let affine_matrix = AffineMatrix::from_rotation(num!(0.25));
 let affine_matrix_instance = AffineMatrixObject::new(affine_matrix);
 
 ObjectAffine::new(sprite, affine_matrix_instance, AffineMode::Affine)
     .set_position(affine_matrix.position().round())
     .show(frame);
 ```
+
+There is a limit of 32 distinct `AffineMatrixObject` instances at once, so you should reuse them between different objects if possible.
 
 See the [affine section](./objects_deep_dive.md#affine-objects) of the object deep dive for more details.

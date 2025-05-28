@@ -213,7 +213,10 @@ let scale_transform_matrices = (0..160)
         // pipe effect more realistic.
         //
         // An interesting part here is that we are offsetting from `y` directly.
-        // This is because
+        // This is because the current `y` offset resets each time the transformation
+        // matrix is updated by the DMA write. If this were a regular background
+        // and you were controlling the current `y` scroll value, you would _not_
+        // want to add the current `y` value.
         let y = Num::new(y) - (theta * 2).sin() * 8;
 
         // Remember that affine matrices work backwards, so this will move to the
