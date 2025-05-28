@@ -10,3 +10,6 @@ playground.runnable = false
 mathjax-support = true
 additional-css = ["src/agb.css"]
 additional-js = ["src/agb.js"]
+
+default-theme = "rust"
+preferred-dark-theme = "ayu"
