@@ -2,6 +2,18 @@
 
 This article covers topics which aren't big enough to be their own section, but are worth covering in a smaller section here.
 
+# Printing to the console
+
+If your game is running under the [mGBA](https://mgba.io) emulator then you can print to the console using the [`agb::println!`](https://docs.rs/agb/latest/agb/macro.println.html) macro.
+So to print the text `Hello, World!`, you would do the following:
+
+```rust
+agb::println!("Hello, World!");
+```
+
+The `println!` macro works the same way as the standard library `println!` macro.
+However, you should note that formatting arguments is quite slow, so the main use for this is debugging, and you'll probably want to remove them when actually releasing your game as they can make it so that your game logic doesn't calculate within a frame any more.
+
 # Random numbers
 
 `agb` provides a simple random number generator in [`agb::rng`](https://docs.rs/agb/latest/agb/rng/index.html).
