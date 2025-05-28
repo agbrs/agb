@@ -293,7 +293,7 @@ pub use agb_macros::entry;
 ///
 /// If you want to write a doc test using agb, use this macro.
 /// You probably want to hide the use of `doctest` in your actual code (see the other examples in the agb codebase).
-/// It works very similarly to [`agb::entry`](entry), except that the function should return or the test will run forever.
+/// It works very similarly to [`agb::entry`], except that the function should return or the test will run forever.
 ///
 /// You still need to include the `#![no_std]` and `#![no_main]` or it won't compile.
 ///
