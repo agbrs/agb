@@ -26,14 +26,14 @@ In the tileset interface, we can attach custom properties to the tiles.
 Our game has tiles that are colliding and tiles that if touched cause the level to be beaten.
 We can attach these tags to the tileset using tiled.
 Select all the tiles and using the _Add property_ button add `WIN` and `COLLISION` boolean properties.
-![alt text](add-property.png)
+![The add property button](add-property.png)
 Check the collision property on the grass and wall tile, and check the win property on the flag and flagpole.
 When we come to writing our level importer, we will need to manually deal with these properties.
 
 Now we want to create a Map, _File -> New -> New Map..._.
 Make sure that the tile width and height are both 8px and that the map size is fixed with a width and height of 30x20 tiles.
 
-![alt text](tiled-map.png)
+![An empty tiled map](tiled-map.png)
 
 # Quickly putting a level together
 
@@ -43,7 +43,7 @@ Using your tileset, draw a level out.
 Make it very basic because level design is intrinsically linked to the mechanics of your platforming game which we've not made yet.
 Here's what I quickly drew.
 
-![alt text](tiled-basic-platformer-level.png)
+![A level consisting of 3 platforms with a flag on the right most platform](tiled-basic-platformer-level.png)
 
 We want to encode as much about the level as possible in tiled.
 One thing we might think of including is the start position of the player.
@@ -55,7 +55,7 @@ _Layer -> New -> Object Layer_ and again give it a name like `Objects`.
 With your object layer selected, in the top bar you should see an `Insert Point` icon.
 Use this to add a point to your level and call the point `PLAYER`.
 
-![alt text](player-point.png)
+![A tiled point object with the name "PLAYER"](player-point.png)
 
 # Summary
 
