@@ -17,9 +17,9 @@ Open up Tiled and create a new project, _File -> New -> New Project..._ or using
 Save this project in the directory for your game.
 
 Create a tileset, this can be done through the button that should be on your screen or using _File -> New -> New Tileset..._.
-For our game, I have prepared this simple tilesheet that includes a grassy tile, a wall tile, and a flag that will be for the end of the level.
+For our game, I have prepared this simple tileset that includes a grassy tile, a wall tile, and a flag that will be for the end of the level.
 
-<img src="./tilesheet.png" style="width: 128px; image-rendering: pixelated; display: block; margin-left: auto; margin-right: auto;" />
+<img src="./tileset.png" style="width: 128px; image-rendering: pixelated; display: block; margin-left: auto; margin-right: auto;" />
 
 Give the tileset a relevant name (`tileset`, for instance) and make sure to set the width and height of the tile to be 8px by 8px.
 In the tileset interface, we can attach custom properties to the tiles.
