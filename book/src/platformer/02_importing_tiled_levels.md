@@ -18,7 +18,7 @@ tiled = "0.14.0"
 
 # `build.rs`
 
-The `build.rs` file placed in the manifest directory will be run before the compilation of your game.
+The `build.rs` file placed in the same directory as the `Cargo.toml` file will be run before the compilation of your game.
 It can do whatever it wants in this time and can output content to be used in your game.
 In a larger game you may want to make your own crate for the logic of your `build.rs` file for being able to split things in logical parts and for testability.
 We'll not do this.
