@@ -26,6 +26,7 @@
   - [Importing Tiled levels](./platformer/03_importing_tiled_levels.md)
   - [Displaying the level](./platformer/04_displaying_the_level.md)
   - [Platformer](./platformer/05_platformer_physics.md)
+  - [Multiple levels](./platformer/06_multiple_levels.md)
 
 # Articles
 
