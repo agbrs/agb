@@ -46,6 +46,16 @@ impl Level {
 
         self.collision_map[idx / 8] & (1 << (idx % 8)) != 0
     }
+
+    fn wins(&self, tile: Vector2D<i32>) -> bool {
+        if !self.bounds().contains_point(tile) {
+            return false;
+        }
+
+        let idx = (tile.x + tile.y * self.width as i32) as usize;
+
+        self.winning_map[idx / 8] & (1 << (idx % 8)) != 0
+    }
 }
 
 include_background_gfx!(mod tiles, "2ce8f4", TILES => "gfx/tilesheet.png");
@@ -189,10 +199,15 @@ impl Player {
             .set_pos(self.position.round() - vec2(8, 8))
             .show(frame);
     }
+
+    fn has_won(&self, level: &Level) -> bool {
+        level.wins(self.position.floor() / 8)
+    }
 }
 
 struct World {
     level: &'static Level,
+    player: Player,
     bg: InfiniteScrolledMap,
 }
 
@@ -205,7 +220,11 @@ impl World {
         );
         let bg = InfiniteScrolledMap::new(bg);
 
-        World { level, bg }
+        World {
+            level,
+            bg,
+            player: Player::new(level.player_start.into()),
+        }
     }
 
     fn set_pos(&mut self, pos: Vector2D<i32>) {
@@ -221,8 +240,19 @@ impl World {
         });
     }
 
+    fn update(&mut self, input: &ButtonController) {
+        self.set_pos(vec2(0, 0));
+
+        self.player.update(input, self.level);
+    }
+
+    fn has_won(&self) -> bool {
+        self.player.has_won(self.level)
+    }
+
     fn show(&self, frame: &mut GraphicsFrame) {
         self.bg.show(frame);
+        self.player.show(frame);
     }
 }
 
@@ -234,23 +264,25 @@ fn main(mut gba: agb::Gba) -> ! {
 
     VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
 
-    let level = levels::LEVELS[0];
-    let mut bg = World::new(level);
+    let mut level = 0;
+    let mut world = World::new(levels::LEVELS[level]);
     let mut input = ButtonController::new();
-
-    let mut player = Player::new(level.player_start.into());
 
     loop {
         input.update();
-        bg.set_pos(vec2(0, 0));
-        player.update(&input, level);
+        world.update(&input);
 
         let mut frame = gfx.frame();
 
-        bg.show(&mut frame);
-        player.show(&mut frame);
+        world.show(&mut frame);
 
         frame.commit();
+
+        if world.has_won() {
+            level += 1;
+            level %= levels::LEVELS.len();
+            world = World::new(levels::LEVELS[level]);
+        }
     }
 }
 

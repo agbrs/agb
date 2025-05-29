@@ -9,7 +9,7 @@ use tiled::{
 
 use std::io::Write;
 
-static LEVELS: &[&str] = &["level_01.tmx"];
+static LEVELS: &[&str] = &["level_01.tmx", "level_02.tmx"];
 
 struct BuildResourceReader;
 
