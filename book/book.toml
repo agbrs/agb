@@ -10,6 +10,10 @@ playground.runnable = false
 mathjax-support = true
 additional-css = ["src/agb.css"]
 additional-js = ["src/agb.js"]
+hash-files = true
 
 default-theme = "rust"
 preferred-dark-theme = "ayu"
+
+git-repository-url = "https://github.com/agbrs/agb"
+edit-url-template = "https://github.com/agbrs/agb/edit/master/book/{path}"
