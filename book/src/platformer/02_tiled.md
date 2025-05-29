@@ -9,7 +9,7 @@ Tiled can do a lot, so I would encourage you to play around with it yourself, bu
 This means that some things that look like features are actually up to us to implement.
 
 You should obtain Tiled using whatever means best supported by your operating system.
-The [documentation for Tiled can be found here](https://doc.mapeditor.org/en/stable/).
+The documentation for Tiled can be found [here](https://doc.mapeditor.org/en/stable/).
 
 # Getting setup to make a level
 

@@ -7,7 +7,7 @@ We're going to ignore it all to make something simple.
 This will be the character we use, the wizard from the Hat Chooses the Wizard.
 The file contains a few Tags that define various animations that we will be using.
 [Here is the aseprite file](./sprites.aseprite).
-![alt text](wizard.png)
+![Wizard sprite](wizard.png)
 
 Firstly we'll add our main collision check function on the level which takes a coordinate and returns true when a colliding tile is on that coordinate.
 

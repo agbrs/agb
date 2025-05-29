@@ -1,6 +1,6 @@
 # Learn agb part II: Platformer
 
-In this section you'll learn how to use `agb` and Tiled to make a platformer.
+In this section you'll learn how to use `agb` and [Tiled](https://www.mapeditor.org/) to make a platformer.
 
 - Designing levels in tiled.
 - Using `build.rs` to import your levels made with tiled.
