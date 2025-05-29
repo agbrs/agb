@@ -217,8 +217,9 @@ Now we want a place to include the levels that will be output by the `build.rs`.
 
 ```rust
 mod levels {
-    // It's a matter of style whether you want to include these here or output them as part of your `build.rs` file.
-    // I prefer to include as little as possible in the `build.rs` for no particular reason.
+    // It's a matter of style whether you want to include these here
+    // or output them as part of your `build.rs` file. I prefer to
+    // include as little as possible in the `build.rs` for no particular reason.
     use super::Level;
     use agb::display::tiled::TileSetting;
     static TILES: &[TileSetting] = super::tiles::TILES.tile_settings;
@@ -262,7 +263,8 @@ impl ToTokens for Level {
         let (player_x, player_y) = self.player_start;
         let (width, height) = self.size;
 
-        // see how easy it is to define Rust code! See the quote documentation for more details.
+        // see how easy it is to define Rust code! See the quote documentation
+        // for more details.
         quote! {
             Level {
                 // just puts the width in
@@ -288,10 +290,12 @@ In our `build.rs` file, we need to include a main function to be run by `cargo`.
 static LEVELS: &[&str] = &["level_01.tmx"];
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // the file we output to which is in the `OUT_DIR` directory. This is a directory
-    // provided by cargo designed to be used by the build script to include output into
-    let mut file =
-        std::fs::File::create(format!("{}/levels.rs", std::env::var("OUT_DIR").unwrap()))?;
+    // the file we output to which is in the `OUT_DIR` directory.
+    // This is a directory provided by cargo designed to be used by the
+    // build script to include output into
+    let out_dir = std::env::var("OUT_DIR").unwrap();
+    let out_file_name = format!("{out_dir}/levels.rs");
+    let mut file = std::fs::File::create(out_file_name)?;
 
     // make and write each level to the output
     for (number, level) in LEVELS.iter().enumerate() {
@@ -303,7 +307,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         writeln!(file, "{content}")?;
     }
 
-    // define an array of all the levels to be used by the game, therefore make the array `pub`.
+    // define an array of all the levels to be used by the game,
+    // therefore make the array `pub`.
     let levels = (0..LEVELS.len()).map(|x| quote::format_ident!("LEVEL_{}", x));
     writeln!(
         file,

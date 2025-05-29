@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use tiled::{
     FilesystemResourceReader, FiniteTileLayer, Layer, Map, ObjectLayer, PropertyValue,
     ResourceReader, TileLayer,
@@ -128,8 +128,9 @@ fn import_level(level: &str) -> Result<Level, Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut file =
-        std::fs::File::create(format!("{}/levels.rs", std::env::var("OUT_DIR").unwrap()))?;
+    let out_dir = std::env::var("OUT_DIR").unwrap();
+    let out_file_name = format!("{out_dir}/levels.rs");
+    let mut file = std::fs::File::create(out_file_name)?;
 
     for (number, level) in LEVELS.iter().enumerate() {
         let ident = quote::format_ident!("LEVEL_{}", number);

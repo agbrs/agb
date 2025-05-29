@@ -12,7 +12,8 @@ impl Level {
     fn bounds(&self) -> Rect<i32> {
         Rect::new(
             vec2(0, 0),
-            // rect is inclusive of the edge, so we'll need to correct that by subtracting 1
+            // rect is inclusive of the edge, so we'll need to
+            // correct that by subtracting 1
             vec2(self.width as i32 - 1, self.height as i32 - 1),
         )
     }
@@ -41,17 +42,21 @@ impl World {
 
     fn set_pos(&mut self, pos: Vector2D<i32>) {
         // It's always a good idea to wrap the set_scroll_pos call.
-        // By giving the callback every time, it makes lifetimes easier to manage and is
-        // almost required to support streaming in levels from some compressed form.
+        // By giving the callback every time, it makes lifetimes
+        // easier to manage and is almost required to support streaming
+        // in levels from some compressed form.
         self.bg.set_scroll_pos(pos, |pos| {
-            // using the bounds we just added to see if the given point is in our tiles
+            // using the bounds we just added to see if the given
+            // point is in our tiles
             let tile = if self.level.bounds().contains_point(pos) {
-                // calculating the index of the tile from the coordiniates given
+                // Calculating the index of the tile from the
+                // coordiniates given
                 let idx = pos.x + pos.y * self.level.width;
                 self.level.background[idx as usize]
             } else {
-                // just use the transparent tile if we were to render outside of the level
-                // this is a good tile to use as agb may contain specific optimisations around the transparent tile.
+                // Just use the transparent tile if we were to rende
+                // outside of the level. This is a good tile to use as
+                // agb may contain specific optimisations around the transparent tile.
                 TileSetting::BLANK
             };
 

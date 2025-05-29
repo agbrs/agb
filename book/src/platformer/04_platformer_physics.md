@@ -52,18 +52,25 @@ impl Player {
         }
     }
 
-    // checks whether the bottom of our sprite + 1 of the smallest subpixel values is colliding with something.
-    // if it is, then we're on the ground
+    // Checks whether the bottom of our sprite + 1 of the smallest
+    // subpixel values is colliding with something. If it is, then
+    // we're on the ground
     fn is_on_ground(&self, level: &Level) -> bool {
-        level.collides(vec2(self.position.x, self.position.y + 8 + Number::from_raw(1)).floor() / 8)
+        let position_to_check = vec2(
+            self.position.x,
+            self.position.y + 8 + Number::from_raw(1),
+        );
+        level.collides(position_to_check.floor() / 8)
     }
 
     // modifies the velocity accounting for various bonuses
     fn handle_horizontal_input(&mut self, x_tri: i32, on_ground: bool) {
         let mut x = x_tri;
 
-        // if we're trying to move in a direction opposite to what we're currently moving, we should decelerate faster.
-        // this is a classic trick that is used to make movement feel more snappy, it was used in the first super mario game!
+        // If we're trying to move in a direction opposite to what
+        // we're currently moving, we should decelerate faster.
+        // This is a classic trick that is used to make movement
+        // feel more snappy, it was used in the first super mario game!
         if x_tri.signum() != self.velocity.x.to_raw().signum() {
             x *= 2;
         }
@@ -75,16 +82,20 @@ impl Player {
         self.velocity.x += Number::new(x) / 16;
     }
 
-    // make a simple modification to the y velocity for jumping. 
-    // many games reduce the gravity while the button is held to make varying jump heights.
+    // Make a simple modification to the y velocity for jumping. 
+    // Many games reduce the gravity while the button is held
+    // to make varying jump heights.
     fn handle_jump(&mut self) {
         self.velocity.y = Number::new(-2);
     }
 
-    // handle various cases of the movement to display a different animation
+    // Handle various cases of the movement to display a different animation
     fn update_sprite(&mut self) {
         self.frame += 1;
 
+        // We need to keep track of the facing direction rather than deriving
+        // it because of the zero 0 velocity case needs to keep facing the
+        // same direction. 
         if self.velocity.x > num!(0.1) {
             self.flipped = false;
         }
@@ -175,9 +186,10 @@ With that said, I will be using a fairly forgiving system and presenting it with
 
 ```rust
 impl Player {
-    // handles the collision for a single component (x or y) of the position / velocity.
-    // if a collision is detected on the external point of the sprite in the relevant axis,
-    // then the position is corrected to be outside of the tile and velocity set to zero.
+    // Handles the collision for a single component (x or y) of the
+    // position / velocity. If a collision is detected on the external
+    // point of the sprite in the relevant axis, then the position is
+    // corrected to be outside of the tile and velocity set to zero.
     fn handle_collision_component(
         velocity: &mut Number,
         position: &mut Number,
