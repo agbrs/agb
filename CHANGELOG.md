@@ -19,7 +19,6 @@ code and seeing how that changes the behaviour of the example!
 
 - `GraphicsFrame` is now how you manage what gets displayed to the screen. Both for backgrounds and objects.
 - Lots more examples.
-
 - The crate is 100% documented!
 - `#[agb::entry]` now produces code which is compatible with rust 2024.
 - Introduced `agb::display::{Rgb15, Rgb}` to represent colours and allow for basic interpolation and conversion.
