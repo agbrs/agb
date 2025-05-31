@@ -21,6 +21,12 @@
   - [Fixnums](./pong/07_fixnums.md)
   - [Background music](./pong/08_bgm.md)
   - [Keeping score](./pong/09_keeping_score.md)
+- [Learn agb part II - platformer](./platformer/00_introduction.md)
+  - [Tiled](./platformer/01_tiled.md)
+  - [Importing Tiled levels](./platformer/02_importing_tiled_levels.md)
+  - [Displaying the level](./platformer/03_displaying_the_level.md)
+  - [Platformer](./platformer/04_platformer_physics.md)
+  - [Multiple levels](./platformer/05_multiple_levels.md)
 
 # Articles
 

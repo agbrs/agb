@@ -1,0 +1,23 @@
+[package]
+name = "platform"
+version = "0.1.0"
+authors = ["Corwin Kuiper"]
+edition = "2024"
+
+[dependencies]
+agb = { version = "0.21.3", path = "../../../agb" }
+agb_tracker = { version = "0.21.3", path = "../../../tracker/agb-tracker" }
+
+[build-dependencies]
+quote = "1"
+proc-macro2 = "1"
+tiled = "0.14.0"
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
