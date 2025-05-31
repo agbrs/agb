@@ -36,4 +36,5 @@
 - [Unit testing](./articles/unit_tests.md)
 - [Affine backgrounds and objects](./articles/affine.md)
 - [DMA](./articles/dma.md)
+- [Using a debugger with VSCode](./articles/vscode_debugger.md)
 - [Miscellaneous](./articles/misc.md)
