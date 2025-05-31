@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Rust build: debug",
+            "command": "cargo",
+            "args": [
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CARGO_TARGET_DIR": "${workspaceFolder}/target"
+                }
+            }
+        },
+    ],
+}
