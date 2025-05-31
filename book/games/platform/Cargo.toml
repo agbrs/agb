@@ -5,8 +5,8 @@ authors = ["Corwin Kuiper"]
 edition = "2024"
 
 [dependencies]
-agb = { version = "0.21.3", path = "../../../agb" }
-agb_tracker = { version = "0.21.3", path = "../../../tracker/agb-tracker" }
+agb = { version = "0.22.0", path = "../../../agb" }
+agb_tracker = { version = "0.22.0", path = "../../../tracker/agb-tracker" }
 
 [build-dependencies]
 quote = "1"

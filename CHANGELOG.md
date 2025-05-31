@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2025/05/31
+
 This release comes with a major change to everything in `agb::display`. Mostly built around the new `GraphicsFrame`
 used to show both backgrounds and objects to the screen. See the newly expanded [book](https://agbrs.dev/book)
 which covers many topics including advanced articles for more exciting graphical effects and completed
