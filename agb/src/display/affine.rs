@@ -103,11 +103,6 @@ pub struct AffineMatrix<T = Num<i32, 8>> {
     pub y: T,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// The error emitted upon a conversion that could not be performed due to
-/// overflowing the destination data size
-pub struct OverflowError(pub(crate) ());
-
 impl<T: SignedNumber> AffineMatrix<T> {
     #[must_use]
     /// The Identity matrix. The identity matrix can be thought of as 1 and is
