@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dynamic sprites will try garbage collecting sprites before failing to allocate.
+
 ## [0.22.0] - 2025/05/31
 
 This release comes with a major change to everything in `agb::display`. Mostly built around the new `GraphicsFrame`
