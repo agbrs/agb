@@ -154,6 +154,15 @@ impl SpriteLoader {
     }
 }
 
+pub(crate) unsafe fn garbage_collect_sprite_loader() {
+    unsafe {
+        SPRITE_LOADER.with(|x| {
+            x.garbage_collect_sprites();
+            x.garbage_collect_palettes();
+        });
+    }
+}
+
 pub static SPRITE_LOADER: SpriteLoader = SpriteLoader(SyncUnsafeCell::new(MaybeUninit::uninit()));
 
 impl From<&'static Palette16> for PaletteVram {
