@@ -1,16 +1,43 @@
-use core::{alloc::Allocator, ptr::NonNull};
+use core::{
+    alloc::{Allocator, Layout},
+    ptr::NonNull,
+};
 
 use alloc::boxed::Box;
 
 use crate::display::object::{
     Size,
-    sprites::{BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP},
+    sprites::{
+        BYTES_PER_TILE_4BPP, BYTES_PER_TILE_8BPP, sprite_allocator::garbage_collect_sprite_loader,
+    },
 };
 
 use super::{
     LoaderError, PaletteVramMulti, PaletteVramSingle,
     sprite::{SpriteAllocator, SpriteLocation, SpriteVram, SpriteVramInner},
 };
+
+fn allocate_with_retry(layout: Layout) -> Result<NonNull<[u8]>, alloc::alloc::AllocError> {
+    if let Ok(x) = SpriteAllocator.allocate(layout) {
+        return Ok(x);
+    }
+    unsafe {
+        garbage_collect_sprite_loader();
+    }
+
+    SpriteAllocator.allocate(layout)
+}
+
+fn allocate_zeroed_with_retry(layout: Layout) -> Result<NonNull<[u8]>, alloc::alloc::AllocError> {
+    if let Ok(x) = SpriteAllocator.allocate_zeroed(layout) {
+        return Ok(x);
+    }
+    unsafe {
+        garbage_collect_sprite_loader();
+    }
+
+    SpriteAllocator.allocate_zeroed(layout)
+}
 
 macro_rules! dynamic_sprite_defn {
     ($name: ident, $multi: literal, $palette: ty) => {
@@ -23,8 +50,7 @@ macro_rules! dynamic_sprite_defn {
         // this is explicitly written out so that the extreme alignment conditions are correcly passed to the allocator
         impl Clone for $name {
             fn clone(&self) -> Self {
-                let allocation = SpriteAllocator
-                    .allocate(self.size.layout($multi))
+                let allocation = allocate_with_retry(self.size.layout($multi))
                     .expect("cannot allocate dynamic sprite");
 
                 let allocation = core::ptr::slice_from_raw_parts_mut(
@@ -48,8 +74,7 @@ macro_rules! dynamic_sprite_defn {
             /// there be no more space available for the sprite to be allocated
             /// into.
             pub fn try_new(size: Size) -> Result<Self, LoaderError> {
-                let allocation = SpriteAllocator
-                    .allocate_zeroed(size.layout($multi))
+                let allocation = allocate_zeroed_with_retry(size.layout($multi))
                     .map_err(|_| LoaderError::SpriteFull)?;
 
                 let allocation = core::ptr::slice_from_raw_parts_mut(
@@ -76,9 +101,8 @@ macro_rules! dynamic_sprite_defn {
                 let layout = size.layout($multi);
                 assert_eq!(layout.size(), data.len());
 
-                let allocation = SpriteAllocator
-                    .allocate(layout)
-                    .expect("cannot allocate dynamic sprite");
+                let allocation =
+                    allocate_with_retry(layout).expect("cannot allocate dynamic sprite");
 
                 let allocation = core::ptr::slice_from_raw_parts_mut(
                     allocation.as_ptr() as *mut _,
