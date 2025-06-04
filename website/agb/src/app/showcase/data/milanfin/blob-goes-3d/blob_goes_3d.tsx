@@ -2,10 +2,9 @@ import { ShowcaseGame } from "@/app/showcase/games";
 import b0 from "./blob_goes_3d-0.png";
 import b1 from "./blob_goes_3d-1.png";
 import b2 from "./blob_goes_3d-2.png";
-import b3 from "./blob_goes_3d-3.png";
-import b4 from "./blob_goes_3d-4.jpg";
+import b3 from "./blob_goes_3d-3.jpg";
 
-const Screenshots = [b4, b0, b1, b2, b3];
+const Screenshots = [b3, b0, b1, b2];
 
 export const BlobGoes3d: ShowcaseGame = {
   name: "Blob Goes 3D",
