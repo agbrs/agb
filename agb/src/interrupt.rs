@@ -338,12 +338,14 @@ unsafe impl critical_section::Impl for MyCriticalSection {
     }
 }
 
-/// This makes the interrupt itself interruptable. Other interrupts are not
-/// guaranteed to fire, but are allowed to.
+/// This enters a section that enables interrupts. This can be used inside of
+/// interrupts or inside a critical section. Naturally, this breaks all sorts of
+/// guarantees that a critical section makes. Hence this function is incredibly
+/// unsafe.
 ///
 /// # Safety
 /// * You must not use a critical section acquired outside this inside it.
-pub(crate) unsafe fn interruptable<F, R>(f: F) -> R
+pub unsafe fn interruptable<F, R>(f: F) -> R
 where
     F: FnOnce() -> R,
 {
