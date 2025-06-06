@@ -282,7 +282,7 @@ impl SaveData {
     /// This will erase any data in any sector overlapping the input range. To
     /// calculate which offset ranges would be affected, use the
     /// [`align_range`](`SaveData::align_range`) function.
-    pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock, Error> {
+    pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock<'_>, Error> {
         self.check_bounds(range.clone())?;
         if self.info.uses_prepare_write {
             let range = self.align_range(range.clone());

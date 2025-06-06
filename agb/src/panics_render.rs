@@ -90,7 +90,10 @@ impl QrCodeBuffers {
         })
     }
 
-    fn generate_qr_code(&mut self, data: &str) -> Result<qrcodegen_no_heap::QrCode, DataTooLong> {
+    fn generate_qr_code(
+        &mut self,
+        data: &str,
+    ) -> Result<qrcodegen_no_heap::QrCode<'_>, DataTooLong> {
         qrcodegen_no_heap::QrCode::encode_text(
             data,
             &mut self.temp_buffer,
