@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.1] - 2025/06/06
+
 ### Added
 
 - Added `.partial_update_status()` and `.show_if_done()` methods to `InfiniteScrolledMap` which allow for

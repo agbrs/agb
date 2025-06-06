@@ -1,6 +1,6 @@
 [package]
 name = "agb_midi_core"
-version = "0.22.0"
+version = "0.22.1"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -14,5 +14,5 @@ midly = { version = "0.5", default-features = false, features = [
     "std",
 ] }
 
-agb_tracker_interop = { version = "0.22.0", path = "../agb-tracker-interop" }
-agb_fixnum = { version = "0.22.0", path = "../../agb-fixnum" }
+agb_tracker_interop = { version = "0.22.1", path = "../agb-tracker-interop" }
+agb_fixnum = { version = "0.22.1", path = "../../agb-fixnum" }

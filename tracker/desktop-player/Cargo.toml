@@ -8,9 +8,9 @@ description = "A way to play XM files on desktop as they would on the gba withou
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-agb_xm_core = { version = "0.22.0", path = "../agb-xm-core" }
-agb_tracker = { version = "0.22.0", path = "../agb-tracker", default-features = false }
-agb_fixnum = { version = "0.22.0", path = "../../agb-fixnum" }
+agb_xm_core = { version = "0.22.1", path = "../agb-xm-core" }
+agb_tracker = { version = "0.22.1", path = "../agb-tracker", default-features = false }
+agb_fixnum = { version = "0.22.1", path = "../../agb-fixnum" }
 
 anyhow = "1"
 xmrs = "=0.8.5"
