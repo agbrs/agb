@@ -227,27 +227,61 @@ impl InfiniteScrolledMap {
         }
     }
 
-    /// Gets the current scroll position. See [`RegularBackground::scroll_pos`]
+    /// Returns whether the background has finished rendering.
+    ///
+    /// Will return the same value as whatever [`.set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos)
+    /// returned last time.
+    #[must_use]
+    pub fn partial_update_status(&self) -> PartialUpdateStatus {
+        match self.current_pos {
+            Position::Current(_) => PartialUpdateStatus::Done,
+            Position::Working { .. } | Position::None => PartialUpdateStatus::Continue,
+        }
+    }
+
+    /// Gets the current scroll position.
+    ///
+    /// See [`RegularBackground::scroll_pos`] for more details
     #[must_use]
     pub fn scroll_pos(&self) -> Vector2D<i32> {
         self.map.scroll_pos()
     }
 
-    /// Sets the priority of the underlying map. See [`RegularBackground::set_priority`]
+    /// Sets the priority of the underlying map.
+    ///
+    /// See [`RegularBackground::set_priority`] for more details
     pub fn set_priority(&mut self, priority: Priority) {
         self.map.set_priority(priority);
     }
 
-    /// Gets the current priority of the underlying map. See [`RegularBackground::priority`]
+    /// Gets the current priority of the underlying map.
+    ///
+    /// See [`RegularBackground::priority`] for more details.
     #[must_use]
     pub fn priority(&self) -> Priority {
         self.map.priority()
     }
 
-    /// Shows this map on the given [`GraphicsFrame`]. See [`RegularBackground::show`] for more
-    /// details.
+    /// Shows this map on the given [`GraphicsFrame`].
+    ///
+    /// See [`RegularBackground::show`] for more details.
     pub fn show(&self, frame: &mut GraphicsFrame) -> RegularBackgroundId {
         self.map.show(frame)
+    }
+
+    /// Shows this map on the given [`GraphicsFrame`] if it has finished rendering.
+    ///
+    /// It takes multiple calls to [`.set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) to fully
+    /// update the screen. This method will only actually show the map if the full map has
+    /// finished rendering.
+    ///
+    /// It'll return `None` if it didn't actually render the background, or `Some(backgroundId)` if
+    /// it did with the same background id concept as in [`RegularBackground::show`].
+    pub fn show_if_done(&self, frame: &mut GraphicsFrame) -> Option<RegularBackgroundId> {
+        match self.partial_update_status() {
+            PartialUpdateStatus::Done => Some(self.show(frame)),
+            PartialUpdateStatus::Continue => None,
+        }
     }
 }
 

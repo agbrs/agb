@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `.partial_update_status()` and `.show_if_done()` methods to `InfiniteScrolledMap` which allow for
+  conditional rendering based on whether the tiles are fully updated in the background.
+
 ### Fixed
 
 - Dynamic sprites will try garbage collecting sprites before failing to allocate.
