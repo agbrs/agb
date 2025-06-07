@@ -126,8 +126,6 @@ pub struct AffineBackground {
     tiles: Tiles,
     screenblock: Rc<AffineBackgroundScreenBlock>,
 
-    is_dirty: bool,
-
     scroll: Vector2D<Num<i32, 8>>,
 
     transform: AffineMatrixBackground,
@@ -157,7 +155,6 @@ impl AffineBackground {
             priority,
 
             tiles: Tiles::new(size),
-            is_dirty: true,
 
             scroll: Vector2D::default(),
 
@@ -263,8 +260,7 @@ impl AffineBackground {
         }
 
         if old_tile != new_tile {
-            self.tiles.tiles_mut()[pos] = new_tile;
-            self.is_dirty = true;
+            self.tiles.set_tile(pos, new_tile);
         }
 
         self
@@ -284,7 +280,7 @@ impl AffineBackground {
     /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background
     /// such as applying [dma effects](crate::dma).
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
-        let commit_data = if self.is_dirty {
+        let commit_data = if self.tiles.is_dirty(self.screenblock.ptr()) {
             Some(AffineBackgroundCommitData {
                 tiles: self.tiles.clone(),
                 screenblock: Rc::clone(&self.screenblock),

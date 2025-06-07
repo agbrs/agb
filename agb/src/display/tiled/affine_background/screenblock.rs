@@ -41,4 +41,8 @@ impl AffineBackgroundScreenBlock {
         let screenblock_location = self.ptr.as_ptr() as usize;
         ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
     }
+
+    pub(crate) fn ptr(&self) -> NonNull<u8> {
+        self.ptr
+    }
 }

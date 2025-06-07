@@ -1,17 +1,33 @@
-use alloc::{rc::Rc, vec};
+use core::{cell::RefCell, ptr::NonNull};
+
+use alloc::{boxed::Box, rc::Rc, vec};
 
 use crate::display::tiled::{TileIndex, VRAM_MANAGER};
 
 use super::AffineBackgroundSize;
 
 pub(crate) struct Tiles {
-    tiles: Rc<[u8]>,
+    tiles: Rc<TilesInner>,
+}
+
+struct TilesInner {
+    tiles: Box<[u8]>,
+    in_screenblock: RefCell<Option<NonNull<u8>>>,
+}
+
+impl Clone for TilesInner {
+    fn clone(&self) -> Self {
+        Self {
+            tiles: self.tiles.clone(),
+            in_screenblock: RefCell::new(None),
+        }
+    }
 }
 
 impl Drop for Tiles {
     fn drop(&mut self) {
         if Rc::strong_count(&self.tiles) == 1 {
-            for tile in self.tiles.iter() {
+            for tile in self.tiles().iter() {
                 if *tile != 0 {
                     VRAM_MANAGER.remove_tile(TileIndex::EightBpp(*tile as u16));
                 }
@@ -30,30 +46,48 @@ impl Clone for Tiles {
 
 impl Tiles {
     pub(crate) fn new(size: AffineBackgroundSize) -> Self {
+        let tiles = vec![0; size.num_tiles()].into_boxed_slice();
         Self {
-            tiles: vec![0; size.num_tiles()].into(),
+            tiles: Rc::new(TilesInner {
+                tiles,
+                in_screenblock: RefCell::new(None),
+            }),
         }
     }
 
-    pub(crate) fn tiles_mut(&mut self) -> &mut [u8] {
+    pub(crate) fn set_tile(&mut self, pos: usize, idx: u8) {
         if Rc::strong_count(&self.tiles) > 1 {
             // the make_mut below is going to cause us to increase the reference count, so we should
             // mark every tile here as referenced again in the VRAM_MANAGER.
-            for tile in self.tiles.iter() {
+            for tile in self.tiles().iter() {
                 if *tile != 0 {
                     VRAM_MANAGER.increase_reference(TileIndex::EightBpp(*tile as u16));
                 }
             }
         }
 
-        Rc::make_mut(&mut self.tiles)
+        let tile_data = Rc::make_mut(&mut self.tiles);
+        tile_data.tiles[pos] = idx;
+        tile_data.in_screenblock.replace(None);
+    }
+
+    pub(crate) fn tiles(&self) -> &[u8] {
+        &self.tiles.tiles
     }
 
     pub(crate) fn as_ptr(&self) -> *const u8 {
-        self.tiles.as_ptr()
+        self.tiles().as_ptr()
     }
 
     pub(crate) fn get(&self, index: usize) -> u8 {
-        self.tiles[index]
+        self.tiles()[index]
+    }
+
+    pub(crate) fn is_dirty(&self, screenblock_ptr: NonNull<u8>) -> bool {
+        *self.tiles.in_screenblock.borrow() != Some(screenblock_ptr)
+    }
+
+    pub(crate) fn clean(&self, screenblock_ptr: NonNull<u8>) {
+        self.tiles.in_screenblock.replace(Some(screenblock_ptr));
     }
 }

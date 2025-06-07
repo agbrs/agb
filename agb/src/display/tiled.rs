@@ -433,6 +433,8 @@ impl BackgroundFrame {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
+
+                commit_data.tiles.clean(commit_data.screenblock.ptr());
             }
         }
     }
