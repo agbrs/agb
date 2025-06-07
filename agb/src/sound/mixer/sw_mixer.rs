@@ -9,9 +9,10 @@ use super::hw::LeftOrRight;
 use super::{Frequency, hw};
 use super::{SoundChannel, SoundPriority};
 
-use crate::InternalAllocator;
 use crate::{
-    fixnum::Num,
+    InternalAllocator,
+    dma::dma_copy16,
+    fixnum::{Num, num},
     interrupt::{InterruptHandler, add_interrupt_handler},
     timer::Divider,
     timer::Timer,
@@ -117,6 +118,10 @@ pub struct Mixer<'gba> {
     frequency: Frequency,
 
     working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
+    /// Copy all the data into here first before acting on it if it is deemed to
+    /// be faster to do so since using DMA3 to copy from ROM into IWRAM is faster
+    /// than just reading from ROM.
+    temp_storage: Box<[u8], InternalAllocator>,
 
     fifo_timer: Timer,
 
@@ -185,6 +190,10 @@ impl Mixer<'_> {
             Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
         working_buffer.resize(frequency.buffer_size() * 2, 0.into());
 
+        let mut temp_storage =
+            Vec::with_capacity_in(frequency.buffer_size() * 3 / 2 + 1, InternalAllocator);
+        temp_storage.resize(temp_storage.capacity(), 0);
+
         let mut result = Self {
             frequency,
             buffer,
@@ -195,6 +204,7 @@ impl Mixer<'_> {
             _interrupt_handler: interrupt_handler,
 
             working_buffer: working_buffer.into_boxed_slice(),
+            temp_storage: temp_storage.into_boxed_slice(),
             fifo_timer,
 
             phantom: PhantomData,
@@ -247,8 +257,11 @@ impl Mixer<'_> {
             return;
         }
 
-        self.buffer
-            .write_channels(&mut self.working_buffer, self.channels.iter_mut().flatten());
+        self.buffer.write_channels(
+            &mut self.working_buffer,
+            &mut self.temp_storage,
+            self.channels.iter_mut().flatten(),
+        );
     }
 
     /// Start playing a given [`SoundChannel`].
@@ -430,6 +443,7 @@ impl MixerBuffer {
     fn write_channels<'a>(
         &self,
         working_buffer: &mut [Num<i16, 4>],
+        temp_storage: &mut [u8],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
         let mut channels = channels
@@ -439,7 +453,7 @@ impl MixerBuffer {
             if channel.is_stereo {
                 self.write_stereo(channel, working_buffer, true);
             } else {
-                self.write_mono(channel, working_buffer, true);
+                self.write_mono(channel, working_buffer, temp_storage, true);
             }
         } else {
             working_buffer.fill(0.into());
@@ -449,7 +463,7 @@ impl MixerBuffer {
             if channel.is_stereo {
                 self.write_stereo(channel, working_buffer, false);
             } else {
-                self.write_mono(channel, working_buffer, false);
+                self.write_mono(channel, working_buffer, temp_storage, false);
             }
         }
 
@@ -509,6 +523,7 @@ impl MixerBuffer {
         &self,
         channel: &mut SoundChannel,
         working_buffer: &mut [Num<i16, 4>],
+        temp_storage: &mut [u8],
         is_first: bool,
     ) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
@@ -518,11 +533,6 @@ impl MixerBuffer {
         let left_amount: Num<i16, 4> = left_amount.change_base();
 
         let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
-        let mut playback_speed = channel.playback_speed;
-
-        while playback_speed >= channel_len - channel.restart_point {
-            playback_speed -= channel_len;
-        }
 
         // SAFETY: always aligned correctly by construction
         let working_buffer_i32: &mut [i32] = unsafe {
@@ -535,11 +545,14 @@ impl MixerBuffer {
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
 
+        let playback_buffer =
+            playback_buffer::PlaybackBuffer::new(channel, self.frequency, temp_storage);
+
         macro_rules! call_mono_fn {
             ($fn_name:ident) => {
                 channel.pos = unsafe {
                     $fn_name(
-                        channel.data.as_ptr(),
+                        playback_buffer.as_ptr(),
                         working_buffer_i32.as_mut_ptr(),
                         working_buffer_i32.len(),
                         channel_len - channel.restart_point,
@@ -562,6 +575,97 @@ impl MixerBuffer {
             (false, false) => {
                 call_mono_fn!(agb_rs__mixer_add_mono);
                 channel.is_done = channel.pos >= channel_len;
+            }
+        }
+    }
+}
+
+mod playback_buffer {
+    use super::*;
+
+    /// Sometimes it is faster to copy the sound data out of ROM first into RAM and then play
+    /// it from there. This is because sequential reads from ROM are much faster than random reads
+    /// and DMA3 can do sequential reads the whole way across, and in IWRAM, random reads are
+    /// exactly the same speed as sequential reads.
+    ///
+    /// The mixer mainly has to do random reads because it has to handle playback speeds which
+    /// aren't exactly 1. So in cases where copying the data first is faster than just reading it
+    /// the once, we copy into a temporary buffer set aside specifically for this purpose.
+    pub(super) enum PlaybackBuffer<'a> {
+        /// This is the temporary buffer set aside for copying the data into.
+        ///
+        /// The second field in the enum is the offset to subtract from it which we might need to
+        /// do because we could be playing back somewhere in the middle of this section and we want
+        /// to pretend that we're actually playing from somewhere else.
+        TempStorage(&'a [u8], usize),
+        /// Just read the data from ROM.
+        Rom(&'static [u8]),
+    }
+
+    impl<'a> PlaybackBuffer<'a> {
+        pub(super) fn new(
+            channel: &SoundChannel,
+            frequency: Frequency,
+            temp_storage: &'a mut [u8],
+        ) -> Self {
+            let channel_len = Num::new(channel.data.len() as u32);
+
+            // 1.5 is approximately the multiple we can work with before it would be faster
+            // to read from ROM rather than do the copy
+            //
+            // If increasing this size, make sure to also increase the size of the temp_storage
+            // allocation since this guards overrunning that.
+            if channel.playback_speed > num!(1.5) {
+                return PlaybackBuffer::Rom(channel.data);
+            }
+
+            let total_to_play =
+                (channel.playback_speed * frequency.buffer_size() as u32).floor() + 1;
+
+            if channel_len <= total_to_play.into() {
+                // We're going to play the entire sample (at least once) so copy the entire
+                // sample into memory.
+                assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
+
+                unsafe {
+                    dma_copy16(
+                        channel.data.as_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
+                        channel_len.floor() as usize / 2,
+                    );
+                }
+
+                PlaybackBuffer::TempStorage(temp_storage, 0)
+            } else if channel.pos + total_to_play > channel_len {
+                // The playback is going to loop. We don't handle this case (yet) but
+                // fortunately it doesn't come up as often as the other two cases.
+                PlaybackBuffer::Rom(channel.data)
+            } else {
+                // We're not going to loop, and not going to play the entire sample. So
+                // we'll copy as much over as we can.
+                assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
+
+                unsafe {
+                    dma_copy16(
+                        channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
+                        total_to_play as usize / 2 + 1,
+                    );
+                }
+
+                // The offset here is so we can pretend that the whole channel exists,
+                // but the copy methods will immediately add the pos on and won't know
+                // that around the small bit is actuall junk.
+                PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
+            }
+        }
+
+        pub(super) fn as_ptr(&self) -> *const u8 {
+            match self {
+                PlaybackBuffer::TempStorage(items, offset) => {
+                    items.as_ptr().wrapping_byte_sub(*offset)
+                }
+                PlaybackBuffer::Rom(items) => items.as_ptr(),
             }
         }
     }

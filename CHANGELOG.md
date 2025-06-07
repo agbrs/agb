@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed performance regression in 0.22 when dealing with backgrounds which haven't changed between frames.
 - Fixed a memory leak when creating and destroying AffineBackgrounds a few times.
 
+### Improved
+
+- Improved the performance of the mixer by about 10% in cases where you're playing a lot of mono sounds
+  at speeds <= 1.5x (common with trackers).
+
 ## [0.22.1] - 2025/06/06
 
 ### Added
