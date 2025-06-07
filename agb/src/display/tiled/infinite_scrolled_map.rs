@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 use crate::{
     display::{GraphicsFrame, HEIGHT, Priority, WIDTH},
-    fixnum::{Rect, Vector2D, vec2},
+    fixnum::{Number, Rect, Vector2D, vec2},
 };
 
 use super::{RegularBackground, RegularBackgroundId, TileSet, TileSetting};
@@ -311,8 +311,11 @@ impl IntDivRoundingExt<i32> for i32 {
     }
 }
 
-impl IntDivRoundingExt<i32> for Vector2D<i32> {
-    fn div_floor_stable(self, other: i32) -> Self {
+impl<T> IntDivRoundingExt<T> for Vector2D<T>
+where
+    T: IntDivRoundingExt<T> + Number,
+{
+    fn div_floor_stable(self, other: T) -> Self {
         vec2(
             self.x.div_floor_stable(other),
             self.y.div_floor_stable(other),
