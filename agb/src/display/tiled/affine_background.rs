@@ -5,7 +5,11 @@ use bilge::prelude::*;
 use core::alloc::Layout;
 
 use crate::{
-    display::{GraphicsFrame, Priority, affine::AffineMatrix, tiled::TileFormat},
+    display::{
+        GraphicsFrame, Priority,
+        affine::AffineMatrix,
+        tiled::{TileFormat, tiles::Tiles},
+    },
     fixnum::{Num, Vector2D},
 };
 
@@ -16,10 +20,8 @@ use super::{
 };
 
 mod screenblock;
-mod tiles;
 
 pub(crate) use screenblock::AffineBackgroundScreenBlock;
-pub(crate) use tiles::Tiles;
 
 /// The size of the affine background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -123,7 +125,7 @@ impl AffineBackgroundSize {
 pub struct AffineBackground {
     priority: Priority,
 
-    tiles: Tiles,
+    tiles: Tiles<u8>,
     screenblock: Rc<AffineBackgroundScreenBlock>,
 
     scroll: Vector2D<Num<i32, 8>>,
@@ -154,7 +156,7 @@ impl AffineBackground {
         Self {
             priority,
 
-            tiles: Tiles::new(size),
+            tiles: Tiles::new(size.num_tiles(), TileFormat::EightBpp),
 
             scroll: Vector2D::default(),
 

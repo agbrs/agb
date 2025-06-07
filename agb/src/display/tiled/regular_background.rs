@@ -4,7 +4,7 @@ use core::{alloc::Layout, mem};
 use alloc::rc::Rc;
 
 use crate::{
-    display::{GraphicsFrame, Priority, tile_data::TileData},
+    display::{GraphicsFrame, Priority, tile_data::TileData, tiled::tiles::Tiles},
     fixnum::Vector2D,
 };
 
@@ -15,12 +15,10 @@ use super::{
 };
 
 pub(crate) use screenblock::RegularBackgroundScreenblock;
-pub(crate) use tiles::Tiles;
 
 use bilge::prelude::*;
 
 mod screenblock;
-mod tiles;
 
 /// The backgrounds in the GameBoy Advance are made of 8x8 tiles. Each different background option lets
 /// you decide how big the background should be before it wraps. Ideally, you should use the smallest background
@@ -130,7 +128,7 @@ impl RegularBackgroundSize {
 pub struct RegularBackground {
     priority: Priority,
 
-    tiles: Tiles,
+    tiles: Tiles<Tile>,
     screenblock: Rc<RegularBackgroundScreenblock>,
 
     scroll: Vector2D<i32>,
@@ -153,7 +151,7 @@ impl RegularBackground {
         Self {
             priority,
 
-            tiles: Tiles::new(size, colours),
+            tiles: Tiles::new(size.num_tiles(), colours),
 
             scroll: Vector2D::default(),
 

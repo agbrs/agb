@@ -2,17 +2,21 @@ use core::{cell::Cell, ptr::NonNull};
 
 use alloc::{boxed::Box, rc::Rc, vec};
 
-use crate::display::tiled::{Tile, TileFormat, VRAM_MANAGER};
-
-use super::RegularBackgroundSize;
+use crate::display::tiled::{Tile, TileFormat, TileIndex, VRAM_MANAGER};
 
 #[derive(Clone)]
-pub(crate) struct Tiles {
-    tiles: Rc<TilesInner>,
+pub(crate) struct Tiles<T>
+where
+    T: TileInfo,
+{
+    tiles: Rc<TilesInner<T>>,
 }
 
-struct TilesInner {
-    tile_data: Box<[Tile]>,
+struct TilesInner<T>
+where
+    T: TileInfo,
+{
+    tile_data: Box<[T]>,
     /// This tracks where these tiles were last copied into. If it is None,
     /// then they either have never been copied, or they have been modified
     /// since they were last copied.
@@ -22,10 +26,13 @@ struct TilesInner {
     colours: TileFormat,
 }
 
-impl Clone for TilesInner {
+impl<T> Clone for TilesInner<T>
+where
+    T: TileInfo,
+{
     fn clone(&self) -> Self {
         for tile in &self.tile_data {
-            if *tile != Tile::default() {
+            if *tile != T::default() {
                 VRAM_MANAGER.increase_reference(tile.tile_index(self.colours));
             }
         }
@@ -39,36 +46,58 @@ impl Clone for TilesInner {
     }
 }
 
-impl Drop for TilesInner {
+impl<T> Drop for TilesInner<T>
+where
+    T: TileInfo,
+{
     fn drop(&mut self) {
         for tile in &self.tile_data {
-            if *tile != Tile::default() {
+            if *tile != T::default() {
                 VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
             }
         }
     }
 }
 
-impl Tiles {
-    pub(crate) fn new(size: RegularBackgroundSize, format: TileFormat) -> Self {
-        let tiles = vec![Tile::default(); size.num_tiles()].into();
+pub(crate) trait TileInfo: Default + Eq + Copy {
+    fn tile_index(self, colours: TileFormat) -> TileIndex;
+}
+
+impl TileInfo for Tile {
+    fn tile_index(self, colours: TileFormat) -> TileIndex {
+        self.tile_index(colours)
+    }
+}
+
+impl TileInfo for u8 {
+    fn tile_index(self, _colours: TileFormat) -> TileIndex {
+        TileIndex::EightBpp(self as u16)
+    }
+}
+
+impl<T> Tiles<T>
+where
+    T: TileInfo,
+{
+    pub(crate) fn new(size: usize, colours: TileFormat) -> Self {
+        let tiles = vec![T::default(); size].into_boxed_slice();
+
         Self {
             tiles: Rc::new(TilesInner {
                 tile_data: tiles,
                 in_screenblock: Cell::new(None),
-                colours: format,
+                colours,
             }),
         }
     }
 
-    /// Sets the tile at the given position. Will also mark this set of tiles as dirty
-    pub(crate) fn set_tile(&mut self, pos: usize, tile: Tile) {
+    pub(crate) fn set_tile(&mut self, pos: usize, tile: T) {
         let tile_data = Rc::make_mut(&mut self.tiles);
         tile_data.tile_data[pos] = tile;
         tile_data.in_screenblock.set(None);
     }
 
-    pub(crate) fn as_ptr(&self) -> *const Tile {
+    pub(crate) fn as_ptr(&self) -> *const T {
         self.tiles().as_ptr()
     }
 
@@ -76,11 +105,11 @@ impl Tiles {
         self.tiles.colours
     }
 
-    pub(crate) fn get(&self, index: usize) -> Tile {
+    pub(crate) fn get(&self, index: usize) -> T {
         self.tiles()[index]
     }
 
-    pub(crate) fn tiles(&self) -> &[Tile] {
+    pub(crate) fn tiles(&self) -> &[T] {
         &self.tiles.tile_data
     }
 

@@ -2,9 +2,9 @@ use core::ptr::NonNull;
 
 use alloc::alloc::Allocator;
 
-use crate::display::tiled::{SCREENBLOCK_SIZE, ScreenblockAllocator, VRAM_START};
+use crate::display::tiled::{SCREENBLOCK_SIZE, ScreenblockAllocator, VRAM_START, tiles::Tiles};
 
-use super::{AffineBackgroundSize, Tiles};
+use super::AffineBackgroundSize;
 
 pub(crate) struct AffineBackgroundScreenBlock {
     ptr: NonNull<u8>,
@@ -24,7 +24,7 @@ impl AffineBackgroundScreenBlock {
         }
     }
 
-    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles) {
+    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles<u8>) {
         unsafe {
             self.ptr
                 .as_ptr()

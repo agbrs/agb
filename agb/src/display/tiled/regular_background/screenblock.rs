@@ -28,7 +28,7 @@ impl RegularBackgroundScreenblock {
         self.ptr
     }
 
-    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles) {
+    pub(crate) unsafe fn copy_tiles(&self, tiles: &Tiles<Tile>) {
         unsafe {
             self.ptr
                 .as_ptr()

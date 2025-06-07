@@ -12,6 +12,7 @@ mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
 mod regular_background;
+mod tiles;
 mod vram_manager;
 
 use affine_background::AffineBackgroundScreenBlock;
@@ -22,6 +23,7 @@ use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 use regular_background::RegularBackgroundScreenblock;
 pub use regular_background::{RegularBackground, RegularBackgroundSize};
+use tiles::Tiles;
 pub use vram_manager::{DynamicTile16, TileFormat, TileSet, VRAM_MANAGER, VRamManager};
 
 pub(crate) use vram_manager::TileIndex;
@@ -300,7 +302,7 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 struct RegularBackgroundCommitData {
-    tiles: regular_background::Tiles,
+    tiles: Tiles<Tile>,
     screenblock: Rc<RegularBackgroundScreenblock>,
 }
 
@@ -312,7 +314,7 @@ struct RegularBackgroundData {
 }
 
 struct AffineBackgroundCommitData {
-    tiles: affine_background::Tiles,
+    tiles: Tiles<u8>,
     screenblock: Rc<AffineBackgroundScreenBlock>,
 }
 
