@@ -359,19 +359,9 @@ impl SoundChannel {
     #[inline(always)]
     #[must_use]
     pub fn new_high_priority(data: SoundData) -> Self {
-        SoundChannel {
-            data: data.data(),
-            pos: 0.into(),
-            should_loop: false,
-            playback_speed: 1.into(),
-            is_playing: true,
-            panning: 0.into(),
-            is_done: false,
-            priority: SoundPriority::High,
-            volume: 1.into(),
-            is_stereo: false,
-            restart_point: 0.into(),
-        }
+        let mut new = Self::new(data);
+        new.priority = SoundPriority::High;
+        new
     }
 
     /// Sets that a sound channel should loop back to the start once it has
