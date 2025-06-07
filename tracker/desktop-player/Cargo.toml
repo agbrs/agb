@@ -15,4 +15,4 @@ agb_fixnum = { version = "0.22.1", path = "../../agb-fixnum" }
 anyhow = "1"
 xmrs = "=0.8.5"
 
-cpal = "0.15"
+cpal = "0.16"
