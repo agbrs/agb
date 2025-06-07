@@ -583,8 +583,22 @@ impl MixerBuffer {
 mod playback_buffer {
     use super::*;
 
+    /// Sometimes it is faster to copy the sound data out of ROM first into RAM and then play
+    /// it from there. This is because sequential reads from ROM are much faster than random reads
+    /// and DMA3 can do sequential reads the whole way across, and in IWRAM, random reads are
+    /// exactly the same speed as sequential reads.
+    ///
+    /// The mixer mainly has to do random reads because it has to handle playback speeds which
+    /// aren't exactly 1. So in cases where copying the data first is faster than just reading it
+    /// the once, we copy into a temporary buffer set aside specifically for this purpose.
     pub(super) enum PlaybackBuffer<'a> {
+        /// This is the temporary buffer set aside for copying the data into.
+        ///
+        /// The second field in the enum is the offset to subtract from it which we might need to
+        /// do because we could be playing back somewhere in the middle of this section and we want
+        /// to pretend that we're actually playing from somewhere else.
         TempStorage(&'a [u8], usize),
+        /// Just read the data from ROM.
         Rom(&'static [u8]),
     }
 
@@ -596,39 +610,53 @@ mod playback_buffer {
         ) -> Self {
             let channel_len = Num::new(channel.data.len() as u32);
 
-            if channel.playback_speed <= num!(1.5) {
-                let total_to_play =
-                    (channel.playback_speed * frequency.buffer_size() as u32).floor() + 1;
+            // 1.5 is approximately the multiple we can work with before it would be faster
+            // to read from ROM rather than do the copy
+            //
+            // If increasing this size, make sure to also increase the size of the temp_storage
+            // allocation since this guards overrunning that.
+            if channel.playback_speed > num!(1.5) {
+                return PlaybackBuffer::Rom(channel.data);
+            }
 
-                if channel_len <= total_to_play.into() {
-                    assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
+            let total_to_play =
+                (channel.playback_speed * frequency.buffer_size() as u32).floor() + 1;
 
-                    unsafe {
-                        dma_copy16(
-                            channel.data.as_ptr().cast(),
-                            temp_storage.as_mut_ptr().cast(),
-                            channel_len.floor() as usize / 2,
-                        );
-                    }
+            if channel_len <= total_to_play.into() {
+                // We're going to play the entire sample (at least once) so copy the entire
+                // sample into memory.
+                assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
 
-                    PlaybackBuffer::TempStorage(temp_storage, 0)
-                } else if channel.pos + total_to_play > channel_len {
-                    PlaybackBuffer::Rom(channel.data)
-                } else {
-                    assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
-
-                    unsafe {
-                        dma_copy16(
-                            channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
-                            temp_storage.as_mut_ptr().cast(),
-                            total_to_play as usize / 2 + 1,
-                        );
-                    }
-
-                    PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
+                unsafe {
+                    dma_copy16(
+                        channel.data.as_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
+                        channel_len.floor() as usize / 2,
+                    );
                 }
-            } else {
+
+                PlaybackBuffer::TempStorage(temp_storage, 0)
+            } else if channel.pos + total_to_play > channel_len {
+                // The playback is going to loop. We don't handle this case (yet) but
+                // fortunately it doesn't come up as often as the other two cases.
                 PlaybackBuffer::Rom(channel.data)
+            } else {
+                // We're not going to loop, and not going to play the entire sample. So
+                // we'll copy as much over as we can.
+                assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
+
+                unsafe {
+                    dma_copy16(
+                        channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
+                        total_to_play as usize / 2 + 1,
+                    );
+                }
+
+                // The offset here is so we can pretend that the whole channel exists,
+                // but the copy methods will immediately add the pos on and won't know
+                // that around the small bit is actuall junk.
+                PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
             }
         }
 
