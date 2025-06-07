@@ -118,6 +118,10 @@ pub struct Mixer<'gba> {
     frequency: Frequency,
 
     working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
+    /// Copy all the data into here first before acting on it if it is deemed to
+    /// be faster to do so since using DMA3 to copy from ROM into IWRAM is faster
+    /// than just reading from ROM.
+    temp_storage: Box<[u8], InternalAllocator>,
 
     fifo_timer: Timer,
 
@@ -186,6 +190,10 @@ impl Mixer<'_> {
             Vec::with_capacity_in(frequency.buffer_size() * 2, InternalAllocator);
         working_buffer.resize(frequency.buffer_size() * 2, 0.into());
 
+        let mut temp_storage =
+            Vec::with_capacity_in(frequency.buffer_size() * 3 / 2 + 1, InternalAllocator);
+        temp_storage.resize(temp_storage.capacity(), 0);
+
         let mut result = Self {
             frequency,
             buffer,
@@ -196,6 +204,7 @@ impl Mixer<'_> {
             _interrupt_handler: interrupt_handler,
 
             working_buffer: working_buffer.into_boxed_slice(),
+            temp_storage: temp_storage.into_boxed_slice(),
             fifo_timer,
 
             phantom: PhantomData,
@@ -248,8 +257,11 @@ impl Mixer<'_> {
             return;
         }
 
-        self.buffer
-            .write_channels(&mut self.working_buffer, self.channels.iter_mut().flatten());
+        self.buffer.write_channels(
+            &mut self.working_buffer,
+            &mut self.temp_storage,
+            self.channels.iter_mut().flatten(),
+        );
     }
 
     /// Start playing a given [`SoundChannel`].
@@ -431,6 +443,7 @@ impl MixerBuffer {
     fn write_channels<'a>(
         &self,
         working_buffer: &mut [Num<i16, 4>],
+        temp_storage: &mut [u8],
         channels: impl Iterator<Item = &'a mut SoundChannel>,
     ) {
         let mut channels = channels
@@ -440,7 +453,7 @@ impl MixerBuffer {
             if channel.is_stereo {
                 self.write_stereo(channel, working_buffer, true);
             } else {
-                self.write_mono(channel, working_buffer, true);
+                self.write_mono(channel, working_buffer, temp_storage, true);
             }
         } else {
             working_buffer.fill(0.into());
@@ -450,7 +463,7 @@ impl MixerBuffer {
             if channel.is_stereo {
                 self.write_stereo(channel, working_buffer, false);
             } else {
-                self.write_mono(channel, working_buffer, false);
+                self.write_mono(channel, working_buffer, temp_storage, false);
             }
         }
 
@@ -510,6 +523,7 @@ impl MixerBuffer {
         &self,
         channel: &mut SoundChannel,
         working_buffer: &mut [Num<i16, 4>],
+        temp_storage: &mut [u8],
         is_first: bool,
     ) {
         let right_amount = ((channel.panning + 1) / 2) * channel.volume;
@@ -533,17 +547,17 @@ impl MixerBuffer {
             )
         };
 
-        enum PlaybackBuffer {
-            Owned(Box<[u8], InternalAllocator>, usize),
-            Borrowed(&'static [u8]),
+        enum PlaybackBuffer<'a> {
+            TempStorage(&'a [u8], usize),
+            Rom(&'static [u8]),
         }
-        impl PlaybackBuffer {
+        impl PlaybackBuffer<'_> {
             fn as_ptr(&self) -> *const u8 {
                 match self {
-                    PlaybackBuffer::Owned(items, offset) => {
+                    PlaybackBuffer::TempStorage(items, offset) => {
                         items.as_ptr().wrapping_byte_sub(*offset)
                     }
-                    PlaybackBuffer::Borrowed(items) => items.as_ptr(),
+                    PlaybackBuffer::Rom(items) => items.as_ptr(),
                 }
             }
         }
@@ -552,42 +566,34 @@ impl MixerBuffer {
             let total_to_play = (playback_speed * self.frequency.buffer_size() as u32).floor() + 1;
 
             if channel_len <= total_to_play.into() {
-                let mut buffer: Vec<u8, InternalAllocator> =
-                    Vec::with_capacity_in(channel_len.floor() as usize, InternalAllocator);
+                assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
 
                 unsafe {
                     dma_copy16(
                         channel.data.as_ptr().cast(),
-                        buffer.as_mut_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
                         channel_len.floor() as usize / 2,
                     );
-
-                    buffer.set_len(channel_len.floor() as usize);
                 }
 
-                let buffer = buffer.into_boxed_slice();
-                PlaybackBuffer::Owned(buffer, 0)
+                PlaybackBuffer::TempStorage(temp_storage, 0)
             } else if channel.pos + total_to_play > channel_len {
-                PlaybackBuffer::Borrowed(channel.data)
+                PlaybackBuffer::Rom(channel.data)
             } else {
-                let mut buffer: Vec<u8, InternalAllocator> =
-                    Vec::with_capacity_in(total_to_play as usize, InternalAllocator);
+                assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
 
                 unsafe {
                     dma_copy16(
                         channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
-                        buffer.as_mut_ptr().cast(),
+                        temp_storage.as_mut_ptr().cast(),
                         total_to_play as usize / 2 + 1,
                     );
-
-                    buffer.set_len(total_to_play as usize);
                 }
 
-                let buffer = buffer.into_boxed_slice();
-                PlaybackBuffer::Owned(buffer, channel.pos.floor() as usize)
+                PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
             }
         } else {
-            PlaybackBuffer::Borrowed(channel.data)
+            PlaybackBuffer::Rom(channel.data)
         };
 
         let mul_amount =
