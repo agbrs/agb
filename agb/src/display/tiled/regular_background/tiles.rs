@@ -13,6 +13,11 @@ pub(crate) struct Tiles {
 
 struct TilesInner {
     tile_data: Box<[Tile]>,
+    /// This tracks where these tiles were last copied into. If it is None,
+    /// then they either have never been copied, or they have been modified
+    /// since they were last copied.
+    ///
+    /// This works as a cheap dirty flag.
     in_screenblock: RefCell<Option<NonNull<u8>>>,
 }
 
@@ -20,6 +25,7 @@ impl Clone for TilesInner {
     fn clone(&self) -> Self {
         Self {
             tile_data: self.tile_data.clone(),
+            // We initialise this to None because the screenblock
             in_screenblock: RefCell::new(None),
         }
     }
@@ -58,6 +64,7 @@ impl Tiles {
         }
     }
 
+    /// Sets the tile at the given position. Will also mark this set of tiles as dirty
     pub(crate) fn set_tile(&mut self, pos: usize, tile: Tile) {
         if Rc::strong_count(&self.tiles) > 1 {
             // the make_mut below is going to cause us to increase the reference count, so we should
@@ -90,10 +97,14 @@ impl Tiles {
         &self.tiles.tile_data
     }
 
+    /// Returns whether or not this collection of tiles has been copied to the given
+    /// screenblock pointer.
     pub(crate) fn is_dirty(&self, screenblock_ptr: NonNull<u8>) -> bool {
         *self.tiles.in_screenblock.borrow() != Some(screenblock_ptr)
     }
 
+    /// Assert that these tiles have been copied to the screenblock with the given pointer.
+    /// The next call to is_dirty will return false if given the same screenblock pointer.
     pub(crate) fn clean(&self, screenblock_ptr: NonNull<u8>) {
         self.tiles.in_screenblock.replace(Some(screenblock_ptr));
     }

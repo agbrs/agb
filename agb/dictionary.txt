@@ -67,11 +67,16 @@ pak # like game pak
 paks
 
 ### Types of GBA RAM ###
+
 FRAM
 WRAM
 IWRAM
 WRAM
 EWRAM
+
+### GBA technical terms ###
+
+screenblock
 
 ### Commercial games ###
 
