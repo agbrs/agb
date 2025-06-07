@@ -393,7 +393,13 @@ impl SoundChannel {
     /// how fast they play.
     #[inline(always)]
     pub fn playback(&mut self, playback_speed: impl Into<Num<u32, 8>>) -> &mut Self {
-        self.playback_speed = playback_speed.into();
+        let mut playback_speed = playback_speed.into();
+        let channel_len = Num::new(self.data.len() as u32);
+        while playback_speed >= channel_len {
+            playback_speed -= channel_len;
+        }
+
+        self.playback_speed = playback_speed;
         self
     }
 

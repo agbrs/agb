@@ -533,11 +533,7 @@ impl MixerBuffer {
         let left_amount: Num<i16, 4> = left_amount.change_base();
 
         let channel_len = Num::<u32, 8>::new(channel.data.len() as u32);
-        let mut playback_speed = channel.playback_speed;
-
-        while playback_speed >= channel_len - channel.restart_point {
-            playback_speed -= channel_len;
-        }
+        let playback_speed = channel.playback_speed;
 
         // SAFETY: always aligned correctly by construction
         let working_buffer_i32: &mut [i32] = unsafe {
