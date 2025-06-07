@@ -6,9 +6,9 @@ use crate::display::tiled::{Tile, TileFormat, VRAM_MANAGER};
 
 use super::RegularBackgroundSize;
 
+#[derive(Clone)]
 pub(crate) struct Tiles {
     tiles: Rc<TilesInner>,
-    colours: TileFormat,
 }
 
 struct TilesInner {
@@ -19,35 +19,32 @@ struct TilesInner {
     ///
     /// This works as a cheap dirty flag.
     in_screenblock: Cell<Option<NonNull<u8>>>,
+    colours: TileFormat,
 }
 
 impl Clone for TilesInner {
     fn clone(&self) -> Self {
+        for tile in &self.tile_data {
+            if *tile != Tile::default() {
+                VRAM_MANAGER.increase_reference(tile.tile_index(self.colours));
+            }
+        }
+
         Self {
             tile_data: self.tile_data.clone(),
             // We initialise this to None because the screenblock
             in_screenblock: Cell::new(None),
-        }
-    }
-}
-
-impl Drop for Tiles {
-    fn drop(&mut self) {
-        if Rc::strong_count(&self.tiles) == 1 {
-            for tile in self.tiles().iter() {
-                if *tile != Tile::default() {
-                    VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
-                }
-            }
-        }
-    }
-}
-
-impl Clone for Tiles {
-    fn clone(&self) -> Self {
-        Self {
-            tiles: Rc::clone(&self.tiles),
             colours: self.colours,
+        }
+    }
+}
+
+impl Drop for TilesInner {
+    fn drop(&mut self) {
+        for tile in &self.tile_data {
+            if *tile != Tile::default() {
+                VRAM_MANAGER.remove_tile(tile.tile_index(self.colours));
+            }
         }
     }
 }
@@ -59,23 +56,13 @@ impl Tiles {
             tiles: Rc::new(TilesInner {
                 tile_data: tiles,
                 in_screenblock: Cell::new(None),
+                colours: format,
             }),
-            colours: format,
         }
     }
 
     /// Sets the tile at the given position. Will also mark this set of tiles as dirty
     pub(crate) fn set_tile(&mut self, pos: usize, tile: Tile) {
-        if Rc::strong_count(&self.tiles) > 1 {
-            // the make_mut below is going to cause us to increase the reference count, so we should
-            // mark every tile here as referenced again in the VRAM_MANAGER.
-            for tile in self.tiles().iter() {
-                if *tile != Tile::default() {
-                    VRAM_MANAGER.increase_reference(tile.tile_index(self.colours));
-                }
-            }
-        }
-
         let tile_data = Rc::make_mut(&mut self.tiles);
         tile_data.tile_data[pos] = tile;
         tile_data.in_screenblock.set(None);
@@ -86,7 +73,7 @@ impl Tiles {
     }
 
     pub(crate) fn colours(&self) -> TileFormat {
-        self.colours
+        self.tiles.colours
     }
 
     pub(crate) fn get(&self, index: usize) -> Tile {

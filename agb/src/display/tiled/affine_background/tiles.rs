@@ -6,6 +6,7 @@ use crate::display::tiled::{TileIndex, VRAM_MANAGER};
 
 use super::AffineBackgroundSize;
 
+#[derive(Clone)]
 pub(crate) struct Tiles {
     tiles: Rc<TilesInner>,
 }
@@ -17,6 +18,14 @@ struct TilesInner {
 
 impl Clone for TilesInner {
     fn clone(&self) -> Self {
+        // the make_mut below is going to cause us to increase the reference count, so we should
+        // mark every tile here as referenced again in the VRAM_MANAGER.
+        for tile in self.tiles.iter() {
+            if *tile != 0 {
+                VRAM_MANAGER.increase_reference(TileIndex::EightBpp(*tile as u16));
+            }
+        }
+
         Self {
             tiles: self.tiles.clone(),
             in_screenblock: Cell::new(None),
@@ -24,22 +33,12 @@ impl Clone for TilesInner {
     }
 }
 
-impl Drop for Tiles {
+impl Drop for TilesInner {
     fn drop(&mut self) {
-        if Rc::strong_count(&self.tiles) == 1 {
-            for tile in self.tiles().iter() {
-                if *tile != 0 {
-                    VRAM_MANAGER.remove_tile(TileIndex::EightBpp(*tile as u16));
-                }
+        for tile in &self.tiles {
+            if *tile != 0 {
+                VRAM_MANAGER.remove_tile(TileIndex::EightBpp(*tile as u16));
             }
-        }
-    }
-}
-
-impl Clone for Tiles {
-    fn clone(&self) -> Self {
-        Self {
-            tiles: Rc::clone(&self.tiles),
         }
     }
 }
@@ -56,16 +55,6 @@ impl Tiles {
     }
 
     pub(crate) fn set_tile(&mut self, pos: usize, idx: u8) {
-        if Rc::strong_count(&self.tiles) > 1 {
-            // the make_mut below is going to cause us to increase the reference count, so we should
-            // mark every tile here as referenced again in the VRAM_MANAGER.
-            for tile in self.tiles().iter() {
-                if *tile != 0 {
-                    VRAM_MANAGER.increase_reference(TileIndex::EightBpp(*tile as u16));
-                }
-            }
-        }
-
         let tile_data = Rc::make_mut(&mut self.tiles);
         tile_data.tiles[pos] = idx;
         tile_data.in_screenblock.set(None);
