@@ -137,3 +137,19 @@ fn test_commit_when_background_tiles_rendered_twice(gba: &mut Gba) {
         "gfx/test_output/regular_background/test_commit_when_background_tiles_rendered_twice.png",
     );
 }
+
+#[test_case]
+fn can_create_100_backgrounds_one_at_a_time(gba: &mut Gba) {
+    let mut gfx = gba.graphics.get();
+
+    for _ in 0..100 {
+        let bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background64x64,
+            TileFormat::FourBpp,
+        );
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+        frame.commit();
+    }
+}

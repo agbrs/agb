@@ -5,7 +5,11 @@ use bilge::prelude::*;
 use core::alloc::Layout;
 
 use crate::{
-    display::{GraphicsFrame, Priority, affine::AffineMatrix, tiled::TileFormat},
+    display::{
+        GraphicsFrame, Priority,
+        affine::AffineMatrix,
+        tiled::{TileFormat, screenblock::Screenblock, tiles::Tiles},
+    },
     fixnum::{Num, Vector2D},
 };
 
@@ -14,12 +18,6 @@ use super::{
     BackgroundControlRegister, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, TileIndex, TileSet,
     VRAM_MANAGER,
 };
-
-mod screenblock;
-mod tiles;
-
-pub(crate) use screenblock::AffineBackgroundScreenBlock;
-pub(crate) use tiles::Tiles;
 
 /// The size of the affine background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,11 +53,11 @@ impl AffineBackgroundSize {
         }
     }
 
-    fn num_tiles(self) -> usize {
+    pub(crate) fn num_tiles(self) -> usize {
         self.width() * self.width()
     }
 
-    fn layout(self) -> Layout {
+    pub(crate) fn layout(self) -> Layout {
         Layout::from_size_align(self.num_tiles(), SCREENBLOCK_SIZE)
             .expect("Failed to create layout, should never happen")
     }
@@ -123,10 +121,8 @@ impl AffineBackgroundSize {
 pub struct AffineBackground {
     priority: Priority,
 
-    tiles: Tiles,
-    screenblock: Rc<AffineBackgroundScreenBlock>,
-
-    is_dirty: bool,
+    tiles: Tiles<u8>,
+    screenblock: Rc<Screenblock<AffineBackgroundSize>>,
 
     scroll: Vector2D<Num<i32, 8>>,
 
@@ -156,12 +152,11 @@ impl AffineBackground {
         Self {
             priority,
 
-            tiles: Tiles::new(size),
-            is_dirty: true,
+            tiles: Tiles::new(size.num_tiles(), TileFormat::EightBpp),
 
             scroll: Vector2D::default(),
 
-            screenblock: Rc::new(AffineBackgroundScreenBlock::new(size)),
+            screenblock: Rc::new(Screenblock::new(size)),
 
             transform: AffineMatrixBackground::default(),
             wrap_behaviour,
@@ -263,8 +258,7 @@ impl AffineBackground {
         }
 
         if old_tile != new_tile {
-            self.tiles.tiles_mut()[pos] = new_tile;
-            self.is_dirty = true;
+            self.tiles.set_tile(pos, new_tile);
         }
 
         self
@@ -284,7 +278,7 @@ impl AffineBackground {
     /// Returns an [`AffineBackgroundId`] which can be used if you want to apply any additional effects to the background
     /// such as applying [dma effects](crate::dma).
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> AffineBackgroundId {
-        let commit_data = if self.is_dirty {
+        let commit_data = if self.tiles.is_dirty(self.screenblock.ptr()) {
             Some(AffineBackgroundCommitData {
                 tiles: self.tiles.clone(),
                 screenblock: Rc::clone(&self.screenblock),
@@ -439,3 +433,6 @@ impl From<AffineMatrixBackground> for AffineMatrix {
         mat.to_affine_matrix()
     }
 }
+
+#[cfg(test)]
+mod test;

@@ -12,16 +12,17 @@ mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
 mod regular_background;
+mod screenblock;
+mod tiles;
 mod vram_manager;
 
-use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
     AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, AffineMatrixBackground,
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
-use regular_background::RegularBackgroundScreenblock;
 pub use regular_background::{RegularBackground, RegularBackgroundSize};
+use tiles::Tiles;
 pub use vram_manager::{DynamicTile16, TileFormat, TileSet, VRAM_MANAGER, VRamManager};
 
 pub(crate) use vram_manager::TileIndex;
@@ -32,6 +33,7 @@ use bilge::prelude::*;
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
+    display::tiled::screenblock::Screenblock,
     dma::DmaControllable,
     fixnum::{Num, Vector2D},
     memory_mapped::MemoryMapped,
@@ -270,7 +272,7 @@ impl TileEffect {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
-struct Tile(u16);
+pub(crate) struct Tile(u16);
 
 impl Tile {
     fn new(idx: TileIndex, setting: TileSetting) -> Self {
@@ -300,8 +302,8 @@ static SCREENBLOCK_ALLOCATOR: BlockAllocator = unsafe {
 impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 struct RegularBackgroundCommitData {
-    tiles: regular_background::Tiles,
-    screenblock: Rc<RegularBackgroundScreenblock>,
+    tiles: Tiles<Tile>,
+    screenblock: Rc<Screenblock<RegularBackgroundSize>>,
 }
 
 #[derive(Default)]
@@ -312,8 +314,8 @@ struct RegularBackgroundData {
 }
 
 struct AffineBackgroundCommitData {
-    tiles: affine_background::Tiles,
-    screenblock: Rc<AffineBackgroundScreenBlock>,
+    tiles: Tiles<u8>,
+    screenblock: Rc<Screenblock<AffineBackgroundSize>>,
 }
 
 #[derive(Default)]
@@ -405,6 +407,8 @@ impl BackgroundFrame {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
+
+                commit_data.tiles.clean(commit_data.screenblock.ptr());
             }
         }
 
@@ -431,6 +435,8 @@ impl BackgroundFrame {
                 unsafe {
                     commit_data.screenblock.copy_tiles(&commit_data.tiles);
                 }
+
+                commit_data.tiles.clean(commit_data.screenblock.ptr());
             }
         }
     }

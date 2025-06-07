@@ -4,7 +4,11 @@ use core::{alloc::Layout, mem};
 use alloc::rc::Rc;
 
 use crate::{
-    display::{GraphicsFrame, Priority, tile_data::TileData},
+    display::{
+        GraphicsFrame, Priority,
+        tile_data::TileData,
+        tiled::{screenblock::Screenblock, tiles::Tiles},
+    },
     fixnum::Vector2D,
 };
 
@@ -14,13 +18,7 @@ use super::{
     TileSet, TileSetting, VRAM_MANAGER,
 };
 
-pub(crate) use screenblock::RegularBackgroundScreenblock;
-pub(crate) use tiles::Tiles;
-
 use bilge::prelude::*;
-
-mod screenblock;
-mod tiles;
 
 /// The backgrounds in the GameBoy Advance are made of 8x8 tiles. Each different background option lets
 /// you decide how big the background should be before it wraps. Ideally, you should use the smallest background
@@ -65,12 +63,12 @@ impl RegularBackgroundSize {
         self.num_tiles() * mem::size_of::<Tile>()
     }
 
-    fn layout(self) -> Layout {
+    pub(crate) fn layout(self) -> Layout {
         Layout::from_size_align(self.size_in_bytes(), SCREENBLOCK_SIZE)
             .expect("failed to create layout, should never happen")
     }
 
-    const fn num_tiles(self) -> usize {
+    pub(crate) const fn num_tiles(self) -> usize {
         self.width() * self.height()
     }
 
@@ -130,10 +128,8 @@ impl RegularBackgroundSize {
 pub struct RegularBackground {
     priority: Priority,
 
-    tiles: Tiles,
-    screenblock: Rc<RegularBackgroundScreenblock>,
-
-    is_dirty: bool,
+    tiles: Tiles<Tile>,
+    screenblock: Rc<Screenblock<RegularBackgroundSize>>,
 
     scroll: Vector2D<i32>,
 }
@@ -155,12 +151,11 @@ impl RegularBackground {
         Self {
             priority,
 
-            tiles: Tiles::new(size, colours),
-            is_dirty: true,
+            tiles: Tiles::new(size.num_tiles(), colours),
 
             scroll: Vector2D::default(),
 
-            screenblock: Rc::new(RegularBackgroundScreenblock::new(size)),
+            screenblock: Rc::new(Screenblock::new(size)),
         }
     }
 
@@ -330,8 +325,7 @@ impl RegularBackground {
             return;
         }
 
-        self.tiles.tiles_mut()[pos] = new_tile;
-        self.is_dirty = true;
+        self.tiles.set_tile(pos, new_tile);
     }
 
     /// Show this background on a given frame.
@@ -353,7 +347,7 @@ impl RegularBackground {
     /// If you try to show more than 4 regular backgrounds, or more than 2 backgrounds and a single affine background,
     /// or if there are already 2 affine backgrounds.
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> RegularBackgroundId {
-        let commit_data = if self.is_dirty {
+        let commit_data = if self.tiles.is_dirty(self.screenblock.ptr()) {
             Some(RegularBackgroundCommitData {
                 tiles: self.tiles.clone(),
                 screenblock: Rc::clone(&self.screenblock),
