@@ -433,3 +433,6 @@ impl From<AffineMatrixBackground> for AffineMatrix {
         mat.to_affine_matrix()
     }
 }
+
+#[cfg(test)]
+mod test;
