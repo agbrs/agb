@@ -542,58 +542,11 @@ impl MixerBuffer {
             )
         };
 
-        enum PlaybackBuffer<'a> {
-            TempStorage(&'a [u8], usize),
-            Rom(&'static [u8]),
-        }
-        impl PlaybackBuffer<'_> {
-            fn as_ptr(&self) -> *const u8 {
-                match self {
-                    PlaybackBuffer::TempStorage(items, offset) => {
-                        items.as_ptr().wrapping_byte_sub(*offset)
-                    }
-                    PlaybackBuffer::Rom(items) => items.as_ptr(),
-                }
-            }
-        }
-
-        let playback_buffer = if channel.playback_speed <= num!(1.5) {
-            let total_to_play =
-                (channel.playback_speed * self.frequency.buffer_size() as u32).floor() + 1;
-
-            if channel_len <= total_to_play.into() {
-                assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
-
-                unsafe {
-                    dma_copy16(
-                        channel.data.as_ptr().cast(),
-                        temp_storage.as_mut_ptr().cast(),
-                        channel_len.floor() as usize / 2,
-                    );
-                }
-
-                PlaybackBuffer::TempStorage(temp_storage, 0)
-            } else if channel.pos + total_to_play > channel_len {
-                PlaybackBuffer::Rom(channel.data)
-            } else {
-                assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
-
-                unsafe {
-                    dma_copy16(
-                        channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
-                        temp_storage.as_mut_ptr().cast(),
-                        total_to_play as usize / 2 + 1,
-                    );
-                }
-
-                PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
-            }
-        } else {
-            PlaybackBuffer::Rom(channel.data)
-        };
-
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
+
+        let playback_buffer =
+            playback_buffer::PlaybackBuffer::new(channel, self.frequency, temp_storage);
 
         macro_rules! call_mono_fn {
             ($fn_name:ident) => {
@@ -622,6 +575,69 @@ impl MixerBuffer {
             (false, false) => {
                 call_mono_fn!(agb_rs__mixer_add_mono);
                 channel.is_done = channel.pos >= channel_len;
+            }
+        }
+    }
+}
+
+mod playback_buffer {
+    use super::*;
+
+    pub(super) enum PlaybackBuffer<'a> {
+        TempStorage(&'a [u8], usize),
+        Rom(&'static [u8]),
+    }
+
+    impl<'a> PlaybackBuffer<'a> {
+        pub(super) fn new(
+            channel: &SoundChannel,
+            frequency: Frequency,
+            temp_storage: &'a mut [u8],
+        ) -> Self {
+            let channel_len = Num::new(channel.data.len() as u32);
+
+            if channel.playback_speed <= num!(1.5) {
+                let total_to_play =
+                    (channel.playback_speed * frequency.buffer_size() as u32).floor() + 1;
+
+                if channel_len <= total_to_play.into() {
+                    assert!((channel_len.floor() as usize / 2) * 2 <= temp_storage.len());
+
+                    unsafe {
+                        dma_copy16(
+                            channel.data.as_ptr().cast(),
+                            temp_storage.as_mut_ptr().cast(),
+                            channel_len.floor() as usize / 2,
+                        );
+                    }
+
+                    PlaybackBuffer::TempStorage(temp_storage, 0)
+                } else if channel.pos + total_to_play > channel_len {
+                    PlaybackBuffer::Rom(channel.data)
+                } else {
+                    assert!((total_to_play as usize / 2 + 1) * 2 <= temp_storage.len());
+
+                    unsafe {
+                        dma_copy16(
+                            channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
+                            temp_storage.as_mut_ptr().cast(),
+                            total_to_play as usize / 2 + 1,
+                        );
+                    }
+
+                    PlaybackBuffer::TempStorage(temp_storage, channel.pos.floor() as usize)
+                }
+            } else {
+                PlaybackBuffer::Rom(channel.data)
+            }
+        }
+
+        pub(super) fn as_ptr(&self) -> *const u8 {
+            match self {
+                PlaybackBuffer::TempStorage(items, offset) => {
+                    items.as_ptr().wrapping_byte_sub(*offset)
+                }
+                PlaybackBuffer::Rom(items) => items.as_ptr(),
             }
         }
     }
