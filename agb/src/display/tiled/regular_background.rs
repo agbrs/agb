@@ -133,8 +133,6 @@ pub struct RegularBackground {
     tiles: Tiles,
     screenblock: Rc<RegularBackgroundScreenblock>,
 
-    is_dirty: bool,
-
     scroll: Vector2D<i32>,
 }
 
@@ -156,7 +154,6 @@ impl RegularBackground {
             priority,
 
             tiles: Tiles::new(size, colours),
-            is_dirty: true,
 
             scroll: Vector2D::default(),
 
@@ -330,8 +327,7 @@ impl RegularBackground {
             return;
         }
 
-        self.tiles.tiles_mut()[pos] = new_tile;
-        self.is_dirty = true;
+        self.tiles.set_tile(pos, new_tile);
     }
 
     /// Show this background on a given frame.
@@ -353,7 +349,7 @@ impl RegularBackground {
     /// If you try to show more than 4 regular backgrounds, or more than 2 backgrounds and a single affine background,
     /// or if there are already 2 affine backgrounds.
     pub fn show(&self, frame: &mut GraphicsFrame<'_>) -> RegularBackgroundId {
-        let commit_data = if self.is_dirty {
+        let commit_data = if self.tiles.is_dirty(self.screenblock.ptr()) {
             Some(RegularBackgroundCommitData {
                 tiles: self.tiles.clone(),
                 screenblock: Rc::clone(&self.screenblock),
