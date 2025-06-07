@@ -8,7 +8,7 @@ use crate::{
     display::{
         GraphicsFrame, Priority,
         affine::AffineMatrix,
-        tiled::{TileFormat, tiles::Tiles},
+        tiled::{TileFormat, screenblock::Screenblock, tiles::Tiles},
     },
     fixnum::{Num, Vector2D},
 };
@@ -18,10 +18,6 @@ use super::{
     BackgroundControlRegister, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, TileIndex, TileSet,
     VRAM_MANAGER,
 };
-
-mod screenblock;
-
-pub(crate) use screenblock::AffineBackgroundScreenBlock;
 
 /// The size of the affine background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -57,11 +53,11 @@ impl AffineBackgroundSize {
         }
     }
 
-    fn num_tiles(self) -> usize {
+    pub(crate) fn num_tiles(self) -> usize {
         self.width() * self.width()
     }
 
-    fn layout(self) -> Layout {
+    pub(crate) fn layout(self) -> Layout {
         Layout::from_size_align(self.num_tiles(), SCREENBLOCK_SIZE)
             .expect("Failed to create layout, should never happen")
     }
@@ -126,7 +122,7 @@ pub struct AffineBackground {
     priority: Priority,
 
     tiles: Tiles<u8>,
-    screenblock: Rc<AffineBackgroundScreenBlock>,
+    screenblock: Rc<Screenblock<AffineBackgroundSize>>,
 
     scroll: Vector2D<Num<i32, 8>>,
 
@@ -160,7 +156,7 @@ impl AffineBackground {
 
             scroll: Vector2D::default(),
 
-            screenblock: Rc::new(AffineBackgroundScreenBlock::new(size)),
+            screenblock: Rc::new(Screenblock::new(size)),
 
             transform: AffineMatrixBackground::default(),
             wrap_behaviour,

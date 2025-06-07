@@ -12,16 +12,15 @@ mod affine_background;
 mod infinite_scrolled_map;
 mod registers;
 mod regular_background;
+mod screenblock;
 mod tiles;
 mod vram_manager;
 
-use affine_background::AffineBackgroundScreenBlock;
 pub use affine_background::{
     AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, AffineMatrixBackground,
 };
 use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
-use regular_background::RegularBackgroundScreenblock;
 pub use regular_background::{RegularBackground, RegularBackgroundSize};
 use tiles::Tiles;
 pub use vram_manager::{DynamicTile16, TileFormat, TileSet, VRAM_MANAGER, VRamManager};
@@ -34,6 +33,7 @@ use bilge::prelude::*;
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},
+    display::tiled::screenblock::Screenblock,
     dma::DmaControllable,
     fixnum::{Num, Vector2D},
     memory_mapped::MemoryMapped,
@@ -272,7 +272,7 @@ impl TileEffect {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(transparent)]
-struct Tile(u16);
+pub(crate) struct Tile(u16);
 
 impl Tile {
     fn new(idx: TileIndex, setting: TileSetting) -> Self {
@@ -303,7 +303,7 @@ impl_zst_allocator!(ScreenblockAllocator, SCREENBLOCK_ALLOCATOR);
 
 struct RegularBackgroundCommitData {
     tiles: Tiles<Tile>,
-    screenblock: Rc<RegularBackgroundScreenblock>,
+    screenblock: Rc<Screenblock<RegularBackgroundSize>>,
 }
 
 #[derive(Default)]
@@ -315,7 +315,7 @@ struct RegularBackgroundData {
 
 struct AffineBackgroundCommitData {
     tiles: Tiles<u8>,
-    screenblock: Rc<AffineBackgroundScreenBlock>,
+    screenblock: Rc<Screenblock<AffineBackgroundSize>>,
 }
 
 #[derive(Default)]
