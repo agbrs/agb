@@ -1,4 +1,4 @@
-use core::{cell::RefCell, ptr::NonNull};
+use core::{cell::Cell, ptr::NonNull};
 
 use alloc::{boxed::Box, rc::Rc, vec};
 
@@ -12,14 +12,14 @@ pub(crate) struct Tiles {
 
 struct TilesInner {
     tiles: Box<[u8]>,
-    in_screenblock: RefCell<Option<NonNull<u8>>>,
+    in_screenblock: Cell<Option<NonNull<u8>>>,
 }
 
 impl Clone for TilesInner {
     fn clone(&self) -> Self {
         Self {
             tiles: self.tiles.clone(),
-            in_screenblock: RefCell::new(None),
+            in_screenblock: Cell::new(None),
         }
     }
 }
@@ -50,7 +50,7 @@ impl Tiles {
         Self {
             tiles: Rc::new(TilesInner {
                 tiles,
-                in_screenblock: RefCell::new(None),
+                in_screenblock: Cell::new(None),
             }),
         }
     }
@@ -68,7 +68,7 @@ impl Tiles {
 
         let tile_data = Rc::make_mut(&mut self.tiles);
         tile_data.tiles[pos] = idx;
-        tile_data.in_screenblock.replace(None);
+        tile_data.in_screenblock.set(None);
     }
 
     pub(crate) fn tiles(&self) -> &[u8] {
@@ -84,10 +84,10 @@ impl Tiles {
     }
 
     pub(crate) fn is_dirty(&self, screenblock_ptr: NonNull<u8>) -> bool {
-        *self.tiles.in_screenblock.borrow() != Some(screenblock_ptr)
+        self.tiles.in_screenblock.get() != Some(screenblock_ptr)
     }
 
     pub(crate) fn clean(&self, screenblock_ptr: NonNull<u8>) {
-        self.tiles.in_screenblock.replace(Some(screenblock_ptr));
+        self.tiles.in_screenblock.set(Some(screenblock_ptr));
     }
 }
