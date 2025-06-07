@@ -9,9 +9,10 @@ use super::hw::LeftOrRight;
 use super::{Frequency, hw};
 use super::{SoundChannel, SoundPriority};
 
-use crate::InternalAllocator;
 use crate::{
-    fixnum::Num,
+    InternalAllocator,
+    dma::dma_copy16,
+    fixnum::{Num, num},
     interrupt::{InterruptHandler, add_interrupt_handler},
     timer::Divider,
     timer::Timer,
@@ -532,6 +533,63 @@ impl MixerBuffer {
             )
         };
 
+        enum PlaybackBuffer {
+            Owned(Box<[u8], InternalAllocator>, usize),
+            Borrowed(&'static [u8]),
+        }
+        impl PlaybackBuffer {
+            fn as_ptr(&self) -> *const u8 {
+                match self {
+                    PlaybackBuffer::Owned(items, offset) => {
+                        items.as_ptr().wrapping_byte_sub(*offset)
+                    }
+                    PlaybackBuffer::Borrowed(items) => items.as_ptr(),
+                }
+            }
+        }
+
+        let playback_buffer = if playback_speed <= num!(1.5) {
+            let total_to_play = (playback_speed * self.frequency.buffer_size() as u32).floor() + 1;
+
+            if channel_len <= total_to_play.into() {
+                let mut buffer: Vec<u8, InternalAllocator> =
+                    Vec::with_capacity_in(channel_len.floor() as usize, InternalAllocator);
+
+                unsafe {
+                    dma_copy16(
+                        channel.data.as_ptr().cast(),
+                        buffer.as_mut_ptr().cast(),
+                        channel_len.floor() as usize / 2,
+                    );
+
+                    buffer.set_len(channel_len.floor() as usize);
+                }
+
+                let buffer = buffer.into_boxed_slice();
+                PlaybackBuffer::Owned(buffer, 0)
+            } else if channel.pos + total_to_play > channel_len {
+                PlaybackBuffer::Borrowed(channel.data)
+            } else {
+                let mut buffer: Vec<u8, InternalAllocator> =
+                    Vec::with_capacity_in(total_to_play as usize, InternalAllocator);
+
+                unsafe {
+                    dma_copy16(
+                        channel.data[channel.pos.floor() as usize..].as_ptr().cast(),
+                        buffer.as_mut_ptr().cast(),
+                        total_to_play as usize / 2 + 1,
+                    );
+
+                    buffer.set_len(total_to_play as usize);
+                }
+
+                let buffer = buffer.into_boxed_slice();
+                PlaybackBuffer::Owned(buffer, channel.pos.floor() as usize)
+            }
+        } else {
+            PlaybackBuffer::Borrowed(channel.data)
+        };
+
         let mul_amount =
             ((left_amount.to_raw() as i32) << 16) | (right_amount.to_raw() as i32 & 0x0000ffff);
 
@@ -539,7 +597,7 @@ impl MixerBuffer {
             ($fn_name:ident) => {
                 channel.pos = unsafe {
                     $fn_name(
-                        channel.data.as_ptr(),
+                        playback_buffer.as_ptr(),
                         working_buffer_i32.as_mut_ptr(),
                         working_buffer_i32.len(),
                         channel_len - channel.restart_point,
