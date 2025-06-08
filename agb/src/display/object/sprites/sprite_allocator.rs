@@ -1,5 +1,3 @@
-use core::mem::MaybeUninit;
-
 pub use palette::{PaletteVram, PaletteVramMulti, PaletteVramSingle};
 use sprite::SpriteVramInner;
 
@@ -61,7 +59,7 @@ pub enum LoaderError {
 }
 
 impl SpriteLoaderInner {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             palettes: HashMap::new(),
             sprites: HashMap::new(),
@@ -129,20 +127,14 @@ impl SpriteLoaderInner {
     }
 }
 
-pub struct SpriteLoader(SyncUnsafeCell<MaybeUninit<SpriteLoaderInner>>);
+pub struct SpriteLoader(SyncUnsafeCell<SpriteLoaderInner>);
 
 impl SpriteLoader {
-    pub unsafe fn init(&self) {
-        unsafe {
-            (*self.0.get()).write(SpriteLoaderInner::new());
-        }
-    }
-
     unsafe fn with<F, U>(&self, f: F) -> U
     where
         F: FnOnce(&mut SpriteLoaderInner) -> U,
     {
-        unsafe { f((*self.0.get()).assume_init_mut()) }
+        unsafe { f(&mut *self.0.get()) }
     }
 
     pub unsafe fn sprite(&self, sprite: &'static Sprite) -> Result<SpriteVram, LoaderError> {
@@ -163,7 +155,8 @@ pub(crate) unsafe fn garbage_collect_sprite_loader() {
     }
 }
 
-pub static SPRITE_LOADER: SpriteLoader = SpriteLoader(SyncUnsafeCell::new(MaybeUninit::uninit()));
+pub static SPRITE_LOADER: SpriteLoader =
+    SpriteLoader(SyncUnsafeCell::new(SpriteLoaderInner::new()));
 
 impl From<&'static Palette16> for PaletteVram {
     fn from(value: &'static Palette16) -> Self {

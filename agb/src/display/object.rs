@@ -10,8 +10,6 @@ pub use sprites::{
     PaletteVramSingle, Size, Sprite, SpriteVram, Tag, include_aseprite,
 };
 
-pub(crate) use sprites::SPRITE_LOADER;
-
 pub use affine::AffineMatrixObject;
 pub use unmanaged::{AffineMode, GraphicsMode, Object, ObjectAffine};
 pub(crate) use unmanaged::{Oam, OamFrame};

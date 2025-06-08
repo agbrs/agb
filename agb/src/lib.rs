@@ -487,12 +487,7 @@ impl Gba {
     /// May only be called a single time. It is not needed to call this due to
     /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
-        unsafe {
-            display::object::SPRITE_LOADER.init();
-            display::tiled::VRAM_MANAGER.initialise();
-
-            Self::single_new()
-        }
+        unsafe { Self::single_new() }
     }
 
     const unsafe fn single_new() -> Self {
