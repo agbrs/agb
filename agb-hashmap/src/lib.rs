@@ -184,7 +184,7 @@ impl<T: Allocator + Clone> ClonableAllocator for T {}
 impl<K, V> HashMap<K, V> {
     /// Creates a `HashMap`
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::new_in(Global)
     }
 
@@ -209,14 +209,17 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn with_size_in(size: usize, alloc: ALLOCATOR) -> Self {
         Self {
             nodes: NodeStorage::with_size_in(size, alloc),
-            hasher: BuildHasherDefault::default(),
+            hasher: BuildHasherDefault::new(),
         }
     }
 
     #[must_use]
     /// Creates a `HashMap` with a specified allocator
-    pub fn new_in(alloc: ALLOCATOR) -> Self {
-        Self::with_size_in(16, alloc)
+    pub const fn new_in(alloc: ALLOCATOR) -> Self {
+        Self {
+            nodes: NodeStorage::new_in(alloc),
+            hasher: BuildHasherDefault::new(),
+        }
     }
 
     /// Returns a reference to the underlying allocator
@@ -350,13 +353,16 @@ where
                 },
             )
         } else {
-            if self.nodes.capacity() <= self.len() {
-                self.resize(self.nodes.backing_vec_size() * 2);
-            }
-
+            self.grow_if_needed();
             self.nodes.insert_new(key, value, hash);
 
             None
+        }
+    }
+
+    fn grow_if_needed(&mut self) {
+        if self.nodes.capacity() <= self.len() {
+            self.resize((self.nodes.backing_vec_size() * 2).max(16));
         }
     }
 
@@ -364,10 +370,7 @@ where
     ///
     /// - `key` must not currently be in the hash map
     unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
-        if self.nodes.capacity() <= self.len() {
-            self.resize(self.nodes.backing_vec_size() * 2);
-        }
-
+        self.grow_if_needed();
         let location = self.nodes.insert_new(key, value, hash);
 
         // SAFETY: location is always valid

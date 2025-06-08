@@ -16,6 +16,17 @@ pub(crate) struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
+    pub(crate) const fn new_in(alloc: ALLOCATOR) -> Self {
+        let nodes = MyVec::new_in(alloc);
+
+        Self {
+            nodes,
+            max_distance_to_initial_bucket: 0,
+            number_of_items: 0,
+            max_number_before_resize: 0,
+        }
+    }
+
     /// # Panics
     ///
     /// - `capacity` is not a power of 2
@@ -144,6 +155,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         K: Borrow<Q>,
         Q: Eq + ?Sized,
     {
+        if self.nodes.is_empty() {
+            return None;
+        }
+
         for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
             let location = (hash + distance_to_initial_bucket).fast_mod(self.backing_vec_size());
 
