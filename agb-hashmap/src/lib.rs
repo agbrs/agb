@@ -913,7 +913,7 @@ where
 }
 
 const fn number_before_resize(capacity: usize) -> usize {
-    capacity * 60 / 100
+    capacity * 3 / 5
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
