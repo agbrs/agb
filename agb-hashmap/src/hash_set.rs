@@ -58,7 +58,7 @@ pub struct HashSet<K, ALLOCATOR: Allocator = Global> {
 impl<K> HashSet<K> {
     /// Creates a `HashSet`
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::new_in(Global)
     }
 
@@ -88,8 +88,10 @@ impl<K, ALLOCATOR: ClonableAllocator> HashSet<K, ALLOCATOR> {
 
     /// Creates a `HashSet` with a specified allocator
     #[must_use]
-    pub fn new_in(alloc: ALLOCATOR) -> Self {
-        Self::with_size_in(16, alloc)
+    pub const fn new_in(alloc: ALLOCATOR) -> Self {
+        Self {
+            map: HashMap::new_in(alloc),
+        }
     }
 
     /// Creates an empty `HashSet` which can hold at least `capacity` elements before resizing. The actual
