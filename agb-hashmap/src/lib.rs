@@ -307,21 +307,6 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// # Panics
-    ///
-    /// Panics if the `new_size` is smaller than the current size
-    fn resize(&mut self, new_size: usize) {
-        assert!(
-            new_size >= self.nodes.backing_vec_size(),
-            "Can only increase the size of a hash map"
-        );
-        if new_size == self.nodes.backing_vec_size() {
-            return;
-        }
-
-        self.nodes = self.nodes.resized_to(new_size);
-    }
 }
 
 impl<K, V> Default for HashMap<K, V> {
@@ -353,16 +338,9 @@ where
                 },
             )
         } else {
-            self.grow_if_needed();
             self.nodes.insert_new(key, value, hash);
 
             None
-        }
-    }
-
-    fn grow_if_needed(&mut self) {
-        if self.nodes.capacity() <= self.len() {
-            self.resize((self.nodes.backing_vec_size() * 2).max(16));
         }
     }
 
@@ -370,7 +348,6 @@ where
     ///
     /// - `key` must not currently be in the hash map
     unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
-        self.grow_if_needed();
         let location = self.nodes.insert_new(key, value, hash);
 
         // SAFETY: location is always valid

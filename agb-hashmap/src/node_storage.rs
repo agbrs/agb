@@ -60,13 +60,14 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         self.number_of_items
     }
 
+    fn grow_if_needed(&mut self) {
+        if self.capacity() <= self.len() {
+            self.resize_to((self.backing_vec_size() * 2).max(16));
+        }
+    }
+
     pub(crate) fn insert_new(&mut self, key: K, value: V, hash: HashType) -> usize {
-        debug_assert!(
-            self.capacity() > self.len(),
-            "Do not have space to insert into len {} with {}",
-            self.backing_vec_size(),
-            self.len()
-        );
+        self.grow_if_needed();
 
         let mut new_node = Node::new_with(key, value, hash);
         let mut inserted_location = usize::MAX;
@@ -180,7 +181,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         None
     }
 
-    pub(crate) fn resized_to(&mut self, new_size: usize) -> Self {
+    fn resize_to(&mut self, new_size: usize) {
         let mut new_node_storage = Self::with_size_in(new_size, self.allocator().clone());
 
         for mut node in self.nodes.drain(..) {
@@ -189,7 +190,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
             }
         }
 
-        new_node_storage
+        *self = new_node_storage;
     }
 
     /// # Safety
