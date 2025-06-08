@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `HashMap::new()` and `HashSet::new()` are now `const`.
+
 ### Fixed
 
 - Fixed performance regression in 0.22 when dealing with backgrounds which haven't changed between frames.

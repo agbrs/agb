@@ -16,6 +16,17 @@ pub(crate) struct NodeStorage<K, V, ALLOCATOR: Allocator = Global> {
 }
 
 impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
+    pub(crate) const fn new_in(alloc: ALLOCATOR) -> Self {
+        let nodes = MyVec::new_in(alloc);
+
+        Self {
+            nodes,
+            max_distance_to_initial_bucket: 0,
+            number_of_items: 0,
+            max_number_before_resize: 0,
+        }
+    }
+
     /// # Panics
     ///
     /// - `capacity` is not a power of 2
@@ -49,13 +60,14 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         self.number_of_items
     }
 
+    fn grow_if_needed(&mut self) {
+        if self.capacity() <= self.len() {
+            self.resize_to((self.backing_vec_size() * 2).max(16));
+        }
+    }
+
     pub(crate) fn insert_new(&mut self, key: K, value: V, hash: HashType) -> usize {
-        debug_assert!(
-            self.capacity() > self.len(),
-            "Do not have space to insert into len {} with {}",
-            self.backing_vec_size(),
-            self.len()
-        );
+        self.grow_if_needed();
 
         let mut new_node = Node::new_with(key, value, hash);
         let mut inserted_location = usize::MAX;
@@ -144,6 +156,10 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         K: Borrow<Q>,
         Q: Eq + ?Sized,
     {
+        if self.nodes.is_empty() {
+            return None;
+        }
+
         for distance_to_initial_bucket in 0..(self.max_distance_to_initial_bucket + 1) {
             let location = (hash + distance_to_initial_bucket).fast_mod(self.backing_vec_size());
 
@@ -165,7 +181,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
         None
     }
 
-    pub(crate) fn resized_to(&mut self, new_size: usize) -> Self {
+    fn resize_to(&mut self, new_size: usize) {
         let mut new_node_storage = Self::with_size_in(new_size, self.allocator().clone());
 
         for mut node in self.nodes.drain(..) {
@@ -174,7 +190,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
             }
         }
 
-        new_node_storage
+        *self = new_node_storage;
     }
 
     /// # Safety

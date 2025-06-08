@@ -184,7 +184,7 @@ impl<T: Allocator + Clone> ClonableAllocator for T {}
 impl<K, V> HashMap<K, V> {
     /// Creates a `HashMap`
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::new_in(Global)
     }
 
@@ -209,14 +209,17 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn with_size_in(size: usize, alloc: ALLOCATOR) -> Self {
         Self {
             nodes: NodeStorage::with_size_in(size, alloc),
-            hasher: BuildHasherDefault::default(),
+            hasher: BuildHasherDefault::new(),
         }
     }
 
     #[must_use]
     /// Creates a `HashMap` with a specified allocator
-    pub fn new_in(alloc: ALLOCATOR) -> Self {
-        Self::with_size_in(16, alloc)
+    pub const fn new_in(alloc: ALLOCATOR) -> Self {
+        Self {
+            nodes: NodeStorage::new_in(alloc),
+            hasher: BuildHasherDefault::new(),
+        }
     }
 
     /// Returns a reference to the underlying allocator
@@ -304,21 +307,6 @@ impl<K, V, ALLOCATOR: ClonableAllocator> HashMap<K, V, ALLOCATOR> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// # Panics
-    ///
-    /// Panics if the `new_size` is smaller than the current size
-    fn resize(&mut self, new_size: usize) {
-        assert!(
-            new_size >= self.nodes.backing_vec_size(),
-            "Can only increase the size of a hash map"
-        );
-        if new_size == self.nodes.backing_vec_size() {
-            return;
-        }
-
-        self.nodes = self.nodes.resized_to(new_size);
-    }
 }
 
 impl<K, V> Default for HashMap<K, V> {
@@ -350,10 +338,6 @@ where
                 },
             )
         } else {
-            if self.nodes.capacity() <= self.len() {
-                self.resize(self.nodes.backing_vec_size() * 2);
-            }
-
             self.nodes.insert_new(key, value, hash);
 
             None
@@ -364,10 +348,6 @@ where
     ///
     /// - `key` must not currently be in the hash map
     unsafe fn insert_new_and_get(&mut self, key: K, value: V, hash: HashType) -> &'_ mut V {
-        if self.nodes.capacity() <= self.len() {
-            self.resize(self.nodes.backing_vec_size() * 2);
-        }
-
         let location = self.nodes.insert_new(key, value, hash);
 
         // SAFETY: location is always valid
@@ -519,7 +499,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.backing_vec_size() {
+            if self.at >= self.map.nodes.backing_vec_size() || self.num_found == self.map.len() {
                 return None;
             }
 
@@ -571,7 +551,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.backing_vec_size() {
+            if self.at >= self.map.nodes.backing_vec_size() || self.num_found == self.map.len() {
                 return None;
             }
 
@@ -933,7 +913,7 @@ where
 }
 
 const fn number_before_resize(capacity: usize) -> usize {
-    capacity * 60 / 100
+    capacity * 3 / 5
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use core::{fmt::Debug, mem::MaybeUninit, ptr::NonNull};
+use core::{fmt::Debug, ptr::NonNull};
 
 use alloc::{slice, vec::Vec};
 use tile_allocator::TileAllocator;
@@ -314,7 +314,7 @@ impl Drop for DynamicTile16 {
 ///
 /// All interactions for the VRamManager is done via the static [`VRAM_MANAGER`] instance.
 pub struct VRamManager {
-    inner: SyncUnsafeCell<MaybeUninit<VRamManagerInner>>,
+    inner: SyncUnsafeCell<VRamManagerInner>,
 }
 
 /// The global instance of the VRamManager. You should always use this and never attempt to
@@ -325,19 +325,12 @@ pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
 impl VRamManager {
     const unsafe fn new() -> Self {
         Self {
-            inner: SyncUnsafeCell::new(MaybeUninit::uninit()),
-        }
-    }
-
-    // Should only be called in the Gba struct's constructor to ensure it happens exactly once
-    pub(crate) unsafe fn initialise(&self) {
-        unsafe {
-            (*self.inner.get()).write(VRamManagerInner::new());
+            inner: SyncUnsafeCell::new(VRamManagerInner::new()),
         }
     }
 
     fn with<T>(&self, f: impl FnOnce(&mut VRamManagerInner) -> T) -> T {
-        f(unsafe { (*self.inner.get()).assume_init_mut() })
+        f(unsafe { &mut *self.inner.get() })
     }
 }
 
@@ -510,14 +503,13 @@ struct VRamManagerInner {
 }
 
 impl VRamManagerInner {
-    fn new() -> Self {
-        let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> =
-            HashMap::with_capacity(256);
+    const fn new() -> Self {
+        let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> = HashMap::new();
 
         Self {
             tile_set_to_vram,
-            reference_counts: Default::default(),
-            indices_to_gc: Default::default(),
+            reference_counts: Vec::new(),
+            indices_to_gc: Vec::new(),
         }
     }
 

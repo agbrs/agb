@@ -14,7 +14,7 @@ mod inner {
     pub(crate) struct MyVec<T, A: Allocator = Global>(Vec<T>, A);
 
     impl<T, A: Allocator> MyVec<T, A> {
-        pub(crate) fn new_in(allocator: A) -> Self {
+        pub(crate) const fn new_in(allocator: A) -> Self {
             Self(Vec::new(), allocator)
         }
 
@@ -45,7 +45,7 @@ mod inner {
     pub(crate) struct MyVec<T, A: Allocator = Global>(Vec<T, A>);
 
     impl<T, A: Allocator> MyVec<T, A> {
-        pub(crate) fn new_in(allocator: A) -> Self {
+        pub(crate) const fn new_in(allocator: A) -> Self {
             Self(Vec::new_in(allocator))
         }
     }
