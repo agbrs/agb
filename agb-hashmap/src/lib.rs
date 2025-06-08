@@ -499,7 +499,7 @@ impl<'a, K, V, ALLOCATOR: ClonableAllocator> Iterator for Iter<'a, K, V, ALLOCAT
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.backing_vec_size() {
+            if self.at >= self.map.nodes.backing_vec_size() || self.num_found == self.map.len() {
                 return None;
             }
 
@@ -551,7 +551,7 @@ impl<K, V, ALLOCATOR: ClonableAllocator> Iterator for IterOwned<K, V, ALLOCATOR>
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.at >= self.map.nodes.backing_vec_size() {
+            if self.at >= self.map.nodes.backing_vec_size() || self.num_found == self.map.len() {
                 return None;
             }
 
