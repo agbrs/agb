@@ -80,6 +80,7 @@ build-roms:
     just _build-rom "examples/combo" "AGBGAMES"
 
     just _build-rom "book/games/pong" "PONG"
+    just _build-rom "book/games/platform" "PLATFORM"
 
     (cd examples/target && zip examples.zip examples/*.gba)
 
