@@ -11,7 +11,7 @@ all the boiler plate files for you.
 
 You will need the following installed in order to build and run this project:
 
-* A recent version of `rustup`. See the [rust website](https://www.rust-lang.org/tools/install) for instructions for your operating system
+- A recent version of `rustup`. See the [rust website](https://www.rust-lang.org/tools/install) for instructions for your operating system
 
 You will also want to install an emulator. The best support in agb is with [mgba](https://mgba.io), with
 `println!` support via `agb::println!` but any emulator should work. You'll get the best experience if
@@ -51,7 +51,7 @@ cargo run --release
 
 ## Starting development
 
-You can find the documentation for agb [here](https://docs.rs/agb/latest/agb/).
+You can find the documentation for agb [here](https://docs.rs/agb/latest/agb/), or follow the tutorial in [the book](https://agbrs.dev/book/).
 
 You may also want to change the package name and version in `Cargo.toml` before you start.
 

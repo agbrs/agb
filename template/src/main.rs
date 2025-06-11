@@ -1,5 +1,5 @@
 // Games made using `agb` are no_std which means you don't have access to the standard
-// rust library. This is because the game boy advance doesn't really have an operating
+// rust library. This is because the game boy advance doesn't have an operating
 // system, so most of the content of the standard library doesn't apply.
 #![no_std]
 // `agb` defines its own `main` function, so you must declare your game's main function
