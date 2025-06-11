@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use tiled::{
     FilesystemResourceReader, FiniteTileLayer, Layer, Map, ObjectLayer, PropertyValue,
     ResourceReader, TileLayer,
@@ -160,17 +160,17 @@ trait GetLayer {
 }
 
 impl GetLayer for Map {
-    fn get_layer_by_name(&self, name: &str) -> Layer {
+    fn get_layer_by_name(&self, name: &str) -> Layer<'_> {
         self.layers().find(|x| x.name == name).unwrap()
     }
-    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer {
+    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer<'_> {
         match self.get_layer_by_name(name).as_tile_layer().unwrap() {
             TileLayer::Finite(finite_tile_layer) => finite_tile_layer,
             TileLayer::Infinite(_) => panic!("Infinite tile layer not supported"),
         }
     }
 
-    fn get_object_layer(&self, name: &str) -> ObjectLayer {
+    fn get_object_layer(&self, name: &str) -> ObjectLayer<'_> {
         self.get_layer_by_name(name).as_object_layer().unwrap()
     }
 }

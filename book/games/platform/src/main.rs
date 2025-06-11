@@ -94,7 +94,7 @@ impl Player {
     fn new(start: Vector2D<i32>) -> Self {
         Player {
             position: start.change_base(),
-            velocity: vec2(0, 0),
+            velocity: vec2(num!(0), num!(0)),
             frame: 0,
             sprite: sprites::STANDING.sprite(0).into(),
             flipped: false,
