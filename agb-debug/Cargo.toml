@@ -8,7 +8,7 @@ description = "CLI utility to convert agb stack trace dumps into human readable 
 repository = "https://github.com/agbrs/agb"
 
 [dependencies]
-addr2line = { version = "0.24", default-features = false, features = ["rustc-demangle"] }
+addr2line = { version = "0.25", default-features = false, features = ["rustc-demangle"] }
 gimli = { version = "0.31", default-features = false, features = ["endian-reader", "std"] }
 object = { version = "0.37", default-features = false, features = ["read"] }
 
