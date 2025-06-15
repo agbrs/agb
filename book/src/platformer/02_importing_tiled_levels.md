@@ -32,23 +32,23 @@ So we will use the normal trick of making a trait that we implement on the forei
 
 ```rust
 trait GetLayer {
-    fn get_layer_by_name(&self, name: &str) -> Layer;
-    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer;
-    fn get_object_layer(&self, name: &str) -> ObjectLayer;
+    fn get_layer_by_name(&self, name: &str) -> Layer<'_>;
+    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer<'_>;
+    fn get_object_layer(&self, name: &str) -> ObjectLayer<'_>;
 }
 
 impl GetLayer for Map {
-    fn get_layer_by_name(&self, name: &str) -> Layer {
+    fn get_layer_by_name(&self, name: &str) -> Layer<'_> {
         self.layers().find(|x| x.name == name).unwrap()
     }
-    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer {
+    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer<'_> {
         match self.get_layer_by_name(name).as_tile_layer().unwrap() {
             TileLayer::Finite(finite_tile_layer) => finite_tile_layer,
             TileLayer::Infinite(_) => panic!("Infinite tile layer not supported"),
         }
     }
 
-    fn get_object_layer(&self, name: &str) -> ObjectLayer {
+    fn get_object_layer(&self, name: &str) -> ObjectLayer<'_> {
         self.get_layer_by_name(name).as_object_layer().unwrap()
     }
 }
@@ -81,7 +81,6 @@ This adds a reader that passes through to the existing `FilesystemResourceReader
 The whole reason for doing this is that loading a tiled map could mean we also need to load the various files it references, like the tilesets.
 If we were to change the tileset, maybe adding tiles or changing the tags, we would like that to be reflected in the next build of our game.
 Make sure to properly tell `cargo` about your dependencies as it will annoy you otherwise!
-
 
 # Loading the level into an internal representation
 
@@ -193,6 +192,7 @@ What we're going to do here is output a Rust file that we will include in our ga
 We need to do some work in our `main.rs` file now to enable us to output the levels.
 
 The first is to include the background tiles, we do this because the `TileSettings` we refer to will be in these tiles.
+
 ```rust
 include_background_gfx!(mod tiles, "2ce8f4", TILES => "gfx/tilesheet.png");
 ```
