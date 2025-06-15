@@ -15,7 +15,7 @@ loop {
 }
 ```
 
-Here we will discuss the idiomatic way of using the [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html) during the lifecycle of a frame.
+Here we will discuss the idiomatic way of using the [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html) during the lifecycle of a frame.
 
 ## `.show(frame: &mut GraphicsFrame)`
 
