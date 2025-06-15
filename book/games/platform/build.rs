@@ -154,9 +154,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 trait GetLayer {
-    fn get_layer_by_name(&self, name: &str) -> Layer;
-    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer;
-    fn get_object_layer(&self, name: &str) -> ObjectLayer;
+    fn get_layer_by_name(&self, name: &str) -> Layer<'_>;
+    fn get_tile_layer(&self, name: &str) -> FiniteTileLayer<'_>;
+    fn get_object_layer(&self, name: &str) -> ObjectLayer<'_>;
 }
 
 impl GetLayer for Map {
