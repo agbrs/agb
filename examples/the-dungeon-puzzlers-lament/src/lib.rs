@@ -145,8 +145,6 @@ pub fn entry(mut gba: agb::Gba) -> ! {
 #[cfg(test)]
 #[agb::entry]
 fn agb_test_main(_gba: agb::Gba) -> ! {
-    loop {
-        // full implementation provided by the #[entry]
-        agb::syscall::halt();
-    }
+    // full implementation provided by the #[entry]
+    unimplemented!();
 }
