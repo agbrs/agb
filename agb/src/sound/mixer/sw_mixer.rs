@@ -611,11 +611,13 @@ mod playback_buffer {
             let channel_len = Num::new(channel.data.len() as u32);
 
             // 1.5 is approximately the multiple we can work with before it would be faster
-            // to read from ROM rather than do the copy
+            // to read from ROM rather than do the copy. We also allow copying the entire channel
+            // to the temporary buffer because we'll end up looping it multiple times if the playback
+            // speed is so high.
             //
             // If increasing this size, make sure to also increase the size of the temp_storage
             // allocation since this guards overrunning that.
-            if channel.playback_speed > num!(1.5) {
+            if channel.playback_speed > num!(1.5) && channel.data.len() > temp_storage.len() {
                 return PlaybackBuffer::Rom(channel.data);
             }
 
