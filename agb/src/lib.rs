@@ -396,6 +396,8 @@ pub mod external {
     pub use portable_atomic;
 }
 
+use crate::display::tiled::VRAM_MANAGER;
+
 pub use {agb_alloc::ExternalAllocator, agb_alloc::InternalAllocator};
 
 #[cfg(any(test, feature = "testing", feature = "backtrace"))]
@@ -487,6 +489,10 @@ impl Gba {
     /// May only be called a single time. It is not needed to call this due to
     /// it being called internally by the [`entry`] macro.
     pub unsafe fn new_in_entry() -> Self {
+        unsafe {
+            VRAM_MANAGER.init();
+        }
+
         unsafe { Self::single_new() }
     }
 
