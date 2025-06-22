@@ -319,14 +319,20 @@ pub struct VRamManager {
 
 /// The global instance of the VRamManager. You should always use this and never attempt to
 /// construct one yourself.
-// SAFETY: This is the _only_ one
+// SAFETY: This is the _only_ one and `init()` is called in `new_in_entry` on the GBA struct
 pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
 
 impl VRamManager {
     const unsafe fn new() -> Self {
         Self {
-            inner: SyncUnsafeCell::new(VRamManagerInner::new()),
+            inner: SyncUnsafeCell::new(unsafe { VRamManagerInner::new() }),
         }
+    }
+
+    pub(crate) unsafe fn init(&self) {
+        self.with(|inner| unsafe {
+            inner.init();
+        });
     }
 
     fn with<T>(&self, f: impl FnOnce(&mut VRamManagerInner) -> T) -> T {
@@ -499,17 +505,27 @@ struct VRamManagerInner {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
 
+    tile_allocator: TileAllocator,
+
     indices_to_gc: Vec<TileIndex>,
 }
 
 impl VRamManagerInner {
-    const fn new() -> Self {
+    const unsafe fn new() -> Self {
         let tile_set_to_vram: HashMap<TileInTileSetReference, TileReference> = HashMap::new();
 
         Self {
             tile_set_to_vram,
             reference_counts: Vec::new(),
             indices_to_gc: Vec::new(),
+
+            tile_allocator: unsafe { TileAllocator::new() },
+        }
+    }
+
+    unsafe fn init(&mut self) {
+        unsafe {
+            self.tile_allocator.init();
         }
     }
 
@@ -527,7 +543,7 @@ impl VRamManagerInner {
     fn new_dynamic_tile(&mut self) -> DynamicTile16 {
         // TODO: format param?
         let tile_format = TileFormat::FourBpp;
-        let new_reference: NonNull<u32> = unsafe { TileAllocator.alloc_for_regular(tile_format) };
+        let new_reference: NonNull<u32> = self.tile_allocator.alloc_for_regular(tile_format);
         let tile_reference = TileReference(new_reference);
 
         let index = Self::index_from_reference(tile_reference, tile_format);
@@ -583,9 +599,9 @@ impl VRamManagerInner {
         }
 
         let new_reference: NonNull<u32> = if is_affine {
-            unsafe { TileAllocator.alloc_for_affine() }
+            self.tile_allocator.alloc_for_affine()
         } else {
-            unsafe { TileAllocator.alloc_for_regular(tile_set.format) }
+            self.tile_allocator.alloc_for_regular(tile_set.format)
         };
         let tile_reference = TileReference(new_reference);
         reference.or_insert(tile_reference);
@@ -634,7 +650,8 @@ impl VRamManagerInner {
 
             let tile_reference = Self::reference_from_index(tile_index);
             unsafe {
-                TileAllocator.dealloc(tile_reference.0, tile_index.format());
+                self.tile_allocator
+                    .dealloc(tile_reference.0, tile_index.format());
             }
 
             self.tile_set_to_vram.remove(tile_ref);

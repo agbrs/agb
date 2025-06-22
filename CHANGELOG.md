@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Improved the performance of the mixer by about 10% in cases where you're playing a lot of mono sounds
   at speeds <= 1.5x (common with trackers).
+- Improved the performance of tile allocation and deallocation.
 
 ## [0.22.1] - 2025/06/06
 
