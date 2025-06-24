@@ -3,20 +3,15 @@ CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all"
 
 podman_command := "podman"
 
-build: build-roms
-
-build-debug:
-    (cd agb && cargo build --no-default-features)
-    (cd agb && cargo build --no-default-features --features=testing)
-    (cd agb && cargo build --examples --tests)
-
-    (cd tracker/agb-tracker && cargo build --examples --tests)
-
-build-release:
-    (cd agb && cargo build --examples --tests --release)
-
 clippy:
     just _all-crates _clippy
+
+configure:
+    [ -e build.ninja ] || just _run-tool configure
+
+build: configure
+    ninja build_agb
+    just build-roms
 
 test:
     # test the workspace
@@ -69,7 +64,7 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy fmt-check spellcheck test miri build-release test-release build-roms build-book check-docs
+ci: build clippy fmt-check spellcheck test miri test-release build-book check-docs
 
 build-roms:
     just _build-rom "examples/the-purple-night" "PURPLENIGHT"
@@ -123,7 +118,7 @@ generate-screenshot *args:
     "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}}
 
 
-build-site-examples: build-release
+build-site-examples: build
     #!/usr/bin/env bash
     set -euxo pipefail
 
