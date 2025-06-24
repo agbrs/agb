@@ -26,7 +26,7 @@ To add button control to our game, we will need a [`ButtonController`](https://d
 Add this near the top of your main function:
 
 ```rust
-let mut input = agb::input::ButtonController::new();
+let mut button_controller = agb::input::ButtonController::new();
 ```
 
 The button controller is not part of the `Gba` struct because it only allows for reading and not writing so does not need to be controlled by the borrow checker.
