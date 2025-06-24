@@ -47,6 +47,9 @@ pub fn configure(_arg_matches: &ArgMatches) -> Result<(), Error> {
     cargo_build_bin
         .build([root_directory.join("target/debug/tools")])
         .variable("bin", "tools");
+    cargo_build_bin
+        .build([root_directory.join("target/debug/agb-gbafix")])
+        .variable("bin", "agb-gbafix");
 
     fs::write(root_directory.join("build.ninja"), ninja.to_string())?;
 
@@ -95,6 +98,8 @@ fn agb_examples(ninja: &Ninja, root_directory: &Path, agb_package: &cargo_metada
 
     make_examples(&debug_examples_dir);
     make_examples(&release_examples_dir);
+
+    roms(ninja, root_directory);
 }
 
 fn agb_build(ninja: &Ninja, root_directory: &Path) {
@@ -126,7 +131,7 @@ fn agb_build(ninja: &Ninja, root_directory: &Path) {
     build_agb_case(
         "agb_build_just_testing",
         "--no-default-features --features=testing",
-    )
+    );
 }
 
 fn agb_tests(ninja: &Ninja, root_directory: &Path) {
@@ -164,6 +169,78 @@ fn agb_tests(ninja: &Ninja, root_directory: &Path) {
 
     agb_test_multiboot_rule.build(["agb_test_multiboot"]);
     test_agb.dependencies.add("agb_test_multiboot".to_owned());
+}
+
+fn roms(ninja: &Ninja, root_directory: &Path) {
+    let build_elf = ninja
+        .cargo_command(
+            "build_rom_elf",
+            root_directory,
+            "$directory",
+            "build --release",
+        )
+        .depfile("$out.d");
+
+    let gba_fix = root_directory.join("target/debug/agb-gbafix");
+
+    let elf_to_gba = ninja.rule(
+        "elf_to_gba",
+        format!(
+            "{} --title $title --gamecode $gamecode --makercode GC $elf_file -o $out",
+            gba_fix.display()
+        ),
+    );
+
+    let roms = [
+        ["examples/the-purple-night", "PURPLENIGHT"],
+        ["examples/the-hat-chooses-the-wizard", "HATWIZARD"],
+        ["examples/hyperspace-roll", "HYPERSPACE"],
+        ["examples/the-dungeon-puzzlers-lament", "DUNGLAMENT"],
+        ["examples/amplitude", "AMPLITUDE"],
+        ["examples/combo", "AGBGAMES"],
+        ["book/games/pong", "PONG"],
+        ["book/games/platform", "PLATFORMER"],
+    ];
+
+    let zip_examples = ninja.rule(
+        "zip_example_games",
+        concat!(
+            "rm -rf $out target/examples.zip.tmp && mkdir -p target/examples.zip.tmp/examples && ",
+            "cp $in target/examples.zip.tmp/examples && cd target/examples.zip.tmp && zip -r $out examples"
+        ),
+    );
+    let examples = zip_examples.build([root_directory.join("target/examples.zip")]);
+
+    for rom in roms {
+        let (_, example_name) = rom[0].rsplit_once("/").unwrap();
+        let elf = root_directory
+            .join("target/thumbv4t-none-eabi/release")
+            .join(example_name);
+
+        let gba = root_directory
+            .join("target/examples")
+            .join(example_name)
+            .with_extension("gba");
+
+        let internal_name = rom[1];
+
+        elf_to_gba
+            .build([&gba])
+            .with([&elf, &gba_fix])
+            .variable(
+                "title",
+                internal_name[..internal_name.len().min(12)].to_owned(),
+            )
+            .variable(
+                "gamecode",
+                internal_name[..internal_name.len().min(4)].to_owned(),
+            )
+            .variable("elf_file", elf.to_string_lossy().to_string());
+
+        build_elf.build([&elf]).variable("directory", rom[0]);
+
+        examples.dependencies.add(gba.to_string_lossy().to_string());
+    }
 }
 
 trait NinjaExt {
