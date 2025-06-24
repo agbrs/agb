@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.2] - 2025/06/24
+
 ### Added
 
 - `HashMap::new()` and `HashSet::new()` are now `const`.

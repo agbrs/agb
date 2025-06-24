@@ -1,6 +1,6 @@
 [package]
 name = "agb_xm"
-version = "0.22.1"
+version = "0.22.2"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -11,8 +11,8 @@ repository = "https://github.com/agbrs/agb"
 proc-macro = true
 
 [dependencies]
-agb_xm_core = { version = "0.22.1", path = "../agb-xm-core" }
-agb_tracker_interop = { version = "0.22.1", path = "../agb-tracker-interop", features = ["quote"] }
+agb_xm_core = { version = "0.22.2", path = "../agb-xm-core" }
+agb_tracker_interop = { version = "0.22.2", path = "../agb-tracker-interop", features = ["quote"] }
 proc-macro-error = "1"
 proc-macro2 = "1"
 
