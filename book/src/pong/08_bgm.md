@@ -49,7 +49,7 @@ ffmpeg -i ~/Downloads/laserShoot.wav -ar 32768 sfx/ball-paddle-hit.wav
 Import the wav file using [`include_wav!()`](https://docs.rs/agb/latest/agb/macro.include_wav.html).
 
 ```rust
-use agb::{include_wav, mixer::SoundData};
+use agb::{include_wav, sound::mixer::SoundData};
 
 static BALL_PADDLE_HIT: SoundData = include_wav!("sfx/ball-paddle-hit.wav");
 ```
