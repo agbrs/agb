@@ -68,6 +68,8 @@ mixer.play_sound(hit_sound);
 We'll do this in a separate function:
 
 ```rust
+use agb::sound::mixer::{Mixer, SoundChannel};
+
 fn play_hit(mixer: &mut Mixer) {
     let hit_sound = SoundChannel::new(BALL_PADDLE_HIT);
     mixer.play_sound(hit_sound);
