@@ -40,7 +40,7 @@ button_controller.update();
 To handle the movement of the paddles, let's add a new method to the `Paddle` struct.
 
 ```rust
-fn move_by(&mut self, y: i32) {
+pub fn move_by(&mut self, y: i32) {
     self.y += y;
 }
 ```

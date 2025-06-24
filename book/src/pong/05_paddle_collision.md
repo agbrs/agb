@@ -53,7 +53,7 @@ ball.set_pos(ball_pos);
 You can store the paddle position as `pos` instead of `x` and `y` separately:
 
 ```rust
-struct Paddle {
+pub struct Paddle {
     pos: Vector2D<i32>,
 }
 ```
@@ -61,7 +61,7 @@ struct Paddle {
 You can change the `set_pos()` method on `Paddle` to take a `Vector2D<i32>` instead of separate `x` and `y` arguments as follows:
 
 ```rust
-fn set_pos(&mut self, pos: Vector2D<i32>) {
+pub fn set_pos(&mut self, pos: Vector2D<i32>) {
     self.pos = pos;
 }
 ```
@@ -69,7 +69,7 @@ fn set_pos(&mut self, pos: Vector2D<i32>) {
 And when rendering:
 
 ```rust
-fn show(frame: &mut GraphicsFrame) {
+pub fn show(frame: &mut GraphicsFrame) {
     Object::new(sprites::PADDLE_END.sprite(0))
         .set_pos(self.pos)
         .show(frame);
@@ -86,7 +86,7 @@ fn show(frame: &mut GraphicsFrame) {
 `move_by()` can also be updated as follows:
 
 ```rust
-fn move_by(&mut self, y: i32) {
+pub fn move_by(&mut self, y: i32) {
     self.y += vec2(0, y);
 }
 ```
@@ -105,7 +105,7 @@ We will assume that the ball and the paddle both have axis-aligned bounding boxe
 Lets add a simple method to the `Paddle` impl which returns the collision rectangle for it:
 
 ```rust
-fn collision_rect(&self) -> Rect<i32> {
+pub fn collision_rect(&self) -> Rect<i32> {
     Rect::new(self.pos, vec2(16, 16 * 3))
 }
 ```

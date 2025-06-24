@@ -18,17 +18,17 @@ The solution to this problem used by almost every Game Boy Advance game is to us
 Before we go to put fixed point numbers in the game, we need to do a quick change to pull the ball into its own struct.
 
 ```rust
-struct Ball {
+pub struct Ball {
     pos: Vector2D<i32>,
     velocity: Vector2D<i32>,
 }
 
 impl Ball {
-    fn new(pos: Vector2D<i32>, velocity: Vector2D<i32>) -> Self {
+    pub fn new(pos: Vector2D<i32>, velocity: Vector2D<i32>) -> Self {
         Self { pos, velocity }
     }
 
-    fn update(&mut self, paddle_a: &Paddle, paddle_b: &Paddle) {
+    pub fn update(&mut self, paddle_a: &Paddle, paddle_b: &Paddle) {
         // Speculatively move the ball, we'll update the velocity if this causes it to intersect with either the
         // edge of the map or a paddle.
         let potential_ball_pos = self.pos + self.velocity;
@@ -54,7 +54,7 @@ impl Ball {
         self.pos += self.velocity;
     }
 
-    fn show(&self, frame: &mut GraphicsFrame) {
+    pub fn show(&self, frame: &mut GraphicsFrame) {
         Object::new(sprites::BALL.sprite(0))
             .set_pos(self.pos)
             .show(frame);
@@ -101,14 +101,14 @@ We'll now replace the paddle position and the ball position and velocity with `F
 Some notable changes:
 
 ```rust
-fn move_by(&mut self, y: Fixed) {
+pub fn move_by(&mut self, y: Fixed) {
     // we now need to cast the 0 to a Fixed which you can do with
     // `Fixed::from(0)` or `0.into()`. But the preferred one is the `num!` macro
     // which we imported above.
     self.pos += vec2(num!(0), y);
 }
 
-fn collision_rect(&self) -> Rect<Fixed> {
+pub fn collision_rect(&self) -> Rect<Fixed> {
     // Same idea here with creating a fixed point rectangle
     Rect::new(self.pos, vec2(num!(16), num!(16 * 3)))
 }
@@ -118,7 +118,7 @@ Since you can only show things on the Game Boy Advance's screen in whole pixel c
 integer to show the paddle in a specific location:
 
 ```rust
-fn show(&self, frame: &mut GraphicsFrame) {
+pub fn show(&self, frame: &mut GraphicsFrame) {
     let sprite_pos = self.pos.round();
 
     Object::new(sprites::PADDLE_END.sprite(0))
