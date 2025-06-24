@@ -89,9 +89,7 @@ After it has finished rendering to each pixel of the screen, it briefly pauses r
 This period of no drawing is called the 'vertical blanking interval' which is shortened to `vblank`.
 There is also a 'horizontal blanking interval', but that is outside of the scope of this tutorial[^hblank].
 
-[^hblank]:
-    Timing this can give you some really cool effects allowing you to push the hardware.
-    `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this tutorial.
+[^hblank]: Timing this can give you some really cool effects allowing you to push the hardware. `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this tutorial.
 
 The `frame.commit()` method automatically waits for this `vblank` state before rendering your sprites to avoid moving a sprite while it is being rendered which could cause tearing of your objects.
 
