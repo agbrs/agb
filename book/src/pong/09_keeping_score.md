@@ -192,6 +192,8 @@ fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
 }
 ```
 
+Don't forget to call `show_cpu_health(&paddle_b, &mut frame);` before `frame.commit()`!
+
 Running the example again you'll see the health bar for the player and the CPU, and you wouldn't be able
 to tell that they are using completely different rendering mechanisms.
 
