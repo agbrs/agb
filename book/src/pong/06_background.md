@@ -44,7 +44,7 @@ use agb::include_background_gfx;
 
 include_background_gfx!(
     mod background,
-    PLAY_FIELD => deduplicate "gfx/play_field.aseprite",
+    PLAY_FIELD => deduplicate "gfx/background.aseprite",
 );
 ```
 
