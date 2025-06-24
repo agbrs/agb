@@ -30,7 +30,7 @@ Firstly, let's add the score to the `Paddle` objects:
 ```rust
 struct Paddle {
     pos: Vector2D<Fixed>,
-    health: i32,
+    pub health: i32,
 }
 ```
 
