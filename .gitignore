@@ -3,3 +3,4 @@ target
 *.tiled-session
 website/build
 Cargo.lock
+build.ninja
