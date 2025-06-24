@@ -119,7 +119,7 @@ fn agb_build(ninja: &Ninja, root_directory: &Path) {
                 if release { "release" } else { "debug" }
             );
             let flags = format!(
-                "--target={target}{}",
+                "--target={target}{} --tests",
                 if release { " --release" } else { "" }
             );
 
