@@ -66,7 +66,7 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     for x in 0..30u16 {
-        if x % 3 == 0 {
+        if x.is_multiple_of(3) {
             // put a sunflower here. Stem first
             foreground.set_tile(
                 (x, 9),
