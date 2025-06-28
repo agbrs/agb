@@ -21,7 +21,7 @@ jobs:
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2
         with:
-          mdbook-version: "0.4.13"
+          mdbook-version: "0.4.51"
       - name: Cache
         uses: actions/cache@v4
         with:
