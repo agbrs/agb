@@ -644,14 +644,6 @@ pub mod test_runner {
     }
 }
 
-#[inline(never)]
-pub(crate) fn program_counter_before_interrupt() -> u32 {
-    unsafe extern "C" {
-        static mut agb_rs__program_counter: u32;
-    }
-    unsafe { agb_rs__program_counter }
-}
-
 #[cfg(test)]
 mod test {
     use core::ptr::addr_of_mut;
