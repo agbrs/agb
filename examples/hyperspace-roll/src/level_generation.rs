@@ -10,12 +10,12 @@ pub struct GeneratedAttack {
 
 fn roll_dice(number_of_dice: u32, bits_per_dice: u32) -> u32 {
     assert!(
-        32 % bits_per_dice == 0,
+        32u32.is_multiple_of(bits_per_dice),
         "the number of bits per dice should be a multiple of 32"
     );
 
     assert!(
-        number_of_dice % (32 / bits_per_dice) == 0,
+        number_of_dice.is_multiple_of(32 / bits_per_dice),
         "number of dice should be a multiple of 32 / bits per dice"
     );
 

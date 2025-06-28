@@ -101,7 +101,7 @@ impl RolledDice {
                             }
                         }));
                     } else {
-                        if *timeout % 2 == 0 {
+                        if (*timeout).is_multiple_of(2) {
                             *face = player_die.roll();
                         }
                         *timeout -= 1;

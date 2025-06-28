@@ -621,7 +621,7 @@ impl TrackerChannel {
                 }
             }
             PatternEffect::Retrigger(volume_change, ticks) => {
-                if tick % *ticks as u32 == 0 {
+                if tick.is_multiple_of(*ticks as u32) {
                     match volume_change {
                         agb_tracker_interop::RetriggerVolumeChange::DecreaseByOne => {
                             self.volume = (self.volume - Num::new(1) / 64).max(0.into());

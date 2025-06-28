@@ -323,8 +323,8 @@ fn export_tiles(map: &tiled::Map, background: TokenStream) -> TokenStream {
                 let tile_tileset_x = tile.id() % 9;
                 let tile_tileset_y = tile.id() / 9;
 
-                let x_offset = if (x % 2 == 0) ^ hflip { 0 } else { 1 };
-                let y_offset = if (y % 2 == 0) ^ vflip { 0 } else { 1 };
+                let x_offset = if x.is_multiple_of(2) ^ hflip { 0 } else { 1 };
+                let y_offset = if y.is_multiple_of(2) ^ vflip { 0 } else { 1 };
                 let gba_tile_id =
                     tile_tileset_x * 2 + x_offset + tile_tileset_y * 9 * 4 + y_offset * 9 * 2;
                 let gba_tile_id = gba_tile_id as u16;

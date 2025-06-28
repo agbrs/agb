@@ -279,7 +279,7 @@ mod test {
                 Action::Remove {
                     index: (rng.next_i32() as usize) % stored.len(),
                 }
-            } else if stored.is_empty() || rng.next_i32() as usize % 4 != 0 {
+            } else if stored.is_empty() || !(rng.next_i32() as usize).is_multiple_of(4) {
                 Action::Add {
                     size: rng.next_i32() as usize % 32,
                 }
