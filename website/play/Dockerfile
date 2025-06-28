@@ -1,4 +1,4 @@
-FROM rust:1.87.0-bookworm AS builder
+FROM rust:1.88.0-bookworm AS builder
 
 RUN apt-get update && apt-get install docker.io -y --no-install-recommends
 
