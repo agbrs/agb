@@ -44,7 +44,7 @@ pub fn health(&self) -> i32 {
 }
 
 pub fn decrement_health(&mut self) {
-    self.health -= 1
+    self.health -= 1;
 }
 ```
 
