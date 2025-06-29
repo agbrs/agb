@@ -36,7 +36,7 @@ pub struct Paddle {
 
 and in the `new()` function, initialise it to 3.
 
-We are gonna use it for displaying health as hearts and decrementing it when ball touches either left side or right side of screen. Add these functions to `Paddle` struct.
+We're going to use it for displaying the health as hearts and decrementing it when ball touches the side of the screen. Add these functions to `Paddle` struct.
 
 ```rust
 pub fn health(&self) -> i32 {
