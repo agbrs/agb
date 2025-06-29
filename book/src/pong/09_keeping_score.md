@@ -28,7 +28,7 @@ If you lose while you have 0 lives, you lose the game.
 Firstly, let's add the score to the `Paddle` objects:
 
 ```rust
-struct Paddle {
+pub struct Paddle {
     pos: Vector2D<Fixed>,
     health: i32,
 }
@@ -36,15 +36,27 @@ struct Paddle {
 
 and in the `new()` function, initialise it to 3.
 
+We're going to use it for displaying the health as hearts and decrementing it when ball touches the side of the screen. Add these functions to `Paddle` struct.
+
+```rust
+pub fn health(&self) -> i32 {
+    self.health
+}
+
+pub fn decrement_health(&mut self) {
+    self.health -= 1;
+}
+```
+
 We can then reduce the health in the ball's update function (you'll have to change the `update` function to take `&mut Paddle`):
 
 ```rust
 if potential_ball_pos.x <= num!(0) {
     self.velocity.x *= -1;
-    paddle_a.health -= 1;
+    paddle_a.decrement_health();
 } else if potential_ball_pos.x >= num!(agb::display::WIDTH - 16) {
     self.velocity.x *= -1;
-    paddle_b.health -= 1;
+    paddle_b.decrement_health();
 }
 ```
 
@@ -131,7 +143,7 @@ So let's display up to 3 hearts with the given tile indexes by placing the follo
 
 ```rust
 for i in 0..3 {
-    let tile_index = if i < paddle_a.health { 4 } else { 5 };
+    let tile_index = if i < paddle_a.health() { 4 } else { 5 };
     player_health_background.set_tile(
         (i + 4, 0),
         &background::SCORE.tiles,
@@ -183,7 +195,7 @@ fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
 
     // For each heart frame, show that too
     for i in 0..3 {
-        let heart_frame = if i < paddle.health { 0 } else { 1 };
+        let heart_frame = if i < paddle.health() { 0 } else { 1 };
 
         Object::new(sprites::HEART.sprite(heart_frame))
             .set_pos(top_left + vec2(16 + i * 8 + TEXT_HEART_GAP, 0))
@@ -191,6 +203,8 @@ fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
     }
 }
 ```
+
+Don't forget to call `show_cpu_health(&paddle_b, &mut frame);` before `frame.commit()`!
 
 Running the example again you'll see the health bar for the player and the CPU, and you wouldn't be able
 to tell that they are using completely different rendering mechanisms.

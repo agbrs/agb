@@ -40,25 +40,25 @@ paddle_end.set_vflip(true);
 Now the paddle will display correctly. It's rather awkward to use, however, having to set all these positions correctly. Therefore we should encapsulate the logic of this object.
 
 ```rust
-struct Paddle {
+pub struct Paddle {
     x: i32,
     y: i32,
 }
 
 impl Paddle {
-    fn new(start_x: i32, start_y: i32) -> Self {
+    pub fn new(start_x: i32, start_y: i32) -> Self {
         Self {
             x: start_x,
             y: start_y,
         }
     }
 
-    fn set_pos(&mut self, x: i32, y: i32) {
+    pub fn set_pos(&mut self, x: i32, y: i32) {
         self.x = x;
         self.y = y;
     }
 
-    fn show(&self, frame: &mut GraphicsFrame) {
+    pub fn show(&self, frame: &mut GraphicsFrame) {
         Object::new(sprites::PADDLE_END.sprite(0))
             .set_pos((self.x, self.y))
             .show(frame);
