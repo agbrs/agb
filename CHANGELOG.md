@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `interruptable`, a function that allows the currently running interrupt to be interrupted.
 
+### Fixed
+
+- Fixed an issue which was causing compilation failures on rust nightly from 2025-07-04.
+
 ## [0.22.2] - 2025/06/24
 
 ### Added
