@@ -1,6 +1,6 @@
 [package]
 name = "agb_tracker"
-version = "0.22.2"
+version = "0.22.3"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -16,15 +16,15 @@ xm = ["dep:agb_xm"]
 midi = ["dep:agb_midi"]
 
 [dependencies]
-agb_midi = { version = "0.22.2", path = "../agb-midi", optional = true }
-agb_xm = { version = "0.22.2", path = "../agb-xm", optional = true }
-agb = { version = "0.22.2", path = "../../agb", optional = true }
+agb_midi = { version = "0.22.3", path = "../agb-midi", optional = true }
+agb_xm = { version = "0.22.3", path = "../agb-xm", optional = true }
+agb = { version = "0.22.3", path = "../../agb", optional = true }
 
-agb_fixnum = { version = "0.22.2", path = "../../agb-fixnum" }
-agb_tracker_interop = { version = "0.22.2", path = "../agb-tracker-interop", default-features = false }
+agb_fixnum = { version = "0.22.3", path = "../../agb-fixnum" }
+agb_tracker_interop = { version = "0.22.3", path = "../agb-tracker-interop", default-features = false }
 
 [build-dependencies]
-agb_fixnum = { version = "0.22.2", path = "../../agb-fixnum" }
+agb_fixnum = { version = "0.22.3", path = "../../agb-fixnum" }
 
 [profile.dev]
 opt-level = 3
