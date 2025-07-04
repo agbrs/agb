@@ -36,7 +36,38 @@ jobs:
       - name: Build screenshot generator
         run: cd emulator/screenshot-generator && cargo build --release
       - name: Checkout latest release
-        run: cp justfile ../justfile && git switch --detach $(git describe --tags --abbrev=0) && mv ../justfile justfile
+        run: |
+          echo "Install nightly rust from day of release"
+          LATEST_RELEASE_TAG=$(git describe --tags --abbrev=0)
+          LATEST_RELEASE_DATE=$(git log --format=%as "$LATEST_RELEASE_TAG" -1)
+
+          NIGHTLY_VERSION="$LATEST_RELEASE_DATE"
+
+          TRIES_REMAINING=10
+          while true; do
+            URL="https://static.rust-lang.org/dist/$NIGHTLY_VERSION"
+
+            echo "Checking $URL"
+            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --head "$URL")
+
+            if [[ "$STATUS_CODE" -eq 200 ]]; then
+              echo "Found valid rust nightly version $NIGHTLY_VERSION"
+              break
+            fi
+
+            NIGHTLY_VERSION=$(date -d "$NIGHTLY_VERSION - 1 day" +%Y-%m-%d)
+
+            if [ "$TRIES_REMAINING" -ge 0 ]; then
+              TRIES_REMAINING=$(( $TRIES_REMAINING - 1 ))
+            else
+              echo "Failed to find nightly version after 10 tries"
+              exit 1
+            fi
+          done
+
+          rustup install "nightly-$NIGHTLY_VERSION"
+
+          cp justfile ../justfile && git switch --detach "$LATEST_RELEASE_TAG" && mv ../justfile justfile
       - name: Prepare web dependencies
         run: just package-site-dependencies
       - name: Upload artifact
