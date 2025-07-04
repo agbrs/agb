@@ -22,13 +22,16 @@ impl<T, A: Allocator> RefCount<T, A> {
 
     pub fn new_in(value: T, a: A) -> Self {
         let v = unsafe {
-            NonNull::new_unchecked(Box::into_raw(Box::new_in(
-                RefCountInner {
-                    inner: value,
-                    count: Cell::new(1),
-                },
-                &a,
-            )))
+            NonNull::new_unchecked(
+                Box::into_raw_with_allocator(Box::new_in(
+                    RefCountInner {
+                        inner: value,
+                        count: Cell::new(1),
+                    },
+                    &a,
+                ))
+                .0,
+            )
         };
         Self(v, a)
     }
