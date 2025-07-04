@@ -21,7 +21,7 @@ use bitflags::bitflags;
 /// assert_eq!(x + tri as i32, 6);
 /// # }
 /// ```
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Tri {
     /// Right or down
     Positive = 1,
@@ -282,5 +282,20 @@ impl ButtonController {
         let previous = u32::from(self.previous);
         let keys = keys.bits();
         ((current & keys) == 0) && ((previous & keys) != 0)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::Gba;
+
+    use super::*;
+
+    #[test_case]
+    fn test_tri_bool_tuple_from_impl(_gba: &mut Gba) {
+        assert_eq!(Tri::from((true, false)), Tri::Negative);
+        assert_eq!(Tri::from((false, true)), Tri::Positive);
+        assert_eq!(Tri::from((false, false)), Tri::Zero);
+        assert_eq!(Tri::from((true, true)), Tri::Zero);
     }
 }
