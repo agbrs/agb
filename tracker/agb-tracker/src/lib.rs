@@ -223,13 +223,17 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
     /// See the [example](crate#example) for how to use the tracker.
     pub fn step<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
-        if !self.increment_frame() {
-            self.update_envelopes();
+        self.frame += 1;
 
-            self.realise(mixer);
-            return;
+        while self.increment_frame() {
+            self.inner_step(mixer);
         }
 
+        self.update_envelopes();
+        self.realise(mixer);
+    }
+
+    fn inner_step<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
         let pattern_to_play = self.track.patterns_to_play[self.current_pattern];
         let current_pattern = &self.track.patterns[pattern_to_play];
 
@@ -292,9 +296,6 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 &mut self.current_jump,
             );
         }
-
-        self.update_envelopes();
-        self.realise(mixer);
     }
 
     /// Stops all channels.
@@ -398,8 +399,6 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             self.first = false;
             return true;
         }
-
-        self.frame += 1;
 
         if self.frame >= self.global_settings.frames_per_tick {
             self.tick += 1;
