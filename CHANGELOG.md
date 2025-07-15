@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.4] - 2025/07/15
+
 ### Fixed
 
 - Fixed playback speed for agb-tracker when XM file is faster than 150BPM.

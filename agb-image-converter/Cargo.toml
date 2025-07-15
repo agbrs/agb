@@ -1,6 +1,6 @@
 [package]
 name = "agb_image_converter"
-version = "0.22.3"
+version = "0.22.4"
 authors = ["Gwilym Inzani <gw@ilym.me>"]
 edition = "2024"
 license = "MPL-2.0"
