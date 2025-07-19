@@ -134,7 +134,7 @@ impl<K, V> Node<K, V> {
     }
 
     /// # Panics
-    /// - The current distance is 0
+    /// - If current distance <= 0
     pub(crate) fn decrement_distance(&mut self) {
         self.distance_to_initial_bucket -= 1;
 
