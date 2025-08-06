@@ -54,11 +54,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download playground builder
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: playground-builder
       - name: Download playground server
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: playground-server
       - name: Import images
