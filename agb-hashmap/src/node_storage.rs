@@ -114,14 +114,15 @@ impl<K, V, ALLOCATOR: ClonableAllocator> NodeStorage<K, V, ALLOCATOR> {
             let node = &mut self.nodes[i];
 
             if let Some((k, v)) = node.key_value_mut()
-                && !f(k, v) {
-                    self.remove_from_location(i);
+                && !f(k, v)
+            {
+                self.remove_from_location(i);
 
-                    // Need to continue before adding 1 to i because remove from location could
-                    // put the element which was next into the ith location in the nodes array,
-                    // so we need to check if that one needs removing too.
-                    continue;
-                }
+                // Need to continue before adding 1 to i because remove from location could
+                // put the element which was next into the ith location in the nodes array,
+                // so we need to check if that one needs removing too.
+                continue;
+            }
 
             i += 1;
         }
