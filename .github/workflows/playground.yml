@@ -19,6 +19,10 @@ jobs:
           fetch-depth: 0
       - name: Checkout examples from the latest released agb
         run: git restore --source $(git describe --tags --abbrev=0) agb/examples
+      - name: Set template to use nightly of latest release
+        run: |
+          NIGHTLY=$(./.github/scripts/nightly-of-last-release.sh)
+          sed "s/\bnightly\b/&-${NIGHTLY}/" -i template/rust-toolchain.toml
       - name: Build image
         run: just build-playground-image
       - name: Save image
