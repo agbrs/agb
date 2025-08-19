@@ -12,7 +12,7 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install build-essential zip -y
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Login to crates.io
