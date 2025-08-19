@@ -36,15 +36,18 @@ jobs:
       - name: Build screenshot generator
         run: cd emulator/screenshot-generator && cargo build --release
       - name: Checkout latest release
+        id: checkout
         run: |
           NIGHTLY_VERSION=$(./.github/scripts/nightly-of-last-release.sh)
           LATEST_RELEASE_TAG=$(git describe --tags --abbrev=0)
 
-          rustup install "nightly-$NIGHTLY_VERSION"
+          echo "toolchain=nightly-$NIGHTLY_VERSION" > "$GITHUB_OUTPUT"
 
           cp justfile ../justfile && git switch --detach "$LATEST_RELEASE_TAG" && mv ../justfile justfile
       - name: Prepare web dependencies
         run: just package-site-dependencies
+        env:
+          RUSTUP_TOOLCHAIN: ${{ steps.checkout.outputs.toolchain }}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
