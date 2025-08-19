@@ -98,7 +98,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
 
     let maximum_above_line = letters
         .iter()
-        .map(|x| (x.height as i32 + x.ymin))
+        .map(|x| x.height as i32 + x.ymin)
         .max()
         .unwrap();
 
