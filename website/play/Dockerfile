@@ -9,7 +9,7 @@ ADD src /build/src
 
 RUN cargo build --release
 
-FROM debian:bookworm
+FROM debian:trixie
 
 COPY --from=builder /usr/bin/docker /usr/bin/docker
 COPY --from=builder /build/target/release/play /bin/play
