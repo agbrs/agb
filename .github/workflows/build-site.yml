@@ -45,7 +45,9 @@ jobs:
 
           cp justfile ../justfile && git switch --detach "$LATEST_RELEASE_TAG" && mv ../justfile justfile
       - name: Prepare web dependencies
-        run: just package-site-dependencies
+        run: |
+          rustup component add rust-src rustfmt clippy
+          just package-site-dependencies
         env:
           RUSTUP_TOOLCHAIN: ${{ steps.checkout.outputs.toolchain }}
       - name: Upload artifact
