@@ -87,7 +87,7 @@ pub fn show(frame: &mut GraphicsFrame) {
 
 ```rust
 pub fn move_by(&mut self, y: i32) {
-    self.y += vec2(0, y);
+    self.pos += vec2(0, y);
 }
 ```
 
