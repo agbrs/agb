@@ -170,8 +170,8 @@ include_aseprite!(
 );
 ```
 
-For this, the CPU text is over 2 frames and the hearts are also on 2 separate frames.
-Passing the frame index to the [`sprite()`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html#method.sprite) function gives us the desired sprite.
+For this, both the CPU "text" itself (not to be confused with actual text rendering) as well as the CPU's hearts are both spread across 2 frames in the aseprite file.
+Passing the frame index to the [`sprite()`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html#method.sprite) function gives us the desired combined sprite.
 
 ```rust
 fn show_cpu_health(paddle: &Paddle, frame: &mut GraphicsFrame) {
