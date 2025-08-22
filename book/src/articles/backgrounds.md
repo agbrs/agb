@@ -136,6 +136,18 @@ for y in 0..20 {
 
 Note that if you run this, you still won't get anything showing on screen until you show the background on the frame, which we'll do in the next section.
 
+## The `fill_with()` function
+If the included `.aseprite` file is the exact dimensions of the GBA screen
+(240x160 pixels), you can also simply call [`.fill_with()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.fill_with)
+on the RegularBackground you created with a reference to the included file:
+
+```rust
+tiles.fill_with(&background::BEACH);
+```
+
+The same note from before still applies. You must still show `tiles` to
+actually see the background on screen.
+
 # Showing a background on the screen
 
 To show a background on the screen, you'll need to to call the [`.show()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.show) method passing in the current [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/GraphicsFrame.html).
