@@ -136,7 +136,7 @@ for y in 0..20 {
 
 If the included `.aseprite` file is the exact dimensions of the GBA screen
 (240x160 pixels), you can also simply call [`.fill_with()`](https://docs.rs/agb/latest/agb/display/tiled/struct.RegularBackground.html#method.fill_with)
-on the RegularBackground you created with a reference to the included file:
+on the `RegularBackground` you created with a reference to the included file:
 
 ```rust
 tiles.fill_with(&background::BEACH);
