@@ -11,7 +11,7 @@ agb_tracker = { version = "0.22.5", path = "../../../tracker/agb-tracker" }
 [build-dependencies]
 quote = "1"
 proc-macro2 = "1"
-tiled = "0.14.0"
+tiled = "0.15.0"
 
 [profile.dev]
 opt-level = 3
