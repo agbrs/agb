@@ -24,7 +24,7 @@ agb_sound_converter = { version = "0.22.5", path = "../agb-sound-converter" }
 agb_macros = { version = "0.22.5", path = "../agb-macros" }
 agb_fixnum = { version = "0.22.5", path = "../agb-fixnum" }
 agb_hashmap = { version = "0.22.5", path = "../agb-hashmap", features = ["allocator_api"] }
-bilge = "0.2"
+bilge = "0.3"
 qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 once_cell = { version = "1.20.1", default-features = false, features = ["critical-section"] }
