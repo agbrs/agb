@@ -88,6 +88,7 @@ impl AllTimers<'_> {
     /// # Safety
     /// This allows access to Timer0 and Timer1 which are used by system components.
     /// Using these timers may interfere with sound or embassy-agb functionality.
+    #[must_use]
     pub unsafe fn new() -> Self {
         Self {
             timer0: unsafe { Timer::new(0) },
