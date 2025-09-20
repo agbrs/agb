@@ -1,0 +1,20 @@
+[package]
+name = "embassy-agb-examples"
+version = "0.1.0"
+edition = "2021"
+
+# Empty workspace to avoid being included in parent workspace
+[workspace]
+
+[dependencies]
+embassy-agb = { path = "../embassy-agb" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", features = ["arch-spin", "executor-thread"] }
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true
