@@ -3,20 +3,15 @@ CLIPPY_ARGUMENTS := "-Dwarnings -Dclippy::all"
 
 podman_command := "podman"
 
-build: build-roms
-
-build-debug:
-    (cd agb && cargo build --no-default-features)
-    (cd agb && cargo build --no-default-features --features=testing)
-    (cd agb && cargo build --examples --tests)
-
-    (cd tracker/agb-tracker && cargo build --examples --tests)
-
-build-release:
-    (cd agb && cargo build --examples --tests --release)
-
 clippy:
     just _all-crates _clippy
+
+configure:
+    @[ -e build.ninja ] || just _run-tool configure
+
+build: configure
+    ninja build_agb
+    just build-roms
 
 test:
     # test the workspace
@@ -69,20 +64,10 @@ run-game game:
 run-game-debug game:
     (cd "examples/{{game}}" && cargo run)
 
-ci: build-debug clippy fmt-check spellcheck test miri build-release test-release build-roms build-book check-docs
+ci: build clippy fmt-check spellcheck test miri test-release build-book check-docs
 
-build-roms:
-    just _build-rom "examples/the-purple-night" "PURPLENIGHT"
-    just _build-rom "examples/the-hat-chooses-the-wizard" "HATWIZARD"
-    just _build-rom "examples/hyperspace-roll" "HYPERSPACE"
-    just _build-rom "examples/the-dungeon-puzzlers-lament" "DUNGLAMENT"
-    just _build-rom "examples/amplitude" "AMPLITUDE"
-    just _build-rom "examples/combo" "AGBGAMES"
-
-    just _build-rom "book/games/pong" "PONG"
-    just _build-rom "book/games/platform" "PLATFORM"
-
-    (cd examples/target && zip examples.zip examples/*.gba)
+build-roms: configure
+    @ninja $PWD/target/examples.zip
 
 build-book:
     (cd book && mdbook build)
@@ -123,7 +108,7 @@ generate-screenshot *args:
     "$CARGO_TARGET_DIR/release/screenshot-generator" {{args}}
 
 
-build-site-examples: build-release
+build-site-examples: build
     #!/usr/bin/env bash
     set -euxo pipefail
 
@@ -173,26 +158,6 @@ _build-site-ci: unpackage-site-dependencies _build-site-app
 _run-tool +tool:
     (cd tools && cargo build)
     "$CARGO_TARGET_DIR/debug/tools" {{tool}}
-
-_build-rom folder name:
-    #!/usr/bin/env bash
-    set -euxo pipefail
-
-    GAME_FOLDER="{{folder}}"
-    INTERNAL_NAME="{{name}}"
-
-    GAME_NAME="$(basename "$GAME_FOLDER")"
-
-    TARGET_FOLDER="${CARGO_TARGET_DIR:-$GAME_FOLDER/target}"
-    GBA_FILE="$TARGET_FOLDER/$GAME_NAME.gba"
-
-    (cd "$GAME_FOLDER" && cargo build --release --target thumbv4t-none-eabi && cargo clippy --release --target thumbv4t-none-eabi -- {{CLIPPY_ARGUMENTS}} && cargo fmt --all -- --check)
-
-    mkdir -p examples/target/examples
-
-    just gbafix --title "${INTERNAL_NAME:0:12}" --gamecode "${INTERNAL_NAME:0:4}" --makercode GC "$TARGET_FOLDER/thumbv4t-none-eabi/release/$GAME_NAME" -o "$GBA_FILE"
-
-    cp -v "$GBA_FILE" "examples/target/examples/$GAME_NAME.gba"
 
 gbafix *args:
     (cd agb-gbafix && cargo build --release && cd "{{invocation_directory()}}" && "$CARGO_TARGET_DIR/release/agb-gbafix" {{args}})
