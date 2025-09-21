@@ -13,7 +13,7 @@
 use embassy_agb::{Duration, Spawner, Ticker};
 
 // Async task that counts at a faster rate
-#[embassy_agb::task]
+#[embassy_executor::task]
 async fn fast_counter_task() {
     let mut counter = 0u32;
     let mut ticker = Ticker::every(Duration::from_millis(200));

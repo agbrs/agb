@@ -49,7 +49,7 @@ async fn main(spawner: Spawner) {
     }
 }
 
-#[embassy_agb::task]
+#[embassy_executor::task]
 async fn display_task(mut display: embassy_agb::display::AsyncDisplay<'_>) {
     loop {
         // Wait for VBlank and render frame
@@ -58,7 +58,7 @@ async fn display_task(mut display: embassy_agb::display::AsyncDisplay<'_>) {
     }
 }
 
-#[embassy_agb::task] 
+#[embassy_executor::task] 
 async fn audio_task(mut mixer: embassy_agb::sound::AsyncMixer<'_>) {
     mixer.init(agb::sound::mixer::Frequency::Hz32768);
     
