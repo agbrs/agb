@@ -64,10 +64,8 @@ async fn main(spawner: Spawner) -> ! {
     // Spawn the button input task
     spawner.spawn(button_input_task(input).unwrap());
 
-    // Mutable counter in main
-    let mut counter: u8 = 0;
-
     // Main loop: handle counter updates and print current value every 1 second
+    let mut counter: u8 = 0;
     let mut print_ticker = Ticker::every(Duration::from_secs(1));
 
     loop {
@@ -76,11 +74,9 @@ async fn main(spawner: Spawner) -> ! {
         {
             embassy_agb::futures::select::Either::First(action) => match action {
                 CounterAction::Increment => {
-                    let old_value = counter;
                     counter = counter.wrapping_add(1);
                 }
                 CounterAction::Decrement => {
-                    let old_value = counter;
                     counter = counter.wrapping_sub(1);
                 }
             },

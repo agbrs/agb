@@ -20,7 +20,7 @@ async fn fast_counter_task() {
 
     loop {
         ticker.next().await;
-        
+
         embassy_agb::agb::println!("  Task counter: {}", counter);
         counter += 1;
     }
@@ -45,7 +45,7 @@ async fn main(spawner: Spawner) -> ! {
 
     loop {
         ticker.next().await;
-        
+
         embassy_agb::agb::println!("Main counter: {}", main_counter);
         main_counter += 1;
     }
