@@ -132,6 +132,11 @@ impl InitializedGba {
         input::AsyncInput::new()
     }
 
+    /// Get the input peripheral for async operations with custom configuration
+    pub fn input_with_config(&mut self, config: input::InputConfig) -> input::AsyncInput {
+        input::AsyncInput::with_config(config)
+    }
+
     /// Get access to the underlying agb::Gba for compatibility
     pub fn agb(&mut self) -> &mut agb::Gba {
         self.gba

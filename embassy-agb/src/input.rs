@@ -1,18 +1,20 @@
-//! Async input system with per-button interrupt handling
+//! Async input system with configurable timer-based polling
 //!
 //! ## Design Decisions:
 //!
-//! 1. **VBlank-based detection**: Uses VBlank interrupt (60Hz) instead of keypad interrupt
-//!    - Reason: GBA keypad interrupt is level-triggered (fires continuously while pressed)
-//!    - Embassy pattern: Hardware-driven timing with clean edge detection
+//! 1. **Timer-based polling**: Uses Embassy timer instead of VBlank interrupt
+//!    - Reason: Avoids VBlank interrupt conflicts with display system
+//!    - Benefit: Configurable poll rate for different game requirements
+//!    - Default: 60Hz polling (16.67ms) to match VBlank rate
 //!
 //! 2. **Per-button wakers**: Each button has its own AtomicWaker in static array
 //!    - Reason: Only wake futures waiting for specific buttons that changed
 //!    - Embassy pattern: Targeted waking, not broadcast waking
 //!
-//! 3. **16ms max latency**: VBlank at 60Hz provides excellent game input responsiveness
-//!    - Reason: Much simpler than complex keypad interrupt disable/re-enable logic
-//!    - Trade-off: Slight latency for major simplicity and reliability gains
+//! 3. **Configurable latency**: Poll rate can be adjusted from 30Hz to 120Hz
+//!    - Higher rates: Lower latency but more CPU usage
+//!    - Lower rates: Higher latency but better power efficiency
+//!    - Note: Button presses may not register until next poll cycle
 
 use core::future::Future;
 use core::pin::Pin;
@@ -20,8 +22,13 @@ use core::task::{Context, Poll};
 use portable_atomic::Ordering;
 
 use agb::input::{Button, ButtonController, Tri};
-use agb::interrupt::{add_interrupt_handler, Interrupt};
 use embassy_sync::waitqueue::AtomicWaker;
+
+#[cfg(feature = "time")]
+use embassy_time;
+
+#[cfg(feature = "executor")]
+use embassy_executor;
 
 /// Keypad input register (KEYINPUT) at 0x04000130  
 const KEYPAD_INPUT: *mut u16 = 0x04000130 as *mut u16;
@@ -30,11 +37,24 @@ const BUTTON_COUNT: usize = 10;
 /// Per-button wakers - following Embassy's pattern
 static BUTTON_WAKERS: [AtomicWaker; BUTTON_COUNT] = [const { AtomicWaker::new() }; BUTTON_COUNT];
 
-/// Global button state for VBlank monitoring
+/// Global button state for timer-based monitoring
 static GLOBAL_BUTTON_STATE: portable_atomic::AtomicU16 = portable_atomic::AtomicU16::new(0);
 
-/// Whether the VBlank handler is initialized
-static INITIALIZED: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
+/// Whether the input polling task is running
+static POLLING_TASK_RUNNING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
+
+/// Input polling configuration
+#[derive(Debug, Clone, Copy)]
+pub struct InputConfig {
+    /// Polling rate in Hz (30-120, default 60)
+    pub poll_rate: u32,
+}
+
+impl Default for InputConfig {
+    fn default() -> Self {
+        Self { poll_rate: 60 }
+    }
+}
 
 /// Convert Button to array index
 fn button_to_index(button: Button) -> Option<usize> {
@@ -53,27 +73,17 @@ fn button_to_index(button: Button) -> Option<usize> {
     }
 }
 
-/// Initialize the VBlank-based input system
-fn init_input_system() {
-    if INITIALIZED.swap(true, Ordering::SeqCst) {
-        return; // Already initialized
+/// Mark that input polling should be enabled
+fn ensure_input_initialized() {
+    if !POLLING_TASK_RUNNING.swap(true, Ordering::SeqCst) {
+        // Initialize global state on first call
+        let current = !unsafe { KEYPAD_INPUT.read_volatile() };
+        GLOBAL_BUTTON_STATE.store(current, Ordering::SeqCst);
     }
-
-    // Set up VBlank handler for all button change detection
-    let vblank_handler = unsafe {
-        add_interrupt_handler(Interrupt::VBlank, |_| {
-            on_vblank_input_check();
-        })
-    };
-    core::mem::forget(vblank_handler);
-
-    // Initialize global state
-    let current = !unsafe { KEYPAD_INPUT.read_volatile() };
-    GLOBAL_BUTTON_STATE.store(current, Ordering::SeqCst);
 }
 
-/// VBlank handler - detect all button changes at 60Hz
-fn on_vblank_input_check() {
+/// Check for button changes and wake appropriate wakers
+fn poll_input_changes() {
     let current = !unsafe { KEYPAD_INPUT.read_volatile() };
     let previous = GLOBAL_BUTTON_STATE.load(Ordering::SeqCst);
 
@@ -106,6 +116,22 @@ fn on_vblank_input_check() {
     }
 }
 
+/// Background task that polls input at the configured rate
+#[cfg(all(feature = "time", feature = "executor"))]
+#[embassy_executor::task]
+pub async fn input_polling_task(config: InputConfig) {
+    let poll_interval_ms = 1000 / config.poll_rate as u64;
+
+    // Initialize global button state
+    let current = !unsafe { KEYPAD_INPUT.read_volatile() };
+    GLOBAL_BUTTON_STATE.store(current, Ordering::SeqCst);
+
+    loop {
+        poll_input_changes();
+        embassy_time::Timer::after(embassy_time::Duration::from_millis(poll_interval_ms)).await;
+    }
+}
+
 /// Button event types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ButtonEvent {
@@ -125,8 +151,6 @@ struct ButtonEventFuture {
 
 impl ButtonEventFuture {
     fn new(button: Button, waiting_for_press: bool) -> Self {
-        init_input_system();
-
         Self {
             button,
             waiting_for_press,
@@ -181,8 +205,6 @@ struct AnyButtonEventFuture {
 
 impl AnyButtonEventFuture {
     fn new() -> Self {
-        init_input_system();
-
         let current = !unsafe { KEYPAD_INPUT.read_volatile() };
         Self {
             last_state: current,
@@ -249,14 +271,24 @@ impl Future for AnyButtonEventFuture {
 /// Async wrapper for agb input operations
 pub struct AsyncInput {
     controller: ButtonController,
+    _config: InputConfig,
 }
 
 impl AsyncInput {
     pub(crate) fn new() -> Self {
-        init_input_system();
+        Self::with_config(InputConfig::default())
+    }
+
+    pub(crate) fn with_config(config: InputConfig) -> Self {
+        // Clamp poll rate to reasonable bounds
+        let poll_rate = config.poll_rate.clamp(30, 120);
+        let config = InputConfig { poll_rate };
+
+        ensure_input_initialized();
 
         Self {
             controller: ButtonController::new(),
+            _config: config,
         }
     }
 
@@ -280,12 +312,12 @@ impl AsyncInput {
         AnyButtonEventFuture::new().await
     }
 
-    /// Wait for a specific button to be pressed (polling-based, for compatibility)
+    /// Wait for a specific button to be pressed using agb's ButtonController
     pub async fn wait_for_button_press_polling(&mut self, button: Button) -> ButtonEvent {
         ButtonPressFuture::new(&mut self.controller, button).await
     }
 
-    /// Wait for any button to be pressed (polling-based, for compatibility)
+    /// Wait for any button to be pressed using agb's ButtonController
     pub async fn wait_for_any_button_press_polling(&mut self) -> (Button, ButtonEvent) {
         AnyButtonPressFuture::new(&mut self.controller).await
     }
@@ -301,12 +333,12 @@ impl AsyncInput {
         (current & button.bits() as u16) != 0
     }
 
-    /// Check if a button is currently pressed (polling-based, for compatibility)
+    /// Check if a button is currently pressed using agb's ButtonController
     pub fn is_pressed_polling(&self, button: Button) -> bool {
         self.controller.is_pressed(button)
     }
 
-    /// Check if a button was just pressed this frame (polling-based, for compatibility)
+    /// Check if a button was just pressed this frame using agb's ButtonController
     pub fn is_just_pressed_polling(&self, button: Button) -> bool {
         self.controller.is_just_pressed(button)
     }
@@ -322,7 +354,7 @@ impl AsyncInput {
     }
 }
 
-/// Future that waits for a specific button press (polling-based)
+/// Future that waits for a specific button press using agb's ButtonController
 struct ButtonPressFuture<'a> {
     controller: &'a mut ButtonController,
     button: Button,
@@ -363,7 +395,7 @@ impl<'a> Future for ButtonPressFuture<'a> {
     }
 }
 
-/// Future that waits for any button press (polling-based)
+/// Future that waits for any button press using agb's ButtonController
 struct AnyButtonPressFuture<'a> {
     controller: &'a mut ButtonController,
 }

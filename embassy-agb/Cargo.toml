@@ -26,7 +26,7 @@ time-driver-timer1 = ["_time-driver"]
 _time-driver = ["dep:embassy-time-driver", "time", "embassy-time-driver/tick-hz-32_768"]
 
 [dependencies]
-agb = { version = "0.22.5", path = "../agb" }
+agb = { version = "0.22.5", path = "../agb", features = ["embassy"] }
 embassy-agb-macros = { version = "0.1.0", path = "../embassy-agb-macros" }
 
 # Embassy core
@@ -39,7 +39,7 @@ embassy-futures = { git = "https://github.com/embassy-rs/embassy" }
 
 # Utilities
 critical-section = "1.1"
-portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
+portable-atomic = { version = "1.6.0", default-features = false, features = ["critical-section", "fallback"] }
 heapless = { version = "0.8", default-features = false }
 
 [build-dependencies]

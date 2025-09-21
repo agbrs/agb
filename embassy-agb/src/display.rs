@@ -2,9 +2,36 @@ use core::cell::Cell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
+use portable_atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use agb::display::GraphicsDist;
-use agb::interrupt::VBlank;
+use agb::interrupt::{add_interrupt_handler, Interrupt, VBlank};
+use embassy_sync::waitqueue::AtomicWaker;
+
+/// VBlank counter
+static VBLANK_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+/// VBlank waker  
+static VBLANK_WAKER: AtomicWaker = AtomicWaker::new();
+
+/// Whether the VBlank handler is initialized
+static VBLANK_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+/// Initialize VBlank handler
+fn init_embassy_vblank() {
+    if VBLANK_INITIALIZED.swap(true, Ordering::SeqCst) {
+        return; // Already initialized
+    }
+
+    // Set up VBlank interrupt handler
+    let handler = unsafe {
+        add_interrupt_handler(Interrupt::VBlank, |_| {
+            VBLANK_COUNTER.store(VBLANK_COUNTER.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
+            VBLANK_WAKER.wake();
+        })
+    };
+    core::mem::forget(handler);
+}
 
 /// Async wrapper for agb display operations
 pub struct AsyncDisplay<'a> {
@@ -14,6 +41,8 @@ pub struct AsyncDisplay<'a> {
 
 impl<'a> AsyncDisplay<'a> {
     pub(crate) fn new(graphics_dist: &'a mut GraphicsDist) -> Self {
+        init_embassy_vblank();
+
         Self {
             graphics: graphics_dist.get(),
             vblank: VBlank::get(),
@@ -22,7 +51,7 @@ impl<'a> AsyncDisplay<'a> {
 
     /// Wait for the next VBlank interrupt asynchronously
     pub async fn wait_for_vblank(&self) {
-        VBlankFuture::new(&self.vblank).await
+        EmbassyVBlankFuture::new().await
     }
 
     /// Get a frame for rendering, waiting for VBlank if needed
@@ -44,43 +73,39 @@ impl<'a> AsyncDisplay<'a> {
 }
 
 /// Future that completes on the next VBlank
-struct VBlankFuture<'a> {
-    vblank: &'a VBlank,
-    initialized: Cell<bool>,
+struct EmbassyVBlankFuture {
+    last_count: Cell<usize>,
 }
 
-impl<'a> VBlankFuture<'a> {
-    fn new(vblank: &'a VBlank) -> Self {
+impl EmbassyVBlankFuture {
+    fn new() -> Self {
         Self {
-            vblank,
-            initialized: Cell::new(false),
+            last_count: Cell::new(VBLANK_COUNTER.load(Ordering::SeqCst)),
         }
     }
 }
 
-impl<'a> Future for VBlankFuture<'a> {
+impl Future for EmbassyVBlankFuture {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if !self.initialized.get() {
-            // First poll: initialize and check if VBlank already occurred
-            self.initialized.set(true);
+        let current_count = VBLANK_COUNTER.load(Ordering::SeqCst);
+        let last_count = self.last_count.get();
 
-            // Check if VBlank has already occurred since last time
-            if self.vblank.has_vblank_occurred() {
-                return Poll::Ready(());
-            }
-
-            // No VBlank yet, schedule a wake-up and return pending
-            cx.waker().wake_by_ref();
-            Poll::Pending
+        if current_count > last_count {
+            // VBlank occurred since last check
+            self.last_count.set(current_count);
+            Poll::Ready(())
         } else {
-            // Subsequent polls: check for VBlank non-blocking
-            if self.vblank.has_vblank_occurred() {
+            // Register waker for next VBlank
+            VBLANK_WAKER.register(cx.waker());
+
+            // Check again in case VBlank occurred between the first check and waker registration
+            let current_count = VBLANK_COUNTER.load(Ordering::SeqCst);
+            if current_count > last_count {
+                self.last_count.set(current_count);
                 Poll::Ready(())
             } else {
-                // Still no VBlank, schedule another wake-up
-                cx.waker().wake_by_ref();
                 Poll::Pending
             }
         }

@@ -391,14 +391,17 @@ impl VBlank {
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
-        if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
-            // safety: we don't allocate in the interrupt
-            let handler = unsafe {
-                add_interrupt_handler(Interrupt::VBlank, |_| {
-                    NUM_VBLANKS.store(NUM_VBLANKS.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
-                })
-            };
-            core::mem::forget(handler);
+        #[cfg(not(feature = "embassy"))]
+        {
+            if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
+                // safety: we don't allocate in the interrupt
+                let handler = unsafe {
+                    add_interrupt_handler(Interrupt::VBlank, |_| {
+                        NUM_VBLANKS.store(NUM_VBLANKS.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
+                    })
+                };
+                core::mem::forget(handler);
+            }
         }
 
         VBlank {
@@ -407,6 +410,7 @@ impl VBlank {
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
+    #[cfg(not(feature = "embassy"))]
     pub fn wait_for_vblank(&self) {
         let last_waited_number = self.last_waited_number.get();
         self.last_waited_number
@@ -423,6 +427,7 @@ impl VBlank {
     ///
     /// This can be used to implement async VBlank waiting by comparing
     /// counter values between polls.
+    #[cfg(not(feature = "embassy"))]
     pub fn vblank_counter(&self) -> usize {
         NUM_VBLANKS.load(Ordering::SeqCst)
     }
@@ -431,6 +436,7 @@ impl VBlank {
     ///
     /// Returns true if at least one VBlank has occurred since the last
     /// call to this method or wait_for_vblank().
+    #[cfg(not(feature = "embassy"))]
     pub fn has_vblank_occurred(&self) -> bool {
         let current_count = NUM_VBLANKS.load(Ordering::SeqCst);
         let last_count = self.last_waited_number.get();
