@@ -8,9 +8,14 @@
 //!
 //! System architecture:
 //! ```text
-//! Embassy Timer → [Input Polling Task] → [Button Wakers] → [Input Future]
-//!       ↓                                                        ↓
-//! VBlank Interrupt → [Display Handler] → [VBlank Future] → [Display Future]
+//! Embassy Timer → [Input Polling Task] → [Button Wakers] → [Input Task]
+//!                                                               ↓
+//!                                                        [MOVEMENT_SIGNAL]
+//!                                                            (shared)
+//!                                                               ↑
+//! VBlank Interrupt → [Display Loop] → [try_take()] ─────────────┘
+//!                         ↓
+//!             [Update Position & Render]
 //! ```
 //!
 //! Controls: D-pad moves the sprite, clamped to screen edges
