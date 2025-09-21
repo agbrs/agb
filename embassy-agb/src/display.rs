@@ -1,3 +1,4 @@
+use core::cell::Cell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -30,6 +31,12 @@ impl<'a> AsyncDisplay<'a> {
         self.graphics.frame()
     }
 
+    /// Get a frame for rendering without waiting for VBlank
+    /// Use this when you've already called wait_for_vblank() separately
+    pub fn frame_no_wait(&mut self) -> agb::display::GraphicsFrame<'_> {
+        self.graphics.frame()
+    }
+
     /// Get access to the underlying graphics for synchronous operations
     pub fn graphics(&mut self) -> &mut agb::display::Graphics<'a> {
         &mut self.graphics
@@ -39,14 +46,14 @@ impl<'a> AsyncDisplay<'a> {
 /// Future that completes on the next VBlank
 struct VBlankFuture<'a> {
     vblank: &'a VBlank,
-    started: bool,
+    initialized: Cell<bool>,
 }
 
 impl<'a> VBlankFuture<'a> {
     fn new(vblank: &'a VBlank) -> Self {
         Self {
             vblank,
-            started: false,
+            initialized: Cell::new(false),
         }
     }
 }
@@ -54,16 +61,28 @@ impl<'a> VBlankFuture<'a> {
 impl<'a> Future for VBlankFuture<'a> {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if !self.started {
-            self.started = true;
-            // Use agb's VBlank wait - this will use the interrupt system
-            self.vblank.wait_for_vblank();
-            Poll::Ready(())
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if !self.initialized.get() {
+            // First poll: initialize and check if VBlank already occurred
+            self.initialized.set(true);
+
+            // Check if VBlank has already occurred since last time
+            if self.vblank.has_vblank_occurred() {
+                return Poll::Ready(());
+            }
+
+            // No VBlank yet, schedule a wake-up and return pending
+            cx.waker().wake_by_ref();
+            Poll::Pending
         } else {
-            // For subsequent polls, immediately complete
-            // This ensures we only wait once per future
-            Poll::Ready(())
+            // Subsequent polls: check for VBlank non-blocking
+            if self.vblank.has_vblank_occurred() {
+                Poll::Ready(())
+            } else {
+                // Still no VBlank, schedule another wake-up
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
         }
     }
 }
