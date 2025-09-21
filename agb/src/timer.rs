@@ -84,7 +84,7 @@ impl Timers<'_> {
 
 impl AllTimers<'_> {
     /// Create access to all timers
-    /// 
+    ///
     /// # Safety
     /// This allows access to Timer0 and Timer1 which are used by system components.
     /// Using these timers may interfere with sound or embassy-agb functionality.
@@ -193,7 +193,7 @@ impl TimerController {
     }
 
     /// Gets all timers including system ones (Timer0, Timer1)
-    /// 
+    ///
     /// # Safety
     /// Timer0 and Timer1 are used by system components (sound, embassy-agb).
     /// Using them may interfere with system functionality.
