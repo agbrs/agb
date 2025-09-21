@@ -11,18 +11,45 @@ use embassy_time_queue_utils::Queue;
 use agb::interrupt::{add_interrupt_handler, Interrupt};
 use agb::timer::{Divider, Timer};
 
-/// Calculate timestamp from period and counter, handling race conditions
+/// Default timer interrupt frequency - provides ~1ms granularity
+const DEFAULT_TIMER_OVERFLOW_AMOUNT: u16 = 64;
+
+/// Calculate embassy timestamp from timer periods and current counter value
 ///
-/// GBA-specific approach:
-/// - Timer runs at 65.536kHz, overflows every 32768 counts (0.5 seconds)
-/// - Each interrupt increments period, representing 16384 embassy ticks
-/// - Counter value represents additional ticks at 2:1 ratio (65.536kHz -> 32.768kHz)
-/// - Use similar XOR pattern as other Embassy drivers for race condition handling
-fn calc_now(period: u32, counter: u16) -> u64 {
-    // Each period represents 16384 ticks (0.5 seconds at 32.768kHz)
-    // Counter is scaled down by 2 to convert from 65.536kHz to 32.768kHz
-    // Simple approach: period increments every 0.5s, counter gives sub-period precision
-    ((period as u64) << 14) + ((counter as u64) >> 1)
+/// The GBA timer runs at 65.536kHz and overflows every timer_overflow_amount counts.
+/// Embassy expects 32.768kHz ticks, so we divide hardware ticks by 2.
+fn calc_now(
+    period: u32,
+    counter: u16,
+    initial_timer_value: u32,
+    timer_overflow_amount: u32,
+) -> u64 {
+    let overflow_start = 65536 - timer_overflow_amount;
+
+    let hardware_ticks_elapsed = if period == 0 {
+        // No overflows yet - calculate ticks from initial timer value
+        if counter >= initial_timer_value as u16 {
+            (counter - initial_timer_value as u16) as u64
+        } else {
+            // Counter wrapped around
+            ((65536 - initial_timer_value) + counter as u32) as u64
+        }
+    } else {
+        // Calculate ticks from completed periods plus current period progress
+        let ticks_from_completed_periods = period as u64 * timer_overflow_amount as u64;
+
+        let ticks_in_current_period = if counter >= overflow_start as u16 {
+            (counter - overflow_start as u16) as u64
+        } else {
+            // Timer wrapped from 65535 to 0
+            ((65536 - overflow_start) + counter as u32) as u64
+        };
+
+        ticks_from_completed_periods + ticks_in_current_period
+    };
+
+    // Convert 65.536kHz hardware ticks to 32.768kHz embassy ticks
+    hardware_ticks_elapsed >> 1
 }
 
 struct AlarmState {
@@ -39,23 +66,20 @@ impl AlarmState {
     }
 }
 
-/// GBA Time Driver using hardware timers
-///
-/// Uses GBA Timer0 to provide embassy-time support.
-/// The timer runs at 32.768kHz to match embassy's expected tick rate.
+/// GBA Time Driver using Timer0 for embassy-time support
 struct GbaTimeDriver {
-    /// Number of 2^15 periods elapsed since boot
     period: AtomicU32,
-    /// Alarm state for scheduled wakeups
+    initial_timer_value: AtomicU32,
+    timer_overflow_amount: AtomicU32,
     alarms: Mutex<CriticalSectionRawMutex, AlarmState>,
-    /// Timer queue for scheduled wakeups
     queue: Mutex<CriticalSectionRawMutex, RefCell<Queue>>,
-    /// Hardware timer (Timer0)
     timer: Mutex<CriticalSectionRawMutex, RefCell<Option<Timer>>>,
 }
 
 embassy_time_driver::time_driver_impl!(static DRIVER: GbaTimeDriver = GbaTimeDriver {
     period: AtomicU32::new(0),
+    initial_timer_value: AtomicU32::new(0),
+    timer_overflow_amount: AtomicU32::new(DEFAULT_TIMER_OVERFLOW_AMOUNT as u32),
     alarms: Mutex::const_new(CriticalSectionRawMutex::new(), AlarmState::new()),
     queue: Mutex::new(RefCell::new(Queue::new())),
     timer: Mutex::new(RefCell::new(None)),
@@ -63,37 +87,48 @@ embassy_time_driver::time_driver_impl!(static DRIVER: GbaTimeDriver = GbaTimeDri
 
 impl GbaTimeDriver {
     fn init(&'static self) {
-        // Set up Timer0 for embassy time support
         self.init_timer();
+    }
+
+    /// Configure timer interrupt frequency
+    ///
+    /// At 65.536kHz timer frequency:
+    /// - 4 counts = ~61μs interrupts, 2 embassy ticks per period (highest precision)
+    /// - 16 counts = ~244μs interrupts, 8 embassy ticks per period
+    /// - 64 counts = ~977μs interrupts, 32 embassy ticks per period (default)
+    /// - 256 counts = ~3.9ms interrupts, 128 embassy ticks per period
+    pub fn set_timer_frequency(&self, overflow_amount: u16) {
+        self.timer_overflow_amount
+            .store(overflow_amount as u32, Ordering::Relaxed);
     }
 
     fn init_timer(&self) {
         critical_section::with(|cs| {
             let mut timer_ref = self.timer.borrow(cs).borrow_mut();
 
-            // Create Timer0 for time tracking
-            // Note: We use Timer0 which may conflict with sound mixer if both are used
+            // Configure Timer0 for embassy timing
+            // WARNING: Timer0 may conflict with sound mixer if both are used
             let all_timers = unsafe { agb::timer::AllTimers::new() };
             let mut timer = all_timers.timer0;
 
-            // Configure timer for Embassy's 32.768kHz tick rate
-            // GBA: Use 65.536kHz (Divider256) and overflow every 32768 counts
-            // This gives us interrupts every 0.5 seconds (32768/65536)
-            // We'll increment period on each interrupt to maintain 2^15 tick periods
+            let overflow_amount = self.timer_overflow_amount.load(Ordering::Relaxed) as u16;
             timer
                 .set_divider(Divider::Divider256) // 65.536kHz
-                .set_overflow_amount(32768) // Interrupt every 0.5 seconds
+                .set_overflow_amount(overflow_amount)
                 .set_interrupt(true)
                 .set_enabled(true);
 
-            // Set up interrupt handler for timer overflow
+            // Capture initial timer value for precise timing calculations
+            let initial_value = timer.value();
+            self.initial_timer_value
+                .store(initial_value as u32, Ordering::Relaxed);
+
+            // Install interrupt handler
             let handler = unsafe {
                 add_interrupt_handler(Interrupt::Timer0, |_| {
                     DRIVER.on_interrupt();
                 })
             };
-
-            // Keep the handler alive by leaking it
             core::mem::forget(handler);
 
             *timer_ref = Some(timer);
@@ -101,12 +136,7 @@ impl GbaTimeDriver {
     }
 
     fn on_interrupt(&self) {
-        // Timer interrupts every 0.5 seconds (32768 counts at 65.536kHz)
-        // Each period increment represents 2^14 = 16384 embassy ticks
-        // This gives us the target rate: 2 interrupts/second * 16384 ticks = 32768 ticks/second
         self.period.fetch_add(1, Ordering::Relaxed);
-
-        // Process any expired timers
         critical_section::with(|cs| {
             self.trigger_alarm(cs);
         });
@@ -116,7 +146,6 @@ impl GbaTimeDriver {
         let alarm = &self.alarms.borrow(cs);
         alarm.timestamp.set(u64::MAX);
 
-        // Process expired timers and get next expiration
         let mut next = self
             .queue
             .borrow(cs)
@@ -137,12 +166,9 @@ impl GbaTimeDriver {
 
         let now = self.now();
         if timestamp <= now {
-            // Alarm has already passed
             alarm.timestamp.set(u64::MAX);
             false
         } else {
-            // Alarm is in the future - for GBA we rely on periodic timer interrupts
-            // to check for expired alarms rather than precise timing
             true
         }
     }
@@ -153,7 +179,6 @@ impl GbaTimeDriver {
             if let Some(timer) = timer_ref.as_ref() {
                 timer.value()
             } else {
-                // Fallback if timer not initialized yet
                 0
             }
         })
@@ -162,11 +187,12 @@ impl GbaTimeDriver {
 
 impl Driver for GbaTimeDriver {
     fn now(&self) -> u64 {
-        // Must read period before counter to avoid race conditions
         let period = self.period.load(Ordering::Relaxed);
+        let initial_timer_value = self.initial_timer_value.load(Ordering::Relaxed);
+        let timer_overflow_amount = self.timer_overflow_amount.load(Ordering::Relaxed);
         compiler_fence(Ordering::Acquire);
         let counter = self.read_timer_value();
-        calc_now(period, counter)
+        calc_now(period, counter, initial_timer_value, timer_overflow_amount)
     }
 
     fn schedule_wake(&self, at: u64, waker: &core::task::Waker) {
@@ -185,4 +211,12 @@ impl Driver for GbaTimeDriver {
 /// Initialize the time driver
 pub(crate) fn init() {
     DRIVER.init();
+}
+
+/// Configure the timer interrupt frequency
+///
+/// This must be called before using any embassy-time functionality.
+/// The configuration is typically set through the Config struct in init().
+pub(crate) fn configure_timer_frequency(overflow_amount: u16) {
+    DRIVER.set_timer_frequency(overflow_amount);
 }

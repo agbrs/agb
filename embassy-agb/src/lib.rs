@@ -62,7 +62,7 @@ pub use embassy_sync as sync;
 // Re-export agb for convenience
 pub use agb;
 
-mod config;
+pub mod config;
 pub use config::*;
 
 #[cfg(feature = "_time-driver")]
@@ -94,6 +94,10 @@ pub mod _internal;
 pub fn init(config: Config) -> InitializedGba {
     // Get the agb instance from internal storage (set by macro)
     let gba = unsafe { _internal::get_agb_instance() };
+
+    // Configure the time driver with user settings
+    #[cfg(feature = "_time-driver")]
+    time_driver::configure_timer_frequency(config.timer.overflow_amount);
 
     // Take peripherals
     let peripherals = Peripherals::take();

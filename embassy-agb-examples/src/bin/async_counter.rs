@@ -1,42 +1,43 @@
 //! Async counter example
 //!
-//! This demonstrates basic async timing by displaying a counter that increments
-//! every second using embassy-time. Shows the simplest possible async agb application.
+//! This demonstrates precise async timing by displaying a counter that increments
+//! every 10ms using embassy-time. Shows ~1ms timing granularity with the default
+//! 64-count timer configuration (~977μs interrupts).
 
 #![no_std]
 #![no_main]
 
-use embassy_agb::{Duration, Instant, Spawner, Ticker};
+use embassy_agb::{config::Config, Duration, Instant, Spawner, Ticker};
 
 #[embassy_agb::main]
 async fn main(_spawner: Spawner) -> ! {
-    let mut gba = embassy_agb::init(Default::default());
-    let mut display = gba.display();
+    // Configure timer for ~1ms granularity (default is 64 counts)
+    // For higher precision, use smaller values like 16 (~244μs) or 4 (~61μs)
+    let config = Config::default(); // Uses 64 counts = ~977μs interrupts
+    let mut gba = embassy_agb::init(config);
+    let _display = gba.display();
 
     let start_time = Instant::now();
     let mut counter = 0u32;
-    let mut ticker = Ticker::every(Duration::from_secs(1));
+    let mut ticker = Ticker::every(Duration::from_millis(100));
 
     loop {
-        // Wait for VBlank and get a frame
-        let _frame = display.frame().await;
+        // Wait for next tick - this maintains precise 100ms intervals
+        ticker.next().await;
 
         // Calculate time since boot
         let elapsed = Instant::now() - start_time;
-        let elapsed_secs = elapsed.as_secs();
-        let elapsed_millis = elapsed.as_millis() % 1000;
+        let elapsed_millis = elapsed.as_millis();
+        let elapsed_ticks = elapsed.as_ticks();
 
-        // Display counter and time since boot
+        // Display counter and time since boot - showing millisecond precision
         embassy_agb::agb::println!(
-            "Counter: {} | Boot time: {}.{:03}s",
+            "Counter: {} | Elapsed: {}ms | Ticks: {}",
             counter,
-            elapsed_secs,
-            elapsed_millis
+            elapsed_millis,
+            elapsed_ticks
         );
 
         counter += 1;
-
-        // Wait for next tick - this maintains precise 1-second intervals
-        ticker.next().await;
     }
 }
