@@ -42,7 +42,7 @@ embassy-futures = { git = "https://github.com/embassy-rs/embassy" }
 
 # Utilities
 critical-section = "1.1"
-portable-atomic = { version = "1.6.0", default-features = false, features = ["critical-section", "fallback"] }
+portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 heapless = { version = "0.8", default-features = false }
 
 [build-dependencies]
