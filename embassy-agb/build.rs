@@ -29,48 +29,70 @@ fn main() {
     // Define GBA peripherals as singletons
     g.extend(quote! {
         /// GBA peripheral singletons
+        #[allow(unused_imports)]
         pub mod peripherals {
             use super::*;
 
+            /// Display peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct DISPLAY { _private: () }
             impl DISPLAY {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Mixer peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct MIXER { _private: () }
             impl MIXER {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Input peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct INPUT { _private: () }
             impl INPUT {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Timer0 peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct TIMER0 { _private: () }
             impl TIMER0 {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Timer1 peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct TIMER1 { _private: () }
             impl TIMER1 {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Timer2 peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct TIMER2 { _private: () }
             impl TIMER2 {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
 
+            /// Timer3 peripheral singleton
             #[derive(Debug, Copy, Clone)]
             pub struct TIMER3 { _private: () }
             impl TIMER3 {
+                /// # Safety
+                /// This function should only be called once to obtain the peripheral singleton
                 pub unsafe fn steal() -> Self { Self { _private: () } }
             }
         }
@@ -78,12 +100,19 @@ fn main() {
         /// GBA Peripherals struct
         #[allow(non_snake_case)]
         pub struct Peripherals {
+            /// Display peripheral
             pub DISPLAY: peripherals::DISPLAY,
+            /// Mixer peripheral
             pub MIXER: peripherals::MIXER,
+            /// Input peripheral
             pub INPUT: peripherals::INPUT,
+            /// Timer0 peripheral
             pub TIMER0: peripherals::TIMER0,
+            /// Timer1 peripheral
             pub TIMER1: peripherals::TIMER1,
+            /// Timer2 peripheral
             pub TIMER2: peripherals::TIMER2,
+            /// Timer3 peripheral
             pub TIMER3: peripherals::TIMER3,
         }
 

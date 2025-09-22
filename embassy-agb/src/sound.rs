@@ -4,6 +4,16 @@ use core::task::{Context, Poll};
 
 use agb::sound::mixer::{Frequency, MixerController, SoundChannel, SoundData};
 
+/// Error type for sound operations
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SoundError;
+
+impl core::fmt::Display for SoundError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Sound operation failed")
+    }
+}
+
 /// Async wrapper for agb sound operations
 pub struct AsyncMixer<'a> {
     mixer: agb::sound::mixer::Mixer<'a>,
@@ -27,8 +37,8 @@ impl<'a> AsyncMixer<'a> {
     pub fn play_sound(
         &mut self,
         channel: SoundChannel,
-    ) -> Result<agb::sound::mixer::ChannelId, ()> {
-        self.mixer.play_sound(channel).ok_or(())
+    ) -> Result<agb::sound::mixer::ChannelId, SoundError> {
+        self.mixer.play_sound(channel).ok_or(SoundError)
     }
 
     /// Get a reference to a playing channel
@@ -90,7 +100,7 @@ impl AsyncSoundChannel {
     pub async fn play_on(
         &self,
         mixer: &mut AsyncMixer<'_>,
-    ) -> Result<agb::sound::mixer::ChannelId, ()> {
+    ) -> Result<agb::sound::mixer::ChannelId, SoundError> {
         let channel = SoundChannel::new(*self.sound_data);
         mixer.play_sound(channel)
     }

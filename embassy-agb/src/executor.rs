@@ -1,12 +1,18 @@
 use core::marker::PhantomData;
 
-use embassy_executor::raw;
 pub use embassy_executor::Spawner;
+use embassy_executor::raw;
 
 /// Embassy executor for GBA using spin-based polling
 pub struct Executor {
     inner: raw::Executor,
     not_send: PhantomData<*mut ()>,
+}
+
+impl Default for Executor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Executor {

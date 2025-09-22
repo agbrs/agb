@@ -5,7 +5,7 @@ use core::task::{Context, Poll};
 use portable_atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use agb::display::GraphicsDist;
-use agb::interrupt::{add_interrupt_handler, Interrupt, VBlank};
+use agb::interrupt::{Interrupt, VBlank, add_interrupt_handler};
 use embassy_sync::waitqueue::AtomicWaker;
 
 /// VBlank counter
@@ -36,6 +36,7 @@ fn init_embassy_vblank() {
 /// Async wrapper for agb display operations
 pub struct AsyncDisplay<'a> {
     graphics: agb::display::Graphics<'a>,
+    #[allow(dead_code)]
     vblank: VBlank,
 }
 

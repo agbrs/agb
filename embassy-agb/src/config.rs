@@ -1,16 +1,8 @@
 /// Configuration for embassy-agb initialization
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Config {
     /// Timer configuration for the time driver
     pub timer: TimerConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            timer: TimerConfig::default(),
-        }
-    }
 }
 
 /// Timer configuration for embassy time driver

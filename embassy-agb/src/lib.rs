@@ -1,4 +1,15 @@
 #![no_std]
+// This appears to be needed for testing to work
+#![cfg_attr(any(test, feature = "testing"), no_main)]
+#![cfg_attr(any(test, feature = "testing"), feature(custom_test_frameworks))]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    test_runner(agb::test_runner::test_runner)
+)]
+#![cfg_attr(
+    any(test, feature = "testing"),
+    reexport_test_harness_main = "test_main"
+)]
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
@@ -62,6 +73,7 @@ pub use embassy_sync as sync;
 // Re-export agb for convenience
 pub use agb;
 
+/// Configuration types for embassy-agb
 pub mod config;
 pub use config::*;
 
@@ -73,8 +85,10 @@ mod executor;
 #[cfg(feature = "executor")]
 pub use executor::*;
 
+/// Async display utilities
 pub mod display;
 pub mod input;
+/// Async sound utilities
 pub mod sound;
 
 /// Internal utilities (do not use directly)
@@ -112,13 +126,14 @@ pub fn init(config: Config) -> InitializedGba {
 /// The initialized GBA with embassy integration
 pub struct InitializedGba {
     gba: &'static mut agb::Gba,
+    #[allow(dead_code)]
     peripherals: Peripherals,
     _config: Config,
 }
 
 impl InitializedGba {
     /// Get the display peripheral for async operations
-    pub fn display(&mut self) -> display::AsyncDisplay {
+    pub fn display(&mut self) -> display::AsyncDisplay<'_> {
         display::AsyncDisplay::new(&mut self.gba.graphics)
     }
 
