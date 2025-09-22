@@ -391,6 +391,7 @@ impl VBlank {
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
+        // In embassy mode, VBlank interrupts are managed by embassy-agb's async runtime
         #[cfg(not(feature = "embassy"))]
         {
             if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
@@ -410,6 +411,8 @@ impl VBlank {
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
+    /// 
+    /// Not available in embassy mode - use embassy-agb's async wait_for_vblank instead.
     #[cfg(not(feature = "embassy"))]
     pub fn wait_for_vblank(&self) {
         let last_waited_number = self.last_waited_number.get();
