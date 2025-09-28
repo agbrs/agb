@@ -55,11 +55,14 @@ async fn main(spawner: Spawner) -> ! {
     let mut gba = embassy_agb::init(Default::default());
     let _display = gba.display();
 
+    // Enable automatic input polling at 60Hz
+    embassy_agb::enable_input_polling_60hz(&spawner);
+    
     let input = gba.input();
 
     embassy_agb::agb::println!("Button Counter Example");
     embassy_agb::agb::println!("A/↑/→: increment, B/↓/←: decrement");
-    embassy_agb::agb::println!("");
+    embassy_agb::agb::println!("(Input polling enabled at 60Hz)");
 
     // Spawn the button input task
     spawner.spawn(button_input_task(input).unwrap());

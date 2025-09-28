@@ -1,20 +1,18 @@
 #![no_std]
 #![no_main]
 
-use embassy_agb::{input::{ButtonEvent, InputConfig}, Spawner};
+use embassy_agb::{input::ButtonEvent, Spawner};
 
 #[embassy_agb::main]
 async fn main(spawner: Spawner) -> ! {
     let mut gba = embassy_agb::init(Default::default());
+    
+    // Enable automatic input polling at 60Hz
+    embassy_agb::enable_input_polling_60hz(&spawner);
+    
     let mut input = gba.input();
 
-    // Configure input polling at 60Hz (matches VBlank rate)
-    let input_config = InputConfig { poll_rate: 60 };
-
-    // Spawn the input polling task
-    spawner.spawn(embassy_agb::input::input_polling_task(input_config).unwrap());
-
-    embassy_agb::agb::println!("Press any button!");
+    embassy_agb::agb::println!("Press any button! (Input polling enabled at 60Hz)");
 
     loop {
         let (button, event) = input.wait_for_any_button_press().await;
