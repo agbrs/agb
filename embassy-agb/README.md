@@ -6,7 +6,7 @@ This crate provides async/await support for Game Boy Advance development using t
 
 - **Async/await support**: Write GBA games using modern async Rust
 - **Embassy executor integration**: Leverage embassy's powerful task scheduling
-- **Time driver**: Precise timing using GBA's hardware timers
+- **Configurable time driver**: Precise timing using any of GBA's 4 hardware timers
 - **Async APIs**: Async wrappers for display, input, and sound operations
 - **Full agb compatibility**: Works alongside existing agb code
 
@@ -17,7 +17,20 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 embassy-agb = { path = "path/to/embassy-agb" }
+# Or to use a specific timer (Timer2 is default):
+# embassy-agb = { path = "path/to/embassy-agb", default-features = false, features = ["executor", "time-driver-timer0"] }
 ```
+
+### Timer Selection
+
+Embassy-agb supports using any of the GBA's 4 hardware timers for the time driver. Choose exactly one:
+
+- `time-driver-timer0` - Timer0 (used by sound system)
+- `time-driver-timer1` - Timer1 (used by sound system)  
+- `time-driver-timer2` - Timer2 (default, available for general use)
+- `time-driver-timer3` - Timer3 (available for general use)
+
+**Note**: Timer0 and Timer1 are also used by agb's sound system. Using Timer2 or Timer3 avoids potential conflicts.
 
 Create an async GBA application:
 
@@ -74,7 +87,7 @@ async fn audio_task(mut mixer: embassy_agb::sound::AsyncMixer<'_>) {
 Embassy-agb integrates the embassy async executor with agb's hardware abstraction:
 
 - **Executor**: Uses embassy's `arch-spin` executor optimized for the GBA's ARM7TDMI processor
-- **Time Driver**: Implements embassy's time driver interface using GBA Timer0/Timer1
+- **Time Driver**: Implements embassy's time driver interface using any of GBA's 4 timers (configurable via feature flags)
 - **Async APIs**: Provides async wrappers around agb's display, input, and sound systems
 - **Task Management**: Supports spawning multiple concurrent tasks for different game systems
 

@@ -8,7 +8,7 @@ repository = "https://github.com/agbrs/agb"
 categories = ["embedded", "no-std", "asynchronous", "game-engines"]
 
 [features]
-default = ["executor", "time-driver-timer0"]
+default = ["executor", "time-driver-timer2"]
 
 ## Enable embassy executor integration
 executor = ["dep:embassy-executor", "embassy-executor/arch-spin", "embassy-executor/executor-thread"]
@@ -21,6 +21,12 @@ time-driver-timer0 = ["_time-driver"]
 
 ## Use Timer1 as the time driver  
 time-driver-timer1 = ["_time-driver"]
+
+## Use Timer2 as the time driver
+time-driver-timer2 = ["_time-driver"]
+
+## Use Timer3 as the time driver
+time-driver-timer3 = ["_time-driver"]
 
 ## Testing support
 testing = []

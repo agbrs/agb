@@ -24,7 +24,7 @@ pub struct TimerConfig {
 impl Default for TimerConfig {
     fn default() -> Self {
         Self {
-            timer_number: TimerNumber::Timer0,
+            timer_number: TimerNumber::Timer2,
             overflow_amount: 64, // ~1ms granularity
         }
     }
@@ -33,8 +33,12 @@ impl Default for TimerConfig {
 /// Available timers for the time driver
 #[derive(Debug, Clone, Copy)]
 pub enum TimerNumber {
-    /// Timer 0 (recommended for time driver)
+    /// Timer 0 (used by sound system)
     Timer0,
-    /// Timer 1
+    /// Timer 1 (used by sound system)
     Timer1,
+    /// Timer 2 (default, available for general use)
+    Timer2,
+    /// Timer 3 (available for general use)
+    Timer3,
 }

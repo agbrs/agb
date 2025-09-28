@@ -9,12 +9,18 @@ fn main() {
     // Set up basic configs for GBA target
     println!("cargo:rustc-check-cfg=cfg(time_driver_timer0)");
     println!("cargo:rustc-check-cfg=cfg(time_driver_timer1)");
+    println!("cargo:rustc-check-cfg=cfg(time_driver_timer2)");
+    println!("cargo:rustc-check-cfg=cfg(time_driver_timer3)");
 
     // Determine which timer to use for time driver
     let time_driver = if env::var("CARGO_FEATURE_TIME_DRIVER_TIMER0").is_ok() {
         "timer0"
     } else if env::var("CARGO_FEATURE_TIME_DRIVER_TIMER1").is_ok() {
         "timer1"
+    } else if env::var("CARGO_FEATURE_TIME_DRIVER_TIMER2").is_ok() {
+        "timer2"
+    } else if env::var("CARGO_FEATURE_TIME_DRIVER_TIMER3").is_ok() {
+        "timer3"
     } else {
         ""
     };

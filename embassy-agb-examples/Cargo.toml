@@ -7,7 +7,7 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-embassy-agb = { path = "../embassy-agb" }
+embassy-agb = { path = "../embassy-agb", features = ["executor", "time", "time-driver-timer2"] }
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", features = ["arch-spin", "executor-thread"] }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 

@@ -11,6 +11,64 @@ use embassy_time_queue_utils::Queue;
 use agb::interrupt::{Interrupt, add_interrupt_handler};
 use agb::timer::{Divider, Timer};
 
+/// Compile-time timer selection based on feature flags
+const TIMER_NUMBER: u16 = if cfg!(feature = "time-driver-timer0") {
+    0
+} else if cfg!(feature = "time-driver-timer1") {
+    1
+} else if cfg!(feature = "time-driver-timer2") {
+    2
+} else if cfg!(feature = "time-driver-timer3") {
+    3
+} else {
+    // This will be caught by the compile-time check below
+    0
+};
+
+/// Compile-time check to ensure exactly one timer is selected
+const _: () = {
+    let timer_count =
+        0 + if cfg!(feature = "time-driver-timer0") {
+            1
+        } else {
+            0
+        } + if cfg!(feature = "time-driver-timer1") {
+            1
+        } else {
+            0
+        } + if cfg!(feature = "time-driver-timer2") {
+            1
+        } else {
+            0
+        } + if cfg!(feature = "time-driver-timer3") {
+            1
+        } else {
+            0
+        };
+
+    if timer_count == 0 {
+        panic!(
+            "No timer selected for embassy-agb time driver. Enable exactly one of: time-driver-timer0, time-driver-timer1, time-driver-timer2, time-driver-timer3"
+        );
+    }
+    if timer_count > 1 {
+        panic!(
+            "Multiple timers selected for embassy-agb time driver. Enable exactly one of: time-driver-timer0, time-driver-timer1, time-driver-timer2, time-driver-timer3"
+        );
+    }
+};
+
+/// Get the appropriate timer interrupt based on selected timer
+const fn get_timer_interrupt() -> Interrupt {
+    match TIMER_NUMBER {
+        0 => Interrupt::Timer0,
+        1 => Interrupt::Timer1,
+        2 => Interrupt::Timer2,
+        3 => Interrupt::Timer3,
+        _ => unreachable!(),
+    }
+}
+
 /// Default timer interrupt frequency - provides ~1ms granularity
 const DEFAULT_TIMER_OVERFLOW_AMOUNT: u16 = 64;
 
@@ -66,7 +124,7 @@ impl AlarmState {
     }
 }
 
-/// GBA Time Driver using Timer0 for embassy-time support
+/// GBA Time Driver using configurable timer for embassy-time support
 struct GbaTimeDriver {
     period: AtomicU32,
     initial_timer_value: AtomicU32,
@@ -106,10 +164,15 @@ impl GbaTimeDriver {
         critical_section::with(|cs| {
             let mut timer_ref = self.timer.borrow(cs).borrow_mut();
 
-            // Configure Timer0 for embassy timing
-            // WARNING: Timer0 may conflict with sound mixer if both are used
+            // Configure selected timer for embassy timing
             let all_timers = unsafe { agb::timer::AllTimers::new() };
-            let mut timer = all_timers.timer0;
+            let mut timer = match TIMER_NUMBER {
+                0 => all_timers.timer0,
+                1 => all_timers.timer1,
+                2 => all_timers.timer2,
+                3 => all_timers.timer3,
+                _ => unreachable!(),
+            };
 
             let overflow_amount = self.timer_overflow_amount.load(Ordering::Relaxed) as u16;
             timer
@@ -123,9 +186,9 @@ impl GbaTimeDriver {
             self.initial_timer_value
                 .store(initial_value as u32, Ordering::Relaxed);
 
-            // Install interrupt handler
+            // Install interrupt handler for selected timer
             let handler = unsafe {
-                add_interrupt_handler(Interrupt::Timer0, |_| {
+                add_interrupt_handler(get_timer_interrupt(), |_| {
                     DRIVER.on_interrupt();
                 })
             };
