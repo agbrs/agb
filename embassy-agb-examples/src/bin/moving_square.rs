@@ -33,7 +33,7 @@ use embassy_agb::{
         fixnum::{Num, Vector2D},
         input::Button,
     },
-    input::{AsyncInput, ButtonEvent, InputConfig},
+    input::{AsyncInput, ButtonEvent, InputConfig, PollingRate},
     sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal},
     Spawner,
 };
@@ -72,7 +72,9 @@ async fn main(spawner: Spawner) -> ! {
     let mut gba = embassy_agb::init(Default::default());
 
     // Configure input polling at 60Hz (matches VBlank rate)
-    let input_config = InputConfig { poll_rate: 60 };
+    let input_config = InputConfig {
+        poll_rate: PollingRate::Hz60,
+    };
 
     // Spawn the input polling task
     spawner.spawn(embassy_agb::input::input_polling_task(input_config).unwrap());

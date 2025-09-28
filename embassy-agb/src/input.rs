@@ -43,16 +43,65 @@ static GLOBAL_BUTTON_STATE: portable_atomic::AtomicU16 = portable_atomic::Atomic
 /// Whether the input polling task is running
 static POLLING_TASK_RUNNING: portable_atomic::AtomicBool = portable_atomic::AtomicBool::new(false);
 
+/// Input polling rate options
+#[derive(Debug, Clone, Copy)]
+pub enum PollingRate {
+    /// 30Hz - Lower latency, more power efficient
+    Hz30,
+    /// 60Hz - Default, matches VBlank rate
+    Hz60,
+    /// 90Hz - Higher responsiveness
+    Hz90,
+    /// 120Hz - Highest responsiveness, more CPU usage
+    Hz120,
+    /// Custom rate in Hz (clamped to 10-240 range)
+    Custom(u32),
+}
+
+impl PollingRate {
+    /// Get the polling rate as Hz value
+    pub fn as_hz(self) -> u32 {
+        match self {
+            PollingRate::Hz30 => 30,
+            PollingRate::Hz60 => 60,
+            PollingRate::Hz90 => 90,
+            PollingRate::Hz120 => 120,
+            PollingRate::Custom(hz) => hz.clamp(10, 240),
+        }
+    }
+}
+
+impl Default for PollingRate {
+    fn default() -> Self {
+        PollingRate::Hz60
+    }
+}
+
 /// Input polling configuration
 #[derive(Debug, Clone, Copy)]
 pub struct InputConfig {
-    /// Polling rate in Hz (30-120, default 60)
-    pub poll_rate: u32,
+    /// Polling rate
+    pub poll_rate: PollingRate,
+}
+
+impl InputConfig {
+    /// Create config with specific polling rate
+    pub fn new(poll_rate: PollingRate) -> Self {
+        Self { poll_rate }
+    }
 }
 
 impl Default for InputConfig {
     fn default() -> Self {
-        Self { poll_rate: 60 }
+        Self {
+            poll_rate: PollingRate::default(),
+        }
+    }
+}
+
+impl From<PollingRate> for InputConfig {
+    fn from(poll_rate: PollingRate) -> Self {
+        Self { poll_rate }
     }
 }
 
@@ -120,7 +169,7 @@ fn poll_input_changes() {
 #[cfg(all(feature = "time", feature = "executor"))]
 #[embassy_executor::task]
 pub async fn input_polling_task(config: InputConfig) {
-    let poll_interval_ms = 1000 / config.poll_rate as u64;
+    let poll_interval_ms = 1000 / config.poll_rate.as_hz() as u64;
 
     // Initialize global button state
     let current = !unsafe { KEYPAD_INPUT.read_volatile() };
@@ -280,10 +329,6 @@ impl AsyncInput {
     }
 
     pub(crate) fn with_config(config: InputConfig) -> Self {
-        // Clamp poll rate to reasonable bounds
-        let poll_rate = config.poll_rate.clamp(30, 120);
-        let config = InputConfig { poll_rate };
-
         ensure_input_initialized();
 
         Self {

@@ -14,7 +14,7 @@
 #![no_main]
 
 use embassy_agb::agb::input::Button;
-use embassy_agb::input::AsyncInput;
+use embassy_agb::input::{AsyncInput, PollingRate};
 use embassy_agb::sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_agb::sync::signal::Signal;
 use embassy_agb::{input::ButtonEvent, Duration, Spawner, Ticker};
@@ -56,8 +56,8 @@ async fn main(spawner: Spawner) -> ! {
     let _display = gba.display();
 
     // Enable automatic input polling at 60Hz
-    embassy_agb::enable_input_polling_60hz(&spawner);
-    
+    embassy_agb::enable_input_polling(&spawner, PollingRate::Hz60);
+
     let input = gba.input();
 
     embassy_agb::agb::println!("Button Counter Example");

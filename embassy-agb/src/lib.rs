@@ -32,7 +32,7 @@
 //! #![no_std]
 //! #![no_main]
 //!
-//! use embassy_agb::{Duration, Ticker, input::ButtonEvent};
+//! use embassy_agb::{input::{ButtonEvent, PollingRate}};
 //! use embassy_executor::Spawner;
 //!
 //! #[embassy_agb::main]
@@ -40,7 +40,7 @@
 //!     let mut gba = embassy_agb::init(Default::default());
 //!     
 //!     // Enable automatic input polling at 60Hz
-//!     embassy_agb::enable_input_polling_60hz(&spawner);
+//!     embassy_agb::enable_input_polling(&spawner, PollingRate::Hz60);
 //!     
 //!     let mut input = gba.input();
 //!     let mut display = gba.display();
@@ -163,37 +163,32 @@ impl InitializedGba {
     }
 }
 
-/// Enable automatic input polling with the given configuration.
-/// 
+/// Enable automatic input polling with the given polling rate.
+///
 /// This function should be called once at startup to automatically spawn
 /// the input polling task. If not called, input methods will still work
 /// but will use polling-based approach instead of interrupt-driven.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,no_run
+/// use embassy_agb::input::PollingRate;
+///
 /// #[embassy_agb::main]
 /// async fn main(spawner: Spawner) -> ! {
 ///     let mut gba = embassy_agb::init(Default::default());
 ///     
 ///     // Enable automatic input polling at 60Hz
-///     embassy_agb::enable_input_polling(&spawner, Default::default());
+///     embassy_agb::enable_input_polling(&spawner, PollingRate::Hz60);
 ///     
 ///     let mut input = gba.input();
 ///     // ... rest of your code
 /// }
 /// ```
 #[cfg(all(feature = "time", feature = "executor"))]
-pub fn enable_input_polling(spawner: &Spawner, config: input::InputConfig) {
+pub fn enable_input_polling(spawner: &Spawner, rate: input::PollingRate) {
+    let config = input::InputConfig::from(rate);
     if let Ok(token) = input::input_polling_task(config) {
         spawner.spawn(token);
     }
-}
-
-/// Enable automatic input polling with 60Hz rate (convenience function).
-/// 
-/// This is equivalent to calling `enable_input_polling(spawner, Default::default())`.
-#[cfg(all(feature = "time", feature = "executor"))]
-pub fn enable_input_polling_60hz(spawner: &Spawner) {
-    enable_input_polling(spawner, input::InputConfig { poll_rate: 60 });
 }
