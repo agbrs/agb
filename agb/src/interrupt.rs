@@ -411,7 +411,7 @@ impl VBlank {
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
-    /// 
+    ///
     /// Not available in embassy mode - use embassy-agb's async wait_for_vblank instead.
     #[cfg(not(feature = "embassy"))]
     pub fn wait_for_vblank(&self) {
