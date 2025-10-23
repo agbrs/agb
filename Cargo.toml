@@ -13,10 +13,6 @@ members = [
     "agb-image-converter",
     "agb-macros",
     "agb-sound-converter",
-    
-    # Embassy integration
-    "embassy-agb",
-    "embassy-agb-macros",
 
     "tracker/agb-midi",
     "tracker/agb-midi-core",
