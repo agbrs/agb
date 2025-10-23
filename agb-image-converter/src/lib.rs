@@ -283,8 +283,7 @@ pub fn include_colours_inner(input: TokenStream) -> TokenStream {
 
     let module_name = input.module_name.clone();
 
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let input_filename = Path::new(&root).join(input_filename);
+    let input_filename = resolve_path(&input_filename);
 
     let image = Image::load_from_file(Path::new(&input_filename));
 
@@ -484,8 +483,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         _ => panic!("Expected literal float or integer as second argument to include_font"),
     };
 
-    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-    let path = Path::new(&root).join(&*filename);
+    let path = resolve_path(&filename);
 
     let file_content = std::fs::read(&path).expect("Failed to read ttf file");
 
@@ -508,6 +506,37 @@ fn get_out_dir(raw_input: &str) -> String {
         std::env::var("OUT_DIR").expect("Failed to get OUT_DIR")
     } else {
         String::new()
+    }
+}
+
+/// Resolve a file path relative to CARGO_MANIFEST_DIR, with fallback to workspace context
+pub(crate) fn resolve_path(file_path: &str) -> std::path::PathBuf {
+    use std::path::Path;
+    
+    let path = Path::new(file_path);
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    
+    let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
+    let root = Path::new(&root);
+    
+    // Try relative to CARGO_MANIFEST_DIR first
+    let manifest_relative = root.join(path);
+    if manifest_relative.exists() {
+        manifest_relative
+    } else {
+        // If not found, try one level up (workspace context)
+        let workspace_relative = root.parent()
+            .map(|parent| parent.join(path))
+            .unwrap_or_else(|| manifest_relative.clone());
+        
+        if workspace_relative.exists() {
+            workspace_relative
+        } else {
+            // Fall back to original behavior
+            manifest_relative
+        }
     }
 }
 
