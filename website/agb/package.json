@@ -25,7 +25,7 @@
     "styled-components": "^6.1.8"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/styled-components": "^5.1.34",
