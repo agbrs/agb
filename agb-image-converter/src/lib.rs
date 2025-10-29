@@ -512,25 +512,26 @@ fn get_out_dir(raw_input: &str) -> String {
 /// Resolve a file path relative to CARGO_MANIFEST_DIR, with fallback to workspace context
 pub(crate) fn resolve_path(file_path: &str) -> std::path::PathBuf {
     use std::path::Path;
-    
+
     let path = Path::new(file_path);
     if path.is_absolute() {
         return path.to_path_buf();
     }
-    
+
     let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
     let root = Path::new(&root);
-    
+
     // Try relative to CARGO_MANIFEST_DIR first
     let manifest_relative = root.join(path);
     if manifest_relative.exists() {
         manifest_relative
     } else {
         // If not found, try one level up (workspace context)
-        let workspace_relative = root.parent()
+        let workspace_relative = root
+            .parent()
             .map(|parent| parent.join(path))
             .unwrap_or_else(|| manifest_relative.clone());
-        
+
         if workspace_relative.exists() {
             workspace_relative
         } else {
