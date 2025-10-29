@@ -425,32 +425,6 @@ impl VBlank {
 
         crate::syscall::wait_for_vblank();
     }
-
-    /// Get the current VBlank counter value (non-blocking).
-    ///
-    /// This can be used to implement async VBlank waiting by comparing
-    /// counter values between polls.
-    #[cfg(not(feature = "embassy"))]
-    pub fn vblank_counter(&self) -> usize {
-        NUM_VBLANKS.load(Ordering::SeqCst)
-    }
-
-    /// Check if a VBlank has occurred since the last check (non-blocking).
-    ///
-    /// Returns true if at least one VBlank has occurred since the last
-    /// call to this method or wait_for_vblank().
-    #[cfg(not(feature = "embassy"))]
-    pub fn has_vblank_occurred(&self) -> bool {
-        let current_count = NUM_VBLANKS.load(Ordering::SeqCst);
-        let last_count = self.last_waited_number.get();
-
-        if current_count > last_count {
-            self.last_waited_number.set(current_count);
-            true
-        } else {
-            false
-        }
-    }
 }
 
 #[cfg(test)]
