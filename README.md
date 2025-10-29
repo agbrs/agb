@@ -114,6 +114,11 @@ Specifically, any 0.x.y release is guaranteed to be compatible with another 0.x.
 
 Once agb reaches version 1.0, we will transition to stronger semantic versioning, meaning that any breaking changes will be indicated by an increment to the major version (i.e., the first digit, e.g., from 1.0 to 2.0).
 
+## Libraries which work with `agb`
+
+- [`embassy-agb`](https://github.com/zpg6/embassy-agb) use async rust on the Game Boy Advance
+- [`gba_rumble`](https://crates.io/crates/gba_rumble) use the rumble feature from the Game Boy Player
+
 ## Acknowledgments
 
 agb would not be possible without the help from the following (non-exhaustive) list of projects:
