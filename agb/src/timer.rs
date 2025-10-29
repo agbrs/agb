@@ -57,9 +57,42 @@ pub struct Timers<'gba> {
     phantom: PhantomData<&'gba ()>,
 }
 
+/// All timers including those used by system components
+pub struct AllTimers<'gba> {
+    /// Timer0 - used by sound system and embassy-agb time driver
+    pub timer0: Timer,
+    /// Timer1 - used by sound system
+    pub timer1: Timer,
+    /// Timer2 - available for general use
+    pub timer2: Timer,
+    /// Timer3 - available for general use
+    pub timer3: Timer,
+
+    phantom: PhantomData<&'gba ()>,
+}
+
 impl Timers<'_> {
     pub(crate) unsafe fn new() -> Self {
         Self {
+            timer2: unsafe { Timer::new(2) },
+            timer3: unsafe { Timer::new(3) },
+
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl AllTimers<'_> {
+    /// Create access to all timers
+    ///
+    /// # Safety
+    /// This allows access to Timer0 and Timer1 which are used by system components.
+    /// Using these timers may interfere with sound or embassy-agb functionality.
+    #[must_use]
+    pub(crate) unsafe fn new() -> Self {
+        Self {
+            timer0: unsafe { Timer::new(0) },
+            timer1: unsafe { Timer::new(1) },
             timer2: unsafe { Timer::new(2) },
             timer3: unsafe { Timer::new(3) },
 
@@ -157,5 +190,14 @@ impl TimerController {
     /// Gets the underlying timers.
     pub fn timers(&mut self) -> Timers<'_> {
         unsafe { Timers::new() }
+    }
+
+    /// Gets all timers including system ones (Timer0, Timer1)
+    ///
+    /// # Safety
+    /// Timer0 and Timer1 are used by system components (sound, embassy-agb).
+    /// Using them may interfere with system functionality.
+    pub unsafe fn all_timers(&mut self) -> AllTimers<'_> {
+        unsafe { AllTimers::new() }
     }
 }

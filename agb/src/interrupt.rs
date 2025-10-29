@@ -391,14 +391,18 @@ impl VBlank {
     /// interrupt syscall.
     #[must_use]
     pub fn get() -> Self {
-        if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
-            // safety: we don't allocate in the interrupt
-            let handler = unsafe {
-                add_interrupt_handler(Interrupt::VBlank, |_| {
-                    NUM_VBLANKS.store(NUM_VBLANKS.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
-                })
-            };
-            core::mem::forget(handler);
+        // In embassy mode, VBlank interrupts are managed by embassy-agb's async runtime
+        #[cfg(not(feature = "embassy"))]
+        {
+            if !HAS_CREATED_INTERRUPT.swap(true, Ordering::SeqCst) {
+                // safety: we don't allocate in the interrupt
+                let handler = unsafe {
+                    add_interrupt_handler(Interrupt::VBlank, |_| {
+                        NUM_VBLANKS.store(NUM_VBLANKS.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
+                    })
+                };
+                core::mem::forget(handler);
+            }
         }
 
         VBlank {
@@ -407,6 +411,9 @@ impl VBlank {
     }
     /// Pauses CPU until vblank interrupt is triggered where code execution is
     /// resumed.
+    ///
+    /// Not available in embassy mode - use embassy-agb's async wait_for_vblank instead.
+    #[cfg(not(feature = "embassy"))]
     pub fn wait_for_vblank(&self) {
         let last_waited_number = self.last_waited_number.get();
         self.last_waited_number

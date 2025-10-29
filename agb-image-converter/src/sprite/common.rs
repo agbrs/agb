@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::error::Error;
 
 use asefile::AnimationDirection;
 use image::{DynamicImage, GenericImageView};
@@ -99,10 +99,16 @@ impl Input {
         let mut sprites = Vec::new();
         let mut tags = Vec::new();
 
-        for (image, tag) in self
+        // Resolve paths for both local crate and workspace contexts
+        let resolved_files: Vec<_> = self
             .files
             .iter()
-            .map(|x| aseprite::generate_from_file(Path::new(x)))
+            .map(|file_path| crate::resolve_path(file_path))
+            .collect();
+
+        for (image, tag) in resolved_files
+            .iter()
+            .map(|x| aseprite::generate_from_file(x))
         {
             for tag in tag {
                 tags.push(Tag {
@@ -126,14 +132,11 @@ impl Input {
                 sprites.push(image);
             }
         }
-        let root = std::env::var("CARGO_MANIFEST_DIR").expect("Failed to get cargo manifest dir");
-        let root = Path::new(&root);
 
         Ok(Expanded {
-            input_files: self
-                .files
+            input_files: resolved_files
                 .iter()
-                .map(|x| root.join(Path::new(x)).to_string_lossy().into_owned())
+                .map(|x| x.to_string_lossy().into_owned())
                 .collect(),
             sprites,
             tags,

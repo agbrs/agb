@@ -217,7 +217,10 @@ impl GraphicsFrame<'_> {
     /// This will first wait for the current frame to finish rendering before going ahead
     /// and doing all the steps required to display the next frame on the screen.
     pub fn commit(mut self) {
+        // In embassy mode, VBlank waiting is handled by embassy-agb
+        #[cfg(not(feature = "embassy"))]
         self.others.vblank.wait_for_vblank();
+
         core::mem::swap(&mut self.others.dma, &mut self.next_dma);
 
         if let Some(mut old) = self.next_dma.take() {

@@ -241,7 +241,10 @@ mod vfile_extern {
     ) {
         unsafe {
             with_inner::<V, _, _>(vf, |vf| {
-                let b = Box::from_raw(std::slice::from_raw_parts_mut(memory.cast::<u8>(), size));
+                let b = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+                    memory.cast::<u8>(),
+                    size,
+                ));
                 let _ = vf.unmap(b);
             })
         }
