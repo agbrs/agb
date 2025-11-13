@@ -16,4 +16,4 @@ thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 colored = "3"
 rmp-serde = "1"
-lz4_flex = "0.11"
+lz4_flex = "0.12"
