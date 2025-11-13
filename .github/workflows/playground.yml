@@ -28,7 +28,7 @@ jobs:
       - name: Save image
         run: docker save ghcr.io/agbrs/playground-builder:latest | zstd -9 -o playground-builder.tar.zstd
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playground-builder
           path: "playground-builder.tar.zstd"
@@ -45,7 +45,7 @@ jobs:
       - name: Save image
         run: docker save ghcr.io/agbrs/playground-server:latest | zstd -9 -o playground-server.tar.zstd
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playground-server
           path: "playground-server.tar.zstd"
@@ -58,11 +58,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download playground builder
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: playground-builder
       - name: Download playground server
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: playground-server
       - name: Import images

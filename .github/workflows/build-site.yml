@@ -51,7 +51,7 @@ jobs:
         env:
           RUSTUP_TOOLCHAIN: ${{ steps.checkout.outputs.toolchain }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: site-deps
           path: "target/site-deps.tar.gz"
@@ -68,7 +68,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download site dependencies
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: site-deps
           path: target/
