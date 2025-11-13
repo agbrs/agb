@@ -8,7 +8,7 @@ fn hello() {}
 
 #[test_case]
 fn multiboot_test(_gba: &mut agb::Gba) {
-    let address: usize = hello as usize;
+    let address: usize = hello as *const () as usize;
 
     if option_env!("AGB_MULTIBOOT").is_some() {
         assert!(
