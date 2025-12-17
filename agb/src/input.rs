@@ -41,6 +41,22 @@ impl From<(bool, bool)> for Tri {
 
 bitflags! {
     /// Represents a button on the GBA
+    ///
+    /// You can combine buttons using the `|` operator.
+    ///
+    /// ```rust
+    /// # #![no_main]
+    /// # #![no_std]
+    /// # #[agb::doctest]
+    /// # fn test(_gba: agb::Gba) {
+    /// # use agb::input::{Button, ButtonController};
+    /// # let mut button_controller = ButtonController::new();
+    /// // Check if A or B is pressed
+    /// if button_controller.is_pressed(Button::A | Button::B) {
+    ///     // ...
+    /// }
+    /// # }
+    /// ```
     #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
     pub struct Button: u32 {
         /// The A button
@@ -59,9 +75,9 @@ bitflags! {
         const UP = 1 << 6;
         /// The DOWN button on the D-Pad
         const DOWN = 1 << 7;
-        /// The R button on the D-Pad
+        /// The R shoulder button on the D-Pad
         const R = 1 << 8;
-        /// The L button on the D-Pad
+        /// The L shoulder button on the D-Pad
         const L = 1 << 9;
     }
 }
@@ -74,11 +90,13 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 ///
 /// # Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// # #![no_std]
+/// # #![no_main]
 /// use agb::input::{ButtonController, Tri};
 ///
-/// # fn main() {
+/// # #[agb::doctest]
+/// # fn test(_gba: agb::Gba) {
 /// let mut input = ButtonController::new();
 ///
 /// loop {
@@ -89,6 +107,7 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 ///         Tri::Positive => { /* right is being pressed */ }
 ///         Tri::Zero => { /* Neither left nor right (or both) are pressed */ }
 ///     }
+/// #   break;
 /// }
 /// # }
 /// ```

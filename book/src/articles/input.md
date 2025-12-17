@@ -96,17 +96,26 @@ The `vector()` method is a combination of the `x_tri()` and `y_tri()` methods.
 It returns a vector with an `x` and `y` component of `-1`, `0` or `1` depending on whether that direction is pressed.
 This can be used to move a player around in a 2d-plane, or you can use the `just_pressed_vector()` to allow navigation of a 2d menu.
 
-# Detecting simultaneous button presses
+# Checking for any button presses
 
-All the methods which accept `Button` as an argument can check if multiple buttons are pressed at once.
-You can do this with:
+Methods which accept `Button` as an argument can check if any of the specified buttons are currently pressed.
+You can combine buttons using `|`:
 
 ```rust
 if button_controller.is_pressed(Button::A | Button::B) {
-    // ...
+    // This will happen if `A` or `B` (or both) are pressed
 }
 ```
 
-The above if statement will only happen if both A and B are pressed simultaneously.
+# Checking for simultaneous presses
+
+If you need to check if multiple buttons are pressed simultaneously (for example, holding A and B together), you must check the states individually.
+
+```rust
+if button_controller.is_pressed(Button::A) && button_controller.is_pressed(Button::B) {
+    // This will happen if both `A` and `B` are pressed
+}
+```
 
 Using this with `is_just_pressed` isn't recommended because it can be quite hard to press button simultaneously within the 1/60th of a frame time you'd have.
+It is usually better to use `is_pressed` for simultaneous combinations.
