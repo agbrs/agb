@@ -249,20 +249,20 @@ impl ButtonController {
     }
 
     #[must_use]
-    /// Returns `true` if the provided keys are all pressed, and `false` if not.
+    /// Returns `true` if any of the provided keys are pressed.
     pub fn is_pressed(&self, keys: Button) -> bool {
         let currently_pressed = u32::from(self.current);
         let keys = keys.bits();
         (currently_pressed & keys) != 0
     }
 
-    /// Returns true if all the buttons specified in `keys` are not pressed. Equivalent to `!is_pressed(keys)`.
+    /// Returns true if all of the buttons specified in `keys` are not pressed. Equivalent to `!is_pressed(keys)`.
     #[must_use]
     pub fn is_released(&self, keys: Button) -> bool {
         !self.is_pressed(keys)
     }
 
-    /// Returns true if all the buttons specified in `keys` went from not pressed to pressed in the last frame.
+    /// Returns true the buttons specified in `keys` went from not pressed to pressed in the last frame.
     /// Very useful for menu navigation or selection if you want the players actions to only happen for one frame.
     ///
     /// # Example
@@ -285,6 +285,11 @@ impl ButtonController {
     /// }
     /// # }
     /// ```
+    ///
+    /// ## Bug
+    ///
+    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
+    /// fixed in the next release of `agb`.
     #[must_use]
     pub fn is_just_pressed(&self, keys: Button) -> bool {
         let current = u32::from(self.current);
@@ -293,8 +298,13 @@ impl ButtonController {
         ((current & keys) != 0) && ((previous & keys) == 0)
     }
 
-    /// Returns true if all the buttons specified in `keys` went from pressed to not pressed in the last frame.
+    /// Returns true if the button specified in `keys` went from pressed to not pressed in the last frame.
     /// Very useful for menu navigation or selection if you want players actions to only happen for one frame.
+    ///
+    /// # Bug
+    ///
+    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
+    /// fixed in the next release of `agb`.
     #[must_use]
     pub fn is_just_released(&self, keys: Button) -> bool {
         let current = u32::from(self.current);
