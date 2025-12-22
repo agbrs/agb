@@ -63,10 +63,8 @@ SECTIONS {
         *(.bss .bss.*);
         . = ALIGN(4);
          = ABSOLUTE(.);
+        __ewram_data_end = .;
     } > ewram
-
-    __ewram_data_end = __ewram_data_start + SIZEOF(.ewram) + SIZEOF(.bss);
-
 
     .shstrtab : {
        *(.shstrtab)
