@@ -52,16 +52,14 @@ SECTIONS {
 
         *(.data .data.*);
         . = ALIGN(4);
-
     } > ewram
     __ewram_data_start = ADDR(.ewram);
     __ewram_rom_start = LOADADDR(.ewram);
     __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
-    
+
     .bss (NOLOAD) : {
         *(.bss .bss.*);
         . = ALIGN(4);
-         = ABSOLUTE(.);
         __ewram_data_end = .;
     } > ewram
 
