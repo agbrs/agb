@@ -59,7 +59,7 @@ SECTIONS {
     __ewram_rom_start = LOADADDR(.ewram);
     __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
     
-    .bss : {
+    .bss (NOLOAD) : {
         *(.bss .bss.*);
         . = ALIGN(4);
          = ABSOLUTE(.);
