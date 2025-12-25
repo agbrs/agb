@@ -34,14 +34,15 @@ __start:
     b __mb_entry
 @ Filled in by gbafix
     .space 188
-    @ multiboot launch point
 .global __mb_entry
 __mb_entry:
-    b .Initialise_mb
+    b .Initialise_mb @ multiboot launch point
 
     .byte 0 @ boot mode, BIOS overwrites this value
     .byte 0 @ slave ID number
     .space 26 @ unused?
+    b .Initialise_mb @ Joybus launch point
+    .space 4  @ padding for mGBA to not flag it as a libGBA build and boot from cart
 
 .Initialise_mb:
     swi 0x00250000
