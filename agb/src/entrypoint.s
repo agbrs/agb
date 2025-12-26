@@ -45,8 +45,6 @@ __mb_entry:
     .space 4  @ padding for mGBA to not flag it as a libGBA build and boot from cart
 
 .Initialise_mb:
-    swi 0x00250000
-
     @ Set interrupt handler
     ldr r0, =InterruptHandler
     ldr r1, =0x03007FFC
