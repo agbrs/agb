@@ -53,26 +53,22 @@ SECTIONS {
 
         *(.data .data.*);
         . = ALIGN(4);
-
     } > ewram AT>rom
     __ewram_data_start = ADDR(.ewram);
     __ewram_rom_start = LOADADDR(.ewram);
     __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
-    
-    .bss : {
+
+    .bss (NOLOAD) : {
         *(.bss .bss.*);
         . = ALIGN(4);
-         = ABSOLUTE(.);
+        __ewram_data_end = .;
     } > ewram
-
-    __ewram_data_end = __ewram_data_start + SIZEOF(.ewram) + SIZEOF(.bss);
-
 
     .shstrtab : {
        *(.shstrtab)
     }
 
-        /* debugging sections */
+    /* debugging sections */
     /* Stabs */
     .stab            0 : { *(.stab) }
     .stabstr         0 : { *(.stabstr) }
