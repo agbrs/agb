@@ -104,6 +104,10 @@ macro_rules! dynamic_sprite_defn {
                 let allocation =
                     allocate_with_retry(layout).expect("cannot allocate dynamic sprite");
 
+                unsafe {
+                    core::ptr::copy(data.as_ptr(), allocation.cast::<u8>().as_ptr(), data.len());
+                }
+
                 let allocation = core::ptr::slice_from_raw_parts_mut(
                     allocation.as_ptr() as *mut _,
                     allocation.len() / 2,
