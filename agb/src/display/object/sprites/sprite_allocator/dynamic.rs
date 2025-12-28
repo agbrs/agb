@@ -282,4 +282,49 @@ mod tests {
 
         assert_image_output("gfx/test_output/object/dynamic_sprite.png");
     }
+
+    #[test_case]
+    fn check_dynamic_sprite_copy(gba: &mut crate::Gba) {
+        let mut gfx = gba.graphics.get();
+        let mut frame = gfx.frame();
+
+        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
+
+        static PALETTE: Palette16 = const {
+            let mut palette = [Rgb15::BLACK; 16];
+            palette[1] = Rgb15::WHITE;
+            palette[2] = Rgb15(0x10_7C);
+            Palette16::new(palette)
+        };
+
+        let mut sprite = DynamicSprite16::new(Size::S8x8);
+
+        sprite.set_pixel(2, 2, 1);
+        sprite.set_pixel(6, 2, 1);
+
+        sprite.set_pixel(1, 6, 1);
+        sprite.set_pixel(2, 7, 1);
+        sprite.set_pixel(3, 7, 1);
+        sprite.set_pixel(4, 7, 1);
+        sprite.set_pixel(5, 7, 1);
+        sprite.set_pixel(6, 7, 1);
+        sprite.set_pixel(7, 6, 1);
+
+        let data = unsafe {
+            let data = sprite.data();
+
+            core::slice::from_raw_parts(data.as_ptr().cast::<u8>(), data.len() * 2)
+        };
+
+        let copy = DynamicSprite16::copy_from(Size::S8x8, data);
+        let sprite = copy.to_vram(&PALETTE);
+
+        Object::new(sprite)
+            .set_pos((WIDTH / 2 - 4, HEIGHT / 2 - 4))
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/object/dynamic_sprite.png");
+    }
 }
