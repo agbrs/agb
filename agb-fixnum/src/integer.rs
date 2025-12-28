@@ -103,12 +103,13 @@ mod private {
 }
 
 #[doc(hidden)]
+#[must_use]
 /// A const implementation of the trait method `from_as_i32`.
 pub const fn from_as_i32<I: FixedWidthUnsignedInteger>(n: i32) -> I {
     match HasTypeWitness::WITNESS {
+        private::IntegerWitness::I32(x) => x.to_left(n),
         private::IntegerWitness::U32(x) => x.to_left(n as u32),
         private::IntegerWitness::I16(x) => x.to_left(n as i16),
-        private::IntegerWitness::I32(x) => x.to_left(n as i32),
         private::IntegerWitness::U16(x) => x.to_left(n as u16),
         private::IntegerWitness::I8(x) => x.to_left(n as i8),
         private::IntegerWitness::U8(x) => x.to_left(n as u8),
