@@ -19,7 +19,7 @@ pub trait FixedWidthUnsignedInteger:
     + num_traits::Num
     + Not<Output = Self>
     + num_traits::AsPrimitive<usize>
-    + HasTypeWitness<IntegerWitness<Self>>
+    + private::SealedIntegerWitness
 {
     /// Converts an i32 to it's own representation, panics on failure
     fn from_as_i32(v: i32) -> Self;
@@ -84,26 +84,33 @@ fixed_width_unsigned_integer_impl!(u16, u32);
 fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
 fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
 
+mod private {
+    use typewit::HasTypeWitness;
+
+    pub trait SealedIntegerWitness: HasTypeWitness<IntegerWitness<Self>> {}
+    impl<T> SealedIntegerWitness for T where T: HasTypeWitness<IntegerWitness<Self>> {}
+
+    typewit::simple_type_witness! {
+        pub enum IntegerWitness {
+            I32 = i32,
+            U32 = u32,
+            I16 = i16,
+            U16 = u16,
+            I8 = i8,
+            U8 = u8,
+        }
+    }
+}
+
 #[doc(hidden)]
 /// A const implementation of the trait method `from_as_i32`.
 pub const fn from_as_i32<I: FixedWidthUnsignedInteger>(n: i32) -> I {
     match HasTypeWitness::WITNESS {
-        IntegerWitness::U32(x) => x.to_left(n as u32),
-        IntegerWitness::I16(x) => x.to_left(n as i16),
-        IntegerWitness::I32(x) => x.to_left(n as i32),
-        IntegerWitness::U16(x) => x.to_left(n as u16),
-        IntegerWitness::I8(x) => x.to_left(n as i8),
-        IntegerWitness::U8(x) => x.to_left(n as u8),
-    }
-}
-
-typewit::simple_type_witness! {
-    enum IntegerWitness {
-        I32 = i32,
-        U32 = u32,
-        I16 = i16,
-        U16 = u16,
-        I8 = i8,
-        U8 = u8,
+        private::IntegerWitness::U32(x) => x.to_left(n as u32),
+        private::IntegerWitness::I16(x) => x.to_left(n as i16),
+        private::IntegerWitness::I32(x) => x.to_left(n as i32),
+        private::IntegerWitness::U16(x) => x.to_left(n as u16),
+        private::IntegerWitness::I8(x) => x.to_left(n as i8),
+        private::IntegerWitness::U8(x) => x.to_left(n as u8),
     }
 }
