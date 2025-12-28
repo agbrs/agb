@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- DynamicSprites `copy_from` / `try_copy_from` now actually copy from the provided data. 
+
 ## [0.22.6] - 2025/10/29
 
 ### Added
