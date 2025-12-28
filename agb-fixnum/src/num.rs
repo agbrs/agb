@@ -21,20 +21,22 @@ mod lut {
 #[macro_export]
 macro_rules! num {
     ($value:expr) => {
-        $crate::Num::new_from_parts(
-            const {
-                use $crate::__private::const_soft_float::soft_f64::SoftF64;
+        const {
+            $crate::Num::new_from_parts(
+                const {
+                    use $crate::__private::const_soft_float::soft_f64::SoftF64;
 
-                let v = SoftF64($value as f64);
-                let integer = v.trunc().to_f64();
-                let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
+                    let v = SoftF64($value as f64);
+                    let integer = v.trunc().to_f64();
+                    let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
 
-                let integer = integer as i32;
-                let fractional = fractional as i32;
+                    let integer = integer as i32;
+                    let fractional = fractional as i32;
 
-                (integer, fractional)
-            },
-        )
+                    (integer, fractional)
+                },
+            )
+        }
     };
 }
 
@@ -528,8 +530,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     #[doc(hidden)]
     #[inline(always)]
     #[must_use]
-    pub fn new_from_parts(num: (i32, i32)) -> Self {
-        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    pub const fn new_from_parts(num: (i32, i32)) -> Self {
+        let (integer, fractional) = num;
+        Self(crate::from_as_i32::<I>(
+            (integer << N) + (fractional >> (30 - N)),
+        ))
     }
 }
 
