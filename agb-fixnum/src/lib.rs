@@ -12,6 +12,7 @@
 //! If you are using this crate from within `agb`, you should refer to it as `agb::fixnum` rather than `agb_fixnum`.
 //! This crate is updated in lockstep with `agb`.
 
+mod integer;
 mod num;
 mod rect;
 mod vec2;
@@ -21,6 +22,7 @@ pub mod __private {
     pub use const_soft_float;
 }
 
+pub use integer::*;
 pub use num::*;
 pub use rect::*;
 pub use vec2::*;

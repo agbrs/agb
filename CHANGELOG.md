@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The `FixedWidthUnsignedInteger` trait is now sealed and cannot be implemented outside of `agb-fixnum`.
+- The `num!` macro can now be used in const contexts and is forced to be evaluated at compile time.
+
 ## [0.22.6] - 2025/10/29
 
 ### Added
