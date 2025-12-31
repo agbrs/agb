@@ -1,10 +1,9 @@
 use core::{
     fmt::{Debug, Display},
-    ops::{
-        Add, AddAssign, BitAnd, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, Shr,
-        Sub, SubAssign,
-    },
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
+
+use crate::{FixedWidthSignedInteger, FixedWidthUnsignedInteger};
 
 use num_traits::Signed;
 
@@ -22,20 +21,22 @@ mod lut {
 #[macro_export]
 macro_rules! num {
     ($value:expr) => {
-        $crate::Num::new_from_parts(
-            const {
-                use $crate::__private::const_soft_float::soft_f64::SoftF64;
+        const {
+            $crate::Num::new_from_parts(
+                const {
+                    use $crate::__private::const_soft_float::soft_f64::SoftF64;
 
-                let v = SoftF64($value as f64);
-                let integer = v.trunc().to_f64();
-                let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
+                    let v = SoftF64($value as f64);
+                    let integer = v.trunc().to_f64();
+                    let fractional = v.sub(v.trunc()).to_f64() * (1_u64 << 30) as f64;
 
-                let integer = integer as i32;
-                let fractional = fractional as i32;
+                    let integer = integer as i32;
+                    let fractional = fractional as i32;
 
-                (integer, fractional)
-            },
-        )
+                    (integer, fractional)
+                },
+            )
+        }
     };
 }
 
@@ -48,83 +49,6 @@ impl<N> SignedNumber for N where N: Number + num_traits::Signed {}
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> Number for Num<I, N> {}
 impl<I: FixedWidthUnsignedInteger> Number for I {}
-
-/// A trait for integers that don't implement unary negation
-pub trait FixedWidthUnsignedInteger:
-    Copy
-    + PartialOrd
-    + Ord
-    + Shl<usize, Output = Self>
-    + Shr<usize, Output = Self>
-    + BitAnd<Output = Self>
-    + Debug
-    + Display
-    + num_traits::Num
-    + Not<Output = Self>
-    + num_traits::AsPrimitive<usize>
-{
-    /// Converts an i32 to it's own representation, panics on failure
-    fn from_as_i32(v: i32) -> Self;
-    /// Returns (a * b) >> N
-    fn upcast_multiply(a: Self, b: Self, n: usize) -> Self;
-}
-
-/// Trait for an integer that includes negation
-pub trait FixedWidthSignedInteger: FixedWidthUnsignedInteger + Signed {}
-
-impl<I: FixedWidthUnsignedInteger + Signed> FixedWidthSignedInteger for I {}
-
-macro_rules! fixed_width_unsigned_integer_impl {
-    ($T: ty, $Upcast: ident) => {
-        impl FixedWidthUnsignedInteger for $T {
-            #[inline(always)]
-            fn from_as_i32(v: i32) -> Self {
-                v as $T
-            }
-
-            upcast_multiply_impl!($T, $Upcast);
-        }
-    };
-}
-
-macro_rules! upcast_multiply_impl {
-    ($T: ty, optimised_64_bit) => {
-        #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            use num_traits::One;
-
-            let mask = (Self::one() << n).wrapping_sub(1);
-
-            let a_floor = a >> n;
-            let a_frac = a & mask;
-
-            let b_floor = b >> n;
-            let b_frac = b & mask;
-
-            (a_floor.wrapping_mul(b_floor) << n)
-                .wrapping_add(
-                    a_floor
-                        .wrapping_mul(b_frac)
-                        .wrapping_add(b_floor.wrapping_mul(a_frac)),
-                )
-                .wrapping_add(((a_frac as u32).wrapping_mul(b_frac as u32) >> n) as $T)
-        }
-    };
-    ($T: ty, $Upcast: ty) => {
-        #[inline(always)]
-        fn upcast_multiply(a: Self, b: Self, n: usize) -> Self {
-            ((<$Upcast>::from(a) * <$Upcast>::from(b)) >> n) as $T
-        }
-    };
-}
-
-fixed_width_unsigned_integer_impl!(i8, i32);
-fixed_width_unsigned_integer_impl!(u8, u32);
-fixed_width_unsigned_integer_impl!(i16, i32);
-fixed_width_unsigned_integer_impl!(u16, u32);
-
-fixed_width_unsigned_integer_impl!(i32, optimised_64_bit);
-fixed_width_unsigned_integer_impl!(u32, optimised_64_bit);
 
 /// A fixed point number represented using `I` with `N` bits of fractional precision.
 ///
@@ -606,8 +530,11 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Num<I, N> {
     #[doc(hidden)]
     #[inline(always)]
     #[must_use]
-    pub fn new_from_parts(num: (i32, i32)) -> Self {
-        Self(I::from_as_i32(((num.0) << N) + (num.1 >> (30 - N))))
+    pub const fn new_from_parts(num: (i32, i32)) -> Self {
+        let (integer, fractional) = num;
+        Self(crate::from_as_i32::<I>(
+            (integer << N) + (fractional >> (30 - N)),
+        ))
     }
 }
 

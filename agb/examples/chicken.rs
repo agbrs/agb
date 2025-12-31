@@ -18,11 +18,11 @@ use agb::{
 };
 
 // Try modifying these constants to see how the gameplay changes
-const ACCELERATION: Number = Number::from_raw(1 << 4);
-const GRAVITY: Number = Number::from_raw(1 << 4);
-const FLAPPING_GRAVITY: Number = Number::from_raw(GRAVITY.to_raw() / 3);
-const JUMP_VELOCITY: Number = Number::from_raw(1 << 9);
-const TERMINAL_VELOCITY: Number = Number::from_raw(1 << 7);
+const ACCELERATION: Number = num!(0.0625);
+const GRAVITY: Number = num!(0.0625);
+const FLAPPING_GRAVITY: Number = num!(0.02);
+const JUMP_VELOCITY: Number = num!(2);
+const TERMINAL_VELOCITY: Number = num!(0.5);
 
 // This is the number of frames of grace period you have after walking off a
 // surface before jumping no longer works
