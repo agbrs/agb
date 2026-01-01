@@ -338,16 +338,8 @@ impl CursorState {
     }
 
     fn update_position(&mut self, input: &ButtonController) {
-        let ud: Tri = (
-            input.is_just_pressed(Button::UP),
-            input.is_just_pressed(Button::DOWN),
-        )
-            .into();
-        let lr: Tri = (
-            input.is_just_pressed(Button::LEFT),
-            input.is_just_pressed(Button::RIGHT),
-        )
-            .into();
+        let ud: Tri = input.just_pressed_y_tri();
+        let lr: Tri = input.just_pressed_x_tri();
 
         if ud == Tri::Zero && lr == Tri::Zero {
             return;

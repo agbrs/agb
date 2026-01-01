@@ -43,8 +43,8 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
         if input.is_just_pressed(
             agb::input::Button::A
                 | agb::input::Button::B
-                | agb::input::Button::START
-                | agb::input::Button::SELECT,
+                | agb::input::Button::Start
+                | agb::input::Button::Select,
         ) {
             break;
         }

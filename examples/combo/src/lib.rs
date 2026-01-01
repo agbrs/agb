@@ -65,11 +65,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let mut game_idx = 0;
 
     loop {
-        let lr: agb::input::Tri = (
-            input.is_just_pressed(Button::LEFT),
-            input.is_just_pressed(Button::RIGHT),
-        )
-            .into();
+        let lr = input.just_pressed_x_tri();
 
         game_idx += lr as i32;
 

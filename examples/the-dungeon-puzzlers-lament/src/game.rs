@@ -121,7 +121,7 @@ impl Construction {
 
     fn update(mut self, input: &ButtonController, sfx: &mut Sfx) -> GamePhase {
         self.game.step(input, sfx);
-        if input.is_just_pressed(Button::START) {
+        if input.is_just_pressed(Button::Start) {
             self.game.force_place();
             GamePhase::Execute(Execute::new(self, sfx))
         } else {
@@ -144,7 +144,7 @@ impl Execute {
     }
 
     fn update(mut self, input: &ButtonController, sfx: &mut Sfx) -> GamePhase {
-        if input.is_just_pressed(Button::START) {
+        if input.is_just_pressed(Button::Start) {
             return GamePhase::Construction(self.construction);
         }
 
@@ -284,17 +284,15 @@ impl PauseMenu {
     }
 
     fn update(&mut self, input: &ButtonController) -> Option<PauseSelection> {
-        if input.is_just_pressed(Button::UP) | input.is_just_pressed(Button::DOWN) {
+        if input.is_just_pressed(Button::Up | Button::Down) {
             self.selection = match self.selection {
                 PauseSelectionInner::Restart => PauseSelectionInner::LevelSelect,
                 PauseSelectionInner::LevelSelect => PauseSelectionInner::Restart,
             };
         }
 
-        let lr = Tri::from((
-            input.is_just_pressed(Button::LEFT),
-            input.is_just_pressed(Button::RIGHT),
-        ));
+        let lr = input.just_pressed_x_tri();
+
         if matches!(self.selection, PauseSelectionInner::LevelSelect) && lr != Tri::Zero {
             let selected_level = self.selected_level as i32;
             let selected_level =
@@ -307,7 +305,7 @@ impl PauseMenu {
             )
         }
 
-        if input.is_just_pressed(Button::A) | input.is_just_pressed(Button::START) {
+        if input.is_just_pressed(Button::A) | input.is_just_pressed(Button::Start) {
             Some(match self.selection {
                 PauseSelectionInner::Restart => PauseSelection::Restart,
                 PauseSelectionInner::LevelSelect => {
@@ -350,7 +348,7 @@ impl Pausable {
     }
 
     pub fn update(&mut self, input: &ButtonController, sfx: &mut Sfx) -> Option<UpdateResult> {
-        if input.is_just_pressed(Button::SELECT)
+        if input.is_just_pressed(Button::Select)
             || (matches!(self.paused, Paused::Paused) && input.is_just_pressed(Button::B))
         {
             self.paused = self.paused.change();
