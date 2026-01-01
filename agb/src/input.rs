@@ -336,19 +336,19 @@ impl ButtonState {
 
     /// Returns a `ButtonState` where nothing is being pressed
     #[must_use]
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self(0)
     }
 
     /// Returns true if the button `button` is pressed in this state
     #[must_use]
-    pub fn is_pressed(self, button: Button) -> bool {
+    pub const fn is_pressed(self, button: Button) -> bool {
         self.0 & button as u16 != 0
     }
 
     /// Returns true if the button `button` is released in this state
     #[must_use]
-    pub fn is_released(self, button: Button) -> bool {
+    pub const fn is_released(self, button: Button) -> bool {
         !self.is_pressed(button)
     }
 }
