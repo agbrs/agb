@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added Joybus entrypoint to Multiboot builds.
+
+### Fixed
+
+- Actually fixed mGBA Multiboot binary detection.
+- Removed unnecessary Multiboot Server BIOS call in Multiboot binary runtimes.
+
 ### Changed
 
 - The `FixedWidthUnsignedInteger` trait is now sealed and cannot be implemented outside of `agb-fixnum`.
