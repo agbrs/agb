@@ -1,4 +1,3 @@
-#![deny(missing_docs)]
 use core::ops::BitOr;
 
 use crate::fixnum::Vector2D;
