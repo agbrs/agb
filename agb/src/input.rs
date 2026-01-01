@@ -142,9 +142,9 @@ impl ButtonController {
     /// Updates the state of the button controller with a given input.
     /// This is mainly useful for unit tests where you want to control what input is set. Is equivalent to
     /// `update()` assuming that the given buttons in `state` are the new ones being pressed
-    pub fn update_with_state(&mut self, state: ButtonState) {
+    pub fn update_with_state(&mut self, state: impl Into<ButtonState>) {
         self.previous = self.current;
-        self.current = state;
+        self.current = state.into();
     }
 
     /// Returns [Tri::Positive] if right is pressed, [Tri::Negative] if left is pressed and [Tri::Zero] if neither or both are pressed.
@@ -254,19 +254,22 @@ impl ButtonController {
     }
 
     #[must_use]
-    /// Returns `true` if the provided key is pressed.
-    pub fn is_pressed(&self, key: Button) -> bool {
-        self.current.is_pressed(key)
+    /// Returns `true` if any of the provided buttons are pressed.
+    pub fn is_pressed(&self, buttons: impl Into<ButtonState>) -> bool {
+        self.current.any_pressed(buttons.into())
     }
 
-    /// Returns true if the button specified in `key` is not pressed. Equivalent to `!is_pressed(key)`.
+    /// Returns `true` if any of the provided buttons are not pressed.
     #[must_use]
-    pub fn is_released(&self, key: Button) -> bool {
-        !self.is_pressed(key)
+    pub fn is_released(&self, buttons: impl Into<ButtonState>) -> bool {
+        !self.current.all_pressed(buttons.into())
     }
 
-    /// Returns true the button specified in `key` went from not pressed to pressed in the last frame.
+    /// Returns true the button specified in `button` went from not pressed to pressed in the last frame.
     /// Very useful for menu navigation or selection if you want the players actions to only happen for one frame.
+    ///
+    /// If you pass multiple buttons (via [`ButtonState`]), then this will return true if _any_ of the provided
+    /// buttons transitioned from not pressed to pressed
     ///
     /// # Example
     /// ```rust
@@ -289,15 +292,20 @@ impl ButtonController {
     /// # }
     /// ```
     #[must_use]
-    pub fn is_just_pressed(&self, key: Button) -> bool {
-        self.current.is_pressed(key) && self.previous.is_released(key)
+    pub fn is_just_pressed(&self, buttons: impl Into<ButtonState>) -> bool {
+        let buttons = buttons.into();
+        ButtonState(self.current.0 & !self.previous.0).any_pressed(buttons)
     }
 
     /// Returns true if the button specified in `key` went from pressed to not pressed in the last frame.
     /// Very useful for menu navigation or selection if you want players actions to only happen for one frame.
+    ///
+    /// If you pass multiple buttons (via [`ButtonState`]), then this will return true if _any_ of the provided
+    /// buttons transitioned from pressed to not pressed.
     #[must_use]
-    pub fn is_just_released(&self, key: Button) -> bool {
-        self.current.is_released(key) && self.previous.is_pressed(key)
+    pub fn is_just_released(&self, buttons: impl Into<ButtonState>) -> bool {
+        let buttons = buttons.into();
+        ButtonState(!self.current.0 & self.previous.0).any_pressed(buttons)
     }
 }
 
@@ -408,8 +416,8 @@ mod test {
     fn test_button_controller_is_just_pressed(_: &mut Gba) {
         let mut controller = ButtonController::new();
 
-        controller.update_with_state(Button::B.into());
-        controller.update_with_state(Button::A.into());
+        controller.update_with_state(Button::B);
+        controller.update_with_state(Button::A);
 
         assert!(controller.is_just_pressed(Button::A));
         assert!(controller.is_just_released(Button::B));
@@ -432,5 +440,20 @@ mod test {
     fn test_button_state_all(_: &mut Gba) {
         assert!(ButtonState::all().is_pressed(Button::A));
         assert!(ButtonState::all().is_pressed(Button::L));
+    }
+
+    #[test_case]
+    fn test_just_pressed_multiple(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(ButtonState::empty());
+        controller.update_with_state(Button::A | Button::B);
+
+        assert!(controller.is_just_pressed(Button::A | Button::START));
+
+        controller.update_with_state(Button::A);
+
+        assert!(!controller.is_just_pressed(Button::A | Button::START));
+        assert!(controller.is_just_released(Button::B | Button::SELECT));
     }
 }
