@@ -192,7 +192,7 @@ impl AffineBackground {
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
-        tileset: &TileSet<'_>,
+        tileset: &TileSet,
         tile_index: u16,
     ) -> &mut Self {
         assert_eq!(
@@ -238,7 +238,7 @@ impl AffineBackground {
         self.wrap_behaviour
     }
 
-    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_index: u16) -> &mut Self {
+    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet, tile_index: u16) -> &mut Self {
         let old_tile = self.tiles.get(pos);
 
         let new_tile = if tile_index != TRANSPARENT_TILE_INDEX {
