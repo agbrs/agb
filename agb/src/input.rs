@@ -334,6 +334,43 @@ impl BitOr for ButtonState {
     }
 }
 
+impl BitOr<Button> for ButtonState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Button) -> Self::Output {
+        Self(self.0 | rhs as u16)
+    }
+}
+
+impl core::fmt::Debug for ButtonState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "ButtonState[")?;
+
+        let mut is_first = true;
+        for b in [
+            Button::A,
+            Button::B,
+            Button::START,
+            Button::SELECT,
+            Button::UP,
+            Button::DOWN,
+            Button::LEFT,
+            Button::RIGHT,
+            Button::L,
+            Button::R,
+        ] {
+            if self.is_pressed(b) {
+                let maybe_space = if is_first { "" } else { " " };
+                write!(f, "{maybe_space}{b:?}")?;
+
+                is_first = false;
+            }
+        }
+
+        write!(f, "]")
+    }
+}
+
 impl ButtonState {
     /// Creates a new ButtonState with just a single button pressed (equivalent to `ButtonState::from(...)`)
     #[must_use]
@@ -454,5 +491,19 @@ mod test {
 
         assert!(!controller.is_just_pressed(Button::A | Button::START));
         assert!(controller.is_just_released(Button::B | Button::SELECT));
+    }
+
+    #[test_case]
+    fn test_can_or_mulitple_buttons(_: &mut Gba) {
+        assert_eq!(
+            Button::A | Button::B | Button::L | Button::R,
+            (Button::A | Button::B) | (Button::L | Button::R)
+        );
+    }
+
+    #[test_case]
+    fn test_debug_format_for_button_state(_: &mut Gba) {
+        let input = Button::A | Button::UP | Button::SELECT;
+        assert_eq!(alloc::format!("{input:?}"), "ButtonState[A SELECT UP]");
     }
 }
