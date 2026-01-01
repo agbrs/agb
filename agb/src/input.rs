@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 use crate::fixnum::Vector2D;
-use bitflags::bitflags;
 
 /// Tri-state enum. Allows for -1, 0 and +1.
 /// Useful if checking if the D-Pad is pointing left, right, or unpressed.
@@ -39,47 +38,44 @@ impl From<(bool, bool)> for Tri {
     }
 }
 
-bitflags! {
-    /// Represents a button on the GBA
-    ///
-    /// You can combine buttons using the `|` operator.
-    ///
-    /// ```rust
-    /// # #![no_main]
-    /// # #![no_std]
-    /// # #[agb::doctest]
-    /// # fn test(_gba: agb::Gba) {
-    /// # use agb::input::{Button, ButtonController};
-    /// # let mut button_controller = ButtonController::new();
-    /// // Check if A or B is pressed
-    /// if button_controller.is_pressed(Button::A | Button::B) {
-    ///     // ...
-    /// }
-    /// # }
-    /// ```
-    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-    pub struct Button: u32 {
-        /// The A button
-        const A = 1 << 0;
-        /// The B button
-        const B = 1 << 1;
-        /// The SELECT button
-        const SELECT = 1 << 2;
-        /// The START button
-        const START = 1 << 3;
-        /// The RIGHT button on the D-Pad
-        const RIGHT = 1 << 4;
-        /// The LEFT button on the D-Pad
-        const LEFT = 1 << 5;
-        /// The UP button on the D-Pad
-        const UP = 1 << 6;
-        /// The DOWN button on the D-Pad
-        const DOWN = 1 << 7;
-        /// The R shoulder button on the D-Pad
-        const R = 1 << 8;
-        /// The L shoulder button on the D-Pad
-        const L = 1 << 9;
-    }
+/// Represents a button on the GBA
+///
+/// ```rust
+/// # #![no_main]
+/// # #![no_std]
+/// # #[agb::doctest]
+/// # fn test(_gba: agb::Gba) {
+/// # use agb::input::{Button, ButtonController};
+/// # let mut button_controller = ButtonController::new();
+/// // Check if A is pressed
+/// if button_controller.is_pressed(Button::A) {
+///     // ...
+/// }
+/// # }
+/// ```
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[repr(u16)]
+pub enum Button {
+    /// The A button
+    A = 1 << 0,
+    /// The B button
+    B = 1 << 1,
+    /// The SELECT button
+    SELECT = 1 << 2,
+    /// The START button
+    START = 1 << 3,
+    /// The RIGHT button on the D-Pad
+    RIGHT = 1 << 4,
+    /// The LEFT button on the D-Pad
+    LEFT = 1 << 5,
+    /// The UP button on the D-Pad
+    UP = 1 << 6,
+    /// The DOWN button on the D-Pad
+    DOWN = 1 << 7,
+    /// The R shoulder button on the D-Pad
+    R = 1 << 8,
+    /// The L shoulder button on the D-Pad
+    L = 1 << 9,
 }
 
 const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
@@ -249,20 +245,19 @@ impl ButtonController {
     }
 
     #[must_use]
-    /// Returns `true` if any of the provided keys are pressed.
-    pub fn is_pressed(&self, keys: Button) -> bool {
+    /// Returns `true` if the provided key is pressed.
+    pub fn is_pressed(&self, key: Button) -> bool {
         let currently_pressed = u32::from(self.current);
-        let keys = keys.bits();
-        (currently_pressed & keys) != 0
+        (currently_pressed & key as u32) != 0
     }
 
-    /// Returns true if all of the buttons specified in `keys` are not pressed. Equivalent to `!is_pressed(keys)`.
+    /// Returns true if the button specified in `key` is not pressed. Equivalent to `!is_pressed(key)`.
     #[must_use]
-    pub fn is_released(&self, keys: Button) -> bool {
-        !self.is_pressed(keys)
+    pub fn is_released(&self, key: Button) -> bool {
+        !self.is_pressed(key)
     }
 
-    /// Returns true the buttons specified in `keys` went from not pressed to pressed in the last frame.
+    /// Returns true the button specified in `key` went from not pressed to pressed in the last frame.
     /// Very useful for menu navigation or selection if you want the players actions to only happen for one frame.
     ///
     /// # Example
@@ -285,32 +280,20 @@ impl ButtonController {
     /// }
     /// # }
     /// ```
-    ///
-    /// ## Bug
-    ///
-    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
-    /// fixed in the next release of `agb`.
     #[must_use]
-    pub fn is_just_pressed(&self, keys: Button) -> bool {
+    pub fn is_just_pressed(&self, key: Button) -> bool {
         let current = u32::from(self.current);
         let previous = u32::from(self.previous);
-        let keys = keys.bits();
-        ((current & keys) != 0) && ((previous & keys) == 0)
+        ((current & key as u32) != 0) && ((previous & key as u32) == 0)
     }
 
-    /// Returns true if the button specified in `keys` went from pressed to not pressed in the last frame.
+    /// Returns true if the button specified in `key` went from pressed to not pressed in the last frame.
     /// Very useful for menu navigation or selection if you want players actions to only happen for one frame.
-    ///
-    /// # Bug
-    ///
-    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
-    /// fixed in the next release of `agb`.
     #[must_use]
-    pub fn is_just_released(&self, keys: Button) -> bool {
+    pub fn is_just_released(&self, key: Button) -> bool {
         let current = u32::from(self.current);
         let previous = u32::from(self.previous);
-        let keys = keys.bits();
-        ((current & keys) == 0) && ((previous & keys) != 0)
+        ((current & key as u32) == 0) && ((previous & key as u32) != 0)
     }
 }
 
