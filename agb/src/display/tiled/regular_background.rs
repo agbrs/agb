@@ -197,7 +197,7 @@ impl RegularBackground {
     pub fn set_tile(
         &mut self,
         pos: impl Into<Vector2D<i32>>,
-        tileset: &TileSet<'_>,
+        tileset: &TileSet,
         tile_setting: TileSetting,
     ) -> &mut Self {
         assert_eq!(
@@ -304,7 +304,7 @@ impl RegularBackground {
         self
     }
 
-    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet<'_>, tile_setting: TileSetting) {
+    fn set_tile_at_pos(&mut self, pos: usize, tileset: &TileSet, tile_setting: TileSetting) {
         let old_tile = self.tiles.get(pos);
 
         let tile_index = tile_setting.tile_id();

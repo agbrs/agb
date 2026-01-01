@@ -10,7 +10,7 @@ use super::tiled::{TileSet, TileSetting};
 #[non_exhaustive]
 pub struct TileData {
     /// The actual tile data
-    pub tiles: TileSet<'static>,
+    pub tiles: TileSet,
     /// How to display each tile. The indices here run left to right, top to bottom.
     ///
     /// If you've deduplicated the tile with the `deduplicate` option in [`include_background_gfx!()`][crate::include_background_gfx],
@@ -31,7 +31,7 @@ impl TileData {
     /// [`include_background_gfx!()`][crate::include_background_gfx].
     #[must_use]
     pub const fn new(
-        tiles: TileSet<'static>,
+        tiles: TileSet,
         tile_settings: &'static [TileSetting],
         width: usize,
         height: usize,

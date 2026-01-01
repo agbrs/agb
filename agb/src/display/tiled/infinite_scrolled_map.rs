@@ -70,7 +70,7 @@ impl InfiniteScrolledMap {
     fn do_initial_case(
         &mut self,
         new_pos: Vector2D<i32>,
-        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet, TileSetting),
     ) -> PartialUpdateStatus {
         let working = new_pos.div_floor_stable(8);
 
@@ -115,7 +115,7 @@ impl InfiniteScrolledMap {
     fn update_rectangle(
         &mut self,
         rectangle: Rect<i32>,
-        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet, TileSetting),
     ) {
         for pos in rectangle.iter() {
             let (tileset, tile_setting) = tile(pos);
@@ -128,7 +128,7 @@ impl InfiniteScrolledMap {
         &mut self,
         old_pos: Vector2D<i32>,
         new_pos: Vector2D<i32>,
-        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet, TileSetting),
     ) -> PartialUpdateStatus {
         let old_working = old_pos.div_floor_stable(8);
         let new_working = new_pos.div_floor_stable(8);
@@ -208,7 +208,7 @@ impl InfiniteScrolledMap {
     pub fn set_scroll_pos(
         &mut self,
         new_pos: impl Into<Vector2D<i32>>,
-        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet<'static>, TileSetting),
+        tile: impl Fn(Vector2D<i32>) -> (&'static TileSet, TileSetting),
     ) -> PartialUpdateStatus {
         let new_pos = new_pos.into();
         self.map.set_scroll_pos(new_pos);

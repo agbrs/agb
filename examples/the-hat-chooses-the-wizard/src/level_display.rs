@@ -13,7 +13,7 @@ pub struct LevelDisplay {
 }
 
 impl LevelDisplay {
-    pub fn new(tileset: &'_ TileSet<'_>, tile_settings: &[TileSetting]) -> Self {
+    pub fn new(tileset: &TileSet, tile_settings: &[TileSetting]) -> Self {
         let mut map = RegularBackground::new(
             Priority::P3,
             RegularBackgroundSize::Background32x32,
@@ -33,7 +33,7 @@ impl LevelDisplay {
 
     pub fn write_level(
         &mut self,
-        tileset: &'_ TileSet<'_>,
+        tileset: &TileSet,
         tile_settings: &[TileSetting],
         world: u32,
         level: u32,
