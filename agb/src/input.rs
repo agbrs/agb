@@ -1,4 +1,6 @@
 #![deny(missing_docs)]
+use core::ops::BitOr;
+
 use crate::fixnum::Vector2D;
 
 /// Tri-state enum. Allows for -1, 0 and +1.
@@ -108,8 +110,8 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 /// # }
 /// ```
 pub struct ButtonController {
-    previous: u16,
-    current: u16,
+    previous: ButtonState,
+    current: ButtonState,
 }
 
 impl Default for ButtonController {
@@ -123,7 +125,7 @@ impl ButtonController {
     /// This is the preferred way to create it.
     #[must_use]
     pub fn new() -> Self {
-        let pressed = !unsafe { BUTTON_INPUT.read_volatile() };
+        let pressed = ButtonState::current();
         ButtonController {
             previous: pressed,
             current: pressed,
@@ -135,7 +137,7 @@ impl ButtonController {
     /// Calls to any method won't change until you call this.
     pub fn update(&mut self) {
         self.previous = self.current;
-        self.current = !unsafe { BUTTON_INPUT.read_volatile() };
+        self.current = ButtonState::current();
     }
 
     /// Returns [Tri::Positive] if right is pressed, [Tri::Negative] if left is pressed and [Tri::Zero] if neither or both are pressed.
@@ -247,8 +249,7 @@ impl ButtonController {
     #[must_use]
     /// Returns `true` if the provided key is pressed.
     pub fn is_pressed(&self, key: Button) -> bool {
-        let currently_pressed = u32::from(self.current);
-        (currently_pressed & key as u32) != 0
+        self.current.is_pressed(key)
     }
 
     /// Returns true if the button specified in `key` is not pressed. Equivalent to `!is_pressed(key)`.
@@ -282,18 +283,59 @@ impl ButtonController {
     /// ```
     #[must_use]
     pub fn is_just_pressed(&self, key: Button) -> bool {
-        let current = u32::from(self.current);
-        let previous = u32::from(self.previous);
-        ((current & key as u32) != 0) && ((previous & key as u32) == 0)
+        self.current.is_pressed(key) && self.previous.is_released(key)
     }
 
     /// Returns true if the button specified in `key` went from pressed to not pressed in the last frame.
     /// Very useful for menu navigation or selection if you want players actions to only happen for one frame.
     #[must_use]
     pub fn is_just_released(&self, key: Button) -> bool {
-        let current = u32::from(self.current);
-        let previous = u32::from(self.previous);
-        ((current & key as u32) == 0) && ((previous & key as u32) != 0)
+        self.current.is_released(key) && self.previous.is_pressed(key)
+    }
+}
+
+/// Represents the state of potentially multiple buttons being pressed at once
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct ButtonState(u16);
+
+impl From<Button> for ButtonState {
+    fn from(value: Button) -> Self {
+        Self(value as u16)
+    }
+}
+
+impl BitOr for Button {
+    type Output = ButtonState;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        ButtonState(self as u16 | rhs as u16)
+    }
+}
+
+impl BitOr for ButtonState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl ButtonState {
+    /// Returns the current button state based on which buttons are being pressed right now
+    pub fn current() -> Self {
+        Self(!unsafe { BUTTON_INPUT.read_volatile() })
+    }
+
+    /// Returns true if the button `button` is pressed in this state
+    #[must_use]
+    pub fn is_pressed(self, button: Button) -> bool {
+        self.0 & button as u16 != 0
+    }
+
+    /// Returns true if the button `button` is released in this state
+    #[must_use]
+    pub fn is_released(self, button: Button) -> bool {
+        !self.is_pressed(button)
     }
 }
 
