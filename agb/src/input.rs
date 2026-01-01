@@ -334,6 +334,12 @@ impl ButtonState {
         Self(!unsafe { BUTTON_INPUT.read_volatile() })
     }
 
+    /// Returns a `ButtonState` where everything is being pressed
+    #[must_use]
+    pub const fn all() -> Self {
+        Self(0b0000_0011_1111_1111)
+    }
+
     /// Returns a `ButtonState` where nothing is being pressed
     #[must_use]
     pub const fn empty() -> Self {
@@ -402,5 +408,11 @@ mod test {
         assert_eq!(controller.lr_tri(), Tri::Negative);
         assert_eq!(controller.x_tri(), Tri::Positive);
         assert_eq!(controller.y_tri(), Tri::Zero);
+    }
+
+    #[test_case]
+    fn test_button_state_all(_: &mut Gba) {
+        assert!(ButtonState::all().is_pressed(Button::A));
+        assert!(ButtonState::all().is_pressed(Button::L));
     }
 }
