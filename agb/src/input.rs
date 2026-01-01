@@ -108,6 +108,7 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 /// }
 /// # }
 /// ```
+#[derive(Clone, Debug)]
 pub struct ButtonController {
     previous: ButtonState,
     current: ButtonState,
