@@ -307,7 +307,7 @@ pub struct ButtonState(u16);
 
 impl From<Button> for ButtonState {
     fn from(value: Button) -> Self {
-        Self(value as u16)
+        Self::single(value)
     }
 }
 
@@ -328,6 +328,12 @@ impl BitOr for ButtonState {
 }
 
 impl ButtonState {
+    /// Creates a new ButtonState with just a single button pressed (equivalent to `ButtonState::from(...)`)
+    #[must_use]
+    pub const fn single(button: Button) -> Self {
+        Self(button as u16)
+    }
+
     /// Returns the current button state based on which buttons are being pressed right now
     #[must_use]
     pub fn current() -> Self {
@@ -349,13 +355,25 @@ impl ButtonState {
     /// Returns true if the button `button` is pressed in this state
     #[must_use]
     pub const fn is_pressed(self, button: Button) -> bool {
-        self.0 & button as u16 != 0
+        self.any_pressed(Self::single(button))
     }
 
     /// Returns true if the button `button` is released in this state
     #[must_use]
     pub const fn is_released(self, button: Button) -> bool {
         !self.is_pressed(button)
+    }
+
+    /// Returns true if any of the buttons in the button state `state` are pressed in self
+    #[must_use]
+    pub const fn any_pressed(self, state: ButtonState) -> bool {
+        self.0 & state.0 != 0
+    }
+
+    /// Returns true if all of the buttons in the button state `state` are pressed in self
+    #[must_use]
+    pub const fn all_pressed(self, state: ButtonState) -> bool {
+        self.0 & state.0 == state.0
     }
 }
 
