@@ -68,7 +68,7 @@ fn main(mut gba: agb::Gba) -> ! {
     loop {
         input.update();
 
-        if input.is_just_pressed(Button::START) {
+        if input.is_just_pressed(Button::Start) {
             wrap_behaviour = match wrap_behaviour {
                 AffineBackgroundWrapBehaviour::NoWrap => AffineBackgroundWrapBehaviour::Wrap,
                 AffineBackgroundWrapBehaviour::Wrap => AffineBackgroundWrapBehaviour::NoWrap,

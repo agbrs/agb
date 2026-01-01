@@ -62,17 +62,17 @@ pub enum Button {
     /// The B button
     B = 1 << 1,
     /// The SELECT button
-    SELECT = 1 << 2,
+    Select = 1 << 2,
     /// The START button
-    START = 1 << 3,
+    Start = 1 << 3,
     /// The RIGHT button on the D-Pad
-    RIGHT = 1 << 4,
+    Right = 1 << 4,
     /// The LEFT button on the D-Pad
-    LEFT = 1 << 5,
+    Left = 1 << 5,
     /// The UP button on the D-Pad
-    UP = 1 << 6,
+    Up = 1 << 6,
     /// The DOWN button on the D-Pad
-    DOWN = 1 << 7,
+    Down = 1 << 7,
     /// The R shoulder button on the D-Pad
     R = 1 << 8,
     /// The L shoulder button on the D-Pad
@@ -151,8 +151,8 @@ impl ButtonController {
     /// This is the normal behaviour you'll want if you're using orthogonal inputs.
     #[must_use]
     pub fn x_tri(&self) -> Tri {
-        let left = self.is_pressed(Button::LEFT);
-        let right = self.is_pressed(Button::RIGHT);
+        let left = self.is_pressed(Button::Left);
+        let right = self.is_pressed(Button::Right);
 
         (left, right).into()
     }
@@ -161,8 +161,8 @@ impl ButtonController {
     /// This is the normal behaviour you'll want if you're using orthogonal inputs.
     #[must_use]
     pub fn y_tri(&self) -> Tri {
-        let up = self.is_pressed(Button::UP);
-        let down = self.is_pressed(Button::DOWN);
+        let up = self.is_pressed(Button::Up);
+        let down = self.is_pressed(Button::Down);
 
         (up, down).into()
     }
@@ -212,8 +212,8 @@ impl ButtonController {
     ///
     /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_x_tri(&self) -> Tri {
-        let left = self.is_just_pressed(Button::LEFT);
-        let right = self.is_just_pressed(Button::RIGHT);
+        let left = self.is_just_pressed(Button::Left);
+        let right = self.is_just_pressed(Button::Right);
 
         (left, right).into()
     }
@@ -223,8 +223,8 @@ impl ButtonController {
     ///
     /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_y_tri(&self) -> Tri {
-        let up = self.is_just_pressed(Button::UP);
-        let down = self.is_just_pressed(Button::DOWN);
+        let up = self.is_just_pressed(Button::Up);
+        let down = self.is_just_pressed(Button::Down);
 
         (up, down).into()
     }
@@ -351,12 +351,12 @@ impl core::fmt::Debug for ButtonState {
         for b in [
             Button::A,
             Button::B,
-            Button::START,
-            Button::SELECT,
-            Button::UP,
-            Button::DOWN,
-            Button::LEFT,
-            Button::RIGHT,
+            Button::Start,
+            Button::Select,
+            Button::Up,
+            Button::Down,
+            Button::Left,
+            Button::Right,
             Button::L,
             Button::R,
         ] {
@@ -440,7 +440,7 @@ mod test {
     fn test_button_state_is_pressed(_: &mut Gba) {
         assert!(ButtonState::from(Button::A).is_pressed(Button::A));
         assert!((Button::A | Button::B).is_pressed(Button::A));
-        assert!(!(Button::A | Button::B).is_pressed(Button::START));
+        assert!(!(Button::A | Button::B).is_pressed(Button::Start));
     }
 
     #[test_case]
@@ -458,15 +458,15 @@ mod test {
 
         assert!(controller.is_just_pressed(Button::A));
         assert!(controller.is_just_released(Button::B));
-        assert!(!controller.is_just_pressed(Button::START));
-        assert!(!controller.is_just_released(Button::SELECT));
+        assert!(!controller.is_just_pressed(Button::Start));
+        assert!(!controller.is_just_released(Button::Select));
     }
 
     #[test_case]
     fn test_button_controller_tri(_: &mut Gba) {
         let mut controller = ButtonController::new();
 
-        controller.update_with_state(Button::L | Button::RIGHT);
+        controller.update_with_state(Button::L | Button::Right);
 
         assert_eq!(controller.lr_tri(), Tri::Negative);
         assert_eq!(controller.x_tri(), Tri::Positive);
@@ -486,12 +486,12 @@ mod test {
         controller.update_with_state(ButtonState::empty());
         controller.update_with_state(Button::A | Button::B);
 
-        assert!(controller.is_just_pressed(Button::A | Button::START));
+        assert!(controller.is_just_pressed(Button::A | Button::Start));
 
         controller.update_with_state(Button::A);
 
-        assert!(!controller.is_just_pressed(Button::A | Button::START));
-        assert!(controller.is_just_released(Button::B | Button::SELECT));
+        assert!(!controller.is_just_pressed(Button::A | Button::Start));
+        assert!(controller.is_just_released(Button::B | Button::Select));
     }
 
     #[test_case]
@@ -504,7 +504,7 @@ mod test {
 
     #[test_case]
     fn test_debug_format_for_button_state(_: &mut Gba) {
-        let input = Button::A | Button::UP | Button::SELECT;
-        assert_eq!(alloc::format!("{input:?}"), "ButtonState[A SELECT UP]");
+        let input = Button::A | Button::Up | Button::Select;
+        assert_eq!(alloc::format!("{input:?}"), "ButtonState[A Select Up]");
     }
 }
