@@ -136,8 +136,15 @@ impl ButtonController {
     /// You should call this every frame (either at the start or the end) to ensure that you have the latest state of each button press.
     /// Calls to any method won't change until you call this.
     pub fn update(&mut self) {
+        self.update_with_state(ButtonState::current());
+    }
+
+    /// Updates the state of the button controller with a given input.
+    /// This is mainly useful for unit tests where you want to control what input is set. Is equivalent to
+    /// `update()` assuming that the given buttons in `state` are the new ones being pressed
+    pub fn update_with_state(&mut self, state: ButtonState) {
         self.previous = self.current;
-        self.current = ButtonState::current();
+        self.current = state;
     }
 
     /// Returns [Tri::Positive] if right is pressed, [Tri::Negative] if left is pressed and [Tri::Zero] if neither or both are pressed.
@@ -322,8 +329,15 @@ impl BitOr for ButtonState {
 
 impl ButtonState {
     /// Returns the current button state based on which buttons are being pressed right now
+    #[must_use]
     pub fn current() -> Self {
         Self(!unsafe { BUTTON_INPUT.read_volatile() })
+    }
+
+    /// Returns a `ButtonState` where nothing is being pressed
+    #[must_use]
+    pub fn empty() -> Self {
+        Self(0)
     }
 
     /// Returns true if the button `button` is pressed in this state
@@ -351,5 +365,42 @@ mod test {
         assert_eq!(Tri::from((false, true)), Tri::Positive);
         assert_eq!(Tri::from((false, false)), Tri::Zero);
         assert_eq!(Tri::from((true, true)), Tri::Zero);
+    }
+
+    #[test_case]
+    fn test_button_state_is_pressed(_: &mut Gba) {
+        assert!(ButtonState::from(Button::A).is_pressed(Button::A));
+        assert!((Button::A | Button::B).is_pressed(Button::A));
+        assert!(!(Button::A | Button::B).is_pressed(Button::START));
+    }
+
+    #[test_case]
+    fn test_button_state_is_released(_: &mut Gba) {
+        assert!(ButtonState::from(Button::A).is_released(Button::B));
+        assert!(!ButtonState::from(Button::B).is_released(Button::B));
+    }
+
+    #[test_case]
+    fn test_button_controller_is_just_pressed(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(Button::B.into());
+        controller.update_with_state(Button::A.into());
+
+        assert!(controller.is_just_pressed(Button::A));
+        assert!(controller.is_just_released(Button::B));
+        assert!(!controller.is_just_pressed(Button::START));
+        assert!(!controller.is_just_released(Button::SELECT));
+    }
+
+    #[test_case]
+    fn test_button_controller_tri(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(Button::L | Button::RIGHT);
+
+        assert_eq!(controller.lr_tri(), Tri::Negative);
+        assert_eq!(controller.x_tri(), Tri::Positive);
+        assert_eq!(controller.y_tri(), Tri::Zero);
     }
 }
