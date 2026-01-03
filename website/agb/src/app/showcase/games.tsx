@@ -8,6 +8,7 @@ import { Leviathan } from "./data/drawing-a-leviathan/leviathan";
 import { Tactics } from "./data/tapir/tactics/tactics";
 import { Khiera } from "./data/tapir/khiera/khiera";
 import { BlobGoes3d } from "./data/milanfin/blob-goes-3d/blob_goes_3d";
+import { NonogramAdvance } from "./data/emmabritton/gba_nonogram_advance/gba_nonogram_advance";
 
 export interface ShowcaseGame {
   name: string;
@@ -39,4 +40,5 @@ export const Games: ShowcaseGame[] = shuffle([
   Tactics,
   Khiera,
   BlobGoes3d,
+  NonogramAdvance,
 ]);
