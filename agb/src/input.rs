@@ -291,9 +291,10 @@ impl ButtonController {
     /// }
     ///
     /// button_controller.update_with_state(Button::A);
-    /// button_controller.update_with_state(Button::B);
+    /// button_controller.update_with_state(Button::A | Button::B);
     ///
     /// assert!(button_controller.is_just_pressed(Button::B));
+    /// // even though A is pressed, it isn't just pressed
     /// assert!(!button_controller.is_just_pressed(Button::A));
     /// assert!(button_controller.is_just_pressed(Button::A | Button::B));
     /// # }
