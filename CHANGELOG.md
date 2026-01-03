@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added Joybus entrypoint to Multiboot builds.
 - Added `update_with_state()` method to `ButtonController` to let you unit test things which use it.
+- Added Clone, Copy, PartialEq, Eq and Hash derives on `ChannelId`.
 
 ### Fixed
 
