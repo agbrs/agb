@@ -51,7 +51,7 @@ impl GbaHeader {
 
     fn calculate_checksum(header: &[u8]) -> u8 {
         let mut chk = 0u8;
-        for value in header.iter().take(0xBC).skip(0xA0) {
+        for value in header.iter().take(0xBD).skip(0xA0) {
             chk = chk.wrapping_sub(*value);
         }
 
