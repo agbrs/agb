@@ -1,7 +1,7 @@
 use std::{env, fs, path::Path, sync::mpsc};
 
 use cpal::{
-    SampleFormat, SampleRate,
+    SampleFormat,
     traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use mixer::Mixer;
@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()> {
     let config = supported_configs
         .find_map(|config| {
             if config.channels() == 2 && config.sample_format() == SampleFormat::F32 {
-                return config.try_with_sample_rate(SampleRate(32768));
+                return config.try_with_sample_rate(32768);
             }
 
             None
