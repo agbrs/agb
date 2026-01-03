@@ -810,4 +810,9 @@ mod test {
         );
         assert_eq!(result, num!(7.0));
     }
+
+    #[test_case]
+    fn channel_id_none_niche(_: &mut crate::Gba) {
+        assert_eq!(size_of::<Option<ChannelId>>(), size_of::<ChannelId>());
+    }
 }
