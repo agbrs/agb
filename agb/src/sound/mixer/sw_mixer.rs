@@ -150,6 +150,7 @@ pub struct Mixer<'gba> {
 /// mixer.channel(&bgm_channel_id).expect("Expected to still be playing").stop();
 /// # }
 /// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ChannelId(usize, i32);
 
 impl Mixer<'_> {
