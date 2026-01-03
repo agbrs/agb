@@ -303,8 +303,8 @@ impl Mixer<'_> {
             }
 
             channel.replace(new_channel);
-            self.indices[i] += 1;
-            let generation = NonZero::new(self.indices[i]).expect("Should be bigger than 0");
+            let generation = self.next_index(i);
+
             return Some(ChannelId(i, generation));
         }
 
@@ -318,12 +318,21 @@ impl Mixer<'_> {
             }
 
             channel.replace(new_channel);
-            self.indices[i] += 1;
-            let generation = NonZero::new(self.indices[i]).expect("Should be bigger than 0");
+            let generation = self.next_index(i);
+
             return Some(ChannelId(i, generation));
         }
 
         panic!("Cannot play more than 8 sounds at once");
+    }
+
+    fn next_index(&mut self, i: usize) -> NonZero<u32> {
+        self.indices[i] = self.indices[i].wrapping_add(1);
+        if self.indices[i] == 0 {
+            self.indices[i] += 1;
+        }
+
+        NonZero::new(self.indices[i]).expect("Should be bigger than 0")
     }
 
     /// Lets you modify an already playing channel.
