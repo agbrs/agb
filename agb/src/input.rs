@@ -1,6 +1,6 @@
-#![deny(missing_docs)]
+use core::ops::BitOr;
+
 use crate::fixnum::Vector2D;
-use bitflags::bitflags;
 
 /// Tri-state enum. Allows for -1, 0 and +1.
 /// Useful if checking if the D-Pad is pointing left, right, or unpressed.
@@ -39,47 +39,44 @@ impl From<(bool, bool)> for Tri {
     }
 }
 
-bitflags! {
-    /// Represents a button on the GBA
-    ///
-    /// You can combine buttons using the `|` operator.
-    ///
-    /// ```rust
-    /// # #![no_main]
-    /// # #![no_std]
-    /// # #[agb::doctest]
-    /// # fn test(_gba: agb::Gba) {
-    /// # use agb::input::{Button, ButtonController};
-    /// # let mut button_controller = ButtonController::new();
-    /// // Check if A or B is pressed
-    /// if button_controller.is_pressed(Button::A | Button::B) {
-    ///     // ...
-    /// }
-    /// # }
-    /// ```
-    #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-    pub struct Button: u32 {
-        /// The A button
-        const A = 1 << 0;
-        /// The B button
-        const B = 1 << 1;
-        /// The SELECT button
-        const SELECT = 1 << 2;
-        /// The START button
-        const START = 1 << 3;
-        /// The RIGHT button on the D-Pad
-        const RIGHT = 1 << 4;
-        /// The LEFT button on the D-Pad
-        const LEFT = 1 << 5;
-        /// The UP button on the D-Pad
-        const UP = 1 << 6;
-        /// The DOWN button on the D-Pad
-        const DOWN = 1 << 7;
-        /// The R shoulder button on the D-Pad
-        const R = 1 << 8;
-        /// The L shoulder button on the D-Pad
-        const L = 1 << 9;
-    }
+/// Represents a button on the GBA
+///
+/// ```rust
+/// # #![no_main]
+/// # #![no_std]
+/// # #[agb::doctest]
+/// # fn test(_gba: agb::Gba) {
+/// # use agb::input::{Button, ButtonController};
+/// # let mut button_controller = ButtonController::new();
+/// // Check if A is pressed
+/// if button_controller.is_pressed(Button::A) {
+///     // ...
+/// }
+/// # }
+/// ```
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[repr(u16)]
+pub enum Button {
+    /// The A button
+    A = 1 << 0,
+    /// The B button
+    B = 1 << 1,
+    /// The SELECT button
+    Select = 1 << 2,
+    /// The START button
+    Start = 1 << 3,
+    /// The RIGHT button on the D-Pad
+    Right = 1 << 4,
+    /// The LEFT button on the D-Pad
+    Left = 1 << 5,
+    /// The UP button on the D-Pad
+    Up = 1 << 6,
+    /// The DOWN button on the D-Pad
+    Down = 1 << 7,
+    /// The R shoulder button on the D-Pad
+    R = 1 << 8,
+    /// The L shoulder button on the D-Pad
+    L = 1 << 9,
 }
 
 const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
@@ -111,9 +108,10 @@ const BUTTON_INPUT: *mut u16 = (0x04000130) as *mut u16;
 /// }
 /// # }
 /// ```
+#[derive(Clone, Debug)]
 pub struct ButtonController {
-    previous: u16,
-    current: u16,
+    previous: ButtonState,
+    current: ButtonState,
 }
 
 impl Default for ButtonController {
@@ -127,7 +125,7 @@ impl ButtonController {
     /// This is the preferred way to create it.
     #[must_use]
     pub fn new() -> Self {
-        let pressed = !unsafe { BUTTON_INPUT.read_volatile() };
+        let pressed = ButtonState::current();
         ButtonController {
             previous: pressed,
             current: pressed,
@@ -138,16 +136,23 @@ impl ButtonController {
     /// You should call this every frame (either at the start or the end) to ensure that you have the latest state of each button press.
     /// Calls to any method won't change until you call this.
     pub fn update(&mut self) {
+        self.update_with_state(ButtonState::current());
+    }
+
+    /// Updates the state of the button controller with a given input.
+    /// This is mainly useful for unit tests where you want to control what input is set. Is equivalent to
+    /// `update()` assuming that the given buttons in `state` are the new ones being pressed
+    pub fn update_with_state(&mut self, state: impl Into<ButtonState>) {
         self.previous = self.current;
-        self.current = !unsafe { BUTTON_INPUT.read_volatile() };
+        self.current = state.into();
     }
 
     /// Returns [Tri::Positive] if right is pressed, [Tri::Negative] if left is pressed and [Tri::Zero] if neither or both are pressed.
     /// This is the normal behaviour you'll want if you're using orthogonal inputs.
     #[must_use]
     pub fn x_tri(&self) -> Tri {
-        let left = self.is_pressed(Button::LEFT);
-        let right = self.is_pressed(Button::RIGHT);
+        let left = self.is_pressed(Button::Left);
+        let right = self.is_pressed(Button::Right);
 
         (left, right).into()
     }
@@ -156,8 +161,8 @@ impl ButtonController {
     /// This is the normal behaviour you'll want if you're using orthogonal inputs.
     #[must_use]
     pub fn y_tri(&self) -> Tri {
-        let up = self.is_pressed(Button::UP);
-        let down = self.is_pressed(Button::DOWN);
+        let up = self.is_pressed(Button::Up);
+        let down = self.is_pressed(Button::Down);
 
         (up, down).into()
     }
@@ -207,8 +212,8 @@ impl ButtonController {
     ///
     /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_x_tri(&self) -> Tri {
-        let left = self.is_just_pressed(Button::LEFT);
-        let right = self.is_just_pressed(Button::RIGHT);
+        let left = self.is_just_pressed(Button::Left);
+        let right = self.is_just_pressed(Button::Right);
 
         (left, right).into()
     }
@@ -218,8 +223,8 @@ impl ButtonController {
     ///
     /// Also returns [Tri::Zero] after the call to [`update()`](ButtonController::update()) if the button is still held.
     pub fn just_pressed_y_tri(&self) -> Tri {
-        let up = self.is_just_pressed(Button::UP);
-        let down = self.is_just_pressed(Button::DOWN);
+        let up = self.is_just_pressed(Button::Up);
+        let down = self.is_just_pressed(Button::Down);
 
         (up, down).into()
     }
@@ -249,21 +254,22 @@ impl ButtonController {
     }
 
     #[must_use]
-    /// Returns `true` if any of the provided keys are pressed.
-    pub fn is_pressed(&self, keys: Button) -> bool {
-        let currently_pressed = u32::from(self.current);
-        let keys = keys.bits();
-        (currently_pressed & keys) != 0
+    /// Returns `true` if any of the provided buttons are pressed.
+    pub fn is_pressed(&self, buttons: impl Into<ButtonState>) -> bool {
+        self.current.any_pressed(buttons.into())
     }
 
-    /// Returns true if all of the buttons specified in `keys` are not pressed. Equivalent to `!is_pressed(keys)`.
+    /// Returns `true` if any of the provided buttons are not pressed.
     #[must_use]
-    pub fn is_released(&self, keys: Button) -> bool {
-        !self.is_pressed(keys)
+    pub fn is_released(&self, buttons: impl Into<ButtonState>) -> bool {
+        !self.current.all_pressed(buttons.into())
     }
 
-    /// Returns true the buttons specified in `keys` went from not pressed to pressed in the last frame.
+    /// Returns true the button specified in `button` went from not pressed to pressed in the last frame.
     /// Very useful for menu navigation or selection if you want the players actions to only happen for one frame.
+    ///
+    /// If you pass multiple buttons (via [`ButtonState`]), then this will return true if _any_ of the provided
+    /// buttons transitioned from not pressed to pressed
     ///
     /// # Example
     /// ```rust
@@ -283,34 +289,144 @@ impl ButtonController {
     ///     }
     ///     # break;
     /// }
+    ///
+    /// button_controller.update_with_state(Button::A);
+    /// button_controller.update_with_state(Button::A | Button::B);
+    ///
+    /// assert!(button_controller.is_just_pressed(Button::B));
+    /// // even though A is pressed, it isn't just pressed
+    /// assert!(!button_controller.is_just_pressed(Button::A));
+    /// assert!(button_controller.is_just_pressed(Button::A | Button::B));
     /// # }
     /// ```
-    ///
-    /// ## Bug
-    ///
-    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
-    /// fixed in the next release of `agb`.
     #[must_use]
-    pub fn is_just_pressed(&self, keys: Button) -> bool {
-        let current = u32::from(self.current);
-        let previous = u32::from(self.previous);
-        let keys = keys.bits();
-        ((current & keys) != 0) && ((previous & keys) == 0)
+    pub fn is_just_pressed(&self, buttons: impl Into<ButtonState>) -> bool {
+        let buttons = buttons.into();
+        ButtonState(self.current.0 & !self.previous.0).any_pressed(buttons)
     }
 
-    /// Returns true if the button specified in `keys` went from pressed to not pressed in the last frame.
+    /// Returns true if the button specified in `key` went from pressed to not pressed in the last frame.
     /// Very useful for menu navigation or selection if you want players actions to only happen for one frame.
     ///
-    /// # Bug
-    ///
-    /// This has confusing behaviour if you pass more than one button to `keys` (via the `|` operator). This will be
-    /// fixed in the next release of `agb`.
+    /// If you pass multiple buttons (via [`ButtonState`]), then this will return true if _any_ of the provided
+    /// buttons transitioned from pressed to not pressed.
     #[must_use]
-    pub fn is_just_released(&self, keys: Button) -> bool {
-        let current = u32::from(self.current);
-        let previous = u32::from(self.previous);
-        let keys = keys.bits();
-        ((current & keys) == 0) && ((previous & keys) != 0)
+    pub fn is_just_released(&self, buttons: impl Into<ButtonState>) -> bool {
+        let buttons = buttons.into();
+        ButtonState(!self.current.0 & self.previous.0).any_pressed(buttons)
+    }
+}
+
+/// Represents the state of potentially multiple buttons being pressed at once
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct ButtonState(u16);
+
+impl From<Button> for ButtonState {
+    fn from(value: Button) -> Self {
+        Self::single(value)
+    }
+}
+
+impl BitOr for Button {
+    type Output = ButtonState;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        ButtonState(self as u16 | rhs as u16)
+    }
+}
+
+impl BitOr for ButtonState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOr<Button> for ButtonState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Button) -> Self::Output {
+        Self(self.0 | rhs as u16)
+    }
+}
+
+impl core::fmt::Debug for ButtonState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "ButtonState[")?;
+
+        let mut is_first = true;
+        for b in [
+            Button::A,
+            Button::B,
+            Button::Start,
+            Button::Select,
+            Button::Up,
+            Button::Down,
+            Button::Left,
+            Button::Right,
+            Button::L,
+            Button::R,
+        ] {
+            if self.is_pressed(b) {
+                let maybe_space = if is_first { "" } else { " " };
+                write!(f, "{maybe_space}{b:?}")?;
+
+                is_first = false;
+            }
+        }
+
+        write!(f, "]")
+    }
+}
+
+impl ButtonState {
+    /// Creates a new ButtonState with just a single button pressed (equivalent to `ButtonState::from(...)`)
+    #[must_use]
+    pub const fn single(button: Button) -> Self {
+        Self(button as u16)
+    }
+
+    /// Returns the current button state based on which buttons are being pressed right now
+    #[must_use]
+    pub fn current() -> Self {
+        Self(!unsafe { BUTTON_INPUT.read_volatile() })
+    }
+
+    /// Returns a `ButtonState` where everything is being pressed
+    #[must_use]
+    pub const fn all() -> Self {
+        Self(0b0000_0011_1111_1111)
+    }
+
+    /// Returns a `ButtonState` where nothing is being pressed
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self(0)
+    }
+
+    /// Returns true if the button `button` is pressed in this state
+    #[must_use]
+    pub const fn is_pressed(self, button: Button) -> bool {
+        self.any_pressed(Self::single(button))
+    }
+
+    /// Returns true if the button `button` is released in this state
+    #[must_use]
+    pub const fn is_released(self, button: Button) -> bool {
+        !self.is_pressed(button)
+    }
+
+    /// Returns true if any of the buttons in the button state `state` are pressed in self
+    #[must_use]
+    pub const fn any_pressed(self, state: ButtonState) -> bool {
+        self.0 & state.0 != 0
+    }
+
+    /// Returns true if all of the buttons in the button state `state` are pressed in self
+    #[must_use]
+    pub const fn all_pressed(self, state: ButtonState) -> bool {
+        self.0 & state.0 == state.0
     }
 }
 
@@ -326,5 +442,77 @@ mod test {
         assert_eq!(Tri::from((false, true)), Tri::Positive);
         assert_eq!(Tri::from((false, false)), Tri::Zero);
         assert_eq!(Tri::from((true, true)), Tri::Zero);
+    }
+
+    #[test_case]
+    fn test_button_state_is_pressed(_: &mut Gba) {
+        assert!(ButtonState::from(Button::A).is_pressed(Button::A));
+        assert!((Button::A | Button::B).is_pressed(Button::A));
+        assert!(!(Button::A | Button::B).is_pressed(Button::Start));
+    }
+
+    #[test_case]
+    fn test_button_state_is_released(_: &mut Gba) {
+        assert!(ButtonState::from(Button::A).is_released(Button::B));
+        assert!(!ButtonState::from(Button::B).is_released(Button::B));
+    }
+
+    #[test_case]
+    fn test_button_controller_is_just_pressed(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(Button::B);
+        controller.update_with_state(Button::A);
+
+        assert!(controller.is_just_pressed(Button::A));
+        assert!(controller.is_just_released(Button::B));
+        assert!(!controller.is_just_pressed(Button::Start));
+        assert!(!controller.is_just_released(Button::Select));
+    }
+
+    #[test_case]
+    fn test_button_controller_tri(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(Button::L | Button::Right);
+
+        assert_eq!(controller.lr_tri(), Tri::Negative);
+        assert_eq!(controller.x_tri(), Tri::Positive);
+        assert_eq!(controller.y_tri(), Tri::Zero);
+    }
+
+    #[test_case]
+    fn test_button_state_all(_: &mut Gba) {
+        assert!(ButtonState::all().is_pressed(Button::A));
+        assert!(ButtonState::all().is_pressed(Button::L));
+    }
+
+    #[test_case]
+    fn test_just_pressed_multiple(_: &mut Gba) {
+        let mut controller = ButtonController::new();
+
+        controller.update_with_state(ButtonState::empty());
+        controller.update_with_state(Button::A | Button::B);
+
+        assert!(controller.is_just_pressed(Button::A | Button::Start));
+
+        controller.update_with_state(Button::A);
+
+        assert!(!controller.is_just_pressed(Button::A | Button::Start));
+        assert!(controller.is_just_released(Button::B | Button::Select));
+    }
+
+    #[test_case]
+    fn test_can_or_mulitple_buttons(_: &mut Gba) {
+        assert_eq!(
+            Button::A | Button::B | Button::L | Button::R,
+            (Button::A | Button::B) | (Button::L | Button::R)
+        );
+    }
+
+    #[test_case]
+    fn test_debug_format_for_button_state(_: &mut Gba) {
+        let input = Button::A | Button::Up | Button::Select;
+        assert_eq!(alloc::format!("{input:?}"), "ButtonState[A Select Up]");
     }
 }

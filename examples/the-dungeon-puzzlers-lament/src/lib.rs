@@ -75,7 +75,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     let mut input = agb::input::ButtonController::new();
     input.update();
 
-    if input.is_pressed(Button::START | Button::SELECT | Button::L | Button::R) {
+    if input.is_pressed(Button::Start | Button::Select | Button::L | Button::R) {
         let _ = save::save_max_level(&mut gba.save, 0);
     }
 
@@ -95,7 +95,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
             loop {
                 if g.frame(
                     &mut (),
-                    |_, input, _| input.is_just_pressed(Button::SELECT),
+                    |_, input, _| input.is_just_pressed(Button::Select),
                     |_, frame| {
                         ending_bg.show(frame);
                     },

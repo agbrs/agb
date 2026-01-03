@@ -200,16 +200,8 @@ pub(crate) fn customise_screen(
 
         counter = counter.wrapping_add(1);
         input.update();
-        let ud = (
-            input.is_just_pressed(Button::UP),
-            input.is_just_pressed(Button::DOWN),
-        )
-            .into();
-        let lr = (
-            input.is_just_pressed(Button::LEFT),
-            input.is_just_pressed(Button::RIGHT),
-        )
-            .into();
+        let ud = input.just_pressed_y_tri();
+        let lr = input.just_pressed_x_tri();
 
         if ud != Tri::Zero || lr != Tri::Zero {
             agb.sfx.move_cursor();

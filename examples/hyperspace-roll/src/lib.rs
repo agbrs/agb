@@ -142,7 +142,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
             loop {
                 let _ = agb::rng::next_i32();
                 input.update();
-                if input.is_just_pressed(agb::input::Button::all()) {
+                if input.is_just_pressed(agb::input::ButtonState::all()) {
                     break;
                 }
 

@@ -557,7 +557,7 @@ pub(crate) fn battle_screen(
 
         input.update();
 
-        if input.is_just_pressed(Button::LEFT) {
+        if input.is_just_pressed(Button::Left) {
             if selected_die == 0 {
                 selected_die = num_dice - 1;
             } else {
@@ -567,7 +567,7 @@ pub(crate) fn battle_screen(
             agb.sfx.move_cursor();
         }
 
-        if input.is_just_pressed(Button::RIGHT) {
+        if input.is_just_pressed(Button::Right) {
             if selected_die == num_dice - 1 {
                 selected_die = 0;
             } else {
@@ -582,7 +582,7 @@ pub(crate) fn battle_screen(
             agb.sfx.roll();
         }
 
-        if input.is_just_pressed(Button::START) {
+        if input.is_just_pressed(Button::Start) {
             for action in current_battle_state.accept_rolls() {
                 battle_screen_display.add_action(action, &mut agb.sfx);
             }
