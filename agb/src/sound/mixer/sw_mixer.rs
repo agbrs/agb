@@ -1,5 +1,6 @@
 use core::cell::RefCell;
 use core::marker::PhantomData;
+use core::num::NonZero;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -114,7 +115,7 @@ pub struct Mixer<'gba> {
 
     buffer: raw_box::RawBoxDrop<MixerBuffer, InternalAllocator>,
     channels: [Option<SoundChannel>; 8],
-    indices: [i32; 8],
+    indices: [u32; 8],
     frequency: Frequency,
 
     working_buffer: Box<[Num<i16, 4>], InternalAllocator>,
@@ -151,7 +152,7 @@ pub struct Mixer<'gba> {
 /// # }
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ChannelId(usize, i32);
+pub struct ChannelId(usize, NonZero<u32>);
 
 impl Mixer<'_> {
     pub(super) fn new(frequency: Frequency) -> Self {
@@ -303,7 +304,8 @@ impl Mixer<'_> {
 
             channel.replace(new_channel);
             self.indices[i] += 1;
-            return Some(ChannelId(i, self.indices[i]));
+            let generation = NonZero::new(self.indices[i]).expect("Should be bigger than 0");
+            return Some(ChannelId(i, generation));
         }
 
         if new_channel.priority == SoundPriority::Low {
@@ -317,7 +319,8 @@ impl Mixer<'_> {
 
             channel.replace(new_channel);
             self.indices[i] += 1;
-            return Some(ChannelId(i, self.indices[i]));
+            let generation = NonZero::new(self.indices[i]).expect("Should be bigger than 0");
+            return Some(ChannelId(i, generation));
         }
 
         panic!("Cannot play more than 8 sounds at once");
@@ -348,7 +351,7 @@ impl Mixer<'_> {
     /// ```
     pub fn channel(&mut self, id: &ChannelId) -> Option<&'_ mut SoundChannel> {
         if let Some(channel) = &mut self.channels[id.0]
-            && self.indices[id.0] == id.1
+            && self.indices[id.0] == id.1.into()
             && !channel.is_done
         {
             return Some(channel);
