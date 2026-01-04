@@ -6,6 +6,16 @@ global_asm!(concat!(
     include_str!("memset.s")
 ));
 
+unsafe extern "C" {
+    fn __agbabi_memcpy2(dest: *mut u16, src: *const u16, n: usize);
+}
+
+pub unsafe fn memcpy_16(src: *const u16, dest: *mut u16, count: usize) {
+    unsafe {
+        __agbabi_memcpy2(dest, src, count * 2);
+    }
+}
+
 #[cfg(test)]
 mod test {
     mod memset {
