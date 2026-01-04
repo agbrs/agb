@@ -324,14 +324,14 @@ mod tests {
     use crate::{
         display::{
             HEIGHT, Palette16, Rgb, Rgb15, WIDTH,
-            object::{DynamicSprite16, Object, Size},
+            object::{DynamicSprite16, DynamicSprite256, Object, PaletteMulti, Size},
             tiled::VRAM_MANAGER,
         },
         test_runner::assert_image_output,
     };
 
     #[test_case]
-    fn check_dynamic_sprite(gba: &mut crate::Gba) {
+    fn check_dynamic_sprite_16(gba: &mut crate::Gba) {
         let mut gfx = gba.graphics.get();
         let mut frame = gfx.frame();
 
@@ -366,6 +366,46 @@ mod tests {
         frame.commit();
 
         assert_image_output("gfx/test_output/object/dynamic_sprite.png");
+    }
+
+    #[test_case]
+    fn check_dynamic_sprite_256(gba: &mut crate::Gba) {
+        let mut gfx = gba.graphics.get();
+        let mut frame = gfx.frame();
+
+        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
+
+        static PALETTE: PaletteMulti = const {
+            static PALETTE: &[Palette16] = &[const {
+                let palette = [Rgb15::WHITE; 16];
+                Palette16::new(palette)
+            }];
+            PaletteMulti::new(PALETTE)
+        };
+
+        let mut sprite = DynamicSprite256::new(Size::S8x8);
+        let colour = PALETTE.first_colour_index();
+
+        sprite.set_pixel(2, 2, colour);
+        sprite.set_pixel(6, 2, colour);
+
+        sprite.set_pixel(1, 6, colour);
+        sprite.set_pixel(2, 7, colour);
+        sprite.set_pixel(3, 7, colour);
+        sprite.set_pixel(4, 7, colour);
+        sprite.set_pixel(5, 7, colour);
+        sprite.set_pixel(6, 7, colour);
+        sprite.set_pixel(7, 6, colour);
+
+        let sprite = sprite.to_vram(&PALETTE);
+
+        Object::new(sprite)
+            .set_pos((WIDTH / 2 - 4, HEIGHT / 2 - 4))
+            .show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/object/dynamic_sprite_256.png");
     }
 
     #[test_case]
@@ -404,6 +444,6 @@ mod tests {
 
         frame.commit();
 
-        assert_image_output("gfx/test_output/object/dynamic_sprite.png");
+        assert_image_output("gfx/test_output/object/dynamic_sprite_copy.png");
     }
 }
