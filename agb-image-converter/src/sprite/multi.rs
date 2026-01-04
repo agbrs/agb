@@ -202,8 +202,6 @@ impl ToTokens for Output {
             }
         });
 
-        let start = (16 - self.palette.len() / 16) as u32;
-
         let input_files = self.input_files.iter().map(|file| {
             quote! {
                 const _: &[u8] = include_bytes!(#file);
@@ -213,7 +211,7 @@ impl ToTokens for Output {
         tokens.extend(quote! {
             #(#input_files)*
 
-            static PALETTE: PaletteMulti = PaletteMulti::new(#start, &[#(#palettes),*] );
+            static PALETTE: PaletteMulti = PaletteMulti::new(&[#(#palettes),*] );
             static SPRITES: &[Sprite] = &[#(#sprites),*];
 
             #(#tags)*
