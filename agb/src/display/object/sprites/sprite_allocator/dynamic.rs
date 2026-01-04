@@ -31,6 +31,7 @@ fn allocate_with_retry(layout: Layout) -> Result<NonNull<[u8]>, alloc::alloc::Al
 }
 
 /// A mutable dynamic sprite buffer that can be generated at run time
+#[derive(Clone)]
 pub struct DynamicSprite16<A: Allocator = InternalAllocator> {
     data: Box<[u16], A>,
     size: Size,
@@ -93,6 +94,7 @@ impl<A: Allocator> DynamicSprite16<A> {
 }
 
 /// A mutable dynamic sprite buffer that can be generated at run time
+#[derive(Clone)]
 pub struct DynamicSprite256<A: Allocator = InternalAllocator> {
     data: Box<[u16], A>,
     size: Size,
@@ -163,6 +165,16 @@ macro_rules! common_impls {
             pub fn new(size: Size) -> Self {
                 Self::new_in(size, InternalAllocator)
             }
+
+            /// Copies data from the byte buffer into a new allocation
+            pub fn from_bytes(size: Size, bytes: &[u8]) -> Self {
+                Self::from_bytes_in(size, bytes, InternalAllocator)
+            }
+
+            /// Copies data from the byte buffer into a new allocation
+            pub fn try_from_bytes(size: Size, bytes: &[u8]) -> Result<Self, AllocError> {
+                Self::try_from_bytes_in(size, bytes, InternalAllocator)
+            }
         }
 
         impl<A: Allocator> $name<A> {
@@ -175,35 +187,65 @@ macro_rules! common_impls {
                 Ok(Self { data, size })
             }
 
+            /// Copies data from the byte buffer into a new allocation
+            pub fn try_from_bytes_in(
+                size: Size,
+                bytes: &[u8],
+                allocator: A,
+            ) -> Result<Self, AllocError> {
+                let allocation_size = Self::allocation_size(size);
+                assert_eq!(
+                    bytes.len(),
+                    allocation_size,
+                    "buffer length should match sprite size"
+                );
+
+                let mut data =
+                    Box::<[u16], A>::try_new_uninit_slice_in(allocation_size / 2, allocator)?;
+
+                let data = unsafe {
+                    // cast the data ptr to a u16 ptr and memcpy
+                    let raw = data.as_mut_ptr() as *mut u16;
+                    let raw = raw as *mut u8;
+                    core::ptr::copy_nonoverlapping(bytes.as_ptr(), raw, allocation_size);
+                    data.assume_init()
+                };
+
+                Ok(Self { data, size })
+            }
+
+            /// Copies data from the byte buffer into a new allocation
+            pub fn from_bytes_in(size: Size, bytes: &[u8], allocator: A) -> Self {
+                Self::try_from_bytes_in(size, bytes, allocator)
+                    .expect("should be able to allocate sprite buffer")
+            }
+
             /// Creates a new sprite buffer in the given allocator
             pub fn new_in(size: Size, allocator: A) -> Self {
                 Self::try_new_in(size, allocator).expect("should be able to allocate sprite buffer")
             }
 
             /// Creates a copy of the sprite data, this can potentially be in another allocator.
-            pub fn try_clone_from_in<B: Allocator>(
-                other: $name<B>,
-                allocator: A,
-            ) -> Result<Self, AllocError> {
+            pub fn try_clone_in<B: Allocator>(&self, allocator: B) -> Result<$name<B>, AllocError> {
                 let mut data =
-                    Box::<[u16], A>::try_new_uninit_slice_in(other.data.len(), allocator)?;
+                    Box::<[u16], B>::try_new_uninit_slice_in(self.data.len(), allocator)?;
 
                 let data = unsafe {
                     // cast the data ptr to a u16 ptr and memcpy
                     let raw = data.as_mut_ptr() as *mut u16;
-                    core::ptr::copy_nonoverlapping(other.data.as_ptr(), raw, other.data.len());
+                    core::ptr::copy_nonoverlapping(self.data.as_ptr(), raw, self.data.len());
                     data.assume_init()
                 };
 
-                Ok(Self {
+                Ok($name {
                     data,
-                    size: other.size,
+                    size: self.size,
                 })
             }
 
             /// Creates a copy of the sprite data, this can potentially be in another allocator.
-            pub fn clone_from_in<B: Allocator>(other: $name<B>, allocator: A) -> Self {
-                Self::try_clone_from_in(other, allocator)
+            pub fn clone_in<B: Allocator>(&self, allocator: B) -> $name<B> {
+                self.try_clone_in(allocator)
                     .expect("should be able to allocate sprite buffer")
             }
 
