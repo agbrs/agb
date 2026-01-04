@@ -3,7 +3,7 @@ use core::{
     ptr::NonNull,
 };
 
-use crate::InternalAllocator;
+use crate::{InternalAllocator, display::object::PaletteVramMulti};
 
 use alloc::{alloc::AllocError, boxed::Box};
 
@@ -78,6 +78,36 @@ impl<A: Allocator> DynamicSprite16<A> {
         self.data_mut()[byte_to_modify] = byte;
     }
 
+    /// Copies the sprite data to sprite vram
+    pub fn try_to_vram(
+        &self,
+        palette: impl Into<PaletteVramSingle>,
+    ) -> Result<SpriteVram, AllocError> {
+        let data = allocate_with_retry(self.layout())?;
+
+        unsafe {
+            let dest = data.cast().as_ptr();
+            crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
+        }
+
+        let palette = palette.into().palette();
+
+        let inner = unsafe {
+            SpriteVramInner::new_from_allocated(
+                SpriteLocation::from_ptr(data.cast()),
+                self.size,
+                palette.is_multi(),
+            )
+        };
+        Ok(SpriteVram::new(inner, palette))
+    }
+
+    /// Copies the sprite data to sprite vram
+    pub fn to_vram(&self, palette: impl Into<PaletteVramSingle>) -> SpriteVram {
+        self.try_to_vram(palette)
+            .expect("should be able to allocate sprite buffer")
+    }
+
     /// Wipes the sprite clearing it with a specified pixel
     ///
     /// # Panics
@@ -125,11 +155,41 @@ impl<A: Allocator> DynamicSprite256<A> {
 
         let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 2;
+        let byte_to_modify_in_tile = x_in_tile + y_in_tile * 8;
 
         let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_8BPP + byte_to_modify_in_tile;
 
         self.data_mut()[byte_to_modify] = paletted_pixel as u8;
+    }
+
+    /// Copies the sprite data to sprite vram
+    pub fn try_to_vram(
+        &self,
+        palette: impl Into<PaletteVramMulti>,
+    ) -> Result<SpriteVram, AllocError> {
+        let data = allocate_with_retry(self.layout())?;
+
+        unsafe {
+            let dest = data.cast().as_ptr();
+            crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
+        }
+
+        let palette = palette.into().palette();
+
+        let inner = unsafe {
+            SpriteVramInner::new_from_allocated(
+                SpriteLocation::from_ptr(data.cast()),
+                self.size,
+                palette.is_multi(),
+            )
+        };
+        Ok(SpriteVram::new(inner, palette))
+    }
+
+    /// Copies the sprite data to sprite vram
+    pub fn to_vram(&self, palette: impl Into<PaletteVramMulti>) -> SpriteVram {
+        self.try_to_vram(palette)
+            .expect("should be able to allocate sprite buffer")
     }
 
     /// Wipes the sprite clearing it with a specified pixel
@@ -235,36 +295,6 @@ macro_rules! common_impls {
             /// Creates a copy of the sprite data, this can potentially be in another allocator.
             pub fn clone_in<B: Allocator>(&self, allocator: B) -> $name<B> {
                 self.try_clone_in(allocator)
-                    .expect("should be able to allocate sprite buffer")
-            }
-
-            /// Copies the sprite data to sprite vram
-            pub fn try_to_vram(
-                &self,
-                palette: impl Into<PaletteVramSingle>,
-            ) -> Result<SpriteVram, AllocError> {
-                let data = allocate_with_retry(self.layout())?;
-
-                unsafe {
-                    let dest = data.cast().as_ptr();
-                    crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
-                }
-
-                let palette = palette.into().palette();
-
-                let inner = unsafe {
-                    SpriteVramInner::new_from_allocated(
-                        SpriteLocation::from_ptr(data.cast()),
-                        self.size,
-                        palette.is_multi(),
-                    )
-                };
-                Ok(SpriteVram::new(inner, palette))
-            }
-
-            /// Copies the sprite data to sprite vram
-            pub fn to_vram(&self, palette: impl Into<PaletteVramSingle>) -> SpriteVram {
-                self.try_to_vram(palette)
                     .expect("should be able to allocate sprite buffer")
             }
 
