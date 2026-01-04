@@ -73,7 +73,7 @@ impl ObjectTextRenderer {
         let mut sprite = DynamicSprite16::new(self.size);
 
         for (pixel, palette_index) in group.pixels() {
-            sprite.set_pixel(pixel.x as usize, pixel.y as usize, palette_index as usize);
+            sprite.set_pixel(pixel.x as usize, pixel.y as usize, palette_index);
         }
 
         let mut object = Object::new(sprite.to_vram(self.palette.clone()));
