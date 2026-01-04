@@ -85,8 +85,8 @@ impl<A: Allocator> DynamicSprite16<A> {
         let data = allocate_with_retry(self.layout())?;
 
         unsafe {
-            let dest = data.cast().as_ptr();
-            crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
+            let dest: *mut u32 = data.as_ptr().cast();
+            core::ptr::copy_nonoverlapping(self.data.as_ptr(), dest, self.data.len());
         }
 
         let palette = palette.into().palette();
@@ -167,8 +167,8 @@ impl<A: Allocator> DynamicSprite256<A> {
         let data = allocate_with_retry(self.layout())?;
 
         unsafe {
-            let dest = data.cast().as_ptr();
-            crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
+            let dest: *mut u32 = data.as_ptr().cast();
+            core::ptr::copy_nonoverlapping(self.data.as_ptr(), dest, self.data.len());
         }
 
         let palette = palette.into().palette();
