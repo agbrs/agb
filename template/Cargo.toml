@@ -13,6 +13,9 @@ agb = "0.22.6"
 opt-level = 3
 debug = true
 
+[profile.dev.build-override]
+opt-level = 3
+
 [profile.release]
 opt-level = 3
 lto = "fat"
