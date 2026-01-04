@@ -175,7 +175,7 @@ impl ToTokens for Output {
             let y = sprite.size.1 as usize;
 
             quote! {
-                unsafe { Sprite::new_multi(&PALETTE, align_bytes!(u16, #data), Size::from_width_height(#x, #y)) }
+                unsafe { Sprite::new_multi(&PALETTE, align_bytes!(u32, #data), Size::from_width_height(#x, #y)) }
             }
         });
 

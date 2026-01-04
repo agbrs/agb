@@ -33,7 +33,7 @@ fn allocate_with_retry(layout: Layout) -> Result<NonNull<[u8]>, alloc::alloc::Al
 /// A mutable dynamic sprite buffer that can be generated at run time
 #[derive(Clone)]
 pub struct DynamicSprite16<A: Allocator = InternalAllocator> {
-    data: Box<[u16], A>,
+    data: Box<[u32], A>,
     size: Size,
 }
 
@@ -66,17 +66,16 @@ impl<A: Allocator> DynamicSprite16<A> {
 
         let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        let half_word_to_modify_in_tile = x_in_tile / 4 + y_in_tile * 2;
+        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile;
 
-        let half_word_to_modify =
-            tile_number_to_modify * BYTES_PER_TILE_4BPP / 2 + half_word_to_modify_in_tile;
-        let mut half_word = self.data[half_word_to_modify];
+        let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_4BPP + byte_to_modify_in_tile;
+        let mut byte = self.data()[byte_to_modify];
 
-        let nibble_to_modify = (x % 4) * 4;
+        let nibble_to_modify = (x % 2) * 4;
 
-        half_word = (half_word & !(0b1111 << nibble_to_modify))
-            | ((paletted_pixel as u16) << nibble_to_modify);
-        self.data[half_word_to_modify] = half_word;
+        byte =
+            (byte & !(0b1111 << nibble_to_modify)) | ((paletted_pixel as u8) << nibble_to_modify);
+        self.data_mut()[byte_to_modify] = byte;
     }
 
     /// Wipes the sprite clearing it with a specified pixel
@@ -85,18 +84,15 @@ impl<A: Allocator> DynamicSprite16<A> {
     /// Panics if the pixel would be outside the range of the palette
     pub fn clear(&mut self, paletted_pixel: usize) {
         assert!(paletted_pixel < 16);
-        let reset = (paletted_pixel
-            | (paletted_pixel << 4)
-            | (paletted_pixel << 8)
-            | (paletted_pixel << 12)) as u16;
-        self.data.fill(reset);
+        let reset = (paletted_pixel | (paletted_pixel << 4)) as u8;
+        self.data_mut().fill(reset);
     }
 }
 
 /// A mutable dynamic sprite buffer that can be generated at run time
 #[derive(Clone)]
 pub struct DynamicSprite256<A: Allocator = InternalAllocator> {
-    data: Box<[u16], A>,
+    data: Box<[u32], A>,
     size: Size,
 }
 
@@ -129,17 +125,11 @@ impl<A: Allocator> DynamicSprite256<A> {
 
         let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        let half_word_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 2;
+        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 2;
 
-        let half_word_to_modify =
-            tile_number_to_modify * BYTES_PER_TILE_8BPP / 2 + half_word_to_modify_in_tile;
-        let mut half_word = self.data[half_word_to_modify];
+        let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_8BPP + byte_to_modify_in_tile;
 
-        let byte_to_modify = (x % 2) * 8;
-
-        half_word = (half_word & !(0b11111111 << byte_to_modify))
-            | ((paletted_pixel as u16) << byte_to_modify);
-        self.data[half_word_to_modify] = half_word;
+        self.data_mut()[byte_to_modify] = paletted_pixel as u8;
     }
 
     /// Wipes the sprite clearing it with a specified pixel
@@ -148,8 +138,7 @@ impl<A: Allocator> DynamicSprite256<A> {
     /// Panics if the pixel would be outside the range of the palette
     pub fn clear(&mut self, paletted_pixel: usize) {
         assert!(paletted_pixel < 256);
-        let reset = (paletted_pixel | (paletted_pixel << 8)) as u16;
-        self.data.fill(reset);
+        self.data_mut().fill(paletted_pixel as u8);
     }
 }
 
@@ -181,7 +170,7 @@ macro_rules! common_impls {
             /// Creates a new sprite buffer in the given allocator
             pub fn try_new_in(size: Size, allocator: A) -> Result<Self, AllocError> {
                 let data =
-                    Box::try_new_zeroed_slice_in(Self::allocation_size(size) / 2, allocator)?;
+                    Box::try_new_zeroed_slice_in(Self::allocation_size(size) / 4, allocator)?;
                 let data = unsafe { data.assume_init() };
 
                 Ok(Self { data, size })
@@ -201,11 +190,11 @@ macro_rules! common_impls {
                 );
 
                 let mut data =
-                    Box::<[u16], A>::try_new_uninit_slice_in(allocation_size / 2, allocator)?;
+                    Box::<[u32], A>::try_new_uninit_slice_in(allocation_size / 4, allocator)?;
 
                 let data = unsafe {
-                    // cast the data ptr to a u16 ptr and memcpy
-                    let raw = data.as_mut_ptr() as *mut u16;
+                    // cast the data ptr to a u32 ptr and memcpy
+                    let raw = data.as_mut_ptr() as *mut u32;
                     let raw = raw as *mut u8;
                     core::ptr::copy_nonoverlapping(bytes.as_ptr(), raw, allocation_size);
                     data.assume_init()
@@ -228,11 +217,11 @@ macro_rules! common_impls {
             /// Creates a copy of the sprite data, this can potentially be in another allocator.
             pub fn try_clone_in<B: Allocator>(&self, allocator: B) -> Result<$name<B>, AllocError> {
                 let mut data =
-                    Box::<[u16], B>::try_new_uninit_slice_in(self.data.len(), allocator)?;
+                    Box::<[u32], B>::try_new_uninit_slice_in(self.data.len(), allocator)?;
 
                 let data = unsafe {
-                    // cast the data ptr to a u16 ptr and memcpy
-                    let raw = data.as_mut_ptr() as *mut u16;
+                    // cast the data ptr to a u32 ptr and memcpy
+                    let raw = data.as_mut_ptr() as *mut u32;
                     core::ptr::copy_nonoverlapping(self.data.as_ptr(), raw, self.data.len());
                     data.assume_init()
                 };
@@ -258,7 +247,7 @@ macro_rules! common_impls {
 
                 unsafe {
                     let dest = data.cast().as_ptr();
-                    crate::agbabi::memcpy_16(self.data.as_ptr(), dest, self.data.len());
+                    crate::agbabi::memcpy_16(self.data.as_ptr().cast(), dest, self.data.len() * 2);
                 }
 
                 let palette = palette.into().palette();
@@ -277,6 +266,24 @@ macro_rules! common_impls {
             pub fn to_vram(&self, palette: impl Into<PaletteVramSingle>) -> SpriteVram {
                 self.try_to_vram(palette)
                     .expect("should be able to allocate sprite buffer")
+            }
+
+            /// Access the underlying sprite buffer as a byte slice.
+            /// The data is guaranteed to be aligned to a 4 byte boundary.
+            pub fn data(&self) -> &[u8] {
+                unsafe {
+                    let raw = self.data.as_ptr();
+                    core::slice::from_raw_parts(raw.cast(), self.data.len() * 4)
+                }
+            }
+
+            /// Access the underlying sprite buffer as a mutable byte slice.
+            /// The data is guaranteed to be aligned to a 4 byte boundary.
+            pub fn data_mut(&mut self) -> &mut [u8] {
+                unsafe {
+                    let raw = self.data.as_mut_ptr();
+                    core::slice::from_raw_parts_mut(raw.cast(), self.data.len() * 4)
+                }
             }
         }
     };
