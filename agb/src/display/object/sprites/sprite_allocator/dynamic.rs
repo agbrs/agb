@@ -51,7 +51,7 @@ impl<A: Allocator> DynamicSprite16<A> {
     /// # Panics
     /// Panics if the pixel would be outside the range of the palette
     /// or the coordinate is outside the sprite.
-    pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: usize) {
+    pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: u8) {
         assert!(paletted_pixel < 16);
 
         let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
@@ -66,15 +66,14 @@ impl<A: Allocator> DynamicSprite16<A> {
 
         let (x_in_tile, y_in_tile) = (x % 8, y % 8);
 
-        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile;
+        let byte_to_modify_in_tile = x_in_tile / 2 + y_in_tile * 4;
 
         let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_4BPP + byte_to_modify_in_tile;
         let mut byte = self.data()[byte_to_modify];
 
         let nibble_to_modify = (x % 2) * 4;
 
-        byte =
-            (byte & !(0b1111 << nibble_to_modify)) | ((paletted_pixel as u8) << nibble_to_modify);
+        byte = (byte & !(0b1111 << nibble_to_modify)) | (paletted_pixel << nibble_to_modify);
         self.data_mut()[byte_to_modify] = byte;
     }
 
@@ -140,9 +139,7 @@ impl<A: Allocator> DynamicSprite256<A> {
     /// # Panics
     /// Panics if the pixel would be outside the range of the palette
     /// or the coordinate is outside the sprite.
-    pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: usize) {
-        assert!(paletted_pixel < 256);
-
+    pub fn set_pixel(&mut self, x: usize, y: usize, paletted_pixel: u8) {
         let (sprite_pixel_x, sprite_pixel_y) = self.size.to_width_height();
         assert!(x < sprite_pixel_x, "x too big for sprite size");
         assert!(y < sprite_pixel_y, "y too big for sprite size");
@@ -159,7 +156,7 @@ impl<A: Allocator> DynamicSprite256<A> {
 
         let byte_to_modify = tile_number_to_modify * BYTES_PER_TILE_8BPP + byte_to_modify_in_tile;
 
-        self.data_mut()[byte_to_modify] = paletted_pixel as u8;
+        self.data_mut()[byte_to_modify] = paletted_pixel;
     }
 
     /// Copies the sprite data to sprite vram
