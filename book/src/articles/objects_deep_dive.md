@@ -94,6 +94,21 @@ fn walk(frame: &mut GraphicsFrame, frame_count: usize) {
 }
 ```
 
+# Object ordering
+
+<img src="./objects/render_order.png" alt="Demonstration of overlapping sprites" class="right" />
+
+When rendering multiple objects in the same location, one will show above another.
+The one shown on top is the one object that has had the `.show()` method called **first**.
+
+From [the example](https://agbrs.dev/examples/object_z_order), the number 2 is rendered first, followed by 3, 4 and then 1.
+The number 2 is rendered on top, and if the 1 and the 3 were to overlap then the 3 would be shown above the 1 in addition to the 4 it is visibly covering.
+
+If your game requires many objects to have a correct covering order, you should ensure you call the `.show()` method in the correct order.
+Normally this will be calling `.show()` on objects with the greatest `y` value first.
+You may want to call [`.sort_by_key()`](https://doc.rust-lang.org/stable/alloc/vec/struct.Vec.html#method.sort_by_key) with the `y` value being the key before showing the objects.
+It is important that you do not use an `unstable` sort here, since that could cause z-fighting as objects with the same `y` value could get sorted to a different location each frame, causing them to change render order each frame.
+
 # Affine objects
 
 <img src="./objects/affine_objects.png" alt="Demonstration of rotating and scaling objects" class="right" />

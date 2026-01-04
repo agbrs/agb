@@ -134,13 +134,17 @@ pub struct Object {
 }
 
 impl Object {
-    /// Show the object on the current frame
+    /// Show the object on the current frame.
+    ///
+    /// Objects with the `.show()` function called first will be rendered **above** those which have `.show()`
+    /// called on them afterwards. It is up to you to order the objects in the correct way before calling
+    /// `.show()` on them.
     pub fn show(&self, frame: &mut GraphicsFrame) {
         frame.oam_frame.show_regular(self);
     }
 
     #[must_use]
-    /// Creates an unmanaged object from a sprite in vram.
+    /// Creates an object from a sprite in vram.
     pub fn new(sprite: impl Into<SpriteVram>) -> Self {
         fn new(sprite: SpriteVram) -> Object {
             let sprite_location = sprite.location();
@@ -280,13 +284,17 @@ pub struct ObjectAffine {
 }
 
 impl ObjectAffine {
-    /// Show the affine object on the screen
+    /// Show the affine object on the screen.
+    ///
+    /// Objects with the `.show()` function called first will be rendered **above** those which have `.show()`
+    /// called on them afterwards. It is up to you to order the objects in the correct way before calling
+    /// `.show()` on them.
     pub fn show(&self, frame: &mut GraphicsFrame) {
         frame.oam_frame.show_affine(self);
     }
 
     #[must_use]
-    /// Creates an unmanaged object from a sprite in vram.
+    /// Creates an object from a sprite in vram.
     pub fn new(
         sprite: impl Into<SpriteVram>,
         affine_matrix: AffineMatrixObject,
