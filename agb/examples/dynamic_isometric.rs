@@ -1,6 +1,8 @@
 #![no_main]
 #![no_std]
 
+use core::mem;
+
 use agb::{
     Gba,
     display::{
@@ -18,7 +20,7 @@ use alloc::{vec, vec::Vec};
 
 extern crate alloc;
 
-include_background_gfx!(mod tiles, "000000",
+include_background_gfx!(mod tiles, "333333",
     ISOMETRIC => "examples/gfx/isometric_tiles.aseprite"
 );
 
@@ -55,7 +57,7 @@ fn main(mut gba: Gba) -> ! {
 
     let mut tile_cache = TileCache::default();
 
-    let map = Map::new(4, 4);
+    let map = Map::new(13, 6);
 
     for y in 0..32 {
         for x in 0..16 {
@@ -87,19 +89,18 @@ struct CacheKey {
     direction: TilePosition,
     me: TileType,
     them: TileType,
+    upper: (Option<TileType>, Option<TileType>, Option<TileType>),
 }
 
 impl CacheKey {
-    fn normalise(self) -> Self {
-        if self.me <= self.them {
-            self
-        } else {
-            Self {
-                direction: self.direction.reverse(),
-                me: self.them,
-                them: self.me,
-            }
-        }
+    fn normalise(mut self) -> Self {
+        // ensure we render in a consistent order
+        // if self.me > self.them {
+        //     self.direction = self.direction.reverse();
+        //     mem::swap(&mut self.me, &mut self.them);
+        // }
+
+        self
     }
 }
 
@@ -120,19 +121,78 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         direction: position,
         me: tile_a,
         them: tile_b,
+        upper,
     } = cache_key;
 
     for (i, tile) in result.iter_mut().enumerate() {
         let i = i as u16;
-        let me = tiles::ISOMETRIC
-            .tiles
-            .get_tile_data(i + tile_a as u16 * 4 + position.offset());
-        let them = tiles::ISOMETRIC
-            .tiles
-            .get_tile_data(i + tile_b as u16 * 4 + position.reverse().offset());
 
-        tile.data().copy_from_slice(me);
-        blit_4(tile.data(), them);
+        fn get_tile(offset: u16, tile_type: TileType) -> &'static [u32] {
+            tiles::ISOMETRIC
+                .tiles
+                .get_tile_data(offset + tile_type as u16 * 4)
+        }
+
+        let me = get_tile(i + position.offset(), tile_a);
+        let them = get_tile(i + position.reverse().offset(), tile_b);
+
+        const WALL_OFFSET: u16 = (tiles::ISOMETRIC.width * 2) as u16;
+
+        match position {
+            TilePosition::TopLeft => {
+                // upper bottom left wall, their upper right wall, their floor, my floor
+                let ublw = get_tile(
+                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
+                    upper.1.unwrap(),
+                );
+                let turw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
+
+                tile.data().copy_from_slice(ublw);
+                blit_4(tile.data(), turw);
+            }
+            TilePosition::TopRight => {
+                // upper bottom right wall, their upper left wall, their floor, my floor
+                let ubrw = get_tile(
+                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
+                    upper.1.unwrap(),
+                );
+                let tulw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
+
+                tile.data().copy_from_slice(ubrw);
+                blit_4(tile.data(), tulw);
+            }
+            TilePosition::BottomLeft => {
+                // (upper.0) bottom right wall, my top left wall, their floor, my floor
+                let ubrw = get_tile(
+                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
+                    upper.0.unwrap(),
+                );
+                let mtlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_a);
+
+                tile.data().copy_from_slice(ubrw);
+                blit_4(tile.data(), mtlw);
+            }
+            TilePosition::BottomRight => {
+                // (upper.2) bottom left wall, my top right wall, their floor, my floor
+                let ubrw = get_tile(
+                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
+                    upper.2.unwrap(),
+                );
+                let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
+
+                tile.data().copy_from_slice(ubrw);
+                blit_4(tile.data(), mtlw);
+            }
+        }
+
+        let (first, second) = if tile_a > tile_b {
+            (me, them)
+        } else {
+            (them, me)
+        };
+
+        blit_4(tile.data(), first);
+        blit_4(tile.data(), second);
     }
 
     result
@@ -179,11 +239,21 @@ const TILE_HEIGHT: i32 = 2;
 
 impl Map {
     fn new(width: usize, height: usize) -> Self {
-        let mut map_data = vec![TileType::Dirt; width * height];
-        map_data[8] = TileType::Water;
-        map_data[9] = TileType::Water;
-        map_data[10] = TileType::Water;
-        map_data[5] = TileType::Air;
+        use TileType::Air as A;
+        use TileType::Dirt as D;
+        use TileType::Water as W;
+
+        #[rustfmt::skip]
+        let mut map_data = vec![
+            W, W, W, W, W, W, W, W, W, W, W, W, W,
+            W, A, D, A, A, A, D, D, A, D, A, A, W,
+            W, D, A, D, A, D, A, A, A, D, D, A, W,
+            W, D, D, D, A, D, A, D, A, D, A, D, W,
+            W, D, A, D, A, A, D, D, A, D, D, A, W,
+            W, W, W, W, W, W, W, W, W, W, W, W, W,
+        ];
+
+        assert_eq!(map_data.len(), width * height);
 
         Self {
             map_data,
@@ -201,8 +271,7 @@ impl Map {
     }
 
     fn get_from_gba_tile(&self, x: i32, y: i32) -> CacheKey {
-        let x = x - 16;
-        let y = y - 4;
+        let x = x - 8;
 
         let tile_position = match (
             (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
@@ -234,6 +303,11 @@ impl Map {
             direction: tile_position,
             me,
             them: neighbour,
+            upper: (
+                Some(self.get_tile(tile_x - 1, tile_y)),
+                Some(self.get_tile(tile_x - 1, tile_y - 1)),
+                Some(self.get_tile(tile_x, tile_y - 1)),
+            ),
         }
     }
 }
