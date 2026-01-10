@@ -4,7 +4,8 @@
 use agb::{
     Gba,
     display::{
-        Priority, Rgb15,
+        Blend, GraphicsFrame, Priority, Rgb15,
+        object::{GraphicsMode, Object, Tag},
         tiled::{
             DynamicTile16, RegularBackground, RegularBackgroundSize, TileEffect, TileFormat,
             VRAM_MANAGER,
@@ -12,8 +13,10 @@ use agb::{
         utils::blit_4,
     },
     dma::HBlankDma,
+    fixnum::{Num, Vector2D, num, vec2},
     hash_map::{HashMap, HashSet},
-    include_background_gfx, include_colours,
+    include_aseprite, include_background_gfx, include_colours,
+    input::ButtonController,
 };
 
 use alloc::{rc::Rc, vec, vec::Vec};
@@ -25,6 +28,8 @@ extern crate alloc;
 include_background_gfx!(mod tiles, "333333",
     ISOMETRIC => "examples/gfx/isometric_tiles.aseprite"
 );
+
+include_aseprite!(mod sprites, "examples/gfx/godzilla.aseprite");
 
 static SKY_GRADIENT: [Rgb15; 160] =
     include_colours!("examples/gfx/sky-background-gradient.aseprite");
@@ -116,12 +121,17 @@ fn main(mut gba: Gba) -> ! {
         }
     }
 
+    let mut character = Character::new(&sprites::GODZILLA, vec2(num!(7), num!(3)));
+
+    let mut input = ButtonController::new();
+
     agb::println!("Cache size: {}", tile_cache.tiles.len());
 
     loop {
+        input.update();
         let mut frame = gfx.frame();
 
-        floor_bg.show(&mut frame);
+        let floor_id = floor_bg.show(&mut frame);
         wall_bg.show(&mut frame);
 
         HBlankDma::new(
@@ -129,6 +139,15 @@ fn main(mut gba: Gba) -> ! {
             &SKY_GRADIENT,
         )
         .show(&mut frame);
+
+        character.position += input.just_pressed_vector::<Num<i32, 12>>();
+
+        character.show(&mut frame, &wall_map);
+
+        frame
+            .blend()
+            .object_transparency(num!(0.5), num!(0.5))
+            .enable_background(floor_id);
 
         frame.commit();
     }
@@ -303,7 +322,8 @@ impl Map {
         }
     }
 
-    fn get_tile(&self, x: i32, y: i32) -> TileType {
+    fn get_tile(&self, pos: Vector2D<i32>) -> TileType {
+        let Vector2D { x, y } = pos;
         if x < 0 || x as usize >= self.width || y < 0 || y as usize >= self.height {
             return TileType::Air;
         }
@@ -312,8 +332,6 @@ impl Map {
     }
 
     fn get_from_gba_tile(&self, x: i32, y: i32) -> CacheKey {
-        let x = x - 8;
-
         let tile_position = match (
             (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
             y.rem_euclid(TILE_HEIGHT),
@@ -337,17 +355,17 @@ impl Map {
             TilePosition::BottomRight => (1, 0),
         };
 
-        let me = self.get_tile(tile_x, tile_y);
-        let neighbour = self.get_tile(tile_x + neighbour_pos.0, tile_y + neighbour_pos.1);
+        let me = self.get_tile(vec2(tile_x, tile_y));
+        let neighbour = self.get_tile(vec2(tile_x + neighbour_pos.0, tile_y + neighbour_pos.1));
 
         CacheKey {
             direction: tile_position,
             me,
             them: neighbour,
             upper: (
-                self.get_tile(tile_x - 1, tile_y),
-                self.get_tile(tile_x - 1, tile_y - 1),
-                self.get_tile(tile_x, tile_y - 1),
+                self.get_tile(vec2(tile_x - 1, tile_y)),
+                self.get_tile(vec2(tile_x - 1, tile_y - 1)),
+                self.get_tile(vec2(tile_x, tile_y - 1)),
             ),
         }
     }
@@ -358,4 +376,57 @@ fn div_floor(numerator: i32, divisor: i32) -> i32 {
     let r = numerator % divisor;
     let correction = (numerator ^ divisor) >> (i32::BITS - 1);
     if r != 0 { d + correction } else { d }
+}
+
+struct Character {
+    tag: &'static Tag,
+    // position is the current foot location in world space
+    position: Vector2D<Num<i32, 12>>,
+    foot_offset: Vector2D<i32>,
+}
+
+impl Character {
+    fn new(tag: &'static Tag, position: Vector2D<Num<i32, 12>>) -> Self {
+        Self {
+            tag,
+            position,
+            foot_offset: vec2(16, 30),
+        }
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame, wall_map: &Map) {
+        // which priority do we need for the bottom sprites?
+        let tile_pos = self.position.floor();
+        let priority = if wall_map.get_tile(tile_pos + vec2(1, 0)) != TileType::Air
+            || wall_map.get_tile(tile_pos + vec2(1, 1)) != TileType::Air
+            || wall_map.get_tile(tile_pos + vec2(0, 1)) != TileType::Air
+        {
+            Priority::P3
+        } else {
+            Priority::P1
+        };
+
+        let macro_space = vec2(
+            self.position.x - self.position.y + 1,
+            self.position.x + self.position.y + 1,
+        ) / 2;
+        let real_tile_space = vec2(macro_space.x * TILE_WIDTH, macro_space.y * TILE_HEIGHT);
+        let real_pixel_space = (real_tile_space * 8).round();
+
+        Object::new(self.tag.sprite(0))
+            .set_pos(real_pixel_space - self.foot_offset)
+            .set_priority(Priority::P1)
+            .show(frame);
+        Object::new(self.tag.sprite(1))
+            .set_pos(real_pixel_space - self.foot_offset + vec2(0, 16))
+            .set_priority(priority)
+            .show(frame);
+
+        // drop shadow
+        Object::new(sprites::DROP_SHADOW.sprite(0))
+            .set_pos(real_pixel_space - vec2(16, 8))
+            .set_priority(priority)
+            .set_graphics_mode(GraphicsMode::AlphaBlending)
+            .show(frame);
+    }
 }
