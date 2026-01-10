@@ -34,6 +34,12 @@ enum TilePosition {
     BottomRight,
 }
 
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
+enum TileType {
+    Dirt = 0,
+    Water = 1,
+}
+
 fn main(mut gba: Gba) -> ! {
     VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
 
@@ -45,22 +51,21 @@ fn main(mut gba: Gba) -> ! {
 
     let mut gfx = gba.graphics.get();
 
-    let mut tile_cache: HashMap<TilePosition, [DynamicTile16; 2]> = HashMap::new();
-    for position in TilePosition::iter() {
-        tile_cache.insert(position, build_combined_tile(position, 0, 0));
-    }
+    let mut tile_cache = TileCache::default();
 
     for y in 0..16 {
         for x in 0..8 {
-            for (index, tile) in TilePosition::iter()
-                .flat_map(|pos| tile_cache.get(&pos).unwrap())
-                .enumerate()
-            {
-                bg.set_tile_dynamic16(
-                    (x * 4 + (index % 4) as u16, y * 2 + (index / 4) as u16),
-                    tile,
-                    TileEffect::default(),
-                );
+            let mut index = 0;
+            for pos in TilePosition::iter() {
+                for tile in tile_cache.get_tiles(pos, TileType::Dirt, TileType::Water) {
+                    bg.set_tile_dynamic16(
+                        (x * 4 + (index % 4) as u16, y * 2 + (index / 4) as u16),
+                        tile,
+                        TileEffect::default(),
+                    );
+
+                    index += 1;
+                }
             }
         }
     }
@@ -74,7 +79,30 @@ fn main(mut gba: Gba) -> ! {
     }
 }
 
-fn build_combined_tile(position: TilePosition, tile_a: u16, tile_b: u16) -> [DynamicTile16; 2] {
+#[derive(Default)]
+struct TileCache {
+    // Direction, Centre, Outer
+    cache: HashMap<(TilePosition, TileType, TileType), [DynamicTile16; 2]>,
+}
+
+impl TileCache {
+    fn get_tiles(
+        &mut self,
+        position: TilePosition,
+        tile_a: TileType,
+        tile_b: TileType,
+    ) -> &[DynamicTile16; 2] {
+        self.cache
+            .entry((position, tile_a, tile_b))
+            .or_insert_with(|| build_combined_tile(position, tile_a, tile_b))
+    }
+}
+
+fn build_combined_tile(
+    position: TilePosition,
+    tile_a: TileType,
+    tile_b: TileType,
+) -> [DynamicTile16; 2] {
     let mut result = [DynamicTile16::new(), DynamicTile16::new()];
 
     for (i, tile) in result.iter_mut().enumerate() {
@@ -82,13 +110,13 @@ fn build_combined_tile(position: TilePosition, tile_a: u16, tile_b: u16) -> [Dyn
         tile.data().copy_from_slice(
             tiles::ISOMETRIC
                 .tiles
-                .get_tile_data(i + tile_a * 4 + position.offset()),
+                .get_tile_data(i + tile_a as u16 * 4 + position.offset()),
         );
         blit_4(
             tile.data(),
             tiles::ISOMETRIC
                 .tiles
-                .get_tile_data(i + tile_b * 4 + position.reverse().offset()),
+                .get_tile_data(i + tile_b as u16 * 4 + position.reverse().offset()),
         );
     }
 
