@@ -198,7 +198,16 @@ struct CacheKey {
     direction: TilePosition,
     me: TileType,
     them: TileType,
-    upper: (TileType, TileType, TileType),
+    neighbours: NeighbourTileContext,
+}
+
+// All these refer orthographically to the current tile
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+struct NeighbourTileContext {
+    left: TileType,
+    up_left: TileType,
+    up: TileType,
+    up_right: TileType,
 }
 
 impl TileCache {
@@ -229,7 +238,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         direction: position,
         me: tile_a,
         them: tile_b,
-        upper,
+        neighbours,
     } = cache_key;
 
     for (i, tile) in result.iter_mut().enumerate() {
@@ -238,7 +247,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         fn get_tile(offset: u16, tile_type: TileType) -> &'static [u32] {
             tiles::ISOMETRIC
                 .tiles
-                .get_tile_data(offset + tile_type as u16 * 4)
+                .get_tile_data(offset + tile_type as u16 * 5)
         }
 
         let me = get_tile(i + position.offset(), tile_a);
@@ -249,7 +258,10 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         let (first_wall, second_wall) = match position {
             TilePosition::TopLeft => {
                 // upper bottom left wall, their top right wall, their floor, my floor
-                let ublw = get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper.1);
+                let ublw = get_tile(
+                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
+                    neighbours.up,
+                );
                 let ttrw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
 
                 (ublw, ttrw)
@@ -258,9 +270,18 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                 // upper bottom right wall, their top left wall, their floor, my floor
                 let ubrw = get_tile(
                     TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    upper.1,
+                    neighbours.up,
                 );
                 let ttlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
+
+                // the RHS of the wall to fill the 1px gap
+                if i == 0 {
+                    let wall_rhs = get_tile(
+                        TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
+                        neighbours.up_left,
+                    );
+                    blit_4(tile.data_mut(), wall_rhs);
+                }
 
                 (ubrw, ttlw)
             }
@@ -268,15 +289,27 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                 // (upper.0) bottom right wall, my top left wall, their floor, my floor
                 let ubrw = get_tile(
                     TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    upper.0,
+                    neighbours.up_left,
                 );
                 let mtlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_a);
+
+                // the RHS of the wall to fill the 1px gap
+                if i == 0 {
+                    let wall_rhs = get_tile(
+                        TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
+                        neighbours.left,
+                    );
+                    blit_4(tile.data_mut(), wall_rhs);
+                }
 
                 (ubrw, mtlw)
             }
             TilePosition::BottomRight => {
                 // (upper.2) bottom left wall, my top right wall, their floor, my floor
-                let ubrw = get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper.2);
+                let ubrw = get_tile(
+                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
+                    neighbours.up_right,
+                );
                 let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
 
                 (ubrw, mtlw)
@@ -379,11 +412,12 @@ impl Map {
             direction: tile_position,
             me,
             them: neighbour,
-            upper: (
-                self.get_tile(vec2(tile_x - 1, tile_y)),
-                self.get_tile(vec2(tile_x - 1, tile_y - 1)),
-                self.get_tile(vec2(tile_x, tile_y - 1)),
-            ),
+            neighbours: NeighbourTileContext {
+                left: self.get_tile(vec2(tile_x - 1, tile_y + 1)),
+                up_left: self.get_tile(vec2(tile_x - 1, tile_y)),
+                up: self.get_tile(vec2(tile_x - 1, tile_y - 1)),
+                up_right: self.get_tile(vec2(tile_x, tile_y - 1)),
+            },
         }
     }
 }
