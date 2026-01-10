@@ -237,95 +237,79 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         neighbours,
     } = cache_key;
 
+    // Wall offset in the tileset (walls are 2 rows below floors)
+    const WALL_OFFSET: u16 = (tiles::ISOMETRIC.width * 2) as u16;
+
+    fn get_tile_id(offset: u16, tile_type: TileType, is_wall: bool) -> u16 {
+        offset + tile_type as u16 * 5 + if is_wall { WALL_OFFSET } else { 0 }
+    }
+
+    let (first_wall, second_wall, gap_fill) = match position {
+        TilePosition::TopLeft => {
+            // upper bottom left wall, their top right wall, their floor, my floor
+            let ublw = get_tile_id(TilePosition::BottomLeft.offset(), neighbours.up, true);
+            let ttrw = get_tile_id(TilePosition::TopRight.offset(), tile_b, true);
+
+            (ublw, ttrw, None)
+        }
+        TilePosition::TopRight => {
+            // upper bottom right wall, their top left wall, their floor, my floor
+            let ubrw = get_tile_id(TilePosition::BottomRight.offset(), neighbours.up, true);
+            let ttlw = get_tile_id(TilePosition::TopLeft.offset(), tile_b, true);
+
+            // the RHS of the wall to fill the 1px gap
+            let wall_rhs = get_tile_id(
+                TilePosition::TopRight.offset() + 2,
+                neighbours.up_left,
+                true,
+            );
+            (ubrw, ttlw, Some(wall_rhs))
+        }
+        TilePosition::BottomLeft => {
+            // (upper.0) bottom right wall, my top left wall, their floor, my floor
+            let ubrw = get_tile_id(TilePosition::BottomRight.offset(), neighbours.up_left, true);
+            let mtlw = get_tile_id(TilePosition::TopLeft.offset(), tile_a, true);
+
+            // the RHS of the wall to fill the 1px gap
+            let wall_rhs = get_tile_id(TilePosition::TopRight.offset() + 2, neighbours.left, true);
+            (ubrw, mtlw, Some(wall_rhs))
+        }
+        TilePosition::BottomRight => {
+            // (upper.2) bottom left wall, my top right wall, their floor, my floor
+            let ubrw = get_tile_id(TilePosition::BottomLeft.offset(), neighbours.up_right, true);
+            let mtlw = get_tile_id(TilePosition::TopRight.offset(), tile_a, true);
+
+            (ubrw, mtlw, None)
+        }
+    };
+
     array::from_fn(|i| {
         let i = i as u16;
 
-        fn get_tile(offset: u16, tile_type: TileType) -> &'static [u32] {
-            tiles::ISOMETRIC
-                .tiles
-                .get_tile_data(offset + tile_type as u16 * 5)
+        fn get_tile(offset: u16) -> &'static [u32] {
+            tiles::ISOMETRIC.tiles.get_tile_data(offset)
         }
-
-        let me = get_tile(i + position.offset(), tile_a);
-        let them = get_tile(i + position.reverse().offset(), tile_b);
-
-        const WALL_OFFSET: u16 = (tiles::ISOMETRIC.width * 2) as u16;
-
-        let (first_wall, second_wall, gap_fill) = match position {
-            TilePosition::TopLeft => {
-                // upper bottom left wall, their top right wall, their floor, my floor
-                let ublw = get_tile(
-                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
-                    neighbours.up,
-                );
-                let ttrw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
-
-                (ublw, ttrw, None)
-            }
-            TilePosition::TopRight => {
-                // upper bottom right wall, their top left wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    neighbours.up,
-                );
-                let ttlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
-
-                // the RHS of the wall to fill the 1px gap
-                if i == 0 {
-                    let wall_rhs = get_tile(
-                        TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
-                        neighbours.up_left,
-                    );
-                    (ubrw, ttlw, Some(wall_rhs))
-                } else {
-                    (ubrw, ttlw, None)
-                }
-            }
-            TilePosition::BottomLeft => {
-                // (upper.0) bottom right wall, my top left wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    neighbours.up_left,
-                );
-                let mtlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_a);
-
-                // the RHS of the wall to fill the 1px gap
-                if i == 0 {
-                    let wall_rhs = get_tile(
-                        TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
-                        neighbours.left,
-                    );
-                    (ubrw, mtlw, Some(wall_rhs))
-                } else {
-                    (ubrw, mtlw, None)
-                }
-            }
-            TilePosition::BottomRight => {
-                // (upper.2) bottom left wall, my top right wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
-                    neighbours.up_right,
-                );
-                let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
-
-                (ubrw, mtlw, None)
-            }
-        };
 
         let mut tile = DynamicTile16::new().fill_with(0);
 
-        if let Some(gap_fill) = gap_fill {
-            blit_16_colour(tile.data_mut(), gap_fill);
-        }
+        let me = get_tile(get_tile_id(position.offset(), tile_a, false) + i);
+        let them = get_tile(get_tile_id(position.reverse().offset(), tile_b, false) + i);
 
-        blit_16_colour(tile.data_mut(), first_wall);
-        blit_16_colour(tile.data_mut(), second_wall);
-
+        // Order floors so higher-priority tile types render on top
         let (first, second) = if tile_a > tile_b {
             (me, them)
         } else {
             (them, me)
         };
+
+        if let Some(gap_fill) = gap_fill
+            && i == 0
+        {
+            blit_16_colour(tile.data_mut(), get_tile(gap_fill));
+        }
+
+        blit_16_colour(tile.data_mut(), get_tile(first_wall + i));
+        blit_16_colour(tile.data_mut(), get_tile(second_wall + i));
 
         blit_16_colour(tile.data_mut(), first);
         blit_16_colour(tile.data_mut(), second);
