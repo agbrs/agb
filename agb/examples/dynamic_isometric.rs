@@ -190,7 +190,10 @@ impl Map {
         let x = x - 16;
         let y = y - 4;
 
-        let tile_position = match ((div_floor(x, 2)).rem_euclid(2), y.rem_euclid(2)) {
+        let tile_position = match (
+            (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
+            y.rem_euclid(TILE_HEIGHT),
+        ) {
             (0, 0) => TilePosition::TopLeft,
             (1, 0) => TilePosition::TopRight,
             (0, 1) => TilePosition::BottomLeft,
@@ -198,8 +201,8 @@ impl Map {
             _ => unreachable!(),
         };
 
-        let macro_tile_x = div_floor(x, 4);
-        let macro_tile_y = div_floor(y, 2);
+        let macro_tile_x = div_floor(x, TILE_WIDTH);
+        let macro_tile_y = div_floor(y, TILE_HEIGHT);
 
         let (tile_x, tile_y) = (macro_tile_x + macro_tile_y, macro_tile_y - macro_tile_x);
 
