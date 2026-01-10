@@ -82,21 +82,21 @@ fn main(mut gba: Gba) -> ! {
         #[rustfmt::skip]
         let upper_layer = vec![
             A, A, A, A, A, A, A, A, A, A, A, A, A,
-            A, A, D, A, A, A, D, D, A, D, A, A, A,
-            A, D, A, D, A, D, A, A, A, D, D, A, A,
-            A, D, D, D, A, D, A, D, A, D, A, D, A,
-            A, D, A, D, A, A, D, D, A, D, D, A, A,
+            A, D, A, A, A, D, A, A, A, D, D, A, A,
+            A, D, A, A, D, D, A, A, A, D, D, A, A,
+            A, D, A, A, D, A, A, A, A, D, D, A, A,
+            A, D, A, A, A, A, A, A, A, D, D, A, A,
             A, A, A, A, A, A, A, A, A, A, A, A, A,
         ];
 
         #[rustfmt::skip]
         let lower_layer = vec![
-            D, D, D, D, D, D, D, D, D, D, D, D, D,
-            D, D, D, D, D, D, D, D, D, D, D, D, D,
-            W, W, A, W, W, W, W, W, W, W, W, W, W,
-            W, W, W, W, W, W, W, W, W, W, W, W, W,
-            D, D, D, D, D, D, D, D, D, D, D, D, D,
-            D, D, D, D, D, D, D, D, D, D, D, D, D,
+            D, D, D, D, D, D, D, D, D, D, D, W, W,
+            D, D, D, D, D, D, D, D, D, D, D, W, W,
+            D, D, D, D, D, D, D, A, D, D, D, D, D,
+            D, D, D, D, D, D, D, A, D, D, D, D, D,
+            D, D, D, D, W, W, D, D, D, D, D, D, D,
+            D, D, D, D, W, W, D, D, D, D, D, D, D,
         ];
 
         (lower_layer, upper_layer)
@@ -127,6 +127,8 @@ fn main(mut gba: Gba) -> ! {
 
     agb::println!("Cache size: {}", tile_cache.tiles.len());
 
+    let mut character_target_position = vec2(num!(7), num!(3));
+
     loop {
         input.update();
         let mut frame = gfx.frame();
@@ -140,7 +142,21 @@ fn main(mut gba: Gba) -> ! {
         )
         .show(&mut frame);
 
-        character.position += input.just_pressed_vector::<Num<i32, 12>>();
+        let just_pressed = input.just_pressed_vector::<Num<i32, 12>>();
+        if just_pressed != vec2(num!(0), num!(0)) {
+            if character_target_position != character.position {
+                character.position = character_target_position;
+            }
+
+            let new_location = character_target_position + just_pressed;
+            if wall_map.get_tile(new_location.floor()) == TileType::Air
+                && floor_map.get_tile(new_location.floor()) != TileType::Air
+            {
+                character_target_position = new_location;
+            }
+        }
+
+        character.position = (character.position + character_target_position) / 2;
 
         character.show(&mut frame, &wall_map);
 
@@ -396,7 +412,7 @@ impl Character {
 
     fn show(&self, frame: &mut GraphicsFrame, wall_map: &Map) {
         // which priority do we need for the bottom sprites?
-        let tile_pos = self.position.floor();
+        let tile_pos = self.position.round();
         let priority = if wall_map.get_tile(tile_pos + vec2(1, 0)) != TileType::Air
             || wall_map.get_tile(tile_pos + vec2(1, 1)) != TileType::Air
             || wall_map.get_tile(tile_pos + vec2(0, 1)) != TileType::Air
