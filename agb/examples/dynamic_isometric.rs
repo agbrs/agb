@@ -89,6 +89,12 @@ impl TileCache {
         tile_a: TileType,
         tile_b: TileType,
     ) -> &[DynamicTile16; 2] {
+        let (position, tile_a, tile_b) = if tile_a <= tile_b {
+            (position, tile_a, tile_b)
+        } else {
+            (position.reverse(), tile_b, tile_a)
+        };
+
         self.cache
             .entry((position, tile_a, tile_b))
             .or_insert_with(|| build_combined_tile(position, tile_a, tile_b))
@@ -111,14 +117,8 @@ fn build_combined_tile(
             .tiles
             .get_tile_data(i + tile_b as u16 * 4 + position.reverse().offset());
 
-        let (first, second) = if tile_a <= tile_b {
-            (me, them)
-        } else {
-            (them, me)
-        };
-
-        tile.data().copy_from_slice(first);
-        blit_4(tile.data(), second);
+        tile.data().copy_from_slice(me);
+        blit_4(tile.data(), them);
     }
 
     result
