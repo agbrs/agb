@@ -326,6 +326,7 @@ where
     /// If the map did have this key present, the value is updated and the old value
     /// is returned. The key is not updated, which matters for types that can be `==`
     /// without being identical.
+    #[doc(alias("set", "add"))]
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let hash = self.hash(&key);
 
