@@ -407,6 +407,7 @@ impl Map {
     }
 }
 
+/// same as the div_floor in nightly but isn't stable yet so here until that's stabilised
 fn div_floor(numerator: i32, divisor: i32) -> i32 {
     let d = numerator / divisor;
     let r = numerator % divisor;
