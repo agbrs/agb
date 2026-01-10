@@ -74,7 +74,7 @@ impl ObjectTextRenderer {
         let pal_index = group.palette_index();
 
         for pixel in group.pixels() {
-            sprite.set_pixel(pixel.x as usize, pixel.y as usize, pal_index as usize);
+            sprite.set_pixel(pixel.x as usize, pixel.y as usize, pal_index);
         }
 
         let mut object = Object::new(sprite.to_vram(self.palette.clone()));

@@ -32,13 +32,12 @@ pub struct PaletteMulti {
 impl PaletteMulti {
     #[must_use]
     /// Create a new palette. The first index is the index where the palette starts.
-    pub const fn new(first_index: u32, palettes: &'static [Palette16]) -> Self {
+    pub const fn new(palettes: &'static [Palette16]) -> Self {
         assert!(palettes.len() <= 16);
         assert!(!palettes.is_empty());
-        assert!(16 - palettes.len() >= first_index as usize);
 
         Self {
-            first_index,
+            first_index: (16 - palettes.len()) as u32,
             palettes,
         }
     }
@@ -53,6 +52,12 @@ impl PaletteMulti {
     /// expected to be copied starting from this index.
     pub const fn first_index(&self) -> u32 {
         self.first_index
+    }
+
+    #[must_use]
+    /// Gets the first colour from this palette
+    pub const fn first_colour_index(&self) -> u8 {
+        (self.first_index * 16) as u8
     }
 }
 
