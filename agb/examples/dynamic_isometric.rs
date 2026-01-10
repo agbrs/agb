@@ -69,6 +69,8 @@ fn main(mut gba: Gba) -> ! {
         }
     }
 
+    agb::println!("Cache size: {}", tile_cache.cache.len());
+
     loop {
         let mut frame = gfx.frame();
 
@@ -89,25 +91,11 @@ struct CacheKey {
     direction: TilePosition,
     me: TileType,
     them: TileType,
-    upper: (Option<TileType>, Option<TileType>, Option<TileType>),
-}
-
-impl CacheKey {
-    fn normalise(mut self) -> Self {
-        // ensure we render in a consistent order
-        // if self.me > self.them {
-        //     self.direction = self.direction.reverse();
-        //     mem::swap(&mut self.me, &mut self.them);
-        // }
-
-        self
-    }
+    upper: (TileType, TileType, TileType),
 }
 
 impl TileCache {
     fn get_tiles(&mut self, cache_key: CacheKey) -> &[DynamicTile16; 2] {
-        let cache_key = cache_key.normalise();
-
         self.cache
             .entry(cache_key)
             .or_insert_with(|| build_combined_tile(cache_key))
@@ -144,45 +132,41 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         let (first_wall, second_wall) = match position {
             TilePosition::TopLeft => {
                 // upper bottom left wall, their top right wall, their floor, my floor
-                let ublw = upper.1.map(|upper| {
-                    get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper)
-                });
+                let ublw = get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper.1);
                 let ttrw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
 
                 (ublw, ttrw)
             }
             TilePosition::TopRight => {
                 // upper bottom right wall, their top left wall, their floor, my floor
-                let ubrw = upper.1.map(|upper| {
-                    get_tile(TilePosition::BottomRight.offset() + i + WALL_OFFSET, upper)
-                });
+                let ubrw = get_tile(
+                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
+                    upper.1,
+                );
                 let ttlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
 
                 (ubrw, ttlw)
             }
             TilePosition::BottomLeft => {
                 // (upper.0) bottom right wall, my top left wall, their floor, my floor
-                let ubrw = upper.0.map(|left| {
-                    get_tile(TilePosition::BottomRight.offset() + i + WALL_OFFSET, left)
-                });
+                let ubrw = get_tile(
+                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
+                    upper.0,
+                );
                 let mtlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_a);
 
                 (ubrw, mtlw)
             }
             TilePosition::BottomRight => {
                 // (upper.2) bottom left wall, my top right wall, their floor, my floor
-                let ubrw = upper.2.map(|right| {
-                    get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, right)
-                });
+                let ubrw = get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper.2);
                 let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
 
                 (ubrw, mtlw)
             }
         };
 
-        if let Some(first_wall) = first_wall {
-            blit_4(tile.data(), first_wall);
-        }
+        blit_4(tile.data(), first_wall);
         blit_4(tile.data(), second_wall);
 
         let (first, second) = if tile_a > tile_b {
@@ -304,9 +288,9 @@ impl Map {
             me,
             them: neighbour,
             upper: (
-                Some(self.get_tile(tile_x - 1, tile_y)),
-                Some(self.get_tile(tile_x - 1, tile_y - 1)),
-                Some(self.get_tile(tile_x, tile_y - 1)),
+                self.get_tile(tile_x - 1, tile_y),
+                self.get_tile(tile_x - 1, tile_y - 1),
+                self.get_tile(tile_x, tile_y - 1),
             ),
         }
     }
