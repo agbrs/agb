@@ -1,0 +1,22 @@
+[package]
+name = "dynamic-isometric"
+version = "0.1.0"
+authors = [""]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+agb = { path = "../../agb" }
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = true

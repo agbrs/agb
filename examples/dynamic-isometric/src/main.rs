@@ -26,13 +26,12 @@ use core::hash::Hash;
 extern crate alloc;
 
 include_background_gfx!(mod tiles, "333333",
-    ISOMETRIC => "examples/gfx/isometric_tiles.aseprite"
+    ISOMETRIC => "gfx/isometric_tiles.aseprite"
 );
 
-include_aseprite!(mod sprites, "examples/gfx/godzilla.aseprite");
+include_aseprite!(mod sprites, "gfx/kaiju.aseprite");
 
-static SKY_GRADIENT: [Rgb15; 160] =
-    include_colours!("examples/gfx/sky-background-gradient.aseprite");
+static SKY_GRADIENT: [Rgb15; 160] = include_colours!("gfx/sky-background-gradient.aseprite");
 
 #[agb::entry]
 fn entry(gba: Gba) -> ! {
@@ -122,7 +121,7 @@ fn main(mut gba: Gba) -> ! {
     }
 
     let initial_position = vec2(num!(6), num!(3));
-    let mut character = Character::new(&sprites::GODZILLA, initial_position);
+    let mut character = Character::new(&sprites::KAIJU, initial_position);
 
     let mut input = ButtonController::new();
 
@@ -148,6 +147,8 @@ fn main(mut gba: Gba) -> ! {
             if character_target_position != character.position {
                 character.position = character_target_position;
             }
+
+            character.flipped = just_pressed.x > num!(0) || just_pressed.y < num!(0);
 
             let new_location = character_target_position + just_pressed;
             if wall_map.get_tile(new_location.floor()) == TileType::Air
@@ -434,6 +435,7 @@ struct Character {
     // position is the current foot location in world space
     position: Vector2D<Num<i32, 12>>,
     foot_offset: Vector2D<i32>,
+    flipped: bool,
 }
 
 impl Character {
@@ -442,6 +444,7 @@ impl Character {
             tag,
             position,
             foot_offset: vec2(16, 30),
+            flipped: false,
         }
     }
 
@@ -467,10 +470,12 @@ impl Character {
         Object::new(self.tag.sprite(0))
             .set_pos(real_pixel_space - self.foot_offset)
             .set_priority(Priority::P1)
+            .set_hflip(self.flipped)
             .show(frame);
         Object::new(self.tag.sprite(1))
             .set_pos(real_pixel_space - self.foot_offset + vec2(0, 16))
             .set_priority(priority)
+            .set_hflip(self.flipped)
             .show(frame);
 
         // drop shadow
