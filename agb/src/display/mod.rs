@@ -83,6 +83,7 @@ mod palette16;
 /// Data produced by agb-image-converter
 pub mod tile_data;
 pub mod tiled;
+pub mod utils;
 
 mod affine;
 pub use affine::AffineMatrix;
