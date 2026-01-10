@@ -39,7 +39,7 @@ fn entry(gba: Gba) -> ! {
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
-enum TilePosition {
+enum Quadrant {
     TopLeft,
     TopRight,
     BottomLeft,
@@ -196,7 +196,7 @@ impl Eq for TileHolder {}
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 struct TileSpec {
-    direction: TilePosition,
+    quadrant: Quadrant,
     me: TileType,
     them: TileType,
     neighbours: NeighbourTileContext,
@@ -231,7 +231,7 @@ impl TileCache {
 
 fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
     let TileSpec {
-        direction: position,
+        quadrant,
         me: tile_a,
         them: tile_b,
         neighbours,
@@ -244,40 +244,36 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
         offset + tile_type as u16 * 5 + if is_wall { WALL_OFFSET } else { 0 }
     }
 
-    let (first_wall, second_wall, gap_fill) = match position {
-        TilePosition::TopLeft => {
+    let (first_wall, second_wall, gap_fill) = match quadrant {
+        Quadrant::TopLeft => {
             // upper bottom left wall, their top right wall, their floor, my floor
-            let ublw = get_tile_id(TilePosition::BottomLeft.offset(), neighbours.up, true);
-            let ttrw = get_tile_id(TilePosition::TopRight.offset(), tile_b, true);
+            let ublw = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up, true);
+            let ttrw = get_tile_id(Quadrant::TopRight.offset(), tile_b, true);
 
             (ublw, ttrw, None)
         }
-        TilePosition::TopRight => {
+        Quadrant::TopRight => {
             // upper bottom right wall, their top left wall, their floor, my floor
-            let ubrw = get_tile_id(TilePosition::BottomRight.offset(), neighbours.up, true);
-            let ttlw = get_tile_id(TilePosition::TopLeft.offset(), tile_b, true);
+            let ubrw = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up, true);
+            let ttlw = get_tile_id(Quadrant::TopLeft.offset(), tile_b, true);
 
             // the RHS of the wall to fill the 1px gap
-            let wall_rhs = get_tile_id(
-                TilePosition::TopRight.offset() + 2,
-                neighbours.up_left,
-                true,
-            );
+            let wall_rhs = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.up_left, true);
             (ubrw, ttlw, Some(wall_rhs))
         }
-        TilePosition::BottomLeft => {
+        Quadrant::BottomLeft => {
             // (upper.0) bottom right wall, my top left wall, their floor, my floor
-            let ubrw = get_tile_id(TilePosition::BottomRight.offset(), neighbours.up_left, true);
-            let mtlw = get_tile_id(TilePosition::TopLeft.offset(), tile_a, true);
+            let ubrw = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up_left, true);
+            let mtlw = get_tile_id(Quadrant::TopLeft.offset(), tile_a, true);
 
             // the RHS of the wall to fill the 1px gap
-            let wall_rhs = get_tile_id(TilePosition::TopRight.offset() + 2, neighbours.left, true);
+            let wall_rhs = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.left, true);
             (ubrw, mtlw, Some(wall_rhs))
         }
-        TilePosition::BottomRight => {
+        Quadrant::BottomRight => {
             // (upper.2) bottom left wall, my top right wall, their floor, my floor
-            let ubrw = get_tile_id(TilePosition::BottomLeft.offset(), neighbours.up_right, true);
-            let mtlw = get_tile_id(TilePosition::TopRight.offset(), tile_a, true);
+            let ubrw = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up_right, true);
+            let mtlw = get_tile_id(Quadrant::TopRight.offset(), tile_a, true);
 
             (ubrw, mtlw, None)
         }
@@ -292,8 +288,8 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
 
         let mut tile = DynamicTile16::new().fill_with(0);
 
-        let me = get_tile(get_tile_id(position.offset(), tile_a, false) + i);
-        let them = get_tile(get_tile_id(position.reverse().offset(), tile_b, false) + i);
+        let me = get_tile(get_tile_id(quadrant.offset(), tile_a, false) + i);
+        let them = get_tile(get_tile_id(quadrant.reverse().offset(), tile_b, false) + i);
 
         // Order floors so higher-priority tile types render on top
         let (first, second) = if tile_a > tile_b {
@@ -318,22 +314,22 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
     })
 }
 
-impl TilePosition {
+impl Quadrant {
     fn offset(self) -> u16 {
         match self {
-            TilePosition::TopLeft => 0,
-            TilePosition::TopRight => 2,
-            TilePosition::BottomLeft => tiles::ISOMETRIC.width as u16,
-            TilePosition::BottomRight => tiles::ISOMETRIC.width as u16 + 2,
+            Quadrant::TopLeft => 0,
+            Quadrant::TopRight => 2,
+            Quadrant::BottomLeft => tiles::ISOMETRIC.width as u16,
+            Quadrant::BottomRight => tiles::ISOMETRIC.width as u16 + 2,
         }
     }
 
     fn reverse(self) -> Self {
         match self {
-            TilePosition::TopLeft => TilePosition::BottomRight,
-            TilePosition::TopRight => TilePosition::BottomLeft,
-            TilePosition::BottomLeft => TilePosition::TopRight,
-            TilePosition::BottomRight => TilePosition::TopLeft,
+            Quadrant::TopLeft => Quadrant::BottomRight,
+            Quadrant::TopRight => Quadrant::BottomLeft,
+            Quadrant::BottomLeft => Quadrant::TopRight,
+            Quadrant::BottomRight => Quadrant::TopLeft,
         }
     }
 }
@@ -368,14 +364,14 @@ impl Map {
     }
 
     fn get_from_gba_tile(&self, x: i32, y: i32) -> TileSpec {
-        let tile_position = match (
+        let quadrant = match (
             (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
             y.rem_euclid(TILE_HEIGHT),
         ) {
-            (0, 0) => TilePosition::TopLeft,
-            (1, 0) => TilePosition::TopRight,
-            (0, 1) => TilePosition::BottomLeft,
-            (1, 1) => TilePosition::BottomRight,
+            (0, 0) => Quadrant::TopLeft,
+            (1, 0) => Quadrant::TopRight,
+            (0, 1) => Quadrant::BottomLeft,
+            (1, 1) => Quadrant::BottomRight,
             _ => unreachable!(),
         };
 
@@ -384,18 +380,21 @@ impl Map {
 
         let (tile_x, tile_y) = (macro_tile_x + macro_tile_y, macro_tile_y - macro_tile_x);
 
-        let neighbour_pos = match tile_position {
-            TilePosition::TopLeft => (-1, 0),
-            TilePosition::TopRight => (0, -1),
-            TilePosition::BottomLeft => (0, 1),
-            TilePosition::BottomRight => (1, 0),
+        let neighbour_quadrant = match quadrant {
+            Quadrant::TopLeft => (-1, 0),
+            Quadrant::TopRight => (0, -1),
+            Quadrant::BottomLeft => (0, 1),
+            Quadrant::BottomRight => (1, 0),
         };
 
         let me = self.get_tile(vec2(tile_x, tile_y));
-        let neighbour = self.get_tile(vec2(tile_x + neighbour_pos.0, tile_y + neighbour_pos.1));
+        let neighbour = self.get_tile(vec2(
+            tile_x + neighbour_quadrant.0,
+            tile_y + neighbour_quadrant.1,
+        ));
 
         TileSpec {
-            direction: tile_position,
+            quadrant,
             me,
             them: neighbour,
             neighbours: NeighbourTileContext {
