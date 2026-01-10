@@ -21,7 +21,7 @@ use agb::{
 
 use alloc::{rc::Rc, vec, vec::Vec};
 
-use core::hash::Hash;
+use core::{array, hash::Hash};
 
 extern crate alloc;
 
@@ -230,11 +230,6 @@ impl TileCache {
 }
 
 fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
-    let mut result = [
-        DynamicTile16::new().fill_with(0),
-        DynamicTile16::new().fill_with(0),
-    ];
-
     let CacheKey {
         direction: position,
         me: tile_a,
@@ -242,7 +237,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
         neighbours,
     } = cache_key;
 
-    for (i, tile) in result.iter_mut().enumerate() {
+    array::from_fn(|i| {
         let i = i as u16;
 
         fn get_tile(offset: u16, tile_type: TileType) -> &'static [u32] {
@@ -317,6 +312,8 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
             }
         };
 
+        let mut tile = DynamicTile16::new().fill_with(0);
+
         if let Some(gap_fill) = gap_fill {
             blit_16_colour(tile.data_mut(), gap_fill);
         }
@@ -332,9 +329,9 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
 
         blit_16_colour(tile.data_mut(), first);
         blit_16_colour(tile.data_mut(), second);
-    }
 
-    result
+        tile
+    })
 }
 
 impl TilePosition {
