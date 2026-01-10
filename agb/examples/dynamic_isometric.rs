@@ -10,7 +10,7 @@ use agb::{
             DynamicTile16, RegularBackground, RegularBackgroundSize, TileEffect, TileFormat,
             VRAM_MANAGER,
         },
-        utils::blit_4,
+        utils::blit_16_colour,
     },
     dma::HBlankDma,
     fixnum::{Num, Vector2D, num, vec2},
@@ -280,7 +280,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                         TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
                         neighbours.up_left,
                     );
-                    blit_4(tile.data_mut(), wall_rhs);
+                    blit_16_colour(tile.data_mut(), wall_rhs);
                 }
 
                 (ubrw, ttlw)
@@ -299,7 +299,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                         TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
                         neighbours.left,
                     );
-                    blit_4(tile.data_mut(), wall_rhs);
+                    blit_16_colour(tile.data_mut(), wall_rhs);
                 }
 
                 (ubrw, mtlw)
@@ -316,8 +316,8 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
             }
         };
 
-        blit_4(tile.data_mut(), first_wall);
-        blit_4(tile.data_mut(), second_wall);
+        blit_16_colour(tile.data_mut(), first_wall);
+        blit_16_colour(tile.data_mut(), second_wall);
 
         let (first, second) = if tile_a > tile_b {
             (me, them)
@@ -325,8 +325,8 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
             (them, me)
         };
 
-        blit_4(tile.data_mut(), first);
-        blit_4(tile.data_mut(), second);
+        blit_16_colour(tile.data_mut(), first);
+        blit_16_colour(tile.data_mut(), second);
     }
 
     result

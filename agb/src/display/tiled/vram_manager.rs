@@ -55,7 +55,7 @@ impl TileSet {
     #[must_use]
     pub const unsafe fn new(tiles: &'static [u8], format: TileFormat) -> Self {
         assert!(
-            tiles.len() % format.tile_size() == 0,
+            tiles.len().is_multiple_of(format.tile_size()),
             "The length of `tiles` must be a multiple of `format.tile_size()`"
         );
 
@@ -70,9 +70,12 @@ impl TileSet {
         self.format
     }
 
+    /// Gets the raw tile data for a given `tile_id`.
+    ///
+    /// If you have deduplicated the [`TileSet`], then make sure you use the `tile_id` provided by
+    /// the [`TileSetting::tile_id()`](agb::display::tiled::TileSetting::tile_id) method.
     #[must_use]
-    pub fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
-        assert!(self.tiles.as_ptr().cast::<u32>().is_aligned());
+    pub const fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
         assert!(tile_id as usize * self.format.tile_size() < self.tiles.len());
 
         let tile_id = tile_id as usize;
