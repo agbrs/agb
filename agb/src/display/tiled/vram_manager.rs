@@ -75,8 +75,12 @@ impl TileSet {
     /// If you have deduplicated the [`TileSet`], then make sure you use the `tile_id` provided by
     /// the [`TileSetting::tile_id()`](agb::display::tiled::TileSetting::tile_id) method.
     #[must_use]
-    pub const fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
-        assert!(tile_id as usize * self.format.tile_size() < self.tiles.len());
+    pub fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
+        assert!(
+            tile_id as usize * self.format.tile_size() < self.tiles.len(),
+            "{tile_id} is too big for this tileset ({} tiles)",
+            self.tiles.len() / self.format.tile_size()
+        );
 
         let tile_id = tile_id as usize;
         let tile_size = self.format.tile_size();
