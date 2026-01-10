@@ -47,8 +47,18 @@ pub struct TileSet {
 impl TileSet {
     /// Create a new TileSet. You probably shouldn't use this function and instead rely on
     /// [`include_background_gfx!`](crate::include_background_gfx).
+    ///
+    /// # Safety
+    ///
+    /// * `tiles` must be aligned to 32-bits
+    /// * `tiles` length must be a multiple of the tile size in `format`
     #[must_use]
-    pub const fn new(tiles: &'static [u8], format: TileFormat) -> Self {
+    pub const unsafe fn new(tiles: &'static [u8], format: TileFormat) -> Self {
+        assert!(
+            tiles.len() % format.tile_size() == 0,
+            "The length of `tiles` must be a multiple of `format.tile_size()`"
+        );
+
         Self { tiles, format }
     }
 
@@ -58,6 +68,24 @@ impl TileSet {
     #[must_use]
     pub const fn format(&self) -> TileFormat {
         self.format
+    }
+
+    #[must_use]
+    pub fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
+        assert!(self.tiles.as_ptr().cast::<u32>().is_aligned());
+        assert!(tile_id as usize * self.format.tile_size() < self.tiles.len());
+
+        let tile_id = tile_id as usize;
+        let tile_size = self.format.tile_size();
+
+        // SAFETY: alignment checked in precondition of the function, and the start index is valid by the second
+        //         assertion and the length is valid due to the check in the constructor.
+        unsafe {
+            slice::from_raw_parts(
+                self.tiles.as_ptr().add(tile_id * tile_size).cast(),
+                tile_size / 4,
+            )
+        }
     }
 
     fn reference(&self) -> NonNull<[u8]> {
@@ -248,7 +276,7 @@ impl DynamicTile16 {
             )
         };
 
-        TileSet::new(tiles, TileFormat::FourBpp)
+        unsafe { TileSet::new(tiles, TileFormat::FourBpp) }
     }
 
     #[must_use]

@@ -138,7 +138,7 @@ pub(crate) fn generate_code(
                 &ALIGNED.bytes
             };
 
-            const TILE_SET: agb::display::tiled::TileSet = agb::display::tiled::TileSet::new(TILE_DATA, #tile_format);
+            const TILE_SET: agb::display::tiled::TileSet = unsafe { agb::display::tiled::TileSet::new(TILE_DATA, #tile_format) };
 
             const TILE_SETTINGS: &[agb::display::tiled::TileSetting] = &[
                 #(#tile_settings),*
