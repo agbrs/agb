@@ -115,7 +115,10 @@ impl TileCache {
 }
 
 fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
-    let mut result = [DynamicTile16::new(), DynamicTile16::new()];
+    let mut result = [
+        DynamicTile16::new().fill_with(0),
+        DynamicTile16::new().fill_with(0),
+    ];
 
     let CacheKey {
         direction: position,
@@ -138,52 +141,49 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
 
         const WALL_OFFSET: u16 = (tiles::ISOMETRIC.width * 2) as u16;
 
-        match position {
+        let (first_wall, second_wall) = match position {
             TilePosition::TopLeft => {
-                // upper bottom left wall, their upper right wall, their floor, my floor
-                let ublw = get_tile(
-                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
-                    upper.1.unwrap(),
-                );
-                let turw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
+                // upper bottom left wall, their top right wall, their floor, my floor
+                let ublw = upper.1.map(|upper| {
+                    get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, upper)
+                });
+                let ttrw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
 
-                tile.data().copy_from_slice(ublw);
-                blit_4(tile.data(), turw);
+                (ublw, ttrw)
             }
             TilePosition::TopRight => {
-                // upper bottom right wall, their upper left wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    upper.1.unwrap(),
-                );
-                let tulw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
+                // upper bottom right wall, their top left wall, their floor, my floor
+                let ubrw = upper.1.map(|upper| {
+                    get_tile(TilePosition::BottomRight.offset() + i + WALL_OFFSET, upper)
+                });
+                let ttlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_b);
 
-                tile.data().copy_from_slice(ubrw);
-                blit_4(tile.data(), tulw);
+                (ubrw, ttlw)
             }
             TilePosition::BottomLeft => {
                 // (upper.0) bottom right wall, my top left wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomRight.offset() + i + WALL_OFFSET,
-                    upper.0.unwrap(),
-                );
+                let ubrw = upper.0.map(|left| {
+                    get_tile(TilePosition::BottomRight.offset() + i + WALL_OFFSET, left)
+                });
                 let mtlw = get_tile(TilePosition::TopLeft.offset() + i + WALL_OFFSET, tile_a);
 
-                tile.data().copy_from_slice(ubrw);
-                blit_4(tile.data(), mtlw);
+                (ubrw, mtlw)
             }
             TilePosition::BottomRight => {
                 // (upper.2) bottom left wall, my top right wall, their floor, my floor
-                let ubrw = get_tile(
-                    TilePosition::BottomLeft.offset() + i + WALL_OFFSET,
-                    upper.2.unwrap(),
-                );
+                let ubrw = upper.2.map(|right| {
+                    get_tile(TilePosition::BottomLeft.offset() + i + WALL_OFFSET, right)
+                });
                 let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
 
-                tile.data().copy_from_slice(ubrw);
-                blit_4(tile.data(), mtlw);
+                (ubrw, mtlw)
             }
+        };
+
+        if let Some(first_wall) = first_wall {
+            blit_4(tile.data(), first_wall);
         }
+        blit_4(tile.data(), second_wall);
 
         let (first, second) = if tile_a > tile_b {
             (me, them)
