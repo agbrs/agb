@@ -173,7 +173,7 @@ fn main(mut gba: Gba) -> ! {
 
 #[derive(Default)]
 struct TileCache {
-    cache: HashMap<CacheKey, [TileHolder; 2]>,
+    cache: HashMap<TileSpec, [TileHolder; 2]>,
     tiles: HashSet<TileHolder>,
 }
 
@@ -195,7 +195,7 @@ impl PartialEq for TileHolder {
 impl Eq for TileHolder {}
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-struct CacheKey {
+struct TileSpec {
     direction: TilePosition,
     me: TileType,
     them: TileType,
@@ -212,7 +212,7 @@ struct NeighbourTileContext {
 }
 
 impl TileCache {
-    fn get_tiles(&mut self, cache_key: CacheKey) -> &[TileHolder; 2] {
+    fn get_tiles(&mut self, cache_key: TileSpec) -> &[TileHolder; 2] {
         self.cache.entry(cache_key).or_insert_with(|| {
             let genned_tiles = build_combined_tile(cache_key);
 
@@ -229,8 +229,8 @@ impl TileCache {
     }
 }
 
-fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
-    let CacheKey {
+fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
+    let TileSpec {
         direction: position,
         me: tile_a,
         them: tile_b,
@@ -367,7 +367,7 @@ impl Map {
         self.map_data[x as usize + y as usize * self.width]
     }
 
-    fn get_from_gba_tile(&self, x: i32, y: i32) -> CacheKey {
+    fn get_from_gba_tile(&self, x: i32, y: i32) -> TileSpec {
         let tile_position = match (
             (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
             y.rem_euclid(TILE_HEIGHT),
@@ -394,7 +394,7 @@ impl Map {
         let me = self.get_tile(vec2(tile_x, tile_y));
         let neighbour = self.get_tile(vec2(tile_x + neighbour_pos.0, tile_y + neighbour_pos.1));
 
-        CacheKey {
+        TileSpec {
             direction: tile_position,
             me,
             them: neighbour,
