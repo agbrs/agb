@@ -83,11 +83,11 @@ impl RegularBackgroundTextRenderer {
             let x_in_tile = pos.x.rem_euclid(8) * 4;
 
             let tile_left = row[x].as_mut().expect("should have ensured space");
-            tile_left.data()[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+            tile_left.data_mut()[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
 
             if x_in_tile > 0 {
                 let tile_right = row[x + 1].as_mut().expect("should have ensured space");
-                tile_right.data()[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
+                tile_right.data_mut()[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
             }
         }
     }

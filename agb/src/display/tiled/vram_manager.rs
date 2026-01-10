@@ -263,7 +263,14 @@ impl DynamicTile16 {
 
     /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
     /// and must write to it in at least 16-bit chunks.
-    pub fn data(&mut self) -> &mut [u32] {
+    #[must_use]
+    pub fn data_mut(&mut self) -> &mut [u32] {
+        self.tile_data
+    }
+
+    /// Returns an immutable reference to the underlying tile data.
+    #[must_use]
+    pub fn data(&self) -> &[u32] {
         self.tile_data
     }
 

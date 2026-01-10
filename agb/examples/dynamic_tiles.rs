@@ -31,7 +31,7 @@ fn main(mut gba: agb::Gba) -> ! {
         for x in 0..30u32 {
             let mut dynamic_tile = DynamicTile16::new();
 
-            for (i, bit) in dynamic_tile.data().iter_mut().enumerate() {
+            for (i, bit) in dynamic_tile.data_mut().iter_mut().enumerate() {
                 let i = i as u32;
                 let mut value = 0;
 
