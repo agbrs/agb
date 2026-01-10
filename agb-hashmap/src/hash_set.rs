@@ -256,7 +256,7 @@ where
     /// // Difference is not symmetric. `b - a` means something different
     /// let diff: HashSet<_> = b.difference(&a).collect();
     /// assert_eq!(diff, HashSet::from([&4]));
-    /// ``````
+    /// ```
     pub fn difference<'a>(
         &'a self,
         other: &'a HashSet<K, ALLOCATOR>,
