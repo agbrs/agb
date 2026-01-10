@@ -256,7 +256,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
 
         const WALL_OFFSET: u16 = (tiles::ISOMETRIC.width * 2) as u16;
 
-        let (first_wall, second_wall) = match position {
+        let (first_wall, second_wall, gap_fill) = match position {
             TilePosition::TopLeft => {
                 // upper bottom left wall, their top right wall, their floor, my floor
                 let ublw = get_tile(
@@ -265,7 +265,7 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                 );
                 let ttrw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_b);
 
-                (ublw, ttrw)
+                (ublw, ttrw, None)
             }
             TilePosition::TopRight => {
                 // upper bottom right wall, their top left wall, their floor, my floor
@@ -281,10 +281,10 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                         TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
                         neighbours.up_left,
                     );
-                    blit_16_colour(tile.data_mut(), wall_rhs);
+                    (ubrw, ttlw, Some(wall_rhs))
+                } else {
+                    (ubrw, ttlw, None)
                 }
-
-                (ubrw, ttlw)
             }
             TilePosition::BottomLeft => {
                 // (upper.0) bottom right wall, my top left wall, their floor, my floor
@@ -300,10 +300,10 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                         TilePosition::TopRight.offset() + 2 + WALL_OFFSET,
                         neighbours.left,
                     );
-                    blit_16_colour(tile.data_mut(), wall_rhs);
+                    (ubrw, mtlw, Some(wall_rhs))
+                } else {
+                    (ubrw, mtlw, None)
                 }
-
-                (ubrw, mtlw)
             }
             TilePosition::BottomRight => {
                 // (upper.2) bottom left wall, my top right wall, their floor, my floor
@@ -313,9 +313,13 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
                 );
                 let mtlw = get_tile(TilePosition::TopRight.offset() + i + WALL_OFFSET, tile_a);
 
-                (ubrw, mtlw)
+                (ubrw, mtlw, None)
             }
         };
+
+        if let Some(gap_fill) = gap_fill {
+            blit_16_colour(tile.data_mut(), gap_fill);
+        }
 
         blit_16_colour(tile.data_mut(), first_wall);
         blit_16_colour(tile.data_mut(), second_wall);
