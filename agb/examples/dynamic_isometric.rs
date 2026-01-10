@@ -59,9 +59,9 @@ fn main(mut gba: Gba) -> ! {
 
     for y in 0..32 {
         for x in 0..16 {
-            let (position, me, them) = map.get_from_gba_tile(x * 2, y);
+            let cache_key = map.get_from_gba_tile(x * 2, y);
 
-            for (i, tile) in tile_cache.get_tiles(position, me, them).iter().enumerate() {
+            for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
                 bg.set_tile_dynamic16((x * 2 + i as i32, y), tile, TileEffect::default());
             }
         }
@@ -78,35 +78,49 @@ fn main(mut gba: Gba) -> ! {
 
 #[derive(Default)]
 struct TileCache {
-    // Direction, Centre, Outer
-    cache: HashMap<(TilePosition, TileType, TileType), [DynamicTile16; 2]>,
+    // Direction, Me, Them
+    cache: HashMap<CacheKey, [DynamicTile16; 2]>,
 }
 
-impl TileCache {
-    fn get_tiles(
-        &mut self,
-        position: TilePosition,
-        tile_a: TileType,
-        tile_b: TileType,
-    ) -> &[DynamicTile16; 2] {
-        let (position, tile_a, tile_b) = if tile_a <= tile_b {
-            (position, tile_a, tile_b)
-        } else {
-            (position.reverse(), tile_b, tile_a)
-        };
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+struct CacheKey {
+    direction: TilePosition,
+    me: TileType,
+    them: TileType,
+}
 
-        self.cache
-            .entry((position, tile_a, tile_b))
-            .or_insert_with(|| build_combined_tile(position, tile_a, tile_b))
+impl CacheKey {
+    fn normalise(self) -> Self {
+        if self.me <= self.them {
+            self
+        } else {
+            Self {
+                direction: self.direction.reverse(),
+                me: self.them,
+                them: self.me,
+            }
+        }
     }
 }
 
-fn build_combined_tile(
-    position: TilePosition,
-    tile_a: TileType,
-    tile_b: TileType,
-) -> [DynamicTile16; 2] {
+impl TileCache {
+    fn get_tiles(&mut self, cache_key: CacheKey) -> &[DynamicTile16; 2] {
+        let cache_key = cache_key.normalise();
+
+        self.cache
+            .entry(cache_key)
+            .or_insert_with(|| build_combined_tile(cache_key))
+    }
+}
+
+fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
     let mut result = [DynamicTile16::new(), DynamicTile16::new()];
+
+    let CacheKey {
+        direction: position,
+        me: tile_a,
+        them: tile_b,
+    } = cache_key;
 
     for (i, tile) in result.iter_mut().enumerate() {
         let i = i as u16;
@@ -186,7 +200,7 @@ impl Map {
         self.map_data[x as usize + y as usize * self.width]
     }
 
-    fn get_from_gba_tile(&self, x: i32, y: i32) -> (TilePosition, TileType, TileType) {
+    fn get_from_gba_tile(&self, x: i32, y: i32) -> CacheKey {
         let x = x - 16;
         let y = y - 4;
 
@@ -216,7 +230,11 @@ impl Map {
         let me = self.get_tile(tile_x, tile_y);
         let neighbour = self.get_tile(tile_x + neighbour_pos.0, tile_y + neighbour_pos.1);
 
-        (tile_position, me, neighbour)
+        CacheKey {
+            direction: tile_position,
+            me,
+            them: neighbour,
+        }
     }
 }
 
