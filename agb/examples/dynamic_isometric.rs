@@ -1,8 +1,6 @@
 #![no_main]
 #![no_std]
 
-use core::mem;
-
 use agb::{
     Gba,
     display::{
@@ -13,10 +11,13 @@ use agb::{
         },
         utils::blit_4,
     },
-    hash_map::HashMap,
+    hash_map::{HashMap, HashSet},
     include_background_gfx,
 };
-use alloc::{vec, vec::Vec};
+
+use alloc::{rc::Rc, vec, vec::Vec};
+
+use core::hash::Hash;
 
 extern crate alloc;
 
@@ -64,12 +65,12 @@ fn main(mut gba: Gba) -> ! {
             let cache_key = map.get_from_gba_tile(x * 2, y);
 
             for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
-                bg.set_tile_dynamic16((x * 2 + i as i32, y), tile, TileEffect::default());
+                bg.set_tile_dynamic16((x * 2 + i as i32, y), &tile.0, TileEffect::default());
             }
         }
     }
 
-    agb::println!("Cache size: {}", tile_cache.cache.len());
+    agb::println!("Cache size: {}", tile_cache.tiles.len());
 
     loop {
         let mut frame = gfx.frame();
@@ -82,9 +83,26 @@ fn main(mut gba: Gba) -> ! {
 
 #[derive(Default)]
 struct TileCache {
-    // Direction, Me, Them
-    cache: HashMap<CacheKey, [DynamicTile16; 2]>,
+    cache: HashMap<CacheKey, [TileHolder; 2]>,
+    tiles: HashSet<TileHolder>,
 }
+
+#[derive(Clone)]
+struct TileHolder(Rc<DynamicTile16>);
+
+impl Hash for TileHolder {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.0.data().hash(state);
+    }
+}
+
+impl PartialEq for TileHolder {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.data() == other.0.data()
+    }
+}
+
+impl Eq for TileHolder {}
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 struct CacheKey {
@@ -95,10 +113,20 @@ struct CacheKey {
 }
 
 impl TileCache {
-    fn get_tiles(&mut self, cache_key: CacheKey) -> &[DynamicTile16; 2] {
-        self.cache
-            .entry(cache_key)
-            .or_insert_with(|| build_combined_tile(cache_key))
+    fn get_tiles(&mut self, cache_key: CacheKey) -> &[TileHolder; 2] {
+        self.cache.entry(cache_key).or_insert_with(|| {
+            let genned_tiles = build_combined_tile(cache_key);
+
+            genned_tiles.map(|genned_tile| {
+                let tile_holder = TileHolder(Rc::new(genned_tile));
+                if let Some(existing_tile) = self.tiles.get(&tile_holder) {
+                    existing_tile.clone()
+                } else {
+                    self.tiles.insert(tile_holder.clone());
+                    tile_holder
+                }
+            })
+        })
     }
 }
 
@@ -166,8 +194,8 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
             }
         };
 
-        blit_4(tile.data(), first_wall);
-        blit_4(tile.data(), second_wall);
+        blit_4(tile.data_mut(), first_wall);
+        blit_4(tile.data_mut(), second_wall);
 
         let (first, second) = if tile_a > tile_b {
             (me, them)
@@ -175,8 +203,8 @@ fn build_combined_tile(cache_key: CacheKey) -> [DynamicTile16; 2] {
             (them, me)
         };
 
-        blit_4(tile.data(), first);
-        blit_4(tile.data(), second);
+        blit_4(tile.data_mut(), first);
+        blit_4(tile.data_mut(), second);
     }
 
     result
@@ -200,16 +228,6 @@ impl TilePosition {
             TilePosition::BottomRight => TilePosition::TopLeft,
         }
     }
-
-    fn iter() -> impl Iterator<Item = Self> {
-        [
-            TilePosition::TopLeft,
-            TilePosition::TopRight,
-            TilePosition::BottomLeft,
-            TilePosition::BottomRight,
-        ]
-        .into_iter()
-    }
 }
 
 struct Map {
@@ -228,7 +246,7 @@ impl Map {
         use TileType::Water as W;
 
         #[rustfmt::skip]
-        let mut map_data = vec![
+        let map_data = vec![
             W, W, W, W, W, W, W, W, W, W, W, W, W,
             W, A, D, A, A, A, D, D, A, D, A, A, W,
             W, D, A, D, A, D, A, A, A, D, D, A, W,
