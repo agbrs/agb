@@ -4,15 +4,16 @@
 use agb::{
     Gba,
     display::{
-        Priority,
+        Priority, Rgb15,
         tiled::{
             DynamicTile16, RegularBackground, RegularBackgroundSize, TileEffect, TileFormat,
             VRAM_MANAGER,
         },
         utils::blit_4,
     },
+    dma::HBlankDma,
     hash_map::{HashMap, HashSet},
-    include_background_gfx,
+    include_background_gfx, include_colours,
 };
 
 use alloc::{rc::Rc, vec, vec::Vec};
@@ -24,6 +25,9 @@ extern crate alloc;
 include_background_gfx!(mod tiles, "333333",
     ISOMETRIC => "examples/gfx/isometric_tiles.aseprite"
 );
+
+static SKY_GRADIENT: [Rgb15; 160] =
+    include_colours!("examples/gfx/sky-background-gradient.aseprite");
 
 #[agb::entry]
 fn entry(gba: Gba) -> ! {
@@ -48,24 +52,66 @@ enum TileType {
 fn main(mut gba: Gba) -> ! {
     VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
 
-    let mut bg = RegularBackground::new(
-        Priority::P0,
+    let mut floor_bg = RegularBackground::new(
+        Priority::P3,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
+    let mut wall_bg = RegularBackground::new(
+        Priority::P2,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    wall_bg.set_scroll_pos((0, 7));
 
     let mut gfx = gba.graphics.get();
 
     let mut tile_cache = TileCache::default();
 
-    let map = Map::new(13, 6);
+    let (lower_layer, upper_layer) = {
+        use TileType::Air as A;
+        use TileType::Dirt as D;
+        use TileType::Water as W;
+
+        #[rustfmt::skip]
+        let upper_layer = vec![
+            A, A, A, A, A, A, A, A, A, A, A, A, A,
+            A, A, D, A, A, A, D, D, A, D, A, A, A,
+            A, D, A, D, A, D, A, A, A, D, D, A, A,
+            A, D, D, D, A, D, A, D, A, D, A, D, A,
+            A, D, A, D, A, A, D, D, A, D, D, A, A,
+            A, A, A, A, A, A, A, A, A, A, A, A, A,
+        ];
+
+        #[rustfmt::skip]
+        let lower_layer = vec![
+            D, D, D, D, D, D, D, D, D, D, D, D, D,
+            D, D, D, D, D, D, D, D, D, D, D, D, D,
+            W, W, A, W, W, W, W, W, W, W, W, W, W,
+            W, W, W, W, W, W, W, W, W, W, W, W, W,
+            D, D, D, D, D, D, D, D, D, D, D, D, D,
+            D, D, D, D, D, D, D, D, D, D, D, D, D,
+        ];
+
+        (lower_layer, upper_layer)
+    };
+
+    let floor_map = Map::new(13, 6, lower_layer);
+    let wall_map = Map::new(13, 6, upper_layer);
 
     for y in 0..32 {
         for x in 0..16 {
-            let cache_key = map.get_from_gba_tile(x * 2, y);
+            let cache_key = floor_map.get_from_gba_tile(x * 2, y);
 
             for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
-                bg.set_tile_dynamic16((x * 2 + i as i32, y), &tile.0, TileEffect::default());
+                floor_bg.set_tile_dynamic16((x * 2 + i as i32, y), &tile.0, TileEffect::default());
+            }
+
+            let cache_key = wall_map.get_from_gba_tile(x * 2, y);
+
+            for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
+                wall_bg.set_tile_dynamic16((x * 2 + i as i32, y), &tile.0, TileEffect::default());
             }
         }
     }
@@ -75,7 +121,14 @@ fn main(mut gba: Gba) -> ! {
     loop {
         let mut frame = gfx.frame();
 
-        bg.show(&mut frame);
+        floor_bg.show(&mut frame);
+        wall_bg.show(&mut frame);
+
+        HBlankDma::new(
+            VRAM_MANAGER.background_palette_colour_dma(0, 0),
+            &SKY_GRADIENT,
+        )
+        .show(&mut frame);
 
         frame.commit();
     }
@@ -240,21 +293,7 @@ const TILE_WIDTH: i32 = 4;
 const TILE_HEIGHT: i32 = 2;
 
 impl Map {
-    fn new(width: usize, height: usize) -> Self {
-        use TileType::Air as A;
-        use TileType::Dirt as D;
-        use TileType::Water as W;
-
-        #[rustfmt::skip]
-        let map_data = vec![
-            W, W, W, W, W, W, W, W, W, W, W, W, W,
-            W, A, D, A, A, A, D, D, A, D, A, A, W,
-            W, D, A, D, A, D, A, A, A, D, D, A, W,
-            W, D, D, D, A, D, A, D, A, D, A, D, W,
-            W, D, A, D, A, A, D, D, A, D, D, A, W,
-            W, W, W, W, W, W, W, W, W, W, W, W, W,
-        ];
-
+    fn new(width: usize, height: usize, map_data: Vec<TileType>) -> Self {
         assert_eq!(map_data.len(), width * height);
 
         Self {
