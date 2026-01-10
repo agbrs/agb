@@ -4,7 +4,7 @@
 use agb::{
     Gba,
     display::{
-        Blend, GraphicsFrame, Priority, Rgb15,
+        GraphicsFrame, Priority, Rgb15,
         object::{GraphicsMode, Object, Tag},
         tiled::{
             DynamicTile16, RegularBackground, RegularBackgroundSize, TileEffect, TileFormat,
@@ -121,13 +121,14 @@ fn main(mut gba: Gba) -> ! {
         }
     }
 
-    let mut character = Character::new(&sprites::GODZILLA, vec2(num!(7), num!(3)));
+    let initial_position = vec2(num!(6), num!(3));
+    let mut character = Character::new(&sprites::GODZILLA, initial_position);
 
     let mut input = ButtonController::new();
 
     agb::println!("Cache size: {}", tile_cache.tiles.len());
 
-    let mut character_target_position = vec2(num!(7), num!(3));
+    let mut character_target_position = initial_position;
 
     loop {
         input.update();
