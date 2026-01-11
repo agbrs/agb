@@ -7,12 +7,11 @@
 use agb::{
     Gba,
     display::{
-        Priority, Rgb15,
+        Priority,
         tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileFormat, VRAM_MANAGER},
     },
-    dma::HBlankDma,
     fixnum::{num, vec2},
-    include_aseprite, include_background_gfx, include_colours,
+    include_aseprite, include_background_gfx,
     input::ButtonController,
 };
 
@@ -28,6 +27,7 @@ use crate::{
 extern crate alloc;
 
 mod character;
+mod gradient_effect;
 mod isometric_render;
 
 include_background_gfx!(mod tiles, "333333",
@@ -35,8 +35,6 @@ include_background_gfx!(mod tiles, "333333",
 );
 
 include_aseprite!(mod sprites, "gfx/kaiju.aseprite");
-
-static SKY_GRADIENT: [Rgb15; 160] = include_colours!("gfx/sky-background-gradient.aseprite");
 
 #[agb::entry]
 fn entry(gba: Gba) -> ! {
@@ -124,11 +122,7 @@ fn main(mut gba: Gba) -> ! {
         let floor_id = floor_bg.show(&mut frame);
         wall_bg.show(&mut frame);
 
-        HBlankDma::new(
-            VRAM_MANAGER.background_palette_colour_dma(0, 0),
-            &SKY_GRADIENT,
-        )
-        .show(&mut frame);
+        gradient_effect::apply(&mut frame);
 
         character.show(&mut frame, &wall_map);
 
