@@ -286,17 +286,26 @@ impl LetterGroup {
             x_offset += kern + letter.advance_width as i32;
 
             (0..letter.height as usize).flat_map(move |y| {
-                (0..letter.width as usize).filter_map(move |x| {
-                    let rendered = letter.bit_absolute(x, y);
-                    if rendered {
-                        Some((
-                            vec2(x as i32 + x_offset_this, y as i32 + y_position),
-                            self.palette_index,
-                        ))
-                    } else {
-                        None
-                    }
-                })
+                (0..letter.width as usize)
+                    .flat_map(move |x| {
+                        let rendered = letter.bit_absolute(x, y);
+                        if rendered {
+                            let this_position =
+                                vec2(x as i32 + x_offset_this, y as i32 + y_position);
+
+                            let dropshadow =
+                                self.dropshadow_palette_index
+                                    .map(|dropshadow_palette_index| {
+                                        (this_position + vec2(1, 1), dropshadow_palette_index)
+                                    });
+
+                            let main = (this_position, self.palette_index);
+                            [dropshadow, Some(main)]
+                        } else {
+                            [None, None]
+                        }
+                    })
+                    .flatten()
             })
         })
     }
