@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `TileSet::get_tile_data()` which returns the raw data for a given tile.
 - Added `HashSet::get()`.
 - Added an example for dynamically generated isometric tiles.
+- Added the ability to draw a dropshadow when rendering text.
 
 ### Fixed
 
