@@ -64,8 +64,9 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
     let mut layout = Layout::new(
         &text,
         &FONT,
-        200,
-        &LayoutSettings::new().with_alignment(AlignmentKind::Centre),
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_alignment(AlignmentKind::Centre),
     );
     let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 

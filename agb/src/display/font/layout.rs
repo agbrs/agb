@@ -23,8 +23,9 @@ use super::{
 /// let mut layout = Layout::new(
 ///     "Hello, world!",
 ///     &FONT,
-///     200,
-///     &LayoutSettings::new().with_max_group_width(32),
+///     &LayoutSettings::new()
+///         .with_max_line_length(200)
+///         .with_max_group_width(32),
 /// );
 ///
 /// let n = layout.next().unwrap();
@@ -73,6 +74,7 @@ pub struct LayoutSettings {
     palette_index: u8,
     drop_shadow_palette_index: Option<u8>,
     max_group_width: i32,
+    max_line_length: i32,
 }
 
 impl Default for LayoutSettings {
@@ -89,6 +91,7 @@ impl LayoutSettings {
     /// - `palette_index`: 1
     /// - `drop_shadow_palette_index`: None (no drop shadow)
     /// - `max_group_width`: 16
+    /// - `max_line_length`: 0 (unlimited)
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -96,6 +99,7 @@ impl LayoutSettings {
             palette_index: 1,
             drop_shadow_palette_index: None,
             max_group_width: 16,
+            max_line_length: 0,
         }
     }
 
@@ -141,6 +145,17 @@ impl LayoutSettings {
         self
     }
 
+    /// Sets the maximum line length. Lines will be wrapped to fit within this length.
+    ///
+    /// If set to 0, the line length is unlimited (lines will only break on newlines).
+    ///
+    /// Defaults to 0 (unlimited).
+    #[must_use]
+    pub const fn with_max_line_length(mut self, max_line_length: i32) -> Self {
+        self.max_line_length = max_line_length;
+        self
+    }
+
     pub(super) fn alignment(&self) -> AlignmentKind {
         self.alignment
     }
@@ -156,25 +171,22 @@ impl LayoutSettings {
     pub(super) fn max_group_width(&self) -> i32 {
         self.max_group_width
     }
+
+    pub(super) fn max_line_length(&self) -> i32 {
+        self.max_line_length
+    }
 }
 
 impl Layout {
     #[must_use]
     /// Creates a new layout for the given text, font, and alignment. Generates
-    /// [`LetterGroup`]s of width up to the `max_group_width`. The length of
-    /// each line of text is given by `max_line_length`. If `max_line_length` is
-    /// 0, then the line length is unlimited (lines will only break on newlines).
-    pub fn new(
-        text: &str,
-        font: &'static Font,
-        max_line_length: i32,
-        settings: &LayoutSettings,
-    ) -> Self {
+    /// [`LetterGroup`]s of width up to the `max_group_width`.
+    pub fn new(text: &str, font: &'static Font, settings: &LayoutSettings) -> Self {
         let mut grouper = Grouper::default();
         grouper.pos.y = -font.line_height;
 
         Self {
-            align: Align::new(settings.alignment(), max_line_length, font),
+            align: Align::new(settings.alignment(), settings.max_line_length(), font),
             text: text.into(),
             font,
             line: None,
@@ -224,7 +236,7 @@ impl LetterGroup {
     /// # #![no_std]
     /// # #![no_main]
     /// extern crate alloc;
-    /// use agb::display::font::{Font, Layout, Tag};
+    /// use agb::display::font::{Font, Layout, LayoutSettings, Tag};
     /// use agb::include_font;
     /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
     ///
@@ -232,7 +244,7 @@ impl LetterGroup {
     /// # fn test(_: agb::Gba) {
     /// static MY_TAG: Tag = Tag::new(7);
     /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
-    /// let mut layout = Layout::new(&text, &FONT, 100, &Default::default());
+    /// let mut layout = Layout::new(&text, &FONT, &LayoutSettings::new().with_max_line_length(100));
     /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
     /// assert!(layout.next().unwrap().has_tag(MY_TAG));
     /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
@@ -607,8 +619,8 @@ mod test {
         let layout = Layout::new(
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
-            100,
             &LayoutSettings::new()
+                .with_max_line_length(100)
                 .with_alignment(AlignmentKind::Justify)
                 .with_max_group_width(32),
         );
@@ -623,8 +635,9 @@ mod test {
         let layout = Layout::new(
             "This is some text which I've written as part of this example. It should go over a few lines",
             &FONT,
-            150,
-            &LayoutSettings::new().with_alignment(AlignmentKind::Right),
+            &LayoutSettings::new()
+                .with_max_line_length(150)
+                .with_alignment(AlignmentKind::Right),
         );
         for letter_group in layout {
             core::hint::black_box(letter_group);
@@ -636,8 +649,8 @@ mod test {
         let layout = Layout::new(
             "Hello\nWorld\nSome text that should break over multiple lines",
             &FONT,
-            150,
             &LayoutSettings::new()
+                .with_max_line_length(150)
                 .with_alignment(AlignmentKind::Centre)
                 .with_max_group_width(150),
         );

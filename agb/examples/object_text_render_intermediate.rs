@@ -5,7 +5,7 @@
 use agb::{
     display::{
         Palette16, Rgb15,
-        font::{Font, Layout, ObjectTextRenderer},
+        font::{Font, Layout, LayoutSettings, ObjectTextRenderer},
         object::Size,
     },
     fixnum::vec2,
@@ -38,8 +38,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut text_layout = Layout::new(
         "Hello, this is some text that I want to display!",
         &FONT,
-        200,
-        &Default::default(),
+        &LayoutSettings::new().with_max_line_length(200),
     );
 
     let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);

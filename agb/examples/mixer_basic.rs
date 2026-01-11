@@ -93,8 +93,9 @@ A to resume
 D-pad left and right to change panning
 D-pad up and down to change playback speed",
         &FONT,
-        WIDTH,
-        &LayoutSettings::new().with_alignment(AlignmentKind::Centre),
+        &LayoutSettings::new()
+            .with_max_line_length(WIDTH)
+            .with_alignment(AlignmentKind::Centre),
     );
 
     let mut renderer = RegularBackgroundTextRenderer::new((0, 0));

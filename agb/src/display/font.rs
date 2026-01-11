@@ -36,8 +36,9 @@
 //! let mut layout = Layout::new(
 //!     "Hello, world!",
 //!     &FONT,
-//!     200,
-//!     &LayoutSettings::new().with_max_group_width(32),
+//!     &LayoutSettings::new()
+//!         .with_max_line_length(200)
+//!         .with_max_group_width(32),
 //! );
 //!
 //! let n = layout.next().unwrap();
@@ -63,7 +64,7 @@
 //! use alloc::vec::Vec;
 //! use agb::display::{
 //!     Palette16, Rgb15,
-//!     font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
+//!     font::{AlignmentKind, Font, Layout, LayoutSettings, ObjectTextRenderer},
 //!     object::Size,
 //! };
 //!
@@ -79,7 +80,7 @@
 //!
 //! // the actual text rendering
 //!
-//! let layout = Layout::new("Hello, world!", &FONT, 200, &Default::default());
+//! let layout = Layout::new("Hello, world!", &FONT, &LayoutSettings::new().with_max_line_length(200));
 //! let text_renderer = ObjectTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
 //!
 //! for letter_group in layout {
@@ -107,7 +108,7 @@
 //! # #![no_main]
 //! use agb::display::{
 //!     Palette16, Rgb15, Priority,
-//!     font::{Font, Layout, RegularBackgroundTextRenderer},
+//!     font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
 //!     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
 //! };
 //!
@@ -129,7 +130,7 @@
 //!
 //! // the actual text rendering
 //!
-//! let layout = Layout::new("Hello, world!", &FONT, 200, &Default::default());
+//! let layout = Layout::new("Hello, world!", &FONT, &LayoutSettings::new().with_max_line_length(200));
 //! let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
 //!
 //! for letter_group in layout {

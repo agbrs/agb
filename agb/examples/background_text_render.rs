@@ -32,8 +32,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut text_layout = Layout::new(
         "Hello, World! こんにちは世界\nThis is an example of rendering text using backgrounds.",
         &FONT,
-        200,
-        &LayoutSettings::new().with_drop_shadow(2),
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_drop_shadow(2),
     );
 
     let mut frame = gfx.frame();

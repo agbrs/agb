@@ -54,8 +54,9 @@ fn init_background(bg: &mut RegularBackground) {
     let text_layout = Layout::new(
         "Crazy glue by Josh Woodward\njoshwoodward.com",
         &FONT,
-        WIDTH,
-        &LayoutSettings::new().with_alignment(AlignmentKind::Centre),
+        &LayoutSettings::new()
+            .with_max_line_length(WIDTH)
+            .with_alignment(AlignmentKind::Centre),
     );
 
     let mut renderer = RegularBackgroundTextRenderer::new((0, 0));

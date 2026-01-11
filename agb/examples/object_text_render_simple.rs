@@ -40,8 +40,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let layout = Layout::new(
         "Hello, this is some text that I want to display!",
         &FONT,
-        200,
-        &LayoutSettings::new().with_drop_shadow(2),
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_drop_shadow(2),
     );
     let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
 
