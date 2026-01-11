@@ -290,8 +290,8 @@ impl TileCache {
 fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
     let TileSpec {
         quadrant,
-        me: tile_a,
-        them: tile_b,
+        me,
+        them,
         neighbours,
     } = cache_key;
 
@@ -302,38 +302,40 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
         offset + tile_type as u16 * 5 + if is_wall { WALL_OFFSET } else { 0 }
     }
 
-    let (first_wall, second_wall, gap_fill) = match quadrant {
+    // - Upper wall: from a tile above this quadrant on screen (extends down into this quadrant)
+    // - Local wall: from either `me` or `them` (the two tiles this quadrant sits between)
+    let (upper_wall, local_wall, gap_fill) = match quadrant {
         Quadrant::TopLeft => {
-            // upper bottom left wall, their top right wall, their floor, my floor
-            let ublw = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up, true);
-            let ttrw = get_tile_id(Quadrant::TopRight.offset(), tile_b, true);
-
-            (ublw, ttrw, None)
+            // Upper wall: bottom-left wall of up tile
+            // Local wall: top-right wall of left ghost tile
+            let upper = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up, true);
+            let local = get_tile_id(Quadrant::TopRight.offset(), them, true);
+            (upper, local, None)
         }
         Quadrant::TopRight => {
-            // upper bottom right wall, their top left wall, their floor, my floor
-            let ubrw = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up, true);
-            let ttlw = get_tile_id(Quadrant::TopLeft.offset(), tile_b, true);
-
-            // the RHS of the wall to fill the 1px gap
-            let wall_rhs = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.up_left, true);
-            (ubrw, ttlw, Some(wall_rhs))
+            // Upper wall: bottom-right wall of up tile
+            // Local wall: top-left wall of up ghost tile
+            // Gap fill: 1px right edge from up_left tile
+            let upper = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up, true);
+            let local = get_tile_id(Quadrant::TopLeft.offset(), them, true);
+            let gap = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.up_left, true);
+            (upper, local, Some(gap))
         }
         Quadrant::BottomLeft => {
-            // (upper.0) bottom right wall, my top left wall, their floor, my floor
-            let ubrw = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up_left, true);
-            let mtlw = get_tile_id(Quadrant::TopLeft.offset(), tile_a, true);
-
-            // the RHS of the wall to fill the 1px gap
-            let wall_rhs = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.left, true);
-            (ubrw, mtlw, Some(wall_rhs))
+            // Upper wall: bottom-right wall of up_left tile
+            // Local wall: top-left wall of central tile
+            // Gap fill: 1px right edge from left tile
+            let upper = get_tile_id(Quadrant::BottomRight.offset(), neighbours.up_left, true);
+            let local = get_tile_id(Quadrant::TopLeft.offset(), me, true);
+            let gap = get_tile_id(Quadrant::TopRight.offset() + 2, neighbours.left, true);
+            (upper, local, Some(gap))
         }
         Quadrant::BottomRight => {
-            // (upper.2) bottom left wall, my top right wall, their floor, my floor
-            let ubrw = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up_right, true);
-            let mtlw = get_tile_id(Quadrant::TopRight.offset(), tile_a, true);
-
-            (ubrw, mtlw, None)
+            // Upper wall: bottom-left wall of up_right tile
+            // Local wall: top-right wall of central tile
+            let upper = get_tile_id(Quadrant::BottomLeft.offset(), neighbours.up_right, true);
+            let local = get_tile_id(Quadrant::TopRight.offset(), me, true);
+            (upper, local, None)
         }
     };
 
@@ -346,14 +348,14 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
 
         let mut tile = DynamicTile16::new().fill_with(0);
 
-        let me = get_tile(get_tile_id(quadrant.offset(), tile_a, false) + i);
-        let them = get_tile(get_tile_id(quadrant.reverse().offset(), tile_b, false) + i);
+        let me_tile = get_tile(get_tile_id(quadrant.offset(), me, false) + i);
+        let them_tile = get_tile(get_tile_id(quadrant.reverse().offset(), them, false) + i);
 
         // Order floors so higher-priority tile types render on top
-        let (first, second) = if tile_a > tile_b {
-            (me, them)
+        let (first, second) = if me > them {
+            (me_tile, them_tile)
         } else {
-            (them, me)
+            (them_tile, me_tile)
         };
 
         if let Some(gap_fill) = gap_fill
@@ -362,8 +364,8 @@ fn build_combined_tile(cache_key: TileSpec) -> [DynamicTile16; 2] {
             blit_16_colour(tile.data_mut(), get_tile(gap_fill));
         }
 
-        blit_16_colour(tile.data_mut(), get_tile(first_wall + i));
-        blit_16_colour(tile.data_mut(), get_tile(second_wall + i));
+        blit_16_colour(tile.data_mut(), get_tile(upper_wall + i));
+        blit_16_colour(tile.data_mut(), get_tile(local_wall + i));
 
         blit_16_colour(tile.data_mut(), first);
         blit_16_colour(tile.data_mut(), second);
