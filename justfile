@@ -77,6 +77,7 @@ build-roms:
     just _build-rom "examples/hyperspace-roll" "HYPERSPACE"
     just _build-rom "examples/the-dungeon-puzzlers-lament" "DUNGLAMENT"
     just _build-rom "examples/amplitude" "AMPLITUDE"
+    just _build-rom "examples/dynamic-isometric" "ISOMETRIC"
     just _build-rom "examples/combo" "AGBGAMES"
 
     just _build-rom "book/games/pong" "PONG"

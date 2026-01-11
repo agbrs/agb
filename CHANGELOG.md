@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Joybus entrypoint to Multiboot builds.
 - Added `update_with_state()` method to `ButtonController` to let you unit test things which use it.
 - Added Clone, Copy, PartialEq, Eq and Hash derives on `ChannelId`.
+- Added `display::utils::blit_16_colour` for dynamic generation of tiles and sprites.
+- Added `TileSet::get_tile_data()` which returns the raw data for a given tile.
+- Added `HashSet::get()`.
+- Added an example for dynamically generated isometric tiles.
 
 ### Fixed
 
@@ -26,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TileSet` no longer has a generic parameter, and is always assumed to be `'static`.
 - `Button` is now an enum which represents a single button, and `ButtonState` is the replacement to represent potentially multiple buttons at once.
 - The `FixedWidthUnsignedInteger` trait is now sealed and cannot be implemented outside of `agb-fixnum`.
+- `DynamicTile16::data()` is now `DynamicTile16::data_mut()` and instead `DynamicTile16::data()` returns an immutable reference.
 
 ## [0.22.6] - 2025/10/29
 

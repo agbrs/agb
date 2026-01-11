@@ -61,7 +61,6 @@
 //!
 //! This method takes ownership of the current `frame` instance, so you won't be able to use it for any further calls once this is done.
 //! You will need to create a new frame object from the `gfx` instance.
-#![warn(missing_docs)]
 use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
 
 use alloc::boxed::Box;
@@ -83,6 +82,7 @@ mod palette16;
 /// Data produced by agb-image-converter
 pub mod tile_data;
 pub mod tiled;
+pub mod utils;
 
 mod affine;
 pub use affine::AffineMatrix;

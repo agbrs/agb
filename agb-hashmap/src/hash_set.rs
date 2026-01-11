@@ -220,6 +220,25 @@ where
         self.map.contains_key(value)
     }
 
+    /// Returns the value contained in the hash set if the set contains the value `value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use agb_hashmap::HashSet;
+    ///
+    /// let set = HashSet::from([1, 2, 3]);
+    /// assert_eq!(set.get(&2), Some(&2));
+    /// assert_eq!(set.get(&4), None);
+    /// ```
+    pub fn get<Q>(&self, value: &Q) -> Option<&K>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.map.get_key_value(value).map(|(k, _)| k)
+    }
+
     /// Visits the values representing the difference i.e. the values that are in `self` but not in `other`.
     ///
     /// # Examples
@@ -237,7 +256,7 @@ where
     /// // Difference is not symmetric. `b - a` means something different
     /// let diff: HashSet<_> = b.difference(&a).collect();
     /// assert_eq!(diff, HashSet::from([&4]));
-    /// ``````
+    /// ```
     pub fn difference<'a>(
         &'a self,
         other: &'a HashSet<K, ALLOCATOR>,

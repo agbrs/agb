@@ -47,8 +47,18 @@ pub struct TileSet {
 impl TileSet {
     /// Create a new TileSet. You probably shouldn't use this function and instead rely on
     /// [`include_background_gfx!`](crate::include_background_gfx).
+    ///
+    /// # Safety
+    ///
+    /// * `tiles` must be aligned to 32-bits
+    /// * `tiles` length must be a multiple of the tile size in `format`
     #[must_use]
-    pub const fn new(tiles: &'static [u8], format: TileFormat) -> Self {
+    pub const unsafe fn new(tiles: &'static [u8], format: TileFormat) -> Self {
+        assert!(
+            tiles.len().is_multiple_of(format.tile_size()),
+            "The length of `tiles` must be a multiple of `format.tile_size()`"
+        );
+
         Self { tiles, format }
     }
 
@@ -58,6 +68,31 @@ impl TileSet {
     #[must_use]
     pub const fn format(&self) -> TileFormat {
         self.format
+    }
+
+    /// Gets the raw tile data for a given `tile_id`.
+    ///
+    /// If you have deduplicated the [`TileSet`], then make sure you use the `tile_id` provided by
+    /// the [`TileSetting::tile_id()`](agb::display::tiled::TileSetting::tile_id) method.
+    #[must_use]
+    pub fn get_tile_data(&self, tile_id: u16) -> &'static [u32] {
+        assert!(
+            tile_id as usize * self.format.tile_size() < self.tiles.len(),
+            "{tile_id} is too big for this tileset ({} tiles)",
+            self.tiles.len() / self.format.tile_size()
+        );
+
+        let tile_id = tile_id as usize;
+        let tile_size = self.format.tile_size();
+
+        // SAFETY: alignment checked in precondition of the function, and the start index is valid by the second
+        //         assertion and the length is valid due to the check in the constructor.
+        unsafe {
+            slice::from_raw_parts(
+                self.tiles.as_ptr().add(tile_id * tile_size).cast(),
+                tile_size / 4,
+            )
+        }
     }
 
     fn reference(&self) -> NonNull<[u8]> {
@@ -235,7 +270,14 @@ impl DynamicTile16 {
 
     /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
     /// and must write to it in at least 16-bit chunks.
-    pub fn data(&mut self) -> &mut [u32] {
+    #[must_use]
+    pub fn data_mut(&mut self) -> &mut [u32] {
+        self.tile_data
+    }
+
+    /// Returns an immutable reference to the underlying tile data.
+    #[must_use]
+    pub fn data(&self) -> &[u32] {
         self.tile_data
     }
 
@@ -248,7 +290,7 @@ impl DynamicTile16 {
             )
         };
 
-        TileSet::new(tiles, TileFormat::FourBpp)
+        unsafe { TileSet::new(tiles, TileFormat::FourBpp) }
     }
 
     #[must_use]

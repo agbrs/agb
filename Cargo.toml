@@ -44,6 +44,7 @@ exclude = [
     "examples/the-dungeon-puzzlers-lament",
     "examples/the-hat-chooses-the-wizard",
     "examples/the-purple-night",
+    "examples/dynamic-isometric",
 
     "book/games/pong",
     "book/games/platform",
