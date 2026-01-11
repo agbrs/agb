@@ -155,26 +155,6 @@ impl LayoutSettings {
         self.max_line_length = max_line_length;
         self
     }
-
-    pub(super) fn alignment(&self) -> AlignmentKind {
-        self.alignment
-    }
-
-    pub(super) fn palette_index(&self) -> u8 {
-        self.palette_index
-    }
-
-    pub(super) fn drop_shadow_palette_index(&self) -> Option<u8> {
-        self.drop_shadow_palette_index
-    }
-
-    pub(super) fn max_group_width(&self) -> i32 {
-        self.max_group_width
-    }
-
-    pub(super) fn max_line_length(&self) -> i32 {
-        self.max_line_length
-    }
 }
 
 impl Layout {
@@ -186,17 +166,17 @@ impl Layout {
         grouper.pos.y = -font.line_height;
 
         Self {
-            align: Align::new(settings.alignment(), settings.max_line_length(), font),
+            align: Align::new(settings.alignment, settings.max_line_length, font),
             text: text.into(),
             font,
             line: None,
             line_number: -1,
             grouper,
 
-            palette_index: settings.palette_index(),
-            drop_shadow_palette_index: settings.drop_shadow_palette_index(),
+            palette_index: settings.palette_index,
+            drop_shadow_palette_index: settings.drop_shadow_palette_index,
             tag: 0,
-            max_group_width: settings.max_group_width(),
+            max_group_width: settings.max_group_width,
         }
     }
 }
