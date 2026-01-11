@@ -77,6 +77,7 @@ impl Layout {
         }
     }
 
+    /// Enables a drop-shadow to the bottom right of the text with it using the given palette index.
     #[must_use]
     pub fn with_dropshadow(mut self, palette_index: u8) -> Self {
         self.dropshadow_palette_index = Some(palette_index);
@@ -135,10 +136,6 @@ impl LetterGroup {
     /// ```
     pub fn has_tag(&self, tag: Tag) -> bool {
         (self.tag >> tag.0) & 1 == 1
-    }
-
-    pub(crate) fn palette_index(&self) -> u8 {
-        self.palette_index
     }
 
     pub(crate) fn font(&self) -> &Font {
@@ -266,8 +263,8 @@ impl LetterGroup {
             .filter(|&(_, px)| px != 0)
     }
 
-    /// An iterator over each pixel of the text
-    pub fn pixels(&self) -> impl Iterator<Item = Vector2D<i32>> {
+    /// An iterator over each pixel of the text, returning the location to plot a pixel and the palette index to use.
+    pub fn pixels(&self) -> impl Iterator<Item = (Vector2D<i32>, u8)> {
         let font = self.font();
         let mut previous_char = None;
 
@@ -292,7 +289,10 @@ impl LetterGroup {
                 (0..letter.width as usize).filter_map(move |x| {
                     let rendered = letter.bit_absolute(x, y);
                     if rendered {
-                        Some((x as i32 + x_offset_this, y as i32 + y_position).into())
+                        Some((
+                            vec2(x as i32 + x_offset_this, y as i32 + y_position),
+                            self.palette_index,
+                        ))
                     } else {
                         None
                     }

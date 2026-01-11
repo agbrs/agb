@@ -71,10 +71,9 @@ impl ObjectTextRenderer {
     pub fn show(&self, group: &LetterGroup, offset: impl Into<Vector2D<i32>>) -> Object {
         let offset = offset.into();
         let mut sprite = DynamicSprite16::new(self.size);
-        let pal_index = group.palette_index();
 
-        for pixel in group.pixels() {
-            sprite.set_pixel(pixel.x as usize, pixel.y as usize, pal_index as usize);
+        for (pixel, palette_index) in group.pixels() {
+            sprite.set_pixel(pixel.x as usize, pixel.y as usize, palette_index as usize);
         }
 
         let mut object = Object::new(sprite.to_vram(self.palette.clone()));
