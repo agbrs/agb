@@ -1,29 +1,34 @@
 #![no_main]
 #![no_std]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, reexport_test_harness_main = "test_main")]
+#![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 //! Coordinate system
 //! =================
 //!
 //! There are 3 coordinate systems which are used here:
 //!
 //! 1. World coordinates
-//!     A simple (x, y) grid where the game logic lives. Each cell is one logical tile.
+//!    A simple (x, y) grid where the game logic lives. Each cell is one logical tile.
 //! 2. Macro tile coordinates
-//!     A macro tile is 4x2 GBA tiles (32x16 pixels) and is centred around a single world
-//!     coordinate tile.
+//!    A macro tile is 4x2 GBA tiles (32x16 pixels) and is centred around a single world
+//!    coordinate tile.
 //!
-//!     To convert between world coordinates to macro coordinates, use
-//!         macro_x = world_x - world_y
-//!         macro_y = world_x + world_y
+//!    To convert between world coordinates to macro coordinates, use
+//!    ```text   
+//!    macro_x = world_x - world_y
+//!    macro_y = world_x + world_y
 //!
-//!         world_x = (macro_x + macro_y) / 2
-//!         world_y = (macro_y - macro_x) / 2
+//!    world_x = (macro_x + macro_y) / 2
+//!    world_y = (macro_y - macro_x) / 2
+//!    ```
 //!
-//!     Half of world tiles are found in the corners of macro tiles. These are called 'ghost tiles'
-//!     since they are only rendered as a side-effect of rendering the central tile of the macro
-//!     tile.
+//!    Half of world tiles are found in the corners of macro tiles. These are called 'ghost tiles'
+//!    since they are only rendered as a side-effect of rendering the central tile of the macro
+//!    tile.
 //!
 //! 3. GBA tile coordinates
-//!     One macro tile = 4×2 GBA
+//!    One macro tile = 4×2 GBA
 //!
 //! Quadrants
 //! =========
@@ -438,7 +443,7 @@ impl Map {
         let macro_tile_x = div_floor(x, TILE_WIDTH);
         let macro_tile_y = div_floor(y, TILE_HEIGHT);
 
-        let (tile_x, tile_y) = (macro_tile_x + macro_tile_y, macro_tile_y - macro_tile_x);
+        let tile = vec2(macro_tile_x + macro_tile_y, macro_tile_y - macro_tile_x);
 
         let neighbour_quadrant = match quadrant {
             Quadrant::TopLeft => (-1, 0),
@@ -447,21 +452,18 @@ impl Map {
             Quadrant::BottomRight => (1, 0),
         };
 
-        let me = self.get_tile(vec2(tile_x, tile_y));
-        let neighbour = self.get_tile(vec2(
-            tile_x + neighbour_quadrant.0,
-            tile_y + neighbour_quadrant.1,
-        ));
+        let me = self.get_tile(tile);
+        let neighbour = self.get_tile(tile + vec2(neighbour_quadrant.0, neighbour_quadrant.1));
 
         TileSpec {
             quadrant,
             me,
             them: neighbour,
             neighbours: NeighbourTileContext {
-                left: self.get_tile(vec2(tile_x - 1, tile_y + 1)),
-                up_left: self.get_tile(vec2(tile_x - 1, tile_y)),
-                up: self.get_tile(vec2(tile_x - 1, tile_y - 1)),
-                up_right: self.get_tile(vec2(tile_x, tile_y - 1)),
+                left: self.get_tile(tile + vec2(-1, 1)),
+                up_left: self.get_tile(tile + vec2(-1, 0)),
+                up: self.get_tile(tile + vec2(-1, -1)),
+                up_right: self.get_tile(tile + vec2(0, -1)),
             },
         }
     }
