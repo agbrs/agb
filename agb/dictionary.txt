@@ -20,6 +20,7 @@ vblank
 vdraw
 hblank
 scanline
+blit
 
 lossily
 situationally
