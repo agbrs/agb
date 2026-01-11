@@ -67,12 +67,11 @@
 use agb::{
     Gba,
     display::{
-        GraphicsFrame, Priority, Rgb15,
-        object::{GraphicsMode, Object, Tag},
+        Priority, Rgb15,
         tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDma,
-    fixnum::{Num, Vector2D, num, vec2},
+    fixnum::{num, vec2},
     include_aseprite, include_background_gfx, include_colours,
     input::ButtonController,
 };
@@ -81,10 +80,14 @@ use alloc::vec;
 
 use isometric_render::TileType;
 
-use crate::isometric_render::{Map, TileCache, world_to_gba_tile_smooth};
+use crate::{
+    character::Character,
+    isometric_render::{Map, TileCache},
+};
 
 extern crate alloc;
 
+mod character;
 mod isometric_render;
 
 include_background_gfx!(mod tiles, "333333",
@@ -172,10 +175,10 @@ fn main(mut gba: Gba) -> ! {
 
     agb::println!("Cache size: {}", tile_cache.cache_size());
 
-    let mut character_target_position = initial_position;
-
     loop {
         input.update();
+        character.update(&input, &wall_map, &floor_map);
+
         let mut frame = gfx.frame();
 
         let floor_id = floor_bg.show(&mut frame);
@@ -187,24 +190,6 @@ fn main(mut gba: Gba) -> ! {
         )
         .show(&mut frame);
 
-        let just_pressed = input.just_pressed_vector::<Num<i32, 12>>();
-        if just_pressed != vec2(num!(0), num!(0)) {
-            if character_target_position != character.position {
-                character.position = character_target_position;
-            }
-
-            character.flipped = just_pressed.x > num!(0) || just_pressed.y < num!(0);
-
-            let new_location = character_target_position + just_pressed;
-            if wall_map.get_tile(new_location.floor()) == TileType::Air
-                && floor_map.get_tile(new_location.floor()) != TileType::Air
-            {
-                character_target_position = new_location;
-            }
-        }
-
-        character.position = (character.position + character_target_position) / 2;
-
         character.show(&mut frame, &wall_map);
 
         frame
@@ -213,58 +198,5 @@ fn main(mut gba: Gba) -> ! {
             .enable_background(floor_id);
 
         frame.commit();
-    }
-}
-
-struct Character {
-    tag: &'static Tag,
-    // position is the current foot location in world space
-    position: Vector2D<Num<i32, 12>>,
-    foot_offset: Vector2D<i32>,
-    flipped: bool,
-}
-
-impl Character {
-    fn new(tag: &'static Tag, position: Vector2D<Num<i32, 12>>) -> Self {
-        Self {
-            tag,
-            position,
-            foot_offset: vec2(16, 30),
-            flipped: false,
-        }
-    }
-
-    fn show(&self, frame: &mut GraphicsFrame, wall_map: &Map) {
-        // which priority do we need for the bottom sprites?
-        let tile_pos = self.position.round();
-        let priority = if wall_map.get_tile(tile_pos + vec2(1, 0)) != TileType::Air
-            || wall_map.get_tile(tile_pos + vec2(1, 1)) != TileType::Air
-            || wall_map.get_tile(tile_pos + vec2(0, 1)) != TileType::Air
-        {
-            Priority::P3
-        } else {
-            Priority::P1
-        };
-
-        let real_tile_space = world_to_gba_tile_smooth(self.position);
-        let real_pixel_space = (real_tile_space * 8).round();
-
-        Object::new(self.tag.sprite(0))
-            .set_pos(real_pixel_space - self.foot_offset)
-            .set_priority(Priority::P1)
-            .set_hflip(self.flipped)
-            .show(frame);
-        Object::new(self.tag.sprite(1))
-            .set_pos(real_pixel_space - self.foot_offset + vec2(0, 16))
-            .set_priority(priority)
-            .set_hflip(self.flipped)
-            .show(frame);
-
-        // drop shadow
-        Object::new(sprites::DROP_SHADOW.sprite(0))
-            .set_pos(real_pixel_space - vec2(16, 8))
-            .set_priority(priority)
-            .set_graphics_mode(GraphicsMode::AlphaBlending)
-            .show(frame);
     }
 }
