@@ -2,7 +2,7 @@
 
 In this section we'll implement collision between the ball and the paddles to start having an actual game.
 
-# Using Vector2D<i32>
+# Using Vector2D\<i32\>
 
 However, the first thing we're going to do is a quick refactor to using `agb`'s [Vector2D](https://docs.rs/agb/latest/agb/fixnum/struct.Vector2D.html)
 type for managing positions more easily.
