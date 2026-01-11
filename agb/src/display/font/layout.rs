@@ -132,10 +132,10 @@ impl LayoutSettings {
 
     /// Sets the maximum group width.
     ///
-    /// If rendering with [`ObjectTextRenderer`], then it is recommended that you use the width of the sprites you're
+    /// If rendering with [`ObjectTextRenderer`](super::ObjectTextRenderer), then it is recommended that you use the width of the sprites you're
     /// using. But you can set it lower if you want the text to appear more smoothly (at the cost of using more sprites).
     ///
-    /// If rendering with [`RegularBackgroundTextRenderer`], then this should be a multiple of 8 for maximal performance.
+    /// If rendering with [`RegularBackgroundTextRenderer`](super::RegularBackgroundTextRenderer), then this should be a multiple of 8 for maximal performance.
     /// You can set this to any value and it won't change how many tiles get used. It does change performance characteristics though.
     ///
     /// Defaults to 16.
