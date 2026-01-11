@@ -291,9 +291,17 @@ impl LetterGroup {
             }
     }
 
-    /// An iterator over each pixel of the text provided as 8 packed pixels at a
-    /// time. This can be used to display the text more efficiently by allowing
-    /// you to render 8 pixels at a time.
+    /// An iterator over the pixels of this letter group, yielding 8 horizontally-packed
+    /// 4bpp pixels at a time.
+    ///
+    /// Each item is a `(position, packed_pixels)` pair where:
+    /// - `position` is the top-left coordinate of the 8-pixel horizontal strip
+    /// - `packed_pixels` is a `u32` containing 8 pixels in GBA 4bpp format (4 bits per pixel)
+    ///
+    /// This is more efficient than [`pixels`](Self::pixels) when rendering to tiles, as you can
+    /// blit 8 pixels at once.
+    ///
+    /// If a drop shadow is configured, the shadow pixels are yielded before the main text pixels.
     pub fn pixels_packed(&self) -> impl Iterator<Item = (Vector2D<i32>, u32)> {
         let font = self.font();
         let mut previous_char = None;
