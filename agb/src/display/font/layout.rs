@@ -162,7 +162,8 @@ impl Layout {
     #[must_use]
     /// Creates a new layout for the given text, font, and alignment. Generates
     /// [`LetterGroup`]s of width up to the `max_group_width`. The length of
-    /// each line of text is given by `max_line_length`.
+    /// each line of text is given by `max_line_length`. If `max_line_length` is
+    /// 0, then the line length is unlimited (lines will only break on newlines).
     pub fn new(
         text: &str,
         font: &'static Font,

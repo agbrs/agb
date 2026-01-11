@@ -130,10 +130,11 @@ impl Align {
                 current_width_of_word += i32::from(letter.advance_width) + kerning;
             }
 
-            if self.max_line_length
-                < current_width_of_words_in_line
-                    + current_width_of_word
-                    + spaces_in_line * self.default_space_width
+            if self.max_line_length > 0
+                && self.max_line_length
+                    < current_width_of_words_in_line
+                        + current_width_of_word
+                        + spaces_in_line * self.default_space_width
             {
                 // We've done a complete line now, and should break before the start of the current word. However, if
                 // the current word is the first word we started laying out on this line, then we should break anyway in
