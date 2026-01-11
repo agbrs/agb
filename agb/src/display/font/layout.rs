@@ -329,6 +329,16 @@ impl LetterGroup {
         })
     }
 
+    // Iterates over a letter's pixel data, returning 8 horizontally-packed 4bpp pixels at a time.
+    //
+    // Font data is stored as 1-bit-per-pixel (on/off). This function expands it to 4bpp format
+    // for the GBA. Each input byte contains 8 pixels. The lookup table (PX_LUT) expands each
+    // 4-bit nibble so that each source bit becomes a 4-bit palette index (0 or 1). Multiplying
+    // by palette_index then sets the actual colour. For example, input bits 0b1010 become
+    // 0x1010, and if palette_index is 3, the result is 0x3030 (pixels: 0, 3, 0, 3).
+    //
+    // The 32-bit output packs 8 pixels: low 16 bits from the low nibble, high 16 bits from
+    // the high nibble of each input byte.
     fn packed_pixels_for_letter(
         &self,
         letter: &FontLetter,
