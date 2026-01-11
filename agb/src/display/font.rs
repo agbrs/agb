@@ -215,6 +215,7 @@ impl FontLetter {
 /// A font that was imported using the [`include_font`] macro.
 /// This can be used by creating a [`Layout`] that uses this font.
 pub struct Font {
+    ascii_letters: &'static [FontLetter; 94],
     letters: &'static [FontLetter],
     line_height: i32,
     ascent: i32,
@@ -224,8 +225,14 @@ impl Font {
     #[must_use]
     #[doc(hidden)]
     /// Unstable interface for creating a new Font, should only be used by the [`crate::include_font`] macro
-    pub const fn new(letters: &'static [FontLetter], line_height: i32, ascent: i32) -> Self {
+    pub const fn new(
+        ascii_letters: &'static [FontLetter; 94],
+        letters: &'static [FontLetter],
+        line_height: i32,
+        ascent: i32,
+    ) -> Self {
         Self {
+            ascii_letters,
             letters,
             line_height,
             ascent,
@@ -233,6 +240,10 @@ impl Font {
     }
 
     pub(crate) fn letter(&self, letter: char) -> &'static FontLetter {
+        if (0x21..0x7F).contains(&(letter as u32)) {
+            return &self.ascii_letters[letter as usize - 0x21];
+        }
+
         let letter = self
             .letters
             .binary_search_by_key(&letter, |letter| letter.character);

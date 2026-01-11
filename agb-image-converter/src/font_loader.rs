@@ -1,13 +1,15 @@
 use crate::ByteString;
-use quote::quote;
+use quote::{ToTokens, quote};
 
 use proc_macro2::TokenStream;
 
+#[derive(Clone)]
 struct KerningData {
     previous_character: char,
     amount: f32,
 }
 
+#[derive(Clone)]
 struct LetterData {
     character: char,
     width: usize,
@@ -17,6 +19,41 @@ struct LetterData {
     advance_width: f32,
     rendered: Vec<u8>,
     kerning_data: Vec<KerningData>,
+}
+
+impl ToTokens for LetterData {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let character = self.character;
+        let data_raw = ByteString(&self.rendered);
+        let height = self.height as u8;
+        let width = self.width as u8;
+        let xmin = self.xmin as i8;
+        let ymin = self.ymin as i8;
+        let advance_width = self.advance_width.ceil() as u8;
+        let kerning_amounts = self.kerning_data.iter().map(|kerning_data| {
+            let amount = kerning_data.amount as i8;
+            let c = kerning_data.previous_character;
+            quote! {
+                (#c, #amount)
+            }
+        });
+
+        quote!(
+            FontLetter::new(
+                #character,
+                #width,
+                #height,
+                #data_raw,
+                #xmin,
+                #ymin,
+                #advance_width,
+                &[
+                    #(#kerning_amounts),*
+                ]
+            )
+        )
+        .to_tokens(tokens);
+    }
 }
 
 pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
@@ -106,39 +143,21 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
         ascent = maximum_above_line;
     }
 
-    let font = letters.iter().map(|letter_data| {
-        let character = letter_data.character;
-        let data_raw = ByteString(&letter_data.rendered);
-        let height = letter_data.height as u8;
-        let width = letter_data.width as u8;
-        let xmin = letter_data.xmin as i8;
-        let ymin = letter_data.ymin as i8;
-        let advance_width = letter_data.advance_width.ceil() as u8;
-        let kerning_amounts = letter_data.kerning_data.iter().map(|kerning_data| {
-            let amount = kerning_data.amount as i8;
-            let c = kerning_data.previous_character;
-            quote! {
-                (#c, #amount)
-            }
-        });
+    let ascii_letters = (0x21..0x7F).map(|idx| {
+        let c = char::from_u32(idx).expect("ascii character should be valid");
+        let letter_idx = letters
+            .binary_search_by_key(&c, |x| x.character)
+            .unwrap_or(0);
 
-        quote!(
-            FontLetter::new(
-                #character,
-                #width,
-                #height,
-                #data_raw,
-                #xmin,
-                #ymin,
-                #advance_width,
-                &[
-                    #(#kerning_amounts),*
-                ]
-            )
-        )
+        letters[letter_idx].clone()
     });
 
+    let non_ascii_letters = letters
+        .iter()
+        .filter(|&x| !(0x21..0x7F).contains(&(x.character as u32)))
+        .cloned();
+
     quote![
-        Font::new(&[#(#font),*], #line_height, #ascent)
+        Font::new(&[#(#ascii_letters),*], &[#(#non_ascii_letters),*], #line_height, #ascent)
     ]
 }
