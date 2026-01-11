@@ -397,6 +397,31 @@ impl Quadrant {
             Quadrant::BottomRight => Quadrant::TopLeft,
         }
     }
+
+    /// Returns the position in the direction of this quadrant
+    fn neighbour(self, pos: Vector2D<i32>) -> Vector2D<i32> {
+        let neighbour_quadrant = match self {
+            Quadrant::TopLeft => (-1, 0),
+            Quadrant::TopRight => (0, -1),
+            Quadrant::BottomLeft => (0, 1),
+            Quadrant::BottomRight => (1, 0),
+        };
+
+        pos + vec2(neighbour_quadrant.0, neighbour_quadrant.1)
+    }
+
+    fn from_gba_tile(tile: Vector2D<i32>) -> Self {
+        match (
+            (div_floor(tile.x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
+            tile.y.rem_euclid(TILE_HEIGHT),
+        ) {
+            (0, 0) => Quadrant::TopLeft,
+            (1, 0) => Quadrant::TopRight,
+            (0, 1) => Quadrant::BottomLeft,
+            (1, 1) => Quadrant::BottomRight,
+            _ => unreachable!(),
+        }
+    }
 }
 
 struct Map {
@@ -429,31 +454,15 @@ impl Map {
     }
 
     fn get_from_gba_tile(&self, x: i32, y: i32) -> TileSpec {
-        let quadrant = match (
-            (div_floor(x, TILE_WIDTH / 2)).rem_euclid(TILE_WIDTH / 2),
-            y.rem_euclid(TILE_HEIGHT),
-        ) {
-            (0, 0) => Quadrant::TopLeft,
-            (1, 0) => Quadrant::TopRight,
-            (0, 1) => Quadrant::BottomLeft,
-            (1, 1) => Quadrant::BottomRight,
-            _ => unreachable!(),
-        };
+        let quadrant = Quadrant::from_gba_tile(vec2(x, y));
 
         let macro_tile_x = div_floor(x, TILE_WIDTH);
         let macro_tile_y = div_floor(y, TILE_HEIGHT);
 
         let tile = vec2(macro_tile_x + macro_tile_y, macro_tile_y - macro_tile_x);
 
-        let neighbour_quadrant = match quadrant {
-            Quadrant::TopLeft => (-1, 0),
-            Quadrant::TopRight => (0, -1),
-            Quadrant::BottomLeft => (0, 1),
-            Quadrant::BottomRight => (1, 0),
-        };
-
         let me = self.get_tile(tile);
-        let neighbour = self.get_tile(tile + vec2(neighbour_quadrant.0, neighbour_quadrant.1));
+        let neighbour = self.get_tile(quadrant.neighbour(tile));
 
         TileSpec {
             quadrant,
