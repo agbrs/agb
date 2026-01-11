@@ -2,7 +2,10 @@ use alloc::vec::Vec;
 
 use super::LetterGroup;
 use crate::{
-    display::tiled::{DynamicTile16, RegularBackground, TileEffect},
+    display::{
+        tiled::{DynamicTile16, RegularBackground, TileEffect},
+        utils::blit_16_colour,
+    },
     fixnum::{Vector2D, vec2},
 };
 
@@ -83,11 +86,18 @@ impl RegularBackgroundTextRenderer {
             let x_in_tile = pos.x.rem_euclid(8) * 4;
 
             let tile_left = row[x].as_mut().expect("should have ensured space");
-            tile_left.data_mut()[pos.y.rem_euclid(8) as usize] |= px << x_in_tile;
+            let y_index = pos.y.rem_euclid(8) as usize;
+            blit_16_colour(
+                &mut tile_left.data_mut()[y_index..y_index + 1],
+                &[px << x_in_tile],
+            );
 
             if x_in_tile > 0 {
                 let tile_right = row[x + 1].as_mut().expect("should have ensured space");
-                tile_right.data_mut()[pos.y.rem_euclid(8) as usize] |= px >> (32 - x_in_tile);
+                blit_16_colour(
+                    &mut tile_right.data_mut()[y_index..y_index + 1],
+                    &[px >> (32 - x_in_tile)],
+                );
             }
         }
     }

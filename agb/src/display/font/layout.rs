@@ -171,6 +171,11 @@ impl LetterGroup {
             .unwrap_or(0);
 
         vec2(self.width, height)
+            + if self.dropshadow_palette_index.is_some() {
+                vec2(1, 1)
+            } else {
+                vec2(0, 0)
+            }
     }
 
     /// An iterator over each pixel of the text provided as 8 packed pixels at a
@@ -197,17 +202,28 @@ impl LetterGroup {
 
             let palette_index: u32 = self.palette_index.into();
 
-            Self::packed_pixels_for_letter(font, letter, palette_index, x_offset_this)
+            self.dropshadow_palette_index
+                .iter()
+                .flat_map(move |&dropshadow_palette_index| {
+                    self.packed_pixels_for_letter(
+                        letter,
+                        dropshadow_palette_index.into(),
+                        x_offset_this + 1,
+                        1,
+                    )
+                })
+                .chain(self.packed_pixels_for_letter(letter, palette_index, x_offset_this, 0))
         })
     }
 
     fn packed_pixels_for_letter(
-        font: &Font,
+        &self,
         letter: &FontLetter,
         palette_index: u32,
         x_offset: i32,
+        y_offset: i32,
     ) -> impl Iterator<Item = (Vector2D<i32>, u32)> {
-        let y_position = font.ascent() - letter.height as i32 - letter.ymin as i32;
+        let y_position = self.font.ascent() - letter.height as i32 - letter.ymin as i32 + y_offset;
 
         let x_offset_this = x_offset;
 
