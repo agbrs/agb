@@ -113,7 +113,7 @@ impl AffineDemonstration {
                     self.demonstration.text()
                 ),
                 &FONT,
-                &LayoutSettings::new().with_max_line_length(1000),
+                &LayoutSettings::new(),
             ));
             self.description_objs.clear();
         }
@@ -122,9 +122,7 @@ impl AffineDemonstration {
         let position_layout = Layout::new(
             &position_text,
             &FONT,
-            &LayoutSettings::new()
-                .with_max_line_length(1000)
-                .with_alignment(AlignmentKind::Right),
+            &LayoutSettings::new().with_alignment(AlignmentKind::Right),
         );
         self.position_objs = position_layout
             .map(|lg| self.text_renderer.show(&lg, (WIDTH - 8, 4)))
