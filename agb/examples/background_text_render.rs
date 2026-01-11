@@ -5,7 +5,7 @@
 use agb::{
     display::{
         Priority, Rgb, Rgb15,
-        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+        font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     include_font,
@@ -32,11 +32,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut text_layout = Layout::new(
         "Hello, World! こんにちは世界\nThis is an example of rendering text using backgrounds.",
         &FONT,
-        AlignmentKind::Left,
-        32,
         200,
-    )
-    .with_drop_shadow(2);
+        &LayoutSettings::new().with_drop_shadow(2),
+    );
 
     let mut frame = gfx.frame();
     bg.show(&mut frame);

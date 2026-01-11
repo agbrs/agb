@@ -9,7 +9,7 @@ use alloc::{format, vec, vec::Vec};
 use agb::{
     display::{
         AffineMatrix, GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
-        font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
+        font::{AlignmentKind, Font, Layout, LayoutSettings, ObjectTextRenderer},
         object::{AffineMatrixObject, AffineMode, Object, ObjectAffine, Size, SpriteVram},
         tiled::VRAM_MANAGER,
     },
@@ -73,7 +73,7 @@ impl AffineDemonstration {
             Palette16::new(palette)
         };
 
-        let text_renderer = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
+        let text_renderer = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
         let demonstration = AffineTransformKind::default();
 
@@ -113,15 +113,19 @@ impl AffineDemonstration {
                     self.demonstration.text()
                 ),
                 &FONT,
-                AlignmentKind::Left,
-                32,
                 1000,
+                &Default::default(),
             ));
             self.description_objs.clear();
         }
 
         let position_text = format!("x={}, y={}", self.position.x, self.position.y);
-        let position_layout = Layout::new(&position_text, &FONT, AlignmentKind::Right, 32, 1000);
+        let position_layout = Layout::new(
+            &position_text,
+            &FONT,
+            1000,
+            &LayoutSettings::new().with_alignment(AlignmentKind::Right),
+        );
         self.position_objs = position_layout
             .map(|lg| self.text_renderer.show(&lg, (WIDTH - 8, 4)))
             .collect();

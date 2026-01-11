@@ -1,9 +1,10 @@
 use super::{Font, special::AGB_PRIVATE_USE_RANGE};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 /// Ways of aligning text
 pub enum AlignmentKind {
     /// Text is aligned such that the left edge aligns with the left of the given width
+    #[default]
     Left,
     /// Text is aligned such the the right edge aligns with the right of the given width
     Right,

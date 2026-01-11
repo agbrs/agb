@@ -17,7 +17,7 @@ use crate::{
 /// # #![no_main]
 /// use agb::display::{
 ///     Palette16, Rgb15, Priority,
-///     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+///     font::{Font, Layout, RegularBackgroundTextRenderer},
 ///     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
 /// };
 ///
@@ -39,7 +39,7 @@ use crate::{
 ///
 /// // the actual text rendering
 ///
-/// let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 40, 200);
+/// let layout = Layout::new("Hello, world!", &FONT, 200, &Default::default());
 /// let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
 ///
 /// for letter_group in layout {
@@ -141,7 +141,7 @@ mod test {
         Gba,
         display::{
             Priority, Rgb15,
-            font::{AlignmentKind, ChangeColour, Font, Layout},
+            font::{ChangeColour, Font, Layout, layout::LayoutSettings},
             palette16::Palette16,
             tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
         },
@@ -178,9 +178,8 @@ mod test {
         let layout = Layout::new(
             &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
             &FONT,
-            AlignmentKind::Left,
-            128,
             200,
+            &LayoutSettings::new().with_max_group_width(128),
         );
 
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
@@ -218,9 +217,8 @@ mod test {
         let layout = Layout::new(
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
-            AlignmentKind::Left,
-            16,
             200,
+            &Default::default(),
         );
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
 
@@ -255,9 +253,8 @@ mod test {
         let mut layout = Layout::new(
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
-            AlignmentKind::Left,
-            32,
             200,
+            &LayoutSettings::new().with_max_group_width(32),
         );
         let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
         let letter_group = layout.next().unwrap();

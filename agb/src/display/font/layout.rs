@@ -14,13 +14,18 @@ use super::{
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// use agb::display::font::{Layout, AlignmentKind, Font};
+/// use agb::display::font::{Layout, AlignmentKind, Font, LayoutSettings};
 ///
 /// static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 ///
 /// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
-/// let mut layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 32, 200);
+/// let mut layout = Layout::new(
+///     "Hello, world!",
+///     &FONT,
+///     200,
+///     &LayoutSettings::new().with_max_group_width(32),
+/// );
 ///
 /// let n = layout.next().unwrap();
 /// assert_eq!(n.text(), "Hello,");
@@ -47,6 +52,112 @@ pub struct Layout {
     max_group_width: i32,
 }
 
+/// Control how the text is laid out.
+///
+/// Uses a builder pattern, so you can construct it as follows:
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::display::font::{AlignmentKind, LayoutSettings};
+///
+/// # #[agb::doctest]
+/// # fn test(_: agb::Gba) {
+/// LayoutSettings::new()
+///     .with_alignment(AlignmentKind::Centre)
+/// # ;
+/// # }
+/// ```
+#[derive(Clone)]
+pub struct LayoutSettings {
+    alignment: AlignmentKind,
+    palette_index: u8,
+    drop_shadow_palette_index: Option<u8>,
+    max_group_width: i32,
+}
+
+impl Default for LayoutSettings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LayoutSettings {
+    /// Creates a new `LayoutSettings` with default values.
+    ///
+    /// Defaults:
+    /// - `alignment`: [`AlignmentKind::Left`]
+    /// - `palette_index`: 1
+    /// - `drop_shadow_palette_index`: None (no drop shadow)
+    /// - `max_group_width`: 16
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            alignment: AlignmentKind::Left,
+            palette_index: 1,
+            drop_shadow_palette_index: None,
+            max_group_width: 16,
+        }
+    }
+
+    /// Sets the alignment for the text.
+    ///
+    /// Defaults to [`AlignmentKind::Left`].
+    #[must_use]
+    pub const fn with_alignment(mut self, alignment: AlignmentKind) -> Self {
+        self.alignment = alignment;
+        self
+    }
+
+    /// Sets the palette index for the main font colour.
+    ///
+    /// Defaults to 1.
+    #[must_use]
+    pub const fn with_palette_index(mut self, palette_index: u8) -> Self {
+        self.palette_index = palette_index;
+        self
+    }
+
+    /// Sets the palette index for the drop-shadow colour.
+    ///
+    /// Defaults to None which means no drop-shadow.
+    #[must_use]
+    pub const fn with_drop_shadow(mut self, drop_shadow_palette_index: u8) -> Self {
+        self.drop_shadow_palette_index = Some(drop_shadow_palette_index);
+        self
+    }
+
+    /// Sets the maximum group width.
+    ///
+    /// If rendering with [`ObjectTextRenderer`], then it is recommended that you use the width of the sprites you're
+    /// using. But you can set it lower if you want the text to appear more smoothly (at the cost of using more sprites).
+    ///
+    /// If rendering with [`RegularBackgroundTextRenderer`], then this should be a multiple of 8 for maximal performance.
+    /// You can set this to any value and it won't change how many tiles get used. It does change performance characteristics though.
+    ///
+    /// Defaults to 16.
+    #[must_use]
+    pub const fn with_max_group_width(mut self, max_group_width: i32) -> Self {
+        self.max_group_width = max_group_width;
+        self
+    }
+
+    pub(super) fn alignment(&self) -> AlignmentKind {
+        self.alignment
+    }
+
+    pub(super) fn palette_index(&self) -> u8 {
+        self.palette_index
+    }
+
+    pub(super) fn drop_shadow_palette_index(&self) -> Option<u8> {
+        self.drop_shadow_palette_index
+    }
+
+    pub(super) fn max_group_width(&self) -> i32 {
+        self.max_group_width
+    }
+}
+
 impl Layout {
     #[must_use]
     /// Creates a new layout for the given text, font, and alignment. Generates
@@ -55,33 +166,25 @@ impl Layout {
     pub fn new(
         text: &str,
         font: &'static Font,
-        alignment: AlignmentKind,
-        max_group_width: i32,
         max_line_length: i32,
+        settings: &LayoutSettings,
     ) -> Self {
         let mut grouper = Grouper::default();
         grouper.pos.y = -font.line_height;
 
         Self {
-            align: Align::new(alignment, max_line_length, font),
+            align: Align::new(settings.alignment(), max_line_length, font),
             text: text.into(),
             font,
             line: None,
             line_number: -1,
             grouper,
 
-            palette_index: 1,
-            drop_shadow_palette_index: None,
+            palette_index: settings.palette_index(),
+            drop_shadow_palette_index: settings.drop_shadow_palette_index(),
             tag: 0,
-            max_group_width,
+            max_group_width: settings.max_group_width(),
         }
-    }
-
-    /// Enables a drop-shadow to the bottom right of the text with it using the given palette index.
-    #[must_use]
-    pub fn with_drop_shadow(mut self, palette_index: u8) -> Self {
-        self.drop_shadow_palette_index = Some(palette_index);
-        self
     }
 }
 
@@ -120,7 +223,7 @@ impl LetterGroup {
     /// # #![no_std]
     /// # #![no_main]
     /// extern crate alloc;
-    /// use agb::display::font::{Font, Layout, Tag, AlignmentKind};
+    /// use agb::display::font::{Font, Layout, Tag};
     /// use agb::include_font;
     /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
     ///
@@ -128,7 +231,7 @@ impl LetterGroup {
     /// # fn test(_: agb::Gba) {
     /// static MY_TAG: Tag = Tag::new(7);
     /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
-    /// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
+    /// let mut layout = Layout::new(&text, &FONT, 100, &Default::default());
     /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
     /// assert!(layout.next().unwrap().has_tag(MY_TAG));
     /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
@@ -503,9 +606,10 @@ mod test {
         let layout = Layout::new(
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
-            AlignmentKind::Justify,
-            32,
             100,
+            &LayoutSettings::new()
+                .with_alignment(AlignmentKind::Justify)
+                .with_max_group_width(32),
         );
 
         for letter_group in layout {
@@ -518,9 +622,8 @@ mod test {
         let layout = Layout::new(
             "This is some text which I've written as part of this example. It should go over a few lines",
             &FONT,
-            AlignmentKind::Right,
-            16,
             150,
+            &LayoutSettings::new().with_alignment(AlignmentKind::Right),
         );
         for letter_group in layout {
             core::hint::black_box(letter_group);
@@ -532,9 +635,10 @@ mod test {
         let layout = Layout::new(
             "Hello\nWorld\nSome text that should break over multiple lines",
             &FONT,
-            AlignmentKind::Centre,
             150,
-            150,
+            &LayoutSettings::new()
+                .with_alignment(AlignmentKind::Centre)
+                .with_max_group_width(150),
         );
 
         let letter_group_lines = layout.map(|lg| lg.line()).collect::<Vec<_>>();

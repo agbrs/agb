@@ -27,13 +27,18 @@
 //! ```rust
 //! # #![no_std]
 //! # #![no_main]
-//! use agb::display::font::{Layout, AlignmentKind, Font};
+//! use agb::display::font::{Layout, Font, LayoutSettings};
 //!
 //! static FONT: Font = agb::include_font!("examples/font/pixelated.ttf", 8);
 //!
 //! # #[agb::doctest]
 //! # fn test(_: agb::Gba) {
-//! let mut layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 32, 200);
+//! let mut layout = Layout::new(
+//!     "Hello, world!",
+//!     &FONT,
+//!     200,
+//!     &LayoutSettings::new().with_max_group_width(32),
+//! );
 //!
 //! let n = layout.next().unwrap();
 //! assert_eq!(n.text(), "Hello,");
@@ -74,7 +79,7 @@
 //!
 //! // the actual text rendering
 //!
-//! let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+//! let layout = Layout::new("Hello, world!", &FONT, 200, &Default::default());
 //! let text_renderer = ObjectTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
 //!
 //! for letter_group in layout {
@@ -102,7 +107,7 @@
 //! # #![no_main]
 //! use agb::display::{
 //!     Palette16, Rgb15, Priority,
-//!     font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+//!     font::{Font, Layout, RegularBackgroundTextRenderer},
 //!     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
 //! };
 //!
@@ -124,7 +129,7 @@
 //!
 //! // the actual text rendering
 //!
-//! let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 40, 200);
+//! let layout = Layout::new("Hello, world!", &FONT, 200, &Default::default());
 //! let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
 //!
 //! for letter_group in layout {
@@ -148,7 +153,7 @@ mod special;
 mod tiled;
 
 pub use align::AlignmentKind;
-pub use layout::{Layout, LetterGroup};
+pub use layout::{Layout, LayoutSettings, LetterGroup};
 pub use object::ObjectTextRenderer;
 pub use tiled::RegularBackgroundTextRenderer;
 
