@@ -44,7 +44,7 @@ fn main(mut gba: agb::Gba) -> ! {
         16,
         200,
     )
-    .with_dropshadow(2);
+    .with_drop_shadow(2);
     let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
 
     let objects: Vec<_> = layout.map(|x| text_render.show(&x, vec2(16, 16))).collect();

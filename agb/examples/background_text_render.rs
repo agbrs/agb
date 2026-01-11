@@ -36,7 +36,7 @@ fn main(mut gba: agb::Gba) -> ! {
         32,
         200,
     )
-    .with_dropshadow(2);
+    .with_drop_shadow(2);
 
     let mut frame = gfx.frame();
     bg.show(&mut frame);

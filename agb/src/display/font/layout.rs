@@ -41,7 +41,7 @@ pub struct Layout {
     grouper: Grouper,
 
     palette_index: u8,
-    dropshadow_palette_index: Option<u8>,
+    drop_shadow_palette_index: Option<u8>,
     tag: u16,
 
     max_group_width: i32,
@@ -71,7 +71,7 @@ impl Layout {
             grouper,
 
             palette_index: 1,
-            dropshadow_palette_index: None,
+            drop_shadow_palette_index: None,
             tag: 0,
             max_group_width,
         }
@@ -79,8 +79,8 @@ impl Layout {
 
     /// Enables a drop-shadow to the bottom right of the text with it using the given palette index.
     #[must_use]
-    pub fn with_dropshadow(mut self, palette_index: u8) -> Self {
-        self.dropshadow_palette_index = Some(palette_index);
+    pub fn with_drop_shadow(mut self, palette_index: u8) -> Self {
+        self.drop_shadow_palette_index = Some(palette_index);
         self
     }
 }
@@ -91,7 +91,7 @@ pub struct LetterGroup {
     str: Rc<str>,
     range: Range<usize>,
     palette_index: u8,
-    dropshadow_palette_index: Option<u8>,
+    drop_shadow_palette_index: Option<u8>,
     width: i32,
     position: Vector2D<i32>,
     line: i32,
@@ -168,7 +168,7 @@ impl LetterGroup {
             .unwrap_or(0);
 
         vec2(self.width, height)
-            + if self.dropshadow_palette_index.is_some() {
+            + if self.drop_shadow_palette_index.is_some() {
                 vec2(1, 1)
             } else {
                 vec2(0, 0)
@@ -199,12 +199,12 @@ impl LetterGroup {
 
             let palette_index: u32 = self.palette_index.into();
 
-            self.dropshadow_palette_index
+            self.drop_shadow_palette_index
                 .iter()
-                .flat_map(move |&dropshadow_palette_index| {
+                .flat_map(move |&drop_shadow_palette_index| {
                     self.packed_pixels_for_letter(
                         letter,
-                        dropshadow_palette_index.into(),
+                        drop_shadow_palette_index.into(),
                         x_offset_this + 1,
                         1,
                     )
@@ -293,14 +293,14 @@ impl LetterGroup {
                             let this_position =
                                 vec2(x as i32 + x_offset_this, y as i32 + y_position);
 
-                            let dropshadow =
-                                self.dropshadow_palette_index
-                                    .map(|dropshadow_palette_index| {
-                                        (this_position + vec2(1, 1), dropshadow_palette_index)
+                            let drop_shadow =
+                                self.drop_shadow_palette_index
+                                    .map(|drop_shadow_palette_index| {
+                                        (this_position + vec2(1, 1), drop_shadow_palette_index)
                                     });
 
                             let main = (this_position, self.palette_index);
-                            [dropshadow, Some(main)]
+                            [drop_shadow, Some(main)]
                         } else {
                             [None, None]
                         }
@@ -342,7 +342,7 @@ impl Iterator for Layout {
             str: self.text.clone(),
             range: start..start,
             palette_index: self.palette_index,
-            dropshadow_palette_index: self.dropshadow_palette_index,
+            drop_shadow_palette_index: self.drop_shadow_palette_index,
             position: self.grouper.pos,
             line: self.line_number,
             font: self.font,

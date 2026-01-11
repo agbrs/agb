@@ -66,6 +66,22 @@ let text_layout = Layout::new(
 );
 ```
 
+If you'd like your text to include a drop-shadow (as seen in [this example](https://agbrs.dev/examples/object_text_render_simple)), then also call [`.with_drop_shadow()`](https://docs.rs/agb/latest/agb/display/font/struct.Layout.html#method.with_drop_shadow) method passing in the palette index of the drop shadow:
+
+```rust
+let text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    AlignmentKind::Left,
+    32,
+    200,
+).with_drop_shadow(2);
+```
+
+The drop-shadow will always be rendered one pixel to the right and one pixel down from the pixels of the text.
+
+<img src="./text_render_drop_shadow.png" alt="Text rendering with a drop shadow" />
+
 # Colour changes
 
 To have multiple colours in your text, you can use [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html).
@@ -78,6 +94,8 @@ let text = format!("Hey, {COLOUR_2}you{COLOUR_1}!",);
 ```
 
 You might want to use static text rather than using Rust's text formatting, in that case see the documentation for [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html) where it documents the exact code points you need to use.
+
+The drop shadow colour cannot be changed throughout the text.
 
 ## Tags
 
