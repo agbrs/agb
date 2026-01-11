@@ -425,7 +425,11 @@ impl Iterator for Layout {
                 i32::from(letter.advance_width) + kerning
             };
 
-            if letter_group.width + this_letter_width > self.max_group_width {
+            let drop_shadow_width_increase = self.drop_shadow_palette_index.is_some() as i32;
+
+            if letter_group.width + this_letter_width + drop_shadow_width_increase
+                > self.max_group_width
+            {
                 // If we've decided that we can't fit this letter, and there currently isn't anything
                 // in the letter group at all yet, then we can never fit this character. Warn the user
                 // about it and skip drawing this character.
