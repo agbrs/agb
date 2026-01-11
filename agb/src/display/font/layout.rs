@@ -41,6 +41,7 @@ pub struct Layout {
     grouper: Grouper,
 
     palette_index: u8,
+    dropshadow_palette_index: Option<u8>,
     tag: u16,
 
     max_group_width: i32,
@@ -70,9 +71,16 @@ impl Layout {
             grouper,
 
             palette_index: 1,
+            dropshadow_palette_index: None,
             tag: 0,
             max_group_width,
         }
+    }
+
+    #[must_use]
+    pub fn with_dropshadow(mut self, palette_index: u8) -> Self {
+        self.dropshadow_palette_index = Some(palette_index);
+        self
     }
 }
 
@@ -82,6 +90,7 @@ pub struct LetterGroup {
     str: Rc<str>,
     range: Range<usize>,
     palette_index: u8,
+    dropshadow_palette_index: Option<u8>,
     width: i32,
     position: Vector2D<i32>,
     line: i32,
@@ -296,6 +305,7 @@ impl Iterator for Layout {
             str: self.text.clone(),
             range: start..start,
             palette_index: self.palette_index,
+            dropshadow_palette_index: self.dropshadow_palette_index,
             position: self.grouper.pos,
             line: self.line_number,
             font: self.font,
