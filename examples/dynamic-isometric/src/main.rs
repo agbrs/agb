@@ -153,15 +153,13 @@ fn main(mut gba: Gba) -> ! {
 
     for y in 0..32 {
         for x in 0..16 {
-            let cache_key = floor_map.get_from_gba_tile(x * 2, y);
+            let pos = vec2(x * 2, y);
 
-            for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
+            for (i, tile) in tile_cache.get_tiles(&floor_map, pos).iter().enumerate() {
                 floor_bg.set_tile_dynamic16((x * 2 + i as i32, y), tile, TileEffect::default());
             }
 
-            let cache_key = wall_map.get_from_gba_tile(x * 2, y);
-
-            for (i, tile) in tile_cache.get_tiles(cache_key).iter().enumerate() {
+            for (i, tile) in tile_cache.get_tiles(&wall_map, pos).iter().enumerate() {
                 wall_bg.set_tile_dynamic16((x * 2 + i as i32, y), tile, TileEffect::default());
             }
         }

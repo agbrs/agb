@@ -55,7 +55,7 @@ impl Deref for TileHolder {
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-pub struct TileSpec {
+struct TileSpec {
     quadrant: Quadrant,
     me: TileType,
     them: TileType,
@@ -72,9 +72,12 @@ struct NeighbourTileContext {
 }
 
 impl TileCache {
-    pub fn get_tiles(&mut self, cache_key: TileSpec) -> &[TileHolder; 2] {
-        self.cache.entry(cache_key).or_insert_with(|| {
-            let genned_tiles = build_combined_tile(cache_key);
+    // expects gba_tile_pos.x to be even
+    pub fn get_tiles(&mut self, map: &Map, gba_tile_pos: Vector2D<i32>) -> &[TileHolder; 2] {
+        let tile_spec = map.get_from_gba_tile(gba_tile_pos.x, gba_tile_pos.y);
+
+        self.cache.entry(tile_spec).or_insert_with(|| {
+            let genned_tiles = build_combined_tile(tile_spec);
 
             genned_tiles.map(|genned_tile| {
                 let tile_holder = TileHolder(Rc::new(genned_tile));
@@ -254,7 +257,7 @@ impl Map {
         self.map_data[x as usize + y as usize * self.width]
     }
 
-    pub fn get_from_gba_tile(&self, x: i32, y: i32) -> TileSpec {
+    fn get_from_gba_tile(&self, x: i32, y: i32) -> TileSpec {
         let quadrant = Quadrant::from_gba_tile(vec2(x, y));
 
         let macro_tile_x = div_floor(x, TILE_WIDTH);
