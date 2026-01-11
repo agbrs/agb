@@ -1,5 +1,63 @@
 #![no_main]
 #![no_std]
+//! Coordinate system
+//! =================
+//!
+//! There are 3 coordinate systems which are used here:
+//!
+//! 1. World coordinates
+//!     A simple (x, y) grid where the game logic lives. Each cell is one logical tile.
+//! 2. Macro tile coordinates
+//!     A macro tile is 4x2 GBA tiles (32x16 pixels) and is centred around a single world
+//!     coordinate tile.
+//!
+//!     To convert between world coordinates to macro coordinates, use
+//!         macro_x = world_x - world_y
+//!         macro_y = world_x + world_y
+//!
+//!         world_x = (macro_x + macro_y) / 2
+//!         world_y = (macro_y - macro_x) / 2
+//!
+//!     Half of world tiles are found in the corners of macro tiles. These are called 'ghost tiles'
+//!     since they are only rendered as a side-effect of rendering the central tile of the macro
+//!     tile.
+//!
+//! 3. GBA tile coordinates
+//!     One macro tile = 4×2 GBA
+//!
+//! Quadrants
+//! =========
+//!
+//! Each macro tile is divided into 4 quadrants, each 2x1 GBA tiles:
+//!
+//! ```text
+//! ┌──┬──┬──┬──┐
+//! │ TL  │ TR  │
+//! ├──┼──┼──┼──┤
+//! │ BL  │ BR  │
+//! └──┴──┴──┴──┘
+//! ```
+//!
+//! Each quadrant sits on the boundary between the central tile and one ghost tile:
+//!
+//! ```text
+//!   TL                 TR
+//!       ┌─────┬─────┐
+//!       │   /    \  │
+//!       │  /  me  \ │
+//!       ├     ┼     ┤
+//!       │  \      / │
+//!       │   \    /  │
+//!       └─────┴─────┘
+//!   BL                 BR
+//! ```
+//!
+//! This means each quadrant can be rendered using only local information:
+//! - `me`: the central tile of this macro tile
+//! - `them`: the ghost tile this quadrant borders
+//!
+//! The `neighbours` context provides additional tiles needed for wall rendering
+//! and fixing 1px seams at tile edges.
 
 use agb::{
     Gba,
