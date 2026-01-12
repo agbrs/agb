@@ -69,7 +69,7 @@ impl Display for ChangeColour {
 /// # #![no_std]
 /// # #![no_main]
 /// extern crate alloc;
-/// use agb::display::font::{Font, Layout, Tag, AlignmentKind};
+/// use agb::display::font::{Font, Layout, LayoutSettings, Tag};
 /// use agb::include_font;
 /// static FONT: Font = include_font!("examples/font/pixelated.ttf", 8);
 ///
@@ -77,7 +77,7 @@ impl Display for ChangeColour {
 /// # fn test(_: agb::Gba) {
 /// static MY_TAG: Tag = Tag::new(7);
 /// let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
-/// let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 100, 100);
+/// let mut layout = Layout::new(&text, &FONT, &LayoutSettings::new().with_max_line_length(100));
 /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
 /// assert!(layout.next().unwrap().has_tag(MY_TAG));
 /// assert!(!layout.next().unwrap().has_tag(MY_TAG));

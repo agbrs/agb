@@ -1,9 +1,10 @@
 use super::{Font, special::AGB_PRIVATE_USE_RANGE};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 /// Ways of aligning text
 pub enum AlignmentKind {
     /// Text is aligned such that the left edge aligns with the left of the given width
+    #[default]
     Left,
     /// Text is aligned such the the right edge aligns with the right of the given width
     Right,
@@ -129,10 +130,11 @@ impl Align {
                 current_width_of_word += i32::from(letter.advance_width) + kerning;
             }
 
-            if self.max_line_length
-                < current_width_of_words_in_line
-                    + current_width_of_word
-                    + spaces_in_line * self.default_space_width
+            if self.max_line_length > 0
+                && self.max_line_length
+                    < current_width_of_words_in_line
+                        + current_width_of_word
+                        + spaces_in_line * self.default_space_width
             {
                 // We've done a complete line now, and should break before the start of the current word. However, if
                 // the current word is the first word we started laying out on this line, then we should break anyway in

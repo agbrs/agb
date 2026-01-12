@@ -6,9 +6,10 @@
 
 use agb::{
     display::{
-        Palette16, Rgb15,
-        font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
+        Palette16, Rgb, Rgb15,
+        font::{Font, Layout, LayoutSettings, ObjectTextRenderer},
         object::Size,
+        tiled::VRAM_MANAGER,
     },
     fixnum::vec2,
     include_font,
@@ -21,7 +22,6 @@ extern crate alloc;
 static PALETTE: &Palette16 = const {
     let mut palette = [Rgb15::BLACK; 16];
     palette[1] = Rgb15::WHITE;
-    palette[2] = Rgb15(0x10_7C);
     &Palette16::new(palette)
 };
 
@@ -35,12 +35,14 @@ fn entry(gba: agb::Gba) -> ! {
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
+    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
+
     let layout = Layout::new(
         "Hello, this is some text that I want to display!",
         &FONT,
-        AlignmentKind::Left,
-        16,
-        200,
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_drop_shadow(2),
     );
     let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
 

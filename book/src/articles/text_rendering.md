@@ -60,11 +60,30 @@ It does this incrementally, doing as little work as possible to generate the nex
 let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
-    AlignmentKind::Left,
-    32,
-    200,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(32)
+        .with_max_line_length(200),
 );
 ```
+
+If you'd like your text to include a drop-shadow (as seen in [this example](https://agbrs.dev/examples/object_text_render_simple)), then also call [`.with_drop_shadow()`](https://docs.rs/agb/latest/agb/display/font/struct.LayoutSettings.html#method.with_drop_shadow) method passing in the palette index of the drop shadow:
+
+```rust
+let text_layout = Layout::new(
+    "Hello, this is some text that I want to display!",
+    &FONT,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(32)
+        .with_max_line_length(200)
+        .with_drop_shadow(2),
+);
+```
+
+The drop-shadow will always be rendered one pixel to the right and one pixel down from the pixels of the text.
+
+<img src="./text_render_drop_shadow.png" alt="Text rendering with a drop shadow" />
 
 # Colour changes
 
@@ -79,6 +98,8 @@ let text = format!("Hey, {COLOUR_2}you{COLOUR_1}!",);
 
 You might want to use static text rather than using Rust's text formatting, in that case see the documentation for [`ChangeColour`](https://docs.rs/agb/latest/agb/display/font/struct.ChangeColour.html) where it documents the exact code points you need to use.
 
+The drop shadow colour cannot be changed throughout the text.
+
 ## Tags
 
 You might want to treat certain parts of your text differently to other parts.
@@ -92,7 +113,14 @@ Here's a simple example that shows how this works with `LetterGroup`s.
 const MY_TAG: Tag = Tag::new(0);
 // set the tag with `set` and unset with `unset`.
 let text = alloc::format!("#{}!{}?", MY_TAG.set(), MY_TAG.unset());
-let mut layout = Layout::new(&text, &FONT, AlignmentKind::Left, 32, 100);
+let mut layout = Layout::new(
+    &text,
+    &FONT,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(32)
+        .with_max_line_length(100),
+);
 
 // get whether the tag is set with `has_tag` on `LetterGroup`.
 assert!(!layout.next().unwrap().has_tag(MY_TAG));
@@ -121,9 +149,10 @@ A simple example of the `ObjectTextRender` would look like
 let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
-    AlignmentKind::Left,
-    16, // minimum group size is 16, so the sprite size I use should be at least 16 wide
-    200,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(16) // minimum group size is 16, so the sprite size I use should be at least 16 wide
+        .with_max_line_length(200),
 );
 
 // using an appropriate sprite size, palette should come from somewhere
@@ -146,9 +175,10 @@ let mut gfx = gba.graphics.get();
 let mut text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
-    AlignmentKind::Left,
-    16,
-    200,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(16)
+        .with_max_line_length(200),
 );
 
 let text_render = ObjectTextRenderer::new(PALETTE.into(), Size::S16x16);
@@ -191,9 +221,10 @@ let mut bg = RegularBackground::new(
 let text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
-    AlignmentKind::Left,
-    32,
-    200,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(32)
+        .with_max_line_length(200),
 );
 
 // this takes the position of the text
@@ -213,12 +244,13 @@ let mut bg = RegularBackground::new(
     TileFormat::FourBpp,
 );
 
-let text_layout = Layout::new(
+let mut text_layout = Layout::new(
     "Hello, this is some text that I want to display!",
     &FONT,
-    AlignmentKind::Left,
-    32,
-    200,
+    &LayoutSettings::new()
+        .with_alignment(AlignmentKind::Left)
+        .with_max_group_width(32)
+        .with_max_line_length(200),
 );
 
 let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));

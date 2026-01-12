@@ -4,8 +4,8 @@
 
 use agb::{
     display::{
-        Priority, Rgb15,
-        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+        Priority, Rgb, Rgb15,
+        font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     include_font,
@@ -17,7 +17,9 @@ static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
+    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
     VRAM_MANAGER.set_background_palette_colour(0, 1, Rgb15::WHITE);
+    VRAM_MANAGER.set_background_palette_colour(0, 2, Rgb15::BLACK);
 
     let mut bg = RegularBackground::new(
         Priority::P0,
@@ -30,9 +32,9 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut text_layout = Layout::new(
         "Hello, World! こんにちは世界\nThis is an example of rendering text using backgrounds.",
         &FONT,
-        AlignmentKind::Left,
-        32,
-        200,
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_drop_shadow(2),
     );
 
     let mut frame = gfx.frame();

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `TileSet::get_tile_data()` which returns the raw data for a given tile.
 - Added `HashSet::get()`.
 - Added an example for dynamically generated isometric tiles.
+- Added the ability to draw a drop-shadow when rendering text.
 
 ### Fixed
 
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Button` is now an enum which represents a single button, and `ButtonState` is the replacement to represent potentially multiple buttons at once.
 - The `FixedWidthUnsignedInteger` trait is now sealed and cannot be implemented outside of `agb-fixnum`.
 - `DynamicTile16::data()` is now `DynamicTile16::data_mut()` and instead `DynamicTile16::data()` returns an immutable reference.
+- `Layout::new` no longer takes `max_line_length` as a parameter. Instead, use `LayoutSettings::with_max_line_length()`. A value of 0 (the default) means unlimited line length.
 
 ## [0.22.6] - 2025/10/29
 

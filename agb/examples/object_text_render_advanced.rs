@@ -6,7 +6,9 @@
 use agb::{
     display::{
         Palette16, Rgb15,
-        font::{AlignmentKind, ChangeColour, Font, Layout, ObjectTextRenderer, Tag},
+        font::{
+            AlignmentKind, ChangeColour, Font, Layout, LayoutSettings, ObjectTextRenderer, Tag,
+        },
         object::Size,
     },
     fixnum::{Num, num, vec2},
@@ -59,7 +61,13 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
         Palette16::new(palette)
     };
 
-    let mut layout = Layout::new(&text, &FONT, AlignmentKind::Centre, 16, 200);
+    let mut layout = Layout::new(
+        &text,
+        &FONT,
+        &LayoutSettings::new()
+            .with_max_line_length(200)
+            .with_alignment(AlignmentKind::Centre),
+    );
     let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
     let mut objects = Vec::new();

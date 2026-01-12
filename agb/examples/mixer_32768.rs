@@ -10,7 +10,7 @@ use agb::{
     Gba,
     display::{
         Priority, Rgb15, WIDTH,
-        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+        font::{AlignmentKind, Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     include_font, include_wav,
@@ -54,9 +54,9 @@ fn init_background(bg: &mut RegularBackground) {
     let text_layout = Layout::new(
         "Crazy glue by Josh Woodward\njoshwoodward.com",
         &FONT,
-        AlignmentKind::Centre,
-        WIDTH,
-        WIDTH,
+        &LayoutSettings::new()
+            .with_max_line_length(WIDTH)
+            .with_alignment(AlignmentKind::Centre),
     );
 
     let mut renderer = RegularBackgroundTextRenderer::new((0, 0));

@@ -1,7 +1,7 @@
 use agb::{
     display::{
         GraphicsFrame, HEIGHT, Palette16, Priority, Rgb15, WIDTH,
-        font::{AlignmentKind, Layout, ObjectTextRenderer},
+        font::{AlignmentKind, Layout, LayoutSettings, ObjectTextRenderer},
         object::{Object, PaletteVramSingle, Size, SpriteVram},
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
@@ -61,9 +61,10 @@ impl Lament {
         let layout = Layout::new(
             &lament_text,
             &FONT,
-            AlignmentKind::Centre,
-            32,
-            PLAY_AREA_WIDTH as i32 * 16 - 32,
+            &LayoutSettings::new()
+                .with_alignment(AlignmentKind::Centre)
+                .with_max_group_width(32)
+                .with_max_line_length(PLAY_AREA_WIDTH as i32 * 16 - 32),
         );
 
         Self {
@@ -262,9 +263,16 @@ impl PauseMenu {
     fn text_at_position(text: &str, position: Vector2D<i32>) -> Vec<Object> {
         let text_renderer = ObjectTextRenderer::new(generate_text_palette(), Size::S32x16);
 
-        Layout::new(text, &FONT, AlignmentKind::Left, 32, WIDTH)
-            .map(|lg| text_renderer.show(&lg, position))
-            .collect()
+        Layout::new(
+            text,
+            &FONT,
+            &LayoutSettings::new()
+                .with_alignment(AlignmentKind::Left)
+                .with_max_group_width(32)
+                .with_max_line_length(WIDTH),
+        )
+        .map(|lg| text_renderer.show(&lg, position))
+        .collect()
     }
 
     fn new(maximum_level: usize, current_level: usize) -> Self {

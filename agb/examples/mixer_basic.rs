@@ -6,7 +6,7 @@ use agb::{
     Gba,
     display::{
         Priority, Rgb15, WIDTH,
-        font::{AlignmentKind, Font, Layout, RegularBackgroundTextRenderer},
+        font::{AlignmentKind, Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::num,
@@ -93,9 +93,9 @@ A to resume
 D-pad left and right to change panning
 D-pad up and down to change playback speed",
         &FONT,
-        AlignmentKind::Centre,
-        WIDTH,
-        WIDTH,
+        &LayoutSettings::new()
+            .with_max_line_length(WIDTH)
+            .with_alignment(AlignmentKind::Centre),
     );
 
     let mut renderer = RegularBackgroundTextRenderer::new((0, 0));

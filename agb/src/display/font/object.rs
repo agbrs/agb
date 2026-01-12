@@ -11,11 +11,11 @@ use super::LetterGroup;
 /// ```rust
 /// # #![no_std]
 /// # #![no_main]
-/// extern crate alloc;
+/// # extern crate alloc;
 /// use alloc::vec::Vec;
 /// use agb::display::{
 ///     Palette16, Rgb15,
-///     font::{AlignmentKind, Font, Layout, ObjectTextRenderer},
+///     font::{Font, Layout, LayoutSettings, ObjectTextRenderer},
 ///     object::Size,
 /// };
 ///
@@ -32,7 +32,7 @@ use super::LetterGroup;
 ///
 /// // the actual text rendering
 ///
-/// let layout = Layout::new("Hello, world!", &FONT, AlignmentKind::Left, 16, 200);
+/// let layout = Layout::new("Hello, world!", &FONT, &LayoutSettings::new().with_max_line_length(200));
 /// let text_renderer = ObjectTextRenderer::new(SIMPLE_PALETTE.into(), Size::S16x16);
 ///
 /// for letter_group in layout {
@@ -71,10 +71,9 @@ impl ObjectTextRenderer {
     pub fn show(&self, group: &LetterGroup, offset: impl Into<Vector2D<i32>>) -> Object {
         let offset = offset.into();
         let mut sprite = DynamicSprite16::new(self.size);
-        let pal_index = group.palette_index();
 
-        for pixel in group.pixels() {
-            sprite.set_pixel(pixel.x as usize, pixel.y as usize, pal_index as usize);
+        for (pixel, palette_index) in group.pixels() {
+            sprite.set_pixel(pixel.x as usize, pixel.y as usize, palette_index as usize);
         }
 
         let mut object = Object::new(sprite.to_vram(self.palette.clone()));
@@ -92,7 +91,7 @@ mod tests {
     use crate::{
         display::{
             Rgb, Rgb15,
-            font::{AlignmentKind, ChangeColour, Font, Layout},
+            font::{ChangeColour, Font, Layout, layout::LayoutSettings},
             palette16::Palette16,
             tiled::VRAM_MANAGER,
         },
@@ -121,9 +120,7 @@ mod tests {
         let layout = Layout::new(
             &format!("Hello, world! {CHANGE2}This is in red{CHANGE1} and back to white"),
             &FONT,
-            AlignmentKind::Left,
-            16,
-            200,
+            &LayoutSettings::new().with_max_line_length(200),
         );
         let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
@@ -156,9 +153,9 @@ mod tests {
         let layout = Layout::new(
             "現代社会において、情報技術の進化は目覚ましい。それは、私たちの生活様式だけでなく、思考様式にも大きな影響を与えている。例えば、スマートフォンやタブレット端末の普及により、いつでもどこでも情報にアクセスできるようになった。これにより、知識の共有やコミュニケーションが容易になり、新しい文化や価値観が生まれている。しかし、一方で、情報過多やプライバシーの問題など、新たな課題も浮上している。私たちは、これらの課題にどのように向き合い、情報技術をどのように活用していくべきだろうか。それは、私たち一人ひとりが真剣に考えるべき重要なテーマである。",
             &FONT,
-            AlignmentKind::Left,
-            32,
-            200,
+            &LayoutSettings::new()
+                .with_max_line_length(200)
+                .with_max_group_width(32),
         );
         let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S32x16);
 
