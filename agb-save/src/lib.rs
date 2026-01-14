@@ -172,7 +172,7 @@ struct SlotInfo<Metadata> {
 impl<Storage, Metadata> SaveSlotManager<Storage, Metadata>
 where
     Storage: StorageMedium,
-    Metadata: serde::Serialize + serde::de::DeserializeOwned,
+    Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
 {
     /// Create a new instance of the SaveSlotManager.
     ///
@@ -453,14 +453,17 @@ where
                 if existing.status == SlotStatus::Corrupted
                     || slot_block.header.generation > existing.generation
                 {
-                    let status = match slot_block.header.state {
-                        SlotState::Empty => SlotStatus::Empty,
-                        SlotState::Valid => SlotStatus::Valid,
-                        SlotState::Ghost => SlotStatus::Empty, // Treat ghost as empty for now
+                    let (status, metadata) = match slot_block.header.state {
+                        SlotState::Empty => (SlotStatus::Empty, None),
+                        SlotState::Valid => {
+                            // Deserialize metadata - if it fails, slot is corrupted
+                            match postcard::from_bytes(slot_block.metadata) {
+                                Ok(m) => (SlotStatus::Valid, Some(m)),
+                                Err(_) => (SlotStatus::Corrupted, None),
+                            }
+                        }
+                        SlotState::Ghost => (SlotStatus::Empty, None), // Treat ghost as empty for now
                     };
-
-                    // TODO: Deserialize metadata if slot is valid
-                    let metadata = None;
 
                     self.slot_info[logical_id] = SlotInfo {
                         status,
@@ -567,24 +570,65 @@ where
 
     fn write_slot_data<T>(
         &mut self,
-        _slot: usize,
+        slot: usize,
         _data: &T,
-        _metadata: &Metadata,
+        metadata: &Metadata,
     ) -> Result<(), SaveError<Storage::Error>>
     where
         T: serde::Serialize,
     {
-        // TODO: Implement
-        // Uses self.storage.write_sector() and block::serialize_block
-        // 1. Serialize data with serde
-        // 2. Allocate sectors from free list
-        // 3. Write data chain (Block::Data)
-        // 4. Calculate CRC32
-        // 5. Serialize metadata
-        // 6. Write new slot header (Block::SlotHeader)
-        // 7. Mark old slot as ghost
-        // 8. Update in-memory state
-        todo!()
+        let sector_size = self.storage.sector_size();
+        let metadata_size = sector_size - SlotHeaderBlock::header_size();
+
+        // Serialize metadata
+        let mut metadata_bytes = vec![0u8; metadata_size];
+        postcard::to_slice(metadata, &mut metadata_bytes)
+            .map_err(|_| SaveError::SerializationFailed)?;
+
+        // TODO: Serialize data and write data blocks
+        // For now, we just write the slot header with no data
+        let first_data_block = 0xFFFF;
+        let data_length = 0u32;
+        let data_crc32 = 0u32;
+
+        // Increment generation
+        let new_generation = self.slot_info[slot].generation.wrapping_add(1);
+
+        // Create the slot header
+        let slot_header = SlotHeader {
+            state: SlotState::Valid,
+            logical_slot_id: slot as u8,
+            first_data_block,
+            generation: new_generation,
+            crc32: data_crc32,
+            length: data_length,
+        };
+
+        // Serialize and write the block
+        let mut buffer = vec![0u8; sector_size];
+        serialize_block(
+            Block::SlotHeader(SlotHeaderBlock {
+                header: slot_header,
+                metadata: &metadata_bytes,
+            }),
+            &mut buffer,
+        );
+
+        self.storage
+            .write_sector(slot + 1, &buffer)
+            .map_err(SaveError::Storage)?;
+
+        // Update in-memory state
+        self.slot_info[slot] = SlotInfo {
+            status: SlotStatus::Valid,
+            metadata: Some(metadata.clone()),
+            generation: new_generation,
+            first_data_block,
+            data_length,
+            data_crc32,
+        };
+
+        Ok(())
     }
 
     fn erase_slot(&mut self, _slot: usize) -> Result<(), SaveError<Storage::Error>> {
@@ -595,4 +639,16 @@ where
         // 3. Update in-memory state
         todo!()
     }
+}
+
+fn calc_crc32(bytes: &[u8]) -> u32 {
+    let mut crc: u32 = 0xFFFF_FFFF;
+    for &b in bytes {
+        crc ^= b as u32;
+        for _ in 0..8 {
+            let mask = (crc & 1).wrapping_neg();
+            crc = (crc >> 1) ^ (0xEDB8_8320 & mask);
+        }
+    }
+    !crc
 }
