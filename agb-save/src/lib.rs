@@ -143,7 +143,7 @@ pub enum Slot<'a, Metadata> {
 }
 
 /// Errors that can occur during save operations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SaveError<StorageError> {
     /// The underlying storage returned an error.
     Storage(StorageError),
@@ -154,16 +154,22 @@ pub enum SaveError<StorageError> {
     /// Not enough free space to write the data.
     OutOfSpace,
     /// Failed to serialize the data.
-    SerializationFailed,
+    SerializationFailed(postcard::Error),
     /// Failed to deserialize the data.
-    DeserializationFailed,
+    DeserializationFailed(postcard::Error),
     /// Write verification failed - data read back didn't match what was written.
     VerificationFailed,
 }
 
-impl<E> SaveError<E> {
-    fn from_sector_error(err: SectorError<E>) -> Self {
-        match err {
+impl<T> From<T> for SaveError<T> {
+    fn from(value: T) -> Self {
+        Self::Storage(value)
+    }
+}
+
+impl<T> From<SectorError<T>> for SaveError<T> {
+    fn from(value: SectorError<T>) -> Self {
+        match value {
             SectorError::Storage(e) => SaveError::Storage(e),
             SectorError::VerificationFailed => SaveError::VerificationFailed,
         }
@@ -374,9 +380,7 @@ where
         let mut buffer = vec![0u8; sector_size];
 
         // Try to read the global header (sector 0)
-        self.storage
-            .read_sector(0, &mut buffer)
-            .map_err(SaveError::Storage)?;
+        self.storage.read_sector(0, &mut buffer)?;
 
         let needs_format = match deserialize_block(&buffer) {
             Ok(Block::Global(global)) => {
@@ -405,9 +409,7 @@ where
             Block::Global(GlobalBlock::new(self.num_slots as u16, &self.magic)),
             &mut buffer,
         );
-        self.storage
-            .write_sector(0, &buffer)
-            .map_err(SaveError::from_sector_error)?;
+        self.storage.write_sector(0, &buffer)?;
 
         // Write empty slot headers (sectors 1..num_slots+1)
         // Each logical slot gets its own physical sector initially
@@ -420,9 +422,7 @@ where
                 Block::SlotHeader(SlotHeaderBlock::empty(slot as u8, &empty_metadata)),
                 &mut buffer,
             );
-            self.storage
-                .write_sector(slot + 1, &buffer)
-                .map_err(SaveError::from_sector_error)?;
+            self.storage.write_sector(slot + 1, &buffer)?;
         }
 
         // Write a GHOST state slot header to the ghost sector (sector num_slots + 1)
@@ -433,9 +433,7 @@ where
             Block::SlotHeader(SlotHeaderBlock::ghost(0xFF, &empty_metadata)),
             &mut buffer,
         );
-        self.storage
-            .write_sector(self.num_slots + 1, &buffer)
-            .map_err(SaveError::from_sector_error)?;
+        self.storage.write_sector(self.num_slots + 1, &buffer)?;
 
         // Initialise slot_info with empty slots
         self.slot_info.clear();
@@ -506,8 +504,7 @@ where
         for sector in 0..num_slot_header_sectors {
             let physical_sector = (sector + 1) as u16;
             self.storage
-                .read_sector(physical_sector as usize, &mut buffer)
-                .map_err(SaveError::Storage)?;
+                .read_sector(physical_sector as usize, &mut buffer)?;
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
                 // Handle GHOST state - track for potential recovery
@@ -743,9 +740,7 @@ where
             );
 
             // Write to storage
-            self.storage
-                .write_sector(sector as usize, &buffer)
-                .map_err(SaveError::from_sector_error)?;
+            self.storage.write_sector(sector as usize, &buffer)?;
 
             data_offset += chunk_size;
         }
@@ -766,7 +761,7 @@ where
         if first_data_block.is_none() {
             if data_length == 0 {
                 // Try to deserialize empty slice (works for unit type, empty structs, etc.)
-                return postcard::from_bytes(&[]).map_err(|_| SaveError::DeserializationFailed);
+                return postcard::from_bytes(&[]).map_err(SaveError::DeserializationFailed);
             } else {
                 // No data blocks but non-zero length - corrupted
                 return Err(SaveError::SlotCorrupted);
@@ -792,9 +787,7 @@ where
             }
 
             // Read the block
-            self.storage
-                .read_sector(block as usize, &mut buffer)
-                .map_err(SaveError::Storage)?;
+            self.storage.read_sector(block as usize, &mut buffer)?;
 
             // Deserialize and extract data
             match deserialize_block(&buffer) {
@@ -822,7 +815,7 @@ where
         }
 
         // Deserialize
-        postcard::from_bytes(&data).map_err(|_| SaveError::DeserializationFailed)
+        postcard::from_bytes(&data).map_err(SaveError::DeserializationFailed)
     }
 
     fn write_slot_data<T>(
@@ -835,7 +828,7 @@ where
         T: serde::Serialize,
     {
         // 1. Serialize data first (before we start modifying storage)
-        let data_bytes = postcard::to_allocvec(data).map_err(|_| SaveError::SerializationFailed)?;
+        let data_bytes = postcard::to_allocvec(data).map_err(SaveError::SerializationFailed)?;
 
         // 2. Compute checksum of the data
         let data_crc32 = calc_crc32(&data_bytes);
@@ -849,7 +842,7 @@ where
         let metadata_size = sector_size - SlotHeaderBlock::header_size();
         let mut metadata_bytes = vec![0u8; metadata_size];
         postcard::to_slice(metadata, &mut metadata_bytes)
-            .map_err(|_| SaveError::SerializationFailed)?;
+            .map_err(SaveError::SerializationFailed)?;
 
         // Increment generation and save old slot info for later cleanup
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
@@ -872,13 +865,11 @@ where
         );
 
         self.storage
-            .write_sector(self.ghost_sector as usize, &buffer)
-            .map_err(SaveError::from_sector_error)?;
+            .write_sector(self.ghost_sector as usize, &buffer)?;
 
         // Mark old header as ghost
         self.storage
-            .read_sector(old_header_sector as usize, &mut buffer)
-            .map_err(SaveError::Storage)?;
+            .read_sector(old_header_sector as usize, &mut buffer)?;
 
         if let Ok(Block::SlotHeader(old_block)) = deserialize_block(&buffer) {
             // Extract data we need before reusing buffer
@@ -895,8 +886,7 @@ where
 
             serialize_block(Block::SlotHeader(ghost_block), &mut buffer);
             self.storage
-                .write_sector(old_header_sector as usize, &buffer)
-                .map_err(SaveError::from_sector_error)?;
+                .write_sector(old_header_sector as usize, &buffer)?;
         }
 
         // The old header sector is now the ghost, the ghost sector now holds our new header
@@ -931,9 +921,7 @@ where
 
         while let Some(block) = current_block {
             // Read the block to find the next one in the chain
-            self.storage
-                .read_sector(block as usize, buffer)
-                .map_err(SaveError::Storage)?;
+            self.storage.read_sector(block as usize, buffer)?;
 
             let next_block = match deserialize_block(buffer) {
                 Ok(Block::Data(data_block)) => data_block.next_block(),
@@ -971,9 +959,7 @@ where
             &mut buffer,
         );
 
-        self.storage
-            .write_sector(header_sector as usize, &buffer)
-            .map_err(SaveError::from_sector_error)?;
+        self.storage.write_sector(header_sector as usize, &buffer)?;
 
         // 2. Return data sectors to free list
         self.free_data_chain(old_first_data_block, &mut buffer)?;
