@@ -48,8 +48,8 @@ impl TestStorage {
         Self {
             data,
             info,
-            // Start with all blocks "erased" for convenience in simple tests
-            erased_blocks: std::vec![true; num_erase_blocks],
+            // Start with all blocks NOT erased (realistic behaviour)
+            erased_blocks: std::vec![false; num_erase_blocks],
             write_count: 0,
             fail_after_writes: None,
         }
@@ -340,10 +340,11 @@ mod tests {
     fn flash_erase_fills_with_ff() {
         let mut storage = TestStorage::new_flash(1024, 256, 4);
 
-        // Write some data first (storage starts erased)
+        // Erase first, then write some data
+        storage.erase(0, 256).unwrap();
         storage.write(0, &[1, 2, 3, 4]).unwrap();
 
-        // Erase the block
+        // Erase the block again
         storage.erase(0, 256).unwrap();
 
         // Verify it's filled with 0xFF
@@ -356,7 +357,8 @@ mod tests {
     fn flash_write_after_write_fails() {
         let mut storage = TestStorage::new_flash(1024, 256, 4);
 
-        // First write succeeds (storage starts erased)
+        // Erase first, then write
+        storage.erase(0, 256).unwrap();
         storage.write(0, &[1, 2, 3, 4]).unwrap();
 
         // Second write to same block should fail (block no longer erased)
