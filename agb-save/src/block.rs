@@ -35,9 +35,9 @@ struct SlotHeader {
 const NO_NEXT_BLOCK: u16 = 0xFFFF;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DataBlockHeader {
+struct DataBlockHeader {
     /// The next block in the chain, or `None` if this is the last block.
-    pub(crate) next_block: Option<u16>,
+    next_block: Option<u16>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -197,7 +197,7 @@ impl<'a> SlotHeaderBlock<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataBlock<'a> {
-    pub(crate) header: DataBlockHeader,
+    header: DataBlockHeader,
     pub data: &'a [u8],
 }
 
@@ -211,6 +211,10 @@ impl<'a> DataBlock<'a> {
             header: DataBlockHeader { next_block },
             data,
         }
+    }
+
+    pub(crate) fn next_block(&self) -> Option<u16> {
+        self.header.next_block
     }
 }
 

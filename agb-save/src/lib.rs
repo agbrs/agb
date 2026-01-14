@@ -670,7 +670,7 @@ where
                 }
                 match deserialize_block(&buffer) {
                     Ok(Block::Data(data_block)) => {
-                        current_sector = data_block.header.next_block;
+                        current_sector = data_block.next_block();
                     }
                     _ => break, // Not a valid data block, stop following chain
                 }
@@ -804,7 +804,7 @@ where
                     let to_copy = remaining.min(payload_size);
                     data.extend_from_slice(&data_block.data[..to_copy]);
 
-                    current_block = data_block.header.next_block;
+                    current_block = data_block.next_block();
                 }
                 _ => return Err(SaveError::SlotCorrupted),
             }
@@ -936,7 +936,7 @@ where
                 .map_err(SaveError::Storage)?;
 
             let next_block = match deserialize_block(buffer) {
-                Ok(Block::Data(data_block)) => data_block.header.next_block,
+                Ok(Block::Data(data_block)) => data_block.next_block(),
                 _ => None, // Stop if block is corrupted
             };
 
