@@ -23,7 +23,9 @@ use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackground, RegularBackgroundSize};
 use tiles::Tiles;
-pub use vram_manager::{DynamicTile16, TileFormat, TileSet, VRAM_MANAGER, VRamManager};
+pub use vram_manager::{
+    DynamicTile16, DynamicTile256, TileFormat, TileSet, VRAM_MANAGER, VRamManager,
+};
 
 pub(crate) use vram_manager::TileIndex;
 
