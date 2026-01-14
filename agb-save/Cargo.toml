@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 crc16 = "0.4"
+serde = { version = "1", default-features = false }
 
 [dev-dependencies]
 quickcheck = "1"
