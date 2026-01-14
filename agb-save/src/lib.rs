@@ -868,13 +868,55 @@ where
         Ok(())
     }
 
-    fn erase_slot(&mut self, _slot: usize) -> Result<(), SaveError<Storage::Error>> {
-        // TODO: Implement
-        // Uses self.storage.write_sector() and block::serialize_block
-        // 1. Write slot header with state = Empty (Block::SlotHeader)
+    fn erase_slot(&mut self, slot: usize) -> Result<(), SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let metadata_size = sector_size - SlotHeaderBlock::header_size();
+
+        // Save old info for cleanup
+        let old_first_data_block = self.slot_info[slot].first_data_block;
+        let header_sector = self.slot_info[slot].header_sector;
+        let new_generation = self.slot_info[slot].generation.wrapping_add(1);
+
+        let mut buffer = vec![0u8; sector_size];
+        let empty_metadata = vec![0u8; metadata_size];
+
+        // 1. Write slot header with state = Empty
+        let slot_header = SlotHeader {
+            state: SlotState::Empty,
+            logical_slot_id: slot as u8,
+            first_data_block: 0xFFFF,
+            generation: new_generation,
+            crc32: 0,
+            length: 0,
+        };
+
+        serialize_block(
+            Block::SlotHeader(SlotHeaderBlock {
+                header: slot_header,
+                metadata: &empty_metadata,
+            }),
+            &mut buffer,
+        );
+
+        self.storage
+            .write_sector(header_sector as usize, &buffer)
+            .map_err(SaveError::Storage)?;
+
         // 2. Return data sectors to free list
+        self.free_data_chain(old_first_data_block, &mut buffer)?;
+
         // 3. Update in-memory state
-        todo!()
+        self.slot_info[slot] = SlotInfo {
+            status: SlotStatus::Empty,
+            metadata: None,
+            generation: new_generation,
+            first_data_block: 0xFFFF,
+            data_length: 0,
+            data_crc32: 0,
+            header_sector,
+        };
+
+        Ok(())
     }
 }
 

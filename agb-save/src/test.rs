@@ -342,3 +342,87 @@ fn multiple_writes_to_same_slot() {
     let loaded: TestSaveData = manager.read(0).unwrap();
     assert_eq!(loaded, data2);
 }
+
+#[test]
+fn erase_slot_makes_slot_empty() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"ToBeErased______",
+    };
+    let save_data = TestSaveData {
+        level: 50,
+        health: 100,
+        position: (0, 0),
+        inventory: vec![1, 2, 3, 4, 5],
+    };
+
+    manager.write(0, &save_data, &metadata).unwrap();
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+
+    // Erase the slot
+    manager.erase(0).unwrap();
+
+    // Slot should now be empty
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert!(manager.metadata(0).is_none());
+}
+
+#[test]
+fn erase_slot_persists_across_reinit() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"ToBeErased______",
+    };
+    let save_data = TestSaveData {
+        level: 50,
+        health: 100,
+        position: (0, 0),
+        inventory: vec![1, 2, 3],
+    };
+
+    manager.write(0, &save_data, &metadata).unwrap();
+    manager.erase(0).unwrap();
+
+    // Reinitialize
+    let storage = manager.into_storage();
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Slot should still be empty
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+}
+
+#[test]
+fn erase_slot_frees_space_for_new_write() {
+    // Small storage to test space reclamation
+    let storage = TestStorage::new_sram(2048);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"BigData_________",
+    };
+    // Write data that takes up several blocks
+    let large_data: Vec<u8> = (0..300).map(|i| (i % 256) as u8).collect();
+
+    manager.write(0, &large_data, &metadata).unwrap();
+
+    // Erase the slot to free up space
+    manager.erase(0).unwrap();
+
+    // Should be able to write again using the freed space
+    let new_data: Vec<u8> = (0..300).map(|i| (255 - i % 256) as u8).collect();
+    manager.write(0, &new_data, &metadata).unwrap();
+
+    let loaded: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(loaded, new_data);
+}
