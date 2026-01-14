@@ -31,9 +31,13 @@ struct SlotHeader {
     length: u32,
 }
 
+/// Sentinel value for "no next block" in serialized format
+const NO_NEXT_BLOCK: u16 = 0xFFFF;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DataBlockHeader {
-    pub(crate) next_block: u16,
+    /// The next block in the chain, or `None` if this is the last block.
+    pub(crate) next_block: Option<u16>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -91,18 +95,14 @@ pub struct SlotHeaderBlock<'a> {
 }
 
 impl<'a> SlotHeaderBlock<'a> {
-    /// Size of the slot header block header (standard header + slot header fields)
-    /// Metadata starts at this offset.
     pub const fn header_size() -> usize {
         BLOCK_HEADER_SIZE + 16 // 8 + state(1) + logical_id(1) + first_block(2) + generation(4) + crc32(4) + length(4) = 24
     }
 
-    /// Create an empty slot header for a given logical slot.
     pub(crate) fn empty(logical_slot_id: u8, metadata: &'a [u8]) -> Self {
         Self::empty_with_generation(logical_slot_id, 0, metadata)
     }
 
-    /// Create an empty slot header with a specific generation.
     pub(crate) fn empty_with_generation(
         logical_slot_id: u8,
         generation: u32,
@@ -121,7 +121,6 @@ impl<'a> SlotHeaderBlock<'a> {
         }
     }
 
-    /// Create a ghost slot header (used as staging area).
     pub(crate) fn ghost(logical_slot_id: u8, metadata: &'a [u8]) -> Self {
         Self {
             header: SlotHeader {
@@ -136,7 +135,6 @@ impl<'a> SlotHeaderBlock<'a> {
         }
     }
 
-    /// Create a valid slot header with data.
     pub(crate) fn valid(
         logical_slot_id: u8,
         first_data_block: u16,
@@ -158,7 +156,6 @@ impl<'a> SlotHeaderBlock<'a> {
         }
     }
 
-    /// Create a slot header by changing only the state of this one.
     pub(crate) fn with_state(&self, state: SlotState) -> SlotHeaderBlock<'a> {
         SlotHeaderBlock {
             header: SlotHeader {
@@ -205,17 +202,11 @@ pub struct DataBlock<'a> {
 }
 
 impl<'a> DataBlock<'a> {
-    /// Size of the data block header (standard header only, next_block is in standard header)
-    /// Data starts at this offset.
     pub const fn header_size() -> usize {
         BLOCK_HEADER_SIZE // 8
     }
 
-    /// Create a new data block.
-    ///
-    /// - `next_block`: Index of the next block in the chain, or `0xFFFF` if this is the last block.
-    /// - `data`: The payload data for this block.
-    pub fn new(next_block: u16, data: &'a [u8]) -> Self {
+    pub fn new(next_block: Option<u16>, data: &'a [u8]) -> Self {
         Self {
             header: DataBlockHeader { next_block },
             data,
@@ -243,7 +234,11 @@ pub fn deserialize_block(block_data: &[u8]) -> Result<Block<'_>, BlockLoadError>
         }),
         BlockType::Data => Block::Data(DataBlock {
             header: DataBlockHeader {
-                next_block: block_header.next_block_index,
+                next_block: if block_header.next_block_index == NO_NEXT_BLOCK {
+                    None
+                } else {
+                    Some(block_header.next_block_index)
+                },
             },
             data: &block_data[8..],
         }),
@@ -256,7 +251,9 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
     // build up the standard header
     buffer[2..4].copy_from_slice(&(block.kind() as u16).to_le_bytes());
     buffer[4..6].copy_from_slice(&match &block {
-        Block::Data(data_block) => data_block.header.next_block.to_le_bytes(),
+        Block::Data(data_block) => {
+            data_block.header.next_block.unwrap_or(NO_NEXT_BLOCK).to_le_bytes()
+        }
         _ => [0, 0],
     });
     buffer[6..8].copy_from_slice(&[0, 0]);

@@ -48,7 +48,7 @@ impl Arbitrary for SlotHeader {
 impl Arbitrary for DataBlockHeader {
     fn arbitrary(g: &mut Gen) -> Self {
         Self {
-            next_block: u16::arbitrary(g),
+            next_block: Option::<u16>::arbitrary(g),
         }
     }
 }
@@ -203,7 +203,7 @@ quickcheck! {
         }
     }
 
-    fn data_block_roundtrip(next_block: u16, data: Vec<u8>) -> bool {
+    fn data_block_roundtrip(next_block: Option<u16>, data: Vec<u8>) -> bool {
         let data_size = TEST_BLOCK_SIZE - DataBlock::header_size();
         let mut padded_data = vec![0u8; data_size];
         for (i, &byte) in data.iter().take(data_size).enumerate() {

@@ -648,9 +648,15 @@ where
                 continue;
             }
 
-            let mut current_sector = slot_info.first_data_block;
-            while current_sector != 0xFFFF {
-                let sector_idx = current_sector as usize;
+            // Convert first_data_block (0xFFFF = none) to Option for the loop
+            let mut current_sector = if slot_info.first_data_block == 0xFFFF {
+                None
+            } else {
+                Some(slot_info.first_data_block)
+            };
+
+            while let Some(sector) = current_sector {
+                let sector_idx = sector as usize;
                 if sector_idx >= sector_count {
                     break; // Invalid sector reference, stop following chain
                 }
@@ -720,9 +726,9 @@ where
         for (i, &sector) in allocated_sectors.iter().enumerate() {
             let is_last = i == allocated_sectors.len() - 1;
             let next_block = if is_last {
-                0xFFFF
+                None
             } else {
-                allocated_sectors[i + 1]
+                Some(allocated_sectors[i + 1])
             };
 
             // Calculate how much data goes in this block
@@ -777,11 +783,16 @@ where
         let mut data = Vec::with_capacity(data_length);
 
         // Follow the data block chain
-        let mut current_block = first_data_block;
+        // Convert first_data_block (0xFFFF = none) to Option for the loop
+        let mut current_block = if first_data_block == 0xFFFF {
+            None
+        } else {
+            Some(first_data_block)
+        };
         let max_blocks = self.storage.sector_count();
         let mut blocks_read = 0;
 
-        while current_block != 0xFFFF {
+        while let Some(block) = current_block {
             // Prevent infinite loops
             blocks_read += 1;
             if blocks_read > max_blocks {
@@ -790,7 +801,7 @@ where
 
             // Read the block
             self.storage
-                .read_sector(current_block as usize, &mut buffer)
+                .read_sector(block as usize, &mut buffer)
                 .map_err(SaveError::Storage)?;
 
             // Deserialize and extract data
@@ -923,21 +934,26 @@ where
         first_block: u16,
         buffer: &mut [u8],
     ) -> Result<(), SaveError<Storage::Error>> {
-        let mut current_block = first_block;
+        // Convert first_block (0xFFFF = none) to Option for the loop
+        let mut current_block = if first_block == 0xFFFF {
+            None
+        } else {
+            Some(first_block)
+        };
 
-        while current_block != 0xFFFF {
+        while let Some(block) = current_block {
             // Read the block to find the next one in the chain
             self.storage
-                .read_sector(current_block as usize, buffer)
+                .read_sector(block as usize, buffer)
                 .map_err(SaveError::Storage)?;
 
             let next_block = match deserialize_block(buffer) {
                 Ok(Block::Data(data_block)) => data_block.header.next_block,
-                _ => 0xFFFF, // Stop if block is corrupted
+                _ => None, // Stop if block is corrupted
             };
 
             // Return this sector to the free list
-            self.free_sector_list.push(current_block);
+            self.free_sector_list.push(block);
 
             current_block = next_block;
         }
