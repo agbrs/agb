@@ -60,6 +60,8 @@ pub(crate) mod test_storage;
 mod block;
 mod sector_storage;
 
+use sector_storage::SectorStorage;
+
 /// Data about how the [`StorageMedium`] should be used.
 #[derive(Debug, Clone, Copy)]
 pub struct StorageInfo {
@@ -142,10 +144,9 @@ pub enum SaveError<StorageError> {
 /// - `Metadata`: A serde-serializable type for slot metadata shown in save menus
 pub struct SaveSlotManager<Storage: StorageMedium, Metadata> {
     num_slots: usize,
-    storage: Storage,
+    storage: SectorStorage<Storage>,
     magic: [u8; 32],
     slot_info: Vec<SlotInfo<Metadata>>,
-    block_size: usize,
 }
 
 /// Internal info about a slot's current state
@@ -187,10 +188,9 @@ where
     ) -> Result<Self, SaveError<Storage::Error>> {
         let mut manager = Self {
             num_slots,
-            storage,
+            storage: SectorStorage::new(storage),
             magic,
             slot_info: Vec::new(),
-            block_size: 0,
         };
         manager.initialize()?;
         Ok(manager)
@@ -305,11 +305,11 @@ where
 
     fn initialize(&mut self) -> Result<(), SaveError<Storage::Error>> {
         // TODO: Implement initialization logic
-        // 1. Calculate block size from storage info
-        // 2. Load and verify global header (including slot count)
-        // 3. Load slot headers and metadata
-        // 4. Attempt recovery from ghost slots if needed
-        // 5. Rebuild free list
+        // Uses self.storage.sector_size() and self.storage.sector_count()
+        // 1. Load and verify global header (sector 0) using block::deserialize_block
+        // 2. Load slot headers and metadata (sectors 1..N+1)
+        // 3. Attempt recovery from ghost slots if needed
+        // 4. Rebuild free list
         todo!()
     }
 
@@ -318,10 +318,11 @@ where
         T: serde::de::DeserializeOwned,
     {
         // TODO: Implement
+        // Uses self.storage.read_sector() and block::deserialize_block
         // 1. Follow data block chain
         // 2. Concatenate payloads
         // 3. Verify CRC32
-        // 4. Deserialize
+        // 4. Deserialize with serde
         todo!()
     }
 
@@ -335,12 +336,13 @@ where
         T: serde::Serialize,
     {
         // TODO: Implement
-        // 1. Serialize data
-        // 2. Allocate blocks from free list
-        // 3. Write data chain
+        // Uses self.storage.write_sector() and block::serialize_block
+        // 1. Serialize data with serde
+        // 2. Allocate sectors from free list
+        // 3. Write data chain (Block::Data)
         // 4. Calculate CRC32
         // 5. Serialize metadata
-        // 6. Write new slot header
+        // 6. Write new slot header (Block::SlotHeader)
         // 7. Mark old slot as ghost
         // 8. Update in-memory state
         todo!()
@@ -348,8 +350,9 @@ where
 
     fn erase_slot(&mut self, _slot: usize) -> Result<(), SaveError<Storage::Error>> {
         // TODO: Implement
-        // 1. Mark slot header as empty
-        // 2. Return data blocks to free list
+        // Uses self.storage.write_sector() and block::serialize_block
+        // 1. Write slot header with state = Empty (Block::SlotHeader)
+        // 2. Return data sectors to free list
         // 3. Update in-memory state
         todo!()
     }
