@@ -148,7 +148,11 @@ impl<S: StorageMedium> SectorStorage<S> {
     /// # Panics
     ///
     /// Panics if `sector_index >= sector_count()` or if `data.len() != sector_size()`.
-    pub fn write_sector(&mut self, sector_index: usize, data: &[u8]) -> Result<(), SectorError<S::Error>> {
+    pub fn write_sector(
+        &mut self,
+        sector_index: usize,
+        data: &[u8],
+    ) -> Result<(), SectorError<S::Error>> {
         assert!(
             sector_index < self.sector_count,
             "sector index {sector_index} out of bounds (sector_count = {})",
