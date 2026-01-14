@@ -3,6 +3,8 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use quickcheck::{Arbitrary, Gen, quickcheck};
+
 use crate::test_storage::TestStorage;
 use crate::{SaveSlotManager, SlotStatus, MIN_SECTOR_SIZE};
 
@@ -670,4 +672,370 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
     );
     let loaded: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(loaded, data1, "should have first version's data from ghost");
+}
+
+// --- Property-based tests ---
+
+/// Arbitrary metadata for property tests
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+struct ArbitraryMetadata {
+    values: [u8; 8],
+}
+
+impl Arbitrary for ArbitraryMetadata {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let mut values = [0u8; 8];
+        for v in &mut values {
+            *v = u8::arbitrary(g);
+        }
+        Self { values }
+    }
+}
+
+/// Constrained data size for property tests to avoid running out of storage space.
+/// Max ~400 bytes ensures we can fit data + headers in 4KB storage with 3 slots.
+#[derive(Clone, Debug)]
+struct BoundedData(Vec<u8>);
+
+impl Arbitrary for BoundedData {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let len = usize::arbitrary(g) % 400;
+        let data: Vec<u8> = (0..len).map(|_| u8::arbitrary(g)).collect();
+        Self(data)
+    }
+}
+
+quickcheck! {
+    /// Any data written to a slot should read back identically.
+    fn data_roundtrip(data: BoundedData, metadata: ArbitraryMetadata, slot: u8) -> bool {
+        let slot = (slot % 3) as usize;
+        let storage = TestStorage::new_sram(4096);
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        manager.write(slot, &data.0, &metadata).unwrap();
+
+        let loaded: Vec<u8> = manager.read(slot).unwrap();
+        loaded == data.0
+    }
+
+    /// Metadata written to a slot should be retrievable and match.
+    fn metadata_roundtrip(data: BoundedData, metadata: ArbitraryMetadata, slot: u8) -> bool {
+        let slot = (slot % 3) as usize;
+        let storage = TestStorage::new_sram(4096);
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        manager.write(slot, &data.0, &metadata).unwrap();
+
+        manager.metadata(slot) == Some(&metadata)
+    }
+
+    /// Data and metadata should survive storage reinitialisation.
+    fn persistence_roundtrip(data: BoundedData, metadata: ArbitraryMetadata, slot: u8) -> bool {
+        let slot = (slot % 3) as usize;
+        let storage = TestStorage::new_sram(4096);
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        manager.write(slot, &data.0, &metadata).unwrap();
+
+        // Reinitialise from storage
+        let storage = manager.into_storage();
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        let status_ok = manager.slot_status(slot) == SlotStatus::Valid;
+        let metadata_ok = manager.metadata(slot) == Some(&metadata);
+        let data_ok = manager.read::<Vec<u8>>(slot).unwrap() == data.0;
+
+        status_ok && metadata_ok && data_ok
+    }
+
+    /// Empty data should roundtrip correctly.
+    fn empty_data_roundtrip(metadata: ArbitraryMetadata, slot: u8) -> bool {
+        let slot = (slot % 3) as usize;
+        let storage = TestStorage::new_sram(4096);
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        let empty: Vec<u8> = vec![];
+        manager.write(slot, &empty, &metadata).unwrap();
+
+        let loaded: Vec<u8> = manager.read(slot).unwrap();
+        loaded.is_empty()
+    }
+
+    /// Writing to one slot should not affect other slots.
+    fn slot_isolation(
+        data0: BoundedData, meta0: ArbitraryMetadata,
+        data1: BoundedData, meta1: ArbitraryMetadata,
+        data2: BoundedData, meta2: ArbitraryMetadata
+    ) -> bool {
+        let storage = TestStorage::new_sram(8192); // Larger storage for 3 slots of data
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        manager.write(0, &data0.0, &meta0).unwrap();
+        manager.write(1, &data1.0, &meta1).unwrap();
+        manager.write(2, &data2.0, &meta2).unwrap();
+
+        let read0: Vec<u8> = manager.read(0).unwrap();
+        let read1: Vec<u8> = manager.read(1).unwrap();
+        let read2: Vec<u8> = manager.read(2).unwrap();
+
+        read0 == data0.0 && read1 == data1.0 && read2 == data2.0
+            && manager.metadata(0) == Some(&meta0)
+            && manager.metadata(1) == Some(&meta1)
+            && manager.metadata(2) == Some(&meta2)
+    }
+
+    /// Overwriting a slot multiple times should always return the last written data.
+    fn overwrite_returns_latest(writes: Vec<(BoundedData, ArbitraryMetadata)>) -> bool {
+        if writes.is_empty() {
+            return true;
+        }
+
+        let storage = TestStorage::new_sram(4096);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        let mut last_data = vec![];
+        let mut last_meta = None;
+
+        for (data, meta) in &writes {
+            if manager.write(0, &data.0, meta).is_ok() {
+                last_data = data.0.clone();
+                last_meta = Some(meta.clone());
+            }
+        }
+
+        if last_meta.is_none() {
+            // No successful writes, slot should still be empty
+            return manager.slot_status(0) == SlotStatus::Empty;
+        }
+
+        let read: Vec<u8> = manager.read(0).unwrap();
+        read == last_data && manager.metadata(0) == last_meta.as_ref()
+    }
+}
+
+// --- Crash recovery property tests ---
+
+/// Known bug: repeated crash-recovery cycles can corrupt data.
+///
+/// After multiple crash cycles, the free sector list can become incorrect,
+/// causing new writes to overwrite data blocks that are still in use.
+/// This needs to be fixed by improving the free sector list reconstruction
+/// during initialization.
+#[test]
+#[ignore = "known bug: repeated crashes can corrupt free sector list"]
+fn repeated_crash_corrupts_data() {
+    let initial_data: Vec<u8> = vec![
+        0, 64, 104, 108, 94, 201, 231, 63, 150, 56, 87, 38, 129, 101, 60, 0, 238, 224, 157, 53,
+        134, 179, 162, 150, 108, 98, 19,
+    ];
+    let initial_meta = ArbitraryMetadata {
+        values: [246, 169, 155, 0, 65, 36, 1, 100],
+    };
+    let crash_points: Vec<u8> = vec![2, 92, 3];
+
+    let storage = TestStorage::new_sram(4096);
+    let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    manager.write(0, &initial_data, &initial_meta).unwrap();
+
+    let mut valid_data_versions: Vec<(Vec<u8>, ArbitraryMetadata)> = vec![];
+    valid_data_versions.push((initial_data.clone(), initial_meta.clone()));
+
+    for (i, &fail_point) in crash_points.iter().enumerate() {
+        let fail_after = (fail_point % 15) as usize;
+
+        let mut storage = manager.into_storage();
+        storage.fail_after_writes(Some(fail_after));
+
+        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        let new_data: Vec<u8> = (0..((i + 1) * 10).min(300))
+            .map(|j| ((i + j) % 256) as u8)
+            .collect();
+        let new_meta = ArbitraryMetadata {
+            values: [(i as u8).wrapping_add(1); 8],
+        };
+        valid_data_versions.push((new_data.clone(), new_meta.clone()));
+
+        let _ = manager.write(0, &new_data, &new_meta);
+
+        let storage = manager.into_storage();
+        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+
+        let read_data: Vec<u8> = manager.read(0).expect("data should be readable");
+        let read_meta = manager.metadata(0).unwrap();
+
+        let is_valid_version = valid_data_versions
+            .iter()
+            .any(|(d, m)| d == &read_data && m == read_meta);
+
+        assert!(is_valid_version);
+    }
+}
+
+quickcheck! {
+    /// Crash during first write should leave slot empty (never corrupted).
+    fn crash_during_first_write_leaves_empty(
+        data: BoundedData,
+        metadata: ArbitraryMetadata,
+        fail_point: u8
+    ) -> bool {
+        // fail_point determines when to crash (0-255 maps to different write counts)
+        let fail_after = (fail_point % 20) as usize; // Reasonable range for write count
+
+        let storage = TestStorage::new_sram(4096);
+        let manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        let mut storage = manager.into_storage();
+        storage.fail_after_writes(Some(fail_after));
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Attempt write - may fail
+        let _ = manager.write(0, &data.0, &metadata);
+
+        // Reinitialise and check state
+        let storage = manager.into_storage();
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Slot must be either Empty (write didn't complete) or Valid (write completed)
+        // It must NEVER be Corrupted
+        match manager.slot_status(0) {
+            SlotStatus::Empty => true,
+            SlotStatus::Valid => {
+                // If valid, data must be readable and correct
+                manager.read::<Vec<u8>>(0).ok() == Some(data.0.clone())
+            }
+            SlotStatus::Corrupted => false, // This is the failure case
+        }
+    }
+
+    /// Crash during overwrite should preserve old data or complete new data (never corrupt).
+    fn crash_during_overwrite_preserves_integrity(
+        old_data: BoundedData,
+        old_meta: ArbitraryMetadata,
+        new_data: BoundedData,
+        new_meta: ArbitraryMetadata,
+        fail_point: u8
+    ) -> bool {
+        let fail_after = (fail_point % 20) as usize;
+
+        let storage = TestStorage::new_sram(4096);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // First write should succeed
+        manager.write(0, &old_data.0, &old_meta).unwrap();
+
+        // Set up crash for second write
+        let mut storage = manager.into_storage();
+        storage.fail_after_writes(Some(fail_after));
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Attempt second write - may fail
+        let _ = manager.write(0, &new_data.0, &new_meta);
+
+        // Reinitialise and check state
+        let storage = manager.into_storage();
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Slot must be Valid (either old or new data) - never Corrupted or Empty
+        match manager.slot_status(0) {
+            SlotStatus::Valid => {
+                // Data must be either old or new - never partial/mixed
+                let read_data: Vec<u8> = match manager.read(0) {
+                    Ok(d) => d,
+                    Err(_) => return false,
+                };
+                let read_meta = manager.metadata(0);
+
+                let is_old = read_data == old_data.0 && read_meta == Some(&old_meta);
+                let is_new = read_data == new_data.0 && read_meta == Some(&new_meta);
+
+                is_old || is_new
+            }
+            SlotStatus::Corrupted | SlotStatus::Empty => false,
+        }
+    }
+
+    /// Crash during write to one slot should not affect other slots.
+    fn crash_does_not_affect_other_slots(
+        data0: BoundedData, meta0: ArbitraryMetadata,
+        data1: BoundedData, meta1: ArbitraryMetadata,
+        new_data1: BoundedData, new_meta1: ArbitraryMetadata,
+        fail_point: u8
+    ) -> bool {
+        let fail_after = (fail_point % 20) as usize;
+
+        let storage = TestStorage::new_sram(8192);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Write to both slots successfully
+        manager.write(0, &data0.0, &meta0).unwrap();
+        manager.write(1, &data1.0, &meta1).unwrap();
+
+        // Set up crash for write to slot 1
+        let mut storage = manager.into_storage();
+        storage.fail_after_writes(Some(fail_after));
+
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Attempt write to slot 1 - may fail
+        let _ = manager.write(1, &new_data1.0, &new_meta1);
+
+        // Reinitialise and check slot 0 is unaffected
+        let storage = manager.into_storage();
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Slot 0 must be completely unaffected
+        if manager.slot_status(0) != SlotStatus::Valid {
+            return false;
+        }
+        let read0: Vec<u8> = match manager.read(0) {
+            Ok(d) => d,
+            Err(_) => return false,
+        };
+        if read0 != data0.0 || manager.metadata(0) != Some(&meta0) {
+            return false;
+        }
+
+        // Slot 1 must be valid (old or new data)
+        match manager.slot_status(1) {
+            SlotStatus::Valid => {
+                let read1: Vec<u8> = match manager.read(1) {
+                    Ok(d) => d,
+                    Err(_) => return false,
+                };
+                let is_old = read1 == data1.0 && manager.metadata(1) == Some(&meta1);
+                let is_new = read1 == new_data1.0 && manager.metadata(1) == Some(&new_meta1);
+                is_old || is_new
+            }
+            _ => false,
+        }
+    }
+
 }

@@ -71,7 +71,6 @@ pub struct GlobalBlock<'a> {
     pub game_identifier: &'a [u8],
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SlotHeaderBlock<'a> {
     header: SlotHeader,
