@@ -351,7 +351,7 @@ where
     ///
     /// - [`SaveError::SlotEmpty`] if the slot has no data
     /// - [`SaveError::SlotCorrupted`] if the slot data is corrupted
-    /// - [`SaveError::DeserializationFailed`] if the data cannot be deserialized
+    /// - [`SaveError::Serialization`] if the data cannot be deserialized
     /// - [`SaveError::Storage`] if the underlying storage fails
     pub fn read<T>(&mut self, slot: usize) -> Result<T, SaveError<Storage::Error>>
     where
@@ -381,7 +381,7 @@ where
     /// # Errors
     ///
     /// - [`SaveError::OutOfSpace`] if there's not enough free space
-    /// - [`SaveError::SerializationFailed`] if the data cannot be serialized
+    /// - [`SaveError::Serialization`] if the data cannot be serialized
     /// - [`SaveError::Storage`] if the underlying storage fails
     pub fn write<T>(
         &mut self,
