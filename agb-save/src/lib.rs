@@ -55,7 +55,7 @@ use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test_storage;
 
 mod block;
 
@@ -64,9 +64,11 @@ mod block;
 pub struct StorageInfo {
     /// Total size in bytes
     pub size: usize,
-    /// Minimum erase size in bytes, None if no explicit erase is required
+    /// Minimum erase size in bytes, None if no explicit erase is required. All erases
+    /// must happen at the same alignment as erase_size as well.
     pub erase_size: Option<NonZeroUsize>,
-    /// Minimum write size, 1 if byte-addressable
+    /// Minimum write size, 1 if byte-addressable. All writes must happen at alignment equal
+    /// to write_size as well.
     pub write_size: NonZeroUsize,
 }
 
