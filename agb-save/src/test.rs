@@ -1941,3 +1941,69 @@ fn slots_iterator_shows_corrupted_slots() {
     // Slot 2 should be empty
     assert_eq!(slots[2], Slot::Empty);
 }
+
+#[test]
+fn corrupted_data_chain_marks_slot_corrupted_but_other_slots_valid() {
+    // Use larger storage to have room for data blocks
+    let storage = TestStorage::new_sram(8192);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Write data to both slot 0 and slot 1
+    let data0 = TestSaveData {
+        level: 1,
+        health: 100,
+        position: (0, 0),
+        inventory: vec![1, 2, 3],
+    };
+    let metadata0 = TestMetadata {
+        name: *b"Slot Zero_______",
+    };
+    manager.write(0, &data0, &metadata0).unwrap();
+
+    let data1 = TestSaveData {
+        level: 2,
+        health: 200,
+        position: (10, 20),
+        inventory: vec![4, 5, 6],
+    };
+    let metadata1 = TestMetadata {
+        name: *b"Slot One________",
+    };
+    manager.write(1, &data1, &metadata1).unwrap();
+
+    // Both slots should be valid
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
+    assert!(matches!(manager.slot(1), Slot::Valid(_)));
+
+    // Get storage and corrupt slot 0's data block (not its header)
+    // Sector layout: [0: global] [1-3: slot headers] [4: ghost] [5+: data]
+    // Data is allocated from the END of the free list, so slot 0 (written first) gets the last sector
+    // 8192 bytes / 128 byte sectors = 64 sectors, last sector is 63
+    let mut storage = manager.into_storage();
+    let last_sector = (8192 / MIN_SECTOR_SIZE) - 1;
+    let data_sector_offset = last_sector * MIN_SECTOR_SIZE;
+    // Corrupt the CRC (bytes 0-1) to make deserialization fail
+    storage.data_mut()[data_sector_offset] ^= 0xFF;
+
+    // Re-initialize
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Slot 0 should be corrupted (its data chain is broken)
+    assert!(
+        matches!(manager.slot(0), Slot::Corrupted),
+        "Expected slot 0 to be Corrupted, got {:?}",
+        manager.slot(0)
+    );
+
+    // Slot 1 should still be valid and readable
+    match manager.slot(1) {
+        Slot::Valid(meta) => assert_eq!(meta.name, *b"Slot One________"),
+        other => panic!("Expected Slot::Valid for slot 1, got {:?}", other),
+    }
+
+    // Slot 2 should be empty
+    assert!(matches!(manager.slot(2), Slot::Empty));
+}
