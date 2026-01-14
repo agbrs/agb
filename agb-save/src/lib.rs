@@ -502,8 +502,8 @@ where
         let mut used_sectors = vec![false; sector_count];
 
         // Mark header sectors as used
-        for sector in 0..first_data_sector {
-            used_sectors[sector] = true;
+        for used in used_sectors.iter_mut().take(first_data_sector) {
+            *used = true;
         }
 
         // Follow data chains from valid slots and mark those sectors as used
