@@ -69,7 +69,7 @@ mod block;
 mod sector_storage;
 
 pub use sector_storage::MIN_SECTOR_SIZE;
-use sector_storage::SectorStorage;
+use sector_storage::{SectorError, SectorStorage};
 
 /// Data about how the [`StorageMedium`] should be used.
 #[derive(Debug, Clone, Copy)]
@@ -108,6 +108,18 @@ pub trait StorageMedium {
     /// The region must have been erased first for media that require it. They should
     /// be aligned to `info().write_size`.
     fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), Self::Error>;
+
+    /// Verify that data at the given offset matches the expected bytes.
+    ///
+    /// Returns `Ok(true)` if the data matches, `Ok(false)` if it doesn't match,
+    /// or `Err` if there was a storage error during the read.
+    ///
+    /// The default implementation reads back the data and compares byte-by-byte.
+    fn verify(&mut self, offset: usize, expected: &[u8]) -> Result<bool, Self::Error> {
+        let mut buf = vec![0u8; expected.len()];
+        self.read(offset, &mut buf)?;
+        Ok(buf == expected)
+    }
 }
 
 /// The status of a save slot.
@@ -136,6 +148,17 @@ pub enum SaveError<StorageError> {
     SerializationFailed,
     /// Failed to deserialize the data.
     DeserializationFailed,
+    /// Write verification failed - data read back didn't match what was written.
+    VerificationFailed,
+}
+
+impl<E> SaveError<E> {
+    fn from_sector_error(err: SectorError<E>) -> Self {
+        match err {
+            SectorError::Storage(e) => SaveError::Storage(e),
+            SectorError::VerificationFailed => SaveError::VerificationFailed,
+        }
+    }
 }
 
 /// A save slot manager which gives you some level of write safety and confirmation
@@ -374,7 +397,7 @@ where
         );
         self.storage
             .write_sector(0, &buffer)
-            .map_err(SaveError::Storage)?;
+            .map_err(SaveError::from_sector_error)?;
 
         // Write empty slot headers (sectors 1..num_slots+1)
         // Each logical slot gets its own physical sector initially
@@ -389,7 +412,7 @@ where
             );
             self.storage
                 .write_sector(slot + 1, &buffer)
-                .map_err(SaveError::Storage)?;
+                .map_err(SaveError::from_sector_error)?;
         }
 
         // Write a GHOST state slot header to the ghost sector (sector num_slots + 1)
@@ -402,7 +425,7 @@ where
         );
         self.storage
             .write_sector(self.num_slots + 1, &buffer)
-            .map_err(SaveError::Storage)?;
+            .map_err(SaveError::from_sector_error)?;
 
         // Initialise slot_info with empty slots
         self.slot_info.clear();
@@ -707,7 +730,7 @@ where
             // Write to storage
             self.storage
                 .write_sector(sector as usize, &buffer)
-                .map_err(SaveError::Storage)?;
+                .map_err(SaveError::from_sector_error)?;
 
             data_offset += chunk_size;
         }
@@ -834,7 +857,7 @@ where
 
         self.storage
             .write_sector(self.ghost_sector as usize, &buffer)
-            .map_err(SaveError::Storage)?;
+            .map_err(SaveError::from_sector_error)?;
 
         // Mark old header as ghost
         self.storage
@@ -857,7 +880,7 @@ where
             serialize_block(Block::SlotHeader(ghost_block), &mut buffer);
             self.storage
                 .write_sector(old_header_sector as usize, &buffer)
-                .map_err(SaveError::Storage)?;
+                .map_err(SaveError::from_sector_error)?;
         }
 
         // The old header sector is now the ghost, the ghost sector now holds our new header
@@ -933,7 +956,7 @@ where
 
         self.storage
             .write_sector(header_sector as usize, &buffer)
-            .map_err(SaveError::Storage)?;
+            .map_err(SaveError::from_sector_error)?;
 
         // 2. Return data sectors to free list
         self.free_data_chain(old_first_data_block, &mut buffer)?;

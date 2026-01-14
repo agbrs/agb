@@ -1,5 +1,5 @@
 [package]
-name = "agb-save"
+name = "agb_save"
 version = "0.22.6"
 edition = "2024"
 

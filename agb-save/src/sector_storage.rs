@@ -5,8 +5,24 @@
 //! - Automatic erase-before-write for flash media
 //! - Sector size calculation based on storage constraints
 //! - Alignment requirements
+//! - Write verification (read-back and compare)
 
 use crate::StorageMedium;
+
+/// Errors that can occur during sector operations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SectorError<E> {
+    /// The underlying storage returned an error.
+    Storage(E),
+    /// Write verification failed - data read back didn't match what was written.
+    VerificationFailed,
+}
+
+impl<E> From<E> for SectorError<E> {
+    fn from(err: E) -> Self {
+        SectorError::Storage(err)
+    }
+}
 
 /// Minimum sector size to ensure there's enough space for headers and useful data.
 pub const MIN_SECTOR_SIZE: usize = 128;
@@ -126,10 +142,13 @@ impl<S: StorageMedium> SectorStorage<S> {
 
     /// Write a sector, automatically erasing first if required.
     ///
+    /// After writing, verifies the data by reading it back and comparing.
+    /// Returns `Err(SectorError::VerificationFailed)` if the verification fails.
+    ///
     /// # Panics
     ///
     /// Panics if `sector_index >= sector_count()` or if `data.len() != sector_size()`.
-    pub fn write_sector(&mut self, sector_index: usize, data: &[u8]) -> Result<(), S::Error> {
+    pub fn write_sector(&mut self, sector_index: usize, data: &[u8]) -> Result<(), SectorError<S::Error>> {
         assert!(
             sector_index < self.sector_count,
             "sector index {sector_index} out of bounds (sector_count = {})",
@@ -149,7 +168,14 @@ impl<S: StorageMedium> SectorStorage<S> {
         self.storage.erase(offset, self.sector_size)?;
 
         // Write the data
-        self.storage.write(offset, data)
+        self.storage.write(offset, data)?;
+
+        // Verify the write by reading back and comparing
+        if !self.storage.verify(offset, data)? {
+            return Err(SectorError::VerificationFailed);
+        }
+
+        Ok(())
     }
 }
 
