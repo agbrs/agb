@@ -58,6 +58,7 @@ use core::num::NonZeroUsize;
 pub(crate) mod test_storage;
 
 mod block;
+mod sector_storage;
 
 /// Data about how the [`StorageMedium`] should be used.
 #[derive(Debug, Clone, Copy)]
