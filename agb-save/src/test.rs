@@ -1118,12 +1118,8 @@ quickcheck! {
 fn stress_test_random_saves_and_reloads() {
     use quickcheck::{Gen, QuickCheck, TestResult};
 
-    fn prop(seed: u64) -> TestResult {
+    fn prop() -> TestResult {
         let mut rng = Gen::new(256);
-        // Use seed to make the test deterministic for a given input
-        for _ in 0..(seed % 100) {
-            let _: u8 = Arbitrary::arbitrary(&mut rng);
-        }
 
         const NUM_SLOTS: usize = 3;
         // 16KB storage with max 500 byte saves ensures we never hit capacity
@@ -1191,10 +1187,9 @@ fn stress_test_random_saves_and_reloads() {
         TestResult::passed()
     }
 
-    // Run with many different seeds for thorough coverage
     QuickCheck::new()
         .tests(1000)
-        .quickcheck(prop as fn(u64) -> TestResult);
+        .quickcheck(prop as fn() -> TestResult);
 }
 
 /// Stress test with random write failures to exercise crash recovery.
@@ -1203,11 +1198,8 @@ fn stress_test_random_saves_and_reloads() {
 fn stress_test_with_random_failures() {
     use quickcheck::{Gen, QuickCheck, TestResult};
 
-    fn prop(seed: u64) -> TestResult {
+    fn prop() -> TestResult {
         let mut rng = Gen::new(256);
-        for _ in 0..(seed % 100) {
-            let _: u8 = Arbitrary::arbitrary(&mut rng);
-        }
 
         const NUM_SLOTS: usize = 3;
         let storage = TestStorage::new_sram(16384);
@@ -1313,7 +1305,7 @@ fn stress_test_with_random_failures() {
 
     QuickCheck::new()
         .tests(1000)
-        .quickcheck(prop as fn(u64) -> TestResult);
+        .quickcheck(prop as fn() -> TestResult);
 }
 
 // --- Flash storage tests ---
