@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `HashSet::get()`.
 - Added an example for dynamically generated isometric tiles.
 - Added the ability to draw a drop-shadow when rendering text.
+- Added 256 colour dynamic tiles via `DynamicTile256`.
 
 ### Fixed
 
