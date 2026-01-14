@@ -112,19 +112,10 @@ impl TestStorage {
         self.write_count
     }
 
-    /// Get direct access to the underlying data for test verification.
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
-
     /// Get mutable access to the underlying data for test setup.
+    #[cfg(test)]
     pub fn data_mut(&mut self) -> &mut [u8] {
         &mut self.data
-    }
-
-    /// Check if a specific erase block has been erased.
-    pub fn is_block_erased(&self, block_index: usize) -> bool {
-        self.erased_blocks.get(block_index).copied().unwrap_or(true)
     }
 
     fn check_erase_alignment(&self, offset: usize, len: usize) {

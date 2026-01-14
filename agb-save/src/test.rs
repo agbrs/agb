@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use quickcheck::{Arbitrary, Gen, quickcheck};
 
 use crate::test_storage::TestStorage;
-use crate::{SaveSlotManager, SlotStatus, MIN_SECTOR_SIZE};
+use crate::{MIN_SECTOR_SIZE, SaveSlotManager, SlotStatus};
 
 use serde::{Deserialize, Serialize};
 
@@ -1111,4 +1111,751 @@ quickcheck! {
         true
     }
 
+}
+
+/// Extensive stress test: random saves to random slots with random sizes,
+/// reloading manager after each batch and verifying all data.
+#[test]
+fn stress_test_random_saves_and_reloads() {
+    use quickcheck::{Gen, QuickCheck, TestResult};
+
+    fn prop(seed: u64) -> TestResult {
+        let mut rng = Gen::new(256);
+        // Use seed to make the test deterministic for a given input
+        for _ in 0..(seed % 100) {
+            let _: u8 = Arbitrary::arbitrary(&mut rng);
+        }
+
+        const NUM_SLOTS: usize = 3;
+        // 16KB storage with max 500 byte saves ensures we never hit capacity
+        let storage = TestStorage::new_sram(16384);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Track what data each slot should contain
+        let mut expected: Vec<Option<(Vec<u8>, ArbitraryMetadata)>> = vec![None; NUM_SLOTS];
+
+        // Run many cycles
+        for _cycle in 0..50 {
+            // Random number of saves this cycle (1-10)
+            let num_saves: usize = (u8::arbitrary(&mut rng) % 10) as usize + 1;
+
+            for _ in 0..num_saves {
+                // Pick random slot
+                let slot = (u8::arbitrary(&mut rng) % NUM_SLOTS as u8) as usize;
+
+                // Generate random-sized data (0 to 500 bytes to vary block count)
+                let data_size = (u16::arbitrary(&mut rng) % 501) as usize;
+                let data: Vec<u8> = (0..data_size).map(|_| u8::arbitrary(&mut rng)).collect();
+
+                let metadata = ArbitraryMetadata::arbitrary(&mut rng);
+
+                // Write must succeed - storage is sized to never run out of space
+                if manager.write(slot, &data, &metadata).is_err() {
+                    return TestResult::failed();
+                }
+                expected[slot] = Some((data, metadata));
+            }
+
+            // Reload the manager
+            let storage = manager.into_storage();
+            manager =
+                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+            // Verify all slots match expected state
+            for (slot, expected_data) in expected.iter().enumerate() {
+                match expected_data {
+                    None => {
+                        if manager.slot_status(slot) != SlotStatus::Empty {
+                            return TestResult::failed();
+                        }
+                    }
+                    Some((data, meta)) => {
+                        if manager.slot_status(slot) != SlotStatus::Valid {
+                            return TestResult::failed();
+                        }
+                        let read_data: Vec<u8> = match manager.read(slot) {
+                            Ok(d) => d,
+                            Err(_) => return TestResult::failed(),
+                        };
+                        if &read_data != data {
+                            return TestResult::failed();
+                        }
+                        if manager.metadata(slot) != Some(meta) {
+                            return TestResult::failed();
+                        }
+                    }
+                }
+            }
+        }
+
+        TestResult::passed()
+    }
+
+    // Run with many different seeds for thorough coverage
+    QuickCheck::new()
+        .tests(1000)
+        .quickcheck(prop as fn(u64) -> TestResult);
+}
+
+/// Stress test with random write failures to exercise crash recovery.
+/// After each failure, verifies slots contain either old or new data (never corrupted).
+#[test]
+fn stress_test_with_random_failures() {
+    use quickcheck::{Gen, QuickCheck, TestResult};
+
+    fn prop(seed: u64) -> TestResult {
+        let mut rng = Gen::new(256);
+        for _ in 0..(seed % 100) {
+            let _: u8 = Arbitrary::arbitrary(&mut rng);
+        }
+
+        const NUM_SLOTS: usize = 3;
+        let storage = TestStorage::new_sram(16384);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Track current confirmed data and pending (possibly committed) data for each slot
+        let mut current: Vec<Option<(Vec<u8>, ArbitraryMetadata)>> = vec![None; NUM_SLOTS];
+
+        for _cycle in 0..50 {
+            let num_saves: usize = (u8::arbitrary(&mut rng) % 10) as usize + 1;
+
+            // Set up random failure point for this cycle
+            let fail_after: usize = (u8::arbitrary(&mut rng) % 100) as usize + 1;
+            let mut storage = manager.into_storage();
+            storage.fail_after_writes(Some(fail_after));
+            manager =
+                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+            // Pending tracks writes that might have partially committed
+            let mut pending = current.clone();
+
+            for _ in 0..num_saves {
+                let slot = (u8::arbitrary(&mut rng) % NUM_SLOTS as u8) as usize;
+                let data_size = (u16::arbitrary(&mut rng) % 501) as usize;
+                let data: Vec<u8> = (0..data_size).map(|_| u8::arbitrary(&mut rng)).collect();
+                let metadata = ArbitraryMetadata::arbitrary(&mut rng);
+
+                let new_data = (data.clone(), metadata.clone());
+
+                match manager.write(slot, &data, &metadata) {
+                    Ok(()) => {
+                        // Write succeeded, update both current and pending
+                        current[slot] = Some(new_data.clone());
+                        pending[slot] = Some(new_data);
+                    }
+                    Err(_) => {
+                        // Write failed - but it might have partially committed
+                        // Record as pending (might be valid after reload)
+                        pending[slot] = Some(new_data);
+                        break; // Stop this cycle, writes will keep failing
+                    }
+                }
+            }
+
+            // Reload without failure injection
+            let mut storage = manager.into_storage();
+            storage.fail_after_writes(None);
+            manager =
+                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+            // Verify each slot has valid data (either current or pending, never corrupted)
+            for slot in 0..NUM_SLOTS {
+                match manager.slot_status(slot) {
+                    SlotStatus::Empty => {
+                        // Valid if both current and pending are None
+                        if current[slot].is_some() || pending[slot].is_some() {
+                            // Could still be okay if pending was a failed first write
+                            if current[slot].is_some() {
+                                return TestResult::failed();
+                            }
+                            // pending was set but slot is empty - write failed before commit
+                            // This is fine, clear pending
+                            pending[slot] = None;
+                        }
+                    }
+                    SlotStatus::Valid => {
+                        let read_data: Vec<u8> = match manager.read(slot) {
+                            Ok(d) => d,
+                            Err(_) => return TestResult::failed(),
+                        };
+                        let read_meta = manager.metadata(slot).unwrap();
+
+                        // Check if it matches current
+                        let matches_current = current[slot]
+                            .as_ref()
+                            .map(|(d, m)| d == &read_data && m == read_meta)
+                            .unwrap_or(false);
+
+                        // Check if it matches pending
+                        let matches_pending = pending[slot]
+                            .as_ref()
+                            .map(|(d, m)| d == &read_data && m == read_meta)
+                            .unwrap_or(false);
+
+                        if !matches_current && !matches_pending {
+                            return TestResult::failed();
+                        }
+
+                        // Update current to reflect actual state
+                        current[slot] = Some((read_data, read_meta.clone()));
+                    }
+                    SlotStatus::Corrupted => {
+                        // Never acceptable
+                        return TestResult::failed();
+                    }
+                }
+            }
+        }
+
+        TestResult::passed()
+    }
+
+    QuickCheck::new()
+        .tests(1000)
+        .quickcheck(prop as fn(u64) -> TestResult);
+}
+
+// --- Flash storage tests ---
+// GBA flash is 64KB with 4KB erase blocks
+
+const GBA_FLASH_SIZE: usize = 64 * 1024; // 64KB
+const GBA_FLASH_ERASE_SIZE: usize = 4096; // 4KB erase blocks
+const GBA_FLASH_WRITE_SIZE: usize = 1; // Byte-addressable writes
+
+#[test]
+fn flash_storage_basic_roundtrip() {
+    let storage =
+        TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    // Write and read back
+    let metadata = TestMetadata {
+        name: *b"FlashTest_______",
+    };
+    let data: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8];
+
+    manager.write(0, &data, &metadata).unwrap();
+
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn flash_storage_persists_across_reinit() {
+    let storage =
+        TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"FlashPersist____",
+    };
+    let data: Vec<u8> = vec![10, 20, 30, 40];
+
+    manager.write(0, &data, &metadata).unwrap();
+
+    // Reinitialize
+    let storage = manager.into_storage();
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn flash_storage_multiple_writes_same_slot() {
+    let storage =
+        TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    // Multiple overwrites to same slot on flash
+    for i in 0..5 {
+        let metadata = TestMetadata {
+            name: *b"FlashOverwrite__",
+        };
+        let data: Vec<u8> = vec![i as u8; 20];
+
+        manager.write(0, &data, &metadata).unwrap();
+
+        let read_data: Vec<u8> = manager.read(0).unwrap();
+        assert_eq!(read_data, data);
+    }
+}
+
+#[test]
+fn flash_storage_crash_recovery() {
+    let storage =
+        TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    // Write initial data
+    let metadata1 = TestMetadata {
+        name: *b"FlashCrash1_____",
+    };
+    let data1: Vec<u8> = vec![1, 2, 3, 4];
+    manager.write(0, &data1, &metadata1).unwrap();
+
+    // Set up to crash during second write
+    let mut storage = manager.into_storage();
+    storage.fail_after_writes(Some(1)); // Crash after first write (data block)
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    let metadata2 = TestMetadata {
+        name: *b"FlashCrash2_____",
+    };
+    let data2: Vec<u8> = vec![5, 6, 7, 8];
+    let _ = manager.write(0, &data2, &metadata2);
+
+    // Reinitialize and verify recovery
+    let storage = manager.into_storage();
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    // Should have original data (crash during second write)
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    // Either old or new data is acceptable
+    assert!(read_data == data1 || read_data == data2);
+}
+
+#[test]
+fn flash_storage_large_save_data() {
+    let storage =
+        TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+
+    // Write a larger save that spans multiple 4KB sectors
+    let metadata = TestMetadata {
+        name: *b"LargeSave_______",
+    };
+    let data: Vec<u8> = (0..10000).map(|i| (i % 256) as u8).collect();
+
+    manager.write(0, &data, &metadata).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+// --- Storage capacity limits tests ---
+
+#[test]
+fn out_of_space_returns_error() {
+    // Small storage: 1KB total
+    // With 3 slots + global + ghost = 5 header sectors
+    // Minimal space for data
+    let storage = TestStorage::new_sram(1024);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"TooBig__________",
+    };
+    // Try to write more data than storage can hold
+    let large_data: Vec<u8> = vec![0xAB; 2000];
+
+    let result = manager.write(0, &large_data, &metadata);
+    assert!(
+        matches!(result, Err(crate::SaveError::OutOfSpace)),
+        "expected OutOfSpace error, got {:?}",
+        result
+    );
+}
+
+#[test]
+fn out_of_space_does_not_corrupt_existing_data() {
+    let storage = TestStorage::new_sram(2048);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Write some data first
+    let metadata1 = TestMetadata {
+        name: *b"ExistingData____",
+    };
+    let data1: Vec<u8> = vec![1, 2, 3, 4, 5];
+    manager.write(0, &data1, &metadata1).unwrap();
+
+    // Try to write data that's too large for remaining space
+    let metadata2 = TestMetadata {
+        name: *b"TooBigData______",
+    };
+    let large_data: Vec<u8> = vec![0xFF; 2000];
+    let result = manager.write(1, &large_data, &metadata2);
+    assert!(matches!(result, Err(crate::SaveError::OutOfSpace)));
+
+    // Original data should still be valid
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data1);
+}
+
+#[test]
+fn fill_storage_then_overwrite() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Calculate approximate max data size
+    // 4096 bytes total, ~3 sectors for headers (global + slot + ghost)
+    // Remaining sectors for data, each sector is MIN_SECTOR_SIZE
+    let metadata = TestMetadata {
+        name: *b"FillStorage_____",
+    };
+
+    // Fill with moderately large data
+    let data1: Vec<u8> = vec![0x11; 500];
+    manager.write(0, &data1, &metadata).unwrap();
+
+    // Overwrite with different data (should reuse freed sectors)
+    let data2: Vec<u8> = vec![0x22; 500];
+    manager.write(0, &data2, &metadata).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data2);
+}
+
+#[test]
+fn multiple_slots_approaching_capacity() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Write to all 3 slots
+    for slot in 0..3 {
+        let metadata = TestMetadata {
+            name: *b"MultiSlotCap____",
+        };
+        let data: Vec<u8> = vec![slot as u8; 100];
+        manager.write(slot, &data, &metadata).unwrap();
+    }
+
+    // Verify all slots are valid
+    for slot in 0..3 {
+        assert_eq!(manager.slot_status(slot), SlotStatus::Valid);
+        let read_data: Vec<u8> = manager.read(slot).unwrap();
+        assert_eq!(read_data, vec![slot as u8; 100]);
+    }
+}
+
+// --- Global header corruption tests ---
+
+#[test]
+fn corrupted_global_header_causes_reformat() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Write some data
+    let metadata = TestMetadata {
+        name: *b"WillBeLost______",
+    };
+    let data: Vec<u8> = vec![1, 2, 3, 4];
+    manager.write(0, &data, &metadata).unwrap();
+
+    // Corrupt the global header (sector 0)
+    let mut storage = manager.into_storage();
+    storage.data_mut()[0] ^= 0xFF; // Corrupt CRC
+
+    // Reinitialize - should detect corruption and reformat
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // All slots should be empty after reformat
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
+    assert_eq!(manager.slot_status(2), SlotStatus::Empty);
+}
+
+#[test]
+fn mismatched_magic_causes_reformat() {
+    let storage = TestStorage::new_sram(4096);
+    let magic1 = *b"game-one________________________";
+    let magic2 = *b"game-two________________________";
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, magic1, MIN_SECTOR_SIZE).unwrap();
+
+    // Write data with magic1
+    let metadata = TestMetadata {
+        name: *b"MagicMismatch___",
+    };
+    let data: Vec<u8> = vec![1, 2, 3];
+    manager.write(0, &data, &metadata).unwrap();
+
+    // Reinitialize with different magic
+    let storage = manager.into_storage();
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, magic2, MIN_SECTOR_SIZE).unwrap();
+
+    // Should have reformatted due to magic mismatch
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+}
+
+#[test]
+fn mismatched_slot_count_causes_reformat() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Write data with 2 slots
+    let metadata = TestMetadata {
+        name: *b"SlotCountChange_",
+    };
+    let data: Vec<u8> = vec![1, 2, 3];
+    manager.write(0, &data, &metadata).unwrap();
+
+    // Reinitialize with different slot count
+    let storage = manager.into_storage();
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Should have reformatted due to slot count mismatch
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+}
+
+// --- Interleaved multi-slot operation tests ---
+
+#[test]
+fn interleaved_writes_to_multiple_slots() {
+    let storage = TestStorage::new_sram(8192);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Interleaved writes: slot 0, slot 1, slot 0, slot 2, slot 1
+    let meta0 = TestMetadata {
+        name: *b"InterleavedS0___",
+    };
+    let meta1 = TestMetadata {
+        name: *b"InterleavedS1___",
+    };
+    let meta2 = TestMetadata {
+        name: *b"InterleavedS2___",
+    };
+
+    let data0_v1: Vec<u8> = vec![0; 50];
+    manager.write(0, &data0_v1, &meta0).unwrap();
+
+    let data1_v1: Vec<u8> = vec![1; 50];
+    manager.write(1, &data1_v1, &meta1).unwrap();
+
+    let data0_v2: Vec<u8> = vec![10; 50];
+    manager.write(0, &data0_v2, &meta0).unwrap();
+
+    let data2_v1: Vec<u8> = vec![2; 50];
+    manager.write(2, &data2_v1, &meta2).unwrap();
+
+    let data1_v2: Vec<u8> = vec![11; 50];
+    manager.write(1, &data1_v2, &meta1).unwrap();
+
+    // Verify all slots have their latest data
+    let read0: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read0, data0_v2);
+
+    let read1: Vec<u8> = manager.read(1).unwrap();
+    assert_eq!(read1, data1_v2);
+
+    let read2: Vec<u8> = manager.read(2).unwrap();
+    assert_eq!(read2, data2_v1);
+}
+
+#[test]
+fn interleaved_writes_with_erase() {
+    let storage = TestStorage::new_sram(8192);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let meta = TestMetadata {
+        name: *b"InterleavedErase",
+    };
+
+    // Write to all slots
+    for slot in 0..3 {
+        let data: Vec<u8> = vec![slot as u8; 100];
+        manager.write(slot, &data, &meta).unwrap();
+    }
+
+    // Erase slot 1
+    manager.erase(1).unwrap();
+    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
+
+    // Write to slot 0 again (should not affect empty slot 1)
+    let new_data0: Vec<u8> = vec![0xFF; 100];
+    manager.write(0, &new_data0, &meta).unwrap();
+
+    // Verify states
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
+    assert_eq!(manager.slot_status(2), SlotStatus::Valid);
+
+    let read0: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read0, new_data0);
+
+    let read2: Vec<u8> = manager.read(2).unwrap();
+    assert_eq!(read2, vec![2u8; 100]);
+}
+
+#[test]
+fn ghost_sector_correct_after_interleaved_writes() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let meta = TestMetadata {
+        name: *b"GhostInterleave_",
+    };
+
+    // Write multiple times to different slots
+    for i in 0..5 {
+        let slot = i % 2;
+        let data: Vec<u8> = vec![i as u8; 50];
+        manager.write(slot, &data, &meta).unwrap();
+    }
+
+    // Reinitialize and verify
+    let storage = manager.into_storage();
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Slot 0 had writes at i=0,2,4 -> latest is 4
+    let read0: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read0, vec![4u8; 50]);
+
+    // Slot 1 had writes at i=1,3 -> latest is 3
+    let read1: Vec<u8> = manager.read(1).unwrap();
+    assert_eq!(read1, vec![3u8; 50]);
+}
+
+// --- Exact block boundary data size tests ---
+
+#[test]
+fn data_exactly_fills_one_block() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Calculate exact payload size for one data block
+    // Data block header is 8 bytes, so payload = sector_size - 8
+    let payload_size = MIN_SECTOR_SIZE - 8;
+    let data: Vec<u8> = vec![0xAB; payload_size];
+
+    let meta = TestMetadata {
+        name: *b"ExactOneBlock___",
+    };
+
+    manager.write(0, &data, &meta).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn data_one_byte_over_block_boundary() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // One byte more than one block can hold -> needs 2 blocks
+    let payload_size = MIN_SECTOR_SIZE - 8;
+    let data: Vec<u8> = vec![0xCD; payload_size + 1];
+
+    let meta = TestMetadata {
+        name: *b"OverBoundary____",
+    };
+
+    manager.write(0, &data, &meta).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn data_exactly_fills_two_blocks() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let payload_size = MIN_SECTOR_SIZE - 8;
+    let data: Vec<u8> = vec![0xEF; payload_size * 2];
+
+    let meta = TestMetadata {
+        name: *b"ExactTwoBlocks__",
+    };
+
+    manager.write(0, &data, &meta).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn single_byte_data() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let data: Vec<u8> = vec![0x42];
+    let meta = TestMetadata {
+        name: *b"SingleByte______",
+    };
+
+    manager.write(0, &data, &meta).unwrap();
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
+}
+
+#[test]
+fn metadata_near_max_size() {
+    let storage = TestStorage::new_sram(4096);
+
+    // Use a metadata type that's larger (close to slot header capacity)
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    struct LargeMetadata {
+        data: Vec<u8>,
+    }
+
+    let mut manager: SaveSlotManager<_, LargeMetadata> =
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let meta = LargeMetadata {
+        data: vec![0xAB; 64],
+    };
+    let data: Vec<u8> = vec![1, 2, 3];
+
+    manager.write(0, &data, &meta).unwrap();
+
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    let read_meta = manager.metadata(0).unwrap();
+    assert_eq!(read_meta.data, vec![0xAB; 64]);
+
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, data);
 }
