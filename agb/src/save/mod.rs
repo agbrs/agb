@@ -74,7 +74,7 @@ mod sram;
 mod utils;
 
 #[doc(inline)]
-pub use agb_save::{SaveError, Slot, SlotStatus};
+pub use agb_save::{SaveError, Slot};
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -517,14 +517,14 @@ where
         self.inner.num_slots()
     }
 
-    /// Returns the status of the given slot.
+    /// Returns the state of the given slot.
     ///
     /// # Panics
     ///
     /// Panics if `slot >= num_slots()`.
     #[must_use]
-    pub fn slot_status(&self, slot: usize) -> SlotStatus {
-        self.inner.slot_status(slot)
+    pub fn slot(&self, slot: usize) -> Slot<'_, Metadata> {
+        self.inner.slot(slot)
     }
 
     /// Returns the metadata for the given slot, if it exists and is valid.

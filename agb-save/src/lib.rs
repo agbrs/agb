@@ -30,13 +30,12 @@
 //! )?;
 //!
 //! // Check slot status before loading
-//! match manager.slot_status(0) {
-//!     SlotStatus::Empty => println!("Slot 0 is empty"),
-//!     SlotStatus::Valid => {
-//!         let metadata = manager.metadata(0).unwrap();
+//! match manager.slot(0) {
+//!     Slot::Empty => println!("Slot 0 is empty"),
+//!     Slot::Valid(metadata) => {
 //!         println!("Player: {}", metadata.player_name);
 //!     }
-//!     SlotStatus::Corrupted => println!("Slot 0 is corrupted"),
+//!     Slot::Corrupted => println!("Slot 0 is corrupted"),
 //! }
 //!
 //! // Save game
@@ -124,7 +123,7 @@ pub trait StorageMedium {
 
 /// The status of a save slot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SlotStatus {
+pub(crate) enum SlotStatus {
     /// Slot has never been written to or has been erased.
     Empty,
     /// Slot contains valid, verified save data.
@@ -134,9 +133,6 @@ pub enum SlotStatus {
 }
 
 /// A save slot with its current state.
-///
-/// This enum combines the slot status with the metadata, making it impossible
-/// to have an invalid combination (like Empty with Some metadata).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Slot<'a, Metadata> {
     /// Slot has never been written to or has been erased.
@@ -258,13 +254,18 @@ where
         self.num_slots
     }
 
-    /// Returns the status of the given slot.
+    /// Returns the state of the given slot.
     ///
     /// # Panics
     ///
     /// Panics if `slot >= num_slots()`.
-    pub fn slot_status(&self, slot: usize) -> SlotStatus {
-        self.slot_info[slot].status
+    pub fn slot(&self, slot: usize) -> Slot<'_, Metadata> {
+        let info = &self.slot_info[slot];
+        match info.status {
+            SlotStatus::Empty => Slot::Empty,
+            SlotStatus::Valid => Slot::Valid(info.metadata.as_ref().unwrap()),
+            SlotStatus::Corrupted => Slot::Corrupted,
+        }
     }
 
     /// Returns the metadata for the given slot, if it exists and is valid.

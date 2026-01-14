@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use quickcheck::{Arbitrary, Gen, quickcheck};
 
 use crate::test_storage::TestStorage;
-use crate::{MIN_SECTOR_SIZE, SaveSlotManager, Slot, SlotStatus};
+use crate::{MIN_SECTOR_SIZE, SaveSlotManager, Slot};
 
 use serde::{Deserialize, Serialize};
 
@@ -39,8 +39,8 @@ fn new_storage_has_empty_slots() {
 
     for slot in 0..3 {
         assert_eq!(
-            manager.slot_status(slot),
-            SlotStatus::Empty,
+            manager.slot(slot),
+            Slot::Empty,
             "slot {slot} should be empty on fresh storage"
         );
         assert!(
@@ -71,21 +71,13 @@ fn corrupted_slot_detected_as_corrupted() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Slot 0 and 2 should still be empty
-    assert_eq!(
-        manager.slot_status(0),
-        SlotStatus::Empty,
-        "slot 0 should still be empty"
-    );
-    assert_eq!(
-        manager.slot_status(2),
-        SlotStatus::Empty,
-        "slot 2 should still be empty"
-    );
+    assert_eq!(manager.slot(0), Slot::Empty, "slot 0 should still be empty");
+    assert_eq!(manager.slot(2), Slot::Empty, "slot 2 should still be empty");
 
     // Slot 1 should be corrupted
     assert_eq!(
-        manager.slot_status(1),
-        SlotStatus::Corrupted,
+        manager.slot(1),
+        Slot::Corrupted,
         "slot 1 should be detected as corrupted"
     );
 }
@@ -98,7 +90,7 @@ fn write_slot_makes_slot_valid() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // All slots start empty
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
 
     // Write to slot 0
     let metadata = TestMetadata {
@@ -107,15 +99,14 @@ fn write_slot_makes_slot_valid() {
     manager.write(0, &(), &metadata).unwrap();
 
     // Slot 0 should now be valid
-    assert_eq!(
-        manager.slot_status(0),
-        SlotStatus::Valid,
+    assert!(
+        matches!(manager.slot(0), Slot::Valid(_)),
         "slot should be valid after write"
     );
 
     // Other slots should still be empty
-    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
-    assert_eq!(manager.slot_status(2), SlotStatus::Empty);
+    assert_eq!(manager.slot(1), Slot::Empty);
+    assert_eq!(manager.slot(2), Slot::Empty);
 }
 
 #[test]
@@ -157,9 +148,9 @@ fn write_multiple_slots() {
     manager.write(2, &(), &metadata2).unwrap();
 
     // All slots should be valid
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
-    assert_eq!(manager.slot_status(1), SlotStatus::Valid);
-    assert_eq!(manager.slot_status(2), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
+    assert!(matches!(manager.slot(1), Slot::Valid(_)));
+    assert!(matches!(manager.slot(2), Slot::Valid(_)));
 
     // Each slot should have correct metadata
     assert_eq!(manager.metadata(0).unwrap().name, *b"Save One________");
@@ -185,9 +176,9 @@ fn write_slot_persists_across_reinit() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Slot 1 should still be valid with correct metadata
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
-    assert_eq!(manager.slot_status(1), SlotStatus::Valid);
-    assert_eq!(manager.slot_status(2), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
+    assert!(matches!(manager.slot(1), Slot::Valid(_)));
+    assert_eq!(manager.slot(2), Slot::Empty);
 
     assert_eq!(manager.metadata(1).unwrap().name, *b"Persistent______");
 }
@@ -214,8 +205,8 @@ fn incompatible_metadata_detected_as_corrupted() {
 
     // Slot 0 should be corrupted because metadata can't deserialize
     assert_eq!(
-        manager.slot_status(0),
-        SlotStatus::Corrupted,
+        manager.slot(0),
+        Slot::Corrupted,
         "slot with incompatible metadata should be detected as corrupted"
     );
     assert!(
@@ -281,7 +272,7 @@ fn write_and_read_persists_across_reinit() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Data should persist
-    assert_eq!(manager.slot_status(1), SlotStatus::Valid);
+    assert!(matches!(manager.slot(1), Slot::Valid(_)));
     let loaded: TestSaveData = manager.read(1).unwrap();
     assert_eq!(loaded, save_data);
 }
@@ -363,13 +354,13 @@ fn erase_slot_makes_slot_empty() {
     };
 
     manager.write(0, &save_data, &metadata).unwrap();
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
 
     // Erase the slot
     manager.erase(0).unwrap();
 
     // Slot should now be empty
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
     assert!(manager.metadata(0).is_none());
 }
 
@@ -399,7 +390,7 @@ fn erase_slot_persists_across_reinit() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Slot should still be empty
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
 }
 
 #[test]
@@ -458,7 +449,7 @@ fn crash_during_first_write_leaves_slot_empty() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Slot should still be empty since the write didn't complete
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
 }
 
 #[test]
@@ -476,7 +467,7 @@ fn crash_during_overwrite_preserves_old_data() {
     manager.write(0, &data1, &metadata1).unwrap();
 
     // Verify it's there
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
 
     // Now get storage and configure to fail during the next write
     let mut storage = manager.into_storage();
@@ -486,7 +477,7 @@ fn crash_during_overwrite_preserves_old_data() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Verify old data is still there after reinit
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let loaded: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(loaded, data1);
 
@@ -503,7 +494,7 @@ fn crash_during_overwrite_preserves_old_data() {
     let mut manager: SaveSlotManager<_, TestMetadata> =
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     assert_eq!(manager.metadata(0).unwrap().name, *b"Original________");
     let loaded: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(loaded, data1);
@@ -543,7 +534,7 @@ fn crash_during_large_write_preserves_old_data() {
     let mut manager: SaveSlotManager<_, TestMetadata> =
         SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     assert_eq!(manager.metadata(0).unwrap().name, *b"LargeOriginal___");
     let loaded: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(loaded, data1);
@@ -605,7 +596,7 @@ fn corrupted_header_recovers_from_ghost() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Should have recovered with the first version's data
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     assert_eq!(manager.metadata(0).unwrap().name, *b"FirstVersion____");
     let loaded: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(loaded, data1);
@@ -659,9 +650,8 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Should recover from GHOST header with first version's data
-    assert_eq!(
-        manager.slot_status(0),
-        SlotStatus::Valid,
+    assert!(
+        matches!(manager.slot(0), Slot::Valid(_)),
         "slot should be valid after ghost recovery"
     );
     assert_eq!(
@@ -747,7 +737,7 @@ quickcheck! {
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
             SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
-        let status_ok = manager.slot_status(slot) == SlotStatus::Valid;
+        let status_ok = matches!(manager.slot(slot), Slot::Valid(_));
         let metadata_ok = manager.metadata(slot) == Some(&metadata);
         let data_ok = manager.read::<Vec<u8>>(slot).unwrap() == data.0;
 
@@ -816,7 +806,7 @@ quickcheck! {
 
         if last_meta.is_none() {
             // No successful writes, slot should still be empty
-            return manager.slot_status(0) == SlotStatus::Empty;
+            return matches!(manager.slot(0), Slot::Empty);
         }
 
         let read: Vec<u8> = manager.read(0).unwrap();
@@ -873,7 +863,7 @@ fn repeated_crash_does_not_corrupt_data() {
         let storage = manager.into_storage();
         manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
-        assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+        assert!(matches!(manager.slot(0), Slot::Valid(_)));
 
         let read_data: Vec<u8> = manager.read(0).expect("data should be readable");
         let read_meta = manager.metadata(0).unwrap();
@@ -916,13 +906,13 @@ quickcheck! {
 
         // Slot must be either Empty (write didn't complete) or Valid (write completed)
         // It must NEVER be Corrupted
-        match manager.slot_status(0) {
-            SlotStatus::Empty => true,
-            SlotStatus::Valid => {
+        match manager.slot(0) {
+            Slot::Empty => true,
+            Slot::Valid(_) => {
                 // If valid, data must be readable and correct
                 manager.read::<Vec<u8>>(0).ok() == Some(data.0.clone())
             }
-            SlotStatus::Corrupted => false, // This is the failure case
+            Slot::Corrupted => false, // This is the failure case
         }
     }
 
@@ -959,22 +949,29 @@ quickcheck! {
             SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
         // Slot must be Valid (either old or new data) - never Corrupted or Empty
-        match manager.slot_status(0) {
-            SlotStatus::Valid => {
-                // Data must be either old or new - never partial/mixed
-                let read_data: Vec<u8> = match manager.read(0) {
-                    Ok(d) => d,
-                    Err(_) => return false,
-                };
-                let read_meta = manager.metadata(0);
+        match manager.slot(0) {
+            Slot::Valid(read_meta) => {
+                let metadata_is_old = read_meta == &old_meta;
+                let metadata_is_new = read_meta == &new_meta;
 
-                let is_old = read_data == old_data.0 && read_meta == Some(&old_meta);
-                let is_new = read_data == new_data.0 && read_meta == Some(&new_meta);
-
-                is_old || is_new
+                if !(metadata_is_old || metadata_is_new) {
+                    return false;
+                }
             }
-            SlotStatus::Corrupted | SlotStatus::Empty => false,
+            Slot::Corrupted | Slot::Empty => return false,
         }
+
+        // Data must be either old or new - never partial/mixed
+        let read_data: Vec<u8> = match manager.read(0) {
+            Ok(d) => d,
+            Err(_) => return false,
+        };
+
+        let is_old = read_data == old_data.0;
+        let is_new = read_data == new_data.0;
+
+        is_old || is_new
+
     }
 
     /// Crash during write to one slot should not affect other slots.
@@ -1010,7 +1007,7 @@ quickcheck! {
             SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
         // Slot 0 must be completely unaffected
-        if manager.slot_status(0) != SlotStatus::Valid {
+        if !matches!(manager.slot(0), Slot::Valid(_)) {
             return false;
         }
         let read0: Vec<u8> = match manager.read(0) {
@@ -1022,17 +1019,19 @@ quickcheck! {
         }
 
         // Slot 1 must be valid (old or new data)
-        match manager.slot_status(1) {
-            SlotStatus::Valid => {
-                let read1: Vec<u8> = match manager.read(1) {
-                    Ok(d) => d,
-                    Err(_) => return false,
-                };
-                let is_old = read1 == data1.0 && manager.metadata(1) == Some(&meta1);
-                let is_new = read1 == new_data1.0 && manager.metadata(1) == Some(&new_meta1);
-                is_old || is_new
-            }
-            _ => false,
+        if let Slot::Valid(metadata) = manager.slot(1) &&
+            (metadata == &meta1 || metadata == &new_meta1) {
+
+            let read1: Vec<u8> = match manager.read(1) {
+                Ok(d) => d,
+                Err(_) => return false,
+            };
+
+            let is_old = read1 == data1.0;
+            let is_new = read1 == new_data1.0;
+            is_old || is_new
+        } else {
+            return false;
         }
     }
 
@@ -1088,7 +1087,7 @@ quickcheck! {
             manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
             // Slot must be Valid - never Corrupted or Empty after crash
-            if manager.slot_status(0) != SlotStatus::Valid {
+            if !matches!(manager.slot(0), Slot::Valid(_)) {
                 return false;
             }
 
@@ -1166,12 +1165,12 @@ fn stress_test_random_saves_and_reloads() {
             for (slot, expected_data) in expected.iter().enumerate() {
                 match expected_data {
                     None => {
-                        if manager.slot_status(slot) != SlotStatus::Empty {
+                        if !matches!(manager.slot(slot), Slot::Empty) {
                             return TestResult::failed();
                         }
                     }
                     Some((data, meta)) => {
-                        if manager.slot_status(slot) != SlotStatus::Valid {
+                        if !matches!(manager.slot(slot), Slot::Valid(_)) {
                             return TestResult::failed();
                         }
                         let read_data: Vec<u8> = match manager.read(slot) {
@@ -1262,8 +1261,8 @@ fn stress_test_with_random_failures() {
 
             // Verify each slot has valid data (either current or pending, never corrupted)
             for slot in 0..NUM_SLOTS {
-                match manager.slot_status(slot) {
-                    SlotStatus::Empty => {
+                match manager.slot(slot) {
+                    Slot::Empty => {
                         // Valid if both current and pending are None
                         if current[slot].is_some() || pending[slot].is_some() {
                             // Could still be okay if pending was a failed first write
@@ -1275,13 +1274,13 @@ fn stress_test_with_random_failures() {
                             pending[slot] = None;
                         }
                     }
-                    SlotStatus::Valid => {
+                    Slot::Valid(_) => {
                         let read_data: Vec<u8> = match manager.read(slot) {
                             Ok(d) => d,
                             Err(_) => return TestResult::failed(),
                         };
-                        let read_meta = manager.metadata(slot).unwrap();
 
+                        let read_meta = manager.metadata(slot).unwrap();
                         // Check if it matches current
                         let matches_current = current[slot]
                             .as_ref()
@@ -1301,7 +1300,7 @@ fn stress_test_with_random_failures() {
                         // Update current to reflect actual state
                         current[slot] = Some((read_data, read_meta.clone()));
                     }
-                    SlotStatus::Corrupted => {
+                    Slot::Corrupted => {
                         // Never acceptable
                         return TestResult::failed();
                     }
@@ -1340,7 +1339,7 @@ fn flash_storage_basic_roundtrip() {
 
     manager.write(0, &data, &metadata).unwrap();
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_data: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(read_data, data);
 }
@@ -1365,7 +1364,7 @@ fn flash_storage_persists_across_reinit() {
     let mut manager: SaveSlotManager<_, TestMetadata> =
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_data: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(read_data, data);
 }
@@ -1426,7 +1425,7 @@ fn flash_storage_crash_recovery() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
 
     // Should have original data (crash during second write)
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_data: Vec<u8> = manager.read(0).unwrap();
     // Either old or new data is acceptable
     assert!(read_data == data1 || read_data == data2);
@@ -1501,7 +1500,7 @@ fn out_of_space_does_not_corrupt_existing_data() {
     assert!(matches!(result, Err(crate::SaveError::OutOfSpace)));
 
     // Original data should still be valid
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_data: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(read_data, data1);
 }
@@ -1550,7 +1549,7 @@ fn multiple_slots_approaching_capacity() {
 
     // Verify all slots are valid
     for slot in 0..3 {
-        assert_eq!(manager.slot_status(slot), SlotStatus::Valid);
+        assert!(matches!(manager.slot(slot), Slot::Valid(_)));
         let read_data: Vec<u8> = manager.read(slot).unwrap();
         assert_eq!(read_data, vec![slot as u8; 100]);
     }
@@ -1581,9 +1580,9 @@ fn corrupted_global_header_causes_reformat() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // All slots should be empty after reformat
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
-    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
-    assert_eq!(manager.slot_status(2), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
+    assert_eq!(manager.slot(1), Slot::Empty);
+    assert_eq!(manager.slot(2), Slot::Empty);
 }
 
 #[test]
@@ -1608,7 +1607,7 @@ fn mismatched_magic_causes_reformat() {
         SaveSlotManager::new(storage, 3, magic2, MIN_SECTOR_SIZE).unwrap();
 
     // Should have reformatted due to magic mismatch
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
 }
 
 #[test]
@@ -1631,7 +1630,7 @@ fn mismatched_slot_count_causes_reformat() {
         SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Should have reformatted due to slot count mismatch
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
 }
 
 // --- Interleaved multi-slot operation tests ---
@@ -1699,16 +1698,16 @@ fn interleaved_writes_with_erase() {
 
     // Erase slot 1
     manager.erase(1).unwrap();
-    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
+    assert_eq!(manager.slot(1), Slot::Empty);
 
     // Write to slot 0 again (should not affect empty slot 1)
     let new_data0: Vec<u8> = vec![0xFF; 100];
     manager.write(0, &new_data0, &meta).unwrap();
 
     // Verify states
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
-    assert_eq!(manager.slot_status(1), SlotStatus::Empty);
-    assert_eq!(manager.slot_status(2), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
+    assert_eq!(manager.slot(1), Slot::Empty);
+    assert!(matches!(manager.slot(2), Slot::Valid(_)));
 
     let read0: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(read0, new_data0);
@@ -1852,7 +1851,7 @@ fn metadata_near_max_size() {
 
     manager.write(0, &data, &meta).unwrap();
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_meta = manager.metadata(0).unwrap();
     assert_eq!(read_meta.data, vec![0xAB; 64]);
 

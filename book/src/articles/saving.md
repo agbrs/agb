@@ -175,17 +175,17 @@ let loaded: SaveData = save_manager
 You can check the status of a slot before reading:
 
 ```rust
-use agb::save::SlotStatus;
+use agb::save::Slot;
 
-match save_manager.slot_status(0) {
-    SlotStatus::Valid => {
+match save_manager.slot(0) {
+    Slot::Valid(metadata) => {
         let data: SaveData = save_manager.read(0).expect("Failed to load");
         // Use the loaded data...
     }
-    SlotStatus::Empty => {
+    Slot::Empty => {
         // No save data, start a new game
     }
-    SlotStatus::Corrupted => {
+    Slot::Corrupted => {
         // Save data is corrupted, cannot be recovered
         // This can happen if save media is damaged or
         // if a crash occurred and recovery failed

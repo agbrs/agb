@@ -1,4 +1,4 @@
-use agb::save::{Slot, SlotStatus};
+use agb::save::Slot;
 use serde::{Deserialize, Serialize};
 
 /// Test metadata stored with each save slot
@@ -65,16 +65,12 @@ fn test_write_and_read(gba: &mut agb::Gba) {
         .expect("Failed to write save data");
 
     // Verify slot status
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager.slot(0), Slot::Valid(&metadata));
 
     // Read back and verify
     let loaded: TestSaveData = manager.read(0).expect("Failed to read save data");
     assert_eq!(loaded, data);
     assert!(loaded.verify());
-
-    // Verify metadata
-    let loaded_meta = manager.metadata(0).expect("Metadata should exist");
-    assert_eq!(loaded_meta, &metadata);
 }
 
 #[test_case]
@@ -93,11 +89,12 @@ fn test_multiple_slots(gba: &mut agb::Gba) {
     }
 
     // Verify all slots
-    for slot in 0..num_slots {
-        assert_eq!(manager.slot_status(slot), SlotStatus::Valid);
+    for i in 0..manager.num_slots() {
+        let slot = manager.slot(i);
+        assert_eq!(slot, Slot::Valid(&TestMetadata::new(b"Slot", i as u32)));
 
-        let expected = TestSaveData::new(slot as u32 * 1000);
-        let loaded: TestSaveData = manager.read(slot).expect("Failed to read");
+        let expected = TestSaveData::new(i as u32 * 1000);
+        let loaded: TestSaveData = manager.read(i).expect("Failed to read");
         assert_eq!(loaded, expected);
     }
 }
@@ -111,12 +108,12 @@ fn test_erase_slot(gba: &mut agb::Gba) {
     let metadata = TestMetadata::new(b"Test", 1);
     manager.write(0, &data, &metadata).expect("Failed to write");
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager.slot(0), Slot::Valid(&metadata));
 
     // Erase slot 0
     manager.erase(0).expect("Failed to erase");
 
-    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert_eq!(manager.slot(0), Slot::Empty);
     assert!(manager.metadata(0).is_none());
 }
 
@@ -198,7 +195,7 @@ fn test_persistence(gba: &mut agb::Gba) {
     let mut manager2 = crate::save_reopen(gba);
 
     // Verify data persisted
-    assert_eq!(manager2.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager2.slot(0), Slot::Valid(&metadata));
 
     let loaded: TestSaveData = manager2.read(0).expect("Failed to read after reopen");
     assert_eq!(loaded, data);

@@ -7,7 +7,7 @@
 // Note: EEPROM 512B has very limited space (512 bytes = 4 sectors of 128 bytes)
 // So we only run a single comprehensive test here that covers write, read, and persistence.
 
-use agb::save::{SaveSlotManager, SlotStatus};
+use agb::save::{SaveSlotManager, Slot};
 use serde::{Deserialize, Serialize};
 
 const NUM_SLOTS: usize = 1;
@@ -45,15 +45,11 @@ fn test_write_read_and_persistence(gba: &mut agb::Gba) {
         .expect("Failed to write save data");
 
     // Verify slot status
-    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager.slot(0), Slot::Valid(&metadata));
 
     // Read back and verify
     let loaded: SmallSaveData = manager.read(0).expect("Failed to read save data");
     assert_eq!(loaded, data);
-
-    // Verify metadata
-    let loaded_meta = manager.metadata(0).expect("Metadata should exist");
-    assert_eq!(loaded_meta, &metadata);
 
     // Drop the manager and reopen to simulate game restart
     drop(manager);
@@ -65,15 +61,10 @@ fn test_write_read_and_persistence(gba: &mut agb::Gba) {
         .expect("Failed to reopen EEPROM 512B");
 
     // Verify data persisted after reopen
-    assert_eq!(manager2.slot_status(0), SlotStatus::Valid);
+    assert_eq!(manager2.slot(0), Slot::Valid(&metadata));
 
     let loaded2: SmallSaveData = manager2.read(0).expect("Failed to read after reopen");
     assert_eq!(loaded2, data);
-
-    let loaded_meta2 = manager2
-        .metadata(0)
-        .expect("Metadata should exist after reopen");
-    assert_eq!(loaded_meta2, &metadata);
 }
 
 #[agb::entry]
