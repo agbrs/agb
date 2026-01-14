@@ -21,7 +21,7 @@ fn save_setup(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
     if INITIALIZED.swap(true, Ordering::SeqCst) {
         // Already initialized, use reopen
         gba.save
-            .reopen(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, Some(timers.timer2))
+            .reopen(Some(timers.timer2))
             .expect("Failed to reopen Flash 128K")
     } else {
         // First call, use init
@@ -34,7 +34,7 @@ fn save_setup(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
 fn save_reopen(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
     let timers = gba.timers.timers();
     gba.save
-        .reopen(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, Some(timers.timer2))
+        .reopen(Some(timers.timer2))
         .expect("Failed to reopen Flash 128K")
 }
 

@@ -61,7 +61,7 @@ fn test_write_read_and_persistence(gba: &mut agb::Gba) {
     let timers = gba.timers.timers();
     let mut manager2: SaveSlotManager<SmallMetadata> = gba
         .save
-        .reopen(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, Some(timers.timer2))
+        .reopen(Some(timers.timer2))
         .expect("Failed to reopen EEPROM 512B");
 
     // Verify data persisted after reopen

@@ -19,9 +19,7 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 fn save_setup(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
     if INITIALIZED.swap(true, Ordering::SeqCst) {
         // Already initialized, use reopen
-        gba.save
-            .reopen(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, None)
-            .expect("Failed to reopen SRAM")
+        gba.save.reopen(None).expect("Failed to reopen SRAM")
     } else {
         // First call, use init
         gba.save
@@ -31,9 +29,7 @@ fn save_setup(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
 }
 
 fn save_reopen(gba: &mut agb::Gba) -> SaveSlotManager<TestMetadata> {
-    gba.save
-        .reopen(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, None)
-        .expect("Failed to reopen SRAM")
+    gba.save.reopen(None).expect("Failed to reopen SRAM")
 }
 
 #[agb::entry]

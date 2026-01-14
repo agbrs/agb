@@ -161,13 +161,34 @@ trait RawSaveAccess: Sync {
 
 static CURRENT_SAVE_ACCESS: Lock<Option<&'static dyn RawSaveAccess>> = Lock::new(None);
 
-fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
+/// Configuration stored when save is initialized, used for reopen
+struct SaveConfig {
+    num_slots: usize,
+    magic: [u8; 32],
+    min_sector_size: usize,
+}
+
+static SAVE_CONFIG: Lock<Option<SaveConfig>> = Lock::new(None);
+
+fn set_save_implementation(
+    access_impl: &'static dyn RawSaveAccess,
+    num_slots: usize,
+    magic: [u8; 32],
+    min_sector_size: usize,
+) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
     assert!(
         access.is_none(),
         "Cannot initialize the save media engine more than once."
     );
     *access = Some(access_impl);
+
+    let mut config = SAVE_CONFIG.lock();
+    *config = Some(SaveConfig {
+        num_slots,
+        magic,
+        min_sector_size,
+    });
 }
 
 fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
@@ -274,7 +295,7 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_sram_marker();
-        set_save_implementation(&sram::BatteryBackedAccess);
+        set_save_implementation(&sram::BatteryBackedAccess, num_slots, magic, min_sector_size);
         let save_data = SaveData::new(None).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -311,7 +332,7 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_flash_512k_marker();
-        set_save_implementation(&flash::FlashAccess);
+        set_save_implementation(&flash::FlashAccess, num_slots, magic, min_sector_size);
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -348,7 +369,7 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_flash_1m_marker();
-        set_save_implementation(&flash::FlashAccess);
+        set_save_implementation(&flash::FlashAccess, num_slots, magic, min_sector_size);
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -385,7 +406,7 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_eeprom_marker();
-        set_save_implementation(&eeprom::Eeprom512B);
+        set_save_implementation(&eeprom::Eeprom512B, num_slots, magic, min_sector_size);
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -422,7 +443,7 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_eeprom_marker();
-        set_save_implementation(&eeprom::Eeprom8K);
+        set_save_implementation(&eeprom::Eeprom8K, num_slots, magic, min_sector_size);
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -433,14 +454,12 @@ impl SaveManager {
     ///
     /// This is useful for verifying save persistence or recovering from errors.
     /// The save media must have been previously initialized with one of the
-    /// `init_*` methods.
+    /// `init_*` methods. The configuration (num_slots, magic, min_sector_size)
+    /// is automatically reused from the original initialization.
     ///
     /// # Arguments
     ///
-    /// * `num_slots` - Number of save slots (must match the original init)
-    /// * `magic` - The 32-byte game identifier (must match the original init)
-    /// * `min_sector_size` - Minimum sector size (must match the original init)
-    /// * `timer` - Optional timer for timeout handling
+    /// * `timer` - Optional timer for timeout handling (for EEPROM/Flash operations)
     ///
     /// # Errors
     ///
@@ -448,17 +467,22 @@ impl SaveManager {
     /// has not been initialized.
     pub fn reopen<Metadata>(
         &mut self,
-        num_slots: usize,
-        magic: [u8; 32],
-        min_sector_size: usize,
         timer: Option<Timer>,
     ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
+        let config = SAVE_CONFIG.lock();
+        let config = config.as_ref().ok_or(SaveError::Storage(Error::NoMedia))?;
+
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
-            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
+            inner: agb_save::SaveSlotManager::new(
+                save_data,
+                config.num_slots,
+                config.magic,
+                config.min_sector_size,
+            )?,
         })
     }
 }
