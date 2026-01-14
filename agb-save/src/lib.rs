@@ -452,9 +452,16 @@ where
         }
 
         // Track ghost headers for potential recovery (one per slot)
-        // Stores: (generation, first_data_block, length, crc32, metadata_bytes, physical_sector)
-        let mut ghost_recovery: Vec<Option<(u32, u16, u32, u32, Vec<u8>, u16)>> =
-            vec![None; self.num_slots];
+        struct GhostRecoveryInfo {
+            generation: u32,
+            first_data_block: u16,
+            data_length: u32,
+            data_crc32: u32,
+            metadata_bytes: Vec<u8>,
+            physical_sector: u16,
+        }
+        let mut ghost_recovery: Vec<Option<GhostRecoveryInfo>> =
+            (0..self.num_slots).map(|_| None).collect();
 
         // Track which sector is the ghost (Free block, GHOST state, or invalid)
         // Default to the last physical slot sector
@@ -477,14 +484,14 @@ where
                     let logical_id = slot_block.logical_slot_id() as usize;
                     if logical_id < self.num_slots {
                         // Store ghost info for potential recovery
-                        ghost_recovery[logical_id] = Some((
-                            slot_block.generation(),
-                            slot_block.first_data_block(),
-                            slot_block.length(),
-                            slot_block.crc32(),
-                            slot_block.metadata().to_vec(),
+                        ghost_recovery[logical_id] = Some(GhostRecoveryInfo {
+                            generation: slot_block.generation(),
+                            first_data_block: slot_block.first_data_block(),
+                            data_length: slot_block.length(),
+                            data_crc32: slot_block.crc32(),
+                            metadata_bytes: slot_block.metadata().to_vec(),
                             physical_sector,
-                        ));
+                        });
                     }
                     continue;
                 }
@@ -532,23 +539,23 @@ where
         // Only recover if ghost has a generation >= the corrupted slot's generation
         // (prevents recovering from an older ghost when new data is corrupted)
         for (slot, ghost_info) in ghost_recovery.into_iter().enumerate() {
-            if self.slot_info[slot].status == SlotStatus::Corrupted {
-                if let Some((generation, first_data_block, length, crc32, metadata_bytes, ghost_physical_sector)) = ghost_info {
-                    // Only recover if ghost is at least as recent as the corrupted data
-                    if generation >= self.slot_info[slot].generation {
-                        // Try to deserialize the ghost's metadata
-                        if let Ok(metadata) = postcard::from_bytes(&metadata_bytes) {
-                            // Recover from ghost - treat it as valid
-                            self.slot_info[slot] = SlotInfo {
-                                status: SlotStatus::Valid,
-                                metadata: Some(metadata),
-                                generation,
-                                first_data_block,
-                                data_length: length,
-                                data_crc32: crc32,
-                                header_sector: ghost_physical_sector,
-                            };
-                        }
+            if self.slot_info[slot].status == SlotStatus::Corrupted
+                && let Some(ghost) = ghost_info
+            {
+                // Only recover if ghost is at least as recent as the corrupted data
+                if ghost.generation >= self.slot_info[slot].generation {
+                    // Try to deserialize the ghost's metadata
+                    if let Ok(metadata) = postcard::from_bytes(&ghost.metadata_bytes) {
+                        // Recover from ghost - treat it as valid
+                        self.slot_info[slot] = SlotInfo {
+                            status: SlotStatus::Valid,
+                            metadata: Some(metadata),
+                            generation: ghost.generation,
+                            first_data_block: ghost.first_data_block,
+                            data_length: ghost.data_length,
+                            data_crc32: ghost.data_crc32,
+                            header_sector: ghost.physical_sector,
+                        };
                     }
                 }
             }

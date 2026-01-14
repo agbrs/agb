@@ -71,13 +71,6 @@ pub struct GlobalBlock<'a> {
     pub game_identifier: &'a [u8],
 }
 
-impl GlobalBlock<'_> {
-    /// Size of the global block header (standard header + magic + slot count)
-    /// Game identifier starts at this offset.
-    pub const fn header_size() -> usize {
-        BLOCK_HEADER_SIZE + 4 + 2 // 8 + magic(4) + slot_count(2) = 14
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SlotHeaderBlock<'a> {
