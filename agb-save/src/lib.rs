@@ -56,8 +56,8 @@ use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
 use block::{
-    Block, GlobalBlock, GlobalHeader, SlotHeader, SlotHeaderBlock, SlotState, deserialize_block,
-    serialize_block,
+    Block, DataBlock, GlobalBlock, GlobalHeader, SlotHeader, SlotHeaderBlock, SlotState,
+    deserialize_block, serialize_block,
 };
 
 #[cfg(test)]
@@ -157,6 +157,8 @@ pub struct SaveSlotManager<Storage: StorageMedium, Metadata> {
     magic: [u8; 32],
     slot_info: Vec<SlotInfo<Metadata>>,
     free_sector_list: Vec<u16>,
+    /// The physical sector currently acting as the ghost/staging area
+    ghost_sector: u16,
 }
 
 /// Internal info about a slot's current state
@@ -167,6 +169,8 @@ struct SlotInfo<Metadata> {
     first_data_block: u16,
     data_length: u32,
     data_crc32: u32,
+    /// Physical sector where this slot's header is stored
+    header_sector: u16,
 }
 
 impl<Storage, Metadata> SaveSlotManager<Storage, Metadata>
@@ -206,6 +210,7 @@ where
             magic,
             slot_info: Vec::new(),
             free_sector_list: Vec::new(),
+            ghost_sector: 0, // Will be set by initialise
         };
         manager.initialise()?;
         Ok(manager)
@@ -372,6 +377,7 @@ where
             .map_err(SaveError::Storage)?;
 
         // Write empty slot headers (sectors 1..num_slots+1)
+        // Each logical slot gets its own physical sector initially
         let metadata_size = sector_size - SlotHeaderBlock::header_size();
         let empty_metadata = vec![0u8; metadata_size];
 
@@ -389,9 +395,31 @@ where
                 .map_err(SaveError::Storage)?;
         }
 
+        // Write a GHOST state slot header to the ghost sector (sector num_slots + 1)
+        // This is the extra physical slot sector used as a staging area
+        // Use logical_slot_id = 0xFF to indicate it's not associated with any slot yet
+        buffer.fill(0);
+        serialize_block(
+            Block::SlotHeader(SlotHeaderBlock {
+                header: SlotHeader {
+                    state: SlotState::Ghost,
+                    logical_slot_id: 0xFF,
+                    first_data_block: 0xFFFF,
+                    generation: 0,
+                    crc32: 0,
+                    length: 0,
+                },
+                metadata: &empty_metadata,
+            }),
+            &mut buffer,
+        );
+        self.storage
+            .write_sector(self.num_slots + 1, &buffer)
+            .map_err(SaveError::Storage)?;
+
         // Initialise slot_info with empty slots
         self.slot_info.clear();
-        for _ in 0..self.num_slots {
+        for slot in 0..self.num_slots {
             self.slot_info.push(SlotInfo {
                 status: SlotStatus::Empty,
                 metadata: None,
@@ -399,10 +427,14 @@ where
                 first_data_block: 0xFFFF,
                 data_length: 0,
                 data_crc32: 0,
+                header_sector: (slot + 1) as u16,
             });
         }
 
-        // All sectors after slot headers are free
+        // The ghost sector starts at num_slots + 1 (the extra physical slot sector)
+        self.ghost_sector = (self.num_slots + 1) as u16;
+
+        // All sectors after the slot header sectors are free (data area)
         // Sector layout: [0: global] [1..num_slots+1: slot headers] [num_slots+1: ghost] [num_slots+2..: data]
         let first_data_sector = self.num_slots + 2;
         let sector_count = self.storage.sector_count();
@@ -420,7 +452,7 @@ where
 
         // Pre-initialize all slots as corrupted (will be filled in as we find valid headers)
         self.slot_info.clear();
-        for _ in 0..self.num_slots {
+        for slot in 0..self.num_slots {
             self.slot_info.push(SlotInfo {
                 status: SlotStatus::Corrupted,
                 metadata: None,
@@ -428,18 +460,32 @@ where
                 first_data_block: 0xFFFF,
                 data_length: 0,
                 data_crc32: 0,
+                header_sector: (slot + 1) as u16,
             });
         }
 
+        // Track which sector is the ghost (Free block, GHOST state, or invalid)
+        // Default to the last physical slot sector
+        self.ghost_sector = (self.num_slots + 1) as u16;
+
         // Scan slot header sectors and populate slot_info based on logical_slot_id
-        // We scan num_slots + 1 sectors to include the ghost slot sector
+        // We scan num_slots + 1 sectors (sectors 1 through num_slots+1 inclusive)
         let num_slot_header_sectors = self.num_slots + 1;
         for sector in 0..num_slot_header_sectors {
+            let physical_sector = (sector + 1) as u16;
             self.storage
-                .read_sector(sector + 1, &mut buffer)
+                .read_sector(physical_sector as usize, &mut buffer)
                 .map_err(SaveError::Storage)?;
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
+                // Handle GHOST state - this sector is the current ghost
+                if slot_block.header.state == SlotState::Ghost {
+                    self.ghost_sector = physical_sector;
+                    // Ghost is backup data - could be used for recovery
+                    // For now, skip processing it as active slot data
+                    continue;
+                }
+
                 let logical_id = slot_block.header.logical_slot_id as usize;
 
                 // Skip if logical_id is out of bounds
@@ -462,7 +508,7 @@ where
                                 Err(_) => (SlotStatus::Corrupted, None),
                             }
                         }
-                        SlotState::Ghost => (SlotStatus::Empty, None), // Treat ghost as empty for now
+                        SlotState::Ghost => unreachable!(), // Handled above
                     };
 
                     self.slot_info[logical_id] = SlotInfo {
@@ -472,6 +518,7 @@ where
                         first_data_block: slot_block.header.first_data_block,
                         data_length: slot_block.header.length,
                         data_crc32: slot_block.header.crc32,
+                        header_sector: physical_sector,
                     };
                 }
             }
@@ -555,6 +602,71 @@ where
         Some(free_list)
     }
 
+    /// Write data across multiple data blocks, allocating sectors from the free list.
+    ///
+    /// Returns the index of the first data block, or 0xFFFF if data is empty.
+    /// Returns an error if there aren't enough free sectors.
+    fn write_data_blocks(&mut self, data: &[u8]) -> Result<u16, SaveError<Storage::Error>> {
+        if data.is_empty() {
+            return Ok(0xFFFF);
+        }
+
+        let sector_size = self.storage.sector_size();
+        let payload_size = sector_size - DataBlock::header_size();
+
+        // Calculate how many sectors we need
+        let sectors_needed = data.len().div_ceil(payload_size);
+
+        // Check if we have enough free sectors
+        if self.free_sector_list.len() < sectors_needed {
+            return Err(SaveError::OutOfSpace);
+        }
+
+        // Allocate sectors from the free list
+        let allocated_sectors: Vec<u16> = self
+            .free_sector_list
+            .drain(self.free_sector_list.len() - sectors_needed..)
+            .collect();
+
+        // Write data blocks
+        let mut buffer = vec![0u8; sector_size];
+        let mut padded_data = vec![0u8; payload_size];
+        let mut data_offset = 0;
+
+        for (i, &sector) in allocated_sectors.iter().enumerate() {
+            let is_last = i == allocated_sectors.len() - 1;
+            let next_block = if is_last {
+                0xFFFF
+            } else {
+                allocated_sectors[i + 1]
+            };
+
+            // Calculate how much data goes in this block
+            let chunk_size = (data.len() - data_offset).min(payload_size);
+            let chunk = &data[data_offset..data_offset + chunk_size];
+
+            // Copy data and zero-pad the rest
+            padded_data[..chunk_size].copy_from_slice(chunk);
+            padded_data[chunk_size..].fill(0);
+
+            // Serialize the data block
+            buffer.fill(0);
+            serialize_block(
+                Block::Data(DataBlock::new(next_block, &padded_data)),
+                &mut buffer,
+            );
+
+            // Write to storage
+            self.storage
+                .write_sector(sector as usize, &buffer)
+                .map_err(SaveError::Storage)?;
+
+            data_offset += chunk_size;
+        }
+
+        Ok(allocated_sectors[0])
+    }
+
     fn read_slot_data<T>(&mut self, _slot: usize) -> Result<T, SaveError<Storage::Error>>
     where
         T: serde::de::DeserializeOwned,
@@ -593,8 +705,11 @@ where
 
         // Increment generation
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
+        let old_header_sector = self.slot_info[slot].header_sector;
 
-        // Create the slot header
+        let mut buffer = vec![0u8; sector_size];
+
+        // Create the new slot header
         let slot_header = SlotHeader {
             state: SlotState::Valid,
             logical_slot_id: slot as u8,
@@ -604,8 +719,7 @@ where
             length: data_length,
         };
 
-        // Serialize and write the block
-        let mut buffer = vec![0u8; sector_size];
+        // Write new header to the current ghost sector
         serialize_block(
             Block::SlotHeader(SlotHeaderBlock {
                 header: slot_header,
@@ -615,8 +729,37 @@ where
         );
 
         self.storage
-            .write_sector(slot + 1, &buffer)
+            .write_sector(self.ghost_sector as usize, &buffer)
             .map_err(SaveError::Storage)?;
+
+        // Mark old header as ghost
+        self.storage
+            .read_sector(old_header_sector as usize, &mut buffer)
+            .map_err(SaveError::Storage)?;
+
+        if let Ok(Block::SlotHeader(old_block)) = deserialize_block(&buffer) {
+            // Extract data we need before reusing buffer
+            let ghost_header = SlotHeader {
+                state: SlotState::Ghost,
+                ..old_block.header
+            };
+            let old_metadata = old_block.metadata.to_vec();
+
+            serialize_block(
+                Block::SlotHeader(SlotHeaderBlock {
+                    header: ghost_header,
+                    metadata: &old_metadata,
+                }),
+                &mut buffer,
+            );
+            self.storage
+                .write_sector(old_header_sector as usize, &buffer)
+                .map_err(SaveError::Storage)?;
+        }
+
+        // The old header sector is now the ghost, the ghost sector now holds our new header
+        let new_header_sector = self.ghost_sector;
+        self.ghost_sector = old_header_sector;
 
         // Update in-memory state
         self.slot_info[slot] = SlotInfo {
@@ -626,6 +769,7 @@ where
             first_data_block,
             data_length,
             data_crc32,
+            header_sector: new_header_sector,
         };
 
         Ok(())

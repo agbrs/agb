@@ -121,15 +121,18 @@ To read from a given save slot:
 
 Saving data into slot `S`.
 
+The physical slot that we write to will be the current physical slot that the current ghost slot occupies.
+
 1. **Serialize save bytes into memory**: We need to know how long it is going to be.
 2. **Allocate blocks**: Using the free list, allocate enough blocks to store the data required.
-3. **Write the data chain**: Write the data chain from the allocated blocks.
-4. **Compute the checksum**: Calculate the crc32 of the data.
+3. **Compute the checksum**: Calculate the crc32 of the data.
+4. **Write the data chain**: Write the data chain from the allocated blocks.
 5. **Serialize metadata bytes into memory**: Assume we've dropped the save bytes at this point.
-6. **Write the new slot header header**:
+6. **Write the new slot header over the current ghost slot**:
    - state = VALID
    - logical ID = `S`.
    - generation = (current slot `S` generation) + 1 (or 1 if slot `S` was empty)
-7. **Mark old slot as ghost**: Update the old slot `S`'s header block with:
+   - metadata = serialised metadata
+7. **Mark old slot as ghost**: Update the old slot `S`'s physical header block with:
    - state = ghost
    - everything else the same

@@ -112,11 +112,22 @@ pub struct DataBlock<'a> {
     pub data: &'a [u8],
 }
 
-impl DataBlock<'_> {
+impl<'a> DataBlock<'a> {
     /// Size of the data block header (standard header only, next_block is in standard header)
     /// Data starts at this offset.
     pub const fn header_size() -> usize {
         BLOCK_HEADER_SIZE // 8
+    }
+
+    /// Create a new data block.
+    ///
+    /// - `next_block`: Index of the next block in the chain, or `0xFFFF` if this is the last block.
+    /// - `data`: The payload data for this block.
+    pub fn new(next_block: u16, data: &'a [u8]) -> Self {
+        Self {
+            header: DataBlockHeader { next_block },
+            data,
+        }
     }
 }
 
