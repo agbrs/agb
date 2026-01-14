@@ -17,8 +17,8 @@ pub(crate) enum BlockType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct GlobalHeader {
-    pub(crate) slot_count: u16,
+struct GlobalHeader {
+    slot_count: u16,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -67,8 +67,21 @@ pub const BLOCK_HEADER_SIZE: usize = 8;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GlobalBlock<'a> {
-    pub(crate) header: GlobalHeader,
+    header: GlobalHeader,
     pub game_identifier: &'a [u8],
+}
+
+impl<'a> GlobalBlock<'a> {
+    pub fn new(slot_count: u16, game_identifier: &'a [u8]) -> Self {
+        Self {
+            header: GlobalHeader { slot_count },
+            game_identifier,
+        }
+    }
+
+    pub fn slot_count(&self) -> u16 {
+        self.header.slot_count
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

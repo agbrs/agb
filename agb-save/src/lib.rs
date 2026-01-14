@@ -55,8 +55,7 @@ use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
 use block::{
-    Block, DataBlock, GlobalBlock, GlobalHeader, SlotHeaderBlock, SlotState, deserialize_block,
-    serialize_block,
+    Block, DataBlock, GlobalBlock, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
 };
 
 #[cfg(test)]
@@ -383,7 +382,7 @@ where
             Ok(Block::Global(global)) => {
                 // Check if magic matches and slot count is correct
                 global.game_identifier[..32] != self.magic
-                    || global.header.slot_count as usize != self.num_slots
+                    || global.slot_count() as usize != self.num_slots
             }
             _ => true, // CRC mismatch, wrong block type, or other error
         };
@@ -403,12 +402,7 @@ where
 
         // Write global header (sector 0)
         serialize_block(
-            Block::Global(GlobalBlock {
-                header: GlobalHeader {
-                    slot_count: self.num_slots as u16,
-                },
-                game_identifier: &self.magic,
-            }),
+            Block::Global(GlobalBlock::new(self.num_slots as u16, &self.magic)),
             &mut buffer,
         );
         self.storage
