@@ -211,7 +211,8 @@ impl EepromProperties {
         while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
             let end_len = cmp::min(SECTOR_LEN - start, buf.len());
-            if buf[..end_len] != self.read_sector(offset >> SECTOR_SHIFT) {
+            let sector = self.read_sector(offset >> SECTOR_SHIFT);
+            if buf[..end_len] != sector[start..start + end_len] {
                 return Ok(false);
             }
             buf = &buf[end_len..];

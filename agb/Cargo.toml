@@ -15,15 +15,16 @@ default = ["backtrace", "testing"]
 backtrace = ["testing", "dep:qrcodegen-no-heap"]
 testing = []
 multiboot = []
-serde = ["agb_fixnum/serde", "agb_hashmap/serde"]
 embassy = []
 
 [dependencies]
 agb_image_converter = { version = "0.22.6", path = "../agb-image-converter" }
 agb_sound_converter = { version = "0.22.6", path = "../agb-sound-converter" }
 agb_macros = { version = "0.22.6", path = "../agb-macros" }
-agb_fixnum = { version = "0.22.6", path = "../agb-fixnum" }
-agb_hashmap = { version = "0.22.6", path = "../agb-hashmap", features = ["allocator_api"] }
+agb_fixnum = { version = "0.22.6", path = "../agb-fixnum", features = ["serde"] }
+agb_hashmap = { version = "0.22.6", path = "../agb-hashmap", features = ["allocator_api", "serde"] }
+agb_save = { version = "0.22.6", path = "../agb-save" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 bilge = "0.3"
 qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }

@@ -1,112 +1,210 @@
-use agb::save::{Error, MediaInfo};
-use core::cmp;
-use once_cell::sync::OnceCell;
+use agb::save::SlotStatus;
+use serde::{Deserialize, Serialize};
 
-fn init_sram(gba: &mut agb::Gba) -> &'static MediaInfo {
-    static ONCE: OnceCell<MediaInfo> = OnceCell::new();
-    ONCE.get_or_init(|| {
-        crate::save_setup(gba);
-        gba.save.access().unwrap().media_info().clone()
-    })
+/// Test metadata stored with each save slot
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct TestMetadata {
+    pub name: [u8; 8],
+    pub level: u32,
 }
 
-#[derive(Clone)]
-struct Rng(u32);
-impl Rng {
-    fn iter(&mut self) {
-        self.0 = self.0.wrapping_mul(2891336453).wrapping_add(100001);
-    }
-    fn next_u8(&mut self) -> u8 {
-        self.iter();
-        (self.0 >> 22) as u8 ^ self.0 as u8
-    }
-    fn next_under(&mut self, under: u32) -> u32 {
-        self.iter();
-        let scale = 31 - under.leading_zeros();
-        ((self.0 >> scale) ^ self.0) % under
-    }
+/// Test save data
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct TestSaveData {
+    pub score: u32,
+    pub items: [u16; 10],
+    pub checksum: u32,
 }
 
-const MAX_BLOCK_SIZE: usize = 4 * 1024;
-
-#[allow(clippy::needless_range_loop)]
-fn do_test(
-    gba: &mut agb::Gba,
-    seed: Rng,
-    offset: usize,
-    len: usize,
-    block_size: usize,
-) -> Result<(), Error> {
-    let mut buffer = [0; MAX_BLOCK_SIZE];
-
-    let timers = gba.timers.timers();
-    let mut access = gba.save.access_with_timer(timers.timer2)?;
-
-    // writes data to the save media
-    let mut prepared = access.prepare_write(offset..offset + len)?;
-    let mut rng = seed.clone();
-    let mut current = offset;
-    let end = offset + len;
-    while current != end {
-        let cur_len = cmp::min(end - current, block_size);
-        for i in 0..cur_len {
-            buffer[i] = rng.next_u8();
+impl TestSaveData {
+    pub fn new(seed: u32) -> Self {
+        let mut data = TestSaveData {
+            score: seed.wrapping_mul(12345),
+            items: [0; 10],
+            checksum: 0,
+        };
+        for (i, item) in data.items.iter_mut().enumerate() {
+            *item = (seed.wrapping_add(i as u32).wrapping_mul(7919)) as u16;
         }
-        prepared.write(current, &buffer[..cur_len])?;
-        current += cur_len;
+        data.checksum = data.compute_checksum();
+        data
     }
 
-    // validates the save media
-    rng = seed;
-    current = offset;
-    while current != end {
-        let cur_len = cmp::min(end - current, block_size);
-        access.read(current, &mut buffer[..cur_len])?;
-        for i in 0..cur_len {
-            let cur_byte = rng.next_u8();
-            assert_eq!(
-                buffer[i],
-                cur_byte,
-                "Read does not match earlier write: {} != {} @ 0x{:05x}",
-                buffer[i],
-                cur_byte,
-                current + i,
-            );
+    fn compute_checksum(&self) -> u32 {
+        let mut sum = self.score;
+        for &item in &self.items {
+            sum = sum.wrapping_add(item as u32);
         }
-        current += cur_len;
+        sum
     }
 
-    Ok(())
-}
-
-#[test_case]
-fn test_4k_blocks(gba: &mut agb::Gba) {
-    let info = init_sram(gba);
-
-    if info.len() >= (1 << 12) {
-        do_test(gba, Rng(2000), 0, info.len(), 4 * 1024).expect("Test encountered error");
+    pub fn verify(&self) -> bool {
+        self.checksum == self.compute_checksum()
     }
 }
 
-#[test_case]
-fn test_512b_blocks(gba: &mut agb::Gba) {
-    let info = init_sram(gba);
-    do_test(gba, Rng(1000), 0, info.len(), 512).expect("Test encountered error");
-}
-
-#[test_case]
-fn test_partial_writes(gba: &mut agb::Gba) {
-    let info = init_sram(gba);
-
-    // test with random segments now.
-    let mut rng = Rng(12345);
-    for i in 0..8 {
-        let rand_length = rng.next_under((info.len() >> 1) as u32) as usize + 50;
-        let rand_offset = rng.next_under(info.len() as u32 - rand_length as u32) as usize;
-        let block_size = cmp::min(rand_length >> 2, MAX_BLOCK_SIZE - 100);
-        let block_size = rng.next_under(block_size as u32) as usize + 50;
-
-        do_test(gba, Rng(i * 10000), rand_offset, rand_length, block_size)
-            .expect("Test encountered error");
+impl TestMetadata {
+    pub fn new(name: &[u8], level: u32) -> Self {
+        let mut n = [0u8; 8];
+        let len = name.len().min(8);
+        n[..len].copy_from_slice(&name[..len]);
+        TestMetadata { name: n, level }
     }
 }
+
+#[test_case]
+fn test_write_and_read(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+
+    let data = TestSaveData::new(42);
+    let metadata = TestMetadata::new(b"Player1", 5);
+
+    // Write to slot 0
+    manager
+        .write(0, &data, &metadata)
+        .expect("Failed to write save data");
+
+    // Verify slot status
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+
+    // Read back and verify
+    let loaded: TestSaveData = manager.read(0).expect("Failed to read save data");
+    assert_eq!(loaded, data);
+    assert!(loaded.verify());
+
+    // Verify metadata
+    let loaded_meta = manager.metadata(0).expect("Metadata should exist");
+    assert_eq!(loaded_meta, &metadata);
+}
+
+#[test_case]
+fn test_multiple_slots(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+    let num_slots = manager.num_slots();
+
+    // Write different data to each slot
+    for slot in 0..num_slots {
+        let data = TestSaveData::new(slot as u32 * 1000);
+        let metadata = TestMetadata::new(b"Slot", slot as u32);
+
+        manager
+            .write(slot, &data, &metadata)
+            .expect("Failed to write");
+    }
+
+    // Verify all slots
+    for slot in 0..num_slots {
+        assert_eq!(manager.slot_status(slot), SlotStatus::Valid);
+
+        let expected = TestSaveData::new(slot as u32 * 1000);
+        let loaded: TestSaveData = manager.read(slot).expect("Failed to read");
+        assert_eq!(loaded, expected);
+    }
+}
+
+#[test_case]
+fn test_erase_slot(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+
+    // Write to slot 0
+    let data = TestSaveData::new(123);
+    let metadata = TestMetadata::new(b"Test", 1);
+    manager.write(0, &data, &metadata).expect("Failed to write");
+
+    assert_eq!(manager.slot_status(0), SlotStatus::Valid);
+
+    // Erase slot 0
+    manager.erase(0).expect("Failed to erase");
+
+    assert_eq!(manager.slot_status(0), SlotStatus::Empty);
+    assert!(manager.metadata(0).is_none());
+}
+
+#[test_case]
+fn test_overwrite_slot(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+
+    // Write initial data
+    let data1 = TestSaveData::new(100);
+    let metadata1 = TestMetadata::new(b"First", 1);
+    manager
+        .write(0, &data1, &metadata1)
+        .expect("Failed to write first");
+
+    // Overwrite with new data
+    let data2 = TestSaveData::new(200);
+    let metadata2 = TestMetadata::new(b"Second", 2);
+    manager
+        .write(0, &data2, &metadata2)
+        .expect("Failed to write second");
+
+    // Verify new data
+    let loaded: TestSaveData = manager.read(0).expect("Failed to read");
+    assert_eq!(loaded, data2);
+
+    let loaded_meta = manager.metadata(0).expect("Metadata should exist");
+    assert_eq!(loaded_meta, &metadata2);
+}
+
+#[test_case]
+fn test_slots_iterator(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+
+    // Write to slot 0 only (within this test)
+    let data = TestSaveData::new(999);
+    let metadata = TestMetadata::new(b"Only", 42);
+    manager.write(0, &data, &metadata).expect("Failed to write");
+
+    // Check iterator
+    let slots: alloc::vec::Vec<_> = manager.slots().collect();
+    assert_eq!(slots.len(), manager.num_slots());
+
+    // First slot should be valid with metadata
+    assert_eq!(slots[0].0, 0);
+    assert_eq!(slots[0].1, SlotStatus::Valid);
+    assert!(slots[0].2.is_some());
+
+    // Note: Other slots may have data from previous tests since tests share state,
+    // so we don't assert they're empty. Just verify the iterator returns all slots.
+    for (idx, slot) in slots.iter().enumerate() {
+        assert_eq!(slot.0, idx, "Slot index should match position");
+        // Status should be either Valid or Empty (not corrupted)
+        assert!(
+            slot.1 == SlotStatus::Valid || slot.1 == SlotStatus::Empty,
+            "Slot {} should be Valid or Empty, got {:?}",
+            idx,
+            slot.1
+        );
+    }
+}
+
+#[test_case]
+fn test_persistence(gba: &mut agb::Gba) {
+    let mut manager = crate::save_setup(gba);
+
+    let data = TestSaveData::new(54321);
+    let metadata = TestMetadata::new(b"Persist", 99);
+
+    // Write data
+    manager
+        .write(0, &data, &metadata)
+        .expect("Failed to write save data");
+
+    // Drop the manager and reopen to simulate game restart
+    drop(manager);
+    let mut manager2 = crate::save_reopen(gba);
+
+    // Verify data persisted
+    assert_eq!(manager2.slot_status(0), SlotStatus::Valid);
+
+    let loaded: TestSaveData = manager2.read(0).expect("Failed to read after reopen");
+    assert_eq!(loaded, data);
+    assert!(loaded.verify());
+
+    let loaded_meta = manager2
+        .metadata(0)
+        .expect("Metadata should exist after reopen");
+    assert_eq!(loaded_meta, &metadata);
+}
+
+extern crate alloc;
