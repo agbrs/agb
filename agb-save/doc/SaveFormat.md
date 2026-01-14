@@ -136,3 +136,4 @@ The physical slot that we write to will be the current physical slot that the cu
 7. **Mark old slot as ghost**: Update the old slot `S`'s physical header block with:
    - state = ghost
    - everything else the same
+8. **Add the new ghost data slots to the free list**: Otherwise we're going to run out of space

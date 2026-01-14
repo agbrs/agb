@@ -1,3 +1,8 @@
+extern crate alloc;
+
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::test_storage::TestStorage;
 use crate::{SaveSlotManager, SlotStatus, MIN_SECTOR_SIZE};
 
@@ -215,4 +220,125 @@ fn incompatible_metadata_detected_as_corrupted() {
         manager.metadata(0).is_none(),
         "corrupted slot should have no metadata"
     );
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+struct TestSaveData {
+    level: u32,
+    health: u32,
+    position: (i32, i32),
+    inventory: Vec<u8>,
+}
+
+#[test]
+fn write_and_read_data_roundtrip() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"Hero____________",
+    };
+    let save_data = TestSaveData {
+        level: 42,
+        health: 100,
+        position: (123, -456),
+        inventory: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    };
+
+    manager.write(0, &save_data, &metadata).unwrap();
+
+    // Read back
+    let loaded: TestSaveData = manager.read(0).unwrap();
+    assert_eq!(loaded, save_data);
+}
+
+#[test]
+fn write_and_read_persists_across_reinit() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"Persistent______",
+    };
+    let save_data = TestSaveData {
+        level: 99,
+        health: 255,
+        position: (1000, 2000),
+        inventory: vec![0xFF; 64],
+    };
+
+    manager.write(1, &save_data, &metadata).unwrap();
+
+    // Reinitialize from storage
+    let storage = manager.into_storage();
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Data should persist
+    assert_eq!(manager.slot_status(1), SlotStatus::Valid);
+    let loaded: TestSaveData = manager.read(1).unwrap();
+    assert_eq!(loaded, save_data);
+}
+
+#[test]
+fn write_large_data_spans_multiple_blocks() {
+    // Use larger storage to fit multi-block data
+    let storage = TestStorage::new_sram(8192);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"BigSave_________",
+    };
+
+    // Create data larger than one block's payload (128 - 8 = 120 bytes per block)
+    let large_data: Vec<u8> = (0..500).map(|i| (i % 256) as u8).collect();
+
+    manager.write(0, &large_data, &metadata).unwrap();
+
+    let loaded: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(loaded, large_data);
+}
+
+#[test]
+fn multiple_writes_to_same_slot() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata1 = TestMetadata {
+        name: *b"First___________",
+    };
+    let data1 = TestSaveData {
+        level: 1,
+        health: 50,
+        position: (0, 0),
+        inventory: vec![],
+    };
+
+    manager.write(0, &data1, &metadata1).unwrap();
+
+    // Write again to the same slot
+    let metadata2 = TestMetadata {
+        name: *b"Second__________",
+    };
+    let data2 = TestSaveData {
+        level: 10,
+        health: 100,
+        position: (100, 200),
+        inventory: vec![1, 2, 3],
+    };
+
+    manager.write(0, &data2, &metadata2).unwrap();
+
+    // Should have the second version
+    assert_eq!(manager.metadata(0).unwrap().name, *b"Second__________");
+    let loaded: TestSaveData = manager.read(0).unwrap();
+    assert_eq!(loaded, data2);
 }

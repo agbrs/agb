@@ -667,41 +667,104 @@ where
         Ok(allocated_sectors[0])
     }
 
-    fn read_slot_data<T>(&mut self, _slot: usize) -> Result<T, SaveError<Storage::Error>>
+    fn read_slot_data<T>(&mut self, slot: usize) -> Result<T, SaveError<Storage::Error>>
     where
         T: serde::de::DeserializeOwned,
     {
-        // TODO: Implement
-        // Uses self.storage.read_sector() and block::deserialize_block
-        // 1. Follow data block chain
-        // 2. Concatenate payloads
-        // 3. Verify CRC32
-        // 4. Deserialize with serde
-        todo!()
+        let slot_info = &self.slot_info[slot];
+        let first_data_block = slot_info.first_data_block;
+        let data_length = slot_info.data_length as usize;
+        let expected_crc32 = slot_info.data_crc32;
+
+        // Handle empty data case
+        if first_data_block == 0xFFFF {
+            if data_length == 0 {
+                // Try to deserialize empty slice (works for unit type, empty structs, etc.)
+                return postcard::from_bytes(&[])
+                    .map_err(|_| SaveError::DeserializationFailed);
+            } else {
+                // No data blocks but non-zero length - corrupted
+                return Err(SaveError::SlotCorrupted);
+            }
+        }
+
+        let sector_size = self.storage.sector_size();
+        let payload_size = sector_size - DataBlock::header_size();
+        let mut buffer = vec![0u8; sector_size];
+        let mut data = Vec::with_capacity(data_length);
+
+        // Follow the data block chain
+        let mut current_block = first_data_block;
+        let max_blocks = self.storage.sector_count();
+        let mut blocks_read = 0;
+
+        while current_block != 0xFFFF {
+            // Prevent infinite loops
+            blocks_read += 1;
+            if blocks_read > max_blocks {
+                return Err(SaveError::SlotCorrupted);
+            }
+
+            // Read the block
+            self.storage
+                .read_sector(current_block as usize, &mut buffer)
+                .map_err(SaveError::Storage)?;
+
+            // Deserialize and extract data
+            match deserialize_block(&buffer) {
+                Ok(Block::Data(data_block)) => {
+                    // Append payload (up to what we need)
+                    let remaining = data_length.saturating_sub(data.len());
+                    let to_copy = remaining.min(payload_size);
+                    data.extend_from_slice(&data_block.data[..to_copy]);
+
+                    current_block = data_block.header.next_block;
+                }
+                _ => return Err(SaveError::SlotCorrupted),
+            }
+        }
+
+        // Verify we got enough data
+        if data.len() != data_length {
+            return Err(SaveError::SlotCorrupted);
+        }
+
+        // Verify checksum
+        let actual_crc32 = calc_crc32(&data);
+        if actual_crc32 != expected_crc32 {
+            return Err(SaveError::SlotCorrupted);
+        }
+
+        // Deserialize
+        postcard::from_bytes(&data).map_err(|_| SaveError::DeserializationFailed)
     }
 
     fn write_slot_data<T>(
         &mut self,
         slot: usize,
-        _data: &T,
+        data: &T,
         metadata: &Metadata,
     ) -> Result<(), SaveError<Storage::Error>>
     where
         T: serde::Serialize,
     {
+        // 1. Serialize data first (before we start modifying storage)
+        let data_bytes =
+            postcard::to_allocvec(data).map_err(|_| SaveError::SerializationFailed)?;
+
+        // 2. Compute checksum of the data
+        let data_crc32 = calc_crc32(&data_bytes);
+        let data_length = data_bytes.len() as u32;
+
+        // 3. Write the data chain (this happens first for crash safety)
+        let first_data_block = self.write_data_blocks(&data_bytes)?;
+
+        // 4. Serialize metadata
         let sector_size = self.storage.sector_size();
         let metadata_size = sector_size - SlotHeaderBlock::header_size();
-
-        // Serialize metadata
         let mut metadata_bytes = vec![0u8; metadata_size];
         postcard::to_slice(metadata, &mut metadata_bytes)
             .map_err(|_| SaveError::SerializationFailed)?;
-
-        // TODO: Serialize data and write data blocks
-        // For now, we just write the slot header with no data
-        let first_data_block = 0xFFFF;
-        let data_length = 0u32;
-        let data_crc32 = 0u32;
 
         // Increment generation
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
