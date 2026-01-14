@@ -1,47 +1,44 @@
 use agb::external::portable_atomic::{AtomicU32, Ordering};
 use agb::{
     Gba,
-    save::{Error, SaveManager},
+    save::{SaveError, SaveSlotManager, Slot},
 };
+use serde::{Deserialize, Serialize};
 
 static MAXIMUM_LEVEL: AtomicU32 = AtomicU32::new(0);
-static SAVE_OFFSET: usize = 0xFF;
 
-pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
-    gba.save.init_sram();
+const SAVE_MAGIC: [u8; 32] = *b"dungeon-puzzlers-lament-v1______";
 
-    let mut access = gba.save.access()?;
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct SaveMetadata {
+    max_level: u32,
+}
 
-    let mut buffer = [0; 1];
-    access.read(0, &mut buffer)?;
+pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager<SaveMetadata>, SaveError> {
+    let manager = gba.save.init_sram::<SaveMetadata>(1, SAVE_MAGIC, 128)?;
 
-    if buffer[0] != 0 {
-        access.prepare_write(0..1)?.write(0, &[0])?;
-        core::mem::drop(access);
-        save_max_level(&mut gba.save, 0)?;
-    } else {
-        let mut buffer = [0; 4];
-        access.read(SAVE_OFFSET, &mut buffer)?;
-        let max_level = u32::from_le_bytes(buffer);
-
-        if max_level > 100 {
-            MAXIMUM_LEVEL.store(0, Ordering::SeqCst)
-        } else {
-            MAXIMUM_LEVEL.store(max_level, Ordering::SeqCst)
+    match manager.slot(0) {
+        Slot::Valid(metadata) => {
+            MAXIMUM_LEVEL.store(metadata.max_level, Ordering::SeqCst);
+        }
+        Slot::Empty | Slot::Corrupted => {
+            MAXIMUM_LEVEL.store(0, Ordering::SeqCst);
         }
     }
 
-    Ok(())
+    Ok(manager)
 }
 
 pub fn load_max_level() -> u32 {
     MAXIMUM_LEVEL.load(Ordering::SeqCst)
 }
 
-pub fn save_max_level(save: &mut SaveManager, level: u32) -> Result<(), Error> {
-    save.access()?
-        .prepare_write(SAVE_OFFSET..SAVE_OFFSET + 4)?
-        .write(SAVE_OFFSET, &level.to_le_bytes())?;
+pub fn save_max_level(
+    manager: &mut SaveSlotManager<SaveMetadata>,
+    level: u32,
+) -> Result<(), SaveError> {
+    let metadata = SaveMetadata { max_level: level };
+    manager.write(0, &(), &metadata)?;
     MAXIMUM_LEVEL.store(level, Ordering::SeqCst);
     Ok(())
 }

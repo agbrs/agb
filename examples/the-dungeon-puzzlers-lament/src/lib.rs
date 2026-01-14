@@ -53,7 +53,7 @@ impl<'gba> Agb<'gba> {
 }
 
 pub fn entry(mut gba: agb::Gba) -> ! {
-    let _ = save::init_save(&mut gba);
+    let mut save_manager = save::init_save(&mut gba).expect("Failed to init save");
 
     let gfx = gba.graphics.get();
     let mut ui_bg = RegularBackground::new(
@@ -76,7 +76,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     input.update();
 
     if input.is_pressed(Button::Start | Button::Select | Button::L | Button::R) {
-        let _ = save::save_max_level(&mut gba.save, 0);
+        let _ = save::save_max_level(&mut save_manager, 0);
     }
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
@@ -106,7 +106,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
         } else {
             if current_level > maximum_level {
                 maximum_level = current_level;
-                let _ = save::save_max_level(&mut gba.save, maximum_level as u32);
+                let _ = save::save_max_level(&mut save_manager, maximum_level as u32);
             }
             let mut game = g.frame(
                 &mut (),
