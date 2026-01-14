@@ -646,7 +646,7 @@ where
         }
 
         // Build free sector list
-        match self.build_free_sector_list() {
+        match self.build_free_sector_list()? {
             Some(free_list) => {
                 self.free_sector_list = free_list;
                 Ok(())
@@ -660,9 +660,11 @@ where
 
     /// Build the free sector list by scanning data chains from valid slots.
     ///
-    /// Returns `None` if corruption is detected (e.g., a loop in a data chain),
-    /// indicating the storage needs to be reformatted.
-    fn build_free_sector_list(&mut self) -> Option<Vec<u16>> {
+    /// Returns:
+    /// - `Ok(Some(vec))` - success, here's the free list
+    /// - `Ok(None)` - corruption detected (e.g., loop in chain), needs reformat
+    /// - `Err(SaveError)` - storage read error, propagate to caller
+    fn build_free_sector_list(&mut self) -> Result<Option<Vec<u16>>, SaveError<Storage::Error>> {
         // Sector layout: [0: global] [1..num_slots+1: slot headers] [num_slots+1: ghost] [num_slots+2..: data]
         let first_data_sector = self.num_slots + 2;
         let sector_count = self.storage.sector_count();
@@ -684,31 +686,31 @@ where
                 continue;
             }
 
-            // Convert first_data_block (0xFFFF = none) to Option for the loop
             let mut current_sector = slot_info.first_data_block;
 
             while let Some(sector) = current_sector {
                 let sector_idx = sector as usize;
                 if sector_idx >= sector_count {
-                    break; // Invalid sector reference, stop following chain
+                    // Invalid sector reference - corruption
+                    return Ok(None);
                 }
                 used_sectors[sector_idx] = true;
                 total_sectors_visited += 1;
 
                 // If we've visited more sectors than possible, there's a loop
                 if total_sectors_visited > max_data_sectors {
-                    return None;
+                    return Ok(None);
                 }
 
                 // Read the sector to find the next block in the chain
-                if self.storage.read_sector(sector_idx, &mut buffer).is_err() {
-                    break;
-                }
+                self.storage.read_sector(sector_idx, &mut buffer)?;
+
                 match deserialize_block(&buffer) {
                     Ok(Block::Data(data_block)) => {
                         current_sector = data_block.next_block();
                     }
-                    _ => break, // Not a valid data block, stop following chain
+                    // Corrupted block - can't safely determine free sectors
+                    _ => return Ok(None),
                 }
             }
         }
@@ -721,7 +723,7 @@ where
             }
         }
 
-        Some(free_list)
+        Ok(Some(free_list))
     }
 
     /// Write data across multiple data blocks, allocating sectors from the free list.
