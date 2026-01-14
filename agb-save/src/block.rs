@@ -31,6 +31,19 @@ pub(crate) struct SlotHeader {
     pub(crate) length: u32,
 }
 
+impl SlotHeader {
+    pub(crate) fn empty(logical_slot_id: u8) -> Self {
+        Self {
+            state: SlotState::Empty,
+            logical_slot_id,
+            first_data_block: 0xFFFF,
+            generation: 0,
+            crc32: 0,
+            length: 0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DataBlockHeader {
     pub(crate) next_block: u16,

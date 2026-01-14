@@ -364,14 +364,7 @@ where
             buffer.fill(0);
             serialize_block(
                 Block::SlotHeader(SlotHeaderBlock {
-                    header: SlotHeader {
-                        state: SlotState::Empty,
-                        logical_slot_id: slot as u8,
-                        first_data_block: 0xFFFF,
-                        generation: 0,
-                        crc32: 0,
-                        length: 0,
-                    },
+                    header: SlotHeader::empty(slot as u8),
                     metadata: &empty_metadata,
                 }),
                 &mut buffer,
@@ -401,15 +394,39 @@ where
         let sector_size = self.storage.sector_size();
         let mut buffer = vec![0u8; sector_size];
 
+        // Pre-initialize all slots as corrupted (will be filled in as we find valid headers)
         self.slot_info.clear();
+        for _ in 0..self.num_slots {
+            self.slot_info.push(SlotInfo {
+                status: SlotStatus::Corrupted,
+                metadata: None,
+                generation: 0,
+                first_data_block: 0xFFFF,
+                data_length: 0,
+                data_crc32: 0,
+            });
+        }
 
-        for slot in 0..self.num_slots {
+        // Scan slot header sectors and populate slot_info based on logical_slot_id
+        for sector in 0..self.num_slots {
             self.storage
-                .read_sector(slot + 1, &mut buffer)
+                .read_sector(sector + 1, &mut buffer)
                 .map_err(SaveError::Storage)?;
 
-            match deserialize_block(&buffer) {
-                Ok(Block::SlotHeader(slot_block)) => {
+            if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
+                let logical_id = slot_block.header.logical_slot_id as usize;
+
+                // Skip if logical_id is out of bounds
+                if logical_id >= self.num_slots {
+                    continue;
+                }
+
+                let existing = &self.slot_info[logical_id];
+
+                // Only update if this is a newer generation or the existing slot is corrupted
+                if existing.status == SlotStatus::Corrupted
+                    || slot_block.header.generation > existing.generation
+                {
                     let status = match slot_block.header.state {
                         SlotState::Empty => SlotStatus::Empty,
                         SlotState::Valid => SlotStatus::Valid,
@@ -419,27 +436,17 @@ where
                     // TODO: Deserialize metadata if slot is valid
                     let metadata = None;
 
-                    self.slot_info.push(SlotInfo {
+                    self.slot_info[logical_id] = SlotInfo {
                         status,
                         metadata,
                         generation: slot_block.header.generation,
                         first_data_block: slot_block.header.first_data_block,
                         data_length: slot_block.header.length,
                         data_crc32: slot_block.header.crc32,
-                    });
-                }
-                _ => {
-                    // Corrupted slot header
-                    self.slot_info.push(SlotInfo {
-                        status: SlotStatus::Corrupted,
-                        metadata: None,
-                        generation: 0,
-                        first_data_block: 0xFFFF,
-                        data_length: 0,
-                        data_crc32: 0,
-                    });
+                    };
                 }
             }
+            // If deserialization fails, we leave the slot as Corrupted (already initialized)
         }
 
         Ok(())
