@@ -56,8 +56,8 @@ use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
 use block::{
-    Block, DataBlock, GlobalBlock, GlobalHeader, SlotHeader, SlotHeaderBlock, SlotState,
-    deserialize_block, serialize_block,
+    Block, DataBlock, GlobalBlock, GlobalHeader, SlotHeaderBlock, SlotState, deserialize_block,
+    serialize_block,
 };
 
 #[cfg(test)]
@@ -384,10 +384,7 @@ where
         for slot in 0..self.num_slots {
             buffer.fill(0);
             serialize_block(
-                Block::SlotHeader(SlotHeaderBlock {
-                    header: SlotHeader::empty(slot as u8),
-                    metadata: &empty_metadata,
-                }),
+                Block::SlotHeader(SlotHeaderBlock::empty(slot as u8, &empty_metadata)),
                 &mut buffer,
             );
             self.storage
@@ -400,17 +397,7 @@ where
         // Use logical_slot_id = 0xFF to indicate it's not associated with any slot yet
         buffer.fill(0);
         serialize_block(
-            Block::SlotHeader(SlotHeaderBlock {
-                header: SlotHeader {
-                    state: SlotState::Ghost,
-                    logical_slot_id: 0xFF,
-                    first_data_block: 0xFFFF,
-                    generation: 0,
-                    crc32: 0,
-                    length: 0,
-                },
-                metadata: &empty_metadata,
-            }),
+            Block::SlotHeader(SlotHeaderBlock::ghost(0xFF, &empty_metadata)),
             &mut buffer,
         );
         self.storage
@@ -465,7 +452,8 @@ where
         }
 
         // Track ghost headers for potential recovery (one per slot)
-        let mut ghost_recovery: Vec<Option<(SlotHeader, Vec<u8>, u16)>> =
+        // Stores: (generation, first_data_block, length, crc32, metadata_bytes, physical_sector)
+        let mut ghost_recovery: Vec<Option<(u32, u16, u32, u32, Vec<u8>, u16)>> =
             vec![None; self.num_slots];
 
         // Track which sector is the ghost (Free block, GHOST state, or invalid)
@@ -483,22 +471,25 @@ where
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
                 // Handle GHOST state - track for potential recovery
-                if slot_block.header.state == SlotState::Ghost {
+                if slot_block.state() == SlotState::Ghost {
                     self.ghost_sector = physical_sector;
 
-                    let logical_id = slot_block.header.logical_slot_id as usize;
+                    let logical_id = slot_block.logical_slot_id() as usize;
                     if logical_id < self.num_slots {
                         // Store ghost info for potential recovery
                         ghost_recovery[logical_id] = Some((
-                            slot_block.header.clone(),
-                            slot_block.metadata.to_vec(),
+                            slot_block.generation(),
+                            slot_block.first_data_block(),
+                            slot_block.length(),
+                            slot_block.crc32(),
+                            slot_block.metadata().to_vec(),
                             physical_sector,
                         ));
                     }
                     continue;
                 }
 
-                let logical_id = slot_block.header.logical_slot_id as usize;
+                let logical_id = slot_block.logical_slot_id() as usize;
 
                 // Skip if logical_id is out of bounds
                 if logical_id >= self.num_slots {
@@ -509,13 +500,13 @@ where
 
                 // Only update if this is a newer generation or the existing slot is corrupted
                 if existing.status == SlotStatus::Corrupted
-                    || slot_block.header.generation > existing.generation
+                    || slot_block.generation() > existing.generation
                 {
-                    let (status, metadata) = match slot_block.header.state {
+                    let (status, metadata) = match slot_block.state() {
                         SlotState::Empty => (SlotStatus::Empty, None),
                         SlotState::Valid => {
                             // Deserialize metadata - if it fails, slot is corrupted
-                            match postcard::from_bytes(slot_block.metadata) {
+                            match postcard::from_bytes(slot_block.metadata()) {
                                 Ok(m) => (SlotStatus::Valid, Some(m)),
                                 Err(_) => (SlotStatus::Corrupted, None),
                             }
@@ -526,10 +517,10 @@ where
                     self.slot_info[logical_id] = SlotInfo {
                         status,
                         metadata,
-                        generation: slot_block.header.generation,
-                        first_data_block: slot_block.header.first_data_block,
-                        data_length: slot_block.header.length,
-                        data_crc32: slot_block.header.crc32,
+                        generation: slot_block.generation(),
+                        first_data_block: slot_block.first_data_block(),
+                        data_length: slot_block.length(),
+                        data_crc32: slot_block.crc32(),
                         header_sector: physical_sector,
                     };
                 }
@@ -542,19 +533,19 @@ where
         // (prevents recovering from an older ghost when new data is corrupted)
         for (slot, ghost_info) in ghost_recovery.into_iter().enumerate() {
             if self.slot_info[slot].status == SlotStatus::Corrupted {
-                if let Some((header, metadata_bytes, ghost_physical_sector)) = ghost_info {
+                if let Some((generation, first_data_block, length, crc32, metadata_bytes, ghost_physical_sector)) = ghost_info {
                     // Only recover if ghost is at least as recent as the corrupted data
-                    if header.generation >= self.slot_info[slot].generation {
+                    if generation >= self.slot_info[slot].generation {
                         // Try to deserialize the ghost's metadata
                         if let Ok(metadata) = postcard::from_bytes(&metadata_bytes) {
                             // Recover from ghost - treat it as valid
                             self.slot_info[slot] = SlotInfo {
                                 status: SlotStatus::Valid,
                                 metadata: Some(metadata),
-                                generation: header.generation,
-                                first_data_block: header.first_data_block,
-                                data_length: header.length,
-                                data_crc32: header.crc32,
+                                generation,
+                                first_data_block,
+                                data_length: length,
+                                data_crc32: crc32,
                                 header_sector: ghost_physical_sector,
                             };
                         }
@@ -809,22 +800,16 @@ where
 
         let mut buffer = vec![0u8; sector_size];
 
-        // Create the new slot header
-        let slot_header = SlotHeader {
-            state: SlotState::Valid,
-            logical_slot_id: slot as u8,
-            first_data_block,
-            generation: new_generation,
-            crc32: data_crc32,
-            length: data_length,
-        };
-
         // Write new header to the current ghost sector
         serialize_block(
-            Block::SlotHeader(SlotHeaderBlock {
-                header: slot_header,
-                metadata: &metadata_bytes,
-            }),
+            Block::SlotHeader(SlotHeaderBlock::valid(
+                slot as u8,
+                first_data_block,
+                new_generation,
+                data_crc32,
+                data_length,
+                &metadata_bytes,
+            )),
             &mut buffer,
         );
 
@@ -839,19 +824,18 @@ where
 
         if let Ok(Block::SlotHeader(old_block)) = deserialize_block(&buffer) {
             // Extract data we need before reusing buffer
-            let ghost_header = SlotHeader {
-                state: SlotState::Ghost,
-                ..old_block.header
-            };
-            let old_metadata = old_block.metadata.to_vec();
+            let old_metadata = old_block.metadata().to_vec();
+            let ghost_block = SlotHeaderBlock::valid(
+                old_block.logical_slot_id(),
+                old_block.first_data_block(),
+                old_block.generation(),
+                old_block.crc32(),
+                old_block.length(),
+                &old_metadata,
+            )
+            .with_state(SlotState::Ghost);
 
-            serialize_block(
-                Block::SlotHeader(SlotHeaderBlock {
-                    header: ghost_header,
-                    metadata: &old_metadata,
-                }),
-                &mut buffer,
-            );
+            serialize_block(Block::SlotHeader(ghost_block), &mut buffer);
             self.storage
                 .write_sector(old_header_sector as usize, &buffer)
                 .map_err(SaveError::Storage)?;
@@ -919,20 +903,12 @@ where
         let empty_metadata = vec![0u8; metadata_size];
 
         // 1. Write slot header with state = Empty
-        let slot_header = SlotHeader {
-            state: SlotState::Empty,
-            logical_slot_id: slot as u8,
-            first_data_block: 0xFFFF,
-            generation: new_generation,
-            crc32: 0,
-            length: 0,
-        };
-
         serialize_block(
-            Block::SlotHeader(SlotHeaderBlock {
-                header: slot_header,
-                metadata: &empty_metadata,
-            }),
+            Block::SlotHeader(SlotHeaderBlock::empty_with_generation(
+                slot as u8,
+                new_generation,
+                &empty_metadata,
+            )),
             &mut buffer,
         );
 

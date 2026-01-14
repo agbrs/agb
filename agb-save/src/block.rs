@@ -22,26 +22,13 @@ pub(crate) struct GlobalHeader {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct SlotHeader {
-    pub(crate) state: SlotState,
-    pub(crate) logical_slot_id: u8,
-    pub(crate) first_data_block: u16,
-    pub(crate) generation: u32,
-    pub(crate) crc32: u32,
-    pub(crate) length: u32,
-}
-
-impl SlotHeader {
-    pub(crate) fn empty(logical_slot_id: u8) -> Self {
-        Self {
-            state: SlotState::Empty,
-            logical_slot_id,
-            first_data_block: 0xFFFF,
-            generation: 0,
-            crc32: 0,
-            length: 0,
-        }
-    }
+struct SlotHeader {
+    state: SlotState,
+    logical_slot_id: u8,
+    first_data_block: u16,
+    generation: u32,
+    crc32: u32,
+    length: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -94,15 +81,115 @@ impl GlobalBlock<'_> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SlotHeaderBlock<'a> {
-    pub(crate) header: SlotHeader,
-    pub metadata: &'a [u8],
+    header: SlotHeader,
+    metadata: &'a [u8],
 }
 
-impl SlotHeaderBlock<'_> {
+impl<'a> SlotHeaderBlock<'a> {
     /// Size of the slot header block header (standard header + slot header fields)
     /// Metadata starts at this offset.
     pub const fn header_size() -> usize {
         BLOCK_HEADER_SIZE + 16 // 8 + state(1) + logical_id(1) + first_block(2) + generation(4) + crc32(4) + length(4) = 24
+    }
+
+    /// Create an empty slot header for a given logical slot.
+    pub(crate) fn empty(logical_slot_id: u8, metadata: &'a [u8]) -> Self {
+        Self::empty_with_generation(logical_slot_id, 0, metadata)
+    }
+
+    /// Create an empty slot header with a specific generation.
+    pub(crate) fn empty_with_generation(
+        logical_slot_id: u8,
+        generation: u32,
+        metadata: &'a [u8],
+    ) -> Self {
+        Self {
+            header: SlotHeader {
+                state: SlotState::Empty,
+                logical_slot_id,
+                first_data_block: 0xFFFF,
+                generation,
+                crc32: 0,
+                length: 0,
+            },
+            metadata,
+        }
+    }
+
+    /// Create a ghost slot header (used as staging area).
+    pub(crate) fn ghost(logical_slot_id: u8, metadata: &'a [u8]) -> Self {
+        Self {
+            header: SlotHeader {
+                state: SlotState::Ghost,
+                logical_slot_id,
+                first_data_block: 0xFFFF,
+                generation: 0,
+                crc32: 0,
+                length: 0,
+            },
+            metadata,
+        }
+    }
+
+    /// Create a valid slot header with data.
+    pub(crate) fn valid(
+        logical_slot_id: u8,
+        first_data_block: u16,
+        generation: u32,
+        crc32: u32,
+        length: u32,
+        metadata: &'a [u8],
+    ) -> Self {
+        Self {
+            header: SlotHeader {
+                state: SlotState::Valid,
+                logical_slot_id,
+                first_data_block,
+                generation,
+                crc32,
+                length,
+            },
+            metadata,
+        }
+    }
+
+    /// Create a slot header by changing only the state of this one.
+    pub(crate) fn with_state(&self, state: SlotState) -> SlotHeaderBlock<'a> {
+        SlotHeaderBlock {
+            header: SlotHeader {
+                state,
+                ..self.header
+            },
+            metadata: self.metadata,
+        }
+    }
+
+    pub(crate) fn state(&self) -> SlotState {
+        self.header.state
+    }
+
+    pub(crate) fn logical_slot_id(&self) -> u8 {
+        self.header.logical_slot_id
+    }
+
+    pub(crate) fn first_data_block(&self) -> u16 {
+        self.header.first_data_block
+    }
+
+    pub(crate) fn generation(&self) -> u32 {
+        self.header.generation
+    }
+
+    pub(crate) fn crc32(&self) -> u32 {
+        self.header.crc32
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.header.length
+    }
+
+    pub(crate) fn metadata(&self) -> &[u8] {
+        self.metadata
     }
 }
 
