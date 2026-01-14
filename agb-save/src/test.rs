@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use quickcheck::{Arbitrary, Gen, quickcheck};
 
 use crate::test_storage::TestStorage;
-use crate::{MIN_SECTOR_SIZE, SaveSlotManager, SlotStatus};
+use crate::{MIN_SECTOR_SIZE, SaveSlotManager, Slot, SlotStatus};
 
 use serde::{Deserialize, Serialize};
 
@@ -1858,4 +1858,87 @@ fn metadata_near_max_size() {
 
     let read_data: Vec<u8> = manager.read(0).unwrap();
     assert_eq!(read_data, data);
+}
+
+#[test]
+fn slots_iterator_returns_correct_order_and_state() {
+    let storage = TestStorage::new_sram(4096);
+
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Initially all slots are empty
+    let slots: Vec<_> = manager.slots().collect();
+    assert_eq!(slots.len(), 3);
+    assert_eq!(slots[0], Slot::Empty);
+    assert_eq!(slots[1], Slot::Empty);
+    assert_eq!(slots[2], Slot::Empty);
+
+    // Write to slot 1 first (not slot 0, to verify logical order)
+    let metadata1 = TestMetadata {
+        name: *b"Slot One________",
+    };
+    manager.write(1, &(), &metadata1).unwrap();
+
+    // Then write to slot 0
+    let metadata0 = TestMetadata {
+        name: *b"Slot Zero_______",
+    };
+    manager.write(0, &(), &metadata0).unwrap();
+
+    // Verify slots are returned in logical order (0, 1, 2) not write order (1, 0)
+    let slots: Vec<_> = manager.slots().collect();
+    assert_eq!(slots.len(), 3);
+
+    // Slot 0 should be first with correct metadata
+    match &slots[0] {
+        Slot::Valid(meta) => assert_eq!(meta.name, *b"Slot Zero_______"),
+        other => panic!("Expected Slot::Valid, got {:?}", other),
+    }
+
+    // Slot 1 should be second with correct metadata
+    match &slots[1] {
+        Slot::Valid(meta) => assert_eq!(meta.name, *b"Slot One________"),
+        other => panic!("Expected Slot::Valid, got {:?}", other),
+    }
+
+    // Slot 2 should be empty
+    assert_eq!(slots[2], Slot::Empty);
+}
+
+#[test]
+fn slots_iterator_shows_corrupted_slots() {
+    let storage = TestStorage::new_sram(4096);
+
+    // Initialize and write to slot 1
+    let mut manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata = TestMetadata {
+        name: *b"Test Save_______",
+    };
+    manager.write(1, &(), &metadata).unwrap();
+
+    // Get storage and corrupt slot 0's header (sector 1)
+    let mut storage = manager.into_storage();
+    let corrupt_offset = MIN_SECTOR_SIZE + 4;
+    storage.data_mut()[corrupt_offset] ^= 0xFF;
+
+    // Re-initialize
+    let manager: SaveSlotManager<_, TestMetadata> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let slots: Vec<_> = manager.slots().collect();
+
+    // Slot 0 should be corrupted
+    assert_eq!(slots[0], Slot::Corrupted);
+
+    // Slot 1 should still be valid
+    match &slots[1] {
+        Slot::Valid(meta) => assert_eq!(meta.name, *b"Test Save_______"),
+        other => panic!("Expected Slot::Valid, got {:?}", other),
+    }
+
+    // Slot 2 should be empty
+    assert_eq!(slots[2], Slot::Empty);
 }

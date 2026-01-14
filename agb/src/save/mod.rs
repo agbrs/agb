@@ -74,7 +74,7 @@ mod sram;
 mod utils;
 
 #[doc(inline)]
-pub use agb_save::{SaveError, SlotStatus};
+pub use agb_save::{SaveError, Slot, SlotStatus};
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -295,7 +295,12 @@ impl SaveManager {
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         marker::emit_sram_marker();
-        set_save_implementation(&sram::BatteryBackedAccess, num_slots, magic, min_sector_size);
+        set_save_implementation(
+            &sram::BatteryBackedAccess,
+            num_slots,
+            magic,
+            min_sector_size,
+        );
         let save_data = SaveData::new(None).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
             inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic, min_sector_size)?,
@@ -598,10 +603,10 @@ where
         self.inner.erase(slot)
     }
 
-    /// Returns an iterator over all slots with their status and metadata.
+    /// Returns an iterator over all slots with their current state.
     ///
     /// Useful for displaying a save slot selection screen.
-    pub fn slots(&self) -> impl Iterator<Item = (usize, SlotStatus, Option<&Metadata>)> {
+    pub fn slots(&self) -> impl Iterator<Item = Slot<'_, Metadata>> {
         self.inner.slots()
     }
 }

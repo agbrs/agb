@@ -133,6 +133,20 @@ pub enum SlotStatus {
     Corrupted,
 }
 
+/// A save slot with its current state.
+///
+/// This enum combines the slot status with the metadata, making it impossible
+/// to have an invalid combination (like Empty with Some metadata).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Slot<'a, Metadata> {
+    /// Slot has never been written to or has been erased.
+    Empty,
+    /// Slot contains valid, verified save data with the given metadata.
+    Valid(&'a Metadata),
+    /// Slot data is corrupted and could not be recovered.
+    Corrupted,
+}
+
 /// Errors that can occur during save operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveError<StorageError> {
@@ -334,14 +348,15 @@ where
         self.erase_slot(slot)
     }
 
-    /// Returns an iterator over all slots with their status and metadata.
+    /// Returns an iterator over all slots with their current state.
     ///
     /// Useful for displaying a save slot selection screen.
-    pub fn slots(&self) -> impl Iterator<Item = (usize, SlotStatus, Option<&Metadata>)> {
-        self.slot_info
-            .iter()
-            .enumerate()
-            .map(|(i, info)| (i, info.status, info.metadata.as_ref()))
+    pub fn slots(&self) -> impl Iterator<Item = Slot<'_, Metadata>> {
+        self.slot_info.iter().map(|info| match info.status {
+            SlotStatus::Empty => Slot::Empty,
+            SlotStatus::Valid => Slot::Valid(info.metadata.as_ref().unwrap()),
+            SlotStatus::Corrupted => Slot::Corrupted,
+        })
     }
 
     /// Consume the manager and return the underlying storage.
@@ -587,8 +602,11 @@ where
         // Ensure ghost_sector is a physical slot sector NOT used by any active slot.
         // After crashes, both physical sectors might be Valid (no Ghost state found),
         // so we must explicitly pick the unused one as ghost.
-        let used_header_sectors: Vec<u16> =
-            self.slot_info.iter().map(|info| info.header_sector).collect();
+        let used_header_sectors: Vec<u16> = self
+            .slot_info
+            .iter()
+            .map(|info| info.header_sector)
+            .collect();
         for sector in 1..=(self.num_slots + 1) as u16 {
             if !used_header_sectors.contains(&sector) {
                 self.ghost_sector = sector;

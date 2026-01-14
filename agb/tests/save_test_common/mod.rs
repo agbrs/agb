@@ -1,4 +1,4 @@
-use agb::save::SlotStatus;
+use agb::save::{Slot, SlotStatus};
 use serde::{Deserialize, Serialize};
 
 /// Test metadata stored with each save slot
@@ -160,20 +160,23 @@ fn test_slots_iterator(gba: &mut agb::Gba) {
     assert_eq!(slots.len(), manager.num_slots());
 
     // First slot should be valid with metadata
-    assert_eq!(slots[0].0, 0);
-    assert_eq!(slots[0].1, SlotStatus::Valid);
-    assert!(slots[0].2.is_some());
+    match &slots[0] {
+        Slot::Valid(meta) => {
+            assert_eq!(meta.name, metadata.name);
+            assert_eq!(meta.level, metadata.level);
+        }
+        other => panic!("Expected Slot::Valid, got {:?}", other),
+    }
 
     // Note: Other slots may have data from previous tests since tests share state,
-    // so we don't assert they're empty. Just verify the iterator returns all slots.
+    // so we don't assert they're empty. Just verify the iterator returns all slots
+    // and each slot is either Valid or Empty (not corrupted).
     for (idx, slot) in slots.iter().enumerate() {
-        assert_eq!(slot.0, idx, "Slot index should match position");
-        // Status should be either Valid or Empty (not corrupted)
         assert!(
-            slot.1 == SlotStatus::Valid || slot.1 == SlotStatus::Empty,
+            matches!(slot, Slot::Valid(_) | Slot::Empty),
             "Slot {} should be Valid or Empty, got {:?}",
             idx,
-            slot.1
+            slot
         );
     }
 }
