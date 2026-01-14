@@ -680,8 +680,7 @@ where
         if first_data_block == 0xFFFF {
             if data_length == 0 {
                 // Try to deserialize empty slice (works for unit type, empty structs, etc.)
-                return postcard::from_bytes(&[])
-                    .map_err(|_| SaveError::DeserializationFailed);
+                return postcard::from_bytes(&[]).map_err(|_| SaveError::DeserializationFailed);
             } else {
                 // No data blocks but non-zero length - corrupted
                 return Err(SaveError::SlotCorrupted);
@@ -749,8 +748,7 @@ where
         T: serde::Serialize,
     {
         // 1. Serialize data first (before we start modifying storage)
-        let data_bytes =
-            postcard::to_allocvec(data).map_err(|_| SaveError::SerializationFailed)?;
+        let data_bytes = postcard::to_allocvec(data).map_err(|_| SaveError::SerializationFailed)?;
 
         // 2. Compute checksum of the data
         let data_crc32 = calc_crc32(&data_bytes);
@@ -766,9 +764,10 @@ where
         postcard::to_slice(metadata, &mut metadata_bytes)
             .map_err(|_| SaveError::SerializationFailed)?;
 
-        // Increment generation
+        // Increment generation and save old slot info for later cleanup
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
         let old_header_sector = self.slot_info[slot].header_sector;
+        let old_first_data_block = self.slot_info[slot].first_data_block;
 
         let mut buffer = vec![0u8; sector_size];
 
@@ -824,6 +823,9 @@ where
         let new_header_sector = self.ghost_sector;
         self.ghost_sector = old_header_sector;
 
+        // 8. Return the old ghost's data sectors to the free list
+        self.free_data_chain(old_first_data_block, &mut buffer)?;
+
         // Update in-memory state
         self.slot_info[slot] = SlotInfo {
             status: SlotStatus::Valid,
@@ -834,6 +836,34 @@ where
             data_crc32,
             header_sector: new_header_sector,
         };
+
+        Ok(())
+    }
+
+    /// Traverse a data block chain and return all sectors to the free list.
+    fn free_data_chain(
+        &mut self,
+        first_block: u16,
+        buffer: &mut [u8],
+    ) -> Result<(), SaveError<Storage::Error>> {
+        let mut current_block = first_block;
+
+        while current_block != 0xFFFF {
+            // Read the block to find the next one in the chain
+            self.storage
+                .read_sector(current_block as usize, buffer)
+                .map_err(SaveError::Storage)?;
+
+            let next_block = match deserialize_block(buffer) {
+                Ok(Block::Data(data_block)) => data_block.header.next_block,
+                _ => 0xFFFF, // Stop if block is corrupted
+            };
+
+            // Return this sector to the free list
+            self.free_sector_list.push(current_block);
+
+            current_block = next_block;
+        }
 
         Ok(())
     }
