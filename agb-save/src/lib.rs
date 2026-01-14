@@ -156,6 +156,7 @@ pub struct SaveSlotManager<Storage: StorageMedium, Metadata> {
     storage: SectorStorage<Storage>,
     magic: [u8; 32],
     slot_info: Vec<SlotInfo<Metadata>>,
+    free_sector_list: Vec<u16>,
 }
 
 /// Internal info about a slot's current state
@@ -204,6 +205,7 @@ where
             storage: SectorStorage::new(storage, min_sector_size),
             magic,
             slot_info: Vec::new(),
+            free_sector_list: Vec::new(),
         };
         manager.initialise()?;
         Ok(manager)
@@ -400,6 +402,15 @@ where
             });
         }
 
+        // All sectors after slot headers are free
+        // Sector layout: [0: global] [1..num_slots+1: slot headers] [num_slots+1: ghost] [num_slots+2..: data]
+        let first_data_sector = self.num_slots + 2;
+        let sector_count = self.storage.sector_count();
+        self.free_sector_list.clear();
+        for sector in first_data_sector..sector_count {
+            self.free_sector_list.push(sector as u16);
+        }
+
         Ok(())
     }
 
@@ -421,7 +432,9 @@ where
         }
 
         // Scan slot header sectors and populate slot_info based on logical_slot_id
-        for sector in 0..self.num_slots {
+        // We scan num_slots + 1 sectors to include the ghost slot sector
+        let num_slot_header_sectors = self.num_slots + 1;
+        for sector in 0..num_slot_header_sectors {
             self.storage
                 .read_sector(sector + 1, &mut buffer)
                 .map_err(SaveError::Storage)?;
@@ -462,7 +475,81 @@ where
             // If deserialization fails, we leave the slot as Corrupted (already initialized)
         }
 
-        Ok(())
+        // Build free sector list
+        match self.build_free_sector_list() {
+            Some(free_list) => {
+                self.free_sector_list = free_list;
+                Ok(())
+            }
+            None => {
+                // Corruption detected (loop in chain), reformat
+                self.format_storage()
+            }
+        }
+    }
+
+    /// Build the free sector list by scanning data chains from valid slots.
+    ///
+    /// Returns `None` if corruption is detected (e.g., a loop in a data chain),
+    /// indicating the storage needs to be reformatted.
+    fn build_free_sector_list(&mut self) -> Option<Vec<u16>> {
+        // Sector layout: [0: global] [1..num_slots+1: slot headers] [num_slots+1: ghost] [num_slots+2..: data]
+        let first_data_sector = self.num_slots + 2;
+        let sector_count = self.storage.sector_count();
+        let mut used_sectors = vec![false; sector_count];
+
+        // Mark header sectors as used
+        for sector in 0..first_data_sector {
+            used_sectors[sector] = true;
+        }
+
+        // Follow data chains from valid slots and mark those sectors as used
+        let max_data_sectors = sector_count - first_data_sector;
+        let mut total_sectors_visited = 0usize;
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
+
+        for slot_info in &self.slot_info {
+            if slot_info.status != SlotStatus::Valid {
+                continue;
+            }
+
+            let mut current_sector = slot_info.first_data_block;
+            while current_sector != 0xFFFF {
+                let sector_idx = current_sector as usize;
+                if sector_idx >= sector_count {
+                    break; // Invalid sector reference, stop following chain
+                }
+                used_sectors[sector_idx] = true;
+                total_sectors_visited += 1;
+
+                // If we've visited more sectors than possible, there's a loop
+                if total_sectors_visited > max_data_sectors {
+                    return None;
+                }
+
+                // Read the sector to find the next block in the chain
+                if self.storage.read_sector(sector_idx, &mut buffer).is_err() {
+                    break;
+                }
+                match deserialize_block(&buffer) {
+                    Ok(Block::Data(data_block)) => {
+                        current_sector = data_block.header.next_block;
+                    }
+                    _ => break, // Not a valid data block, stop following chain
+                }
+            }
+        }
+
+        // Collect free sectors
+        let mut free_list = Vec::new();
+        for (sector, &used) in used_sectors.iter().enumerate() {
+            if !used {
+                free_list.push(sector as u16);
+            }
+        }
+
+        Some(free_list)
     }
 
     fn read_slot_data<T>(&mut self, _slot: usize) -> Result<T, SaveError<Storage::Error>>
