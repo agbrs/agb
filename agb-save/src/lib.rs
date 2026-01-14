@@ -561,6 +561,18 @@ where
             }
         }
 
+        // Ensure ghost_sector is a physical slot sector NOT used by any active slot.
+        // After crashes, both physical sectors might be Valid (no Ghost state found),
+        // so we must explicitly pick the unused one as ghost.
+        let used_header_sectors: Vec<u16> =
+            self.slot_info.iter().map(|info| info.header_sector).collect();
+        for sector in 1..=(self.num_slots + 1) as u16 {
+            if !used_header_sectors.contains(&sector) {
+                self.ghost_sector = sector;
+                break;
+            }
+        }
+
         // Build free sector list
         match self.build_free_sector_list() {
             Some(free_list) => {

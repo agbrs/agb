@@ -642,9 +642,8 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
         name: *b"SecondVersion___",
     };
     let data2: Vec<u8> = vec![10, 20, 30, 40, 50];
-    let result = manager.write(0, &data2, &metadata2);
+    let _result = manager.write(0, &data2, &metadata2);
     // This might succeed or fail depending on when exactly freeing happens
-    // Let's just continue regardless
 
     // Now corrupt the NEW (VALID) header
     // After first write, header was at sector 4 (old ghost)
@@ -827,15 +826,14 @@ quickcheck! {
 
 // --- Crash recovery property tests ---
 
-/// Known bug: repeated crash-recovery cycles can corrupt data.
+/// Test that repeated crash-recovery cycles don't corrupt data.
 ///
-/// After multiple crash cycles, the free sector list can become incorrect,
-/// causing new writes to overwrite data blocks that are still in use.
-/// This needs to be fixed by improving the free sector list reconstruction
-/// during initialization.
+/// Previously a bug existed where after multiple crash cycles, the free sector
+/// list could become incorrect, causing new writes to overwrite data blocks
+/// that were still in use. This was fixed by properly selecting the ghost sector
+/// after recovery when no explicit Ghost state header was found.
 #[test]
-#[ignore = "known bug: repeated crashes can corrupt free sector list"]
-fn repeated_crash_corrupts_data() {
+fn repeated_crash_does_not_corrupt_data() {
     let initial_data: Vec<u8> = vec![
         0, 64, 104, 108, 94, 201, 231, 63, 150, 56, 87, 38, 129, 101, 60, 0, 238, 224, 157, 53,
         134, 179, 162, 150, 108, 98, 19,
@@ -1036,6 +1034,81 @@ quickcheck! {
             }
             _ => false,
         }
+    }
+
+    /// Repeated crashes during writes should never corrupt data.
+    /// After any sequence of crashes, the slot should contain one of the
+    /// successfully written versions.
+    fn repeated_crash_recovery_never_corrupts(
+        initial_data: BoundedData,
+        initial_meta: ArbitraryMetadata,
+        crash_points: Vec<u8>
+    ) -> bool {
+        // Limit crash iterations to avoid very long tests
+        let crash_points: Vec<_> = crash_points.into_iter().take(5).collect();
+
+        let storage = TestStorage::new_sram(4096);
+        let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+        // Initial successful write
+        if manager.write(0, &initial_data.0, &initial_meta).is_err() {
+            return true; // Data too large for storage, skip test
+        }
+
+        // Track all valid versions of data that could exist
+        let mut valid_versions: Vec<(Vec<u8>, ArbitraryMetadata)> = vec![];
+        valid_versions.push((initial_data.0.clone(), initial_meta.clone()));
+
+        for (i, &fail_point) in crash_points.iter().enumerate() {
+            let fail_after = (fail_point % 15) as usize;
+
+            // Set up crash
+            let mut storage = manager.into_storage();
+            storage.fail_after_writes(Some(fail_after));
+
+            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+            // Generate new data for this write attempt
+            let new_data: Vec<u8> = (0..((i + 1) * 10).min(300))
+                .map(|j| ((i + j) % 256) as u8)
+                .collect();
+            let new_meta = ArbitraryMetadata {
+                values: [(i as u8).wrapping_add(1); 8],
+            };
+
+            // Track this as a potential valid version (if write completes)
+            valid_versions.push((new_data.clone(), new_meta.clone()));
+
+            // Attempt write - may fail at crash point
+            let _ = manager.write(0, &new_data, &new_meta);
+
+            // Reinitialise (simulates power cycle after crash)
+            let storage = manager.into_storage();
+            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+            // Slot must be Valid - never Corrupted or Empty after crash
+            if manager.slot_status(0) != SlotStatus::Valid {
+                return false;
+            }
+
+            // Data must match one of the valid versions
+            let read_data: Vec<u8> = match manager.read(0) {
+                Ok(d) => d,
+                Err(_) => return false,
+            };
+            let read_meta = manager.metadata(0).unwrap();
+
+            let is_valid_version = valid_versions
+                .iter()
+                .any(|(d, m)| d == &read_data && m == read_meta);
+
+            if !is_valid_version {
+                return false;
+            }
+        }
+
+        true
     }
 
 }
