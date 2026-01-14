@@ -211,6 +211,51 @@ struct SlotInfo<Metadata> {
     header_sector: u16,
 }
 
+impl<Metadata> SlotInfo<Metadata> {
+    fn empty(generation: u32, header_sector: u16) -> Self {
+        Self {
+            status: SlotStatus::Empty,
+            metadata: None,
+            generation,
+            first_data_block: None,
+            data_length: 0,
+            data_crc32: 0,
+            header_sector,
+        }
+    }
+
+    fn corrupted(header_sector: u16) -> Self {
+        Self {
+            status: SlotStatus::Corrupted,
+            metadata: None,
+            generation: 0,
+            first_data_block: None,
+            data_length: 0,
+            data_crc32: 0,
+            header_sector,
+        }
+    }
+
+    fn valid(
+        metadata: Metadata,
+        generation: u32,
+        first_data_block: Option<u16>,
+        data_length: u32,
+        data_crc32: u32,
+        header_sector: u16,
+    ) -> Self {
+        Self {
+            status: SlotStatus::Valid,
+            metadata: Some(metadata),
+            generation,
+            first_data_block,
+            data_length,
+            data_crc32,
+            header_sector,
+        }
+    }
+}
+
 impl<Storage, Metadata> SaveSlotManager<Storage, Metadata>
 where
     Storage: StorageMedium,
@@ -336,7 +381,7 @@ where
     where
         T: serde::Serialize,
     {
-        assert!(slot < self.num_slots, "slot index out of bounds");
+        assert!(slot < self.num_slots, "slot index {slot} out of bounds");
         self.write_slot_data(slot, data, metadata)
     }
 
@@ -350,7 +395,7 @@ where
     ///
     /// - [`SaveError::Storage`] if the underlying storage fails
     pub fn erase(&mut self, slot: usize) -> Result<(), SaveError<Storage::Error>> {
-        assert!(slot < self.num_slots, "slot index out of bounds");
+        assert!(slot < self.num_slots, "slot index {slot} out of bounds");
         self.erase_slot(slot)
     }
 
@@ -438,15 +483,7 @@ where
         // Initialise slot_info with empty slots
         self.slot_info.clear();
         for slot in 0..self.num_slots {
-            self.slot_info.push(SlotInfo {
-                status: SlotStatus::Empty,
-                metadata: None,
-                generation: 0,
-                first_data_block: None,
-                data_length: 0,
-                data_crc32: 0,
-                header_sector: (slot + 1) as u16,
-            });
+            self.slot_info.push(SlotInfo::empty(0, (slot + 1) as u16));
         }
 
         // The ghost sector starts at num_slots + 1 (the extra physical slot sector)
@@ -471,15 +508,7 @@ where
         // Pre-initialize all slots as corrupted (will be filled in as we find valid headers)
         self.slot_info.clear();
         for slot in 0..self.num_slots {
-            self.slot_info.push(SlotInfo {
-                status: SlotStatus::Corrupted,
-                metadata: None,
-                generation: 0,
-                first_data_block: None,
-                data_length: 0,
-                data_crc32: 0,
-                header_sector: (slot + 1) as u16,
-            });
+            self.slot_info.push(SlotInfo::corrupted((slot + 1) as u16));
         }
 
         // Track ghost headers for potential recovery (one per slot)
@@ -577,15 +606,14 @@ where
                     // Try to deserialize the ghost's metadata
                     if let Ok(metadata) = postcard::from_bytes(&ghost.metadata_bytes) {
                         // Recover from ghost - treat it as valid
-                        self.slot_info[slot] = SlotInfo {
-                            status: SlotStatus::Valid,
-                            metadata: Some(metadata),
-                            generation: ghost.generation,
-                            first_data_block: ghost.first_data_block,
-                            data_length: ghost.data_length,
-                            data_crc32: ghost.data_crc32,
-                            header_sector: ghost.physical_sector,
-                        };
+                        self.slot_info[slot] = SlotInfo::valid(
+                            metadata,
+                            ghost.generation,
+                            ghost.first_data_block,
+                            ghost.data_length,
+                            ghost.data_crc32,
+                            ghost.physical_sector,
+                        );
                     }
                 }
             }
@@ -897,15 +925,14 @@ where
         self.free_data_chain(old_first_data_block, &mut buffer)?;
 
         // Update in-memory state
-        self.slot_info[slot] = SlotInfo {
-            status: SlotStatus::Valid,
-            metadata: Some(metadata.clone()),
-            generation: new_generation,
+        self.slot_info[slot] = SlotInfo::valid(
+            metadata.clone(),
+            new_generation,
             first_data_block,
             data_length,
             data_crc32,
-            header_sector: new_header_sector,
-        };
+            new_header_sector,
+        );
 
         Ok(())
     }
@@ -916,7 +943,6 @@ where
         first_block: Option<u16>,
         buffer: &mut [u8],
     ) -> Result<(), SaveError<Storage::Error>> {
-        // Convert first_block (0xFFFF = none) to Option for the loop
         let mut current_block = first_block;
 
         while let Some(block) = current_block {
@@ -965,15 +991,7 @@ where
         self.free_data_chain(old_first_data_block, &mut buffer)?;
 
         // 3. Update in-memory state
-        self.slot_info[slot] = SlotInfo {
-            status: SlotStatus::Empty,
-            metadata: None,
-            generation: new_generation,
-            first_data_block: None,
-            data_length: 0,
-            data_crc32: 0,
-            header_sector,
-        };
+        self.slot_info[slot] = SlotInfo::empty(new_generation, header_sector);
 
         Ok(())
     }
