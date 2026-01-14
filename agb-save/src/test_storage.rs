@@ -14,6 +14,10 @@ pub struct TestStorage {
     /// Tracks which regions have been erased (for media that require erase before write).
     /// Each bit represents one erase_size block: 1 = erased, 0 = not erased.
     erased_blocks: Vec<bool>,
+    /// Number of writes performed so far.
+    write_count: usize,
+    /// If set, writes will fail after this many successful writes.
+    fail_after_writes: Option<usize>,
 }
 
 /// Errors that can occur in [`TestStorage`].
@@ -23,6 +27,8 @@ pub enum TestStorageError {
     OutOfBounds,
     /// Attempted to write to a region that hasn't been erased.
     NotErased,
+    /// Simulated write failure for testing crash scenarios.
+    SimulatedFailure,
 }
 
 impl TestStorage {
@@ -44,6 +50,8 @@ impl TestStorage {
             info,
             // Start with all blocks "erased" for convenience in simple tests
             erased_blocks: std::vec![true; num_erase_blocks],
+            write_count: 0,
+            fail_after_writes: None,
         }
     }
 
@@ -78,6 +86,30 @@ impl TestStorage {
         for block in &mut self.erased_blocks {
             *block = false;
         }
+    }
+
+    /// Configure the storage to fail writes after a given number of successful writes.
+    ///
+    /// This is useful for testing crash/failure scenarios during save operations.
+    /// Pass `None` to disable simulated failures.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let mut storage = TestStorage::new_sram(1024);
+    /// storage.fail_after_writes(2); // Fail on the 3rd write
+    /// storage.write(0, &[1]).unwrap(); // OK (write 1)
+    /// storage.write(1, &[2]).unwrap(); // OK (write 2)
+    /// storage.write(2, &[3]).unwrap_err(); // Fails (write 3)
+    /// ```
+    pub fn fail_after_writes(&mut self, count: Option<usize>) {
+        self.fail_after_writes = count;
+        self.write_count = 0;
+    }
+
+    /// Returns the number of writes performed since the last reset or creation.
+    pub fn write_count(&self) -> usize {
+        self.write_count
     }
 
     /// Get direct access to the underlying data for test verification.
@@ -183,6 +215,13 @@ impl StorageMedium for TestStorage {
     }
 
     fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), Self::Error> {
+        // Check for simulated failure
+        if let Some(limit) = self.fail_after_writes {
+            if self.write_count >= limit {
+                return Err(TestStorageError::SimulatedFailure);
+            }
+        }
+
         self.check_bounds(offset, data.len())?;
         self.check_write_alignment(offset, data.len());
         self.check_erased(offset, data.len())?;
@@ -201,6 +240,7 @@ impl StorageMedium for TestStorage {
             }
         }
 
+        self.write_count += 1;
         Ok(())
     }
 }
@@ -326,5 +366,29 @@ mod tests {
         // Re-erase and try again
         storage.erase(0, 256).unwrap();
         storage.write(4, &[5, 6, 7, 8]).unwrap();
+    }
+
+    #[test]
+    fn simulated_write_failure() {
+        let mut storage = TestStorage::new_sram(1024);
+
+        // Configure to fail after 2 writes
+        storage.fail_after_writes(Some(2));
+
+        // First two writes succeed
+        storage.write(0, &[1]).unwrap();
+        assert_eq!(storage.write_count(), 1);
+
+        storage.write(1, &[2]).unwrap();
+        assert_eq!(storage.write_count(), 2);
+
+        // Third write fails
+        let result = storage.write(2, &[3]);
+        assert_eq!(result, Err(TestStorageError::SimulatedFailure));
+        assert_eq!(storage.write_count(), 2); // Count doesn't increase on failure
+
+        // Disable failure and writes work again
+        storage.fail_after_writes(None);
+        storage.write(2, &[3]).unwrap();
     }
 }
