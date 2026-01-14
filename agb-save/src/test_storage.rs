@@ -216,10 +216,10 @@ impl StorageMedium for TestStorage {
 
     fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), Self::Error> {
         // Check for simulated failure
-        if let Some(limit) = self.fail_after_writes {
-            if self.write_count >= limit {
-                return Err(TestStorageError::SimulatedFailure);
-            }
+        if let Some(limit) = self.fail_after_writes
+            && self.write_count >= limit
+        {
+            return Err(TestStorageError::SimulatedFailure);
         }
 
         self.check_bounds(offset, data.len())?;

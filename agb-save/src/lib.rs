@@ -464,6 +464,10 @@ where
             });
         }
 
+        // Track ghost headers for potential recovery (one per slot)
+        let mut ghost_recovery: Vec<Option<(SlotHeader, Vec<u8>, u16)>> =
+            vec![None; self.num_slots];
+
         // Track which sector is the ghost (Free block, GHOST state, or invalid)
         // Default to the last physical slot sector
         self.ghost_sector = (self.num_slots + 1) as u16;
@@ -478,11 +482,19 @@ where
                 .map_err(SaveError::Storage)?;
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
-                // Handle GHOST state - this sector is the current ghost
+                // Handle GHOST state - track for potential recovery
                 if slot_block.header.state == SlotState::Ghost {
                     self.ghost_sector = physical_sector;
-                    // Ghost is backup data - could be used for recovery
-                    // For now, skip processing it as active slot data
+
+                    let logical_id = slot_block.header.logical_slot_id as usize;
+                    if logical_id < self.num_slots {
+                        // Store ghost info for potential recovery
+                        ghost_recovery[logical_id] = Some((
+                            slot_block.header.clone(),
+                            slot_block.metadata.to_vec(),
+                            physical_sector,
+                        ));
+                    }
                     continue;
                 }
 
@@ -523,6 +535,32 @@ where
                 }
             }
             // If deserialization fails, we leave the slot as Corrupted (already initialized)
+        }
+
+        // Try to recover corrupted slots from ghost headers
+        // Only recover if ghost has a generation >= the corrupted slot's generation
+        // (prevents recovering from an older ghost when new data is corrupted)
+        for (slot, ghost_info) in ghost_recovery.into_iter().enumerate() {
+            if self.slot_info[slot].status == SlotStatus::Corrupted {
+                if let Some((header, metadata_bytes, ghost_physical_sector)) = ghost_info {
+                    // Only recover if ghost is at least as recent as the corrupted data
+                    if header.generation >= self.slot_info[slot].generation {
+                        // Try to deserialize the ghost's metadata
+                        if let Ok(metadata) = postcard::from_bytes(&metadata_bytes) {
+                            // Recover from ghost - treat it as valid
+                            self.slot_info[slot] = SlotInfo {
+                                status: SlotStatus::Valid,
+                                metadata: Some(metadata),
+                                generation: header.generation,
+                                first_data_block: header.first_data_block,
+                                data_length: header.length,
+                                data_crc32: header.crc32,
+                                header_sector: ghost_physical_sector,
+                            };
+                        }
+                    }
+                }
+            }
         }
 
         // Build free sector list
