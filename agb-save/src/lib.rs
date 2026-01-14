@@ -56,8 +56,8 @@ use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
 use block::{
-    deserialize_block, serialize_block, Block, GlobalBlock, GlobalHeader, SlotHeader,
-    SlotHeaderBlock, SlotState,
+    Block, GlobalBlock, GlobalHeader, SlotHeader, SlotHeaderBlock, SlotState, deserialize_block,
+    serialize_block,
 };
 
 #[cfg(test)]
@@ -307,6 +307,14 @@ where
             .iter()
             .enumerate()
             .map(|(i, info)| (i, info.status, info.metadata.as_ref()))
+    }
+
+    /// Consume the manager and return the underlying storage.
+    ///
+    /// Useful for testing or if you need to reclaim the storage.
+    #[cfg(test)]
+    pub(crate) fn into_storage(self) -> Storage {
+        self.storage.into_inner()
     }
 
     // --- Private implementation methods ---

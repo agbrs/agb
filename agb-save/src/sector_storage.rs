@@ -84,6 +84,12 @@ impl<S: StorageMedium> SectorStorage<S> {
         self.sector_count
     }
 
+    /// Consume this wrapper and return the underlying storage.
+    #[cfg(test)]
+    pub fn into_inner(self) -> S {
+        self.storage
+    }
+
     /// Read a sector into the provided buffer.
     ///
     /// # Panics
