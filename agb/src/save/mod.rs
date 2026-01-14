@@ -74,7 +74,10 @@ mod sram;
 mod utils;
 
 #[doc(inline)]
-pub use agb_save::{SaveError, Slot};
+pub use agb_save::Slot;
+
+/// An error that can happen while saving or loading.
+pub type SaveError = agb_save::SaveError<StorageError>;
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -95,7 +98,7 @@ pub enum MediaType {
 /// The type used for errors encountered while reading or writing save media.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
-pub enum Error {
+pub enum StorageError {
     /// There is no save media attached to this game cart.
     NoMedia,
     /// Failed to write the data to save media.
@@ -147,16 +150,31 @@ impl MediaInfo {
 
 /// A trait allowing low-level saving and writing to save media.
 trait RawSaveAccess: Sync {
-    fn info(&self) -> Result<&'static MediaInfo, Error>;
-    fn read(&self, offset: usize, buffer: &mut [u8], timeout: &mut Timeout) -> Result<(), Error>;
-    fn verify(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<bool, Error>;
+    fn info(&self) -> Result<&'static MediaInfo, StorageError>;
+    fn read(
+        &self,
+        offset: usize,
+        buffer: &mut [u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError>;
+    fn verify(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<bool, StorageError>;
     fn prepare_write(
         &self,
         sector: usize,
         count: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error>;
-    fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
+    ) -> Result<(), StorageError>;
+    fn write(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError>;
 }
 
 static CURRENT_SAVE_ACCESS: Lock<Option<&'static dyn RawSaveAccess>> = Lock::new(None);
@@ -205,7 +223,7 @@ pub(crate) struct SaveData {
 
 impl SaveData {
     /// Creates a new save accessor around the current save implementation.
-    fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
+    fn new(timer: Option<Timer>) -> Result<SaveData, StorageError> {
         match get_save_implementation() {
             Some(access) => Ok(SaveData {
                 _lock: utils::lock_media_access()?,
@@ -213,20 +231,20 @@ impl SaveData {
                 info: access.info()?,
                 timeout: utils::Timeout::new(timer),
             }),
-            None => Err(Error::NoMedia),
+            None => Err(StorageError::NoMedia),
         }
     }
 
-    fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
+    fn check_bounds(&self, range: Range<usize>) -> Result<(), StorageError> {
         let len = self.info.len();
         if range.start >= len || range.end > len {
-            Err(Error::OutOfBounds)
+            Err(StorageError::OutOfBounds)
         } else {
             Ok(())
         }
     }
 
-    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         self.check_bounds(offset..(offset + len))
     }
 }
@@ -290,7 +308,7 @@ impl SaveManager {
         num_slots: usize,
         magic: [u8; 32],
         min_sector_size: usize,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
@@ -332,7 +350,7 @@ impl SaveManager {
         magic: [u8; 32],
         min_sector_size: usize,
         timer: Option<Timer>,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
@@ -369,7 +387,7 @@ impl SaveManager {
         magic: [u8; 32],
         min_sector_size: usize,
         timer: Option<Timer>,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
@@ -406,7 +424,7 @@ impl SaveManager {
         magic: [u8; 32],
         min_sector_size: usize,
         timer: Option<Timer>,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
@@ -443,7 +461,7 @@ impl SaveManager {
         magic: [u8; 32],
         min_sector_size: usize,
         timer: Option<Timer>,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
@@ -473,12 +491,14 @@ impl SaveManager {
     pub fn reopen<Metadata>(
         &mut self,
         timer: Option<Timer>,
-    ) -> Result<SaveSlotManager<Metadata>, SaveError<Error>>
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
     where
         Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
     {
         let config = SAVE_CONFIG.lock();
-        let config = config.as_ref().ok_or(SaveError::Storage(Error::NoMedia))?;
+        let config = config
+            .as_ref()
+            .ok_or(SaveError::Storage(StorageError::NoMedia))?;
 
         let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
         Ok(SaveSlotManager {
@@ -552,7 +572,7 @@ where
     /// - [`SaveError::SlotCorrupted`] if the slot data is corrupted
     /// - [`SaveError::DeserializationFailed`] if the data cannot be deserialized
     /// - [`SaveError::Storage`] if the underlying storage fails
-    pub fn read<T>(&mut self, slot: usize) -> Result<T, SaveError<Error>>
+    pub fn read<T>(&mut self, slot: usize) -> Result<T, SaveError>
     where
         T: serde::de::DeserializeOwned,
     {
@@ -578,12 +598,7 @@ where
     /// - [`SaveError::OutOfSpace`] if there's not enough free space
     /// - [`SaveError::SerializationFailed`] if the data cannot be serialized
     /// - [`SaveError::Storage`] if the underlying storage fails
-    pub fn write<T>(
-        &mut self,
-        slot: usize,
-        data: &T,
-        metadata: &Metadata,
-    ) -> Result<(), SaveError<Error>>
+    pub fn write<T>(&mut self, slot: usize, data: &T, metadata: &Metadata) -> Result<(), SaveError>
     where
         T: serde::Serialize,
     {
@@ -599,7 +614,7 @@ where
     /// # Errors
     ///
     /// - [`SaveError::Storage`] if the underlying storage fails
-    pub fn erase(&mut self, slot: usize) -> Result<(), SaveError<Error>> {
+    pub fn erase(&mut self, slot: usize) -> Result<(), SaveError> {
         self.inner.erase(slot)
     }
 
@@ -612,7 +627,7 @@ where
 }
 
 impl agb_save::StorageMedium for SaveData {
-    type Error = Error;
+    type Error = StorageError;
 
     fn info(&self) -> agb_save::StorageInfo {
         let sector_size = self.info.sector_size();

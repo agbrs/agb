@@ -11,7 +11,7 @@ use portable_atomic::{AtomicU8, Ordering};
 use crate::memory_mapped::{MemoryMapped, MemoryMapped1DArray};
 use crate::save::asm_utils::*;
 use crate::save::utils::Timeout;
-use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
+use crate::save::{MediaInfo, MediaType, RawSaveAccess, StorageError};
 use core::cmp;
 
 // Volatile address ports for flash
@@ -47,10 +47,10 @@ fn issue_flash_command(c2: u8) {
 }
 
 /// A simple thing to avoid excessive bank switches
-fn set_bank(bank: u8) -> Result<(), Error> {
+fn set_bank(bank: u8) -> Result<(), StorageError> {
     static CURRENT_BANK: AtomicU8 = AtomicU8::new(!0);
     if bank == 0xFF {
-        Err(Error::OutOfBounds)
+        Err(StorageError::OutOfBounds)
     } else if bank != CURRENT_BANK.load(Ordering::SeqCst) {
         issue_flash_command(CMD_SET_BANK);
         FLASH_PORT_BANK.set(bank);
@@ -83,7 +83,7 @@ pub enum FlashChipType {
 }
 impl FlashChipType {
     /// Returns the type of the flash chip currently in use.
-    pub fn detect() -> Result<Self, Error> {
+    pub fn detect() -> Result<Self, StorageError> {
         Ok(Self::from_id(detect_chip_id()?))
     }
 
@@ -102,7 +102,7 @@ impl FlashChipType {
 }
 
 /// Determines the raw ID of the flash chip currently in use.
-pub fn detect_chip_id() -> Result<u16, Error> {
+pub fn detect_chip_id() -> Result<u16, StorageError> {
     issue_flash_command(CMD_READ_CHIP_ID);
     let high = unsafe { read_raw_byte(0x0E000001) };
     let low = unsafe { read_raw_byte(0x0E000000) };
@@ -242,7 +242,7 @@ impl FlashChipType {
     }
 }
 
-fn cached_chip_info() -> Result<&'static ChipInfo, Error> {
+fn cached_chip_info() -> Result<&'static ChipInfo, StorageError> {
     static CHIP_INFO: OnceCell<&'static ChipInfo> = OnceCell::new();
 
     for _ in 0..100 {
@@ -250,7 +250,7 @@ fn cached_chip_info() -> Result<&'static ChipInfo, Error> {
     }
 
     CHIP_INFO
-        .get_or_try_init(|| -> Result<_, Error> { Ok(FlashChipType::detect()?.chip_info()) })
+        .get_or_try_init(|| -> Result<_, StorageError> { Ok(FlashChipType::detect()?.chip_info()) })
         .cloned()
 }
 
@@ -262,27 +262,27 @@ impl ChipInfo {
     }
 
     // Checks whether a byte offset is in bounds.
-    fn check_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+    fn check_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_some() && offset + len <= self.total_len() {
             Ok(())
         } else {
-            Err(Error::OutOfBounds)
+            Err(StorageError::OutOfBounds)
         }
     }
 
     // Checks whether a sector offset is in bounds.
-    fn check_sector_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+    fn check_sector_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_some() && offset + len <= self.info.sector_count {
             Ok(())
         } else {
-            Err(Error::OutOfBounds)
+            Err(StorageError::OutOfBounds)
         }
     }
 
     /// Sets the currently active bank.
-    fn set_bank(&self, bank: usize) -> Result<(), Error> {
+    fn set_bank(&self, bank: usize) -> Result<(), StorageError> {
         if bank >= self.bank_count as usize {
-            Err(Error::OutOfBounds)
+            Err(StorageError::OutOfBounds)
         } else if self.bank_count > 1 {
             set_bank(bank as u8)
         } else {
@@ -291,7 +291,7 @@ impl ChipInfo {
     }
 
     /// Reads a buffer from save media into memory.
-    fn read_buffer(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), Error> {
+    fn read_buffer(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), StorageError> {
         while !buf.is_empty() {
             self.set_bank(offset >> BANK_SHIFT)?;
             let start = offset & BANK_MASK;
@@ -306,7 +306,7 @@ impl ChipInfo {
     }
 
     /// Verifies that a buffer was properly stored into save media.
-    fn verify_buffer(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, Error> {
+    fn verify_buffer(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, StorageError> {
         while !buf.is_empty() {
             self.set_bank(offset >> BANK_SHIFT)?;
             let start = offset & BANK_MASK;
@@ -327,7 +327,7 @@ impl ChipInfo {
         val: u8,
         ms: u16,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         timeout.start();
         let offset = 0x0E000000 + offset;
 
@@ -336,14 +336,14 @@ impl ChipInfo {
                 if self.requires_cancel_command {
                     FLASH_PORT_A.set(0xF0);
                 }
-                return Err(Error::OperationTimedOut);
+                return Err(StorageError::OperationTimedOut);
             }
         }
         Ok(())
     }
 
     /// Erases a sector to flash.
-    fn erase_sector(&self, sector: usize, timeout: &mut Timeout) -> Result<(), Error> {
+    fn erase_sector(&self, sector: usize, timeout: &mut Timeout) -> Result<(), StorageError> {
         let offset = sector << self.info.sector_shift;
         self.set_bank(offset >> BANK_SHIFT)?;
         issue_flash_command(CMD_ERASE_SECTOR_BEGIN);
@@ -353,14 +353,19 @@ impl ChipInfo {
     }
 
     /// Erases the entire chip.
-    fn erase_chip(&self, timeout: &mut Timeout) -> Result<(), Error> {
+    fn erase_chip(&self, timeout: &mut Timeout) -> Result<(), StorageError> {
         issue_flash_command(CMD_ERASE_SECTOR_BEGIN);
         issue_flash_command(CMD_ERASE_SECTOR_ALL);
         self.wait_for_timeout(0, 0xFF, 3000, timeout)
     }
 
     /// Writes a byte to the save media.
-    fn write_byte(&self, offset: usize, byte: u8, timeout: &mut Timeout) -> Result<(), Error> {
+    fn write_byte(
+        &self,
+        offset: usize,
+        byte: u8,
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         issue_flash_command(CMD_WRITE);
         FLASH_DATA.set(offset, byte);
         self.wait_for_timeout(offset, byte, self.write_timeout, timeout)
@@ -368,7 +373,12 @@ impl ChipInfo {
 
     /// Writes an entire buffer to the save media.
     #[allow(clippy::needless_range_loop)]
-    fn write_buffer(&self, offset: usize, buf: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
+    fn write_buffer(
+        &self,
+        offset: usize,
+        buf: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         self.set_bank(offset >> BANK_SHIFT)?;
         for i in 0..buf.len() {
             let byte_off = offset + i;
@@ -387,7 +397,7 @@ impl ChipInfo {
         offset: usize,
         buf: &[u8],
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         critical_section::with(|_| {
             issue_flash_command(CMD_WRITE);
             for i in 0..128 {
@@ -407,7 +417,7 @@ impl ChipInfo {
         buf: &[u8],
         start: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         let mut sector = [0u8; 128];
         self.read_buffer(offset, &mut sector[0..start])?;
         sector[start..start + buf.len()].copy_from_slice(buf);
@@ -428,7 +438,7 @@ impl ChipInfo {
         buf: &[u8],
         start: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         if start == 0 && buf.len() == 128 {
             self.write_atmel_sector_raw(offset, buf, timeout)
         } else {
@@ -440,18 +450,18 @@ impl ChipInfo {
 /// The [`RawSaveAccess`] used for flash save media.
 pub struct FlashAccess;
 impl RawSaveAccess for FlashAccess {
-    fn info(&self) -> Result<&'static MediaInfo, Error> {
+    fn info(&self) -> Result<&'static MediaInfo, StorageError> {
         Ok(cached_chip_info()?.info)
     }
 
-    fn read(&self, offset: usize, buf: &mut [u8], _: &mut Timeout) -> Result<(), Error> {
+    fn read(&self, offset: usize, buf: &mut [u8], _: &mut Timeout) -> Result<(), StorageError> {
         let chip = cached_chip_info()?;
         chip.check_len(offset, buf.len())?;
 
         chip.read_buffer(offset, buf)
     }
 
-    fn verify(&self, offset: usize, buf: &[u8], _: &mut Timeout) -> Result<bool, Error> {
+    fn verify(&self, offset: usize, buf: &[u8], _: &mut Timeout) -> Result<bool, StorageError> {
         let chip = cached_chip_info()?;
         chip.check_len(offset, buf.len())?;
 
@@ -463,7 +473,7 @@ impl RawSaveAccess for FlashAccess {
         sector: usize,
         count: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         let chip = cached_chip_info()?;
         chip.check_sector_len(sector, count)?;
 
@@ -479,7 +489,12 @@ impl RawSaveAccess for FlashAccess {
         }
     }
 
-    fn write(&self, mut offset: usize, mut buf: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
+    fn write(
+        &self,
+        mut offset: usize,
+        mut buf: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         let chip = cached_chip_info()?;
         chip.check_len(offset, buf.len())?;
 

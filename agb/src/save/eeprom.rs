@@ -4,7 +4,7 @@
 
 use crate::memory_mapped::MemoryMapped;
 use crate::save::utils::Timeout;
-use crate::save::{Error, MediaInfo, MediaType, RawSaveAccess};
+use crate::save::{MediaInfo, MediaType, RawSaveAccess, StorageError};
 use core::cmp;
 
 const PORT: MemoryMapped<u16> = unsafe { MemoryMapped::new(0x0DFFFF00) };
@@ -127,7 +127,7 @@ impl EepromProperties {
         word: usize,
         block: &[u8],
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         // Write sector command. The command is a one bit, followed by a
         // zero bit, followed by the address, followed by 64 bits of data.
         //
@@ -147,7 +147,7 @@ impl EepromProperties {
         timeout.start();
         while PORT.get() & 1 != 1 {
             if timeout.check_timeout_met(10) {
-                return Err(Error::OperationTimedOut);
+                return Err(StorageError::OperationTimedOut);
             }
         }
         Ok(())
@@ -161,7 +161,7 @@ impl EepromProperties {
         data: &[u8],
         start: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         let mut buf = self.read_sector(word);
         buf[start..start + data.len()].copy_from_slice(data);
         self.write_sector_raw(word, &buf, timeout)
@@ -174,7 +174,7 @@ impl EepromProperties {
         data: &[u8],
         start: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error> {
+    ) -> Result<(), StorageError> {
         if data.len() == 8 && start == 0 {
             self.write_sector_raw(word, data, timeout)
         } else {
@@ -183,16 +183,16 @@ impl EepromProperties {
     }
 
     /// Checks whether an offset is in range.
-    fn check_offset(&self, offset: usize, len: usize) -> Result<(), Error> {
+    fn check_offset(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_none() && (offset + len) > self.byte_len {
-            Err(Error::OutOfBounds)
+            Err(StorageError::OutOfBounds)
         } else {
             Ok(())
         }
     }
 
     /// Implements EEPROM reads.
-    fn read(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), Error> {
+    fn read(&self, mut offset: usize, mut buf: &mut [u8]) -> Result<(), StorageError> {
         self.check_offset(offset, buf.len())?;
         while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
@@ -206,7 +206,7 @@ impl EepromProperties {
     }
 
     /// Implements EEPROM verifies.
-    fn verify(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, Error> {
+    fn verify(&self, mut offset: usize, mut buf: &[u8]) -> Result<bool, StorageError> {
         self.check_offset(offset, buf.len())?;
         while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
@@ -222,7 +222,12 @@ impl EepromProperties {
     }
 
     /// Implements EEPROM writes.
-    fn write(&self, mut offset: usize, mut buf: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
+    fn write(
+        &self,
+        mut offset: usize,
+        mut buf: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         self.check_offset(offset, buf.len())?;
         while !buf.is_empty() {
             let start = offset & SECTOR_MASK;
@@ -246,7 +251,7 @@ const PROPS_8K: EepromProperties = EepromProperties {
 /// The [`RawSaveAccess`] used for 512 byte EEPROM.
 pub struct Eeprom512B;
 impl RawSaveAccess for Eeprom512B {
-    fn info(&self) -> Result<&'static MediaInfo, Error> {
+    fn info(&self) -> Result<&'static MediaInfo, StorageError> {
         Ok(&MediaInfo {
             media_type: MediaType::Eeprom512B,
             sector_shift: 3,
@@ -254,16 +259,21 @@ impl RawSaveAccess for Eeprom512B {
             uses_prepare_write: false,
         })
     }
-    fn read(&self, offset: usize, buffer: &mut [u8], _: &mut Timeout) -> Result<(), Error> {
+    fn read(&self, offset: usize, buffer: &mut [u8], _: &mut Timeout) -> Result<(), StorageError> {
         PROPS_512B.read(offset, buffer)
     }
-    fn verify(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<bool, Error> {
+    fn verify(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<bool, StorageError> {
         PROPS_512B.verify(offset, buffer)
     }
-    fn prepare_write(&self, _: usize, _: usize, _: &mut Timeout) -> Result<(), Error> {
+    fn prepare_write(&self, _: usize, _: usize, _: &mut Timeout) -> Result<(), StorageError> {
         Ok(())
     }
-    fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
+    fn write(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         PROPS_512B.write(offset, buffer, timeout)
     }
 }
@@ -271,7 +281,7 @@ impl RawSaveAccess for Eeprom512B {
 /// The [`RawSaveAccess`] used for 8 KiB EEPROM.
 pub struct Eeprom8K;
 impl RawSaveAccess for Eeprom8K {
-    fn info(&self) -> Result<&'static MediaInfo, Error> {
+    fn info(&self) -> Result<&'static MediaInfo, StorageError> {
         Ok(&MediaInfo {
             media_type: MediaType::Eeprom8K,
             sector_shift: 3,
@@ -279,16 +289,21 @@ impl RawSaveAccess for Eeprom8K {
             uses_prepare_write: false,
         })
     }
-    fn read(&self, offset: usize, buffer: &mut [u8], _: &mut Timeout) -> Result<(), Error> {
+    fn read(&self, offset: usize, buffer: &mut [u8], _: &mut Timeout) -> Result<(), StorageError> {
         PROPS_8K.read(offset, buffer)
     }
-    fn verify(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<bool, Error> {
+    fn verify(&self, offset: usize, buffer: &[u8], _: &mut Timeout) -> Result<bool, StorageError> {
         PROPS_8K.verify(offset, buffer)
     }
-    fn prepare_write(&self, _: usize, _: usize, _: &mut Timeout) -> Result<(), Error> {
+    fn prepare_write(&self, _: usize, _: usize, _: &mut Timeout) -> Result<(), StorageError> {
         Ok(())
     }
-    fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error> {
+    fn write(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError> {
         PROPS_8K.write(offset, buffer, timeout)
     }
 }

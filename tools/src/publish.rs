@@ -182,6 +182,7 @@ mod test {
                 "agb-macros",
                 "agb-fixnum",
                 "agb-hashmap",
+                "agb-save",
             ]
         );
         Ok(())

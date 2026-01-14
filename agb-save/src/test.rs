@@ -744,7 +744,7 @@ quickcheck! {
         status_ok && metadata_ok && data_ok
     }
 
-    /// Empty data should roundtrip correctly.
+    /// Empty data should round trip correctly.
     fn empty_data_roundtrip(metadata: ArbitraryMetadata, slot: u8) -> bool {
         let slot = (slot % 3) as usize;
         let storage = TestStorage::new_sram(4096);

@@ -1,6 +1,6 @@
 //! A package containing useful utilities for writing save accessors.
 
-use super::Error;
+use super::StorageError;
 use crate::{
     sync::{RawLock, RawLockGuard},
     timer::{Divider, Timer},
@@ -52,10 +52,10 @@ impl Drop for Timeout {
     }
 }
 
-pub fn lock_media_access() -> Result<RawLockGuard<'static>, Error> {
+pub fn lock_media_access() -> Result<RawLockGuard<'static>, StorageError> {
     static LOCK: RawLock = RawLock::new();
     match LOCK.try_lock() {
         Some(x) => Ok(x),
-        None => Err(Error::MediaInUse),
+        None => Err(StorageError::MediaInUse),
     }
 }
