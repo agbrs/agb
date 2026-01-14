@@ -153,12 +153,23 @@ pub enum SaveError<StorageError> {
     SlotCorrupted,
     /// Not enough free space to write the data.
     OutOfSpace,
-    /// Failed to serialize the data.
-    SerializationFailed(postcard::Error),
-    /// Failed to deserialize the data.
-    DeserializationFailed(postcard::Error),
+    /// Failed to serialize / deserialize the data.
+    Serialization(SerializationError),
     /// Write verification failed - data read back didn't match what was written.
     VerificationFailed,
+}
+
+/// Further details about the serialization error.
+///
+/// This only provides a Debug implementation you can use to debug the issues.
+/// The output of this isn't stable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SerializationError(postcard::Error);
+
+impl<StorageError> SaveError<StorageError> {
+    fn from_postcard_serialization(e: postcard::Error) -> Self {
+        Self::Serialization(SerializationError(e))
+    }
 }
 
 impl<T> From<T> for SaveError<T> {
@@ -789,7 +800,7 @@ where
         if first_data_block.is_none() {
             if data_length == 0 {
                 // Try to deserialize empty slice (works for unit type, empty structs, etc.)
-                return postcard::from_bytes(&[]).map_err(SaveError::DeserializationFailed);
+                return postcard::from_bytes(&[]).map_err(SaveError::from_postcard_serialization);
             } else {
                 // No data blocks but non-zero length - corrupted
                 return Err(SaveError::SlotCorrupted);
@@ -843,7 +854,7 @@ where
         }
 
         // Deserialize
-        postcard::from_bytes(&data).map_err(SaveError::DeserializationFailed)
+        postcard::from_bytes(&data).map_err(SaveError::from_postcard_serialization)
     }
 
     fn write_slot_data<T>(
@@ -856,7 +867,8 @@ where
         T: serde::Serialize,
     {
         // 1. Serialize data first (before we start modifying storage)
-        let data_bytes = postcard::to_allocvec(data).map_err(SaveError::SerializationFailed)?;
+        let data_bytes =
+            postcard::to_allocvec(data).map_err(SaveError::from_postcard_serialization)?;
 
         // 2. Compute checksum of the data
         let data_crc32 = calc_crc32(&data_bytes);
@@ -870,7 +882,7 @@ where
         let metadata_size = sector_size - SlotHeaderBlock::header_size();
         let mut metadata_bytes = vec![0u8; metadata_size];
         postcard::to_slice(metadata, &mut metadata_bytes)
-            .map_err(SaveError::SerializationFailed)?;
+            .map_err(SaveError::from_postcard_serialization)?;
 
         // Increment generation and save old slot info for later cleanup
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);

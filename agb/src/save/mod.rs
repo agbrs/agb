@@ -74,7 +74,7 @@ mod sram;
 mod utils;
 
 #[doc(inline)]
-pub use agb_save::Slot;
+pub use agb_save::{SerializationError, Slot};
 
 /// An error that can happen while saving or loading.
 pub type SaveError = agb_save::SaveError<StorageError>;
