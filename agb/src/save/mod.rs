@@ -486,7 +486,7 @@ impl SaveManager {
     ///
     /// # Errors
     ///
-    /// Returns [`SaveError::Storage`] with [`Error::NoMedia`] if the save media
+    /// Returns [`SaveError::Storage`] with [`StorageError::NoMedia`] if the save media
     /// has not been initialized.
     pub fn reopen<Metadata>(
         &mut self,
