@@ -86,8 +86,7 @@ impl Arbitrary for OwnedBlock {
                 }
             }
             BlockType::Slot => {
-                // metadata size is block_size - 24 (8 byte standard header + 16 byte slot header)
-                let metadata_size = TEST_BLOCK_SIZE - 24;
+                let metadata_size = TEST_BLOCK_SIZE - SlotHeaderBlock::header_size();
                 let mut metadata = Vec::with_capacity(metadata_size);
                 for _ in 0..metadata_size {
                     metadata.push(u8::arbitrary(g));
@@ -98,8 +97,7 @@ impl Arbitrary for OwnedBlock {
                 }
             }
             BlockType::Data => {
-                // data size is block_size - 8
-                let data_size = TEST_BLOCK_SIZE - 8;
+                let data_size = TEST_BLOCK_SIZE - DataBlock::header_size();
                 let data: Vec<u8> = (0..data_size).map(|_| u8::arbitrary(g)).collect();
                 OwnedBlock::Data {
                     header: DataBlockHeader::arbitrary(g),
@@ -206,7 +204,7 @@ quickcheck! {
     }
 
     fn data_block_roundtrip(next_block: u16, data: Vec<u8>) -> bool {
-        let data_size = TEST_BLOCK_SIZE - 8;
+        let data_size = TEST_BLOCK_SIZE - DataBlock::header_size();
         let mut padded_data = vec![0u8; data_size];
         for (i, &byte) in data.iter().take(data_size).enumerate() {
             padded_data[i] = byte;
@@ -229,8 +227,7 @@ quickcheck! {
     }
 
     fn slot_header_roundtrip(header: SlotHeader, metadata_seed: Vec<u8>) -> bool {
-        // metadata size is block_size - 24 (8 byte standard header + 16 byte slot header)
-        let metadata_size = TEST_BLOCK_SIZE - 24;
+        let metadata_size = TEST_BLOCK_SIZE - SlotHeaderBlock::header_size();
         let mut padded_metadata = vec![0u8; metadata_size];
         for (i, &byte) in metadata_seed.iter().take(metadata_size).enumerate() {
             padded_metadata[i] = byte;

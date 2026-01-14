@@ -62,10 +62,21 @@ pub enum Block<'a> {
     Data(DataBlock<'a>),
 }
 
+/// Size of the standard block header (CRC16 + block type + next block + reserved)
+pub const BLOCK_HEADER_SIZE: usize = 8;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GlobalBlock<'a> {
     pub(crate) header: GlobalHeader,
     pub game_identifier: &'a [u8],
+}
+
+impl GlobalBlock<'_> {
+    /// Size of the global block header (standard header + magic + slot count)
+    /// Game identifier starts at this offset.
+    pub const fn header_size() -> usize {
+        BLOCK_HEADER_SIZE + 4 + 2 // 8 + magic(4) + slot_count(2) = 14
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,10 +85,26 @@ pub struct SlotHeaderBlock<'a> {
     pub metadata: &'a [u8],
 }
 
+impl SlotHeaderBlock<'_> {
+    /// Size of the slot header block header (standard header + slot header fields)
+    /// Metadata starts at this offset.
+    pub const fn header_size() -> usize {
+        BLOCK_HEADER_SIZE + 16 // 8 + state(1) + logical_id(1) + first_block(2) + generation(4) + crc32(4) + length(4) = 24
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataBlock<'a> {
     pub(crate) header: DataBlockHeader,
     pub data: &'a [u8],
+}
+
+impl DataBlock<'_> {
+    /// Size of the data block header (standard header only, next_block is in standard header)
+    /// Data starts at this offset.
+    pub const fn header_size() -> usize {
+        BLOCK_HEADER_SIZE // 8
+    }
 }
 
 pub fn deserialize_block(block_data: &[u8]) -> Result<Block<'_>, BlockLoadError> {

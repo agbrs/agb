@@ -51,9 +51,17 @@
 
 extern crate alloc;
 
+use alloc::vec;
 use alloc::vec::Vec;
 use core::num::NonZeroUsize;
 
+use block::{
+    deserialize_block, serialize_block, Block, GlobalBlock, GlobalHeader, SlotHeader,
+    SlotHeaderBlock, SlotState,
+};
+
+#[cfg(test)]
+mod test;
 #[cfg(test)]
 pub(crate) mod test_storage;
 
@@ -192,7 +200,7 @@ where
             magic,
             slot_info: Vec::new(),
         };
-        manager.initialize()?;
+        manager.initialise()?;
         Ok(manager)
     }
 
@@ -303,14 +311,138 @@ where
 
     // --- Private implementation methods ---
 
-    fn initialize(&mut self) -> Result<(), SaveError<Storage::Error>> {
-        // TODO: Implement initialization logic
-        // Uses self.storage.sector_size() and self.storage.sector_count()
-        // 1. Load and verify global header (sector 0) using block::deserialize_block
-        // 2. Load slot headers and metadata (sectors 1..N+1)
-        // 3. Attempt recovery from ghost slots if needed
-        // 4. Rebuild free list
-        todo!()
+    fn initialise(&mut self) -> Result<(), SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
+
+        // Try to read the global header (sector 0)
+        self.storage
+            .read_sector(0, &mut buffer)
+            .map_err(SaveError::Storage)?;
+
+        let needs_format = match deserialize_block(&buffer) {
+            Ok(Block::Global(global)) => {
+                // Check if magic matches and slot count is correct
+                global.game_identifier[..32] != self.magic
+                    || global.header.slot_count as usize != self.num_slots
+            }
+            _ => true, // CRC mismatch, wrong block type, or other error
+        };
+
+        if needs_format {
+            self.format_storage()?;
+        } else {
+            self.load_slot_headers()?;
+        }
+
+        Ok(())
+    }
+
+    fn format_storage(&mut self) -> Result<(), SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
+
+        // Write global header (sector 0)
+        serialize_block(
+            Block::Global(GlobalBlock {
+                header: GlobalHeader {
+                    slot_count: self.num_slots as u16,
+                },
+                game_identifier: &self.magic,
+            }),
+            &mut buffer,
+        );
+        self.storage
+            .write_sector(0, &buffer)
+            .map_err(SaveError::Storage)?;
+
+        // Write empty slot headers (sectors 1..num_slots+1)
+        let metadata_size = sector_size - SlotHeaderBlock::header_size();
+        let empty_metadata = vec![0u8; metadata_size];
+
+        for slot in 0..self.num_slots {
+            buffer.fill(0);
+            serialize_block(
+                Block::SlotHeader(SlotHeaderBlock {
+                    header: SlotHeader {
+                        state: SlotState::Empty,
+                        logical_slot_id: slot as u8,
+                        first_data_block: 0xFFFF,
+                        generation: 0,
+                        crc32: 0,
+                        length: 0,
+                    },
+                    metadata: &empty_metadata,
+                }),
+                &mut buffer,
+            );
+            self.storage
+                .write_sector(slot + 1, &buffer)
+                .map_err(SaveError::Storage)?;
+        }
+
+        // Initialise slot_info with empty slots
+        self.slot_info.clear();
+        for _ in 0..self.num_slots {
+            self.slot_info.push(SlotInfo {
+                status: SlotStatus::Empty,
+                metadata: None,
+                generation: 0,
+                first_data_block: 0xFFFF,
+                data_length: 0,
+                data_crc32: 0,
+            });
+        }
+
+        Ok(())
+    }
+
+    fn load_slot_headers(&mut self) -> Result<(), SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
+
+        self.slot_info.clear();
+
+        for slot in 0..self.num_slots {
+            self.storage
+                .read_sector(slot + 1, &mut buffer)
+                .map_err(SaveError::Storage)?;
+
+            match deserialize_block(&buffer) {
+                Ok(Block::SlotHeader(slot_block)) => {
+                    let status = match slot_block.header.state {
+                        SlotState::Empty => SlotStatus::Empty,
+                        SlotState::Valid => SlotStatus::Valid,
+                        SlotState::Ghost => SlotStatus::Empty, // Treat ghost as empty for now
+                    };
+
+                    // TODO: Deserialize metadata if slot is valid
+                    let metadata = None;
+
+                    self.slot_info.push(SlotInfo {
+                        status,
+                        metadata,
+                        generation: slot_block.header.generation,
+                        first_data_block: slot_block.header.first_data_block,
+                        data_length: slot_block.header.length,
+                        data_crc32: slot_block.header.crc32,
+                    });
+                }
+                _ => {
+                    // Corrupted slot header
+                    self.slot_info.push(SlotInfo {
+                        status: SlotStatus::Corrupted,
+                        metadata: None,
+                        generation: 0,
+                        first_data_block: 0xFFFF,
+                        data_length: 0,
+                        data_crc32: 0,
+                    });
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn read_slot_data<T>(&mut self, _slot: usize) -> Result<T, SaveError<Storage::Error>>
