@@ -12,6 +12,7 @@ members = [
     "agb-hashmap",
     "agb-image-converter",
     "agb-macros",
+    "agb-save",
     "agb-sound-converter",
 
     "tracker/agb-midi",

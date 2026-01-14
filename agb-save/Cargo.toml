@@ -1,0 +1,10 @@
+[package]
+name = "agb-save"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crc16 = "0.4"
+
+[dev-dependencies]
+quickcheck = "1"
