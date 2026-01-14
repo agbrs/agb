@@ -6,7 +6,7 @@ use quickcheck::{Arbitrary, Gen, quickcheck};
 
 use crate::block::{
     Block, BlockLoadError, BlockType, DataBlock, DataBlockHeader, GlobalBlock, GlobalHeader,
-    SlotHeader, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
+    NO_NEXT_BLOCK, SlotHeader, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
 };
 
 const TEST_BLOCK_SIZE: usize = 128;
@@ -37,7 +37,10 @@ impl Arbitrary for SlotHeader {
         Self {
             state: SlotState::arbitrary(g),
             logical_slot_id: u8::arbitrary(g),
-            first_data_block: u16::arbitrary(g),
+            first_data_block: match u16::arbitrary(g) {
+                NO_NEXT_BLOCK => None,
+                v => Some(v),
+            },
             generation: u32::arbitrary(g),
             crc32: u32::arbitrary(g),
             length: u32::arbitrary(g),
@@ -48,7 +51,10 @@ impl Arbitrary for SlotHeader {
 impl Arbitrary for DataBlockHeader {
     fn arbitrary(g: &mut Gen) -> Self {
         Self {
-            next_block: Option::<u16>::arbitrary(g),
+            next_block: match u16::arbitrary(g) {
+                NO_NEXT_BLOCK => None,
+                v => Some(v),
+            },
         }
     }
 }
@@ -203,7 +209,7 @@ quickcheck! {
         }
     }
 
-    fn data_block_roundtrip(next_block: Option<u16>, data: Vec<u8>) -> bool {
+    fn data_block_roundtrip(header: DataBlockHeader, data: Vec<u8>) -> bool {
         let data_size = TEST_BLOCK_SIZE - DataBlock::header_size();
         let mut padded_data = vec![0u8; data_size];
         for (i, &byte) in data.iter().take(data_size).enumerate() {
@@ -211,8 +217,9 @@ quickcheck! {
         }
 
         let mut buffer = [0u8; TEST_BLOCK_SIZE];
+        let next_block = header.next_block;
         let block = Block::Data(DataBlock {
-            header: DataBlockHeader { next_block },
+            header,
             data: &padded_data,
         });
 

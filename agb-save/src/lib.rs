@@ -198,7 +198,7 @@ struct SlotInfo<Metadata> {
     status: SlotStatus,
     metadata: Option<Metadata>,
     generation: u32,
-    first_data_block: u16,
+    first_data_block: Option<u16>,
     data_length: u32,
     data_crc32: u32,
     /// Physical sector where this slot's header is stored
@@ -444,7 +444,7 @@ where
                 status: SlotStatus::Empty,
                 metadata: None,
                 generation: 0,
-                first_data_block: 0xFFFF,
+                first_data_block: None,
                 data_length: 0,
                 data_crc32: 0,
                 header_sector: (slot + 1) as u16,
@@ -477,7 +477,7 @@ where
                 status: SlotStatus::Corrupted,
                 metadata: None,
                 generation: 0,
-                first_data_block: 0xFFFF,
+                first_data_block: None,
                 data_length: 0,
                 data_crc32: 0,
                 header_sector: (slot + 1) as u16,
@@ -487,7 +487,7 @@ where
         // Track ghost headers for potential recovery (one per slot)
         struct GhostRecoveryInfo {
             generation: u32,
-            first_data_block: u16,
+            first_data_block: Option<u16>,
             data_length: u32,
             data_crc32: u32,
             metadata_bytes: Vec<u8>,
@@ -649,11 +649,7 @@ where
             }
 
             // Convert first_data_block (0xFFFF = none) to Option for the loop
-            let mut current_sector = if slot_info.first_data_block == 0xFFFF {
-                None
-            } else {
-                Some(slot_info.first_data_block)
-            };
+            let mut current_sector = slot_info.first_data_block;
 
             while let Some(sector) = current_sector {
                 let sector_idx = sector as usize;
@@ -696,9 +692,9 @@ where
     ///
     /// Returns the index of the first data block, or 0xFFFF if data is empty.
     /// Returns an error if there aren't enough free sectors.
-    fn write_data_blocks(&mut self, data: &[u8]) -> Result<u16, SaveError<Storage::Error>> {
+    fn write_data_blocks(&mut self, data: &[u8]) -> Result<Option<u16>, SaveError<Storage::Error>> {
         if data.is_empty() {
-            return Ok(0xFFFF);
+            return Ok(None);
         }
 
         let sector_size = self.storage.sector_size();
@@ -754,7 +750,7 @@ where
             data_offset += chunk_size;
         }
 
-        Ok(allocated_sectors[0])
+        Ok(Some(allocated_sectors[0]))
     }
 
     fn read_slot_data<T>(&mut self, slot: usize) -> Result<T, SaveError<Storage::Error>>
@@ -767,7 +763,7 @@ where
         let expected_crc32 = slot_info.data_crc32;
 
         // Handle empty data case
-        if first_data_block == 0xFFFF {
+        if first_data_block.is_none() {
             if data_length == 0 {
                 // Try to deserialize empty slice (works for unit type, empty structs, etc.)
                 return postcard::from_bytes(&[]).map_err(|_| SaveError::DeserializationFailed);
@@ -784,11 +780,7 @@ where
 
         // Follow the data block chain
         // Convert first_data_block (0xFFFF = none) to Option for the loop
-        let mut current_block = if first_data_block == 0xFFFF {
-            None
-        } else {
-            Some(first_data_block)
-        };
+        let mut current_block = first_data_block;
         let max_blocks = self.storage.sector_count();
         let mut blocks_read = 0;
 
@@ -931,15 +923,11 @@ where
     /// Traverse a data block chain and return all sectors to the free list.
     fn free_data_chain(
         &mut self,
-        first_block: u16,
+        first_block: Option<u16>,
         buffer: &mut [u8],
     ) -> Result<(), SaveError<Storage::Error>> {
         // Convert first_block (0xFFFF = none) to Option for the loop
-        let mut current_block = if first_block == 0xFFFF {
-            None
-        } else {
-            Some(first_block)
-        };
+        let mut current_block = first_block;
 
         while let Some(block) = current_block {
             // Read the block to find the next one in the chain
@@ -995,7 +983,7 @@ where
             status: SlotStatus::Empty,
             metadata: None,
             generation: new_generation,
-            first_data_block: 0xFFFF,
+            first_data_block: None,
             data_length: 0,
             data_crc32: 0,
             header_sector,

@@ -25,7 +25,7 @@ struct GlobalHeader {
 struct SlotHeader {
     state: SlotState,
     logical_slot_id: u8,
-    first_data_block: u16,
+    first_data_block: Option<u16>,
     generation: u32,
     crc32: u32,
     length: u32,
@@ -112,7 +112,7 @@ impl<'a> SlotHeaderBlock<'a> {
             header: SlotHeader {
                 state: SlotState::Empty,
                 logical_slot_id,
-                first_data_block: 0xFFFF,
+                first_data_block: None,
                 generation,
                 crc32: 0,
                 length: 0,
@@ -126,7 +126,7 @@ impl<'a> SlotHeaderBlock<'a> {
             header: SlotHeader {
                 state: SlotState::Ghost,
                 logical_slot_id,
-                first_data_block: 0xFFFF,
+                first_data_block: None,
                 generation: 0,
                 crc32: 0,
                 length: 0,
@@ -137,7 +137,7 @@ impl<'a> SlotHeaderBlock<'a> {
 
     pub(crate) fn valid(
         logical_slot_id: u8,
-        first_data_block: u16,
+        first_data_block: Option<u16>,
         generation: u32,
         crc32: u32,
         length: u32,
@@ -174,7 +174,7 @@ impl<'a> SlotHeaderBlock<'a> {
         self.header.logical_slot_id
     }
 
-    pub(crate) fn first_data_block(&self) -> u16 {
+    pub(crate) fn first_data_block(&self) -> Option<u16> {
         self.header.first_data_block
     }
 
@@ -251,9 +251,11 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
     // build up the standard header
     buffer[2..4].copy_from_slice(&(block.kind() as u16).to_le_bytes());
     buffer[4..6].copy_from_slice(&match &block {
-        Block::Data(data_block) => {
-            data_block.header.next_block.unwrap_or(NO_NEXT_BLOCK).to_le_bytes()
-        }
+        Block::Data(data_block) => data_block
+            .header
+            .next_block
+            .unwrap_or(NO_NEXT_BLOCK)
+            .to_le_bytes(),
         _ => [0, 0],
     });
     buffer[6..8].copy_from_slice(&[0, 0]);
@@ -268,8 +270,13 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
         Block::SlotHeader(slot_header_block) => {
             buffer[8] = slot_header_block.header.state as u8;
             buffer[9] = slot_header_block.header.logical_slot_id;
-            buffer[10..12]
-                .copy_from_slice(&slot_header_block.header.first_data_block.to_le_bytes());
+            buffer[10..12].copy_from_slice(
+                &slot_header_block
+                    .header
+                    .first_data_block
+                    .unwrap_or(NO_NEXT_BLOCK)
+                    .to_le_bytes(),
+            );
             buffer[12..16].copy_from_slice(&slot_header_block.header.generation.to_le_bytes());
             buffer[16..20].copy_from_slice(&slot_header_block.header.crc32.to_le_bytes());
             buffer[20..24].copy_from_slice(&slot_header_block.header.length.to_le_bytes());
@@ -366,7 +373,11 @@ impl TryFrom<&[u8]> for SlotHeader {
         Ok(Self {
             state: slot_state,
             logical_slot_id,
-            first_data_block,
+            first_data_block: if first_data_block == NO_NEXT_BLOCK {
+                None
+            } else {
+                Some(first_data_block)
+            },
             generation,
             crc32: data_checksum,
             length: data_length,
