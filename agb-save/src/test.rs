@@ -1,6 +1,5 @@
-use crate::sector_storage::MIN_SECTOR_SIZE;
 use crate::test_storage::TestStorage;
-use crate::{SaveSlotManager, SlotStatus};
+use crate::{SaveSlotManager, SlotStatus, MIN_SECTOR_SIZE};
 
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +16,7 @@ fn new_storage_has_empty_slots() {
     let storage = TestStorage::new_sram(4096);
 
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     assert_eq!(manager.num_slots(), 3);
 
@@ -40,7 +39,7 @@ fn corrupted_slot_detected_as_corrupted() {
 
     // Initialize storage with empty slots
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Get the storage back and corrupt slot 1's header (sector 2)
     let mut storage = manager.into_storage();
@@ -52,7 +51,7 @@ fn corrupted_slot_detected_as_corrupted() {
 
     // Re-initialize from corrupted storage
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
 
     // Slot 0 and 2 should still be empty
     assert_eq!(
