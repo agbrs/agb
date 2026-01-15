@@ -905,8 +905,10 @@ where
         let sector_size = self.storage.sector_size();
         let metadata_size = sector_size - SlotHeaderBlock::header_size();
         let mut metadata_bytes = vec![0u8; metadata_size];
-        postcard::to_slice(metadata, &mut metadata_bytes)
+        let serialized_metadata = postcard::to_slice(metadata, &mut metadata_bytes)
             .map_err(SaveError::from_postcard_serialization)?;
+        let metadata_length = serialized_metadata.len() as u32;
+        let metadata_crc32 = calc_crc32(serialized_metadata);
 
         // Increment generation and save old slot info for later cleanup
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
@@ -920,9 +922,12 @@ where
             Block::SlotHeader(SlotHeaderBlock::valid(
                 slot as u8,
                 first_data_block,
+                None, // first_metadata_block - no spillover for now
                 new_generation,
                 data_crc32,
                 data_length,
+                metadata_length,
+                metadata_crc32,
                 &metadata_bytes,
             )),
             &mut buffer,
@@ -941,9 +946,12 @@ where
             let ghost_block = SlotHeaderBlock::valid(
                 old_block.logical_slot_id(),
                 old_block.first_data_block(),
+                old_block.first_metadata_block(),
                 old_block.generation(),
                 old_block.crc32(),
                 old_block.length(),
+                old_block.metadata_length(),
+                old_block.metadata_crc32(),
                 &old_metadata,
             )
             .with_state(SlotState::Ghost);

@@ -26,9 +26,12 @@ struct SlotHeader {
     state: SlotState,
     logical_slot_id: u8,
     first_data_block: Option<u16>,
+    first_metadata_block: Option<u16>,
     generation: u32,
     crc32: u32,
     length: u32,
+    metadata_length: u32,
+    metadata_crc32: u32,
 }
 
 /// Sentinel value for "no next block" in serialized format
@@ -96,7 +99,10 @@ pub struct SlotHeaderBlock<'a> {
 
 impl<'a> SlotHeaderBlock<'a> {
     pub const fn header_size() -> usize {
-        BLOCK_HEADER_SIZE + 16 // 8 + state(1) + logical_id(1) + first_block(2) + generation(4) + crc32(4) + length(4) = 24
+        // 8 (standard header) + state(1) + logical_id(1) + first_data_block(2) +
+        // first_metadata_block(2) + reserved(2) + generation(4) + crc32(4) +
+        // length(4) + metadata_length(4) + metadata_crc32(4) = 36
+        BLOCK_HEADER_SIZE + 28
     }
 
     pub(crate) fn empty(logical_slot_id: u8, metadata: &'a [u8]) -> Self {
@@ -113,9 +119,12 @@ impl<'a> SlotHeaderBlock<'a> {
                 state: SlotState::Empty,
                 logical_slot_id,
                 first_data_block: None,
+                first_metadata_block: None,
                 generation,
                 crc32: 0,
                 length: 0,
+                metadata_length: 0,
+                metadata_crc32: 0,
             },
             metadata,
         }
@@ -127,9 +136,12 @@ impl<'a> SlotHeaderBlock<'a> {
                 state: SlotState::Ghost,
                 logical_slot_id,
                 first_data_block: None,
+                first_metadata_block: None,
                 generation: 0,
                 crc32: 0,
                 length: 0,
+                metadata_length: 0,
+                metadata_crc32: 0,
             },
             metadata,
         }
@@ -138,9 +150,12 @@ impl<'a> SlotHeaderBlock<'a> {
     pub(crate) fn valid(
         logical_slot_id: u8,
         first_data_block: Option<u16>,
+        first_metadata_block: Option<u16>,
         generation: u32,
         crc32: u32,
         length: u32,
+        metadata_length: u32,
+        metadata_crc32: u32,
         metadata: &'a [u8],
     ) -> Self {
         Self {
@@ -148,9 +163,12 @@ impl<'a> SlotHeaderBlock<'a> {
                 state: SlotState::Valid,
                 logical_slot_id,
                 first_data_block,
+                first_metadata_block,
                 generation,
                 crc32,
                 length,
+                metadata_length,
+                metadata_crc32,
             },
             metadata,
         }
@@ -188,6 +206,18 @@ impl<'a> SlotHeaderBlock<'a> {
 
     pub(crate) fn length(&self) -> u32 {
         self.header.length
+    }
+
+    pub(crate) fn first_metadata_block(&self) -> Option<u16> {
+        self.header.first_metadata_block
+    }
+
+    pub(crate) fn metadata_length(&self) -> u32 {
+        self.header.metadata_length
+    }
+
+    pub(crate) fn metadata_crc32(&self) -> u32 {
+        self.header.metadata_crc32
     }
 
     pub(crate) fn metadata(&self) -> &[u8] {
@@ -234,7 +264,7 @@ pub fn deserialize_block(block_data: &[u8]) -> Result<Block<'_>, BlockLoadError>
         }),
         BlockType::Slot => Block::SlotHeader(SlotHeaderBlock {
             header: SlotHeader::try_from(&block_data[8..])?,
-            metadata: &block_data[24..],
+            metadata: &block_data[36..],
         }),
         BlockType::Data => Block::Data(DataBlock {
             header: DataBlockHeader {
@@ -281,10 +311,20 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
                     .unwrap_or(NO_NEXT_BLOCK)
                     .to_le_bytes(),
             );
-            buffer[12..16].copy_from_slice(&slot_header_block.header.generation.to_le_bytes());
-            buffer[16..20].copy_from_slice(&slot_header_block.header.crc32.to_le_bytes());
-            buffer[20..24].copy_from_slice(&slot_header_block.header.length.to_le_bytes());
-            buffer[24..].copy_from_slice(slot_header_block.metadata);
+            buffer[12..14].copy_from_slice(
+                &slot_header_block
+                    .header
+                    .first_metadata_block
+                    .unwrap_or(NO_NEXT_BLOCK)
+                    .to_le_bytes(),
+            );
+            buffer[14..16].copy_from_slice(&[0, 0]); // reserved
+            buffer[16..20].copy_from_slice(&slot_header_block.header.generation.to_le_bytes());
+            buffer[20..24].copy_from_slice(&slot_header_block.header.crc32.to_le_bytes());
+            buffer[24..28].copy_from_slice(&slot_header_block.header.length.to_le_bytes());
+            buffer[28..32].copy_from_slice(&slot_header_block.header.metadata_length.to_le_bytes());
+            buffer[32..36].copy_from_slice(&slot_header_block.header.metadata_crc32.to_le_bytes());
+            buffer[36..].copy_from_slice(slot_header_block.metadata);
         }
         Block::Data(data_block) => {
             buffer[8..].copy_from_slice(data_block.data);
@@ -363,16 +403,20 @@ impl TryFrom<&[u8]> for SlotHeader {
     type Error = BlockLoadError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() < 16 {
+        if value.len() < 28 {
             return Err(BlockLoadError::InvalidData);
         }
 
         let slot_state = SlotState::try_from(value[0])?;
         let logical_slot_id = value[1];
         let first_data_block = u16::from_le_bytes(value[2..4].try_into().unwrap());
-        let generation = u32::from_le_bytes(value[4..8].try_into().unwrap());
-        let data_checksum = u32::from_le_bytes(value[8..12].try_into().unwrap());
-        let data_length = u32::from_le_bytes(value[12..16].try_into().unwrap());
+        let first_metadata_block = u16::from_le_bytes(value[4..6].try_into().unwrap());
+        // bytes 6-7 are reserved
+        let generation = u32::from_le_bytes(value[8..12].try_into().unwrap());
+        let data_checksum = u32::from_le_bytes(value[12..16].try_into().unwrap());
+        let data_length = u32::from_le_bytes(value[16..20].try_into().unwrap());
+        let metadata_length = u32::from_le_bytes(value[20..24].try_into().unwrap());
+        let metadata_crc32 = u32::from_le_bytes(value[24..28].try_into().unwrap());
 
         Ok(Self {
             state: slot_state,
@@ -382,9 +426,16 @@ impl TryFrom<&[u8]> for SlotHeader {
             } else {
                 Some(first_data_block)
             },
+            first_metadata_block: if first_metadata_block == NO_NEXT_BLOCK {
+                None
+            } else {
+                Some(first_metadata_block)
+            },
             generation,
             crc32: data_checksum,
             length: data_length,
+            metadata_length,
+            metadata_crc32,
         })
     }
 }

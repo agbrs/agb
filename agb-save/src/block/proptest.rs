@@ -41,9 +41,15 @@ impl Arbitrary for SlotHeader {
                 NO_NEXT_BLOCK => None,
                 v => Some(v),
             },
+            first_metadata_block: match u16::arbitrary(g) {
+                NO_NEXT_BLOCK => None,
+                v => Some(v),
+            },
             generation: u32::arbitrary(g),
             crc32: u32::arbitrary(g),
             length: u32::arbitrary(g),
+            metadata_length: u32::arbitrary(g),
+            metadata_crc32: u32::arbitrary(g),
         }
     }
 }
