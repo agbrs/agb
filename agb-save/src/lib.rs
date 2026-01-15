@@ -529,6 +529,8 @@ where
             data_length: u32,
             data_crc32: u32,
             metadata_bytes: Vec<u8>,
+            metadata_length: u32,
+            metadata_crc32: u32,
             physical_sector: u16,
         }
         let mut ghost_recovery: Vec<Option<GhostRecoveryInfo>> =
@@ -560,6 +562,8 @@ where
                             data_length: slot_block.length(),
                             data_crc32: slot_block.crc32(),
                             metadata_bytes: slot_block.metadata().to_vec(),
+                            metadata_length: slot_block.metadata_length(),
+                            metadata_crc32: slot_block.metadata_crc32(),
                             physical_sector,
                         });
                     }
@@ -582,10 +586,23 @@ where
                     let (status, metadata) = match slot_block.state() {
                         SlotState::Empty => (SlotStatus::Empty, None),
                         SlotState::Valid => {
-                            // Deserialize metadata - if it fails, slot is corrupted
-                            match postcard::from_bytes(slot_block.metadata()) {
-                                Ok(m) => (SlotStatus::Valid, Some(m)),
-                                Err(_) => (SlotStatus::Corrupted, None),
+                            // Verify metadata CRC before deserializing
+                            let metadata_len = slot_block.metadata_length() as usize;
+                            let metadata_bytes = slot_block.metadata();
+                            if metadata_len > metadata_bytes.len() {
+                                (SlotStatus::Corrupted, None)
+                            } else {
+                                let metadata_slice = &metadata_bytes[..metadata_len];
+                                let actual_crc = calc_crc32(metadata_slice);
+                                if actual_crc != slot_block.metadata_crc32() {
+                                    (SlotStatus::Corrupted, None)
+                                } else {
+                                    // CRC valid, now deserialize
+                                    match postcard::from_bytes(metadata_slice) {
+                                        Ok(m) => (SlotStatus::Valid, Some(m)),
+                                        Err(_) => (SlotStatus::Corrupted, None),
+                                    }
+                                }
                             }
                         }
                         SlotState::Ghost => unreachable!(), // Handled above
@@ -614,17 +631,25 @@ where
             {
                 // Only recover if ghost is at least as recent as the corrupted data
                 if ghost.generation >= self.slot_info[slot].generation {
-                    // Try to deserialize the ghost's metadata
-                    if let Ok(metadata) = postcard::from_bytes(&ghost.metadata_bytes) {
-                        // Recover from ghost - treat it as valid
-                        self.slot_info[slot] = SlotInfo::valid(
-                            metadata,
-                            ghost.generation,
-                            ghost.first_data_block,
-                            ghost.data_length,
-                            ghost.data_crc32,
-                            ghost.physical_sector,
-                        );
+                    // Verify metadata CRC before deserializing
+                    let metadata_len = ghost.metadata_length as usize;
+                    if metadata_len <= ghost.metadata_bytes.len() {
+                        let metadata_slice = &ghost.metadata_bytes[..metadata_len];
+                        let actual_crc = calc_crc32(metadata_slice);
+                        if actual_crc == ghost.metadata_crc32 {
+                            // CRC valid, try to deserialize the ghost's metadata
+                            if let Ok(metadata) = postcard::from_bytes(metadata_slice) {
+                                // Recover from ghost - treat it as valid
+                                self.slot_info[slot] = SlotInfo::valid(
+                                    metadata,
+                                    ghost.generation,
+                                    ghost.first_data_block,
+                                    ghost.data_length,
+                                    ghost.data_crc32,
+                                    ghost.physical_sector,
+                                );
+                            }
+                        }
                     }
                 }
             }
