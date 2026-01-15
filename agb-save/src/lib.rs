@@ -652,8 +652,7 @@ where
         let existing = &self.slot_info[logical_id];
 
         // Only update if this is a newer generation or the existing slot is corrupted
-        if existing.status == SlotStatus::Corrupted
-            || slot_block.generation() > existing.generation
+        if existing.status == SlotStatus::Corrupted || slot_block.generation() > existing.generation
         {
             let (status, metadata) = match slot_block.state() {
                 SlotState::Empty => (SlotStatus::Empty, None),
@@ -698,25 +697,29 @@ where
             if self.slot_info[slot].status == SlotStatus::Corrupted
                 && let Some(ghost) = ghost_info
             {
-                if ghost.generation >= self.slot_info[slot].generation {
-                    let metadata_len = ghost.metadata_length as usize;
-                    if metadata_len <= ghost.metadata_bytes.len() {
-                        let metadata_slice = &ghost.metadata_bytes[..metadata_len];
-                        if let Ok(metadata) = verify_and_deserialize_data(
-                            metadata_slice,
-                            ghost.metadata_length,
-                            ghost.metadata_crc32,
-                        ) {
-                            self.slot_info[slot] = SlotInfo::valid(
-                                metadata,
-                                ghost.generation,
-                                ghost.first_data_block,
-                                ghost.data_length,
-                                ghost.data_crc32,
-                                ghost.physical_sector,
-                            );
-                        }
-                    }
+                if ghost.generation < self.slot_info[slot].generation {
+                    continue;
+                }
+
+                let metadata_len = ghost.metadata_length as usize;
+                if metadata_len > ghost.metadata_bytes.len() {
+                    continue;
+                }
+
+                let metadata_slice = &ghost.metadata_bytes[..metadata_len];
+                if let Ok(metadata) = verify_and_deserialize_data(
+                    metadata_slice,
+                    ghost.metadata_length,
+                    ghost.metadata_crc32,
+                ) {
+                    self.slot_info[slot] = SlotInfo::valid(
+                        metadata,
+                        ghost.generation,
+                        ghost.first_data_block,
+                        ghost.data_length,
+                        ghost.data_crc32,
+                        ghost.physical_sector,
+                    );
                 }
             }
         }
