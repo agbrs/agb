@@ -312,6 +312,18 @@ impl<Metadata> SlotInfo<Metadata> {
     }
 }
 
+/// Information stored from a ghost header for potential slot recovery.
+struct GhostRecoveryInfo {
+    generation: u32,
+    first_data_block: Option<u16>,
+    data_length: u32,
+    data_crc32: u32,
+    metadata_bytes: Vec<u8>,
+    metadata_length: u32,
+    metadata_crc32: u32,
+    physical_sector: u16,
+}
+
 impl<Storage, Metadata> SaveSlotManager<Storage, Metadata>
 where
     Storage: StorageMedium,
@@ -558,35 +570,36 @@ where
     }
 
     fn load_slot_headers(&mut self) -> Result<(), SaveError<Storage::Error>> {
-        let sector_size = self.storage.sector_size();
-        let mut buffer = vec![0u8; sector_size];
+        self.initialize_slots_as_corrupted();
+        let ghost_recovery = self.scan_slot_headers()?;
+        self.recover_from_ghosts(ghost_recovery);
+        self.ghost_sector = self.find_unused_header_sector();
+        self.build_free_sector_list()
+    }
 
-        // Pre-initialize all slots as corrupted (will be filled in as we find valid headers)
+    /// Pre-initialize all slots as corrupted.
+    fn initialize_slots_as_corrupted(&mut self) {
         self.slot_info.clear();
         for slot in 0..self.num_slots {
             self.slot_info.push(SlotInfo::corrupted((slot + 1) as u16));
         }
+    }
 
-        // Track ghost headers for potential recovery (one per slot)
-        struct GhostRecoveryInfo {
-            generation: u32,
-            first_data_block: Option<u16>,
-            data_length: u32,
-            data_crc32: u32,
-            metadata_bytes: Vec<u8>,
-            metadata_length: u32,
-            metadata_crc32: u32,
-            physical_sector: u16,
-        }
+    /// Scan slot header sectors and populate slot_info.
+    ///
+    /// Returns ghost recovery info for potential slot recovery.
+    fn scan_slot_headers(
+        &mut self,
+    ) -> Result<Vec<Option<GhostRecoveryInfo>>, SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
         let mut ghost_recovery: Vec<Option<GhostRecoveryInfo>> =
             (0..self.num_slots).map(|_| None).collect();
 
-        // Track which sector is the ghost (Free block, GHOST state, or invalid)
-        // Default to the last physical slot sector
+        // Default ghost sector to the last physical slot sector
         self.ghost_sector = (self.num_slots + 1) as u16;
 
-        // Scan slot header sectors and populate slot_info based on logical_slot_id
-        // We scan num_slots + 1 sectors (sectors 1 through num_slots+1 inclusive)
+        // Scan num_slots + 1 sectors (sectors 1 through num_slots+1 inclusive)
         let num_slot_header_sectors = self.num_slots + 1;
         for sector in 0..num_slot_header_sectors {
             let physical_sector = (sector + 1) as u16;
@@ -594,84 +607,97 @@ where
                 .read_sector(physical_sector as usize, &mut buffer)?;
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
-                // Handle GHOST state - track for potential recovery
-                if slot_block.state() == SlotState::Ghost {
-                    self.ghost_sector = physical_sector;
-
-                    let logical_id = slot_block.logical_slot_id() as usize;
-                    if logical_id < self.num_slots {
-                        // Store ghost info for potential recovery
-                        ghost_recovery[logical_id] = Some(GhostRecoveryInfo {
-                            generation: slot_block.generation(),
-                            first_data_block: slot_block.first_data_block(),
-                            data_length: slot_block.length(),
-                            data_crc32: slot_block.crc32(),
-                            metadata_bytes: slot_block.metadata().to_vec(),
-                            metadata_length: slot_block.metadata_length(),
-                            metadata_crc32: slot_block.metadata_crc32(),
-                            physical_sector,
-                        });
-                    }
-                    continue;
-                }
-
-                let logical_id = slot_block.logical_slot_id() as usize;
-
-                // Skip if logical_id is out of bounds
-                if logical_id >= self.num_slots {
-                    continue;
-                }
-
-                let existing = &self.slot_info[logical_id];
-
-                // Only update if this is a newer generation or the existing slot is corrupted
-                if existing.status == SlotStatus::Corrupted
-                    || slot_block.generation() > existing.generation
-                {
-                    let (status, metadata) = match slot_block.state() {
-                        SlotState::Empty => (SlotStatus::Empty, None),
-                        SlotState::Valid => {
-                            let metadata_len = slot_block.metadata_length();
-                            let metadata_bytes = slot_block.metadata();
-                            if (metadata_len as usize) > metadata_bytes.len() {
-                                (SlotStatus::Corrupted, None)
-                            } else {
-                                let metadata_slice = &metadata_bytes[..metadata_len as usize];
-                                match verify_and_deserialize_data(
-                                    metadata_slice,
-                                    metadata_len,
-                                    slot_block.metadata_crc32(),
-                                ) {
-                                    Ok(m) => (SlotStatus::Valid, Some(m)),
-                                    Err(_) => (SlotStatus::Corrupted, None),
-                                }
-                            }
-                        }
-                        SlotState::Ghost => unreachable!(), // Handled above
-                    };
-
-                    self.slot_info[logical_id] = SlotInfo {
-                        status,
-                        metadata,
-                        generation: slot_block.generation(),
-                        first_data_block: slot_block.first_data_block(),
-                        data_length: slot_block.length(),
-                        data_crc32: slot_block.crc32(),
-                        header_sector: physical_sector,
-                    };
-                }
+                self.process_slot_block(&slot_block, physical_sector, &mut ghost_recovery);
             }
-            // If deserialization fails, we leave the slot as Corrupted (already initialized)
+            // If deserialization fails, slot remains Corrupted (already initialized)
         }
 
-        // Try to recover corrupted slots from ghost headers
-        // Only recover if ghost has a generation >= the corrupted slot's generation
-        // (prevents recovering from an older ghost when new data is corrupted)
+        Ok(ghost_recovery)
+    }
+
+    /// Process a single slot header block during scanning.
+    fn process_slot_block(
+        &mut self,
+        slot_block: &SlotHeaderBlock,
+        physical_sector: u16,
+        ghost_recovery: &mut [Option<GhostRecoveryInfo>],
+    ) {
+        // Handle GHOST state - track for potential recovery
+        if slot_block.state() == SlotState::Ghost {
+            self.ghost_sector = physical_sector;
+
+            let logical_id = slot_block.logical_slot_id() as usize;
+            if logical_id < self.num_slots {
+                ghost_recovery[logical_id] = Some(GhostRecoveryInfo {
+                    generation: slot_block.generation(),
+                    first_data_block: slot_block.first_data_block(),
+                    data_length: slot_block.length(),
+                    data_crc32: slot_block.crc32(),
+                    metadata_bytes: slot_block.metadata().to_vec(),
+                    metadata_length: slot_block.metadata_length(),
+                    metadata_crc32: slot_block.metadata_crc32(),
+                    physical_sector,
+                });
+            }
+            return;
+        }
+
+        let logical_id = slot_block.logical_slot_id() as usize;
+
+        // Skip if logical_id is out of bounds
+        if logical_id >= self.num_slots {
+            return;
+        }
+
+        let existing = &self.slot_info[logical_id];
+
+        // Only update if this is a newer generation or the existing slot is corrupted
+        if existing.status == SlotStatus::Corrupted
+            || slot_block.generation() > existing.generation
+        {
+            let (status, metadata) = match slot_block.state() {
+                SlotState::Empty => (SlotStatus::Empty, None),
+                SlotState::Valid => {
+                    let metadata_len = slot_block.metadata_length();
+                    let metadata_bytes = slot_block.metadata();
+                    if (metadata_len as usize) > metadata_bytes.len() {
+                        (SlotStatus::Corrupted, None)
+                    } else {
+                        let metadata_slice = &metadata_bytes[..metadata_len as usize];
+                        match verify_and_deserialize_data(
+                            metadata_slice,
+                            metadata_len,
+                            slot_block.metadata_crc32(),
+                        ) {
+                            Ok(m) => (SlotStatus::Valid, Some(m)),
+                            Err(_) => (SlotStatus::Corrupted, None),
+                        }
+                    }
+                }
+                SlotState::Ghost => unreachable!(), // Handled above
+            };
+
+            self.slot_info[logical_id] = SlotInfo {
+                status,
+                metadata,
+                generation: slot_block.generation(),
+                first_data_block: slot_block.first_data_block(),
+                data_length: slot_block.length(),
+                data_crc32: slot_block.crc32(),
+                header_sector: physical_sector,
+            };
+        }
+    }
+
+    /// Try to recover corrupted slots from ghost headers.
+    ///
+    /// Only recovers if ghost has a generation >= the corrupted slot's generation
+    /// (prevents recovering from an older ghost when new data is corrupted).
+    fn recover_from_ghosts(&mut self, ghost_recovery: Vec<Option<GhostRecoveryInfo>>) {
         for (slot, ghost_info) in ghost_recovery.into_iter().enumerate() {
             if self.slot_info[slot].status == SlotStatus::Corrupted
                 && let Some(ghost) = ghost_info
             {
-                // Only recover if ghost is at least as recent as the corrupted data
                 if ghost.generation >= self.slot_info[slot].generation {
                     let metadata_len = ghost.metadata_length as usize;
                     if metadata_len <= ghost.metadata_bytes.len() {
@@ -681,7 +707,6 @@ where
                             ghost.metadata_length,
                             ghost.metadata_crc32,
                         ) {
-                            // Recover from ghost - treat it as valid
                             self.slot_info[slot] = SlotInfo::valid(
                                 metadata,
                                 ghost.generation,
@@ -695,24 +720,27 @@ where
                 }
             }
         }
+    }
 
-        // Ensure ghost_sector is a physical slot sector NOT used by any active slot.
-        // After crashes, both physical sectors might be Valid (no Ghost state found),
-        // so we must explicitly pick the unused one as ghost.
+    /// Find an unused header sector to use as the ghost sector.
+    ///
+    /// After crashes, both physical sectors might be Valid (no Ghost state found),
+    /// so we must explicitly pick the unused one as ghost.
+    fn find_unused_header_sector(&self) -> u16 {
         let used_header_sectors: Vec<u16> = self
             .slot_info
             .iter()
             .map(|info| info.header_sector)
             .collect();
+
         for sector in 1..=(self.num_slots + 1) as u16 {
             if !used_header_sectors.contains(&sector) {
-                self.ghost_sector = sector;
-                break;
+                return sector;
             }
         }
 
-        // Build free sector list (marks corrupted slots as needed)
-        self.build_free_sector_list()
+        // Fallback to last sector (shouldn't happen in normal operation)
+        (self.num_slots + 1) as u16
     }
 
     /// Build the free sector list by scanning data chains from valid slots.
