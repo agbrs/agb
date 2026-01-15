@@ -261,6 +261,7 @@ struct SlotInfo<Metadata> {
     metadata: Option<Metadata>,
     generation: u32,
     first_data_block: Option<u16>,
+    first_metadata_block: Option<u16>,
     data_length: u32,
     data_crc32: u32,
     /// Physical sector where this slot's header is stored
@@ -274,6 +275,7 @@ impl<Metadata> SlotInfo<Metadata> {
             metadata: None,
             generation,
             first_data_block: None,
+            first_metadata_block: None,
             data_length: 0,
             data_crc32: 0,
             header_sector,
@@ -286,6 +288,7 @@ impl<Metadata> SlotInfo<Metadata> {
             metadata: None,
             generation: 0,
             first_data_block: None,
+            first_metadata_block: None,
             data_length: 0,
             data_crc32: 0,
             header_sector,
@@ -296,6 +299,7 @@ impl<Metadata> SlotInfo<Metadata> {
         metadata: Metadata,
         generation: u32,
         first_data_block: Option<u16>,
+        first_metadata_block: Option<u16>,
         data_length: u32,
         data_crc32: u32,
         header_sector: u16,
@@ -305,6 +309,7 @@ impl<Metadata> SlotInfo<Metadata> {
             metadata: Some(metadata),
             generation,
             first_data_block,
+            first_metadata_block,
             data_length,
             data_crc32,
             header_sector,
@@ -316,6 +321,7 @@ impl<Metadata> SlotInfo<Metadata> {
 struct GhostRecoveryInfo {
     generation: u32,
     first_data_block: Option<u16>,
+    first_metadata_block: Option<u16>,
     data_length: u32,
     data_crc32: u32,
     metadata_bytes: Vec<u8>,
@@ -631,6 +637,7 @@ where
                 ghost_recovery[logical_id] = Some(GhostRecoveryInfo {
                     generation: slot_block.generation(),
                     first_data_block: slot_block.first_data_block(),
+                    first_metadata_block: slot_block.first_metadata_block(),
                     data_length: slot_block.length(),
                     data_crc32: slot_block.crc32(),
                     metadata_bytes: slot_block.metadata().to_vec(),
@@ -681,6 +688,7 @@ where
                 metadata,
                 generation: slot_block.generation(),
                 first_data_block: slot_block.first_data_block(),
+                first_metadata_block: slot_block.first_metadata_block(),
                 data_length: slot_block.length(),
                 data_crc32: slot_block.crc32(),
                 header_sector: physical_sector,
@@ -716,6 +724,7 @@ where
                         metadata,
                         ghost.generation,
                         ghost.first_data_block,
+                        ghost.first_metadata_block,
                         ghost.data_length,
                         ghost.data_crc32,
                         ghost.physical_sector,
@@ -746,9 +755,9 @@ where
         (self.num_slots + 1) as u16
     }
 
-    /// Build the free sector list by scanning data chains from valid slots.
+    /// Build the free sector list by scanning data and metadata chains from valid slots.
     ///
-    /// If a slot's data chain is corrupted (invalid reference, loop, or bad block),
+    /// If a slot's data or metadata chain is corrupted (invalid reference, loop, or bad block),
     /// that slot is marked as corrupted and its sectors are added to the free list.
     fn build_free_sector_list(&mut self) -> Result<(), SaveError<Storage::Error>> {
         self.free_sector_list.clear();
@@ -769,17 +778,29 @@ where
                 continue;
             }
 
-            match self.collect_chain_sectors(slot_info.first_data_block)? {
-                Some(slot_sectors) => {
-                    // Chain is valid - mark its sectors as used
-                    for sector_idx in slot_sectors {
-                        used_sectors[sector_idx] = true;
-                    }
-                }
-                None => {
-                    // Chain is corrupted - mark slot as corrupted
-                    self.slot_info[slot_index].status = SlotStatus::Corrupted;
-                }
+            // Extract values before mutable borrow
+            let first_data_block = slot_info.first_data_block;
+            let first_metadata_block = slot_info.first_metadata_block;
+
+            // Collect data chain sectors
+            let Some(data_sectors) = self.collect_chain_sectors(first_data_block)? else {
+                self.slot_info[slot_index].status = SlotStatus::Corrupted;
+                continue;
+            };
+
+            // Collect metadata chain sectors
+            let Some(metadata_sectors) = self.collect_chain_sectors(first_metadata_block)? else {
+                self.slot_info[slot_index].status = SlotStatus::Corrupted;
+                continue;
+            };
+
+            // Both chains valid - mark sectors as used
+            for sector_idx in data_sectors {
+                used_sectors[sector_idx] = true;
+            }
+
+            for sector_idx in metadata_sectors {
+                used_sectors[sector_idx] = true;
             }
         }
 
@@ -1069,6 +1090,7 @@ where
             metadata.clone(),
             new_generation,
             first_data_block,
+            None, // first_metadata_block - no spillover for now
             data_length,
             data_crc32,
             new_header_sector,
