@@ -792,6 +792,57 @@ where
         Ok(Some(allocated_sectors[0]))
     }
 
+    /// Reads data from a chain of data blocks, appending to the provided buffer.
+    ///
+    /// Follows the block chain starting from `start_block`, reading up to `size` bytes
+    /// total (including any data already in the buffer). Stops when either there's no
+    /// next block or the target size has been reached.
+    fn read_block_chain(
+        &mut self,
+        start_block: Option<u16>,
+        data: &mut Vec<u8>,
+        size: usize,
+    ) -> Result<(), SaveError<Storage::Error>> {
+        let sector_size = self.storage.sector_size();
+        let payload_size = sector_size - DataBlock::header_size();
+        let mut buffer = vec![0u8; sector_size];
+
+        let mut current_block = start_block;
+        let max_blocks = self.storage.sector_count();
+        let mut blocks_read = 0;
+
+        while let Some(block) = current_block {
+            // Check if we've read enough
+            if data.len() >= size {
+                break;
+            }
+
+            // Prevent infinite loops
+            blocks_read += 1;
+            if blocks_read > max_blocks {
+                return Err(SaveError::SlotCorrupted);
+            }
+
+            // Read the block
+            self.storage.read_sector(block as usize, &mut buffer)?;
+
+            // Deserialize and extract data
+            match deserialize_block(&buffer) {
+                Ok(Block::Data(data_block)) => {
+                    // Append payload (up to what we need)
+                    let remaining = size.saturating_sub(data.len());
+                    let to_copy = remaining.min(payload_size);
+                    data.extend_from_slice(&data_block.data[..to_copy]);
+
+                    current_block = data_block.next_block();
+                }
+                _ => return Err(SaveError::SlotCorrupted),
+            }
+        }
+
+        Ok(())
+    }
+
     fn read_slot_data<T>(&mut self, slot: usize) -> Result<T, SaveError<Storage::Error>>
     where
         T: serde::de::DeserializeOwned,
@@ -812,40 +863,8 @@ where
             }
         }
 
-        let sector_size = self.storage.sector_size();
-        let payload_size = sector_size - DataBlock::header_size();
-        let mut buffer = vec![0u8; sector_size];
         let mut data = Vec::with_capacity(data_length);
-
-        // Follow the data block chain
-        // Convert first_data_block (0xFFFF = none) to Option for the loop
-        let mut current_block = first_data_block;
-        let max_blocks = self.storage.sector_count();
-        let mut blocks_read = 0;
-
-        while let Some(block) = current_block {
-            // Prevent infinite loops
-            blocks_read += 1;
-            if blocks_read > max_blocks {
-                return Err(SaveError::SlotCorrupted);
-            }
-
-            // Read the block
-            self.storage.read_sector(block as usize, &mut buffer)?;
-
-            // Deserialize and extract data
-            match deserialize_block(&buffer) {
-                Ok(Block::Data(data_block)) => {
-                    // Append payload (up to what we need)
-                    let remaining = data_length.saturating_sub(data.len());
-                    let to_copy = remaining.min(payload_size);
-                    data.extend_from_slice(&data_block.data[..to_copy]);
-
-                    current_block = data_block.next_block();
-                }
-                _ => return Err(SaveError::SlotCorrupted),
-            }
-        }
+        self.read_block_chain(first_data_block, &mut data, data_length)?;
 
         // Verify we got enough data
         if data.len() != data_length {
