@@ -1999,3 +1999,130 @@ fn corrupted_data_chain_marks_slot_corrupted_but_other_slots_valid() {
     // Slot 2 should be empty
     assert!(matches!(manager.slot(2), Slot::Empty));
 }
+
+// ============================================================================
+// Metadata spillover tests
+// ============================================================================
+
+#[test]
+fn metadata_spillover_write_and_read() {
+    // Use minimum sector size (128 bytes) so inline metadata is only 92 bytes
+    let storage = TestStorage::new_sram(8192); // Enough space for spillover blocks
+
+    let mut manager: SaveSlotManager<_, Vec<u8>> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Create metadata larger than 92 bytes (inline capacity for 128-byte sectors)
+    let inline_capacity = MIN_SECTOR_SIZE - 36; // 92 bytes
+    let metadata: Vec<u8> = (0..150).collect(); // 150 bytes > 92 bytes
+
+    // Verify serialized size exceeds inline capacity
+    let serialized = postcard::to_allocvec(&metadata).unwrap();
+    assert!(
+        serialized.len() > inline_capacity,
+        "Test metadata ({} bytes serialized) should exceed inline capacity ({} bytes)",
+        serialized.len(),
+        inline_capacity
+    );
+
+    // Write should succeed with spillover
+    manager.write(0, &(), &metadata).unwrap();
+
+    // Slot should be valid
+    assert!(
+        matches!(manager.slot(0), Slot::Valid(_)),
+        "Expected Slot::Valid, got {:?}",
+        manager.slot(0)
+    );
+
+    // Metadata should be readable
+    let read_metadata = manager.metadata(0).expect("metadata should be present");
+    assert_eq!(read_metadata, &metadata);
+}
+
+#[test]
+fn metadata_spillover_persists_across_reinit() {
+    let storage = TestStorage::new_sram(8192);
+
+    let metadata: Vec<u8> = (0..200).collect();
+
+    // Write large metadata
+    let manager: SaveSlotManager<_, Vec<u8>> = {
+        let mut manager =
+            SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        manager.write(0, &(), &metadata).unwrap();
+        manager
+    };
+
+    // Get storage and reinitialize
+    let storage = manager.into_storage();
+    let manager: SaveSlotManager<_, Vec<u8>> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    // Metadata should still be valid after reinit
+    match manager.slot(0) {
+        Slot::Valid(read_metadata) => {
+            assert_eq!(read_metadata, &metadata);
+        }
+        other => panic!("Expected Slot::Valid, got {:?}", other),
+    }
+}
+
+#[test]
+fn metadata_spillover_multiple_slots() {
+    let storage = TestStorage::new_sram(16384); // More space for multiple spillovers
+
+    let mut manager: SaveSlotManager<_, Vec<u8>> =
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata0: Vec<u8> = (0..150).collect();
+    let metadata1: Vec<u8> = (50..250).collect();
+    let metadata2: Vec<u8> = (100..300).map(|x| x as u8).collect();
+
+    manager.write(0, &(), &metadata0).unwrap();
+    manager.write(1, &(), &metadata1).unwrap();
+    manager.write(2, &(), &metadata2).unwrap();
+
+    // All slots should be valid with correct metadata
+    assert_eq!(manager.metadata(0), Some(&metadata0));
+    assert_eq!(manager.metadata(1), Some(&metadata1));
+    assert_eq!(manager.metadata(2), Some(&metadata2));
+}
+
+#[test]
+fn metadata_spillover_overwrite() {
+    let storage = TestStorage::new_sram(8192);
+
+    let mut manager: SaveSlotManager<_, Vec<u8>> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata1: Vec<u8> = (0..150).collect();
+    let metadata2: Vec<u8> = (100..300).map(|x| x as u8).collect();
+
+    // Write first version
+    manager.write(0, &(), &metadata1).unwrap();
+    assert_eq!(manager.metadata(0), Some(&metadata1));
+
+    // Overwrite with new metadata
+    manager.write(0, &(), &metadata2).unwrap();
+    assert_eq!(manager.metadata(0), Some(&metadata2));
+}
+
+#[test]
+fn metadata_spillover_with_data() {
+    let storage = TestStorage::new_sram(16384);
+
+    let mut manager: SaveSlotManager<_, Vec<u8>> =
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+
+    let metadata: Vec<u8> = (0..200).collect();
+    let save_data: Vec<u8> = (0..500).map(|i| (i % 256) as u8).collect();
+
+    // Write both large metadata and data
+    manager.write(0, &save_data, &metadata).unwrap();
+
+    // Both should be readable
+    assert_eq!(manager.metadata(0), Some(&metadata));
+    let read_data: Vec<u8> = manager.read(0).unwrap();
+    assert_eq!(read_data, save_data);
+}
