@@ -170,6 +170,51 @@ impl<StorageError> SaveError<StorageError> {
     fn from_postcard_serialization(e: postcard::Error) -> Self {
         Self::Serialization(SerializationError(e))
     }
+
+    fn from_data_verify_error(e: DataVerifyError) -> Self {
+        match e {
+            DataVerifyError::Deserialization(e) => Self::Serialization(SerializationError(e)),
+            DataVerifyError::LengthMismatch | DataVerifyError::CrcMismatch => Self::SlotCorrupted,
+        }
+    }
+}
+
+/// Errors that can occur when verifying and deserializing data.
+#[derive(Debug)]
+enum DataVerifyError {
+    /// The data length doesn't match the expected length.
+    LengthMismatch,
+    /// The CRC32 checksum doesn't match.
+    CrcMismatch,
+    /// Deserialization failed.
+    Deserialization(postcard::Error),
+}
+
+/// Verify data CRC32 and deserialize if valid.
+///
+/// Checks that:
+/// 1. The data slice has exactly `expected_length` bytes
+/// 2. The CRC32 of the data matches `expected_crc32`
+/// 3. The data can be deserialized into type T
+fn verify_and_deserialize_data<T>(
+    data: &[u8],
+    expected_length: u32,
+    expected_crc32: u32,
+) -> Result<T, DataVerifyError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let expected_len = expected_length as usize;
+    if data.len() != expected_len {
+        return Err(DataVerifyError::LengthMismatch);
+    }
+
+    let actual_crc = calc_crc32(data);
+    if actual_crc != expected_crc32 {
+        return Err(DataVerifyError::CrcMismatch);
+    }
+
+    postcard::from_bytes(data).map_err(DataVerifyError::Deserialization)
 }
 
 impl<T> From<T> for SaveError<T> {
@@ -586,22 +631,19 @@ where
                     let (status, metadata) = match slot_block.state() {
                         SlotState::Empty => (SlotStatus::Empty, None),
                         SlotState::Valid => {
-                            // Verify metadata CRC before deserializing
-                            let metadata_len = slot_block.metadata_length() as usize;
+                            let metadata_len = slot_block.metadata_length();
                             let metadata_bytes = slot_block.metadata();
-                            if metadata_len > metadata_bytes.len() {
+                            if (metadata_len as usize) > metadata_bytes.len() {
                                 (SlotStatus::Corrupted, None)
                             } else {
-                                let metadata_slice = &metadata_bytes[..metadata_len];
-                                let actual_crc = calc_crc32(metadata_slice);
-                                if actual_crc != slot_block.metadata_crc32() {
-                                    (SlotStatus::Corrupted, None)
-                                } else {
-                                    // CRC valid, now deserialize
-                                    match postcard::from_bytes(metadata_slice) {
-                                        Ok(m) => (SlotStatus::Valid, Some(m)),
-                                        Err(_) => (SlotStatus::Corrupted, None),
-                                    }
+                                let metadata_slice = &metadata_bytes[..metadata_len as usize];
+                                match verify_and_deserialize_data(
+                                    metadata_slice,
+                                    metadata_len,
+                                    slot_block.metadata_crc32(),
+                                ) {
+                                    Ok(m) => (SlotStatus::Valid, Some(m)),
+                                    Err(_) => (SlotStatus::Corrupted, None),
                                 }
                             }
                         }
@@ -631,24 +673,23 @@ where
             {
                 // Only recover if ghost is at least as recent as the corrupted data
                 if ghost.generation >= self.slot_info[slot].generation {
-                    // Verify metadata CRC before deserializing
                     let metadata_len = ghost.metadata_length as usize;
                     if metadata_len <= ghost.metadata_bytes.len() {
                         let metadata_slice = &ghost.metadata_bytes[..metadata_len];
-                        let actual_crc = calc_crc32(metadata_slice);
-                        if actual_crc == ghost.metadata_crc32 {
-                            // CRC valid, try to deserialize the ghost's metadata
-                            if let Ok(metadata) = postcard::from_bytes(metadata_slice) {
-                                // Recover from ghost - treat it as valid
-                                self.slot_info[slot] = SlotInfo::valid(
-                                    metadata,
-                                    ghost.generation,
-                                    ghost.first_data_block,
-                                    ghost.data_length,
-                                    ghost.data_crc32,
-                                    ghost.physical_sector,
-                                );
-                            }
+                        if let Ok(metadata) = verify_and_deserialize_data(
+                            metadata_slice,
+                            ghost.metadata_length,
+                            ghost.metadata_crc32,
+                        ) {
+                            // Recover from ghost - treat it as valid
+                            self.slot_info[slot] = SlotInfo::valid(
+                                metadata,
+                                ghost.generation,
+                                ghost.first_data_block,
+                                ghost.data_length,
+                                ghost.data_crc32,
+                                ghost.physical_sector,
+                            );
                         }
                     }
                 }
@@ -874,7 +915,7 @@ where
     {
         let slot_info = &self.slot_info[slot];
         let first_data_block = slot_info.first_data_block;
-        let data_length = slot_info.data_length as usize;
+        let data_length = slot_info.data_length;
         let expected_crc32 = slot_info.data_crc32;
 
         // Handle empty data case
@@ -888,22 +929,11 @@ where
             }
         }
 
-        let mut data = Vec::with_capacity(data_length);
-        self.read_block_chain(first_data_block, &mut data, data_length)?;
+        let mut data = Vec::with_capacity(data_length as usize);
+        self.read_block_chain(first_data_block, &mut data, data_length as usize)?;
 
-        // Verify we got enough data
-        if data.len() != data_length {
-            return Err(SaveError::SlotCorrupted);
-        }
-
-        // Verify checksum
-        let actual_crc32 = calc_crc32(&data);
-        if actual_crc32 != expected_crc32 {
-            return Err(SaveError::SlotCorrupted);
-        }
-
-        // Deserialize
-        postcard::from_bytes(&data).map_err(SaveError::from_postcard_serialization)
+        verify_and_deserialize_data(&data, data_length, expected_crc32)
+            .map_err(SaveError::from_data_verify_error)
     }
 
     fn write_slot_data<T>(
