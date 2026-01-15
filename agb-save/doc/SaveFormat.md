@@ -20,7 +20,7 @@ Non goals:
 
 Data is split into blocks. Each block has exactly the same header to simplify the implementation.
 
-The block size is dynamic. It has size of `max(erase_size, N)`. `N` will end up being the maximal length of the metadata, so maybe is user configurable?
+The block size is dynamic. It has size `max(erase_size, 128)` and must be a multiple of the write size.
 
 | Offset | Size             | Field                                              |
 | ------ | ---------------- | -------------------------------------------------- |
@@ -62,16 +62,20 @@ We don't store the next block in the standard header, instead storing it in the 
 
 ### Block layout
 
-| Offset | Size              | Field                                                    |
-| ------ | ----------------- | -------------------------------------------------------- |
-| 0      | 8                 | Standard header, next block is empty                     |
-| 8      | 1                 | Slot state                                               |
-| 9      | 1                 | Logical slot ID                                          |
-| 10     | 2                 | First data block of save                                 |
-| 12     | 4                 | Generation (u32)                                         |
-| 16     | 4                 | Data checksum (crc32 of all block payloads in the chain) |
-| 20     | 4                 | Data length (u32, total bytes of actual data)            |
-| 24     | `block_size - 24` | Metadata (user defined)                                  |
+| Offset | Size              | Field                                                                    |
+| ------ | ----------------- | ------------------------------------------------------------------------ |
+| 0      | 8                 | Standard header, next block is empty                                     |
+| 8      | 1                 | Slot state                                                               |
+| 9      | 1                 | Logical slot ID                                                          |
+| 10     | 2                 | First data block of save                                                 |
+| 12     | 2                 | First metadata data block (0xffff = none)                                |
+| 14     | 2                 | Reserved (zeros)                                                         |
+| 16     | 4                 | Generation (u32)                                                         |
+| 20     | 4                 | Data checksum (crc32 of all block payloads in the chain)                 |
+| 24     | 4                 | Data length (u32, total bytes of actual data)                            |
+| 28     | 4                 | Metadata length (u32, total bytes of metadata including inline portion)  |
+| 32     | 4                 | Metadata checksum (crc32 of all metadata bytes)                          |
+| 36     | `block_size - 36` | Metadata start (continues in data blocks if first metadata block != none)
 
 ### Slot states
 
@@ -106,16 +110,28 @@ When reading a block, it is assumed that the CRC in the standard header is valid
    3. If ghost is valid and was for this slot, recover from ghost
    4. Otherwise, this slot is unrecoverable.
 
-5. **Rebuild the free list**: Any block not a global header, slot header or valid save slots are considered free. Ghost slot chain _is_ considered free.
+5. **Rebuild the free list**: Any block not a global header, slot header, valid save data chain, or valid metadata chain is considered free. Ghost slot data and metadata chains _are_ considered free.
 
 # Reading
 
-To read from a given save slot:
+## Reading save data
+
+To read save data from a given save slot:
 
 1.  Read slot header, get first data block index
 2.  Traverse chain, concatenating payloads
 3.  Truncate to data_length (last block may have padding)
 4.  Verify concatenated data against the data checksum
+
+## Reading metadata
+
+To read metadata from a given save slot:
+
+1.  Read slot header, get metadata length, metadata checksum, and first metadata block index
+2.  Read inline metadata from slot header (up to `block_size - 36` bytes or metadata_length, whichever is smaller)
+3.  If first metadata block != 0xffff, traverse the metadata chain, concatenating payloads
+4.  Truncate to metadata_length (last block may have padding)
+5.  Verify concatenated metadata against the metadata checksum
 
 # Writing
 
@@ -124,16 +140,21 @@ Saving data into slot `S`.
 The physical slot that we write to will be the current physical slot that the current ghost slot occupies.
 
 1. **Serialize save bytes into memory**: We need to know how long it is going to be.
-2. **Allocate blocks**: Using the free list, allocate enough blocks to store the data required.
-3. **Compute the checksum**: Calculate the crc32 of the data.
-4. **Write the data chain**: Write the data chain from the allocated blocks.
-5. **Serialize metadata bytes into memory**: Assume we've dropped the save bytes at this point.
-6. **Write the new slot header over the current ghost slot**:
+2. **Serialize metadata bytes into memory**: We need to know how long it is going to be.
+3. **Allocate blocks**: Using the free list, allocate enough blocks to store the save data and any overflow metadata (metadata beyond `block_size - 36` bytes).
+4. **Compute the checksums**: Calculate the crc32 of the save data and the crc32 of the metadata.
+5. **Write the data chain**: Write the save data chain from the allocated blocks.
+6. **Write the metadata chain** (if needed): If metadata exceeds the inline portion (`block_size - 36` bytes), write the overflow to the allocated metadata data blocks.
+7. **Write the new slot header over the current ghost slot**:
    - state = VALID
-   - logical ID = `S`.
+   - logical ID = `S`
+   - first data block = start of save data chain
+   - first metadata block = start of metadata chain (or 0xffff if metadata fits inline)
    - generation = (current slot `S` generation) + 1 (or 1 if slot `S` was empty)
-   - metadata = serialised metadata
-7. **Mark old slot as ghost**: Update the old slot `S`'s physical header block with:
-   - state = ghost
+   - metadata length = total metadata length
+   - metadata checksum = crc32 of all metadata bytes
+   - metadata start = first `block_size - 36` bytes of metadata
+8. **Mark old slot as ghost**: Update the old slot `S`'s physical header block with:
+   - state = GHOST
    - everything else the same
-8. **Add the new ghost data slots to the free list**: Otherwise we're going to run out of space
+9. **Add the new ghost data and metadata blocks to the free list**: Otherwise we're going to run out of space
