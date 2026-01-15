@@ -763,55 +763,23 @@ where
             *used = true;
         }
 
-        let sector_size = self.storage.sector_size();
-        let mut buffer = vec![0u8; sector_size];
-
-        // Track sectors claimed by this slot - only commit if chain is valid
-        let mut slot_sectors: Vec<usize> = Vec::new();
-
-        for slot_info in self.slot_info.iter_mut() {
+        for slot_index in 0..self.slot_info.len() {
+            let slot_info = &self.slot_info[slot_index];
             if slot_info.status != SlotStatus::Valid {
                 continue;
             }
 
-            let mut current_sector = slot_info.first_data_block;
-            let mut slot_valid = true;
-            slot_sectors.clear();
-
-            while let Some(sector) = current_sector {
-                let sector_idx = sector as usize;
-
-                // Check for invalid reference or loop
-                if sector_idx >= sector_count || slot_sectors.contains(&sector_idx) {
-                    slot_valid = false;
-                    break;
-                }
-
-                slot_sectors.push(sector_idx);
-
-                // Read the sector to find the next block in the chain
-                self.storage.read_sector(sector_idx, &mut buffer)?;
-
-                match deserialize_block(&buffer) {
-                    Ok(Block::Data(data_block)) => {
-                        current_sector = data_block.next_block();
-                    }
-                    _ => {
-                        slot_valid = false;
-                        break;
+            match self.collect_chain_sectors(slot_info.first_data_block)? {
+                Some(slot_sectors) => {
+                    // Chain is valid - mark its sectors as used
+                    for sector_idx in slot_sectors {
+                        used_sectors[sector_idx] = true;
                     }
                 }
-            }
-
-            if slot_valid {
-                // Chain is valid - mark its sectors as used
-                for sector_idx in slot_sectors.drain(..) {
-                    used_sectors[sector_idx] = true;
+                None => {
+                    // Chain is corrupted - mark slot as corrupted
+                    self.slot_info[slot_index].status = SlotStatus::Corrupted;
                 }
-            } else {
-                // Chain is corrupted - mark slot as corrupted and let its sectors go on the
-                // free list
-                slot_info.status = SlotStatus::Corrupted;
             }
         }
 
@@ -824,6 +792,48 @@ where
         }
 
         Ok(())
+    }
+
+    /// Follow a data block chain and collect all sector indices.
+    ///
+    /// Returns:
+    /// - `Ok(Some(sectors))` if the chain is valid
+    /// - `Ok(None)` if the chain is corrupted (invalid reference, loop, or bad block)
+    /// - `Err` if there's a storage error
+    fn collect_chain_sectors(
+        &mut self,
+        start_sector: Option<u16>,
+    ) -> Result<Option<Vec<usize>>, SaveError<Storage::Error>> {
+        let sector_count = self.storage.sector_count();
+        let sector_size = self.storage.sector_size();
+        let mut buffer = vec![0u8; sector_size];
+        let mut sectors = Vec::new();
+        let mut current_sector = start_sector;
+
+        while let Some(sector) = current_sector {
+            let sector_idx = sector as usize;
+
+            // Check for invalid reference or loop
+            if sector_idx >= sector_count || sectors.contains(&sector_idx) {
+                return Ok(None);
+            }
+
+            sectors.push(sector_idx);
+
+            // Read the sector to find the next block in the chain
+            self.storage.read_sector(sector_idx, &mut buffer)?;
+
+            match deserialize_block(&buffer) {
+                Ok(Block::Data(data_block)) => {
+                    current_sector = data_block.next_block();
+                }
+                _ => {
+                    return Ok(None);
+                }
+            }
+        }
+
+        Ok(Some(sectors))
     }
 
     /// Write data across multiple data blocks, allocating sectors from the free list.
