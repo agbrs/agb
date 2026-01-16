@@ -666,18 +666,14 @@ where
                 SlotState::Valid => {
                     let metadata_len = slot_block.metadata_length();
                     let metadata_bytes = slot_block.metadata();
-                    if (metadata_len as usize) > metadata_bytes.len() {
-                        (SlotStatus::Corrupted, None)
-                    } else {
-                        let metadata_slice = &metadata_bytes[..metadata_len as usize];
-                        match verify_and_deserialize_data(
-                            metadata_slice,
-                            metadata_len,
-                            slot_block.metadata_crc32(),
-                        ) {
-                            Ok(m) => (SlotStatus::Valid, Some(m)),
-                            Err(_) => (SlotStatus::Corrupted, None),
-                        }
+                    match self.read_complete_metadata(
+                        metadata_bytes,
+                        metadata_len,
+                        slot_block.metadata_crc32(),
+                        slot_block.first_metadata_block(),
+                    ) {
+                        Ok(Some(m)) => (SlotStatus::Valid, Some(m)),
+                        _ => (SlotStatus::Corrupted, None),
                     }
                 }
                 SlotState::Ghost => unreachable!(), // Handled above
@@ -709,16 +705,11 @@ where
                     continue;
                 }
 
-                let metadata_len = ghost.metadata_length as usize;
-                if metadata_len > ghost.metadata_bytes.len() {
-                    continue;
-                }
-
-                let metadata_slice = &ghost.metadata_bytes[..metadata_len];
-                if let Ok(metadata) = verify_and_deserialize_data(
-                    metadata_slice,
+                if let Ok(Some(metadata)) = self.read_complete_metadata(
+                    &ghost.metadata_bytes,
                     ghost.metadata_length,
                     ghost.metadata_crc32,
+                    ghost.first_metadata_block,
                 ) {
                     self.slot_info[slot] = SlotInfo::valid(
                         metadata,
@@ -969,6 +960,38 @@ where
         }
 
         Ok(())
+    }
+
+    /// Read complete metadata, combining inline portion with spillover blocks if present.
+    ///
+    /// Returns Ok(Some(metadata)) if successful, Ok(None) if metadata is corrupted,
+    /// or Err for storage errors.
+    fn read_complete_metadata(
+        &mut self,
+        inline_metadata: &[u8],
+        metadata_length: u32,
+        metadata_crc32: u32,
+        first_metadata_block: Option<u16>,
+    ) -> Result<Option<Metadata>, SaveError<Storage::Error>> {
+        let metadata_len = metadata_length as usize;
+
+        // Build complete metadata buffer
+        let mut metadata = Vec::with_capacity(metadata_len);
+
+        // Copy inline portion (up to metadata_len or inline capacity)
+        let inline_portion = metadata_len.min(inline_metadata.len());
+        metadata.extend_from_slice(&inline_metadata[..inline_portion]);
+
+        // Read spillover blocks if present
+        if first_metadata_block.is_some() && metadata.len() < metadata_len {
+            self.read_block_chain(first_metadata_block, &mut metadata, metadata_len)?;
+        }
+
+        // Verify and deserialize
+        match verify_and_deserialize_data(&metadata, metadata_length, metadata_crc32) {
+            Ok(m) => Ok(Some(m)),
+            Err(_) => Ok(None),
+        }
     }
 
     fn read_slot_data<T>(&mut self, slot: usize) -> Result<T, SaveError<Storage::Error>>
