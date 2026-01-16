@@ -613,7 +613,7 @@ where
                 .read_sector(physical_sector as usize, &mut buffer)?;
 
             if let Ok(Block::SlotHeader(slot_block)) = deserialize_block(&buffer) {
-                self.process_slot_block(&slot_block, physical_sector, &mut ghost_recovery);
+                self.process_slot_block(&slot_block, physical_sector, &mut ghost_recovery)?;
             }
             // If deserialization fails, slot remains Corrupted (already initialized)
         }
@@ -627,7 +627,7 @@ where
         slot_block: &SlotHeaderBlock,
         physical_sector: u16,
         ghost_recovery: &mut [Option<GhostRecoveryInfo>],
-    ) {
+    ) -> Result<(), SaveError<Storage::Error>> {
         // Handle GHOST state - track for potential recovery
         if slot_block.state() == SlotState::Ghost {
             self.ghost_sector = physical_sector;
@@ -646,14 +646,14 @@ where
                     physical_sector,
                 });
             }
-            return;
+            return Ok(());
         }
 
         let logical_id = slot_block.logical_slot_id() as usize;
 
         // Skip if logical_id is out of bounds
         if logical_id >= self.num_slots {
-            return;
+            return Ok(());
         }
 
         let existing = &self.slot_info[logical_id];
@@ -671,9 +671,9 @@ where
                         metadata_len,
                         slot_block.metadata_crc32(),
                         slot_block.first_metadata_block(),
-                    ) {
-                        Ok(Some(m)) => (SlotStatus::Valid, Some(m)),
-                        _ => (SlotStatus::Corrupted, None),
+                    )? {
+                        Some(m) => (SlotStatus::Valid, Some(m)),
+                        None => (SlotStatus::Corrupted, None),
                     }
                 }
                 SlotState::Ghost => unreachable!(), // Handled above
@@ -690,6 +690,8 @@ where
                 header_sector: physical_sector,
             };
         }
+
+        Ok(())
     }
 
     /// Try to recover corrupted slots from ghost headers.
