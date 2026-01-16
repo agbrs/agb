@@ -52,7 +52,7 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
-use core::num::NonZeroUsize;
+use core::{iter, num::NonZeroUsize};
 
 use block::{
     Block, DataBlock, GlobalBlock, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
@@ -1043,12 +1043,24 @@ where
 
         // 4. Serialize metadata
         let sector_size = self.storage.sector_size();
-        let metadata_size = sector_size - SlotHeaderBlock::header_size();
-        let mut metadata_bytes = vec![0u8; metadata_size];
-        let serialized_metadata = postcard::to_slice(metadata, &mut metadata_bytes)
-            .map_err(SaveError::from_postcard_serialization)?;
+        let mut serialized_metadata =
+            postcard::to_allocvec(metadata).map_err(SaveError::from_postcard_serialization)?;
         let metadata_length = serialized_metadata.len() as u32;
-        let metadata_crc32 = calc_crc32(serialized_metadata);
+        let metadata_crc32 = calc_crc32(&serialized_metadata);
+
+        let metadata_in_header_size = self.storage.sector_size() - SlotHeaderBlock::header_size();
+        let first_metadata_block = if serialized_metadata.len() > metadata_in_header_size {
+            self.write_data_blocks(&serialized_metadata[metadata_in_header_size..])?
+        } else {
+            None
+        };
+
+        if serialized_metadata.len() < metadata_in_header_size {
+            serialized_metadata.extend(iter::repeat_n(
+                0,
+                metadata_in_header_size - serialized_metadata.len(),
+            ));
+        }
 
         // Increment generation and save old slot info for later cleanup
         let new_generation = self.slot_info[slot].generation.wrapping_add(1);
@@ -1062,13 +1074,13 @@ where
             Block::SlotHeader(SlotHeaderBlock::valid(
                 slot as u8,
                 first_data_block,
-                None, // first_metadata_block - no spillover for now
+                first_metadata_block, // first_metadata_block - no spillover for now
                 new_generation,
                 data_crc32,
                 data_length,
                 metadata_length,
                 metadata_crc32,
-                &metadata_bytes,
+                &serialized_metadata[..metadata_in_header_size],
             )),
             &mut buffer,
         );
