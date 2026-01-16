@@ -147,6 +147,7 @@ impl<'a> SlotHeaderBlock<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn valid(
         logical_slot_id: u8,
         first_data_block: Option<u16>,
