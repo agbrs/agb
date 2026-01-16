@@ -348,9 +348,6 @@ where
     /// * `num_slots` - The number of save slots (typically 1-4)
     /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
     ///   the save file is considered incompatible and will be reformatted.
-    /// * `min_sector_size` - Minimum sector size in bytes. Must be at least
-    ///   [`MIN_SECTOR_SIZE`]. Larger values allow more metadata per slot
-    ///   (metadata size = sector_size - 24 bytes for the slot header).
     ///
     /// # Errors
     ///
@@ -359,11 +356,10 @@ where
         storage: Storage,
         num_slots: usize,
         magic: [u8; 32],
-        min_sector_size: usize,
     ) -> Result<Self, SaveError<Storage::Error>> {
         let mut manager = Self {
             num_slots,
-            storage: SectorStorage::new(storage, min_sector_size),
+            storage: SectorStorage::new(storage),
             magic,
             slot_info: Vec::new(),
             free_sector_list: Vec::new(),

@@ -33,7 +33,7 @@ fn new_storage_has_empty_slots() {
     let storage = TestStorage::new_sram(4096);
 
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     assert_eq!(manager.num_slots(), 3);
 
@@ -56,7 +56,7 @@ fn corrupted_slot_detected_as_corrupted() {
 
     // Initialize storage with empty slots
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Get the storage back and corrupt slot 1's header (sector 2)
     let mut storage = manager.into_storage();
@@ -68,7 +68,7 @@ fn corrupted_slot_detected_as_corrupted() {
 
     // Re-initialize from corrupted storage
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot 0 and 2 should still be empty
     assert_eq!(manager.slot(0), Slot::Empty, "slot 0 should still be empty");
@@ -87,7 +87,7 @@ fn write_slot_makes_slot_valid() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // All slots start empty
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -114,7 +114,7 @@ fn write_slot_stores_metadata() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Hero____________",
@@ -131,7 +131,7 @@ fn write_multiple_slots() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata0 = TestMetadata {
         name: *b"Save One________",
@@ -163,7 +163,7 @@ fn write_slot_persists_across_reinit() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Persistent______",
@@ -173,7 +173,7 @@ fn write_slot_persists_across_reinit() {
     // Get storage back and reinitialize
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot 1 should still be valid with correct metadata
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -189,7 +189,7 @@ fn incompatible_metadata_detected_as_corrupted() {
 
     // Write with TestMetadata
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Test Save_______",
@@ -201,7 +201,7 @@ fn incompatible_metadata_detected_as_corrupted() {
 
     // Reinitialize with incompatible metadata type
     let manager: SaveSlotManager<_, IncompatibleMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot 0 should be corrupted because metadata can't deserialize
     assert_eq!(
@@ -228,7 +228,7 @@ fn write_and_read_data_roundtrip() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Hero____________",
@@ -252,7 +252,7 @@ fn write_and_read_persists_across_reinit() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Persistent______",
@@ -269,7 +269,7 @@ fn write_and_read_persists_across_reinit() {
     // Reinitialize from storage
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Data should persist
     assert!(matches!(manager.slot(1), Slot::Valid(_)));
@@ -283,7 +283,7 @@ fn write_large_data_spans_multiple_blocks() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"BigSave_________",
@@ -303,7 +303,7 @@ fn multiple_writes_to_same_slot() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata1 = TestMetadata {
         name: *b"First___________",
@@ -341,7 +341,7 @@ fn erase_slot_makes_slot_empty() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"ToBeErased______",
@@ -369,7 +369,7 @@ fn erase_slot_persists_across_reinit() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"ToBeErased______",
@@ -387,7 +387,7 @@ fn erase_slot_persists_across_reinit() {
     // Reinitialize
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot should still be empty
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -399,7 +399,7 @@ fn erase_slot_frees_space_for_new_write() {
     let storage = TestStorage::new_sram(2048);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"BigData_________",
@@ -425,14 +425,14 @@ fn crash_during_first_write_leaves_slot_empty() {
     let storage = TestStorage::new_sram(4096);
 
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Configure failure after initialization but before user write completes
     let mut storage = manager.into_storage();
     storage.fail_after_writes(Some(1)); // Fail after first write (during data block writing)
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"CrashTest_______",
@@ -446,7 +446,7 @@ fn crash_during_first_write_leaves_slot_empty() {
     // Get the storage back and reinitialize
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot should still be empty since the write didn't complete
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -457,7 +457,7 @@ fn crash_during_overwrite_preserves_old_data() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // First, write some valid data
     let metadata1 = TestMetadata {
@@ -474,7 +474,7 @@ fn crash_during_overwrite_preserves_old_data() {
     storage.fail_after_writes(Some(1)); // Fail early in the write process
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Verify old data is still there after reinit
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
@@ -492,7 +492,7 @@ fn crash_during_overwrite_preserves_old_data() {
     // Reinitialize and verify old data is still intact
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
     assert_eq!(manager.metadata(0).unwrap().name, *b"Original________");
@@ -505,7 +505,7 @@ fn crash_during_large_write_preserves_old_data() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Write initial large data
     let metadata1 = TestMetadata {
@@ -519,7 +519,7 @@ fn crash_during_large_write_preserves_old_data() {
     storage.fail_after_writes(Some(3)); // Fail after a few data blocks
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Try to overwrite with different large data
     let metadata2 = TestMetadata {
@@ -532,7 +532,7 @@ fn crash_during_large_write_preserves_old_data() {
     // Reinitialize and verify old data is preserved
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
     assert_eq!(manager.metadata(0).unwrap().name, *b"LargeOriginal___");
@@ -550,7 +550,7 @@ fn corrupted_header_recovers_from_ghost() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write initial data
     let metadata1 = TestMetadata {
@@ -573,7 +573,7 @@ fn corrupted_header_recovers_from_ghost() {
     storage.fail_after_writes(Some(2));
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Try second write - will fail after writing new header
     let metadata2 = TestMetadata {
@@ -593,7 +593,7 @@ fn corrupted_header_recovers_from_ghost() {
     // Reinitialize - should recover from the old valid header (first version)
     // since the new header is corrupted
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Should have recovered with the first version's data
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
@@ -610,7 +610,7 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write initial data
     let metadata1 = TestMetadata {
@@ -626,7 +626,7 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
     storage.fail_after_writes(Some(3)); // Fail on freeing data (4th write would be next op)
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Second write - will complete marking ghost but fail on freeing
     let metadata2 = TestMetadata {
@@ -647,7 +647,7 @@ fn corrupted_valid_header_recovers_from_ghost_state() {
     // Reinitialize - the VALID header at sector 1 is corrupted
     // The GHOST header at sector 4 should be used for recovery
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Should recover from GHOST header with first version's data
     assert!(
@@ -701,7 +701,7 @@ quickcheck! {
         let storage = TestStorage::new_sram(4096);
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         manager.write(slot, &data.0, &metadata).unwrap();
 
@@ -715,7 +715,7 @@ quickcheck! {
         let storage = TestStorage::new_sram(4096);
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         manager.write(slot, &data.0, &metadata).unwrap();
 
@@ -728,14 +728,14 @@ quickcheck! {
         let storage = TestStorage::new_sram(4096);
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         manager.write(slot, &data.0, &metadata).unwrap();
 
         // Reinitialise from storage
         let storage = manager.into_storage();
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         let status_ok = matches!(manager.slot(slot), Slot::Valid(_));
         let metadata_ok = manager.metadata(slot) == Some(&metadata);
@@ -750,7 +750,7 @@ quickcheck! {
         let storage = TestStorage::new_sram(4096);
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         let empty: Vec<u8> = vec![];
         manager.write(slot, &empty, &metadata).unwrap();
@@ -768,7 +768,7 @@ quickcheck! {
         let storage = TestStorage::new_sram(8192); // Larger storage for 3 slots of data
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         manager.write(0, &data0.0, &meta0).unwrap();
         manager.write(1, &data1.0, &meta1).unwrap();
@@ -792,7 +792,7 @@ quickcheck! {
 
         let storage = TestStorage::new_sram(4096);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         let mut last_data = vec![];
         let mut last_meta = None;
@@ -835,7 +835,7 @@ fn repeated_crash_does_not_corrupt_data() {
 
     let storage = TestStorage::new_sram(4096);
     let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     manager.write(0, &initial_data, &initial_meta).unwrap();
 
@@ -848,7 +848,7 @@ fn repeated_crash_does_not_corrupt_data() {
         let mut storage = manager.into_storage();
         storage.fail_after_writes(Some(fail_after));
 
-        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         let new_data: Vec<u8> = (0..((i + 1) * 10).min(300))
             .map(|j| ((i + j) % 256) as u8)
@@ -861,7 +861,7 @@ fn repeated_crash_does_not_corrupt_data() {
         let _ = manager.write(0, &new_data, &new_meta);
 
         let storage = manager.into_storage();
-        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         assert!(matches!(manager.slot(0), Slot::Valid(_)));
 
@@ -888,13 +888,13 @@ quickcheck! {
 
         let storage = TestStorage::new_sram(4096);
         let manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         let mut storage = manager.into_storage();
         storage.fail_after_writes(Some(fail_after));
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Attempt write - may fail
         let _ = manager.write(0, &data.0, &metadata);
@@ -902,7 +902,7 @@ quickcheck! {
         // Reinitialise and check state
         let storage = manager.into_storage();
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Slot must be either Empty (write didn't complete) or Valid (write completed)
         // It must NEVER be Corrupted
@@ -928,7 +928,7 @@ quickcheck! {
 
         let storage = TestStorage::new_sram(4096);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // First write should succeed
         manager.write(0, &old_data.0, &old_meta).unwrap();
@@ -938,7 +938,7 @@ quickcheck! {
         storage.fail_after_writes(Some(fail_after));
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Attempt second write - may fail
         let _ = manager.write(0, &new_data.0, &new_meta);
@@ -946,7 +946,7 @@ quickcheck! {
         // Reinitialise and check state
         let storage = manager.into_storage();
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Slot must be Valid (either old or new data) - never Corrupted or Empty
         match manager.slot(0) {
@@ -985,7 +985,7 @@ quickcheck! {
 
         let storage = TestStorage::new_sram(8192);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Write to both slots successfully
         manager.write(0, &data0.0, &meta0).unwrap();
@@ -996,7 +996,7 @@ quickcheck! {
         storage.fail_after_writes(Some(fail_after));
 
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Attempt write to slot 1 - may fail
         let _ = manager.write(1, &new_data1.0, &new_meta1);
@@ -1004,7 +1004,7 @@ quickcheck! {
         // Reinitialise and check slot 0 is unaffected
         let storage = manager.into_storage();
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Slot 0 must be completely unaffected
         if !matches!(manager.slot(0), Slot::Valid(_)) {
@@ -1048,7 +1048,7 @@ quickcheck! {
 
         let storage = TestStorage::new_sram(4096);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
         // Initial successful write
         if manager.write(0, &initial_data.0, &initial_meta).is_err() {
@@ -1066,7 +1066,7 @@ quickcheck! {
             let mut storage = manager.into_storage();
             storage.fail_after_writes(Some(fail_after));
 
-            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
             // Generate new data for this write attempt
             let new_data: Vec<u8> = (0..((i + 1) * 10).min(300))
@@ -1084,7 +1084,7 @@ quickcheck! {
 
             // Reinitialise (simulates power cycle after crash)
             let storage = manager.into_storage();
-            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            manager = SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
             // Slot must be Valid - never Corrupted or Empty after crash
             if !matches!(manager.slot(0), Slot::Valid(_)) {
@@ -1125,7 +1125,7 @@ fn stress_test_random_saves_and_reloads() {
         // 16KB storage with max 500 byte saves ensures we never hit capacity
         let storage = TestStorage::new_sram(16384);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC).unwrap();
 
         // Track what data each slot should contain
         let mut expected: Vec<Option<(Vec<u8>, ArbitraryMetadata)>> = vec![None; NUM_SLOTS];
@@ -1154,8 +1154,7 @@ fn stress_test_random_saves_and_reloads() {
 
             // Reload the manager
             let storage = manager.into_storage();
-            manager =
-                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            manager = SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC).unwrap();
 
             // Verify all slots match expected state
             for (slot, expected_data) in expected.iter().enumerate() {
@@ -1204,7 +1203,7 @@ fn stress_test_with_random_failures() {
         const NUM_SLOTS: usize = 3;
         let storage = TestStorage::new_sram(16384);
         let mut manager: SaveSlotManager<_, ArbitraryMetadata> =
-            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC).unwrap();
 
         // Track current confirmed data and pending (possibly committed) data for each slot
         let mut current: Vec<Option<(Vec<u8>, ArbitraryMetadata)>> = vec![None; NUM_SLOTS];
@@ -1216,8 +1215,7 @@ fn stress_test_with_random_failures() {
             let fail_after: usize = (u8::arbitrary(&mut rng) % 100) as usize + 1;
             let mut storage = manager.into_storage();
             storage.fail_after_writes(Some(fail_after));
-            manager =
-                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            manager = SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC).unwrap();
 
             // Pending tracks writes that might have partially committed
             let mut pending = current.clone();
@@ -1248,8 +1246,7 @@ fn stress_test_with_random_failures() {
             // Reload without failure injection
             let mut storage = manager.into_storage();
             storage.fail_after_writes(None);
-            manager =
-                SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+            manager = SaveSlotManager::new(storage, NUM_SLOTS, TEST_GAME_MAGIC).unwrap();
 
             // Verify each slot has valid data (either current or pending, never corrupted)
             for slot in 0..NUM_SLOTS {
@@ -1321,7 +1318,7 @@ fn flash_storage_basic_roundtrip() {
         TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write and read back
     let metadata = TestMetadata {
@@ -1342,7 +1339,7 @@ fn flash_storage_persists_across_reinit() {
         TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"FlashPersist____",
@@ -1354,7 +1351,7 @@ fn flash_storage_persists_across_reinit() {
     // Reinitialize
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
     let read_data: Vec<u8> = manager.read(0).unwrap();
@@ -1367,7 +1364,7 @@ fn flash_storage_multiple_writes_same_slot() {
         TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Multiple overwrites to same slot on flash
     for i in 0..5 {
@@ -1389,7 +1386,7 @@ fn flash_storage_crash_recovery() {
         TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write initial data
     let metadata1 = TestMetadata {
@@ -1403,7 +1400,7 @@ fn flash_storage_crash_recovery() {
     storage.fail_after_writes(Some(1)); // Crash after first write (data block)
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata2 = TestMetadata {
         name: *b"FlashCrash2_____",
@@ -1414,7 +1411,7 @@ fn flash_storage_crash_recovery() {
     // Reinitialize and verify recovery
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Should have original data (crash during second write)
     assert!(matches!(manager.slot(0), Slot::Valid(_)));
@@ -1429,7 +1426,7 @@ fn flash_storage_large_save_data() {
         TestStorage::new_flash(GBA_FLASH_SIZE, GBA_FLASH_ERASE_SIZE, GBA_FLASH_WRITE_SIZE);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, GBA_FLASH_ERASE_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write a larger save that spans multiple 4KB sectors
     let metadata = TestMetadata {
@@ -1453,7 +1450,7 @@ fn out_of_space_returns_error() {
     let storage = TestStorage::new_sram(1024);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"TooBig__________",
@@ -1474,7 +1471,7 @@ fn out_of_space_does_not_corrupt_existing_data() {
     let storage = TestStorage::new_sram(2048);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write some data first
     let metadata1 = TestMetadata {
@@ -1502,7 +1499,7 @@ fn fill_storage_then_overwrite() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     // Calculate approximate max data size
     // 4096 bytes total, ~3 sectors for headers (global + slot + ghost)
@@ -1528,7 +1525,7 @@ fn multiple_slots_approaching_capacity() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write to all 3 slots
     for slot in 0..3 {
@@ -1554,7 +1551,7 @@ fn corrupted_global_header_causes_reformat() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write some data
     let metadata = TestMetadata {
@@ -1569,7 +1566,7 @@ fn corrupted_global_header_causes_reformat() {
 
     // Reinitialize - should detect corruption and reformat
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // All slots should be empty after reformat
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -1584,7 +1581,7 @@ fn mismatched_magic_causes_reformat() {
     let magic2 = *b"game-two________________________";
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, magic1, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, magic1).unwrap();
 
     // Write data with magic1
     let metadata = TestMetadata {
@@ -1596,7 +1593,7 @@ fn mismatched_magic_causes_reformat() {
     // Reinitialize with different magic
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, magic2, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, magic2).unwrap();
 
     // Should have reformatted due to magic mismatch
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -1607,7 +1604,7 @@ fn mismatched_slot_count_causes_reformat() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Write data with 2 slots
     let metadata = TestMetadata {
@@ -1619,7 +1616,7 @@ fn mismatched_slot_count_causes_reformat() {
     // Reinitialize with different slot count
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Should have reformatted due to slot count mismatch
     assert_eq!(manager.slot(0), Slot::Empty);
@@ -1632,7 +1629,7 @@ fn interleaved_writes_to_multiple_slots() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Interleaved writes: slot 0, slot 1, slot 0, slot 2, slot 1
     let meta0 = TestMetadata {
@@ -1676,7 +1673,7 @@ fn interleaved_writes_with_erase() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let meta = TestMetadata {
         name: *b"InterleavedErase",
@@ -1713,7 +1710,7 @@ fn ghost_sector_correct_after_interleaved_writes() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     let meta = TestMetadata {
         name: *b"GhostInterleave_",
@@ -1729,7 +1726,7 @@ fn ghost_sector_correct_after_interleaved_writes() {
     // Reinitialize and verify
     let storage = manager.into_storage();
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Slot 0 had writes at i=0,2,4 -> latest is 4
     let read0: Vec<u8> = manager.read(0).unwrap();
@@ -1747,7 +1744,7 @@ fn data_exactly_fills_one_block() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     // Calculate exact payload size for one data block
     // Data block header is 8 bytes, so payload = sector_size - 8
@@ -1769,7 +1766,7 @@ fn data_one_byte_over_block_boundary() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     // One byte more than one block can hold -> needs 2 blocks
     let payload_size = MIN_SECTOR_SIZE - 8;
@@ -1790,7 +1787,7 @@ fn data_exactly_fills_two_blocks() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     let payload_size = MIN_SECTOR_SIZE - 8;
     let data: Vec<u8> = vec![0xEF; payload_size * 2];
@@ -1810,7 +1807,7 @@ fn single_byte_data() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     let data: Vec<u8> = vec![0x42];
     let meta = TestMetadata {
@@ -1834,7 +1831,7 @@ fn metadata_near_max_size() {
     }
 
     let mut manager: SaveSlotManager<_, LargeMetadata> =
-        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 1, TEST_GAME_MAGIC).unwrap();
 
     let meta = LargeMetadata {
         data: vec![0xAB; 64],
@@ -1856,7 +1853,7 @@ fn slots_iterator_returns_correct_order_and_state() {
     let storage = TestStorage::new_sram(4096);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Initially all slots are empty
     let slots: Vec<_> = manager.slots().collect();
@@ -1903,7 +1900,7 @@ fn slots_iterator_shows_corrupted_slots() {
 
     // Initialize and write to slot 1
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata = TestMetadata {
         name: *b"Test Save_______",
@@ -1917,7 +1914,7 @@ fn slots_iterator_shows_corrupted_slots() {
 
     // Re-initialize
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let slots: Vec<_> = manager.slots().collect();
 
@@ -1940,7 +1937,7 @@ fn corrupted_data_chain_marks_slot_corrupted_but_other_slots_valid() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Write data to both slot 0 and slot 1
     let data0 = TestSaveData {
@@ -1981,7 +1978,7 @@ fn corrupted_data_chain_marks_slot_corrupted_but_other_slots_valid() {
 
     // Re-initialize
     let manager: SaveSlotManager<_, TestMetadata> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     // Slot 0 should be corrupted (its data chain is broken)
     assert!(
@@ -2010,7 +2007,7 @@ fn metadata_spillover_write_and_read() {
     let storage = TestStorage::new_sram(8192); // Enough space for spillover blocks
 
     let mut manager: SaveSlotManager<_, Vec<u8>> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Create metadata larger than 92 bytes (inline capacity for 128-byte sectors)
     let inline_capacity = MIN_SECTOR_SIZE - 36; // 92 bytes
@@ -2048,8 +2045,7 @@ fn metadata_spillover_persists_across_reinit() {
 
     // Write large metadata
     let manager: SaveSlotManager<_, Vec<u8>> = {
-        let mut manager =
-            SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        let mut manager = SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
         manager.write(0, &(), &metadata).unwrap();
         manager
     };
@@ -2057,7 +2053,7 @@ fn metadata_spillover_persists_across_reinit() {
     // Get storage and reinitialize
     let storage = manager.into_storage();
     let manager: SaveSlotManager<_, Vec<u8>> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     // Metadata should still be valid after reinit
     match manager.slot(0) {
@@ -2073,7 +2069,7 @@ fn metadata_spillover_multiple_slots() {
     let storage = TestStorage::new_sram(16384); // More space for multiple spillovers
 
     let mut manager: SaveSlotManager<_, Vec<u8>> =
-        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 3, TEST_GAME_MAGIC).unwrap();
 
     let metadata0: Vec<u8> = (0..150).collect();
     let metadata1: Vec<u8> = (50..250).collect();
@@ -2094,7 +2090,7 @@ fn metadata_spillover_overwrite() {
     let storage = TestStorage::new_sram(8192);
 
     let mut manager: SaveSlotManager<_, Vec<u8>> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     let metadata1: Vec<u8> = (0..150).collect();
     let metadata2: Vec<u8> = (100..300).map(|x| x as u8).collect();
@@ -2113,7 +2109,7 @@ fn metadata_spillover_with_data() {
     let storage = TestStorage::new_sram(16384);
 
     let mut manager: SaveSlotManager<_, Vec<u8>> =
-        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC, MIN_SECTOR_SIZE).unwrap();
+        SaveSlotManager::new(storage, 2, TEST_GAME_MAGIC).unwrap();
 
     let metadata: Vec<u8> = (0..200).collect();
     let save_data: Vec<u8> = (0..500).map(|i| (i % 256) as u8).collect();

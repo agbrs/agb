@@ -58,21 +58,13 @@ impl<S: StorageMedium> SectorStorage<S> {
     /// Calculates the sector size based on the storage's constraints and
     /// determines how many sectors fit in the available space.
     ///
-    /// # Arguments
-    ///
-    /// * `storage` - The underlying storage medium
-    /// * `min_sector_size` - Minimum sector size in bytes. Must be at least
-    ///   [`MIN_SECTOR_SIZE`]. Larger values allow more metadata per slot.
-    pub fn new(storage: S, min_sector_size: usize) -> Self {
-        assert!(
-            min_sector_size >= MIN_SECTOR_SIZE,
-            "min_sector_size ({min_sector_size}) must be at least MIN_SECTOR_SIZE ({MIN_SECTOR_SIZE})"
-        );
-
+    /// The sector size is `max(erase_size, MIN_SECTOR_SIZE)` rounded up to
+    /// be a multiple of the write size and erase size.
+    pub fn new(storage: S) -> Self {
         let info = storage.info();
 
-        // Start with the requested minimum sector size
-        let mut sector_size = min_sector_size;
+        // Start with MIN_SECTOR_SIZE
+        let mut sector_size = MIN_SECTOR_SIZE;
 
         // Sector size must be at least erase_size (if erase is required)
         if let Some(erase_size) = info.erase_size {
@@ -194,7 +186,7 @@ mod tests {
     fn sector_size_sram() {
         // SRAM: no erase, 1-byte writes
         let storage = TestStorage::new_sram(1024);
-        let sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let sector_storage = SectorStorage::new(storage);
 
         // Should use minimum sector size
         assert_eq!(sector_storage.sector_size(), 128);
@@ -205,7 +197,7 @@ mod tests {
     fn sector_size_flash_small_erase() {
         // Flash with small erase size
         let storage = TestStorage::new_flash(1024, 64, 4);
-        let sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let sector_storage = SectorStorage::new(storage);
 
         // Should round up to 128 (minimum), which is a multiple of 64
         assert_eq!(sector_storage.sector_size(), 128);
@@ -216,7 +208,7 @@ mod tests {
     fn sector_size_flash_large_erase() {
         // Flash with large erase size
         let storage = TestStorage::new_flash(4096, 512, 4);
-        let sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let sector_storage = SectorStorage::new(storage);
 
         // Should use erase size since it's larger than minimum
         assert_eq!(sector_storage.sector_size(), 512);
@@ -226,7 +218,7 @@ mod tests {
     #[test]
     fn read_write_sector() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let sector_size = sector_storage.sector_size();
 
@@ -248,7 +240,7 @@ mod tests {
     #[test]
     fn write_sector_erases_first() {
         let storage = TestStorage::new_flash(1024, 128, 4);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let sector_size = sector_storage.sector_size();
 
@@ -269,7 +261,7 @@ mod tests {
     #[test]
     fn multiple_sectors() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let sector_size = sector_storage.sector_size();
         let sector_count = sector_storage.sector_count();
@@ -293,7 +285,7 @@ mod tests {
     #[should_panic(expected = "sector index")]
     fn read_sector_out_of_bounds() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let mut buf = alloc::vec![0u8; sector_storage.sector_size()];
         let _ = sector_storage.read_sector(100, &mut buf);
@@ -303,7 +295,7 @@ mod tests {
     #[should_panic(expected = "sector index")]
     fn write_sector_out_of_bounds() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let data = alloc::vec![0u8; sector_storage.sector_size()];
         let _ = sector_storage.write_sector(100, &data);
@@ -313,7 +305,7 @@ mod tests {
     #[should_panic(expected = "buffer length")]
     fn read_sector_wrong_buffer_size() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let mut buf = alloc::vec![0u8; 64]; // Wrong size
         let _ = sector_storage.read_sector(0, &mut buf);
@@ -323,7 +315,7 @@ mod tests {
     #[should_panic(expected = "data length")]
     fn write_sector_wrong_data_size() {
         let storage = TestStorage::new_sram(1024);
-        let mut sector_storage = SectorStorage::new(storage, MIN_SECTOR_SIZE);
+        let mut sector_storage = SectorStorage::new(storage);
 
         let data = alloc::vec![0u8; 64]; // Wrong size
         let _ = sector_storage.write_sector(0, &data);
