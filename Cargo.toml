@@ -31,7 +31,6 @@ members = [
     "emulator/screenshot-generator",
     "website/backtrace",
     "website/play",
-    "examples/examples-save",
 ]
 
 exclude = [
@@ -47,6 +46,7 @@ exclude = [
     "examples/the-hat-chooses-the-wizard",
     "examples/the-purple-night",
     "examples/dynamic-isometric",
+    "examples/examples-save",
 
     "book/games/pong",
     "book/games/platform",

@@ -1,6 +1,6 @@
+use agb::Gba;
 use agb::external::portable_atomic::{AtomicU32, Ordering};
 use agb::save::{SaveError, SaveSlotManager};
-use agb::Gba;
 
 use examples_save::*;
 
