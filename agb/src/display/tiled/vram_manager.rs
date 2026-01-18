@@ -310,12 +310,18 @@ impl DynamicTile16 {
         let word_index = index / 8;
         let nibble_offset = index % 8;
 
-        let current_value = &mut self.tile_data[word_index];
+        let ptr = &mut self.tile_data[word_index] as *mut u32;
 
         let mask = 0xf << (nibble_offset * 4);
         let palette_value = u32::from(palette_index) << (nibble_offset * 4);
 
-        *current_value = (*current_value & !mask) | palette_value;
+        // SAFETY: ptr points to valid VRAM. Volatile read-modify-write is required because
+        // the GBA cannot write individual bytes to VRAM, so we must ensure the compiler
+        // performs a full 32-bit write.
+        unsafe {
+            let current_value = ptr.read_volatile();
+            ptr.write_volatile((current_value & !mask) | palette_value);
+        }
     }
 }
 
@@ -464,12 +470,18 @@ impl DynamicTile256 {
         let word_index = index / 4;
         let byte_offset = index % 4;
 
-        let current_value = &mut self.tile_data[word_index];
+        let ptr = &mut self.tile_data[word_index] as *mut u32;
 
         let mask = 0xff << (byte_offset * 8);
         let palette_value = u32::from(palette_index) << (byte_offset * 8);
 
-        *current_value = (*current_value & !mask) | palette_value;
+        // SAFETY: ptr points to valid VRAM. Volatile read-modify-write is required because
+        // the GBA cannot write individual bytes to VRAM, so we must ensure the compiler
+        // performs a full 32-bit write.
+        unsafe {
+            let current_value = ptr.read_volatile();
+            ptr.write_volatile((current_value & !mask) | palette_value);
+        }
     }
 }
 
