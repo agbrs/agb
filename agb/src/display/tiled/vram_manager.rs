@@ -359,8 +359,12 @@ impl Debug for DynamicTile256 {
 }
 
 impl DynamicTile256 {
-    /// Creates a new `DynamicTile256`. Dynamic tiles aren't cleared by default, so the value you get in `tile_data`
-    /// won't necessarily be empty, and will contain whatever was in that same location last time.
+    /// Creates a new `DynamicTile256` for use in regular (non-affine) backgrounds. Dynamic tiles aren't cleared
+    /// by default, so the value you get in `tile_data` won't necessarily be empty, and will contain whatever was
+    /// in that same location last time.
+    ///
+    /// If you need a tile for an affine background, use [`DynamicTile256::new_affine()`] instead. Using a tile
+    /// created with `new()` on an affine background may result in the tile not being visible.
     ///
     /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
     /// do something like:
@@ -379,7 +383,31 @@ impl DynamicTile256 {
     /// which will fill the tile with the transparent colour.
     #[must_use]
     pub fn new() -> Self {
-        VRAM_MANAGER.new_dynamic_tile_256()
+        VRAM_MANAGER.new_dynamic_tile_256(false)
+    }
+
+    /// Creates a new `DynamicTile256` for use in affine backgrounds. Dynamic tiles aren't cleared by default,
+    /// so the value you get in `tile_data` won't necessarily be empty, and will contain whatever was in that
+    /// same location last time.
+    ///
+    /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
+    /// do something like:
+    ///
+    /// ```rust
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::display::tiled::DynamicTile256;
+    ///
+    /// # #[agb::doctest]
+    /// # fn test(gba: agb::Gba) {
+    /// let my_new_tile = DynamicTile256::new_affine().fill_with(0);
+    /// # }
+    /// ```
+    ///
+    /// which will fill the tile with the transparent colour.
+    #[must_use]
+    pub fn new_affine() -> Self {
+        VRAM_MANAGER.new_dynamic_tile_256(true)
     }
 
     /// Fills a `DynamicTile256` with a given colour index from the palette.
@@ -521,8 +549,8 @@ impl VRamManager {
         self.with(VRamManagerInner::new_dynamic_tile_16)
     }
 
-    pub(crate) fn new_dynamic_tile_256(&self) -> DynamicTile256 {
-        self.with(VRamManagerInner::new_dynamic_tile_256)
+    pub(crate) fn new_dynamic_tile_256(&self, is_affine: bool) -> DynamicTile256 {
+        self.with(|inner| inner.new_dynamic_tile_256(is_affine))
     }
 
     pub(crate) fn remove_tile(&self, index: TileIndex) {
@@ -751,9 +779,15 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    fn new_dynamic_tile_256(&mut self) -> DynamicTile256 {
+    fn new_dynamic_tile_256(&mut self, is_affine: bool) -> DynamicTile256 {
         let tile_format = TileFormat::EightBpp;
-        let new_reference: NonNull<u32> = self.tile_allocator.alloc_for_affine();
+
+        let new_reference = if is_affine {
+            self.tile_allocator.alloc_for_affine()
+        } else {
+            self.tile_allocator.alloc_for_regular(tile_format)
+        };
+
         let tile_reference = TileReference(new_reference);
 
         let index = Self::index_from_reference(tile_reference, tile_format);

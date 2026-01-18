@@ -63,8 +63,8 @@ fn test_affine_dynamic_tile_256_checkerboard(gba: &mut Gba) {
     );
 
     // Create a checkerboard pattern using dynamic tiles
-    let mut tile_white = DynamicTile256::new().fill_with(4); // White
-    let mut tile_black = DynamicTile256::new().fill_with(0); // Black
+    let mut tile_white = DynamicTile256::new_affine().fill_with(4); // White
+    let mut tile_black = DynamicTile256::new_affine().fill_with(0); // Black
 
     // Add a small pattern to make tiles distinguishable
     for i in 0..4 {
@@ -117,7 +117,7 @@ fn test_affine_dynamic_tile_256_gradient(gba: &mut Gba) {
     // Create tiles with gradient patterns
     for tile_y in 0..4 {
         for tile_x in 0..4 {
-            let mut tile = DynamicTile256::new();
+            let mut tile = DynamicTile256::new_affine();
             for y in 0..8 {
                 for x in 0..8 {
                     // Create a gradient based on global position
@@ -173,7 +173,7 @@ fn test_affine_dynamic_tile_256_border_pattern(gba: &mut Gba) {
 
     // Create tiles with border patterns and different fill colours
     for tile_idx in 0..16 {
-        let mut tile = DynamicTile256::new();
+        let mut tile = DynamicTile256::new_affine();
         let fill_colour = (tile_idx % 8) as u8;
         let border_colour = 4u8; // White border
 
