@@ -19,10 +19,6 @@ include_aseprite!(
     "examples/gfx/crab.aseprite"
 );
 
-/// Metadata shown in save slot selection (not used in this simple example)
-#[derive(Clone, Serialize, Deserialize)]
-struct SaveMetadata;
-
 /// The actual save data - stores the crab's position
 #[derive(Clone, Serialize, Deserialize)]
 struct SaveData {
@@ -51,7 +47,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut button = ButtonController::new();
 
     // Initialize the save system with 1 slot
-    let mut save_manager: SaveSlotManager<SaveMetadata> = gba
+    let mut save_manager: SaveSlotManager = gba
         .save
         .init_sram(1, SAVE_MAGIC)
         .expect("Failed to initialize save");
@@ -81,7 +77,7 @@ fn main(mut gba: agb::Gba) -> ! {
         // Save the current position
         let save_data = SaveData::from_position(position);
         save_manager
-            .write(0, &save_data, &SaveMetadata)
+            .write(0, &save_data, &())
             .expect("Failed to save");
 
         Object::new(sprites::IDLE.sprite(0))

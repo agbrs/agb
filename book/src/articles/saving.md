@@ -64,12 +64,13 @@ If you want to write your game to override a bootleg cartridge, then those use o
 
 # Setting up saving
 
-First, define your save data and metadata structures using [`serde`](https://serde.rs/) for serialization:
+First, define your save data structure using [`serde`](https://serde.rs/) for serialization.
+If you want to display information about save slots (e.g., player name, playtime) without loading the full save, you can also define a metadata structure:
 
 ```rust
 use serde::{Deserialize, Serialize};
 
-/// Metadata shown in save slot selection screens
+/// Metadata shown in save slot selection screens (optional)
 #[derive(Clone, Serialize, Deserialize)]
 struct SaveMetadata {
     player_name: [u8; 8],

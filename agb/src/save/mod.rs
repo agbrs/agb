@@ -491,8 +491,9 @@ impl SaveManager {
 ///
 /// # Type Parameters
 ///
-/// - `Metadata`: A serde-serializable type for slot metadata shown in save menus
-pub struct SaveSlotManager<Metadata> {
+/// - `Metadata`: A serde-serializable type for slot metadata shown in save menus.
+///   Defaults to `()` if you don't need metadata.
+pub struct SaveSlotManager<Metadata = ()> {
     inner: agb_save::SaveSlotManager<SaveData, Metadata>,
 }
 
