@@ -66,7 +66,6 @@ pub(crate) mod test_storage;
 mod block;
 mod sector_storage;
 
-pub use sector_storage::MIN_SECTOR_SIZE;
 use sector_storage::{SectorError, SectorStorage};
 
 /// Data about how the [`StorageMedium`] should be used.

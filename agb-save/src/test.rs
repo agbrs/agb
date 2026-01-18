@@ -5,8 +5,9 @@ use alloc::vec::Vec;
 
 use quickcheck::{Arbitrary, Gen, quickcheck};
 
+use crate::sector_storage::MIN_SECTOR_SIZE;
 use crate::test_storage::TestStorage;
-use crate::{MIN_SECTOR_SIZE, SaveSlotManager, Slot};
+use crate::{SaveSlotManager, Slot};
 
 use serde::{Deserialize, Serialize};
 
