@@ -112,7 +112,6 @@ fn main(mut gba: agb::Gba) -> ! {
         .init_sram(
             3,              // number of save slots
             SAVE_MAGIC,     // game identifier
-            128,            // minimum sector size in bytes
         )
         .expect("Failed to initialize save");
 
@@ -126,17 +125,17 @@ For Flash or EEPROM, you may want to provide a timer for timeout handling:
 let timers = gba.timers.timers();
 let mut save_manager: SaveSlotManager<SaveMetadata> = gba
     .save
-    .init_flash_128k(3, SAVE_MAGIC, 4096, Some(timers.timer2))
+    .init_flash_128k(3, SAVE_MAGIC, Some(timers.timer2))
     .expect("Failed to initialize save");
 ```
 
 The available initialization methods are:
 
-- `init_sram(num_slots, magic, min_sector_size)` - For SRAM
-- `init_eeprom_512b(num_slots, magic, min_sector_size, timer)` - For 512B EEPROM
-- `init_eeprom_8k(num_slots, magic, min_sector_size, timer)` - For 8K EEPROM
-- `init_flash_64k(num_slots, magic, min_sector_size, timer)` - For 64K Flash
-- `init_flash_128k(num_slots, magic, min_sector_size, timer)` - For 128K Flash
+- `init_sram(num_slots, magic)` - For SRAM
+- `init_eeprom_512b(num_slots, magic, timer)` - For 512B EEPROM
+- `init_eeprom_8k(num_slots, magic, timer)` - For 8K EEPROM
+- `init_flash_64k(num_slots, magic, timer)` - For 64K Flash
+- `init_flash_128k(num_slots, magic, timer)` - For 128K Flash
 
 # Writing save data
 
@@ -274,10 +273,6 @@ The save system has some overhead beyond your actual save data:
 For most save media types this overhead is negligible, but for EEPROM 512B (only 512 bytes total), you may only be able to fit a single slot with very small data.
 If you're targeting EEPROM 512B, you may not be able to store anything in data and put everything in metadata.
 Use unit `()` as your data type.
-
-The `min_sector_size` parameter controls the minimum allocation unit.
-The minimum is 128, but this also limits the size of the metadata (which must fit within one block).
-For flash, the minimum is 4096 due to hardware requirements.
 
 # Save file upgrades
 

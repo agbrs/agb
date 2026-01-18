@@ -53,7 +53,7 @@ fn main(mut gba: agb::Gba) -> ! {
     // Initialize the save system with 1 slot
     let mut save_manager: SaveSlotManager<SaveMetadata> = gba
         .save
-        .init_sram(1, SAVE_MAGIC, 128)
+        .init_sram(1, SAVE_MAGIC)
         .expect("Failed to initialize save");
 
     // Try to load existing save, or start at center

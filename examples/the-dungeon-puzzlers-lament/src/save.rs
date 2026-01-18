@@ -15,7 +15,7 @@ pub struct SaveMetadata {
 }
 
 pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager<SaveMetadata>, SaveError> {
-    let manager = gba.save.init_sram::<SaveMetadata>(1, SAVE_MAGIC, 128)?;
+    let manager = gba.save.init_sram::<SaveMetadata>(1, SAVE_MAGIC)?;
 
     match manager.slot(0) {
         Slot::Valid(metadata) => {

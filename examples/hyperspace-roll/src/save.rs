@@ -10,9 +10,7 @@ static HIGH_SCORE: AtomicU32 = AtomicU32::new(0);
 pub struct HighScoreSaveMetadata(u32);
 
 pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager<HighScoreSaveMetadata>, SaveError> {
-    let save_mager = gba
-        .save
-        .init_sram::<HighScoreSaveMetadata>(1, [0; _], 128)?;
+    let save_mager = gba.save.init_sram::<HighScoreSaveMetadata>(1, [0; _])?;
 
     let score = save_mager.metadata(0).map(|hs| hs.0).unwrap_or_default();
     HIGH_SCORE.store(score, Ordering::SeqCst);
