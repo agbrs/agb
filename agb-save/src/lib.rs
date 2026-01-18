@@ -1043,8 +1043,11 @@ where
         let mut serialized_metadata =
             postcard::to_allocvec(metadata).map_err(SaveError::from_postcard_serialization)?;
         let metadata_length = serialized_metadata.len() as u32;
+
+        // 5. Compute the metadata checksum
         let metadata_crc32 = calc_crc32(&serialized_metadata);
 
+        // 6. Write the metadata chain (if needed)
         let metadata_in_header_size = self.storage.sector_size() - SlotHeaderBlock::header_size();
         let first_metadata_block = if serialized_metadata.len() > metadata_in_header_size {
             self.write_data_blocks(&serialized_metadata[metadata_in_header_size..])?
@@ -1066,7 +1069,7 @@ where
 
         let mut buffer = vec![0u8; sector_size];
 
-        // Write new header to the current ghost sector
+        // 7. Write the new slot header to the ghost sector
         serialize_block(
             Block::SlotHeader(SlotHeaderBlock::valid(
                 slot as u8,
@@ -1085,7 +1088,7 @@ where
         self.storage
             .write_sector(self.ghost_sector as usize, &buffer)?;
 
-        // Mark old header as ghost
+        // 8. Mark old slot as ghost
         self.storage
             .read_sector(old_header_sector as usize, &mut buffer)?;
 
@@ -1114,7 +1117,7 @@ where
         let new_header_sector = self.ghost_sector;
         self.ghost_sector = old_header_sector;
 
-        // 8. Return the old ghost's data sectors to the free list
+        // 9. Free the old ghost's data sectors
         self.free_data_chain(old_first_data_block, &mut buffer)?;
 
         // Update in-memory state

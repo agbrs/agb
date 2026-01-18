@@ -140,21 +140,23 @@ Saving data into slot `S`.
 The physical slot that we write to will be the current physical slot that the current ghost slot occupies.
 
 1. **Serialize save bytes into memory**: We need to know how long it is going to be.
-2. **Serialize metadata bytes into memory**: We need to know how long it is going to be.
-3. **Allocate blocks**: Using the free list, allocate enough blocks to store the save data and any overflow metadata (metadata beyond `block_size - 36` bytes).
-4. **Compute the checksums**: Calculate the crc32 of the save data and the crc32 of the metadata.
-5. **Write the data chain**: Write the save data chain from the allocated blocks.
-6. **Write the metadata chain** (if needed): If metadata exceeds the inline portion (`block_size - 36` bytes), write the overflow to the allocated metadata data blocks.
+2. **Compute the data checksum**: Calculate the crc32 of the save data.
+3. **Write the data chain**: Allocate blocks from the free list and write the save data chain.
+4. **Serialize metadata bytes into memory**: We need to know how long it is going to be.
+5. **Compute the metadata checksum**: Calculate the crc32 of the metadata.
+6. **Write the metadata chain** (if needed): If metadata exceeds the inline portion (`block_size - 36` bytes), allocate blocks and write the overflow to data blocks.
 7. **Write the new slot header over the current ghost slot**:
    - state = VALID
    - logical ID = `S`
    - first data block = start of save data chain
    - first metadata block = start of metadata chain (or 0xffff if metadata fits inline)
    - generation = (current slot `S` generation) + 1 (or 1 if slot `S` was empty)
+   - data length = total data length
+   - data checksum = crc32 of all data bytes
    - metadata length = total metadata length
    - metadata checksum = crc32 of all metadata bytes
    - metadata start = first `block_size - 36` bytes of metadata
 8. **Mark old slot as ghost**: Update the old slot `S`'s physical header block with:
    - state = GHOST
    - everything else the same
-9. **Add the new ghost data and metadata blocks to the free list**: Otherwise we're going to run out of space
+9. **Free the old ghost's data and metadata blocks**: Return them to the free list, otherwise we're going to run out of space.
