@@ -1,44 +1,36 @@
 use agb::external::portable_atomic::{AtomicU32, Ordering};
-use agb::{
-    Gba,
-    save::{SaveError, SaveSlotManager, Slot},
-};
+use agb::save::{SaveError, SaveSlotManager};
+use agb::Gba;
+
+use examples_save::*;
+
 use serde::{Deserialize, Serialize};
 
 static MAXIMUM_LEVEL: AtomicU32 = AtomicU32::new(0);
 
-const SAVE_MAGIC: [u8; 32] = *b"dungeon-puzzlers-lament-v1______";
+#[derive(Serialize, Deserialize, Clone)]
+pub struct MaxLevelSaveData(u32);
 
-#[derive(Clone, Serialize, Deserialize, Default)]
-pub struct SaveMetadata {
-    max_level: u32,
-}
+pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager, SaveError> {
+    let mut save_manager = gba.save.init_sram(NUM_SAVE_SLOTS, *SAVE_ID)?;
 
-pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager<SaveMetadata>, SaveError> {
-    let manager = gba.save.init_sram::<SaveMetadata>(1, SAVE_MAGIC)?;
+    let level: Option<MaxLevelSaveData> = load(&mut save_manager, GameWithSave::DungeonPuzzler)?;
+    let level = level.map(|save_data| save_data.0).unwrap_or(0);
+    MAXIMUM_LEVEL.store(level, Ordering::SeqCst);
 
-    match manager.slot(0) {
-        Slot::Valid(metadata) => {
-            MAXIMUM_LEVEL.store(metadata.max_level, Ordering::SeqCst);
-        }
-        Slot::Empty | Slot::Corrupted => {
-            MAXIMUM_LEVEL.store(0, Ordering::SeqCst);
-        }
-    }
-
-    Ok(manager)
+    Ok(save_manager)
 }
 
 pub fn load_max_level() -> u32 {
     MAXIMUM_LEVEL.load(Ordering::SeqCst)
 }
 
-pub fn save_max_level(
-    manager: &mut SaveSlotManager<SaveMetadata>,
-    level: u32,
-) -> Result<(), SaveError> {
-    let metadata = SaveMetadata { max_level: level };
-    manager.write(0, &(), &metadata)?;
+pub fn save_max_level(save_manager: &mut SaveSlotManager, level: u32) -> Result<(), SaveError> {
     MAXIMUM_LEVEL.store(level, Ordering::SeqCst);
+    save(
+        save_manager,
+        GameWithSave::DungeonPuzzler,
+        MaxLevelSaveData(level),
+    )?;
     Ok(())
 }
