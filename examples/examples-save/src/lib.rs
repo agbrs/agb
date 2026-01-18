@@ -1,3 +1,9 @@
+//! This crate exists to ensure that the different games don't overwrite
+//! each other's save files while being part of the combo ROM. It provides
+//! a really tiny wrapper to keep them safe.
+//!
+//! The games store their data in the data section, and there is no metadata
+//! storage.
 #![no_std]
 
 use agb::save::{SaveError, SaveSlotManager, Slot};
