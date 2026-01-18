@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 const NUM_SLOTS: usize = 1;
 const MAGIC: [u8; 32] = *b"agb-test-eeprom512______________";
-const MIN_SECTOR_SIZE: usize = 128;
 
 /// Small metadata to fit in limited space
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -33,7 +32,7 @@ fn test_write_read_and_persistence(gba: &mut agb::Gba) {
     // Initialize
     let mut manager: SaveSlotManager<SmallMetadata> = gba
         .save
-        .init_eeprom_512b(NUM_SLOTS, MAGIC, MIN_SECTOR_SIZE, Some(timers.timer2))
+        .init_eeprom_512b(NUM_SLOTS, MAGIC, Some(timers.timer2))
         .expect("Failed to init EEPROM 512B");
 
     let data = SmallSaveData { score: 12345 };
