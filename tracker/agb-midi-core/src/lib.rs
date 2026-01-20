@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     collections::HashMap,
     error::Error,
     fs::{self, File},
@@ -8,7 +7,7 @@ use std::{
 };
 
 use agb_fixnum::Num;
-use agb_tracker_interop::{Envelope, Pattern, PatternEffect, PatternSlot, Sample, Track};
+use agb_tracker_interop::{Data, Envelope, Pattern, PatternEffect, PatternSlot, Sample, Track};
 use midly::{Format, MetaMessage, Smf, Timing, TrackEventKind};
 use rustysynth::SoundFont;
 
@@ -368,12 +367,12 @@ pub fn parse_midi(midi_info: &MidiInfo) -> Track {
     Track {
         samples: samples.into(),
         envelopes: envelopes.into(),
-        patterns: Cow::from(vec![Pattern {
+        patterns: Data::from(vec![Pattern {
             length: pattern.len() / resulting_num_channels,
             start_position: 0,
         }]),
         pattern_data: pattern.into(),
-        patterns_to_play: Cow::from(vec![0]),
+        patterns_to_play: Data::from(vec![0]),
         num_channels: resulting_num_channels,
         frames_per_tick: Num::from_f64(frames_per_tick),
         ticks_per_step: 1,

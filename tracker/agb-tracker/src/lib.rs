@@ -63,13 +63,16 @@
 //! Currently, only XM is implemented, however, more formats could be added in future depending
 //! on demand.
 
+#[cfg(not(feature = "agb"))]
 extern crate alloc;
 
 mod lookups;
 mod mixer;
 
+use agb_fixnum::num;
+#[cfg(feature = "agb")]
+use agb_tracker_interop::Data;
 use agb_tracker_interop::{Jump, PatternEffect, Sample, Waveform};
-use alloc::vec::Vec;
 
 pub use mixer::{Mixer, SoundChannel};
 
@@ -98,18 +101,25 @@ pub use agb_midi::include_midi;
 pub mod __private {
     pub use agb_fixnum::Num;
     pub use agb_tracker_interop;
+    use agb_tracker_interop::Data;
+
+    pub const fn static_data<Content>(data: &'static [Content]) -> Data<Content> {
+        Data::Static(data)
+    }
 }
 
 /// A reference to a track. You should create this using one of the include macros.
 pub use agb_tracker_interop::Track;
 
+const NUMBER_OF_CHANNELS: usize = 8;
+
 /// Stores the required state in order to play tracker music.
 pub struct TrackerInner<'track, TChannelId> {
     track: &'track Track,
-    channels: Vec<TrackerChannel>,
-    envelopes: Vec<Option<EnvelopeState>>,
+    channels: [TrackerChannel; NUMBER_OF_CHANNELS],
+    envelopes: [Option<EnvelopeState>; NUMBER_OF_CHANNELS],
 
-    mixer_channels: Vec<Option<TChannelId>>,
+    mixer_channels: [Option<TChannelId>; NUMBER_OF_CHANNELS],
 
     frame: Num<u32, 8>,
     tick: u32,
@@ -187,14 +197,12 @@ struct GlobalSettings {
 impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
     pub fn new(track: &'track Track) -> Self {
-        let mut channels = Vec::new();
-        channels.resize_with(track.num_channels, Default::default);
+        assert!(track.num_channels < NUMBER_OF_CHANNELS);
+        let channels = [const { TrackerChannel::new() }; NUMBER_OF_CHANNELS];
 
-        let mut envelopes = Vec::new();
-        envelopes.resize_with(track.num_channels, || None);
+        let envelopes = [const { None }; NUMBER_OF_CHANNELS];
 
-        let mut mixer_channels = Vec::new();
-        mixer_channels.resize_with(track.num_channels, || None);
+        let mixer_channels = [const { None }; NUMBER_OF_CHANNELS];
 
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
@@ -460,6 +468,26 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 }
 
 impl TrackerChannel {
+    const fn new() -> Self {
+        Self {
+            original_speed: num!(0),
+            base_speed: num!(0),
+            volume: num!(0),
+            vibrato: Waves {
+                waveform: Waveform::Sine,
+                frame: 0,
+                speed: 0,
+                amount: num!(0),
+                enable: false,
+            },
+            current_volume: num!(0),
+            current_speed: num!(0),
+            current_panning: num!(0),
+            is_playing: false,
+            current_pos: None,
+        }
+    }
+
     fn reset(&mut self, sample: &Sample) {
         self.volume = sample.volume.change_base();
         self.current_volume = self.volume;
@@ -672,15 +700,8 @@ fn main(_gba: agb::Gba) -> ! {
 
 #[cfg(feature = "agb")]
 impl SoundChannel for agb::sound::mixer::SoundChannel {
-    fn new(data: &alloc::borrow::Cow<'static, [u8]>) -> Self {
-        Self::new(match data {
-            alloc::borrow::Cow::Borrowed(data) =>
-            // Safety: should be good by construction, but it'll blow up if you try and play it and it isn't aligned
-            unsafe { agb::sound::mixer::SoundData::new(data) },
-            alloc::borrow::Cow::Owned(_) => {
-                unimplemented!("Must use borrowed COW data for tracker")
-            }
-        })
+    fn new(data: &Data<u8>) -> Self {
+        Self::new(unsafe { agb::sound::mixer::SoundData::new(data.get_static()) })
     }
 
     fn stop(&mut self) {

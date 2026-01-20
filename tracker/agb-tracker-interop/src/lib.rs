@@ -1,17 +1,58 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-extern crate alloc;
+use core::ops::Deref;
 
 use agb_fixnum::Num;
-use alloc::borrow::Cow;
+
+#[derive(Debug, Clone)]
+pub enum Data<Content>
+where
+    Content: 'static,
+{
+    Static(&'static [Content]),
+    #[cfg(feature = "std")]
+    Owned(Box<[Content]>),
+}
+
+#[cfg(feature = "std")]
+impl<Content> From<Vec<Content>> for Data<Content> {
+    fn from(value: Vec<Content>) -> Self {
+        Data::Owned(value.into_boxed_slice())
+    }
+}
+
+impl<Content> Deref for Data<Content>
+where
+    Content: 'static,
+{
+    type Target = [Content];
+
+    fn deref(&self) -> &[Content] {
+        match self {
+            Data::Static(items) => items,
+            #[cfg(feature = "std")]
+            Data::Owned(items) => &*items,
+        }
+    }
+}
+
+impl<Content> Data<Content> {
+    pub fn get_static(&self) -> &'static [Content] {
+        match self {
+            Data::Static(items) => items,
+            #[cfg(feature = "std")]
+            Data::Owned(_) => panic!("Cannot get static from owned data"),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Track {
-    pub samples: Cow<'static, [Sample]>,
-    pub envelopes: Cow<'static, [Envelope]>,
-    pub pattern_data: Cow<'static, [PatternSlot]>,
-    pub patterns: Cow<'static, [Pattern]>,
-    pub patterns_to_play: Cow<'static, [usize]>,
+    pub samples: Data<Sample>,
+    pub envelopes: Data<Envelope>,
+    pub pattern_data: Data<PatternSlot>,
+    pub patterns: Data<Pattern>,
+    pub patterns_to_play: Data<usize>,
 
     pub num_channels: usize,
     pub frames_per_tick: Num<u32, 8>,
@@ -21,7 +62,7 @@ pub struct Track {
 
 #[derive(Debug, Clone)]
 pub struct Sample {
-    pub data: Cow<'static, [u8]>,
+    pub data: Data<u8>,
     pub should_loop: bool,
     pub restart_point: u32,
     pub volume: Num<i16, 8>,
@@ -63,7 +104,7 @@ pub struct PatternSlot {
 
 #[derive(Debug, Clone)]
 pub struct Envelope {
-    pub amount: Cow<'static, [Num<i16, 8>]>,
+    pub amount: Data<Num<i16, 8>>,
     pub sustain: Option<usize>,
     pub loop_start: Option<usize>,
     pub loop_end: Option<usize>,
@@ -176,9 +217,9 @@ impl quote::ToTokens for Track {
 
         tokens.append_all(quote! {
             {
-                use alloc::borrow::Cow;
                 use agb_tracker::__private::agb_tracker_interop::*;
                 use agb_tracker::__private::Num;
+                use agb_tracker::__private::static_data;
 
                 static SAMPLES: &[Sample] = &[#(#samples),*];
                 static PATTERN_DATA: &[PatternSlot] = &[#(#pattern_data),*];
@@ -187,11 +228,11 @@ impl quote::ToTokens for Track {
                 static ENVELOPES: &[Envelope] = &[#(#envelopes),*];
 
                 agb_tracker::Track {
-                    samples: Cow::Borrowed(SAMPLES),
-                    envelopes: Cow::Borrowed(ENVELOPES),
-                    pattern_data: Cow::Borrowed(PATTERN_DATA),
-                    patterns: Cow::Borrowed(PATTERNS),
-                    patterns_to_play: Cow::Borrowed(PATTERNS_TO_PLAY),
+                    samples: static_data(SAMPLES),
+                    envelopes: static_data(ENVELOPES),
+                    pattern_data: static_data(PATTERN_DATA),
+                    patterns: static_data(PATTERNS),
+                    patterns_to_play: static_data(PATTERNS_TO_PLAY),
 
                     frames_per_tick: Num::from_raw(#frames_per_tick),
                     num_channels: #num_channels,
@@ -246,7 +287,7 @@ impl quote::ToTokens for Envelope {
                 static AMOUNTS: &[agb_tracker::__private::Num<i16, 8>] = &[#(#amount),*];
 
                 agb_tracker::__private::agb_tracker_interop::Envelope {
-                    amount: Cow::Borrowed(AMOUNTS),
+                    amount: static_data(AMOUNTS),
                     sustain: #sustain,
                     loop_start: #loop_start,
                     loop_end: #loop_end,
@@ -301,7 +342,7 @@ impl quote::ToTokens for Sample {
 
                 static SAMPLE_DATA: &[u8] = &AlignmentWrapper(*#samples).0;
                 agb_tracker::__private::agb_tracker_interop::Sample {
-                    data: Cow::Borrowed(SAMPLE_DATA),
+                    data: static_data(SAMPLE_DATA),
                     should_loop: #should_loop,
                     restart_point: #restart_point,
                     volume: agb_tracker::__private::Num::from_raw(#volume),

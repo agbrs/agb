@@ -1,12 +1,10 @@
 #![allow(missing_docs)]
 
 use agb_fixnum::Num;
-use alloc::borrow::Cow;
+use agb_tracker_interop::Data;
 
 pub trait SoundChannel {
-    // I need a reference to a cow here to support the static data correctly
-    #[allow(clippy::ptr_arg)]
-    fn new(data: &Cow<'static, [u8]>) -> Self;
+    fn new(data: &Data<u8>) -> Self;
 
     fn stop(&mut self);
     fn pause(&mut self) -> &mut Self;
