@@ -2,11 +2,12 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::num::NonZeroU16;
 use quickcheck::{Arbitrary, Gen, quickcheck};
 
 use crate::block::{
     Block, BlockLoadError, BlockType, DataBlock, DataBlockHeader, GlobalBlock, GlobalHeader,
-    NO_NEXT_BLOCK, SlotHeader, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
+    SlotHeader, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
 };
 
 const TEST_BLOCK_SIZE: usize = 128;
@@ -37,14 +38,8 @@ impl Arbitrary for SlotHeader {
         Self {
             state: SlotState::arbitrary(g),
             logical_slot_id: u8::arbitrary(g),
-            first_data_block: match u16::arbitrary(g) {
-                NO_NEXT_BLOCK => None,
-                v => Some(v),
-            },
-            first_metadata_block: match u16::arbitrary(g) {
-                NO_NEXT_BLOCK => None,
-                v => Some(v),
-            },
+            first_data_block: NonZeroU16::new(u16::arbitrary(g)),
+            first_metadata_block: NonZeroU16::new(u16::arbitrary(g)),
             generation: u32::arbitrary(g),
             crc32: u32::arbitrary(g),
             length: u32::arbitrary(g),
@@ -57,10 +52,7 @@ impl Arbitrary for SlotHeader {
 impl Arbitrary for DataBlockHeader {
     fn arbitrary(g: &mut Gen) -> Self {
         Self {
-            next_block: match u16::arbitrary(g) {
-                NO_NEXT_BLOCK => None,
-                v => Some(v),
-            },
+            next_block: NonZeroU16::new(u16::arbitrary(g)),
         }
     }
 }

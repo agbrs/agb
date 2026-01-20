@@ -1,3 +1,5 @@
+use core::num::NonZeroU16;
+
 #[cfg(test)]
 mod proptest;
 
@@ -25,8 +27,8 @@ struct GlobalHeader {
 struct SlotHeader {
     state: SlotState,
     logical_slot_id: u8,
-    first_data_block: Option<u16>,
-    first_metadata_block: Option<u16>,
+    first_data_block: Option<NonZeroU16>,
+    first_metadata_block: Option<NonZeroU16>,
     generation: u32,
     crc32: u32,
     length: u32,
@@ -34,13 +36,13 @@ struct SlotHeader {
     metadata_crc32: u32,
 }
 
-/// Sentinel value for "no next block" in serialized format
-const NO_NEXT_BLOCK: u16 = 0xFFFF;
+/// Sentinel value for "no next block" in serialized format (0 = none, since block 0 is always the global header)
+const NO_NEXT_BLOCK: u16 = 0;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DataBlockHeader {
     /// The next block in the chain, or `None` if this is the last block.
-    next_block: Option<u16>,
+    next_block: Option<NonZeroU16>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -150,8 +152,8 @@ impl<'a> SlotHeaderBlock<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn valid(
         logical_slot_id: u8,
-        first_data_block: Option<u16>,
-        first_metadata_block: Option<u16>,
+        first_data_block: Option<NonZeroU16>,
+        first_metadata_block: Option<NonZeroU16>,
         generation: u32,
         crc32: u32,
         length: u32,
@@ -193,7 +195,7 @@ impl<'a> SlotHeaderBlock<'a> {
         self.header.logical_slot_id
     }
 
-    pub(crate) fn first_data_block(&self) -> Option<u16> {
+    pub(crate) fn first_data_block(&self) -> Option<NonZeroU16> {
         self.header.first_data_block
     }
 
@@ -209,7 +211,7 @@ impl<'a> SlotHeaderBlock<'a> {
         self.header.length
     }
 
-    pub(crate) fn first_metadata_block(&self) -> Option<u16> {
+    pub(crate) fn first_metadata_block(&self) -> Option<NonZeroU16> {
         self.header.first_metadata_block
     }
 
@@ -237,14 +239,14 @@ impl<'a> DataBlock<'a> {
         BLOCK_HEADER_SIZE // 8
     }
 
-    pub fn new(next_block: Option<u16>, data: &'a [u8]) -> Self {
+    pub fn new(next_block: Option<NonZeroU16>, data: &'a [u8]) -> Self {
         Self {
             header: DataBlockHeader { next_block },
             data,
         }
     }
 
-    pub(crate) fn next_block(&self) -> Option<u16> {
+    pub(crate) fn next_block(&self) -> Option<NonZeroU16> {
         self.header.next_block
     }
 }
@@ -269,11 +271,7 @@ pub fn deserialize_block(block_data: &[u8]) -> Result<Block<'_>, BlockLoadError>
         }),
         BlockType::Data => Block::Data(DataBlock {
             header: DataBlockHeader {
-                next_block: if block_header.next_block_index == NO_NEXT_BLOCK {
-                    None
-                } else {
-                    Some(block_header.next_block_index)
-                },
+                next_block: NonZeroU16::new(block_header.next_block_index),
             },
             data: &block_data[8..],
         }),
@@ -289,7 +287,7 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
         Block::Data(data_block) => data_block
             .header
             .next_block
-            .unwrap_or(NO_NEXT_BLOCK)
+            .map_or(NO_NEXT_BLOCK, NonZeroU16::get)
             .to_le_bytes(),
         _ => [0, 0],
     });
@@ -309,14 +307,14 @@ pub fn serialize_block(block: Block, buffer: &mut [u8]) {
                 &slot_header_block
                     .header
                     .first_data_block
-                    .unwrap_or(NO_NEXT_BLOCK)
+                    .map_or(NO_NEXT_BLOCK, NonZeroU16::get)
                     .to_le_bytes(),
             );
             buffer[12..14].copy_from_slice(
                 &slot_header_block
                     .header
                     .first_metadata_block
-                    .unwrap_or(NO_NEXT_BLOCK)
+                    .map_or(NO_NEXT_BLOCK, NonZeroU16::get)
                     .to_le_bytes(),
             );
             buffer[14..16].copy_from_slice(&[0, 0]); // reserved
@@ -422,16 +420,8 @@ impl TryFrom<&[u8]> for SlotHeader {
         Ok(Self {
             state: slot_state,
             logical_slot_id,
-            first_data_block: if first_data_block == NO_NEXT_BLOCK {
-                None
-            } else {
-                Some(first_data_block)
-            },
-            first_metadata_block: if first_metadata_block == NO_NEXT_BLOCK {
-                None
-            } else {
-                Some(first_metadata_block)
-            },
+            first_data_block: NonZeroU16::new(first_data_block),
+            first_metadata_block: NonZeroU16::new(first_metadata_block),
             generation,
             crc32: data_checksum,
             length: data_length,

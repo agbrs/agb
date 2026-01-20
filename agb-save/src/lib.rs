@@ -52,7 +52,7 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
-use core::{iter, num::NonZeroUsize};
+use core::{iter, num::NonZeroU16, num::NonZeroUsize};
 
 use block::{
     Block, DataBlock, GlobalBlock, SlotHeaderBlock, SlotState, deserialize_block, serialize_block,
@@ -259,8 +259,8 @@ struct SlotInfo<Metadata> {
     status: SlotStatus,
     metadata: Option<Metadata>,
     generation: u32,
-    first_data_block: Option<u16>,
-    first_metadata_block: Option<u16>,
+    first_data_block: Option<NonZeroU16>,
+    first_metadata_block: Option<NonZeroU16>,
     data_length: u32,
     data_crc32: u32,
     /// Physical sector where this slot's header is stored
@@ -297,8 +297,8 @@ impl<Metadata> SlotInfo<Metadata> {
     fn valid(
         metadata: Metadata,
         generation: u32,
-        first_data_block: Option<u16>,
-        first_metadata_block: Option<u16>,
+        first_data_block: Option<NonZeroU16>,
+        first_metadata_block: Option<NonZeroU16>,
         data_length: u32,
         data_crc32: u32,
         header_sector: u16,
@@ -319,8 +319,8 @@ impl<Metadata> SlotInfo<Metadata> {
 /// Information stored from a ghost header for potential slot recovery.
 struct GhostRecoveryInfo {
     generation: u32,
-    first_data_block: Option<u16>,
-    first_metadata_block: Option<u16>,
+    first_data_block: Option<NonZeroU16>,
+    first_metadata_block: Option<NonZeroU16>,
     data_length: u32,
     data_crc32: u32,
     metadata_bytes: Vec<u8>,
@@ -811,7 +811,7 @@ where
     /// - `Err` if there's a storage error
     fn collect_chain_sectors(
         &mut self,
-        start_sector: Option<u16>,
+        start_sector: Option<NonZeroU16>,
     ) -> Result<Option<Vec<usize>>, SaveError<Storage::Error>> {
         let sector_count = self.storage.sector_count();
         let sector_size = self.storage.sector_size();
@@ -820,7 +820,7 @@ where
         let mut current_sector = start_sector;
 
         while let Some(sector) = current_sector {
-            let sector_idx = sector as usize;
+            let sector_idx = sector.get() as usize;
 
             // Check for invalid reference or loop
             if sector_idx >= sector_count || sectors.contains(&sector_idx) {
@@ -847,9 +847,12 @@ where
 
     /// Write data across multiple data blocks, allocating sectors from the free list.
     ///
-    /// Returns the index of the first data block, or 0xFFFF if data is empty.
+    /// Returns the index of the first data block, or `None` if data is empty.
     /// Returns an error if there aren't enough free sectors.
-    fn write_data_blocks(&mut self, data: &[u8]) -> Result<Option<u16>, SaveError<Storage::Error>> {
+    fn write_data_blocks(
+        &mut self,
+        data: &[u8],
+    ) -> Result<Option<NonZeroU16>, SaveError<Storage::Error>> {
         if data.is_empty() {
             return Ok(None);
         }
@@ -881,7 +884,7 @@ where
             let next_block = if is_last {
                 None
             } else {
-                Some(allocated_sectors[i + 1])
+                NonZeroU16::new(allocated_sectors[i + 1])
             };
 
             // Calculate how much data goes in this block
@@ -905,7 +908,7 @@ where
             data_offset += chunk_size;
         }
 
-        Ok(Some(allocated_sectors[0]))
+        Ok(NonZeroU16::new(allocated_sectors[0]))
     }
 
     /// Reads data from a chain of data blocks, appending to the provided buffer.
@@ -915,7 +918,7 @@ where
     /// next block or the target size has been reached.
     fn read_block_chain(
         &mut self,
-        start_block: Option<u16>,
+        start_block: Option<NonZeroU16>,
         data: &mut Vec<u8>,
         size: usize,
     ) -> Result<(), SaveError<Storage::Error>> {
@@ -940,7 +943,8 @@ where
             }
 
             // Read the block
-            self.storage.read_sector(block as usize, &mut buffer)?;
+            self.storage
+                .read_sector(block.get() as usize, &mut buffer)?;
 
             // Deserialize and extract data
             match deserialize_block(&buffer) {
@@ -968,7 +972,7 @@ where
         inline_metadata: &[u8],
         metadata_length: u32,
         metadata_crc32: u32,
-        first_metadata_block: Option<u16>,
+        first_metadata_block: Option<NonZeroU16>,
     ) -> Result<Option<Metadata>, SaveError<Storage::Error>> {
         let metadata_len = metadata_length as usize;
 
@@ -1137,14 +1141,14 @@ where
     /// Traverse a data block chain and return all sectors to the free list.
     fn free_data_chain(
         &mut self,
-        first_block: Option<u16>,
+        first_block: Option<NonZeroU16>,
         buffer: &mut [u8],
     ) -> Result<(), SaveError<Storage::Error>> {
         let mut current_block = first_block;
 
         while let Some(block) = current_block {
             // Read the block to find the next one in the chain
-            self.storage.read_sector(block as usize, buffer)?;
+            self.storage.read_sector(block.get() as usize, buffer)?;
 
             let next_block = match deserialize_block(buffer) {
                 Ok(Block::Data(data_block)) => data_block.next_block(),
@@ -1152,7 +1156,7 @@ where
             };
 
             // Return this sector to the free list
-            self.free_sector_list.push(block);
+            self.free_sector_list.push(block.get());
 
             current_block = next_block;
         }

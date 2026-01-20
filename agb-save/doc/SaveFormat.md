@@ -26,7 +26,7 @@ The block size is dynamic. It has size `max(erase_size, 128)` and must be a mult
 | ------ | ---------------- | -------------------------------------------------- |
 | 0      | 2                | CRC16 covering bytes 2..end of block               |
 | 2      | 2                | Block type                                         |
-| 4      | 2                | Next block index (0xffff = end / none)             |
+| 4      | 2                | Next block index (0 = end / none)                  |
 | 6      | 2                | Reserved (zeros)                                   |
 | 8      | `block_size - 8` | payload (interpretation depends on the block type) |
 
@@ -62,20 +62,20 @@ We don't store the next block in the standard header, instead storing it in the 
 
 ### Block layout
 
-| Offset | Size              | Field                                                                    |
-| ------ | ----------------- | ------------------------------------------------------------------------ |
-| 0      | 8                 | Standard header, next block is empty                                     |
-| 8      | 1                 | Slot state                                                               |
-| 9      | 1                 | Logical slot ID                                                          |
-| 10     | 2                 | First data block of save                                                 |
-| 12     | 2                 | First metadata data block (0xffff = none)                                |
-| 14     | 2                 | Reserved (zeros)                                                         |
-| 16     | 4                 | Generation (u32)                                                         |
-| 20     | 4                 | Data checksum (crc32 of all block payloads in the chain)                 |
-| 24     | 4                 | Data length (u32, total bytes of actual data)                            |
-| 28     | 4                 | Metadata length (u32, total bytes of metadata including inline portion)  |
-| 32     | 4                 | Metadata checksum (crc32 of all metadata bytes)                          |
-| 36     | `block_size - 36` | Metadata start (continues in data blocks if first metadata block != none)
+| Offset | Size              | Field                                                                     |
+| ------ | ----------------- | ------------------------------------------------------------------------- |
+| 0      | 8                 | Standard header, next block is empty                                      |
+| 8      | 1                 | Slot state                                                                |
+| 9      | 1                 | Logical slot ID                                                           |
+| 10     | 2                 | First data block of save                                                  |
+| 12     | 2                 | First metadata data block (0 = none)                                      |
+| 14     | 2                 | Reserved (zeros)                                                          |
+| 16     | 4                 | Generation (u32)                                                          |
+| 20     | 4                 | Data checksum (crc32 of all block payloads in the chain)                  |
+| 24     | 4                 | Data length (u32, total bytes of actual data)                             |
+| 28     | 4                 | Metadata length (u32, total bytes of metadata including inline portion)   |
+| 32     | 4                 | Metadata checksum (crc32 of all metadata bytes)                           |
+| 36     | `block_size - 36` | Metadata start (continues in data blocks if first metadata block != none) |
 
 ### Slot states
 
@@ -104,7 +104,6 @@ When reading a block, it is assumed that the CRC in the standard header is valid
 2. **Validate identity**: Check the library magic and the game identifier. If mismatching, then assume fully corrupt.
 3. **Load slot headers**: Read blocks 1..N+1
 4. **Identify corruption**: For each slot header that fails to load, or whose data chain has any failing block or the whole CRC doesn't match
-
    1. Mark as corrupt
    2. Check if the ghost was for this slot
    3. If ghost is valid and was for this slot, recover from ghost
@@ -129,7 +128,7 @@ To read metadata from a given save slot:
 
 1.  Read slot header, get metadata length, metadata checksum, and first metadata block index
 2.  Read inline metadata from slot header (up to `block_size - 36` bytes or metadata_length, whichever is smaller)
-3.  If first metadata block != 0xffff, traverse the metadata chain, concatenating payloads
+3.  If first metadata block != 0, traverse the metadata chain, concatenating payloads
 4.  Truncate to metadata_length (last block may have padding)
 5.  Verify concatenated metadata against the metadata checksum
 
@@ -149,7 +148,7 @@ The physical slot that we write to will be the current physical slot that the cu
    - state = VALID
    - logical ID = `S`
    - first data block = start of save data chain
-   - first metadata block = start of metadata chain (or 0xffff if metadata fits inline)
+   - first metadata block = start of metadata chain (or 0 if metadata fits inline)
    - generation = (current slot `S` generation) + 1 (or 1 if slot `S` was empty)
    - data length = total data length
    - data checksum = crc32 of all data bytes
