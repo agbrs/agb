@@ -31,7 +31,7 @@ where
         match self {
             Data::Static(items) => items,
             #[cfg(feature = "std")]
-            Data::Owned(items) => &*items,
+            Data::Owned(items) => items,
         }
     }
 }

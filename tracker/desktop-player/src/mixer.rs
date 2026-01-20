@@ -1,5 +1,6 @@
 use agb_fixnum::Num;
-use std::{borrow::Cow, num::Wrapping};
+use agb_tracker_interop::Data;
+use std::num::Wrapping;
 
 const BUFFER_SIZE: usize = 560;
 const NUM_CHANNELS: usize = 8;
@@ -81,7 +82,7 @@ impl Mixer {
 }
 
 pub struct SoundChannel {
-    data: Cow<'static, [u8]>,
+    data: Data<u8>,
     pos: Num<u32, 8>,
     should_loop: bool,
     restart_point: Num<u32, 8>,
@@ -110,7 +111,7 @@ impl std::fmt::Debug for SoundChannel {
 }
 
 impl SoundChannel {
-    fn new(data: Cow<'static, [u8]>) -> Self {
+    fn new(data: Data<u8>) -> Self {
         Self {
             data: data.clone(),
 
@@ -129,7 +130,7 @@ impl SoundChannel {
 pub struct SoundChannelId(usize, Wrapping<usize>);
 
 impl agb_tracker::SoundChannel for SoundChannel {
-    fn new(data: &Cow<'static, [u8]>) -> Self {
+    fn new(data: &Data<u8>) -> Self {
         Self::new(data.clone())
     }
 
