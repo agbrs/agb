@@ -12,6 +12,7 @@ members = [
     "agb-hashmap",
     "agb-image-converter",
     "agb-macros",
+    "agb-save",
     "agb-sound-converter",
 
     "tracker/agb-midi",
@@ -45,6 +46,7 @@ exclude = [
     "examples/the-hat-chooses-the-wizard",
     "examples/the-purple-night",
     "examples/dynamic-isometric",
+    "examples/examples-save",
 
     "book/games/pong",
     "book/games/platform",

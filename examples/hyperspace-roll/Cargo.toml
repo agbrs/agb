@@ -6,6 +6,8 @@ edition = "2024"
 
 [dependencies]
 agb = { version = "0.22.6", path = "../../agb" }
+serde = { version = "1", default-features = false, features = ["derive"] }
+examples_save = { version = "0.1.0", path = "../examples-save" }
 
 [profile.dev]
 opt-level = 3

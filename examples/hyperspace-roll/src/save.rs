@@ -1,43 +1,36 @@
 use agb::Gba;
 use agb::external::portable_atomic::{AtomicU32, Ordering};
-use agb::save::{Error, SaveManager};
+use agb::save::{SaveError, SaveSlotManager};
+
+use examples_save::*;
+
+use serde::{Deserialize, Serialize};
 
 static HIGH_SCORE: AtomicU32 = AtomicU32::new(0);
-static SAVE_OFFSET: usize = 1;
 
-pub fn init_save(gba: &mut Gba) -> Result<(), Error> {
-    gba.save.init_sram();
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HighScoreSaveData(u32);
 
-    let mut access = gba.save.access()?;
+pub fn init_save(gba: &mut Gba) -> Result<SaveSlotManager, SaveError> {
+    let mut save_manager = gba.save.init_sram(NUM_SAVE_SLOTS, *SAVE_ID)?;
 
-    let mut buffer = [0; 1];
-    access.read(0, &mut buffer)?;
+    let score: Option<HighScoreSaveData> = load(&mut save_manager, GameWithSave::HyperspaceRoll)?;
+    let score = score.map(|save_data| save_data.0).unwrap_or(0);
+    HIGH_SCORE.store(score, Ordering::SeqCst);
 
-    if buffer[0] != 0 {
-        access.prepare_write(0..1)?.write(0, &[0])?;
-        core::mem::drop(access);
-        save_high_score(&mut gba.save, 0)?;
-    } else {
-        let mut buffer = [0; 4];
-        access.read(SAVE_OFFSET, &mut buffer)?;
-        let high_score = u32::from_le_bytes(buffer);
-
-        let score = if high_score > 100 { 0 } else { high_score };
-
-        HIGH_SCORE.store(score, Ordering::SeqCst);
-    }
-
-    Ok(())
+    Ok(save_manager)
 }
 
 pub fn load_high_score() -> u32 {
     HIGH_SCORE.load(Ordering::SeqCst)
 }
 
-pub fn save_high_score(save: &mut SaveManager, score: u32) -> Result<(), Error> {
-    save.access()?
-        .prepare_write(SAVE_OFFSET..SAVE_OFFSET + 4)?
-        .write(SAVE_OFFSET, &score.to_le_bytes())?;
+pub fn save_high_score(save_manager: &mut SaveSlotManager, score: u32) -> Result<(), SaveError> {
     HIGH_SCORE.store(score, Ordering::SeqCst);
+    save(
+        save_manager,
+        GameWithSave::HyperspaceRoll,
+        HighScoreSaveData(score),
+    )?;
     Ok(())
 }

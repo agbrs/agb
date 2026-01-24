@@ -8,8 +8,9 @@ use agb::{
     fixnum::{Num, Vector2D, vec2},
     include_aseprite,
     input::ButtonController,
-    save::{Error, SaveManager},
+    save::SaveSlotManager,
 };
+use serde::{Deserialize, Serialize};
 
 extern crate alloc;
 
@@ -18,57 +19,45 @@ include_aseprite!(
     "examples/gfx/crab.aseprite"
 );
 
-struct Save {
-    position: Vector2D<Num<i32, 8>>,
+/// The actual save data - stores the crab's position
+#[derive(Clone, Serialize, Deserialize)]
+struct SaveData {
+    x: i32,
+    y: i32,
 }
 
-impl Save {
-    fn write(&self, save: &mut SaveManager) -> Result<(), Error> {
-        let mut access = save.access()?;
-
-        let x = self.position.x.to_raw();
-        let y = self.position.y.to_raw();
-
-        let [a, b, c, d] = i32::to_ne_bytes(x);
-        let [e, f, g, h] = i32::to_ne_bytes(y);
-
-        access
-            .prepare_write(0..9)?
-            .write(0, &[0, a, b, c, d, e, f, g, h])
+impl SaveData {
+    fn position(&self) -> Vector2D<Num<i32, 8>> {
+        vec2(Num::from_raw(self.x), Num::from_raw(self.y))
     }
 
-    fn new(save: &mut SaveManager) -> Result<Self, Error> {
-        save.init_sram();
-
-        let mut access = save.access()?;
-
-        let mut has_existing_save_buf = 0;
-
-        access.read(0, core::slice::from_mut(&mut has_existing_save_buf))?;
-
-        if has_existing_save_buf != 0 {
-            Ok(Save {
-                position: vec2(WIDTH / 2, HEIGHT / 2).change_base(),
-            })
-        } else {
-            let mut p = [0; 8];
-            access.read(1, &mut p)?;
-
-            let x = i32::from_ne_bytes([p[0], p[1], p[2], p[3]]);
-            let y = i32::from_ne_bytes([p[4], p[5], p[6], p[7]]);
-
-            Ok(Save {
-                position: vec2(Num::from_raw(x), Num::from_raw(y)),
-            })
+    fn from_position(position: Vector2D<Num<i32, 8>>) -> Self {
+        SaveData {
+            x: position.x.to_raw(),
+            y: position.y.to_raw(),
         }
     }
 }
 
+const SAVE_MAGIC: [u8; 32] = *b"agb-example-save________________";
+
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-    let mut save = Save::new(&mut gba.save).expect("able to read save data");
     let mut button = ButtonController::new();
+
+    // Initialize the save system with 1 slot
+    let mut save_manager: SaveSlotManager = gba
+        .save
+        .init_sram(1, SAVE_MAGIC)
+        .expect("Failed to initialize save");
+
+    // Try to load existing save, or start at center
+    let mut position: Vector2D<Num<i32, 8>> = save_manager
+        .read::<SaveData>(0)
+        .ok()
+        .map(|data| data.position())
+        .unwrap_or_else(|| vec2(WIDTH / 2, HEIGHT / 2).change_base());
 
     VRAM_MANAGER.set_background_palette(
         0,
@@ -79,16 +68,20 @@ fn main(mut gba: agb::Gba) -> ! {
         let mut frame = gfx.frame();
         button.update();
 
-        save.position.x += button.x_tri() as i32;
-        save.position.y += button.y_tri() as i32;
+        position.x += button.x_tri() as i32;
+        position.y += button.y_tri() as i32;
 
-        save.position.x = save.position.x.clamp(0.into(), (WIDTH - 32).into());
-        save.position.y = save.position.y.clamp(0.into(), (HEIGHT - 32).into());
+        position.x = position.x.clamp(0.into(), (WIDTH - 32).into());
+        position.y = position.y.clamp(0.into(), (HEIGHT - 32).into());
 
-        save.write(&mut gba.save).expect("able to write save data");
+        // Save the current position
+        let save_data = SaveData::from_position(position);
+        save_manager
+            .write(0, &save_data, &())
+            .expect("Failed to save");
 
         Object::new(sprites::IDLE.sprite(0))
-            .set_pos(save.position.floor())
+            .set_pos(position.floor())
             .show(&mut frame);
 
         frame.commit();

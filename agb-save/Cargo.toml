@@ -1,0 +1,12 @@
+[package]
+name = "agb_save"
+version = "0.22.6"
+edition = "2024"
+
+[dependencies]
+crc16 = "0.4"
+serde = { version = "1", default-features = false, features = ["alloc"] }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+
+[dev-dependencies]
+quickcheck = "1"

@@ -40,47 +40,23 @@
 //!
 //! ## Using save media
 //!
-//! To access save media, use the [`SaveManager::access`] or
-//! [`SaveManager::access_with_timer`] methods to create a new [`SaveData`]
-//! object. Its methods are used to read or write save media.
-//!
-//! Reading data from the save media is simple. Use [`read`] to copy data from an
-//! offset in the save media into a buffer in memory.
-//!
-//! Writing to save media requires you to prepare the area for writing by
-//! calling the [`prepare_write`] method to return a [`SavePreparedBlock`],
-//! which contains the actual [`write`] method.
-//!
-//! The `prepare_write` method leaves everything in a sector that overlaps the
-//! range passed to it in an implementation defined state. On some devices it
-//! may do nothing, and on others, it may clear the entire range to `0xFF`.
-//!
-//! Because writes can only be prepared on a per-sector basis, a clear on a
-//! range of `4000..5000` on a device with 4096 byte sectors will actually clear
-//! a range of `0..8192`. Use [`sector_size`] to find the sector size, or
-//! [`align_range`] to directly calculate the range of memory that will be
-//! affected by the clear.
-//!
-//! [`read`]: SaveData::read
-//! [`prepare_write`]: SaveData::prepare_write
-//! [`write`]: SavePreparedBlock::write
-//! [`sector_size`]: SaveData::sector_size
-//! [`align_range`]: SaveData::align_range
+//! Each `init_*` method returns a [`SaveSlotManager`] which provides a
+//! high-level interface for managing multiple save slots with corruption
+//! detection and recovery.
 //!
 //! ## Performance and Other Details
 //!
 //! The performance characteristics of the media types are as follows:
 //!
 //! * SRAM is simply a form of battery backed memory, and has no particular
-//!   performance characteristics.  Reads and writes at any alignment are
+//!   performance characteristics. Reads and writes at any alignment are
 //!   efficient. Furthermore, no timer is needed for accesses to this type of
-//!   media. `prepare_write` does not immediately erase any data.
+//!   media.
 //! * Non-Atmel flash chips have a sector size of 4096 bytes. Reads and writes
-//!   to any alignment are efficient, however, `prepare_write` will erase all
-//!   data in an entire sector before writing.
+//!   to any alignment are efficient, however, writes will erase all data in an
+//!   entire sector before writing.
 //! * Atmel flash chips have a sector size of 128 bytes. Reads to any alignment
 //!   are efficient, however, unaligned writes are extremely slow.
-//!   `prepare_write` does not immediately erase any data.
 //! * EEPROM has a sector size of 8 bytes. Unaligned reads and writes are slower
 //!   than aligned writes, however, this is easily mitigated by the small sector
 //!   size.
@@ -88,6 +64,7 @@
 use crate::save::utils::Timeout;
 use crate::sync::{Lock, RawLockGuard};
 use crate::timer::Timer;
+use core::num::NonZeroUsize;
 use core::ops::Range;
 
 mod asm_utils;
@@ -95,6 +72,12 @@ mod eeprom;
 mod flash;
 mod sram;
 mod utils;
+
+#[doc(inline)]
+pub use agb_save::{SerializationError, Slot};
+
+/// An error that can happen while saving or loading.
+pub type SaveError = agb_save::SaveError<StorageError>;
 
 /// A list of save media types.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -115,7 +98,7 @@ pub enum MediaType {
 /// The type used for errors encountered while reading or writing save media.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
-pub enum Error {
+pub enum StorageError {
     /// There is no save media attached to this game cart.
     NoMedia,
     /// Failed to write the data to save media.
@@ -167,43 +150,74 @@ impl MediaInfo {
 
 /// A trait allowing low-level saving and writing to save media.
 trait RawSaveAccess: Sync {
-    fn info(&self) -> Result<&'static MediaInfo, Error>;
-    fn read(&self, offset: usize, buffer: &mut [u8], timeout: &mut Timeout) -> Result<(), Error>;
-    fn verify(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<bool, Error>;
+    fn info(&self) -> Result<&'static MediaInfo, StorageError>;
+    fn read(
+        &self,
+        offset: usize,
+        buffer: &mut [u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError>;
+    fn verify(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<bool, StorageError>;
     fn prepare_write(
         &self,
         sector: usize,
         count: usize,
         timeout: &mut Timeout,
-    ) -> Result<(), Error>;
-    fn write(&self, offset: usize, buffer: &[u8], timeout: &mut Timeout) -> Result<(), Error>;
+    ) -> Result<(), StorageError>;
+    fn write(
+        &self,
+        offset: usize,
+        buffer: &[u8],
+        timeout: &mut Timeout,
+    ) -> Result<(), StorageError>;
 }
 
 static CURRENT_SAVE_ACCESS: Lock<Option<&'static dyn RawSaveAccess>> = Lock::new(None);
 
-fn set_save_implementation(access_impl: &'static dyn RawSaveAccess) {
+/// Configuration stored when save is initialized, used for reopen
+struct SaveConfig {
+    num_slots: usize,
+    magic: [u8; 32],
+}
+
+static SAVE_CONFIG: Lock<Option<SaveConfig>> = Lock::new(None);
+
+fn set_save_implementation(
+    access_impl: &'static dyn RawSaveAccess,
+    num_slots: usize,
+    magic: [u8; 32],
+) {
     let mut access = CURRENT_SAVE_ACCESS.lock();
     assert!(
         access.is_none(),
         "Cannot initialize the save media engine more than once."
     );
     *access = Some(access_impl);
+
+    let mut config = SAVE_CONFIG.lock();
+    *config = Some(SaveConfig { num_slots, magic });
 }
 
 fn get_save_implementation() -> Option<&'static dyn RawSaveAccess> {
     *CURRENT_SAVE_ACCESS.lock()
 }
 
-/// Allows reading and writing of save media.
-pub struct SaveData {
+/// Low-level save media accessor.
+pub(crate) struct SaveData {
     _lock: RawLockGuard<'static>,
     access: &'static dyn RawSaveAccess,
     info: &'static MediaInfo,
     timeout: utils::Timeout,
 }
+
 impl SaveData {
     /// Creates a new save accessor around the current save implementation.
-    fn new(timer: Option<Timer>) -> Result<SaveData, Error> {
+    fn new(timer: Option<Timer>) -> Result<SaveData, StorageError> {
         match get_save_implementation() {
             Some(access) => Ok(SaveData {
                 _lock: utils::lock_media_access()?,
@@ -211,137 +225,21 @@ impl SaveData {
                 info: access.info()?,
                 timeout: utils::Timeout::new(timer),
             }),
-            None => Err(Error::NoMedia),
+            None => Err(StorageError::NoMedia),
         }
     }
 
-    /// Returns the media info underlying this accessor.
-    #[must_use]
-    pub fn media_info(&self) -> &'static MediaInfo {
-        self.info
-    }
-
-    /// Returns the save media type being used.
-    #[must_use]
-    pub fn media_type(&self) -> MediaType {
-        self.info.media_type
-    }
-
-    /// Returns the sector size of the save media. It is generally optimal to
-    /// write data in blocks that are aligned to the sector size.
-    #[must_use]
-    pub fn sector_size(&self) -> usize {
-        self.info.sector_size()
-    }
-
-    /// Returns the total length of this save media.
-    #[must_use]
-    #[allow(clippy::len_without_is_empty)] // is_empty() would always be false
-    pub fn len(&self) -> usize {
-        self.info.len()
-    }
-
-    fn check_bounds(&self, range: Range<usize>) -> Result<(), Error> {
-        if range.start >= self.len() || range.end > self.len() {
-            Err(Error::OutOfBounds)
+    fn check_bounds(&self, range: Range<usize>) -> Result<(), StorageError> {
+        let len = self.info.len();
+        if range.start >= len || range.end > len {
+            Err(StorageError::OutOfBounds)
         } else {
             Ok(())
         }
     }
-    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), Error> {
+
+    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         self.check_bounds(offset..(offset + len))
-    }
-
-    /// Copies data from the save media to a buffer.
-    ///
-    /// If an error is returned, the contents of the buffer are unpredictable.
-    pub fn read(&mut self, offset: usize, buffer: &mut [u8]) -> Result<(), Error> {
-        self.check_bounds_len(offset, buffer.len())?;
-        self.access.read(offset, buffer, &mut self.timeout)
-    }
-
-    /// Verifies that a given block of memory matches the save media.
-    pub fn verify(&mut self, offset: usize, buffer: &[u8]) -> Result<bool, Error> {
-        self.check_bounds_len(offset, buffer.len())?;
-        self.access.verify(offset, buffer, &mut self.timeout)
-    }
-
-    /// Returns a range that contains all sectors the input range overlaps.
-    ///
-    /// This can be used to calculate which blocks would be erased by a call
-    /// to [`prepare_write`](`SaveData::prepare_write`)
-    #[must_use]
-    pub fn align_range(&self, range: Range<usize>) -> Range<usize> {
-        let shift = self.info.sector_shift;
-        let mask = (1 << shift) - 1;
-        (range.start & !mask)..((range.end + mask) & !mask)
-    }
-
-    /// Prepares a given span of offsets for writing.
-    ///
-    /// This will erase any data in any sector overlapping the input range. To
-    /// calculate which offset ranges would be affected, use the
-    /// [`align_range`](`SaveData::align_range`) function.
-    pub fn prepare_write(&mut self, range: Range<usize>) -> Result<SavePreparedBlock<'_>, Error> {
-        self.check_bounds(range.clone())?;
-        if self.info.uses_prepare_write {
-            let range = self.align_range(range.clone());
-            let shift = self.info.sector_shift;
-            self.access.prepare_write(
-                range.start >> shift,
-                range.len() >> shift,
-                &mut self.timeout,
-            )?;
-        }
-        Ok(SavePreparedBlock {
-            parent: self,
-            range,
-        })
-    }
-}
-
-/// A block of save memory that has been prepared for writing.
-pub struct SavePreparedBlock<'a> {
-    parent: &'a mut SaveData,
-    range: Range<usize>,
-}
-impl SavePreparedBlock<'_> {
-    /// Writes a given buffer into the save media.
-    ///
-    /// Multiple overlapping writes to the same memory range without a separate
-    /// call to `prepare_write` will leave the save data in an unpredictable
-    /// state. If an error is returned, the contents of the save media is
-    /// unpredictable.
-    pub fn write(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-        if buffer.is_empty() {
-            Ok(())
-        } else if !self.range.contains(&offset)
-            || !self.range.contains(&(offset + buffer.len() - 1))
-        {
-            Err(Error::OutOfBounds)
-        } else {
-            self.parent
-                .access
-                .write(offset, buffer, &mut self.parent.timeout)
-        }
-    }
-
-    /// Writes and validates a given buffer into the save media.
-    ///
-    /// This function will verify that the write has completed successfully, and
-    /// return an error if it has not done so.
-    ///
-    /// Multiple overlapping writes to the same memory range without a separate
-    /// call to `prepare_write` will leave the save data in an unpredictable
-    /// state. If an error is returned, the contents of the save media is
-    /// unpredictable.
-    pub fn write_and_verify(&mut self, offset: usize, buffer: &[u8]) -> Result<(), Error> {
-        self.write(offset, buffer)?;
-        if !self.parent.verify(offset, buffer)? {
-            Err(Error::WriteError)
-        } else {
-            Ok(())
-        }
     }
 }
 
@@ -381,94 +279,366 @@ impl SaveManager {
         SaveManager {}
     }
 
-    /// Declares that the ROM uses battery backed SRAM/FRAM.
+    /// Declares that the ROM uses battery backed SRAM/FRAM and initializes the
+    /// save slot manager.
     ///
     /// Battery Backed SRAM is generally very fast, but limited in size compared
     /// to flash chips.
     ///
     /// This creates a marker in the ROM that allows emulators to understand what
-    /// save type the Game Pak uses, and configures the save manager to use the
-    /// given save type.
+    /// save type the Game Pak uses.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_slots` - Number of save slots (typically 1-4)
+    /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
+    ///   the save data is considered incompatible and will be reformatted.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_sram(&mut self) {
+    pub fn init_sram<Metadata>(
+        &mut self,
+        num_slots: usize,
+        magic: [u8; 32],
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
         marker::emit_sram_marker();
-        set_save_implementation(&sram::BatteryBackedAccess);
+        set_save_implementation(&sram::BatteryBackedAccess, num_slots, magic);
+        let save_data = SaveData::new(None).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic)?,
+        })
     }
 
-    /// Declares that the ROM uses 64KiB flash memory.
+    /// Declares that the ROM uses 64KiB flash memory and initializes the save
+    /// slot manager.
     ///
     /// Flash save media is generally very slow to write to and relatively fast
     /// to read from. It is the only real option if you need larger save data.
     ///
     /// This creates a marker in the ROM that allows emulators to understand what
-    /// save type the Game Pak uses, and configures the save manager to use the
-    /// given save type.
+    /// save type the Game Pak uses.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_slots` - Number of save slots (typically 1-4)
+    /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
+    ///   the save data is considered incompatible and will be reformatted.
+    /// * `timer` - Optional timer for timeout handling during flash operations.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_flash_64k(&mut self) {
+    pub fn init_flash_64k<Metadata>(
+        &mut self,
+        num_slots: usize,
+        magic: [u8; 32],
+        timer: Option<Timer>,
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
         marker::emit_flash_512k_marker();
-        set_save_implementation(&flash::FlashAccess);
+        set_save_implementation(&flash::FlashAccess, num_slots, magic);
+        let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic)?,
+        })
     }
 
-    /// Declares that the ROM uses 128KiB flash memory.
+    /// Declares that the ROM uses 128KiB flash memory and initializes the save
+    /// slot manager.
     ///
     /// Flash save media is generally very slow to write to and relatively fast
     /// to read from. It is the only real option if you need larger save data.
     ///
     /// This creates a marker in the ROM that allows emulators to understand what
-    /// save type the Game Pak uses, and configures the save manager to use the
-    /// given save type.
+    /// save type the Game Pak uses.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_slots` - Number of save slots (typically 1-4)
+    /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
+    ///   the save data is considered incompatible and will be reformatted.
+    /// * `timer` - Optional timer for timeout handling during flash operations.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_flash_128k(&mut self) {
+    pub fn init_flash_128k<Metadata>(
+        &mut self,
+        num_slots: usize,
+        magic: [u8; 32],
+        timer: Option<Timer>,
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
         marker::emit_flash_1m_marker();
-        set_save_implementation(&flash::FlashAccess);
+        set_save_implementation(&flash::FlashAccess, num_slots, magic);
+        let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic)?,
+        })
     }
 
-    /// Declares that the ROM uses 512 bytes EEPROM memory.
+    /// Declares that the ROM uses 512 bytes EEPROM memory and initializes the
+    /// save slot manager.
     ///
     /// EEPROM is generally pretty slow and also very small. It's mainly used in
     /// Game Paks because it's cheap.
     ///
     /// This creates a marker in the ROM that allows emulators to understand what
-    /// save type the Game Pak uses, and configures the save manager to use the
-    /// given save type.
+    /// save type the Game Pak uses.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_slots` - Number of save slots (typically 1-4)
+    /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
+    ///   the save data is considered incompatible and will be reformatted.
+    /// * `timer` - Optional timer for timeout handling during EEPROM operations.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_eeprom_512b(&mut self) {
+    pub fn init_eeprom_512b<Metadata>(
+        &mut self,
+        num_slots: usize,
+        magic: [u8; 32],
+        timer: Option<Timer>,
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
         marker::emit_eeprom_marker();
-        set_save_implementation(&eeprom::Eeprom512B);
+        set_save_implementation(&eeprom::Eeprom512B, num_slots, magic);
+        let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic)?,
+        })
     }
 
-    /// Declares that the ROM uses 8 KiB EEPROM memory.
+    /// Declares that the ROM uses 8 KiB EEPROM memory and initializes the save
+    /// slot manager.
     ///
     /// EEPROM is generally pretty slow and also very small. It's mainly used in
     /// Game Paks because it's cheap.
     ///
     /// This creates a marker in the ROM that allows emulators to understand what
-    /// save type the Game Pak uses, and configures the save manager to use the
-    /// given save type.
+    /// save type the Game Pak uses.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_slots` - Number of save slots (typically 1-4)
+    /// * `magic` - A 32-byte game identifier. If this doesn't match what's stored,
+    ///   the save data is considered incompatible and will be reformatted.
+    /// * `timer` - Optional timer for timeout handling during EEPROM operations.
     ///
     /// Only one `init_*` function may be called in the lifetime of the program.
-    pub fn init_eeprom_8k(&mut self) {
+    pub fn init_eeprom_8k<Metadata>(
+        &mut self,
+        num_slots: usize,
+        magic: [u8; 32],
+        timer: Option<Timer>,
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
         marker::emit_eeprom_marker();
-        set_save_implementation(&eeprom::Eeprom8K);
+        set_save_implementation(&eeprom::Eeprom8K, num_slots, magic);
+        let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, num_slots, magic)?,
+        })
     }
 
-    /// Creates a new accessor to the save data.
+    /// Reopens an already-initialized save media with a new [`SaveSlotManager`].
     ///
-    /// You must have initialized the save manager beforehand to use a specific
-    /// type of media before calling this method.
-    pub fn access(&mut self) -> Result<SaveData, Error> {
-        SaveData::new(None)
+    /// This is useful for verifying save persistence or recovering from errors.
+    /// The save media must have been previously initialized with one of the
+    /// `init_*` methods. The configuration (num_slots, magic) is automatically
+    /// reused from the original initialization.
+    ///
+    /// # Arguments
+    ///
+    /// * `timer` - Optional timer for timeout handling (for EEPROM/Flash operations)
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SaveError::Storage`] with [`StorageError::NoMedia`] if the save media
+    /// has not been initialized.
+    pub fn reopen<Metadata>(
+        &mut self,
+        timer: Option<Timer>,
+    ) -> Result<SaveSlotManager<Metadata>, SaveError>
+    where
+        Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+    {
+        let config = SAVE_CONFIG.lock();
+        let config = config
+            .as_ref()
+            .ok_or(SaveError::Storage(StorageError::NoMedia))?;
+
+        let save_data = SaveData::new(timer).map_err(SaveError::Storage)?;
+        Ok(SaveSlotManager {
+            inner: agb_save::SaveSlotManager::new(save_data, config.num_slots, config.magic)?,
+        })
+    }
+}
+
+/// Manages multiple save slots with corruption detection and recovery.
+///
+/// This manager handles:
+/// - Multiple save slots (like classic RPGs)
+/// - Corruption detection and recovery via ghost slots
+/// - Metadata for each slot (e.g., player name, playtime) that can be read without
+///   loading the full save data
+///
+/// # Type Parameters
+///
+/// - `Metadata`: A serde-serializable type for slot metadata shown in save menus.
+///   Defaults to `()` if you don't need metadata.
+pub struct SaveSlotManager<Metadata = ()> {
+    inner: agb_save::SaveSlotManager<SaveData, Metadata>,
+}
+
+impl<Metadata> SaveSlotManager<Metadata>
+where
+    Metadata: serde::Serialize + serde::de::DeserializeOwned + Clone,
+{
+    /// Returns the number of save slots.
+    #[must_use]
+    pub fn num_slots(&self) -> usize {
+        self.inner.num_slots()
     }
 
-    /// Creates a new accessor to the save data that uses the given timer for timeouts.
+    /// Returns the state of the given slot.
     ///
-    /// You must have initialized the save manager beforehand to use a specific
-    /// type of media before calling this method.
-    pub fn access_with_timer(&mut self, timer: Timer) -> Result<SaveData, Error> {
-        SaveData::new(Some(timer))
+    /// # Panics
+    ///
+    /// Panics if `slot >= num_slots()`.
+    #[must_use]
+    pub fn slot(&self, slot: usize) -> Slot<'_, Metadata> {
+        self.inner.slot(slot)
+    }
+
+    /// Returns the metadata for the given slot, if it exists and is valid.
+    ///
+    /// This is useful for displaying save slot information (player name, playtime, etc.)
+    /// without loading the full save data.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `slot >= num_slots()`.
+    #[must_use]
+    pub fn metadata(&self, slot: usize) -> Option<&Metadata> {
+        self.inner.metadata(slot)
+    }
+
+    /// Read the full save data from a slot.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `slot >= num_slots()`.
+    ///
+    /// # Errors
+    ///
+    /// - [`SaveError::SlotEmpty`] if the slot has no data
+    /// - [`SaveError::SlotCorrupted`] if the slot data is corrupted
+    /// - [`SaveError::Serialization`] if the data cannot be deserialized
+    /// - [`SaveError::Storage`] if the underlying storage fails
+    pub fn read<T>(&mut self, slot: usize) -> Result<T, SaveError>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        self.inner.read(slot)
+    }
+
+    /// Write save data and metadata to a slot.
+    ///
+    /// This operation is designed to be crash-safe:
+    /// 1. Data is written to new blocks
+    /// 2. A new slot header is written
+    /// 3. The old slot header is marked as ghost (backup)
+    ///
+    /// If a crash occurs during writing, the next initialization will recover
+    /// from the ghost slot if the new data is incomplete.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `slot >= num_slots()`.
+    ///
+    /// # Errors
+    ///
+    /// - [`SaveError::OutOfSpace`] if there's not enough free space
+    /// - [`SaveError::Serialization`] if the data cannot be serialized
+    /// - [`SaveError::Storage`] if the underlying storage fails
+    pub fn write<T>(&mut self, slot: usize, data: &T, metadata: &Metadata) -> Result<(), SaveError>
+    where
+        T: serde::Serialize,
+    {
+        self.inner.write(slot, data, metadata)
+    }
+
+    /// Erase a save slot, marking it as empty.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `slot >= num_slots()`.
+    ///
+    /// # Errors
+    ///
+    /// - [`SaveError::Storage`] if the underlying storage fails
+    pub fn erase(&mut self, slot: usize) -> Result<(), SaveError> {
+        self.inner.erase(slot)
+    }
+
+    /// Returns an iterator over all slots with their current state.
+    ///
+    /// Useful for displaying a save slot selection screen.
+    pub fn slots(&self) -> impl Iterator<Item = Slot<'_, Metadata>> {
+        self.inner.slots()
+    }
+}
+
+impl agb_save::StorageMedium for SaveData {
+    type Error = StorageError;
+
+    fn info(&self) -> agb_save::StorageInfo {
+        let sector_size = self.info.sector_size();
+        agb_save::StorageInfo {
+            size: self.info.len(),
+            erase_size: if self.info.uses_prepare_write {
+                NonZeroUsize::new(sector_size)
+            } else {
+                None
+            },
+            write_size: NonZeroUsize::new(if self.info.uses_prepare_write {
+                1
+            } else {
+                sector_size
+            })
+            .unwrap(),
+        }
+    }
+
+    fn read(&mut self, offset: usize, buf: &mut [u8]) -> Result<(), Self::Error> {
+        self.check_bounds_len(offset, buf.len())?;
+        self.access.read(offset, buf, &mut self.timeout)
+    }
+
+    fn erase(&mut self, offset: usize, len: usize) -> Result<(), Self::Error> {
+        if self.info.uses_prepare_write {
+            let shift = self.info.sector_shift;
+            self.access
+                .prepare_write(offset >> shift, len >> shift, &mut self.timeout)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), Self::Error> {
+        self.check_bounds_len(offset, data.len())?;
+        self.access.write(offset, data, &mut self.timeout)
+    }
+
+    fn verify(&mut self, offset: usize, expected: &[u8]) -> Result<bool, Self::Error> {
+        self.check_bounds_len(offset, expected.len())?;
+        self.access.verify(offset, expected, &mut self.timeout)
     }
 }

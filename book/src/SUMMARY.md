@@ -39,6 +39,7 @@
 - [Text rendering](./articles/text_rendering.md)
 - [Blending and windows](./articles/blending_and_windows.md)
 - [Music and sound effects](./articles/music_and_sfx.md)
+- [Saving and loading](./articles/saving.md)
 - [Unit testing](./articles/unit_tests.md)
 - [Affine backgrounds and objects](./articles/affine.md)
 - [DMA](./articles/dma.md)

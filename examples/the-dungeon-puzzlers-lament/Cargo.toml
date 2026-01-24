@@ -9,6 +9,8 @@ edition = "2024"
 [dependencies]
 agb = { version = "0.22.6", path = "../../agb" }
 agb_tracker = { version = "0.22.6", path = "../../tracker/agb-tracker" }
+examples_save = { version = "0.1.0", path = "../examples-save" }
+serde = { version = "1", default-features = false, features = ["derive"] }
 
 slotmap = { version = "1", default-features = false }
 
