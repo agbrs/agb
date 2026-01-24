@@ -95,7 +95,7 @@ fn get_spawn_locations(
         .map(|object| (object.x as u16, object.y as u16))
         .collect::<Vec<_>>();
 
-    spawns.sort_by(|a, b| a.0.cmp(&b.0));
+    spawns.sort_by_key(|a| a.0);
 
     let xs = spawns.iter().map(|pos| pos.0).collect::<Vec<_>>();
     let ys = spawns.iter().map(|pos| pos.1).collect::<Vec<_>>();
