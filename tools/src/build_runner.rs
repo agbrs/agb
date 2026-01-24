@@ -4,6 +4,7 @@
 //! On success, cleans up and exits. On failure, prints error output after closing TUI.
 
 use std::{
+    cmp::Reverse,
     collections::{HashMap, VecDeque},
     io::{self, BufRead, BufReader},
     process::{Command, Stdio},
@@ -514,12 +515,12 @@ fn draw_ui(
         .style(Style::default().fg(Color::Cyan));
     frame.render_widget(sparkline, running_area[1]);
 
-    // Completed tasks (sorted by name)
+    // Completed tasks (sorted by duration descending)
     let mut completed_tasks: Vec<_> = tasks
         .values()
         .filter(|t| t.status != TaskStatus::Running)
         .collect();
-    completed_tasks.sort_by(|a, b| a.name.cmp(&b.name));
+    completed_tasks.sort_by_key(|a| Reverse(&a.duration));
 
     let completed: Vec<ListItem> = completed_tasks
         .into_iter()
