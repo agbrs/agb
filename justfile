@@ -9,7 +9,14 @@ podman_command := "podman"
 export LOG_FILE := env_var_or_default('LOG_FILE', '')
 
 ci:
-    make -j$(nproc) LOG_FILE="$LOG_FILE" ci
+    #!/usr/bin/env bash
+    if [ -t 1 ]; then
+        # TTY - use TUI tool for nicer interactive experience
+        cargo run -p tools --release -q -- build ci
+    else
+        # Not TTY (CI) - use raw make output
+        make -j$(nproc) LOG_FILE="$LOG_FILE" ci
+    fi
 
 build:
     make -j$(nproc) build

@@ -4,7 +4,7 @@
 //! On success, cleans up and exits. On failure, prints error output after closing TUI.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     io::{self, BufRead, BufReader},
     process::{Command, Stdio},
     sync::mpsc::{self, Receiver},
@@ -20,8 +20,9 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Sparkline},
 };
+use sysinfo::System;
 use tempfile::NamedTempFile;
 
 use crate::utils;
@@ -291,6 +292,8 @@ fn has_meaningful_error_content(section: &str) -> bool {
     false
 }
 
+const CPU_SAMPLE_COUNT: usize = 60;
+
 fn run_tui(rx: Receiver<BuildEvent>) -> Result<(), Error> {
     // Setup terminal
     enable_raw_mode()?;
@@ -302,7 +305,22 @@ fn run_tui(rx: Receiver<BuildEvent>) -> Result<(), Error> {
     let mut failed_tasks: Vec<String> = Vec::new();
     let start_time = Instant::now();
 
+    // CPU monitoring
+    let mut sys = System::new();
+    let mut cpu_samples: VecDeque<u64> = VecDeque::with_capacity(CPU_SAMPLE_COUNT);
+    let mut last_cpu_sample = Instant::now();
+
     loop {
+        // Sample CPU usage periodically (every ~100ms)
+        if last_cpu_sample.elapsed() >= Duration::from_millis(100) {
+            sys.refresh_cpu_usage();
+            let cpu_usage = sys.global_cpu_usage() as u64;
+            if cpu_samples.len() >= CPU_SAMPLE_COUNT {
+                cpu_samples.pop_front();
+            }
+            cpu_samples.push_back(cpu_usage);
+            last_cpu_sample = Instant::now();
+        }
         // Handle events from make
         while let Ok(event) = rx.try_recv() {
             match event {
@@ -357,7 +375,7 @@ fn run_tui(rx: Receiver<BuildEvent>) -> Result<(), Error> {
 
         // Draw UI
         terminal.draw(|frame| {
-            draw_ui(frame, &tasks, start_time, exit_code);
+            draw_ui(frame, &tasks, start_time, exit_code, &cpu_samples);
         })?;
 
         // Exit if build finished
@@ -409,6 +427,7 @@ fn draw_ui(
     tasks: &HashMap<String, Task>,
     start_time: Instant,
     exit_code: Option<i32>,
+    cpu_samples: &VecDeque<u64>,
 ) {
     let elapsed = start_time.elapsed();
     let spinner_idx = (elapsed.as_millis() / 80) as usize % SPINNER_FRAMES.len();
@@ -418,7 +437,7 @@ fn draw_ui(
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3), // Header
-            Constraint::Min(5),    // Running tasks
+            Constraint::Min(5),    // Running tasks + CPU
             Constraint::Min(10),   // Completed tasks
             Constraint::Length(1), // Footer
         ])
@@ -437,6 +456,15 @@ fn draw_ui(
     let header =
         Paragraph::new(status).block(Block::default().borders(Borders::ALL).title("agb build"));
     frame.render_widget(header, chunks[0]);
+
+    // Split running area: tasks on left, CPU graph on right
+    let running_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(30),    // Running tasks list
+            Constraint::Length(22), // CPU graph (fixed width)
+        ])
+        .split(chunks[1]);
 
     // Running tasks
     let running: Vec<ListItem> = tasks
@@ -459,7 +487,32 @@ fn draw_ui(
             "Running ({})",
             tasks.values().filter(|t| t.status == TaskStatus::Running).count()
         )));
-    frame.render_widget(running_list, chunks[1]);
+    frame.render_widget(running_list, running_area[0]);
+
+    // CPU usage sparkline
+    let graph_width = running_area[1].width.saturating_sub(2) as usize; // -2 for borders
+    let current_cpu = cpu_samples.back().copied().unwrap_or(0);
+
+    // Take only the most recent samples that fit, pad with zeros on left if needed
+    let recent_samples: Vec<u64> = cpu_samples
+        .iter()
+        .rev()
+        .take(graph_width)
+        .copied()
+        .collect();
+    let mut cpu_data: Vec<u64> = vec![0; graph_width.saturating_sub(recent_samples.len())];
+    cpu_data.extend(recent_samples.into_iter().rev()); // Reverse back to chronological order
+
+    let sparkline = Sparkline::default()
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(format!("CPU {}%", current_cpu)),
+        )
+        .data(&cpu_data)
+        .max(100)
+        .style(Style::default().fg(Color::Cyan));
+    frame.render_widget(sparkline, running_area[1]);
 
     // Completed tasks (sorted by name)
     let mut completed_tasks: Vec<_> = tasks

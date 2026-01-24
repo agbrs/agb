@@ -110,17 +110,17 @@ fmt-check--root:
 	$(call run,fmt-check (workspace),cargo fmt --all -- --check)
 
 fmt-check-agb:
-	$(call run,fmt-check agb,cd agb && cargo fmt --all -- --check)
+	$(call run,fmt-check agb,cd agb && cargo fmt -- --check)
 
 fmt-check-tracker-agb-tracker:
-	$(call run,fmt-check agb-tracker,cd tracker/agb-tracker && cargo fmt --all -- --check)
+	$(call run,fmt-check agb-tracker,cd tracker/agb-tracker && cargo fmt -- --check)
 
 fmt-check-tracker-desktop-player:
-	$(call run,fmt-check desktop-player,cd tracker/desktop-player && cargo fmt --all -- --check)
+	$(call run,fmt-check desktop-player,cd tracker/desktop-player && cargo fmt -- --check)
 
 # Example fmt-check targets (generated pattern)
 $(FMT_CHECK_EXAMPLE_TARGETS): fmt-check-example-%:
-	$(call run,fmt-check example/$*,cd examples/$* && cargo fmt --all -- --check)
+	$(call run,fmt-check example/$*,cd examples/$* && cargo fmt -- --check)
 
 # === Tests ===
 # Note: can't use -q with cargo test as it passes --quiet to the test runner
