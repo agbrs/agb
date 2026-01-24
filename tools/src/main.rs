@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 use clap::Command;
 
+mod build_runner;
 mod deploy;
 mod publish;
 mod release;
@@ -11,6 +12,7 @@ pub enum Error {
     PublishError(publish::Error),
     ReleaseError(release::Error),
     DeployError(deploy::Error),
+    BuildError(build_runner::Error),
 }
 
 fn cli() -> Command {
@@ -20,6 +22,7 @@ fn cli() -> Command {
         .subcommand(publish::command())
         .subcommand(release::command())
         .subcommand(deploy::command())
+        .subcommand(build_runner::command())
 }
 
 fn main() {
@@ -36,11 +39,14 @@ fn main() {
 
         Some(("deploy", arg_matches)) => deploy::deploy(arg_matches).map_err(Error::DeployError),
 
+        Some(("build", arg_matches)) => build_runner::build(arg_matches).map_err(Error::BuildError),
+
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     };
 
     if let Err(e) = result {
         eprintln!("Error: {e:?}");
+        std::process::exit(1);
     }
 }
 
