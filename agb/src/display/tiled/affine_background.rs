@@ -15,8 +15,8 @@ use crate::{
 
 use super::{
     AffineBackgroundCommitData, AffineBackgroundData, AffineBackgroundId,
-    BackgroundControlRegister, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, TileIndex, TileSet,
-    VRAM_MANAGER,
+    BackgroundControlRegister, DynamicTile256, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, TileIndex,
+    TileSet, VRAM_MANAGER,
 };
 
 /// The size of the affine background.
@@ -203,6 +203,23 @@ impl AffineBackground {
 
         let pos = self.screenblock.size().gba_offset(pos.into());
         self.set_tile_at_pos(pos, tileset, tile_index);
+
+        self
+    }
+
+    /// Sets a tile at the given position to the given [`DynamicTile256`].
+    ///
+    /// Because of limitations of the Game Boy Advance, affine backgrounds do not support
+    /// per-tile effects like flipping. Only 256-colour tiles are supported.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn set_tile_dynamic256(
+        &mut self,
+        pos: impl Into<Vector2D<i32>>,
+        tile: &DynamicTile256,
+    ) -> &mut Self {
+        let pos = self.screenblock.size().gba_offset(pos.into());
+        self.set_tile_at_pos(pos, &tile.tile_set(), tile.tile_id());
 
         self
     }

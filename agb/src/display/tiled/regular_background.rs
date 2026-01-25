@@ -13,9 +13,9 @@ use crate::{
 };
 
 use super::{
-    BackgroundControlRegister, DynamicTile16, RegularBackgroundCommitData, RegularBackgroundData,
-    RegularBackgroundId, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile, TileEffect, TileFormat,
-    TileSet, TileSetting, VRAM_MANAGER,
+    BackgroundControlRegister, DynamicTile16, DynamicTile256, RegularBackgroundCommitData,
+    RegularBackgroundData, RegularBackgroundId, SCREENBLOCK_SIZE, TRANSPARENT_TILE_INDEX, Tile,
+    TileEffect, TileFormat, TileSet, TileSetting, VRAM_MANAGER,
 };
 
 use bilge::prelude::*;
@@ -214,7 +214,7 @@ impl RegularBackground {
         self
     }
 
-    /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileSetting`] combination.
+    /// Sets a tile at the given position to the given [`DynamicTile16`] / [`TileEffect`] combination.
     ///
     /// This only works on a [16 colour background](TileFormat::FourBpp).
     ///
@@ -228,7 +228,35 @@ impl RegularBackground {
         assert_eq!(
             self.tiles.colours(),
             TileFormat::FourBpp,
-            "Cannot set a dynamic tile on a {:?} colour background",
+            "Cannot set a 16-colour dynamic tile on a {:?} colour background",
+            self.tiles.colours()
+        );
+
+        let pos = self.screenblock.size().gba_offset(pos.into());
+        self.set_tile_at_pos(
+            pos,
+            &tile.tile_set(),
+            TileSetting::new(tile.tile_id(), effect),
+        );
+
+        self
+    }
+
+    /// Sets a tile at the given position to the given [`DynamicTile256`] / [`TileEffect`] combination.
+    ///
+    /// This only works on a [256 colour background](TileFormat::EightBpp).
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn set_tile_dynamic256(
+        &mut self,
+        pos: impl Into<Vector2D<i32>>,
+        tile: &DynamicTile256,
+        effect: TileEffect,
+    ) -> &mut Self {
+        assert_eq!(
+            self.tiles.colours(),
+            TileFormat::EightBpp,
+            "Cannot set a 256-colour dynamic tile on a {:?} colour background",
             self.tiles.colours()
         );
 

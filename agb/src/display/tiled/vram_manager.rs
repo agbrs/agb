@@ -310,12 +310,18 @@ impl DynamicTile16 {
         let word_index = index / 8;
         let nibble_offset = index % 8;
 
-        let current_value = &mut self.tile_data[word_index];
+        let ptr = &mut self.tile_data[word_index] as *mut u32;
 
         let mask = 0xf << (nibble_offset * 4);
         let palette_value = u32::from(palette_index) << (nibble_offset * 4);
 
-        *current_value = (*current_value & !mask) | palette_value;
+        // SAFETY: ptr points to valid VRAM. Volatile read-modify-write is required because
+        // the GBA cannot write individual bytes to VRAM, so we must ensure the compiler
+        // performs a full 32-bit write.
+        unsafe {
+            let current_value = ptr.read_volatile();
+            ptr.write_volatile((current_value & !mask) | palette_value);
+        }
     }
 }
 
@@ -328,7 +334,167 @@ impl Default for DynamicTile16 {
 impl Drop for DynamicTile16 {
     fn drop(&mut self) {
         unsafe {
-            VRAM_MANAGER.drop_dynamic_tile(self);
+            VRAM_MANAGER.drop_dynamic_tile_16(self);
+        }
+    }
+}
+
+/// Represents a tile that can be modified at runtime using 256 colours (8 bits per pixel).
+///
+/// Most tiles fetched using [`TileSet`] are generated at compile time and are loaded on demand from ROM.
+/// `DynamicTile256` allows you to create and modify tiles at runtime with 256 colours.
+///
+/// If you have access to a `DynamicTile256`, then this is actually a direct pointer to Video RAM. Note that any
+/// writes to [`.data()`](Self::data) must be at least 16-bits at a time, or it won't work due to how the GBA's video RAM
+/// works.
+///
+/// While a DynamicTile256 is active, some of Video RAM will be used up by it, so ensure it is dropped when you don't
+/// need it any more.
+///
+/// This is useful for affine backgrounds which require 256-colour tiles.
+#[non_exhaustive]
+pub struct DynamicTile256 {
+    /// The actual tile data. This will be exactly 16 long (64 bytes), where each entry represents part of the pixel data.
+    tile_data: &'static mut [u32],
+}
+
+impl Debug for DynamicTile256 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::write!(f, "DynamicTile256({})", self.tile_id())
+    }
+}
+
+impl DynamicTile256 {
+    /// Creates a new `DynamicTile256` for use in regular (non-affine) backgrounds. Dynamic tiles aren't cleared
+    /// by default, so the value you get in `tile_data` won't necessarily be empty, and will contain whatever was
+    /// in that same location last time.
+    ///
+    /// If you need a tile for an affine background, use [`DynamicTile256::new_affine()`] instead. Using a tile
+    /// created with `new()` on an affine background may result in the tile not being visible.
+    ///
+    /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
+    /// do something like:
+    ///
+    /// ```rust
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::display::tiled::DynamicTile256;
+    ///
+    /// # #[agb::doctest]
+    /// # fn test(gba: agb::Gba) {
+    /// let my_new_tile = DynamicTile256::new().fill_with(0);
+    /// # }
+    /// ```
+    ///
+    /// which will fill the tile with the transparent colour.
+    #[must_use]
+    pub fn new() -> Self {
+        VRAM_MANAGER.new_dynamic_tile_256(false)
+    }
+
+    /// Creates a new `DynamicTile256` for use in affine backgrounds. Dynamic tiles aren't cleared by default,
+    /// so the value you get in `tile_data` won't necessarily be empty, and will contain whatever was in that
+    /// same location last time.
+    ///
+    /// If you are completely filling the tile yourself, then this doesn't matter, but otherwise you may want to
+    /// do something like:
+    ///
+    /// ```rust
+    /// # #![no_std]
+    /// # #![no_main]
+    /// use agb::display::tiled::DynamicTile256;
+    ///
+    /// # #[agb::doctest]
+    /// # fn test(gba: agb::Gba) {
+    /// let my_new_tile = DynamicTile256::new_affine().fill_with(0);
+    /// # }
+    /// ```
+    ///
+    /// which will fill the tile with the transparent colour.
+    #[must_use]
+    pub fn new_affine() -> Self {
+        VRAM_MANAGER.new_dynamic_tile_256(true)
+    }
+
+    /// Fills a `DynamicTile256` with a given colour index from the palette.
+    #[must_use]
+    pub fn fill_with(self, colour_index: u8) -> Self {
+        let colour_index = u32::from(colour_index);
+
+        // Pack 4 bytes (pixels) into each u32
+        let value =
+            colour_index | (colour_index << 8) | (colour_index << 16) | (colour_index << 24);
+
+        self.tile_data.fill(value);
+        self
+    }
+
+    /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
+    /// and must write to it in at least 16-bit chunks.
+    #[must_use]
+    pub fn data_mut(&mut self) -> &mut [u32] {
+        self.tile_data
+    }
+
+    /// Returns an immutable reference to the underlying tile data.
+    #[must_use]
+    pub fn data(&self) -> &[u32] {
+        self.tile_data
+    }
+
+    #[must_use]
+    pub(crate) fn tile_set(&self) -> TileSet {
+        let tiles = unsafe {
+            slice::from_raw_parts_mut(
+                VRAM_START as *mut u8,
+                1024 * TileFormat::EightBpp.tile_size(),
+            )
+        };
+
+        unsafe { TileSet::new(tiles, TileFormat::EightBpp) }
+    }
+
+    #[must_use]
+    pub(crate) fn tile_id(&self) -> u16 {
+        let difference = self.tile_data.as_ptr() as usize - VRAM_START;
+        (difference / TileFormat::EightBpp.tile_size()) as u16
+    }
+
+    /// Sets the pixel at `(x, y)` to the colour index given by `palette_index`
+    pub fn set_pixel(&mut self, x: usize, y: usize, palette_index: u8) {
+        assert!((0..8).contains(&x));
+        assert!((0..8).contains(&y));
+
+        let index = x + y * 8;
+        // each 'pixel' is one byte, so 4 pixels in a word (u32)
+        let word_index = index / 4;
+        let byte_offset = index % 4;
+
+        let ptr = &mut self.tile_data[word_index] as *mut u32;
+
+        let mask = 0xff << (byte_offset * 8);
+        let palette_value = u32::from(palette_index) << (byte_offset * 8);
+
+        // SAFETY: ptr points to valid VRAM. Volatile read-modify-write is required because
+        // the GBA cannot write individual bytes to VRAM, so we must ensure the compiler
+        // performs a full 32-bit write.
+        unsafe {
+            let current_value = ptr.read_volatile();
+            ptr.write_volatile((current_value & !mask) | palette_value);
+        }
+    }
+}
+
+impl Default for DynamicTile256 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for DynamicTile256 {
+    fn drop(&mut self) {
+        unsafe {
+            VRAM_MANAGER.drop_dynamic_tile_256(self);
         }
     }
 }
@@ -383,12 +549,20 @@ impl VRamManager {
 }
 
 impl VRamManager {
-    unsafe fn drop_dynamic_tile(&self, tile: &DynamicTile16) {
-        self.with(|inner| unsafe { inner.remove_dynamic_tile(tile) });
+    unsafe fn drop_dynamic_tile_16(&self, tile: &DynamicTile16) {
+        self.with(|inner| unsafe { inner.remove_dynamic_tile_16(tile) });
+    }
+
+    unsafe fn drop_dynamic_tile_256(&self, tile: &DynamicTile256) {
+        self.with(|inner| unsafe { inner.remove_dynamic_tile_256(tile) });
     }
 
     pub(crate) fn new_dynamic_tile(&self) -> DynamicTile16 {
-        self.with(VRamManagerInner::new_dynamic_tile)
+        self.with(VRamManagerInner::new_dynamic_tile_16)
+    }
+
+    pub(crate) fn new_dynamic_tile_256(&self, is_affine: bool) -> DynamicTile256 {
+        self.with(|inner| inner.new_dynamic_tile_256(is_affine))
     }
 
     pub(crate) fn remove_tile(&self, index: TileIndex) {
@@ -582,8 +756,7 @@ impl VRamManagerInner {
     }
 
     #[must_use]
-    fn new_dynamic_tile(&mut self) -> DynamicTile16 {
-        // TODO: format param?
+    fn new_dynamic_tile_16(&mut self) -> DynamicTile16 {
         let tile_format = TileFormat::FourBpp;
         let new_reference: NonNull<u32> = self.tile_allocator.alloc_for_regular(tile_format);
         let tile_reference = TileReference(new_reference);
@@ -617,13 +790,62 @@ impl VRamManagerInner {
         }
     }
 
+    #[must_use]
+    fn new_dynamic_tile_256(&mut self, is_affine: bool) -> DynamicTile256 {
+        let tile_format = TileFormat::EightBpp;
+
+        let new_reference = if is_affine {
+            self.tile_allocator.alloc_for_affine()
+        } else {
+            self.tile_allocator.alloc_for_regular(tile_format)
+        };
+
+        let tile_reference = TileReference(new_reference);
+
+        let index = Self::index_from_reference(tile_reference, tile_format);
+        let key = index.refcount_key();
+
+        let tiles = unsafe {
+            slice::from_raw_parts_mut(VRAM_START as *mut u8, 1024 * tile_format.tile_size())
+        };
+
+        let tileset_reference = TileInTileSetReference::new(tiles, index.raw_index(), true);
+
+        self.tile_set_to_vram
+            .insert(tileset_reference, tile_reference);
+
+        self.reference_counts
+            .resize(self.reference_counts.len().max(key + 1), Default::default());
+        self.reference_counts[key] = TileReferenceCount::new(tileset_reference);
+
+        DynamicTile256 {
+            tile_data: unsafe {
+                slice::from_raw_parts_mut(
+                    tiles
+                        .as_mut_ptr()
+                        .add(index.raw_index() as usize * tile_format.tile_size())
+                        .cast(),
+                    tile_format.tile_size() / core::mem::size_of::<u32>(),
+                )
+            },
+        }
+    }
+
     // The dynamic tile because it will no longer be valid after this call
-    unsafe fn remove_dynamic_tile(&mut self, dynamic_tile: &DynamicTile16) {
+    unsafe fn remove_dynamic_tile_16(&mut self, dynamic_tile: &DynamicTile16) {
         let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
         let tile_reference = TileReference(pointer);
 
-        // TODO: dynamic_tile.format?
         let tile_index = Self::index_from_reference(tile_reference, TileFormat::FourBpp);
+        self.remove_tile(tile_index);
+    }
+
+    // The dynamic tile because it will no longer be valid after this call
+    unsafe fn remove_dynamic_tile_256(&mut self, dynamic_tile: &DynamicTile256) {
+        let pointer = NonNull::new(dynamic_tile.tile_data.as_ptr() as *mut _).unwrap();
+        let tile_reference = TileReference(pointer);
+
+        let tile_index = Self::index_from_reference(tile_reference, TileFormat::EightBpp);
         self.remove_tile(tile_index);
     }
 
@@ -825,5 +1047,107 @@ impl VRamManagerInner {
     #[must_use]
     fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
         (0..256).find(|&i| PALETTE_BACKGROUND.get(i) == colour)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::Gba;
+
+    #[test_case]
+    fn can_create_dynamic_tile_16(_: &mut Gba) {
+        let tile = DynamicTile16::new();
+        assert_eq!(tile.data().len(), 8);
+    }
+
+    #[test_case]
+    fn can_create_dynamic_tile_256(_: &mut Gba) {
+        let tile = DynamicTile256::new();
+        assert_eq!(tile.data().len(), 16);
+    }
+
+    #[test_case]
+    fn dynamic_tile_16_fill_with(_: &mut Gba) {
+        let tile = DynamicTile16::new().fill_with(5);
+        // Each u32 contains 8 pixels at 4 bits each, so 0x55555555
+        for &word in tile.data() {
+            assert_eq!(word, 0x55555555);
+        }
+    }
+
+    #[test_case]
+    fn dynamic_tile_256_fill_with(_: &mut Gba) {
+        let tile = DynamicTile256::new().fill_with(0xAB);
+        // Each u32 contains 4 pixels at 8 bits each, so 0xABABABAB
+        for &word in tile.data() {
+            assert_eq!(word, 0xABABABAB);
+        }
+    }
+
+    #[test_case]
+    fn dynamic_tile_16_set_pixel(_: &mut Gba) {
+        let mut tile = DynamicTile16::new().fill_with(0);
+
+        // Set pixel at (0, 0) to colour 7
+        tile.set_pixel(0, 0, 7);
+        assert_eq!(tile.data()[0] & 0xF, 7);
+
+        // Set pixel at (3, 0) to colour 10
+        tile.set_pixel(3, 0, 10);
+        assert_eq!((tile.data()[0] >> 12) & 0xF, 10);
+
+        // Set pixel at (0, 1) to colour 15
+        tile.set_pixel(0, 1, 15);
+        assert_eq!(tile.data()[1] & 0xF, 15);
+    }
+
+    #[test_case]
+    fn dynamic_tile_256_set_pixel(_: &mut Gba) {
+        let mut tile = DynamicTile256::new().fill_with(0);
+
+        // Set pixel at (0, 0) to colour 128
+        tile.set_pixel(0, 0, 128);
+        assert_eq!(tile.data()[0] & 0xFF, 128);
+
+        // Set pixel at (3, 0) to colour 200
+        tile.set_pixel(3, 0, 200);
+        assert_eq!((tile.data()[0] >> 24) & 0xFF, 200);
+
+        // Set pixel at (0, 1) to colour 255
+        tile.set_pixel(0, 1, 255);
+        assert_eq!(tile.data()[2] & 0xFF, 255);
+    }
+
+    #[test_case]
+    fn can_create_and_drop_multiple_dynamic_tiles_16(_: &mut Gba) {
+        for _ in 0..10 {
+            let _tiles: Vec<_> = (0..50).map(|_| DynamicTile16::new()).collect();
+            // Tiles are dropped here
+        }
+        VRAM_MANAGER.gc();
+    }
+
+    #[test_case]
+    fn can_create_and_drop_multiple_dynamic_tiles_256(_: &mut Gba) {
+        // Note: Affine tiles have limited VRAM (256 tiles max), so we allocate fewer
+        for _ in 0..10 {
+            let _tiles: Vec<_> = (0..20).map(|_| DynamicTile256::new()).collect();
+            // Tiles are dropped here
+        }
+        VRAM_MANAGER.gc();
+    }
+
+    #[test_case]
+    fn dynamic_tile_256_data_mut(_: &mut Gba) {
+        let mut tile = DynamicTile256::new();
+        let data = tile.data_mut();
+
+        // Write directly to tile data
+        data[0] = 0x12345678;
+        data[15] = 0xDEADBEEF;
+
+        assert_eq!(tile.data()[0], 0x12345678);
+        assert_eq!(tile.data()[15], 0xDEADBEEF);
     }
 }
