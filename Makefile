@@ -265,16 +265,17 @@ define build-rom
 	GAME_NAME="$$(basename "$$GAME_FOLDER")"; \
 	TARGET_FOLDER="$(CARGO_TARGET_DIR)"; \
 	GBA_FILE="$$TARGET_FOLDER/$$GAME_NAME.gba"; \
+	ROM_OUTPUT_DIR="$(CURDIR)/examples/target/examples"; \
 	tmpfile=$$(mktemp); \
 	( \
 		cd "$$GAME_FOLDER" && \
 		cargo build -q --release --target thumbv4t-none-eabi && \
 		cargo clippy -q --release --target thumbv4t-none-eabi -- $(CLIPPY_ARGUMENTS) && \
 		cargo fmt --all -- --check && \
-		mkdir -p examples/target/examples && \
+		mkdir -p "$$ROM_OUTPUT_DIR" && \
 		$(GBAFIX) --title "$${INTERNAL_NAME:0:12}" --gamecode "$${INTERNAL_NAME:0:4}" --makercode GC \
 			"$$TARGET_FOLDER/thumbv4t-none-eabi/release/$$GAME_NAME" -o "$$GBA_FILE" && \
-		cp "$$GBA_FILE" "examples/target/examples/$$GAME_NAME.gba" \
+		cp "$$GBA_FILE" "$$ROM_OUTPUT_DIR/$$GAME_NAME.gba" \
 	) > "$$tmpfile" 2>&1; rc=$$?; \
 	if [ -n "$(LOG_FILE)" ]; then \
 		{ printf '\n=== rom %s ===\n' "$(notdir $(1))"; cat "$$tmpfile"; } | flock "$(LOG_FILE).lock" tee -a "$(LOG_FILE)" > /dev/null; \
