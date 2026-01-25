@@ -190,6 +190,11 @@ build-site-examples: build-release $(GBAFIX) $(SCREENSHOT_GENERATOR) $(SITE_EXAM
 $(SITE_EXAMPLE_DIR):
 	mkdir -p $@
 
+# Release example binaries are built by build-release target
+# This pattern rule tells Make these files will exist after build-release completes
+$(CARGO_TARGET_DIR)/thumbv4t-none-eabi/release/examples/%: | build-release
+	@test -f $@ || (echo "Error: $@ not found after build-release" && exit 1)
+
 # Pattern rule: create .gba from built example (gbafix)
 $(SITE_EXAMPLE_DIR)/%.gba: $(CARGO_TARGET_DIR)/thumbv4t-none-eabi/release/examples/% $(GBAFIX) | $(SITE_EXAMPLE_DIR)
 	$(call run,gbafix $*,$(GBAFIX) $< --output=$@)
