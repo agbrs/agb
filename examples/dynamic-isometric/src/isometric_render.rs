@@ -65,7 +65,7 @@ use agb::{
     hash_map::{HashMap, HashSet},
 };
 use alloc::{rc::Rc, vec::Vec};
-use core::{array, hash::Hash, ops::Deref};
+use core::{hash::Hash, ops::Deref};
 
 use crate::tiles;
 
@@ -88,10 +88,22 @@ pub enum TileType {
 pub struct TileCache {
     cache: HashMap<TileSpec, [TileHolder; 2]>,
     tiles: HashSet<TileHolder>,
+    /// We hold on to `unused` tiles here which are ones we rendered onto but then didn't end up
+    /// needing because they are already in the cache. Because dynamic tiles keep using vram until
+    /// the next vblank, we end up using more vram then actually necessary. So if we don't actually
+    /// use the tile, we put it here and then render the next one on it. This doesn't reduce the size
+    /// of the `tiles` cache, but it _does_ reduce the amount of vram we're wasting between vblank.
+    unused: Vec<DynamicTile16>,
 }
 
 #[derive(Clone)]
 pub struct TileHolder(Rc<DynamicTile16>);
+
+impl TileHolder {
+    fn into_inner(self) -> Option<DynamicTile16> {
+        Rc::into_inner(self.0)
+    }
+}
 
 impl Hash for TileHolder {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
@@ -138,11 +150,20 @@ impl TileCache {
         let tile_spec = map.get_from_gba_tile(gba_tile_pos.x, gba_tile_pos.y);
 
         self.cache.entry(tile_spec).or_insert_with(|| {
-            let genned_tiles = build_combined_tile(tile_spec);
+            let render_targets = [
+                self.unused.pop().unwrap_or_default(),
+                self.unused.pop().unwrap_or_default(),
+            ];
+
+            let genned_tiles = build_combined_tile(tile_spec, render_targets);
 
             genned_tiles.map(|genned_tile| {
                 let tile_holder = TileHolder(Rc::new(genned_tile));
                 if let Some(existing_tile) = self.tiles.get(&tile_holder) {
+                    if let Some(unwrapped_tile) = tile_holder.into_inner() {
+                        self.unused.push(unwrapped_tile);
+                    }
+
                     existing_tile.clone()
                 } else {
                     self.tiles.insert(tile_holder.clone());
@@ -157,7 +178,10 @@ impl TileCache {
     }
 }
 
-fn build_combined_tile(tile_spec: TileSpec) -> [DynamicTile16; 2] {
+fn build_combined_tile(
+    tile_spec: TileSpec,
+    render_targets: [DynamicTile16; 2],
+) -> [DynamicTile16; 2] {
     let TileSpec {
         quadrant,
         me,
@@ -209,14 +233,13 @@ fn build_combined_tile(tile_spec: TileSpec) -> [DynamicTile16; 2] {
         }
     };
 
-    array::from_fn(|i| {
-        let i = i as u16;
-
+    let mut i = 0;
+    render_targets.map(|tile| {
         fn get_tile(offset: u16) -> &'static [u32] {
             tiles::ISOMETRIC.tiles.get_tile_data(offset)
         }
 
-        let mut tile = DynamicTile16::new().fill_with(0);
+        let mut tile = tile.fill_with(0);
 
         let me_tile = get_tile(get_tile_id(quadrant.offset(), me, false) + i);
         let them_tile = get_tile(get_tile_id(quadrant.reverse().offset(), them, false) + i);
@@ -239,6 +262,8 @@ fn build_combined_tile(tile_spec: TileSpec) -> [DynamicTile16; 2] {
 
         blit_16_colour(tile.data_mut(), first);
         blit_16_colour(tile.data_mut(), second);
+
+        i += 1;
 
         tile
     })
