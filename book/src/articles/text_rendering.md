@@ -227,8 +227,8 @@ let text_layout = Layout::new(
         .with_max_line_length(200),
 );
 
-// this takes the position of the text
-let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
+// this takes the position of the text and the colour palette to use
+let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0), 0);
 
 for letter in text_layout {
     text_renderer.show(&mut bg, &letter);
@@ -253,7 +253,7 @@ let mut text_layout = Layout::new(
         .with_max_line_length(200),
 );
 
-let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
+let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0), 0);
 
 loop {
     if let Some(letter) = text_layout.next() {
