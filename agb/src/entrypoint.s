@@ -25,6 +25,18 @@ __start:
                                                @   r2: length + size information
                                                @
                                                @ see: https://mgba-emu.github.io/gbatek/#swi-0bh-gbands7nds9dsi7dsi9---cpuset
+
+    @ memset the bss section to zeroes
+    @ this isn't needed on real hardware or most emulators as BIOS initialises RAM to zeroes before passing to the game
+    @ but Quick Boot on the everdrive doesn't initialise RAM. Simple dumb memset, it's only for initialisation so we don't need anything fancy
+    ldr r0, =__bss_start
+    ldr r1, =__bss_end
+    mov r2, #0
+bss_loop:
+    cmp r0, r1
+    strlt r2, [r0], #4
+    blt bss_loop
+
     ldr r0, =CommonInit
     bx r0
 
