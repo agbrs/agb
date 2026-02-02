@@ -59,8 +59,11 @@ SECTIONS {
     __ewram_rom_length_halfwords = (SIZEOF(.ewram) + 1) / 2;
 
     .bss (NOLOAD) : {
+        . = ALIGN(4);
+        __bss_start = .;
         *(.bss .bss.*);
         . = ALIGN(4);
+        __bss_end = .;
         __ewram_data_end = .;
     } > ewram
 
