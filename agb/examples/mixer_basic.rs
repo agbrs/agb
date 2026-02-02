@@ -98,7 +98,7 @@ D-pad up and down to change playback speed",
             .with_alignment(AlignmentKind::Centre),
     );
 
-    let mut renderer = RegularBackgroundTextRenderer::new((0, 0));
+    let mut renderer = RegularBackgroundTextRenderer::new((0, 0), 0);
     for lg in text_layout {
         renderer.show(bg, &lg);
     }

@@ -57,15 +57,19 @@ use crate::{
 pub struct RegularBackgroundTextRenderer {
     tiles: Vec<Vec<Option<DynamicTile16>>>,
     origin: Vector2D<i32>,
+    palette_id: u8,
 }
 
 impl RegularBackgroundTextRenderer {
     /// Creates a new background renderer with a given origin. All text is
     /// rendered with respect to this origin.
-    pub fn new(origin: impl Into<Vector2D<i32>>) -> Self {
+    ///
+    /// Uses palette at index `palette` for the drawn tiles.
+    pub fn new(origin: impl Into<Vector2D<i32>>, palette_id: u8) -> Self {
         Self {
             tiles: Vec::new(),
             origin: origin.into(),
+            palette_id,
         }
     }
 
@@ -125,7 +129,11 @@ impl RegularBackgroundTextRenderer {
                 if row[column_idx as usize].is_none() {
                     let tile_pos = vec2(column_idx, row_idx) + tile_offset;
                     let tile = DynamicTile16::new().fill_with(0);
-                    bg.set_tile_dynamic16(tile_pos, &tile, TileEffect::default());
+                    bg.set_tile_dynamic16(
+                        tile_pos,
+                        &tile,
+                        TileEffect::default().palette(self.palette_id),
+                    );
 
                     row[column_idx as usize] = Some(tile);
                 }
@@ -183,7 +191,7 @@ mod test {
                 .with_max_group_width(128),
         );
 
-        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
+        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20), 0);
 
         for lg in layout {
             bg_text_render.show(&mut bg, &lg);
@@ -220,7 +228,7 @@ mod test {
             &FONT,
             &LayoutSettings::new().with_max_line_length(200),
         );
-        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
+        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20), 0);
 
         for lg in layout {
             bg_text_render.show(&mut bg, &lg);
@@ -257,7 +265,7 @@ mod test {
                 .with_max_line_length(200)
                 .with_max_group_width(32),
         );
-        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20));
+        let mut bg_text_render = RegularBackgroundTextRenderer::new((20, 20), 0);
         let letter_group = layout.next().unwrap();
 
         let mut timer = gba.timers.timers().timer2;
