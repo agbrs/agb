@@ -194,7 +194,7 @@ impl TileSetting {
     /// `TileSetting` with ever setting the same, except it will be horizontally flipped.
     #[must_use]
     pub const fn hflip(mut self, should_flip: bool) -> Self {
-        self.tile_effect().hflip(should_flip);
+        self.tile_effect = self.tile_effect.hflip(should_flip);
         self
     }
 
@@ -204,7 +204,7 @@ impl TileSetting {
     /// `TileSetting` with ever setting the same, except it will be vertically flipped.
     #[must_use]
     pub const fn vflip(mut self, should_flip: bool) -> Self {
-        self.tile_effect().vflip(should_flip);
+        self.tile_effect = self.tile_effect.vflip(should_flip);
         self
     }
 
@@ -213,7 +213,7 @@ impl TileSetting {
     /// This has no effect if the background is set to use 256 colours.
     #[must_use]
     pub const fn palette(mut self, palette_id: u8) -> Self {
-        self.tile_effect().palette(palette_id);
+        self.tile_effect = self.tile_effect.palette(palette_id);
         self
     }
 
@@ -248,7 +248,8 @@ impl TileEffect {
     /// If `should_flip` is true, will mutate itself to show the tile flipped horizontally.
     ///
     /// Calling `.hflip` twice on the same TileEffect will flip the tile twice, resulting in no flipping.
-    pub const fn hflip(&mut self, should_flip: bool) -> &mut Self {
+    #[must_use]
+    pub const fn hflip(mut self, should_flip: bool) -> Self {
         self.0 ^= (should_flip as u16) << 10;
         self
     }
@@ -259,13 +260,15 @@ impl TileEffect {
     /// If `should_flip` is true, will mutate itself to show the tile flipped vertically.
     ///
     /// Calling `.hflip` twice on the same TileEffect will flip the tile twice, resulting in no flipping.
-    pub const fn vflip(&mut self, should_flip: bool) -> &mut Self {
+    #[must_use]
+    pub const fn vflip(mut self, should_flip: bool) -> Self {
         self.0 ^= (should_flip as u16) << 11;
         self
     }
 
     /// Sets the palette index for the current TileEffect.
-    pub const fn palette(&mut self, palette_id: u8) -> &mut Self {
+    #[must_use]
+    pub const fn palette(mut self, palette_id: u8) -> Self {
         self.0 &= 0x0fff;
         self.0 |= (palette_id as u16) << 12;
         self
