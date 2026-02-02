@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Actually fixed mGBA Multiboot binary detection.
 - Removed unnecessary Multiboot Server BIOS call in Multiboot binary runtimes.
 - Corrected `agb-gbafix` checksum for non zero software versions.
+- Fixed compatibility with Quick Boot on the Everdrive GBA.
 
 ### Changed
 
