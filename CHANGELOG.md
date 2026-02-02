@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `FixedWidthUnsignedInteger` trait is now sealed and cannot be implemented outside of `agb-fixnum`.
 - `DynamicTile16::data()` is now `DynamicTile16::data_mut()` and instead `DynamicTile16::data()` returns an immutable reference.
 - `Layout::new` no longer takes `max_line_length` as a parameter. Instead, use `LayoutSettings::with_max_line_length()`. A value of 0 (the default) means unlimited line length.
+- Dynamic sprites are now built in a buffer in iwram.
 - The save API has completely changed to use serde rather than raw bytes. Check the [book](https://agbrs.dev/book/articles/saving) for details. It now has built in
   - Serialization.
   - Automatic checksumming and error detection.
