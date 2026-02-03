@@ -178,6 +178,12 @@ impl TryFrom<PaletteVram> for PaletteVramSingle {
     }
 }
 
+impl From<&'static PaletteMulti> for PaletteVramMulti {
+    fn from(value: &'static PaletteMulti) -> Self {
+        PaletteVramMulti::new(value)
+    }
+}
+
 impl TryFrom<PaletteVram> for PaletteVramMulti {
     type Error = PaletteVram;
 
