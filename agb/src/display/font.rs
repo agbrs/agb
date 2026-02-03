@@ -131,7 +131,7 @@
 //! // the actual text rendering
 //!
 //! let layout = Layout::new("Hello, world!", &FONT, &LayoutSettings::new().with_max_line_length(200));
-//! let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
+//! let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0), 0);
 //!
 //! for letter_group in layout {
 //!     text_renderer.show(&mut bg, &letter_group);

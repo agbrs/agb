@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an example for dynamically generated isometric tiles.
 - Added the ability to draw a drop-shadow when rendering text.
 - Added 256 colour dynamic tiles via `DynamicTile256`.
+- Added the ability to configure which palette `RegularBackgroundTextRenderer` uses.
 
 ### Fixed
 
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Multiple, independent save slots.
   - Save file corruption will only affect the one slot it happened to.
   - Safe saving which, if interrupted, will either give you the old version or new version but never corrupt.
+- `TileEffect` methods now don't mutate, instead returning the modified `TileEffect` (matching `TileSetting`).
 
 ## [0.22.6] - 2025/10/29
 

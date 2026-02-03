@@ -337,6 +337,7 @@ let my_background = RegularBackground::new(
 // Note that you can pass a TileEffect here which would allow you to flip the tile
 // vertically or horizontally if you choose to.
 my_background.set_tile_dynamic16((0, 5), dynamic_tile, TileEffect::default());
+my_background.set_tile_dynamic16((0, 5), dynamic_tile, TileEffect::default().hflip(true)); // flip the tile horizontally
 ```
 
 See [the dynamic tiles](https://agbrs.dev/examples/dynamic_tiles) example for a really basic example, or the [tiled background text renderer](https://github.com/agbrs/agb/blob/master/agb/src/display/font/tiled.rs) for a much more in-depth example.

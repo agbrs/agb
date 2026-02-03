@@ -27,7 +27,7 @@ fn main(mut gba: agb::Gba) -> ! {
         TileFormat::FourBpp,
     );
 
-    let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0));
+    let mut text_renderer = RegularBackgroundTextRenderer::new((4, 0), 0);
 
     let mut text_layout = Layout::new(
         "Hello, World! こんにちは世界\nThis is an example of rendering text using backgrounds.",
