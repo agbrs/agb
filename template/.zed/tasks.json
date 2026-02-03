@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Build: debug",
+    "command": "cargo",
+    "args": ["build"],
+    "env": {
+      "CARGO_TARGET_DIR": "${ZED_WORKTREE_ROOT}/target",
+    },
+  },
+]

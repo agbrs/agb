@@ -1,0 +1,15 @@
+[
+  {
+    "label": "Debug: debug",
+    "request": "attach",
+    "adapter": "CodeLLDB",
+    "program": "${ZED_WORKTREE_ROOT}/target/thumbv4t-none-eabi/debug/agb_template",
+    "build": "Build: debug",
+    "sourceLanguages": ["rust"],
+    "initCommands": ["settings set target.default-arch armv4t"],
+    "processCreateCommands": [
+      "script import subprocess; subprocess.Popen(['mgba-qt', '-g', '${ZED_WORKTREE_ROOT}/target/thumbv4t-none-eabi/debug/agb_template'])",
+      "gdb-remote localhost:2345",
+    ],
+  },
+]
