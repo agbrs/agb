@@ -40,7 +40,8 @@ use crate::{
 /// // the actual text rendering
 ///
 /// let layout = Layout::new("Hello, world!", &FONT, &LayoutSettings::new().with_max_line_length(200));
-/// let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0));
+/// // Start rendering at (0, 0) using the 1st background palette
+/// let mut text_renderer = RegularBackgroundTextRenderer::new((0, 0), 0);
 ///
 /// for letter_group in layout {
 ///     text_renderer.show(&mut bg, &letter_group);
