@@ -1,7 +1,6 @@
 [book]
 authors = ["Gwilym Inzani", "Corwin Kuiper"]
 language = "en"
-multilingual = false
 src = "src"
 title = "The agb book"
 
