@@ -1,20 +1,20 @@
 # Tiled
 
 [Tiled](https://www.mapeditor.org/) is an open source level editor.
-Many `agb` games have been made using tiled as their level editors.
+Many `agb` games have been made using Tiled as their level editors.
 For example: [The Hat Chooses the Wizard](https://agbrs.dev/showcase/the-hat-chooses-the-wizard), [The Purple Night](https://agbrs.dev/showcase/the-purple-night), [The Dungeon Puzzler's Lament](https://agbrs.dev/showcase/the-dungeon-puzzlers-lament), and [Khiera's Quest](https://agbrs.dev/showcase/khieras-quest) all used Tiled.
 
-This will serve a very quick introduction to using tiled to make levels.
+This will serve as a very quick introduction to using Tiled to make levels.
 Tiled can do a lot, so I would encourage you to play around with it yourself, but bear in mind we are writing the level loading system.
 This means that some things that look like features are actually up to us to implement.
 
 You should obtain Tiled using whatever means best supported by your operating system.
 The documentation for Tiled can be found [here](https://doc.mapeditor.org/en/stable/).
 
-# Getting setup to make a level
+# Getting set up to make a level
 
 Open up Tiled and create a new project, _File -> New -> New Project..._ or using the button that should be on the main page.
-Save this project in the directory for your game.
+Save this project in a `tiled/` directory inside your game project (e.g. `tiled/platform.tiled-project`).
 
 Create a tileset, this can be done through the button that should be on your screen or using _File -> New -> New Tileset..._.
 For our game, I have prepared this simple tileset that includes a grassy tile, a wall tile, and a flag that will be for the end of the level.
@@ -24,8 +24,8 @@ For our game, I have prepared this simple tileset that includes a grassy tile, a
 Give the tileset a relevant name (`tileset`, for instance) and make sure to set the width and height of the tile to be 8px by 8px.
 In the tileset interface, we can attach custom properties to the tiles.
 Our game has tiles that are colliding and tiles that if touched cause the level to be beaten.
-We can attach these tags to the tileset using tiled.
-Select all the tiles and using the _Add property_ button add `WIN` and `COLLISION` boolean properties.
+We can attach these tags to the tileset using Tiled.
+Select all the tiles in the tileset and using the _Add property_ button add `WIN` and `COLLISION` boolean properties to every tile.
 ![The add property button](add-property.png)
 Check the collision property on the grass and wall tile, and check the win property on the flag and flagpole.
 When we come to writing our level importer, we will need to manually deal with these properties.
@@ -45,7 +45,7 @@ Here's what I quickly drew.
 
 ![A level consisting of 3 platforms with a flag on the right most platform](tiled-basic-platformer-level.png)
 
-We want to encode as much about the level as possible in tiled.
+We want to encode as much about the level as possible in Tiled.
 One thing we might think of including is the start position of the player.
 We can do this using an object layer.
 _Layer -> New -> Object Layer_ and again give it a name like `Objects`.
@@ -57,8 +57,26 @@ Use this to add a point to your level and call the point `PLAYER`.
 
 ![A tiled point object with the name "PLAYER"](player-point.png)
 
-# Summary
+# Saving
 
-We've seen how we can use tiled to put a level together.
-I would encourage you to take the opportunity to explore around tiled and get a feel for the tool.
+Save the tileset as `tiled/tileset.tsx` and the map as `tiled/level_01.tmx` in your project directory.
+
+Your `tiled/` directory should now contain:
+
+```
+tiled/
+├── platform.tiled-project
+├── tileset.tsx
+└── level_01.tmx
+```
+
+# What we did
+
+We've seen how we can use Tiled to put a level together.
+I would encourage you to take the opportunity to explore around Tiled and get a feel for the tool.
 In the next chapter we will be writing the importer to make our level accessible to the GBA.
+
+# Exercise
+
+Add a spike tile to your tileset and add a `SPIKE` boolean property to it.
+We won't use it in this tutorial, but it's good practice for extending your levels with custom tile properties.

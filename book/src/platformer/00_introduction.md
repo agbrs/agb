@@ -1,13 +1,19 @@
 # Learn agb part II: Platformer
 
-In this section you'll learn how to use `agb` and [Tiled](https://www.mapeditor.org/) to make a platformer.
+In this tutorial, you'll learn how to make a multi-level platformer using `agb` and [Tiled](https://www.mapeditor.org/).
 
-- Designing levels in tiled.
-- Using `build.rs` to import your levels made with tiled.
-- Making a very simple platformer using these imported levels.
+By the end, you'll have a game where a wizard runs and jumps across tile-based levels, colliding with the terrain, and advancing through multiple stages.
 
-This should then let you be able to use this knowledge in the design of your own games.
+We'll cover:
 
-In this tutorial, there are some suggestions for additional tasks you could do.
-Later chapters will assume you have not done them, so if you do decide to try the extra tasks make sure to go fresh from what you've already written into the next chapter.
- 
+- Designing levels in Tiled with custom tile properties.
+- Using `build.rs` to parse and convert Tiled levels at compile time.
+- Displaying a scrollable tile-based level on screen.
+- Implementing player movement with gravity and friction.
+- Tile-based collision detection and response.
+- Supporting multiple levels with win detection.
+
+**This tutorial assumes you've completed the [pong tutorial](../pong/00_introduction.md).** We'll build on concepts introduced there — sprites, backgrounds, fixed-point numbers, and input handling — and link back to those chapters when relevant.
+
+Each chapter ends with an optional exercise.
+Later chapters assume you haven't done them, so if you do try an exercise, revert those changes before starting the next chapter.
