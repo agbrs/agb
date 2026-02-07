@@ -1,6 +1,6 @@
 [package]
 name = "agb_save"
-version = "0.22.6"
+version = "0.23.0"
 edition = "2024"
 
 [dependencies]
