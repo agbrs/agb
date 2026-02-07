@@ -137,7 +137,14 @@ fn update_to_version(
                         *s = new_version.clone().into()
                     }
                     toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) => {
-                        t["version"] = new_version.clone().into()
+                        if let Some(version) = t.get_mut("version") {
+                            *version = new_version.clone().into()
+                        } else {
+                            return Err(Error::InvalidToml(format!(
+                                "Toml does not contain version in {}",
+                                cargo_toml_file.to_string_lossy()
+                            )));
+                        }
                     }
                     toml_edit::Item::None => continue,
                     _ => {
