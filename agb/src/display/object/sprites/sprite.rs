@@ -195,16 +195,35 @@ macro_rules! align_bytes {
 ///     "examples/gfx/crab-small.aseprite"
 /// );
 /// ```
+///
+/// You can optionally specify a target sprite size before a file path to split
+/// each frame into multiple smaller sprites. The size is given as `WIDTHxHEIGHT`
+/// and must be a valid GBA sprite size. The frame dimensions must be evenly
+/// divisible by the target size.
+///
+/// Sub-frames are generated in row-major order (left-to-right, top-to-bottom),
+/// and tags are automatically adjusted to cover all sub-frames.
+///
+/// ```rust,ignore
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::include_aseprite;
+/// include_aseprite!(
+///     mod sprites,
+///     32x16 "examples/gfx/big_character.aseprite",
+///     "examples/gfx/small_item.aseprite"
+/// );
+/// ```
 #[macro_export]
 macro_rules! include_aseprite {
-    ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
+    ($v: vis mod $module: ident, $($aseprite_args: tt)*) => {
         $v mod $module {
             #[allow(unused_imports)]
             use $crate::display::object::{Size, Sprite, Tag};
             use $crate::display::{Palette16, Rgb15};
             use $crate::align_bytes;
 
-            $crate::include_aseprite_inner!($($aseprite_path),*);
+            $crate::include_aseprite_inner!($($aseprite_args)*);
         }
     };
 }
@@ -224,16 +243,20 @@ macro_rules! include_aseprite {
 ///
 /// use sprites::{JUMP, WALK, IDLE};
 /// ```
+///
+/// Like [`include_aseprite!`], you can specify a target sprite size before a
+/// file path to split frames into smaller sprites. See [`include_aseprite!`]
+/// for details.
 #[macro_export]
 macro_rules! include_aseprite_256 {
-    ($v: vis mod $module: ident, $($aseprite_path: expr),*$(,)?) => {
+    ($v: vis mod $module: ident, $($aseprite_args: tt)*) => {
         $v mod $module {
             #[allow(unused_imports)]
             use $crate::display::object::{Size, Sprite, Tag, PaletteMulti};
             use $crate::display::{Palette16, Rgb15};
             use $crate::align_bytes;
 
-            $crate::include_aseprite_256_inner!($($aseprite_path),*);
+            $crate::include_aseprite_256_inner!($($aseprite_args)*);
         }
     }
 }
