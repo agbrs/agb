@@ -2,6 +2,10 @@
 name = "agb_save"
 version = "0.23.0"
 edition = "2024"
+repository = "https://github.com/agbrs/agb"
+license = "MPL-2.0"
+description = "Library for managing saves. Designed for use with the agb library for the Game Boy Advance."
+authors = ["Gwilym Inzani <gw@ilym.me>"]
 
 [dependencies]
 crc16 = "0.4"
