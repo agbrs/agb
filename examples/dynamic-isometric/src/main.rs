@@ -34,7 +34,7 @@ include_background_gfx!(mod tiles, "333333",
     ISOMETRIC => "gfx/isometric_tiles.aseprite"
 );
 
-include_aseprite!(mod sprites, "gfx/kaiju.aseprite");
+include_aseprite!(mod sprites, 32x16 "gfx/kaiju.aseprite");
 
 #[agb::entry]
 fn entry(gba: Gba) -> ! {

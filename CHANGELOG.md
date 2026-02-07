@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to draw a drop-shadow when rendering text.
 - Added 256 colour dynamic tiles via `DynamicTile256`.
 - Added the ability to configure which palette `RegularBackgroundTextRenderer` uses.
+- Added per-file sprite size overrides to `include_aseprite!` and `include_aseprite_256!`. You can now write `32x16 "big.aseprite"` to split each frame into smaller sub-sprites.
 
 ### Fixed
 
