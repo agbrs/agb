@@ -178,9 +178,10 @@ impl Input {
         for (resolved_path, size_override) in &resolved_files {
             let (images, file_tags) = aseprite::generate_from_file(resolved_path);
 
-            let split_factor = if let Some((target_w, target_h)) = size_override {
-                let target_w = *target_w;
-                let target_h = *target_h;
+            let split_factor = if let &Some((target_w, target_h)) = size_override
+                && let Some(first) = images.first()
+            {
+                let (frame_w, frame_h) = first.dimensions();
 
                 ensure!(
                     valid_sprite_size(target_w, target_h),
@@ -189,22 +190,16 @@ impl Input {
                         y: target_h
                     }
                 );
-
-                if let Some(first) = images.first() {
-                    let (frame_w, frame_h) = first.dimensions();
-                    ensure!(
-                        frame_w % target_w == 0 && frame_h % target_h == 0,
-                        FrameNotDivisibleSnafu {
-                            frame_w,
-                            frame_h,
-                            target_w,
-                            target_h
-                        }
-                    );
-                    (frame_w / target_w) * (frame_h / target_h)
-                } else {
-                    1
-                }
+                ensure!(
+                    frame_w % target_w == 0 && frame_h % target_h == 0,
+                    FrameNotDivisibleSnafu {
+                        frame_w,
+                        frame_h,
+                        target_w,
+                        target_h
+                    }
+                );
+                (frame_w / target_w) * (frame_h / target_h)
             } else {
                 1
             };
