@@ -140,8 +140,7 @@ impl Player {
 }
 ```
 
-The opposing-direction trick is subtle but important: if you're moving right and press left, we double the deceleration so the character responds immediately.
-When on the ground, we also double the acceleration for snappier movement.
+When on the ground, we double the acceleration for snappier movement.
 
 # Step 3: Jumping and gravity
 
@@ -154,7 +153,6 @@ impl Player {
 ```
 
 A simple negative Y velocity sends the player upward.
-Many games reduce gravity while the jump button is held to allow variable jump heights — that's a good exercise to try later.
 
 # Step 4: Animation
 
@@ -190,7 +188,7 @@ impl Player {
 ```
 
 The `animation_frame` method cycles through the frames of a tag at the given speed.
-The `2` parameter means each frame is displayed for 2 game frames.
+The `2` parameter is a shift, so each animation frame is displayed for 4 game frames.
 
 # Step 5: The update function
 
@@ -285,3 +283,5 @@ Experiment with the gravity and jump velocity values.
 What happens if you set gravity to `num!(0.1)`?
 What about jump velocity of `num!(-3)`?
 Many platformers spend a lot of time tuning these values to get the movement feeling right.
+
+Try implementing variable jump height: reduce gravity while the A button is held so that tapping A gives a short hop and holding it gives a full jump.

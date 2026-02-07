@@ -115,6 +115,9 @@ Let's walk through `handle_collision_component` step by step:
 The `handle_collision` method calls the component handler twice: once for X (using a half-width of 4 pixels) and once for Y (using a half-height of 8 pixels).
 Each closure checks for collisions using the current position on the other axis.
 
+The order matters: handling X first means horizontal movement is resolved before vertical.
+This gives the player priority for barely making it onto a ledge, if you're jumping diagonally toward a platform edge, the X position is corrected first, which can make the difference between landing on top and crashing into the side.
+
 # Updating the `update` function
 
 Now replace the `update` method on `Player` with the full version that includes gravity and collision:

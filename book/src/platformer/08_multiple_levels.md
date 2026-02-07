@@ -128,16 +128,10 @@ And the rest will be done for you!
 # What we did
 
 We've made a game that has multiple levels and can transition between them.
-There are many aspects that could be improved in your games. Here are some ideas:
+There are many things you could do from here to make the game your own. Here are some ideas:
 
+- **Fall detection.** If the player falls below the bottom of the level, restart the current level. You'll need to check `player.position.y` against the level height (in pixels: `level.height * 8`).
+- **Spike detection.** If you completed the spike exercises from earlier chapters, touching a spike tile should also restart the level.
 - **Loading transitions.** Loading happens over multiple frames and should be hidden from view.
-- **Fall detection.** The level should restart if the player falls off the world, or levels should be designed such that it is impossible to fall off.
 - **Camera scrolling.** Make the camera follow the player for levels larger than the screen.
 - **Sound effects.** Add a jump sound or landing sound using `agb`'s audio support.
-
-# Exercise
-
-Add a death mechanic: if the player falls below the bottom of the level, restart the current level.
-You'll need to check `player.position.y` against the level height (in pixels: `level.height * 8`).
-
-If you completed the spike exercises from earlier chapters, add spike detection too — touching a spike tile should also restart the level.
