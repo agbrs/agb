@@ -11,6 +11,7 @@ repository = "https://github.com/agbrs/agb"
 agb_xm_core = { version = "0.22.6", path = "../agb-xm-core" }
 agb_tracker = { version = "0.22.6", path = "../agb-tracker", default-features = false }
 agb_fixnum = { version = "0.22.6", path = "../../agb-fixnum" }
+agb_tracker_interop = { version = "0.22.6", path = "../agb-tracker-interop", features = ["std"] }
 
 anyhow = "1"
 xmrs = "=0.8.5"
