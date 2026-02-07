@@ -46,6 +46,9 @@ agb::include_aseprite!(
 
 In this example, each frame of `big_character.aseprite` is split into 32x16 sub-sprites, while `small_item.aseprite` is imported at its native size.
 
+Note that the animation helpers on [`Tag`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html) (such as `.animation_sprite()` and `.animation_frame()`) will iterate over individual sub-frames, not complete original frames.
+You will likely want to use `.sprite()` directly to display all the sub-frames that make up a single original frame yourself.
+
 # ROM and VRAM
 
 Sprites must be in VRAM to be displayed on screen.

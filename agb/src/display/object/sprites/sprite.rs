@@ -202,7 +202,11 @@ macro_rules! align_bytes {
 /// divisible by the target size.
 ///
 /// Sub-frames are generated in row-major order (left-to-right, top-to-bottom),
-/// and tags are automatically adjusted to cover all sub-frames.
+/// and tags are automatically adjusted to cover all sub-frames. Note that
+/// [`Tag::animation_sprite`] and [`Tag::animation_frame`] will iterate over
+/// individual sub-frames, not complete original frames. You will likely want
+/// to use [`Tag::sprite`] directly to display all sub-frames for a given
+/// original frame yourself.
 ///
 /// ```rust,ignore
 /// # #![no_std]
