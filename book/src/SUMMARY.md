@@ -22,11 +22,14 @@
   - [Background music](./pong/08_bgm.md)
   - [Keeping score](./pong/09_keeping_score.md)
 - [Learn agb part II - platformer](./platformer/00_introduction.md)
-  - [Tiled](./platformer/01_tiled.md)
-  - [Importing Tiled levels](./platformer/02_importing_tiled_levels.md)
-  - [Displaying the level](./platformer/03_displaying_the_level.md)
-  - [Platformer](./platformer/04_platformer_physics.md)
-  - [Multiple levels](./platformer/05_multiple_levels.md)
+  - [Getting started](./platformer/01_getting_started.md)
+  - [Tiled](./platformer/02_tiled.md)
+  - [Loading levels at build time](./platformer/03_loading_levels.md)
+  - [Converting levels to game data](./platformer/04_converting_levels.md)
+  - [Displaying the level](./platformer/05_displaying_the_level.md)
+  - [The player](./platformer/06_the_player.md)
+  - [Collision](./platformer/07_collision.md)
+  - [Multiple levels](./platformer/08_multiple_levels.md)
 
 # Articles
 
