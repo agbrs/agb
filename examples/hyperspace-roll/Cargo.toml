@@ -5,7 +5,7 @@ authors = [""]
 edition = "2024"
 
 [dependencies]
-agb = { version = "0.23.0", path = "../../agb" }
+agb = { version = "0.23.1", path = "../../agb" }
 serde = { version = "1", default-features = false, features = ["derive"] }
 examples_save = { version = "0.1.0", path = "../examples-save" }
 

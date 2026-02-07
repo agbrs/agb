@@ -1,6 +1,6 @@
 [package]
 name = "agb"
-version = "0.23.0"
+version = "0.23.1"
 authors = ["Corwin Kuiper <corwin@kuiper.dev>", "Gwilym Inzani <gw@ilym.me>"]
 edition = "2024"
 description = "Library for Game Boy Advance Development"
@@ -18,12 +18,12 @@ multiboot = []
 embassy = []
 
 [dependencies]
-agb_image_converter = { version = "0.23.0", path = "../agb-image-converter" }
-agb_sound_converter = { version = "0.23.0", path = "../agb-sound-converter" }
-agb_macros = { version = "0.23.0", path = "../agb-macros" }
-agb_fixnum = { version = "0.23.0", path = "../agb-fixnum", features = ["serde"] }
-agb_hashmap = { version = "0.23.0", path = "../agb-hashmap", features = ["allocator_api", "serde"] }
-agb_save = { version = "0.23.0", path = "../agb-save" }
+agb_image_converter = { version = "0.23.1", path = "../agb-image-converter" }
+agb_sound_converter = { version = "0.23.1", path = "../agb-sound-converter" }
+agb_macros = { version = "0.23.1", path = "../agb-macros" }
+agb_fixnum = { version = "0.23.1", path = "../agb-fixnum", features = ["serde"] }
+agb_hashmap = { version = "0.23.1", path = "../agb-hashmap", features = ["allocator_api", "serde"] }
+agb_save = { version = "0.23.1", path = "../agb-save" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 bilge = "0.3"
 qrcodegen-no-heap = { version = "1.8", optional = true }
