@@ -21,7 +21,8 @@ export class MgbaEmulatorManager {
     canvas: HTMLCanvasElement,
     gameData: ArrayBuffer,
     gameName: string,
-    volume: number
+    volume: number,
+    logListener?: LogListener,
   ): Promise<void> {
     this.gameName = gameName;
     const { signal } = this.abortController;
@@ -43,6 +44,11 @@ export class MgbaEmulatorManager {
     }
 
     this.module = module;
+
+    if (logListener) {
+      this.logListener = logListener;
+      module.addLogListener(logListener);
+    }
 
     this.restoreSave(gameName);
 

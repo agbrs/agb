@@ -99,7 +99,7 @@ export function Mgba({
         ]);
         if (cancelled) return;
 
-        await mgba.init(canvas.current!, gameData, gameName, volume ?? 1.0);
+        await mgba.init(canvas.current!, gameData, gameName, volume ?? 1.0, onLogMessage);
         if (cancelled) return;
 
         setReady(true);
