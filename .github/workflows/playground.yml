@@ -103,4 +103,5 @@ jobs:
       - name: Deploy
         env:
           AGB_CLOUDFLARE_TUNNEL_SECRET: ${{ secrets.AGB_CLOUDFLARE_TUNNEL_SECRET }}
+          AGB_GITHUB_GIST_TOKEN: ${{ secrets.AGB_GITHUB_GIST_TOKEN }}
         run: cd tools && cargo run deploy
