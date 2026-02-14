@@ -33,6 +33,7 @@ docker run -v /run/docker.sock:/run/docker.sock \
     --detach --restart unless-stopped \
     --init --network=agbnet \
     --name=playground-server \
+    -e GITHUB_TOKEN=$GITHUB_TOKEN \
     -p 5409:5409 \
     ghcr.io/agbrs/playground-server:latest
 
@@ -56,6 +57,17 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
                 "<cloudflare token>".to_string()
             } else {
                 return Err(Error::MissingCloudflareSecret);
+            }
+        }
+    };
+
+    let github_gist_token = match env::var("AGB_GITHUB_GIST_TOKEN") {
+        Ok(secret) => secret,
+        Err(_) => {
+            if dry_run {
+                "<github gist token>".to_string()
+            } else {
+                return Err(Error::MissingGithubGistToken);
             }
         }
     };
@@ -84,7 +96,9 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
             .join(", ")
     );
 
-    let launch_script = LAUNCH_SCRIPT.replace("$CLOUDFLARE_TOKEN", &cloudflare_token);
+    let launch_script = LAUNCH_SCRIPT
+        .replace("$CLOUDFLARE_TOKEN", &cloudflare_token)
+        .replace("$GITHUB_TOKEN", &github_gist_token);
 
     let timestamp = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs();
     let new_droplet_name = format!("agb-playground-{timestamp}");
@@ -174,6 +188,7 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
 #[derive(Debug)]
 pub enum Error {
     MissingCloudflareSecret,
+    MissingGithubGistToken,
     XShell(xshell::Error),
     JsonDeserialize(serde_json::Error),
 }
