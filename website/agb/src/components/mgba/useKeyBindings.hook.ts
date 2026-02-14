@@ -1,11 +1,11 @@
 import { RefObject, useEffect } from "react";
-import { mGBAEmulator } from "./vendor/mgba";
+import { MgbaEmulatorManager } from "./mgbaEmulator";
 import { KeyBindings } from "./bindings";
 
 export type ControlMode = "always" | "focus";
 
 export function useKeyBindings(
-  mgbaModule: RefObject<mGBAEmulator | undefined>,
+  manager: RefObject<MgbaEmulatorManager | null>,
   canvas: RefObject<HTMLCanvasElement | null>,
   controls: KeyBindings,
   mode: ControlMode
@@ -17,7 +17,7 @@ export function useKeyBindings(
       Object.entries(controls).map(([a, b]) => [b, a])
     );
 
-    let bindTo;
+    let bindTo: HTMLCanvasElement | Window;
     if (mode === "always") {
       bindTo = window;
     } else {
@@ -29,29 +29,31 @@ export function useKeyBindings(
     }
 
     for (let control of Object.keys(controls)) {
-      mgbaModule.current?.buttonUnpress(control);
+      manager.current?.buttonUnpress(control);
     }
 
-    function keyDown(key: KeyboardEvent) {
-      const gbaKey = reverseBindings.get(key.code);
+    function keyDown(event: Event) {
+      if (!(event instanceof KeyboardEvent)) return;
+      const gbaKey = reverseBindings.get(event.code);
       if (gbaKey) {
-        mgbaModule.current?.buttonPress(gbaKey);
+        manager.current?.buttonPress(gbaKey);
       }
     }
 
-    function keyUp(key: KeyboardEvent) {
-      const gbaKey = reverseBindings.get(key.code);
+    function keyUp(event: Event) {
+      if (!(event instanceof KeyboardEvent)) return;
+      const gbaKey = reverseBindings.get(event.code);
       if (gbaKey) {
-        mgbaModule.current?.buttonUnpress(gbaKey);
+        manager.current?.buttonUnpress(gbaKey);
       }
     }
 
-    bindTo.addEventListener("keydown", keyDown as any);
-    bindTo.addEventListener("keyup", keyUp as any);
+    bindTo.addEventListener("keydown", keyDown);
+    bindTo.addEventListener("keyup", keyUp);
 
     return () => {
-      bindTo.removeEventListener("keydown", keyDown as any);
-      bindTo.removeEventListener("keyup", keyUp as any);
+      bindTo.removeEventListener("keydown", keyDown);
+      bindTo.removeEventListener("keyup", keyUp);
     };
-  }, [mgbaModule, controls, mode, canvas]);
+  }, [manager, controls, mode, canvas]);
 }

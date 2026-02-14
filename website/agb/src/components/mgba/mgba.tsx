@@ -1,19 +1,20 @@
 "use client";
 
-import {
-  Ref,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import mGBA, { mGBAEmulator, LogLevel } from "./vendor/mgba";
+import { Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { LogLevel } from "./vendor/mgba";
 import { GbaKey, KeyBindings } from "./bindings";
 import { styled } from "styled-components";
 import { useController } from "./useController.hook";
-import { useLocalStorage } from "./useLocalStorage.hook";
 import { ControlMode, useKeyBindings } from "./useKeyBindings.hook";
+import { MgbaEmulatorManager } from "./mgbaEmulator";
+
+const MgbaCanvas = styled.canvas`
+  image-rendering: pixelated;
+  aspect-ratio: 240 / 160;
+  width: 100%;
+  object-fit: contain;
+  max-height: 100%;
+`;
 
 export interface Game {
   game: URL | string | ArrayBuffer;
@@ -49,22 +50,6 @@ interface MgbaProps extends Game {
   ref?: Ref<MgbaHandle> | undefined;
 }
 
-enum MgbaState {
-  Uninitialised,
-  Initialising,
-  Initialised,
-}
-
-const MGBA_ROM_DIRECTORY = "/data/games";
-
-const MgbaCanvas = styled.canvas`
-  image-rendering: pixelated;
-  aspect-ratio: 240 / 160;
-  width: 100%;
-  object-fit: contain;
-  max-height: 100%;
-`;
-
 export interface MgbaHandle {
   restart: () => void;
   buttonPress: (key: GbaKey) => void;
@@ -88,195 +73,85 @@ async function downloadGame({ game }: Game): Promise<ArrayBuffer> {
   }
 }
 
-interface SaveGame {
-  [gameName: string]: number[];
-}
-
-interface MgbaInnerProps {
-  game: ArrayBuffer;
-  gameName: string;
-  volume?: number;
-  controls: KeyBindings;
-  paused: boolean;
-  onLogMessage?: (category: string, level: LogLevel, message: string) => void;
-  ref?: Ref<MgbaHandle> | undefined;
-  controlMode?: ControlMode;
-}
-
-function MgbaInner({
-  game,
-  gameName,
-  volume,
-  controls,
-  paused,
-  onLogMessage,
-  controlMode = "always",
-  ref,
-}: MgbaInnerProps) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const mgbaModule = useRef<mGBAEmulator>(undefined);
-
-  const [saveGame, setSaveGame] = useLocalStorage<SaveGame>(
-    {},
-    "agbrswebplayer/savegames"
-  );
-
-  const [state, setState] = useState(MgbaState.Uninitialised);
-  const [gameLoaded, setGameLoaded] = useState(false);
-
-  useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
-
-    function logListener(category: string, level: LogLevel, message: string) {
-      if (onLogMessage) onLogMessage(category, level, message);
-    }
-    mgbaModule.current?.addLogListener(logListener);
-
-    return () => {
-      mgbaModule.current?.removeLogListener(logListener);
-    };
-  }, [onLogMessage, state]);
-
-  useEffect(() => {
-    function beforeUnload() {
-      const save = mgbaModule.current?.getSave();
-      if (!save) return;
-
-      setSaveGame({
-        ...saveGame,
-        [gameName]: [...save],
-      });
-    }
-
-    window.addEventListener("beforeunload", beforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", beforeUnload);
-    };
-  }, [gameName, saveGame, setSaveGame]);
-
-  useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
-
-    const save = saveGame[gameName];
-    if (!save) return;
-
-    const savePath = `${MGBA_ROM_DIRECTORY}/${gameName}.sav`;
-
-    mgbaModule.current?.FS.writeFile(savePath, new Uint8Array([0, 1, 2, 3]));
-  }, [gameName, saveGame, state]);
-
-  useEffect(() => {
-    if (state !== MgbaState.Initialised) return;
-    (async () => {
-      const gamePath = `${MGBA_ROM_DIRECTORY}/${gameName}`;
-      mgbaModule.current?.FS.writeFile(gamePath, new Uint8Array(game));
-      mgbaModule.current?.loadGame(gamePath);
-      mgbaModule.current?.setVolume(0.1); // for some reason you have to do this or you get no sound
-      setGameLoaded(true);
-    })();
-  }, [state, gameName, game]);
-
-  // init mgba
-  useEffect(() => {
-    (async () => {
-      if (canvas.current === null) return;
-      if (state !== MgbaState.Uninitialised) return;
-
-      setState(MgbaState.Initialising);
-
-      const mModule = await mGBA({ canvas: canvas.current });
-      mModule.toggleInput(false);
-      mgbaModule.current = mModule;
-      await mModule.FSInit();
-      await mModule.FSSync();
-      setState(MgbaState.Initialised);
-    })();
-
-    if (state === MgbaState.Initialised)
-      return () => {
-        try {
-          mgbaModule.current?.quitGame();
-          mgbaModule.current?.quitMgba();
-        } catch {}
-      };
-  }, [state]);
-
-  useController(mgbaModule);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
-    mgbaModule.current?.setVolume(volume ?? 1.0);
-  }, [gameLoaded, volume]);
-
-  useEffect(() => {
-    if (!gameLoaded) return;
-
-    if (paused) {
-      mgbaModule.current?.pauseGame();
-    } else {
-      mgbaModule.current?.resumeGame();
-    }
-  }, [gameLoaded, paused]);
-
-  useKeyBindings(mgbaModule, canvas, controls, controlMode);
-
-  useImperativeHandle(ref, () => {
-    return {
-      restart: () => mgbaModule.current?.quickReload(),
-      buttonPress: (key: GbaKey) => mgbaModule.current?.buttonPress(key),
-      buttonRelease: (key: GbaKey) => mgbaModule.current?.buttonUnpress(key),
-      saveGame: () => {},
-    };
-  });
-
-  return <MgbaCanvas tabIndex={-1} ref={canvas} />;
-}
-
 export function Mgba({
   game,
   volume,
   controls,
   paused,
   onLogMessage,
-  controlMode,
+  controlMode = "always",
   ref,
 }: MgbaProps) {
-  const [isPending, startTransition] = useTransition();
-  const [gameData, setGameData] = useState<{
-    game: ArrayBuffer;
-    gameName: string;
-  } | null>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const manager = useRef<MgbaEmulatorManager | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    const mgba = new MgbaEmulatorManager();
+    manager.current = mgba;
+
     (async () => {
-      startTransition(async () => {
-        try {
-          const [gameData, gameName] = await Promise.all([
-            downloadGame({ game }),
-            generateGameName({ game }),
-          ]);
-          startTransition(() => setGameData({ game: gameData, gameName }));
-        } catch (e) {
-          console.error(e);
-          startTransition(() => setGameData(null));
-        }
-      });
+      try {
+        const [gameData, gameName] = await Promise.all([
+          downloadGame({ game }),
+          generateGameName({ game }),
+        ]);
+        if (cancelled) return;
+
+        await mgba.init(canvas.current!, gameData, gameName, volume ?? 1.0, onLogMessage);
+        if (cancelled) return;
+
+        setReady(true);
+      } catch (e) {
+        console.error("Failed to init mGBA:", e);
+      }
     })();
+
+    function beforeUnload() {
+      mgba.cleanup();
+    }
+    window.addEventListener("beforeunload", beforeUnload);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("beforeunload", beforeUnload);
+      mgba.cleanup();
+      manager.current = null;
+      setReady(false);
+    };
   }, [game]);
 
-  if (isPending) return <>Loading...</>;
-  if (!gameData) return <>Failed to load game</>;
+  useEffect(() => {
+    if (!ready) return;
+    manager.current?.setVolume(volume ?? 1.0);
+  }, [ready, volume]);
 
-  return (
-    <MgbaInner
-      {...gameData}
-      volume={volume}
-      controls={controls}
-      paused={paused}
-      onLogMessage={onLogMessage}
-      controlMode={controlMode}
-      ref={ref}
-    />
-  );
+  useEffect(() => {
+    if (!ready) return;
+    if (paused) {
+      manager.current?.pause();
+    } else {
+      manager.current?.resume();
+    }
+  }, [ready, paused]);
+
+  useEffect(() => {
+    if (!ready) return;
+    manager.current?.setLogListener(onLogMessage);
+    return () => {
+      manager.current?.setLogListener(undefined);
+    };
+  }, [ready, onLogMessage]);
+
+  useController(manager);
+  useKeyBindings(manager, canvas, controls, controlMode);
+
+  useImperativeHandle(ref, () => ({
+    restart: () => manager.current?.restart(),
+    buttonPress: (key: GbaKey) => manager.current?.buttonPress(key),
+    buttonRelease: (key: GbaKey) => manager.current?.buttonUnpress(key),
+  }));
+
+  return <MgbaCanvas tabIndex={-1} ref={canvas} />;
 }
