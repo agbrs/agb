@@ -36,6 +36,7 @@ export function useKeyBindings(
       if (!(event instanceof KeyboardEvent)) return;
       const gbaKey = reverseBindings.get(event.code);
       if (gbaKey) {
+        event.preventDefault();
         manager.current?.buttonPress(gbaKey);
       }
     }
