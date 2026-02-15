@@ -93,7 +93,7 @@ pub(crate) fn load_font_from_json_letters(
             height: 0,
             xmin: 0,
             ymin: 0,
-            advance_width: 3.0,
+            advance_width: 3.0, // Seems that yal.cc defaults to 3 if it isn't specified
             rendered: vec![],
             kerning_data: Vec::new(),
         });
@@ -260,7 +260,7 @@ fn parse_kern_override(rest: &str, char_to_idx: &HashMap<char, usize>, letters: 
     }
 }
 
-/// Parse a glyph specification string, handling escape sequences per yal.cc docs:
+/// Parse a glyph specification string, handling escape sequences per yal.cc docs (https://yal.cc/tools/pixel-font/help/index.html)
 /// - `\\` → backslash
 /// - `\n`, `\r`, `\t` → newline, carriage return, tab
 /// - `\s` → common Unicode space characters
