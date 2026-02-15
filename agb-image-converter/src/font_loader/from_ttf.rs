@@ -1,4 +1,4 @@
-use super::{KerningData, LetterData, generate_font_tokens};
+use super::{KerningData, LetterData, generate_font_tokens, pack_1bpp};
 use proc_macro2::TokenStream;
 
 pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
@@ -35,21 +35,9 @@ pub(crate) fn load_font_letters(
             let rendered = if bitmap.is_empty() {
                 vec![]
             } else {
-                bitmap
-                    .chunks(metrics.width)
-                    .flat_map(|row| {
-                        row.chunks(8).map(|chunk| {
-                            let mut output = 0u8;
-                            for (i, &value) in chunk.iter().enumerate() {
-                                if value > 100 {
-                                    output |= 1 << i;
-                                }
-                            }
-
-                            output
-                        })
-                    })
-                    .collect()
+                pack_1bpp(metrics.width, height, |x, y| {
+                    bitmap[y * metrics.width + x] > 100
+                })
             };
 
             let mut kerning_data: Vec<_> = font

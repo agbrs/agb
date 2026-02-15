@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::colour::Colour;
 use crate::image_loader::Image;
 
-use super::{KerningData, LetterData, generate_font_tokens};
+use super::{KerningData, LetterData, generate_font_tokens, pack_1bpp};
 
 #[derive(Deserialize)]
 struct FontJson {
@@ -207,27 +207,11 @@ fn extract_glyph(
     let width = content_width.div_ceil(8) * 8;
     let height = bottom_row - top + 1;
 
-    // Pack bitmap starting from left_col
-    let mut rendered = Vec::with_capacity(height * (width / 8));
-    for py in top..=bottom_row {
-        for chunk_start in (0..width).step_by(8) {
-            let mut byte = 0u8;
-            for bit in 0..8 {
-                let px = left + chunk_start + bit;
-                if px <= right_col {
-                    let img_x = cell_x + px;
-                    let img_y = cell_y + py;
-                    if img_x < image.width
-                        && img_y < image.height
-                        && !is_background(image.colour(img_x, img_y))
-                    {
-                        byte |= 1 << bit;
-                    }
-                }
-            }
-            rendered.push(byte);
-        }
-    }
+    let rendered = pack_1bpp(content_width, height, |px, py| {
+        let img_x = cell_x + left + px;
+        let img_y = cell_y + top + py;
+        img_x < image.width && img_y < image.height && !is_background(image.colour(img_x, img_y))
+    });
 
     let xmin = left as i32;
     let ymin = metrics.baseline - height as i32 - top as i32;
@@ -349,8 +333,8 @@ fn parse_glyphs(spec: &str) -> Vec<char> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::from_ttf;
+    use super::*;
     use std::path::PathBuf;
 
     fn test_data_dir() -> PathBuf {

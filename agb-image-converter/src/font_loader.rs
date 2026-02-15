@@ -59,6 +59,30 @@ impl ToTokens for LetterData {
     }
 }
 
+/// Pack a 2D grid of pixels into a 1-bit-per-pixel bitmap with rows padded to 8-pixel alignment.
+/// `is_pixel_set(x, y)` determines whether each pixel is foreground.
+pub(crate) fn pack_1bpp(
+    content_width: usize,
+    height: usize,
+    is_pixel_set: impl Fn(usize, usize) -> bool,
+) -> Vec<u8> {
+    let width = content_width.div_ceil(8) * 8;
+    let mut rendered = Vec::with_capacity(height * (width / 8));
+    for y in 0..height {
+        for chunk_start in (0..width).step_by(8) {
+            let mut byte = 0u8;
+            for bit in 0..8 {
+                let px = chunk_start + bit;
+                if px < content_width && is_pixel_set(px, y) {
+                    byte |= 1 << bit;
+                }
+            }
+            rendered.push(byte);
+        }
+    }
+    rendered
+}
+
 pub(crate) fn generate_font_tokens(
     letters: Vec<LetterData>,
     line_height: i32,

@@ -475,7 +475,9 @@ pub fn include_font(input: TokenStream) -> TokenStream {
                 lit: Lit::Str(str_lit),
                 ..
             }) => str_lit.value(),
-            _ => panic!("Expected literal string as second argument to include_font for JSON fonts"),
+            _ => {
+                panic!("Expected literal string as second argument to include_font for JSON fonts")
+            }
         };
 
         let json_path = resolve_path(&filename);
