@@ -4,21 +4,21 @@ use quote::{ToTokens, quote};
 use proc_macro2::TokenStream;
 
 #[derive(Clone)]
-struct KerningData {
-    previous_character: char,
-    amount: f32,
+pub(crate) struct KerningData {
+    pub previous_character: char,
+    pub amount: f32,
 }
 
 #[derive(Clone)]
-struct LetterData {
-    character: char,
-    width: usize,
-    height: usize,
-    xmin: i32,
-    ymin: i32,
-    advance_width: f32,
-    rendered: Vec<u8>,
-    kerning_data: Vec<KerningData>,
+pub(crate) struct LetterData {
+    pub character: char,
+    pub width: usize,
+    pub height: usize,
+    pub xmin: i32,
+    pub ymin: i32,
+    pub advance_width: f32,
+    pub rendered: Vec<u8>,
+    pub kerning_data: Vec<KerningData>,
 }
 
 impl ToTokens for LetterData {
@@ -133,6 +133,14 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
 
     letters.sort_unstable_by_key(|letter| letter.character);
 
+    generate_font_tokens(letters, line_height, ascent)
+}
+
+pub(crate) fn generate_font_tokens(
+    letters: Vec<LetterData>,
+    line_height: i32,
+    mut ascent: i32,
+) -> TokenStream {
     let maximum_above_line = letters
         .iter()
         .map(|x| x.height as i32 + x.ymin)
