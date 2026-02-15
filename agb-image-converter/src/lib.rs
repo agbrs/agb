@@ -16,6 +16,7 @@ mod colour;
 mod config;
 mod deduplicator;
 mod font_loader;
+mod font_loader_from_json;
 mod image_loader;
 mod palette16;
 mod palette256;

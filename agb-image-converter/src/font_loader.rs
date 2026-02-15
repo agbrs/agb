@@ -3,13 +3,13 @@ use quote::{ToTokens, quote};
 
 use proc_macro2::TokenStream;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct KerningData {
     pub previous_character: char,
     pub amount: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LetterData {
     pub character: char,
     pub width: usize,
@@ -57,6 +57,14 @@ impl ToTokens for LetterData {
 }
 
 pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
+    let (letters, line_height, ascent) = load_font_letters(font_data, pixels_per_em);
+    generate_font_tokens(letters, line_height, ascent)
+}
+
+pub(crate) fn load_font_letters(
+    font_data: &[u8],
+    pixels_per_em: f32,
+) -> (Vec<LetterData>, i32, i32) {
     let font = fontdue::Font::from_bytes(
         font_data,
         fontdue::FontSettings {
@@ -69,7 +77,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     let line_metrics = font.horizontal_line_metrics(pixels_per_em).unwrap();
 
     let line_height = line_metrics.new_line_size as i32;
-    let mut ascent = line_metrics.ascent as i32;
+    let ascent = line_metrics.ascent as i32;
 
     let mut letters: Vec<_> = font
         .chars()
@@ -133,7 +141,7 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
 
     letters.sort_unstable_by_key(|letter| letter.character);
 
-    generate_font_tokens(letters, line_height, ascent)
+    (letters, line_height, ascent)
 }
 
 pub(crate) fn generate_font_tokens(
