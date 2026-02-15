@@ -16,7 +16,6 @@ mod colour;
 mod config;
 mod deduplicator;
 mod font_loader;
-mod font_loader_from_json;
 mod image_loader;
 mod palette16;
 mod palette256;
@@ -484,7 +483,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
 
         let json_data = std::fs::read_to_string(&json_path).expect("Failed to read font JSON file");
 
-        let rendered = font_loader_from_json::load_font_from_json(&json_data, &image_path);
+        let rendered = font_loader::from_json::load_font_from_json(&json_data, &image_path);
 
         let json_include_path = json_path.to_string_lossy();
         let image_include_path = image_path.to_string_lossy();
@@ -515,7 +514,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
 
         let file_content = std::fs::read(&path).expect("Failed to read ttf file");
 
-        let rendered = font_loader::load_font(&file_content, font_size);
+        let rendered = font_loader::from_ttf::load_font(&file_content, font_size);
 
         let include_path = path.to_string_lossy();
 

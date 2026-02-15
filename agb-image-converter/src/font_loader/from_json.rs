@@ -5,8 +5,9 @@ use proc_macro2::TokenStream;
 use serde::Deserialize;
 
 use crate::colour::Colour;
-use crate::font_loader::{KerningData, LetterData, generate_font_tokens};
 use crate::image_loader::Image;
+
+use super::{KerningData, LetterData, generate_font_tokens};
 
 #[derive(Deserialize)]
 struct FontJson {
@@ -349,7 +350,7 @@ fn parse_glyphs(spec: &str) -> Vec<char> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::font_loader;
+    use super::super::from_ttf;
     use std::path::PathBuf;
 
     fn test_data_dir() -> PathBuf {
@@ -368,7 +369,7 @@ mod tests {
         let ttf_data =
             std::fs::read(dir.join("Dungeon Puzzler Font.ttf")).expect("Failed to read TTF file");
         let (ttf_letters, ttf_line_height, ttf_ascent) =
-            font_loader::load_font_letters(&ttf_data, 8.0);
+            from_ttf::load_font_letters(&ttf_data, 8.0);
 
         // Load via JSON path
         let json_data = std::fs::read_to_string(dir.join("Dungeon Puzzler Font.json"))
