@@ -249,9 +249,11 @@ pub use agb_image_converter::include_colours_inner;
 pub use agb_image_converter::include_aseprite_256_inner;
 
 #[macro_export]
-/// Includes a ttf font to be usable by dynamic font rendering.
+/// Includes a font to be usable by dynamic font rendering.
 ///
-/// The first parameter is the filepath and the second is the point size of the font.
+/// # TTF fonts
+///
+/// The first parameter is the path to a `.ttf` file and the second is the point size.
 ///
 /// ```rust
 /// # #![no_std]
@@ -260,6 +262,27 @@ pub use agb_image_converter::include_aseprite_256_inner;
 ///
 /// static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
 ///
+/// # #[agb::doctest]
+/// # fn test(gba: agb::Gba) {}
+/// ```
+///
+/// # Pixel fonts from JSON
+///
+/// If you have a pixel font as an image, you can use
+/// [YAL's Pixel Font Converter](https://yal.cc/tools/pixel-font/) to generate a
+/// JSON description of it. Pass the path to the `.json` file as the first argument
+/// and the path to the image file as the second argument.
+///
+/// ```rust
+/// # #![no_std]
+/// # #![no_main]
+/// use agb::{display::font::Font, include_font};
+///
+/// static FONT: Font = include_font!(
+///     "examples/font/Dungeon Puzzler Font.json",
+///     "examples/font/Dungeon Puzzler Font.aseprite"
+/// );
+/// #
 /// # #[agb::doctest]
 /// # fn test(gba: agb::Gba) {}
 /// ```
