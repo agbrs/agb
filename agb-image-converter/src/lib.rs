@@ -459,7 +459,7 @@ pub fn include_font(input: TokenStream) -> TokenStream {
 
     let all_args: Vec<_> = parsed.into_iter().collect();
     if all_args.len() != 2 {
-        panic!("Include_font requires 2 arguments, got {}", all_args.len());
+        panic!("include_font requires 2 arguments, got {}", all_args.len());
     }
 
     let filename = match flatten_group(&all_args[0]) {
@@ -470,34 +470,62 @@ pub fn include_font(input: TokenStream) -> TokenStream {
         _ => panic!("Expected literal string as first argument to include_font"),
     };
 
-    let font_size = match flatten_group(&all_args[1]) {
-        Expr::Lit(ExprLit {
-            lit: Lit::Float(value),
-            ..
-        }) => value.base10_parse::<f32>().expect("Invalid float literal"),
-        Expr::Lit(ExprLit {
-            lit: Lit::Int(value),
-            ..
-        }) => value
-            .base10_parse::<i32>()
-            .expect("Invalid integer literal") as f32,
-        _ => panic!("Expected literal float or integer as second argument to include_font"),
-    };
+    if filename.ends_with(".json") {
+        let image_filename = match flatten_group(&all_args[1]) {
+            Expr::Lit(ExprLit {
+                lit: Lit::Str(str_lit),
+                ..
+            }) => str_lit.value(),
+            _ => panic!("Expected literal string as second argument to include_font for JSON fonts"),
+        };
 
-    let path = resolve_path(&filename);
+        let json_path = resolve_path(&filename);
+        let image_path = resolve_path(&image_filename);
 
-    let file_content = std::fs::read(&path).expect("Failed to read ttf file");
+        let json_data = std::fs::read_to_string(&json_path).expect("Failed to read font JSON file");
 
-    let rendered = font_loader::load_font(&file_content, font_size);
+        let rendered = font_loader_from_json::load_font_from_json(&json_data, &image_path);
 
-    let include_path = path.to_string_lossy();
+        let json_include_path = json_path.to_string_lossy();
+        let image_include_path = image_path.to_string_lossy();
 
-    quote!({
-        let _ = include_bytes!(#include_path);
+        quote!({
+            let _ = include_bytes!(#json_include_path);
+            let _ = include_bytes!(#image_include_path);
 
-        #rendered
-    })
-    .into()
+            #rendered
+        })
+        .into()
+    } else {
+        let font_size = match flatten_group(&all_args[1]) {
+            Expr::Lit(ExprLit {
+                lit: Lit::Float(value),
+                ..
+            }) => value.base10_parse::<f32>().expect("Invalid float literal"),
+            Expr::Lit(ExprLit {
+                lit: Lit::Int(value),
+                ..
+            }) => value
+                .base10_parse::<i32>()
+                .expect("Invalid integer literal") as f32,
+            _ => panic!("Expected literal float or integer as second argument to include_font"),
+        };
+
+        let path = resolve_path(&filename);
+
+        let file_content = std::fs::read(&path).expect("Failed to read ttf file");
+
+        let rendered = font_loader::load_font(&file_content, font_size);
+
+        let include_path = path.to_string_lossy();
+
+        quote!({
+            let _ = include_bytes!(#include_path);
+
+            #rendered
+        })
+        .into()
+    }
 }
 
 const OUT_DIR_TOKEN: &str = "$OUT_DIR";
