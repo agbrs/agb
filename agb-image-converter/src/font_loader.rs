@@ -122,11 +122,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn test_data_dir() -> PathBuf {
-        let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        PathBuf::from(manifest_dir)
-            .parent()
-            .unwrap()
-            .join("agb/examples/font")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data")
     }
 
     #[test]

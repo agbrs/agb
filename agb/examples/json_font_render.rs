@@ -26,7 +26,7 @@ static PALETTE: &Palette16 = const {
 
 static FONT: Font = include_font!(
     "examples/font/Dungeon Puzzler Font.json",
-    "examples/font/font.aseprite"
+    "examples/font/Dungeon Puzzler Font.aseprite"
 );
 
 #[agb::entry]
