@@ -60,6 +60,8 @@ To use the JSON format, pass the path to the `.json` file and the path to the im
 static FONT: Font = include_font!("my_font.json", "my_font.png");
 ```
 
+An example of importing fonts this way is in the [`json_font_render` example](https://agbrs.dev/examples/json_font_render).
+
 # Layout
 
 The [`Layout`](https://docs.rs/agb/latest/agb/display/font/struct.Layout.html) is an `Iterator` over [`LetterGroup`](https://docs.rs/agb/latest/agb/display/font/struct.LetterGroup.html)s.
