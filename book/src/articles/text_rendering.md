@@ -46,7 +46,7 @@ For TTF fonts, pass the path to the `.ttf` file and the font size:
 static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
 ```
 
-You can find pixel fonts with many under permissive licenses on [bitfontmaker2](https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/)'s website.
+You can find pixel fonts with many under permissive licenses on [this website](https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/).
 
 ## Pixel fonts from JSON
 
