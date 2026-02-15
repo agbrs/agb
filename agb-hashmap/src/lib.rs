@@ -1152,7 +1152,7 @@ mod test {
 
     impl<T> RngNextI32 for T
     where
-        T: rand::RngCore,
+        T: rand::Rng,
     {
         fn next_i32(&mut self) -> i32 {
             self.next_u32() as i32
