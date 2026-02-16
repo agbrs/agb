@@ -43,7 +43,7 @@ jobs:
 
           echo "toolchain=nightly-$NIGHTLY_VERSION" > "$GITHUB_OUTPUT"
 
-          cp justfile ../justfile && git switch --detach "$LATEST_RELEASE_TAG" && mv ../justfile justfile
+          cp justfile ../justfile && cp Makefile ../Makefile && git switch --detach "$LATEST_RELEASE_TAG" && mv ../justfile justfile && mv ../Makefile Makefile
       - name: Prepare web dependencies
         run: |
           rustup component add rust-src rustfmt clippy
