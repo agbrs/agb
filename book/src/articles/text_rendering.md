@@ -37,17 +37,30 @@ The object based render takes the letter group and gives back an object that rep
 # Font
 
 Importing a font is done using the [`include_font`](https://docs.rs/agb/latest/agb/macro.include_font.html) macro.
-This takes a path to a ttf and the font size to use to import. For example:
+
+## TTF fonts
+
+For TTF fonts, pass the path to the `.ttf` file and the font size:
 
 ```rust
 static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
 ```
 
-If you have created your own pixel font, you can convert it to ttf using [YAL's Pixel Font Converter!](https://yal.cc/tools/pixel-font/)
-This tool lets you define a font from an image including variable sized letters and kerning pairs.
-It also lets you export the settings which we encourage you to keep in version control.
+You can find pixel fonts with many under permissive licenses on [this website](https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/).
 
-You can find pixel fonts with many under permissive licenses on the [https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/](bitfontmaker2)'s website.
+## Pixel fonts from JSON
+
+If you have created your own pixel font as an image, you can use [YAL's Pixel Font Converter](https://yal.cc/tools/pixel-font/) to generate a JSON description of it.
+This tool lets you define a font from an image including variable sized letters and kerning pairs.
+It also lets you export the settings as a JSON file which we encourage you to keep in version control.
+
+To use the JSON format, pass the path to the `.json` file and the path to the image:
+
+```rust
+static FONT: Font = include_font!("my_font.json", "my_font.png");
+```
+
+An example of importing fonts this way is in the [`json_font_render` example](https://agbrs.dev/examples/json_font_render).
 
 # Layout
 

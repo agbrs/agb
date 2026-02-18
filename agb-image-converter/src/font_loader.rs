@@ -3,22 +3,25 @@ use quote::{ToTokens, quote};
 
 use proc_macro2::TokenStream;
 
-#[derive(Clone)]
-struct KerningData {
-    previous_character: char,
-    amount: f32,
+pub(crate) mod from_json;
+pub(crate) mod from_ttf;
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct KerningData {
+    pub previous_character: char,
+    pub amount: f32,
 }
 
-#[derive(Clone)]
-struct LetterData {
-    character: char,
-    width: usize,
-    height: usize,
-    xmin: i32,
-    ymin: i32,
-    advance_width: f32,
-    rendered: Vec<u8>,
-    kerning_data: Vec<KerningData>,
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LetterData {
+    pub character: char,
+    pub width: usize,
+    pub height: usize,
+    pub xmin: i32,
+    pub ymin: i32,
+    pub advance_width: f32,
+    pub rendered: Vec<u8>,
+    pub kerning_data: Vec<KerningData>,
 }
 
 impl ToTokens for LetterData {
@@ -56,83 +59,35 @@ impl ToTokens for LetterData {
     }
 }
 
-pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
-    let font = fontdue::Font::from_bytes(
-        font_data,
-        fontdue::FontSettings {
-            scale: pixels_per_em,
-            ..Default::default()
-        },
-    )
-    .expect("Invalid font data");
-
-    let line_metrics = font.horizontal_line_metrics(pixels_per_em).unwrap();
-
-    let line_height = line_metrics.new_line_size as i32;
-    let mut ascent = line_metrics.ascent as i32;
-
-    let mut letters: Vec<_> = font
-        .chars()
-        .iter()
-        .map(|(&c, &index)| (c, index, font.rasterize(c, pixels_per_em)))
-        .map(|(c, index, (metrics, bitmap))| {
-            let width = metrics.width.div_ceil(8) * 8;
-            let height = metrics.height;
-
-            let rendered = if bitmap.is_empty() {
-                vec![]
-            } else {
-                bitmap
-                    .chunks(metrics.width)
-                    .flat_map(|row| {
-                        row.chunks(8).map(|chunk| {
-                            let mut output = 0u8;
-                            for (i, &value) in chunk.iter().enumerate() {
-                                if value > 100 {
-                                    output |= 1 << i;
-                                }
-                            }
-
-                            output
-                        })
-                    })
-                    .collect()
-            };
-
-            let mut kerning_data: Vec<_> = font
-                .chars()
-                .iter()
-                .filter_map(|(&left_char, &left_index)| {
-                    let kerning = font.horizontal_kern_indexed(
-                        left_index.into(),
-                        index.into(),
-                        pixels_per_em,
-                    )?;
-
-                    Some(KerningData {
-                        previous_character: left_char,
-                        amount: kerning,
-                    })
-                })
-                .collect();
-
-            kerning_data.sort_unstable_by_key(|kd| kd.previous_character);
-
-            LetterData {
-                character: c,
-                width,
-                height,
-                rendered,
-                xmin: metrics.xmin,
-                ymin: metrics.ymin,
-                advance_width: metrics.advance_width,
-                kerning_data,
+/// Pack a 2D grid of pixels into a 1-bit-per-pixel bitmap with rows padded to 8-pixel alignment.
+/// `is_pixel_set(x, y)` determines whether each pixel is foreground.
+pub(crate) fn pack_1bpp(
+    content_width: usize,
+    height: usize,
+    is_pixel_set: impl Fn(usize, usize) -> bool,
+) -> Vec<u8> {
+    let width = content_width.div_ceil(8) * 8;
+    let mut rendered = Vec::with_capacity(height * (width / 8));
+    for y in 0..height {
+        for chunk_start in (0..width).step_by(8) {
+            let mut byte = 0u8;
+            for bit in 0..8 {
+                let px = chunk_start + bit;
+                if px < content_width && is_pixel_set(px, y) {
+                    byte |= 1 << bit;
+                }
             }
-        })
-        .collect();
+            rendered.push(byte);
+        }
+    }
+    rendered
+}
 
-    letters.sort_unstable_by_key(|letter| letter.character);
-
+pub(crate) fn generate_font_tokens(
+    letters: Vec<LetterData>,
+    line_height: i32,
+    mut ascent: i32,
+) -> TokenStream {
     let maximum_above_line = letters
         .iter()
         .map(|x| x.height as i32 + x.ymin)
@@ -160,4 +115,55 @@ pub fn load_font(font_data: &[u8], pixels_per_em: f32) -> TokenStream {
     quote![
         Font::new(&[#(#ascii_letters),*], &[#(#non_ascii_letters),*], #line_height, #ascent)
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    fn test_data_dir() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data")
+    }
+
+    #[test]
+    fn json_and_ttf_produce_same_output() {
+        let dir = test_data_dir();
+
+        // Load via TTF path
+        let ttf_data =
+            std::fs::read(dir.join("Dungeon Puzzler Font.ttf")).expect("Failed to read TTF file");
+        let (ttf_letters, ttf_line_height, ttf_ascent) =
+            super::from_ttf::load_font_letters(&ttf_data, 8.0);
+
+        // Load via JSON path
+        let json_data = std::fs::read_to_string(dir.join("Dungeon Puzzler Font.json"))
+            .expect("Failed to read JSON file");
+        let aseprite_path = dir.join("font.aseprite");
+        let (json_letters, json_line_height, json_ascent) =
+            super::from_json::load_font_from_json_letters(&json_data, &aseprite_path);
+
+        assert_eq!(ttf_line_height, json_line_height, "line_height mismatch");
+        assert_eq!(ttf_ascent, json_ascent, "ascent mismatch");
+
+        // Compare each character defined in the JSON output
+        for json_letter in &json_letters {
+            let ttf_letter = ttf_letters
+                .iter()
+                .find(|l| l.character == json_letter.character);
+
+            let ttf_letter = match ttf_letter {
+                Some(l) => l,
+                None => panic!(
+                    "character {:?} found in JSON but not in TTF",
+                    json_letter.character
+                ),
+            };
+
+            assert_eq!(
+                json_letter, ttf_letter,
+                "mismatch for character {:?}",
+                json_letter.character
+            );
+        }
+    }
 }
