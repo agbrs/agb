@@ -7,7 +7,7 @@ This guide has been tested on Windows 11 using PowerShell with elevated rights _
 To use agb, you'll need to use nightly rust since it requires a few nightly features.
 Firstly, ensure that you have **rustup** installed which you can do by following the instructions on the [rust website](https://www.rust-lang.org/tools/install)
 
-If you have installed rustup, you can update it with `rustup update`.  
+If you have installed rustup, you can update it with `rustup update`.
 If the `rustup`-command fails, you'll most probably add the cargo/bin folder to the Path-environment variable.
 
 # 2. git

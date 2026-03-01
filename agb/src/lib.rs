@@ -545,7 +545,7 @@ impl Gba {
 ///
 /// #[agb::entry]
 /// fn main(mut gba: Gba) -> ! {
-///     // your game code here    
+///     // your game code here
 ///
 ///     loop {
 ///         agb::halt();

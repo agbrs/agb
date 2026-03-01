@@ -179,7 +179,7 @@ impl Object {
         new(sprite)
     }
 
-    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.  
+    /// Sets the horizontal flip, note that this only has a visible affect in Normal mode.
     /// Use [hflip](Self::hflip) to get the value
     pub fn set_hflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_hflip(flip);
@@ -187,14 +187,14 @@ impl Object {
         self
     }
 
-    /// Returns the horizontal flip  
+    /// Returns the horizontal flip
     /// Use [set_hflip](Self::set_hflip) to set the value
     #[must_use]
     pub fn hflip(&self) -> bool {
         self.attributes.hflip()
     }
 
-    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.  
+    /// Sets the vertical flip, note that this only has a visible affect in Normal mode.
     /// Use [vflip](Self::vflip) to get the value
     pub fn set_vflip(&mut self, flip: bool) -> &mut Self {
         self.attributes.set_vflip(flip);
@@ -202,14 +202,14 @@ impl Object {
         self
     }
 
-    /// Returns the vertical flip  
+    /// Returns the vertical flip
     /// Use [set_vflip](Self::set_vflip) to set the value
     #[must_use]
     pub fn vflip(&self) -> bool {
         self.attributes.vflip()
     }
 
-    /// Sets the priority of the object relative to the backgrounds priority.  
+    /// Sets the priority of the object relative to the backgrounds priority.
     /// Use [priority](Self::priority) to get the value
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.attributes.set_priority(priority);
@@ -217,14 +217,14 @@ impl Object {
         self
     }
 
-    /// Returns the priority of the object  
+    /// Returns the priority of the object
     /// Use [set_priority](Self::set_priority) to set the value
     #[must_use]
     pub fn priority(&self) -> Priority {
         self.attributes.priority()
     }
 
-    /// Sets the position of the object.  
+    /// Sets the position of the object.
     /// Use [pos](Self::pos) to get the value
     pub fn set_pos(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         let position = position.into();
@@ -234,7 +234,7 @@ impl Object {
         self
     }
 
-    /// Returns the position of the object  
+    /// Returns the position of the object
     /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
     pub fn pos(&self) -> Vector2D<i32> {
@@ -351,7 +351,7 @@ impl ObjectAffine {
         self
     }
 
-    /// Sets the priority of the object relative to the backgrounds priority.  
+    /// Sets the priority of the object relative to the backgrounds priority.
     /// Use [priority](Self::priority) to get the value
     pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.attributes.set_priority(priority);
@@ -359,14 +359,14 @@ impl ObjectAffine {
         self
     }
 
-    /// Returns the priority of the object  
+    /// Returns the priority of the object
     /// Use [set_priority](Self::set_priority) to set the value
     #[must_use]
     pub fn priority(&self) -> Priority {
         self.attributes.priority()
     }
 
-    /// Sets the position of the object.  
+    /// Sets the position of the object.
     /// Use [pos](Self::pos) to get the value
     pub fn set_pos(&mut self, position: impl Into<Vector2D<i32>>) -> &mut Self {
         let position = position.into();
@@ -376,7 +376,7 @@ impl ObjectAffine {
         self
     }
 
-    /// Returns the position of the object  
+    /// Returns the position of the object
     /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
     pub fn pos(&self) -> Vector2D<i32> {
