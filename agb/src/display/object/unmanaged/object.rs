@@ -6,7 +6,9 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use crate::display::{
     GraphicsFrame, Priority,
     object::{
-        AffineMatrixObject, OBJECT_ATTRIBUTE_MEMORY, affine::AffineMatrixVram, sprites::SpriteVram,
+        AffineMatrixObject, OBJECT_ATTRIBUTE_MEMORY,
+        affine::AffineMatrixVram,
+        sprites::{PaletteVram, SpriteVram},
     },
 };
 
@@ -268,6 +270,16 @@ impl Object {
         self
     }
 
+    /// Sets the palette used to render this object. The palette must be compatible
+    /// with the sprite's colour mode (single palette for 4bpp sprites, multi for 8bpp).
+    pub fn set_palette(&mut self, palette: impl Into<PaletteVram>) -> &mut Self {
+        let sprite = self.sprite.clone().with_palette(palette);
+        self.set_sprite_attributes(&sprite);
+        self.sprite = sprite;
+
+        self
+    }
+
     /// Sets the graphics mode of the object
     pub fn set_graphics_mode(&mut self, mode: GraphicsMode) -> &mut Self {
         self.attributes.set_graphics_mode(mode);
@@ -410,6 +422,16 @@ impl ObjectAffine {
         self
     }
 
+    /// Sets the palette used to render this object. The palette must be compatible
+    /// with the sprite's colour mode (single palette for 4bpp sprites, multi for 8bpp).
+    pub fn set_palette(&mut self, palette: impl Into<PaletteVram>) -> &mut Self {
+        let sprite = self.sprite.clone().with_palette(palette);
+        self.set_sprite_attributes(&sprite);
+        self.sprite = sprite;
+
+        self
+    }
+
     /// Sets the graphics mode of the object.
     ///
     /// The various graphics modes interact with [`Windows`](crate::display::Windows) or
@@ -432,7 +454,11 @@ impl ObjectAffine {
 
 #[cfg(test)]
 mod tests {
-    use crate::include_aseprite;
+    use crate::{
+        display::{Palette16, Rgb, Rgb15, tiled::VRAM_MANAGER},
+        include_aseprite,
+        test_runner::assert_image_output,
+    };
 
     use super::*;
 
@@ -454,5 +480,27 @@ mod tests {
 
             frame.commit();
         }
+    }
+
+    #[test_case]
+    fn set_palette_all_white(gba: &mut crate::Gba) {
+        include_aseprite!(
+            mod sprites,
+            "examples/gfx/crab.aseprite",
+        );
+
+        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0x80, 0x80, 0x80).to_rgb15());
+
+        static WHITE_PALETTE: Palette16 = Palette16::new([Rgb15::WHITE; 16]);
+
+        let mut gfx = gba.graphics.get();
+
+        let mut frame = gfx.frame();
+        Object::new(sprites::IDLE.sprite(0))
+            .set_palette(&WHITE_PALETTE)
+            .show(&mut frame);
+        frame.commit();
+
+        assert_image_output("gfx/test_output/object/set_palette_all_white.png");
     }
 }

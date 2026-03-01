@@ -66,6 +66,16 @@ impl SpriteVram {
     pub(crate) fn single_palette_index(&self) -> Option<u8> {
         self.palette.single_palette_index()
     }
+
+    /// Creates a new [`SpriteVram`] that uses the given palette but shares the same
+    /// sprite tile data as this one.
+    #[must_use]
+    pub fn with_palette(self, palette: impl Into<PaletteVram>) -> Self {
+        Self {
+            sprite: self.sprite,
+            palette: palette.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
