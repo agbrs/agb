@@ -223,7 +223,7 @@ build-playground-api:
     (cd website/play && cargo build --release --target=x86_64-unknown-linux-musl)
 
 spellcheck:
-    npx --yes -- cspell lint '**/*.rs' '**/*.md' 
+    npx --yes -- cspell lint '**/*.rs' '**/*.md'
 
 _test-release crate:
     (cd "{{crate}}" && cargo test --release)

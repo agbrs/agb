@@ -18,7 +18,7 @@
 /// # #[agb::doctest]
 /// # fn test(_: agb::Gba) {
 /// use agb::display::utils::blit_16_colour;
-///  
+///
 /// let a = &mut [0x89abcdef];
 /// let b = &[0x01030507];
 ///

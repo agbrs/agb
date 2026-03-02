@@ -18,7 +18,7 @@ InterruptHandler:
 
     @ r0: interrupts that are enabled AND triggered
     @ r1: #IO_MEMORY_MAPPED_REGISTERS + #OFFSET_INTERRUPT_ENABLED
-    @ r3: Original contents of enabled interrupts    
+    @ r3: Original contents of enabled interrupts
 
     @ acknowledge interrupts
     strh r0, [r1, #2]

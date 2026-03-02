@@ -10,7 +10,7 @@
 //!    coordinate tile.
 //!
 //!    To convert between world coordinates to macro coordinates, use
-//!    ```text   
+//!    ```text
 //!    macro_x = world_x - world_y
 //!    macro_y = world_x + world_y
 //!

@@ -29,7 +29,7 @@
 //! #     fn update(&mut self) {
 //! #         // update the game state
 //! #     }
-//! #     
+//! #
 //! #     fn show(&self, frame: &mut GraphicsFrame) {
 //! #         // do all the showing of things on screen
 //! #     }

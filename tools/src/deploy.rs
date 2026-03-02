@@ -110,10 +110,10 @@ pub fn deploy(matches: &ArgMatches) -> Result<(), Error> {
 
         let create_droplet_output = cmd!(
             sh,
-            "doctl 
+            "doctl
                 -o json
                 compute droplet create
-                --image debian-12-x64 --size s-1vcpu-512mb-10gb 
+                --image debian-12-x64 --size s-1vcpu-512mb-10gb
                 --enable-monitoring --region ams3 --wait --user-data {launch_script}
                 --ssh-keys 46412207,45540604
                 --tag-names playground {new_droplet_name}"

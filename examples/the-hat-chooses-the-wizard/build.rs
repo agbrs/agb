@@ -170,7 +170,7 @@ mod tiled_export {
                     foreground: BACKGROUND,
                     dimensions: Vector2D {{x: WIDTH, y: HEIGHT}},
                     collision: crate::map_tiles::tilemap::TILE_DATA,
-    
+
                     enemy_stops: ENEMY_STOPS,
                     slimes: SLIMES,
                     snails: SNAILS,
