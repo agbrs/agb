@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - You can now import [yal.cc](https://yal.cc/tools/pixel-font/) fonts directly from the json + png / aseprite file without having to go via ttf.
 
+### Changed
+
+- `Tag::animation_frame` now increments the provided frame.
+
 ## [0.23.1] - 2026/02/07
 
 - Minor release to fix problems with publishing 0.23.0.
