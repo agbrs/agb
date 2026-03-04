@@ -39,12 +39,13 @@ where
     }
 }
 
-impl<T, U: Copy> Mul<U> for Vector2D<T>
+impl<T, Rhs, O> Mul<Rhs> for Vector2D<T>
 where
-    T: Mul<U, Output = T>,
+    T: Mul<Rhs, Output = O>,
+    Rhs: Copy,
 {
-    type Output = Vector2D<T>;
-    fn mul(self, rhs: U) -> Self::Output {
+    type Output = Vector2D<O>;
+    fn mul(self, rhs: Rhs) -> Self::Output {
         Vector2D {
             x: self.x * rhs,
             y: self.y * rhs,
@@ -62,12 +63,13 @@ where
     }
 }
 
-impl<T, U: Copy> Div<U> for Vector2D<T>
+impl<T, Rhs, O> Div<Rhs> for Vector2D<T>
 where
-    T: Div<U, Output = T>,
+    T: Div<Rhs, Output = O>,
+    Rhs: Copy,
 {
-    type Output = Vector2D<T>;
-    fn div(self, rhs: U) -> Self::Output {
+    type Output = Vector2D<O>;
+    fn div(self, rhs: Rhs) -> Self::Output {
         Vector2D {
             x: self.x / rhs,
             y: self.y / rhs,

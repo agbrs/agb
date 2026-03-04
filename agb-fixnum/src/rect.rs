@@ -1,4 +1,4 @@
-use core::ops::{Add, AddAssign, Div, Sub};
+use core::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use num_traits::{One, Signed, Zero};
 
@@ -15,6 +15,7 @@ pub struct Rect<T> {
 }
 
 impl<T> Rect<T> {
+    #[inline(always)]
     #[must_use]
     /// Creates a rectangle from it's position and size
     /// ```
@@ -25,6 +26,55 @@ impl<T> Rect<T> {
     /// ```
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
+    }
+}
+
+impl<T> Rect<T> {
+    /// Scales up the rectangle by the given amount about the origin.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(5, 10), vec2(15, 20));
+    /// assert_eq!(r.scale(2), Rect::new(vec2(10, 20), vec2(30, 40)));
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn scale<Rhs, O>(self, rhs: Rhs) -> Rect<O>
+    where
+        T: Mul<Rhs, Output = O>,
+        Rhs: Copy,
+    {
+        Rect::new(self.position * rhs, self.size * rhs)
+    }
+
+    /// Scales down the rectangle by the given amount about the origin.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(30, 40));
+    /// assert_eq!(r.scale_down(2), Rect::new(vec2(5, 10), vec2(15, 20)));
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn scale_down<Rhs, O>(self, rhs: Rhs) -> Rect<O>
+    where
+        T: Div<Rhs, Output = O>,
+        Rhs: Copy,
+    {
+        Rect::new(self.position / rhs, self.size / rhs)
+    }
+
+    /// Translate the rectangle by the given amount
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(30, 40));
+    /// assert_eq!(r.translate(vec2(3, 5)), Rect::new(vec2(13, 25), vec2(30, 40)));
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn translate(self, amount: Vector2D<T>) -> Self
+    where
+        T: Add<Output = T> + Copy,
+    {
+        Rect::new(self.position + amount, self.size)
     }
 }
 
@@ -47,6 +97,7 @@ where
     /// assert!(!r.contains_point(vec2(2, 0)));
     /// assert!(!r.contains_point(vec2(2, 5)));
     /// ```
+    #[must_use]
     pub fn contains_point(&self, point: Vector2D<T>) -> bool {
         point.x >= self.position.x
             && point.x <= self.position.x + self.size.x
@@ -67,6 +118,7 @@ where
     /// let r2 = Rect::new(vec2(-10, -10), vec2(3, 3));
     /// assert!(!r.touches(r2));
     /// ```
+    #[must_use]
     pub fn touches(&self, other: Rect<T>) -> bool {
         self.position.x < other.position.x + other.size.x
             && self.position.x + self.size.x > other.position.x
@@ -126,6 +178,7 @@ where
     /// assert_eq!(bounding_rect.clamp_point(vec2(100, 30)), vec2(20, 20));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn clamp_point(self, point: impl Into<Vector2D<T>>) -> Vector2D<T> {
         let point = point.into();
         let top_left = self.top_left();
@@ -150,6 +203,7 @@ impl<T> Rect<T> {
     /// assert_eq!(r.top_left(), r.position);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn top_left(self) -> Vector2D<T> {
         self.position
     }
@@ -161,6 +215,8 @@ impl<T> Rect<T> {
     /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
     /// assert_eq!(r.left(), 10);
     /// ```
+    #[inline(always)]
+    #[must_use]
     pub fn left(self) -> T {
         self.position.x
     }
@@ -172,6 +228,8 @@ impl<T> Rect<T> {
     /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
     /// assert_eq!(r.top(), 20);
     /// ```
+    #[inline(always)]
+    #[must_use]
     pub fn top(self) -> T {
         self.position.y
     }
@@ -189,6 +247,7 @@ where
     /// assert_eq!(r.right(), 30);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn right(self) -> T {
         self.position.x + self.size.x
     }
@@ -201,6 +260,7 @@ where
     /// assert_eq!(r.bottom(), 45);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn bottom(self) -> T {
         self.position.y + self.size.y
     }
@@ -213,6 +273,7 @@ where
     /// assert_eq!(r.top_right(), vec2(20, 10));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn top_right(self) -> Vector2D<T> {
         let mut pos = self.position;
         pos.x += self.size.x;
@@ -227,6 +288,7 @@ where
     /// assert_eq!(r.bottom_left(), vec2(10, 20));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn bottom_left(self) -> Vector2D<T> {
         let mut pos = self.position;
         pos.y += self.size.y;
@@ -241,6 +303,7 @@ where
     /// assert_eq!(r.bottom_right(), vec2(20, 20));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn bottom_right(self) -> Vector2D<T> {
         self.position + self.size
     }
@@ -258,6 +321,7 @@ where
     /// assert_eq!(r.centre(), vec2(15, 15));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn centre(self) -> Vector2D<T> {
         self.position + self.size / (T::one() + T::one())
     }
@@ -269,6 +333,7 @@ where
     /// assert_eq!(r.left_centre(), vec2(10, 15));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn left_centre(self) -> Vector2D<T> {
         let pos = self.position;
         vec2(pos.x, pos.y + self.size.y / (T::one() + T::one()))
@@ -281,6 +346,7 @@ where
     /// assert_eq!(r.right_centre(), vec2(20, 15));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn right_centre(self) -> Vector2D<T> {
         let pos = self.position;
         vec2(
@@ -296,6 +362,7 @@ where
     /// assert_eq!(r.top_centre(), vec2(15, 10));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn top_centre(self) -> Vector2D<T> {
         let pos = self.position;
         vec2(pos.x + self.size.x / (T::one() + T::one()), pos.y)
@@ -308,6 +375,7 @@ where
     /// assert_eq!(r.bottom_centre(), vec2(15, 20));
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn bottom_centre(self) -> Vector2D<T> {
         let pos = self.position;
         vec2(
