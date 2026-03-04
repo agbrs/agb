@@ -4,6 +4,17 @@ use num_traits::{One, Signed, Zero};
 
 use crate::{FixedWidthUnsignedInteger, Vector2D, vec2};
 
+/// A convenience function for constructing a `Rect`
+///
+/// ```
+/// use agb_fixnum::{rect, vec2, Rect};
+///
+/// assert_eq!(rect(vec2(1, 2), vec2(3, 4)), Rect::new(vec2(1, 2), vec2(3, 4)));
+/// ```
+pub const fn rect<T>(position: Vector2D<T>, size: Vector2D<T>) -> Rect<T> {
+    Rect::new(position, size)
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// A rectangle with a position in 2d space and a 2d size
@@ -24,7 +35,7 @@ impl<T> Rect<T> {
     /// assert_eq!(r.position, vec2(1, 1));
     /// assert_eq!(r.size, vec2(2, 3));
     /// ```
-    pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
+    pub const fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
 
