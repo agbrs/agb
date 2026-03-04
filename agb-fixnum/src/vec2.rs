@@ -404,6 +404,49 @@ where
     }
 }
 
+impl<T: Ord> Vector2D<T> {
+    /// Returns the component-wise minimum of two vectors.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let a = vec2(1, 5);
+    /// let b = vec2(3, 2);
+    /// assert_eq!(a.min(b), vec2(1, 2));
+    /// ```
+    #[must_use]
+    pub fn min(self, other: Self) -> Self {
+        vec2(self.x.min(other.x), self.y.min(other.y))
+    }
+
+    /// Returns the component-wise maximum of two vectors.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let a = vec2(1, 5);
+    /// let b = vec2(3, 2);
+    /// assert_eq!(a.max(b), vec2(3, 5));
+    /// ```
+    #[must_use]
+    pub fn max(self, other: Self) -> Self {
+        vec2(self.x.max(other.x), self.y.max(other.y))
+    }
+
+    /// Clamps each component of the vector between the corresponding components
+    /// of `min` and `max`.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v = vec2(-5, 15);
+    /// let lo = vec2(0, 0);
+    /// let hi = vec2(10, 10);
+    /// assert_eq!(v.clamp(lo, hi), vec2(0, 10));
+    /// ```
+    #[must_use]
+    pub fn clamp(self, min: Self, max: Self) -> Self {
+        vec2(self.x.clamp(min.x, max.x), self.y.clamp(min.y, max.y))
+    }
+}
+
 impl<T: Neg<Output = T>> Neg for Vector2D<T> {
     type Output = Self;
 

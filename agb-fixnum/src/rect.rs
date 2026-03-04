@@ -154,15 +154,8 @@ where
             return None;
         }
 
-        let top_left = vec2(
-            self.position.x.max(other.position.x),
-            self.position.y.max(other.position.y),
-        );
-
-        let self_br = self.bottom_right();
-        let other_br = other.bottom_right();
-
-        let bottom_right = vec2(self_br.x.min(other_br.x), self_br.y.min(other_br.y));
+        let top_left = self.position.max(other.position);
+        let bottom_right = self.bottom_right().min(other.bottom_right());
 
         Some(Rect::new(top_left, bottom_right - top_left))
     }
@@ -180,18 +173,37 @@ where
     #[inline(always)]
     #[must_use]
     pub fn clamp_point(self, point: impl Into<Vector2D<T>>) -> Vector2D<T> {
-        let point = point.into();
-        let top_left = self.top_left();
-        let bottom_right = self.bottom_right();
-
-        let x = point.x.clamp(top_left.x, bottom_right.x);
-        let y = point.y.clamp(top_left.y, bottom_right.y);
-
-        vec2(x, y)
+        point.into().clamp(self.top_left(), self.bottom_right())
     }
 }
 
 impl<T> Rect<T> {
+    /// Returns the width of the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(5, 10), vec2(20, 30));
+    /// assert_eq!(r.width(), 20);
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn width(self) -> T {
+        self.size.x
+    }
+
+    /// Returns the height of the rectangle.
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(5, 10), vec2(20, 30));
+    /// assert_eq!(r.height(), 30);
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn height(self) -> T {
+        self.size.y
+    }
+
     /// Returns the top left point of the rectangle.
     ///
     /// Is the same as `.position`.
