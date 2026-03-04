@@ -138,10 +138,7 @@ where
     }
 }
 
-impl<T> Rect<T>
-where
-    T: AddAssign<T> + Add<T, Output = T>,
-{
+impl<T> Rect<T> {
     /// Returns the top left point of the rectangle.
     ///
     /// Is the same as `.position`.
@@ -155,6 +152,57 @@ where
     #[inline(always)]
     pub fn top_left(self) -> Vector2D<T> {
         self.position
+    }
+
+    /// Returns the `x` coordinate of the left hand side of the rectangle
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
+    /// assert_eq!(r.left(), 10);
+    /// ```
+    pub fn left(self) -> T {
+        self.position.x
+    }
+
+    /// Returns the `y` coordinate of the top of the rectangle
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
+    /// assert_eq!(r.top(), 20);
+    /// ```
+    pub fn top(self) -> T {
+        self.position.y
+    }
+}
+
+impl<T> Rect<T>
+where
+    T: AddAssign<T> + Add<T, Output = T>,
+{
+    /// Returns the `x` coordinate of the right hand side of the rectangle
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
+    /// assert_eq!(r.right(), 30);
+    /// ```
+    #[inline(always)]
+    pub fn right(self) -> T {
+        self.position.x + self.size.x
+    }
+
+    /// Returns the `y` coordinate of the top of the rectangle
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 20), vec2(20, 25));
+    /// assert_eq!(r.bottom(), 45);
+    /// ```
+    #[inline(always)]
+    pub fn bottom(self) -> T {
+        self.position.y + self.size.y
     }
 
     /// Returns the top right point of the rectangle.
@@ -212,6 +260,60 @@ where
     #[inline(always)]
     pub fn centre(self) -> Vector2D<T> {
         self.position + self.size / (T::one() + T::one())
+    }
+
+    /// Returns the centre point of the left edge of the rectangle
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.left_centre(), vec2(10, 15));
+    /// ```
+    #[inline(always)]
+    pub fn left_centre(self) -> Vector2D<T> {
+        let pos = self.position;
+        vec2(pos.x, pos.y + self.size.y / (T::one() + T::one()))
+    }
+
+    /// Returns the centre point of the right edge of the rectangle
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.right_centre(), vec2(20, 15));
+    /// ```
+    #[inline(always)]
+    pub fn right_centre(self) -> Vector2D<T> {
+        let pos = self.position;
+        vec2(
+            pos.x + self.size.x,
+            pos.y + self.size.y / (T::one() + T::one()),
+        )
+    }
+
+    /// Returns the centre point of the top edge of the rectangle
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.top_centre(), vec2(15, 10));
+    /// ```
+    #[inline(always)]
+    pub fn top_centre(self) -> Vector2D<T> {
+        let pos = self.position;
+        vec2(pos.x + self.size.x / (T::one() + T::one()), pos.y)
+    }
+
+    /// Returns the centre point of the bottom edge of the rectangle
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::new(vec2(10, 10), vec2(10, 10));
+    /// assert_eq!(r.bottom_centre(), vec2(15, 20));
+    /// ```
+    #[inline(always)]
+    pub fn bottom_centre(self) -> Vector2D<T> {
+        let pos = self.position;
+        vec2(
+            pos.x + self.size.x / (T::one() + T::one()),
+            pos.y + self.size.y,
+        )
     }
 }
 
