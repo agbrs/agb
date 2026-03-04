@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Moved background colour DMA control from `VRAM_MANAGER` to `GraphicsFrame`.
+- Added a `rect` constructor for creating `Rect` objects.
+- Made `Rect<T>` and `Vector2D<T>` work with more types `T`.
+- More methods to `Rect<T>` and `Vector2D<T>` for getting components, clamping and sizing.
 
 ### Fixed
 
