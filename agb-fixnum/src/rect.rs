@@ -27,6 +27,24 @@ impl<T> Rect<T> {
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
+
+    /// Creates a rectangle from two corner points.
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let r = Rect::from_corners(vec2(1, 2), vec2(4, 6));
+    /// assert_eq!(r, Rect::new(vec2(1, 2), vec2(3, 4)));
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn from_corners(top_left: Vector2D<T>, bottom_right: Vector2D<T>) -> Self
+    where
+        T: Sub<T, Output = T> + Copy,
+    {
+        Rect {
+            position: top_left,
+            size: bottom_right - top_left,
+        }
+    }
 }
 
 impl<T> Rect<T> {
