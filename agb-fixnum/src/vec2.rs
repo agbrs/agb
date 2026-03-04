@@ -2,7 +2,7 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 
 use num_traits::Signed;
 
-use crate::{FixedWidthSignedInteger, FixedWidthUnsignedInteger, Num, Number, num};
+use crate::{FixedWidthSignedInteger, FixedWidthUnsignedInteger, Num, num};
 
 /// A vector of two points: (x, y) represented by integers or fixed point numbers
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Hash)]
@@ -62,7 +62,7 @@ where
     }
 }
 
-impl<T: Number, U: Copy> Div<U> for Vector2D<T>
+impl<T, U: Copy> Div<U> for Vector2D<T>
 where
     T: Div<U, Output = T>,
 {

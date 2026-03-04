@@ -1,18 +1,20 @@
-use num_traits::Signed;
+use core::ops::{Add, AddAssign, Div, Sub};
 
-use crate::{FixedWidthUnsignedInteger, Number, Vector2D, vec2};
+use num_traits::{One, Signed, Zero};
+
+use crate::{FixedWidthUnsignedInteger, Vector2D, vec2};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// A rectangle with a position in 2d space and a 2d size
-pub struct Rect<T: Number> {
+pub struct Rect<T> {
     /// The position of the rectangle
     pub position: Vector2D<T>,
     /// The size of the rectangle
     pub size: Vector2D<T>,
 }
 
-impl<T: Number> Rect<T> {
+impl<T> Rect<T> {
     #[must_use]
     /// Creates a rectangle from it's position and size
     /// ```
@@ -24,7 +26,12 @@ impl<T: Number> Rect<T> {
     pub fn new(position: Vector2D<T>, size: Vector2D<T>) -> Self {
         Rect { position, size }
     }
+}
 
+impl<T> Rect<T>
+where
+    T: Add<T, Output = T> + Ord + Copy,
+{
     /// Returns true if the rectangle contains the point given, note that the boundary counts part of the rectangle.
     ///
     /// ```
@@ -66,7 +73,12 @@ impl<T: Number> Rect<T> {
             && self.position.y < other.position.y + other.size.y
             && self.position.y + self.size.y > other.position.y
     }
+}
 
+impl<T> Rect<T>
+where
+    T: Add<T, Output = T> + Ord + Copy + AddAssign<T> + Sub<Output = T>,
+{
     #[must_use]
     /// Returns the rectangle that is the region that the two rectangles have in
     /// common, or [None] if they don't overlap
@@ -124,7 +136,12 @@ impl<T: Number> Rect<T> {
 
         vec2(x, y)
     }
+}
 
+impl<T> Rect<T>
+where
+    T: AddAssign<T> + Add<T, Output = T>,
+{
     /// Returns the top left point of the rectangle.
     ///
     /// Is the same as `.position`.
@@ -149,7 +166,9 @@ impl<T: Number> Rect<T> {
     /// ```
     #[inline(always)]
     pub fn top_right(self) -> Vector2D<T> {
-        self.position + vec2(self.size.x, T::zero())
+        let mut pos = self.position;
+        pos.x += self.size.x;
+        pos
     }
 
     /// Returns the bottom left point of the rectangle.
@@ -161,7 +180,9 @@ impl<T: Number> Rect<T> {
     /// ```
     #[inline(always)]
     pub fn bottom_left(self) -> Vector2D<T> {
-        self.position + vec2(T::zero(), self.size.y)
+        let mut pos = self.position;
+        pos.y += self.size.y;
+        pos
     }
 
     /// Returns the bottom right point of the rectangle.
@@ -175,7 +196,12 @@ impl<T: Number> Rect<T> {
     pub fn bottom_right(self) -> Vector2D<T> {
         self.position + self.size
     }
+}
 
+impl<T> Rect<T>
+where
+    T: Add<T, Output = T> + Div<T, Output = T> + One + Copy,
+{
     /// Returns the centre point of the rectangle
     ///
     /// ```
@@ -220,7 +246,7 @@ impl<T: FixedWidthUnsignedInteger> Rect<T> {
     }
 }
 
-impl<T: Number + Signed> Rect<T> {
+impl<T: Ord + Zero + Signed + Copy> Rect<T> {
     /// Makes a rectangle that represents the equivalent location in space but with a positive size
     ///
     /// ```
