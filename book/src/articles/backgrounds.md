@@ -65,6 +65,8 @@ fn main() -> ! {
 }
 ```
 
+If you need to change individual palette colours after initialisation (for example, to animate the background colour or to change the background to a new set of palettes), you can use the [`set_background_palettes()`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html#method.set_background_palettes) method on the current [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html). This will change the palettes at the same time as the background swap rather than at the call (so on `.commit()`).
+
 # `RegularBackground`
 
 With a `TileSet` ready and a palette set up, we need to actually declare which tiles to show where on the screen.

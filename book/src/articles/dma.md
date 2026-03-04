@@ -67,7 +67,7 @@ If you can do as much of that work outside of your main game loop, then these ef
 
 <img src="./dma/background_colour.png" class="right" alt="An example of background palette colour DMA" />
 
-The [`background_palette_colour_dma()`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.background_palette_colour_dma) (and it's companion the [`background_palette_colour_256_dma()`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.background_palette_colour_256_dma)) methods let you control a single colour in a background palette on each line.
+The [`background_palette_colour_dma()`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html#method.background_palette_colour_dma) (and it's companion the [`background_palette_colour_256_dma()`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html#method.background_palette_colour_256_dma)) methods on [`GraphicsFrame`](https://docs.rs/agb/latest/agb/display/struct.GraphicsFrame.html) let you control a single colour in a background palette on each line.
 The main use for this is creating gradient patterns or applying effects which would take much more colours than is normally available in the 256 colour palette of the Game Boy Advance.
 
 The `DmaControllable` for this is over a single [`Rgb15`](https://docs.rs/agb/latest/agb/display/struct.Rgb15.html) representing the colour for that line.
@@ -94,7 +94,7 @@ let background_colour_index = VRAM_MANAGER
     .expect("Should contain the dark sky blue colour");
 
 HBlankDma::new(
-    VRAM_MANAGER.background_palette_colour_dma(0, background_colour_index),
+    frame.background_palette_colour_dma(0, background_colour_index),
     &SKY_GRADIENT,
 )
 .show(&mut frame);

@@ -586,6 +586,15 @@ impl VRamManager {
         self.with(VRamManagerInner::gc);
     }
 
+    pub(crate) const fn vram_background_palette(&self) -> &'static [Palette16] {
+        unsafe {
+            slice::from_raw_parts::<'static, Palette16>(
+                PALETTE_BACKGROUND.as_ptr() as *const Palette16,
+                16,
+            )
+        }
+    }
+
     /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
     /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
     /// the GameBoy Advance.
@@ -599,6 +608,12 @@ impl VRamManager {
     ///
     /// You will probably call this method early on in the game setup using the palette combination that you
     /// built using [`include_background_gfx!`](crate::include_background_gfx).
+    ///
+    /// This takes effect immediately, so is best used during initialisation before the main game
+    /// loop starts. If you need to change palettes during gameplay and want the change to be
+    /// synchronised with other graphical updates, use
+    /// [`GraphicsFrame::set_background_palettes()`](crate::display::GraphicsFrame::set_background_palettes)
+    /// instead which takes effect on [`.commit()`](crate::display::GraphicsFrame::commit).
     pub fn set_background_palettes(&self, palettes: &[Palette16]) {
         self.with(|inner| inner.set_background_palettes(palettes));
     }
@@ -657,33 +672,13 @@ impl VRamManager {
         });
     }
 
-    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
-    /// Very useful if you want a gradient of more colours than the gba can normally handle.
-    ///
-    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
-    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
     #[must_use]
-    pub fn background_palette_colour_dma(
+    pub(crate) fn background_palette_colour_dma(
         &self,
         pal_index: usize,
         colour_index: usize,
     ) -> dma::DmaControllable<Rgb15> {
         self.with(|inner| inner.background_palette_colour_dma(pal_index, colour_index))
-    }
-
-    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
-    /// Very useful if you want a gradient of more colours than the gba can normally handle.
-    ///
-    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
-    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
-    #[must_use]
-    pub fn background_palette_colour_256_dma(
-        &self,
-        colour_index: usize,
-    ) -> dma::DmaControllable<Rgb15> {
-        assert!(colour_index < 256);
-
-        self.background_palette_colour_dma(colour_index / 16, colour_index % 16)
     }
 
     /// Set a single colour in a single palette. `pal_index` must be in 0..16 as must colour_index.
@@ -1030,9 +1025,15 @@ impl VRamManagerInner {
 
     /// Copies palettes to the background palettes without any checks.
     fn set_background_palettes(&mut self, palettes: &[Palette16]) {
-        for (palette_index, entry) in palettes.iter().enumerate() {
-            self.set_background_palette(palette_index as u8, entry);
+        assert!(palettes.len() <= 16, "cannot set more than 16 palettes");
+
+        unsafe {
+            slice::from_raw_parts_mut(
+                PALETTE_BACKGROUND.as_ptr() as *mut Palette16,
+                palettes.len(),
+            )
         }
+        .clone_from_slice(palettes);
     }
 
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist

@@ -61,9 +61,9 @@
 //!
 //! This method takes ownership of the current `frame` instance, so you won't be able to use it for any further calls once this is done.
 //! You will need to create a new frame object from the `gfx` instance.
-use crate::{interrupt::VBlank, memory_mapped::MemoryMapped};
+use crate::{dma, interrupt::VBlank, memory_mapped::MemoryMapped};
 
-use alloc::boxed::Box;
+use alloc::{borrow::Cow, boxed::Box};
 use bilge::prelude::*;
 
 use tiled::{BackgroundFrame, DisplayControlRegister, VRAM_MANAGER};
@@ -189,6 +189,8 @@ impl<'gba> Graphics<'gba> {
             windows: Windows::new(),
             next_dma: None,
             others: &mut self.others,
+
+            background_palette: Cow::Borrowed(VRAM_MANAGER.vram_background_palette()),
         }
     }
 }
@@ -209,6 +211,8 @@ pub struct GraphicsFrame<'frame> {
     next_dma: Option<Box<dyn DmaFrame>>,
 
     others: &'frame mut Others,
+
+    background_palette: Cow<'static, [Palette16]>,
 }
 
 impl GraphicsFrame<'_> {
@@ -236,10 +240,98 @@ impl GraphicsFrame<'_> {
             dma.commit();
         }
 
+        if let Cow::Owned(background) = self.background_palette {
+            VRAM_MANAGER.set_background_palettes(&background);
+        }
+
         // the bg_frame for this frame is still valid, so the GC won't remove anything that
         // is actually still visible, but will remove as much as possible to leave room for
         // the next frame's graphics.
         VRAM_MANAGER.gc();
+    }
+
+    /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
+    /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
+    /// the GameBoy Advance.
+    pub fn set_background_palette(&mut self, pal_index: u8, palette: &Palette16) {
+        self.background_palette.to_mut()[pal_index as usize] = palette.clone();
+    }
+
+    /// Sets all background palettes based on the entries given in `palettes`. Note that the GameBoy Advance
+    /// can have at most 16 palettes loaded at once, so only the first 16 will be loaded (although this
+    /// array can be shorter if you don't need all 16).
+    ///
+    /// Unlike [`VRAM_MANAGER.set_background_palettes()`](VRamManager::set_background_palettes) which
+    /// takes effect immediately, this version takes effect on [`.commit()`](GraphicsFrame::commit).
+    /// This ensures that palette changes are synchronised with background and other graphical updates.
+    pub fn set_background_palettes(&mut self, palettes: &[Palette16]) {
+        self.background_palette.to_mut()[..palettes.len()].clone_from_slice(palettes);
+    }
+
+    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
+    /// Very useful if you want a gradient of more colours than the gba can normally handle.
+    ///
+    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
+    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
+    #[must_use]
+    pub fn background_palette_colour_dma(
+        &self,
+        pal_index: usize,
+        colour_index: usize,
+    ) -> dma::DmaControllable<Rgb15> {
+        VRAM_MANAGER.background_palette_colour_dma(pal_index, colour_index)
+    }
+
+    /// Used if you want to control a colour in the background which could change e.g. on every row of pixels.
+    /// Very useful if you want a gradient of more colours than the gba can normally handle.
+    ///
+    /// See [`HBlankDma`](crate::dma::HBlankDma) for examples for how to do this, or the
+    /// [`dma_effect_background_colour`](https://agbrs.dev/examples/dma_effect_background_colour) example.
+    #[must_use]
+    pub fn background_palette_colour_256_dma(
+        &self,
+        colour_index: usize,
+    ) -> dma::DmaControllable<Rgb15> {
+        assert!(colour_index < 256);
+
+        self.background_palette_colour_dma(colour_index / 16, colour_index % 16)
+    }
+
+    /// Sets a single colour for a given background palette. Takes effect on commit
+    pub fn set_background_palette_colour(
+        &mut self,
+        pal_index: usize,
+        colour_index: usize,
+        colour: Rgb15,
+    ) {
+        self.background_palette.to_mut()[pal_index].update_colour(colour_index, colour);
+    }
+
+    /// Sets a single colour in a 256 colour palette. `colour_index` must be less than 256.
+    pub fn set_background_palette_colour_256(&mut self, colour_index: usize, colour: Rgb15) {
+        assert!(colour_index < 256);
+        self.set_background_palette_colour(colour_index / 16, colour_index % 16, colour);
+    }
+
+    /// Gets the index of the colour for a given background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_16(&self, palette_index: usize, colour: Rgb15) -> Option<usize> {
+        self.background_palette[palette_index]
+            .colours
+            .iter()
+            .position(|&c| c == colour)
+    }
+
+    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
+        for i in 0..16 {
+            if let Some(index) = self.find_colour_index_16(i, colour) {
+                return Some(i * 16 + index);
+            }
+        }
+
+        None
     }
 
     /// Control the blending for this frame.
