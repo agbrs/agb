@@ -8,7 +8,7 @@ use crate::{FixedWidthSignedInteger, FixedWidthUnsignedInteger, Num, Number, num
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
-pub struct Vector2D<T: Number> {
+pub struct Vector2D<T> {
     /// The x coordinate
     pub x: T,
     /// The y coordinate
@@ -22,12 +22,15 @@ pub struct Vector2D<T: Number> {
 ///
 /// assert_eq!(vec2(3, 5), Vector2D::new(3, 5));
 /// ```
-pub const fn vec2<T: Number>(x: T, y: T) -> Vector2D<T> {
+pub const fn vec2<T>(x: T, y: T) -> Vector2D<T> {
     Vector2D::new(x, y)
 }
 
-impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
-    type Output = Vector2D<T>;
+impl<T, U> Add<Vector2D<T>> for Vector2D<T>
+where
+    T: Add<T, Output = U>,
+{
+    type Output = Vector2D<U>;
     fn add(self, rhs: Vector2D<T>) -> Self::Output {
         Vector2D {
             x: self.x + rhs.x,
@@ -36,7 +39,7 @@ impl<T: Number> Add<Vector2D<T>> for Vector2D<T> {
     }
 }
 
-impl<T: Number, U: Copy> Mul<U> for Vector2D<T>
+impl<T, U: Copy> Mul<U> for Vector2D<T>
 where
     T: Mul<U, Output = T>,
 {
@@ -49,14 +52,13 @@ where
     }
 }
 
-impl<T: Number, U: Copy> MulAssign<U> for Vector2D<T>
+impl<T, U: Copy> MulAssign<U> for Vector2D<T>
 where
-    T: Mul<U, Output = T>,
+    T: MulAssign<U>,
 {
     fn mul_assign(&mut self, rhs: U) {
-        let result = *self * rhs;
-        self.x = result.x;
-        self.y = result.y;
+        self.x *= rhs;
+        self.y *= rhs;
     }
 }
 
@@ -73,47 +75,51 @@ where
     }
 }
 
-impl<T: Number, U: Copy> DivAssign<U> for Vector2D<T>
+impl<T, U: Copy> DivAssign<U> for Vector2D<T>
 where
-    T: Div<U, Output = T>,
+    T: DivAssign<U>,
 {
     fn div_assign(&mut self, rhs: U) {
-        let result = *self / rhs;
-        self.x = result.x;
-        self.y = result.y;
+        self.x /= rhs;
+        self.y /= rhs;
     }
 }
 
-impl<T: Number> AddAssign<Self> for Vector2D<T> {
+impl<T> AddAssign<Self> for Vector2D<T>
+where
+    T: AddAssign<T>,
+{
     fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
-impl<T: Number> Sub<Vector2D<T>> for Vector2D<T> {
-    type Output = Vector2D<T>;
+impl<T, U> Sub<Vector2D<T>> for Vector2D<T>
+where
+    T: Sub<T, Output = U>,
+{
+    type Output = Vector2D<U>;
     fn sub(self, rhs: Vector2D<T>) -> Self::Output {
-        Vector2D {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-        }
+        vec2(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
-impl<T: Number> SubAssign<Self> for Vector2D<T> {
+impl<T> SubAssign<Self> for Vector2D<T>
+where
+    T: SubAssign<T>,
+{
     fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
-impl<T: Number + Signed> Vector2D<T> {
+impl<T: Signed> Vector2D<T> {
     /// Calculates the absolute value of the x and y components.
     #[must_use]
     pub fn abs(self) -> Self {
-        Self {
-            x: self.x.abs(),
-            y: self.y.abs(),
-        }
+        vec2(self.x.abs(), self.y.abs())
     }
 
     /// Calculates the manhattan (or taxicab) distance, `x.abs()` + `y.abs()`.
@@ -237,20 +243,20 @@ impl<const N: usize> Vector2D<Num<i32, N>> {
     }
 }
 
-impl<T: Number, P: Number + Into<T>> From<(P, P)> for Vector2D<T> {
+impl<T, P: Into<T>> From<(P, P)> for Vector2D<T> {
     fn from(f: (P, P)) -> Self {
         vec2(f.0.into(), f.1.into())
     }
 }
 
-impl<T: Number> Vector2D<T> {
+impl<T> Vector2D<T> {
     /// Converts the representation of the vector to another type
     /// ```
     /// # use agb_fixnum::*;
     /// let v1: Vector2D<i16> = vec2(1, 2);
     /// let v2: Vector2D<i32> = v1.change_base();
     /// ```
-    pub fn change_base<U: Number + From<T>>(self) -> Vector2D<U> {
+    pub fn change_base<U: From<T>>(self) -> Vector2D<U> {
         (self.x, self.y).into()
     }
 }
@@ -280,7 +286,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2
     }
 }
 
-impl<T: Number> Vector2D<T> {
+impl<T> Vector2D<T> {
     /// Created a vector from the given coordinates.
     ///
     /// You should use [`vec2()`] instead.
@@ -305,6 +311,25 @@ impl<T: Number> Vector2D<T> {
     }
 
     #[must_use]
+    /// Swaps the x and y coordinate
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v1 = vec2(2, 3);
+    /// assert_eq!(v1.swap(), vec2(3, 2));
+    /// ```
+    pub fn swap(self) -> Self {
+        Self {
+            x: self.y,
+            y: self.x,
+        }
+    }
+}
+
+impl<T, U> Vector2D<T>
+where
+    T: Mul<T, Output = U>,
+{
+    #[must_use]
     /// Calculates the hadamard product of two vectors
     /// ```
     /// # use agb_fixnum::*;
@@ -314,13 +339,15 @@ impl<T: Number> Vector2D<T> {
     /// let r = v1.hadamard(v2);
     /// assert_eq!(r, vec2(v1.x * v2.x, v1.y * v2.y));
     /// ```
-    pub fn hadamard(self, other: Self) -> Self {
-        Self {
-            x: self.x * other.x,
-            y: self.y * other.y,
-        }
+    pub fn hadamard(self, other: Self) -> Vector2D<U> {
+        vec2(self.x * other.x, self.y * other.y)
     }
+}
 
+impl<T> Vector2D<T>
+where
+    T: Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T> + Copy,
+{
     #[doc(alias = "scalar_product")]
     /// Calculates the dot product / scalar product of two vectors
     /// ```
@@ -364,20 +391,6 @@ impl<T: Number> Vector2D<T> {
     }
 
     #[must_use]
-    /// Swaps the x and y coordinate
-    /// ```
-    /// # use agb_fixnum::*;
-    /// let v1 = vec2(2, 3);
-    /// assert_eq!(v1.swap(), vec2(3, 2));
-    /// ```
-    pub fn swap(self) -> Self {
-        Self {
-            x: self.y,
-            y: self.x,
-        }
-    }
-
-    #[must_use]
     /// Calculates the magnitude squared, ie (x*x + y*y)
     /// ```
     /// # use agb_fixnum::*;
@@ -385,15 +398,15 @@ impl<T: Number> Vector2D<T> {
     /// assert_eq!(v1.magnitude_squared(), 25.into());
     /// ```
     pub fn magnitude_squared(self) -> T {
-        self.x * self.x + self.y * self.y
+        self.dot(self)
     }
 }
 
-impl<T: Number + Neg<Output = T>> Neg for Vector2D<T> {
+impl<T: Neg<Output = T>> Neg for Vector2D<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        (-self.x, -self.y).into()
+        vec2(-self.x, -self.y)
     }
 }
 
