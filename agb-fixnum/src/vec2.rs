@@ -32,10 +32,7 @@ where
 {
     type Output = Vector2D<U>;
     fn add(self, rhs: Vector2D<T>) -> Self::Output {
-        Vector2D {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-        }
+        vec2(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
@@ -46,10 +43,7 @@ where
 {
     type Output = Vector2D<O>;
     fn mul(self, rhs: Rhs) -> Self::Output {
-        Vector2D {
-            x: self.x * rhs,
-            y: self.y * rhs,
-        }
+        vec2(self.x * rhs, self.y * rhs)
     }
 }
 
@@ -70,10 +64,7 @@ where
 {
     type Output = Vector2D<O>;
     fn div(self, rhs: Rhs) -> Self::Output {
-        Vector2D {
-            x: self.x / rhs,
-            y: self.y / rhs,
-        }
+        vec2(self.x / rhs, self.y / rhs)
     }
 }
 
@@ -147,10 +138,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// assert_eq!(v1.trunc(), v2);
     /// ```
     pub fn trunc(self) -> Vector2D<I> {
-        Vector2D {
-            x: self.x.trunc(),
-            y: self.y.trunc(),
-        }
+        vec2(self.x.trunc(), self.y.trunc())
     }
 
     #[must_use]
@@ -162,10 +150,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// assert_eq!(v1.floor(), v2);
     /// ```
     pub fn floor(self) -> Vector2D<I> {
-        Vector2D {
-            x: self.x.floor(),
-            y: self.y.floor(),
-        }
+        vec2(self.x.floor(), self.y.floor())
     }
 
     #[must_use]
@@ -177,10 +162,7 @@ impl<I: FixedWidthUnsignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// assert_eq!(v1.round(), v2);
     /// ```
     pub fn round(self) -> Vector2D<I> {
-        Vector2D {
-            x: self.x.round(),
-            y: self.y.round(),
-        }
+        vec2(self.x.round(), self.y.round())
     }
 
     #[must_use]
@@ -272,19 +254,13 @@ impl<I: FixedWidthSignedInteger, const N: usize> Vector2D<Num<I, N>> {
     /// assert_eq!(v, (num!(1.0), num!(0.0)).into());
     /// ```
     pub fn new_from_angle(angle: Num<I, N>) -> Self {
-        Vector2D {
-            x: angle.cos(),
-            y: angle.sin(),
-        }
+        vec2(angle.cos(), angle.sin())
     }
 }
 
 impl<I: FixedWidthUnsignedInteger, const N: usize> From<Vector2D<I>> for Vector2D<Num<I, N>> {
     fn from(n: Vector2D<I>) -> Self {
-        Vector2D {
-            x: n.x.into(),
-            y: n.y.into(),
-        }
+        vec2(n.x.into(), n.y.into())
     }
 }
 
@@ -320,10 +296,7 @@ impl<T> Vector2D<T> {
     /// assert_eq!(v1.swap(), vec2(3, 2));
     /// ```
     pub fn swap(self) -> Self {
-        Self {
-            x: self.y,
-            y: self.x,
-        }
+        vec2(self.y, self.x)
     }
 }
 
@@ -491,9 +464,9 @@ mod test {
 
     #[test]
     fn test_vector_manhattan_distance() {
-        let v = Vector2D::<i32> { x: -3, y: 4 };
+        let v = vec2(-3_i32, 4);
         assert_eq!(v.manhattan_distance(), 7);
-        let v2 = Vector2D::<i32>::default();
+        let v2 = vec2(0_i32, 0);
         assert_eq!(v2.manhattan_distance(), 0);
     }
 

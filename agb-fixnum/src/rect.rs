@@ -51,10 +51,7 @@ impl<T> Rect<T> {
     where
         T: Sub<T, Output = T> + Copy,
     {
-        Rect {
-            position: top_left,
-            size: bottom_right - top_left,
-        }
+        rect(top_left, bottom_right - top_left)
     }
 }
 
@@ -72,7 +69,7 @@ impl<T> Rect<T> {
         T: Mul<Rhs, Output = O>,
         Rhs: Copy,
     {
-        Rect::new(self.position * rhs, self.size * rhs)
+        rect(self.position * rhs, self.size * rhs)
     }
 
     /// Scales down the rectangle by the given amount about the origin.
@@ -88,7 +85,7 @@ impl<T> Rect<T> {
         T: Div<Rhs, Output = O>,
         Rhs: Copy,
     {
-        Rect::new(self.position / rhs, self.size / rhs)
+        rect(self.position / rhs, self.size / rhs)
     }
 
     /// Translate the rectangle by the given amount
@@ -103,7 +100,7 @@ impl<T> Rect<T> {
     where
         T: Add<Output = T> + Copy,
     {
-        Rect::new(self.position + amount, self.size)
+        rect(self.position + amount, self.size)
     }
 }
 
@@ -186,7 +183,7 @@ where
         let top_left = self.position.max(other.position);
         let bottom_right = self.bottom_right().min(other.bottom_right());
 
-        Some(Rect::new(top_left, bottom_right - top_left))
+        Some(rect(top_left, bottom_right - top_left))
     }
 
     /// Clamps the given point to be within the rectangle.
@@ -474,14 +471,13 @@ impl<T: Ord + Zero + Signed + Copy> Rect<T> {
     /// ```
     #[must_use]
     pub fn abs(self) -> Self {
-        Self {
-            position: (
+        rect(
+            vec2(
                 self.position.x + self.size.x.min(T::zero()),
                 self.position.y + self.size.y.min(T::zero()),
-            )
-                .into(),
-            size: self.size.abs(),
-        }
+            ),
+            self.size.abs(),
+        )
     }
 }
 
@@ -493,7 +489,7 @@ mod test {
 
     #[test]
     fn test_rect_iter() {
-        let rect: Rect<i32> = Rect::new((5_i32, 5_i32).into(), (2_i32, 2_i32).into());
+        let rect: Rect<i32> = rect(vec2(5, 5), vec2(2, 2));
         assert_eq!(
             rect.iter().collect::<alloc::vec::Vec<_>>(),
             &[
@@ -512,78 +508,72 @@ mod test {
 
     #[test]
     fn test_rect_contains_point() {
-        let rect1: Rect<i32> = Rect::new(Vector2D::new(-1, -1), Vector2D::new(2, 2));
-        assert!(rect1.contains_point(Vector2D::default()));
-        let rect2: Rect<i32> = Rect::new(Vector2D::new(1, 1), Vector2D::new(2, 2));
-        assert!(!rect2.contains_point(Vector2D::default()));
+        let rect1: Rect<i32> = rect(vec2(-1, -1), vec2(2, 2));
+        assert!(rect1.contains_point(vec2(0, 0)));
+        let rect2: Rect<i32> = rect(vec2(1, 1), vec2(2, 2));
+        assert!(!rect2.contains_point(vec2(0, 0)));
     }
 
     #[test]
     fn test_rect_touches() {
-        let a: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(2, 2));
-        let b: Rect<i32> = Rect::new(Vector2D::new(1, 1), Vector2D::new(2, 2));
-        let c: Rect<i32> = Rect::new(Vector2D::new(3, 3), Vector2D::new(1, 1));
+        let a: Rect<i32> = rect(vec2(0, 0), vec2(2, 2));
+        let b: Rect<i32> = rect(vec2(1, 1), vec2(2, 2));
+        let c: Rect<i32> = rect(vec2(3, 3), vec2(1, 1));
         assert!(a.touches(b));
         assert!(!a.touches(c));
     }
 
     #[test]
     fn test_rect_overlapping() {
-        let a: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(2, 2));
-        let b: Rect<i32> = Rect::new(Vector2D::new(3, 3), Vector2D::new(1, 1));
+        let a: Rect<i32> = rect(vec2(0, 0), vec2(2, 2));
+        let b: Rect<i32> = rect(vec2(3, 3), vec2(1, 1));
         assert_eq!(a.overlapping_rect(b), None);
-        let d: Rect<i32> = Rect::new(Vector2D::new(1, 1), Vector2D::new(2, 2));
-        assert_eq!(
-            a.overlapping_rect(d),
-            Some(Rect::new(Vector2D::new(1, 1), Vector2D::new(1, 1)))
-        );
+        let d: Rect<i32> = rect(vec2(1, 1), vec2(2, 2));
+        assert_eq!(a.overlapping_rect(d), Some(rect(vec2(1, 1), vec2(1, 1))));
     }
 
     #[test]
     fn test_rect_clamp_point() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(10, 10));
-        assert_eq!(rect.clamp_point(Vector2D::new(5, 5)), Vector2D::new(5, 5));
-        assert_eq!(
-            rect.clamp_point(Vector2D::new(-5, 15)),
-            Vector2D::new(0, 10)
-        );
+        let r: Rect<i32> = rect(vec2(0, 0), vec2(10, 10));
+        assert_eq!(r.clamp_point(vec2(5, 5)), vec2(5, 5));
+        assert_eq!(r.clamp_point(vec2(-5, 15)), vec2(0, 10));
     }
 
     #[test]
     fn test_rect_top_left() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(3, 4), Vector2D::new(1, 1));
-        assert_eq!(rect.top_left(), Vector2D::new(3, 4));
+        let r: Rect<i32> = rect(vec2(3, 4), vec2(1, 1));
+        assert_eq!(r.top_left(), vec2(3, 4));
     }
 
     #[test]
     fn test_rect_top_right() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
-        assert_eq!(rect.top_right(), Vector2D::new(4, 2));
+        let r: Rect<i32> = rect(vec2(1, 2), vec2(3, 4));
+        assert_eq!(r.top_right(), vec2(4, 2));
     }
 
     #[test]
     fn test_rect_bottom_left() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
-        assert_eq!(rect.bottom_left(), Vector2D::new(1, 6));
+        let r: Rect<i32> = rect(vec2(1, 2), vec2(3, 4));
+        assert_eq!(r.bottom_left(), vec2(1, 6));
     }
 
     #[test]
     fn test_rect_bottom_right() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(1, 2), Vector2D::new(3, 4));
-        assert_eq!(rect.bottom_right(), Vector2D::new(4, 6));
+        let r: Rect<i32> = rect(vec2(1, 2), vec2(3, 4));
+        assert_eq!(r.bottom_right(), vec2(4, 6));
     }
 
     #[test]
     fn test_rect_centre() {
-        let rect: Rect<i32> = Rect::new(Vector2D::new(0, 0), Vector2D::new(4, 6));
-        assert_eq!(rect.centre(), Vector2D::new(2, 3));
+        let r: Rect<i32> = rect(vec2(0, 0), vec2(4, 6));
+        assert_eq!(r.centre(), vec2(2, 3));
     }
 
     #[test]
     fn test_rect_abs() {
-        let rect = Rect::new(Vector2D::new(1_i32, 2_i32), Vector2D::new(3_i32, 4_i32));
-        let result = rect.abs();
-        assert_eq!(result.position, Vector2D::new(1_i32, 2_i32));
-        assert_eq!(result.size, Vector2D::new(3_i32, 4_i32));
+        let r = rect(vec2(1_i32, 2_i32), vec2(3_i32, 4_i32));
+        let result = r.abs();
+        assert_eq!(result.position, vec2(1, 2));
+        assert_eq!(result.size, vec2(3, 4));
     }
 }
