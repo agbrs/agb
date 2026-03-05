@@ -60,7 +60,7 @@ impl<T, const N: usize> MemoryMapped1DArray<T, N> {
         unsafe { (&mut (*self.array)[n] as *mut T).write_volatile(val) }
     }
 
-    pub fn as_ptr(&self) -> *mut T {
+    pub const fn as_ptr(&self) -> *mut T {
         self.array.cast()
     }
 }

@@ -129,7 +129,7 @@ But you can use it to fade towards a single colour.
 You can change this colour at any time using
 
 ```rust
-VRAM_MANAGER.set_background_palette_colour(0, 0, new_colour);
+frame.set_background_palette_colour(0, 0, new_colour);
 ```
 
 # Windows

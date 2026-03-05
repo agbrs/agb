@@ -1,5 +1,5 @@
 use agb::{
-    display::{GraphicsFrame, Rgb15, tiled::VRAM_MANAGER},
+    display::{GraphicsFrame, Rgb15},
     dma::HBlankDma,
     include_colours,
 };
@@ -7,9 +7,5 @@ use agb::{
 static SKY_GRADIENT: [Rgb15; 160] = include_colours!("gfx/sky-background-gradient.aseprite");
 
 pub fn apply(frame: &mut GraphicsFrame<'_>) {
-    HBlankDma::new(
-        VRAM_MANAGER.background_palette_colour_dma(0, 0),
-        &SKY_GRADIENT,
-    )
-    .show(frame);
+    HBlankDma::new(frame.background_palette_colour_dma(0, 0), &SKY_GRADIENT).show(frame);
 }

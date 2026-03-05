@@ -54,13 +54,13 @@ fn main(mut gba: agb::Gba) -> ! {
 
         if should_do_dma {
             HBlankDma::new(
-                VRAM_MANAGER.background_palette_colour_dma(0, background_colour_index),
+                frame.background_palette_colour_dma(0, background_colour_index),
                 &SKY_GRADIENT,
             )
             .show(&mut frame);
         } else {
             // set the background colour back to whatever it was
-            VRAM_MANAGER.set_background_palette_colour(
+            frame.set_background_palette_colour(
                 0,
                 background_colour_index,
                 DARKEST_SKY_BLUE.to_rgb15(),
