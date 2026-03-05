@@ -163,7 +163,7 @@ let mut window = frame.windows();
 window
     .win_in(WinIn::Win0)
     .enable_background(bg1_id)
-    .set_pos(Rect::new(pos, vec2(64, 64)));
+    .set_pos(rect(pos, vec2(64, 64)));
 
 window.win_out().enable_background(bg2_id);
 ```

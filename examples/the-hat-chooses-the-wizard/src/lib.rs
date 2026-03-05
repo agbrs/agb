@@ -14,7 +14,7 @@ use agb::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
-    fixnum::{FixedNum, Vector2D},
+    fixnum::{FixedNum, Vector2D, vec2},
     input::{self, Button, ButtonController},
     sound::mixer::Frequency,
 };
@@ -724,13 +724,12 @@ impl<'a> PlayingLevel<'a> {
 
         let mut target_position = ((current_centre * 3 + new_target_position) / 4) - half_screen;
 
-        target_position.x = target_position.x.clamp(
-            0,
-            (self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32,
-        );
-        target_position.y = target_position.y.clamp(
-            0,
-            (self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32,
+        target_position = target_position.clamp(
+            vec2(0, 0),
+            vec2(
+                (self.background.level.dimensions.x * 8 - (WIDTH as u32)) as i32,
+                (self.background.level.dimensions.y * 8 - (HEIGHT as u32)) as i32,
+            ),
         );
 
         target_position.into()

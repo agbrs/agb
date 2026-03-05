@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use agb_fixnum::Vector2D;
+use agb_fixnum::{Vector2D, vec2};
 use alloc::{boxed::Box, vec, vec::Vec};
 
 use crate::display::{
@@ -240,7 +240,7 @@ impl Object {
     /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
     pub fn pos(&self) -> Vector2D<i32> {
-        Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
+        vec2(self.attributes.x() as i32, self.attributes.y() as i32)
     }
 
     fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {
@@ -392,7 +392,7 @@ impl ObjectAffine {
     /// Use [set_pos](Self::set_pos) to set the value
     #[must_use]
     pub fn pos(&self) -> Vector2D<i32> {
-        Vector2D::new(self.attributes.x() as i32, self.attributes.y() as i32)
+        vec2(self.attributes.x() as i32, self.attributes.y() as i32)
     }
 
     fn set_sprite_attributes(&mut self, sprite: &SpriteVram) -> &mut Self {

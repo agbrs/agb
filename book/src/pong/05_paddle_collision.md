@@ -106,14 +106,14 @@ Lets add a simple method to the `Paddle` impl which returns the collision rectan
 
 ```rust
 pub fn collision_rect(&self) -> Rect<i32> {
-    Rect::new(self.pos, vec2(16, 16 * 3))
+    rect(self.pos, vec2(16, 16 * 3))
 }
 ```
 
 Don't forget to update the `use` statement:
 
 ```rust
-use agb::fixnum::{Rect, Vector2D, vec2};
+use agb::fixnum::{Rect, Vector2D, rect, vec2};
 ```
 
 And then we can get the ball's collision rectangle in a similar way.
@@ -124,7 +124,7 @@ We can now implement collision between the ball and the paddle like so:
 // intersect with either the edge of the map or a paddle.
 let potential_ball_pos = ball_pos + ball_velocity;
 
-let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+let ball_rect = rect(potential_ball_pos, vec2(16, 16));
 if paddle_a.collision_rect().touches(ball_rect) {
     ball_velocity.x = 1;
 }

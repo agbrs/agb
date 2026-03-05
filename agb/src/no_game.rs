@@ -1,4 +1,3 @@
-use agb_fixnum::{Num, Vector2D, num};
 use alloc::vec::Vec;
 use alloc::{boxed::Box, vec};
 
@@ -6,6 +5,7 @@ use crate::display::object::{DynamicSprite16, PaletteVramSingle, Size, SpriteVra
 use crate::display::{Palette16, Rgb15};
 use crate::{
     display::{HEIGHT, WIDTH, object::Object},
+    fixnum::{Num, Vector2D, num, vec2},
     include_colours,
 };
 
@@ -157,7 +157,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
                 .hadamard((8, 10).into())
                 .hadamard((num!(3.) / 2, num!(3.) / 2).into());
 
-            let letter_pos = Vector2D::new(
+            let letter_pos = vec2(
                 60 * (1 + letter_idx as i32 - ((letter_idx >= 2) as i32 * 3)),
                 70 * ((letter_idx >= 2) as i32),
             );
@@ -172,7 +172,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
         .max_by_key(|x| x.manhattan_distance())
         .unwrap();
 
-    let difference = (Vector2D::new(WIDTH - 8, HEIGHT - 8).change_base() - bottom_right) / 2;
+    let difference = (vec2(WIDTH - 8, HEIGHT - 8).change_base() - bottom_right) / 2;
 
     for pos in letter_positons.iter_mut() {
         *pos += difference;
@@ -189,7 +189,7 @@ pub fn no_game(mut gba: crate::Gba) -> ! {
             .enumerate()
             .map(|(idx, position)| {
                 let time = time + Num::<i32, 8>::new(idx as i32) / 128;
-                (idx, *position + Vector2D::new(time.sin(), time.cos()) * 10)
+                (idx, *position + vec2(time.sin(), time.cos()) * 10)
             })
             .map(|(idx, pos)| {
                 let mut obj = Object::new(squares[idx % squares.len()].clone());

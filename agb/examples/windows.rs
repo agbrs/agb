@@ -8,7 +8,7 @@ use agb::{
         HEIGHT, WIDTH, WinIn,
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
-    fixnum::{Num, Rect, Vector2D, vec2},
+    fixnum::{Num, Vector2D, rect, vec2},
     include_background_gfx,
 };
 
@@ -34,7 +34,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let beach_bg = get_beach();
 
     let mut pos: Vector2D<FNum> = (10, 10).into();
-    let mut velocity: Vector2D<FNum> = Vector2D::new(1.into(), 1.into());
+    let mut velocity: Vector2D<FNum> = vec2(1.into(), 1.into());
 
     loop {
         pos += velocity;
@@ -55,7 +55,7 @@ fn main(mut gba: agb::Gba) -> ! {
         window
             .win_in(WinIn::Win0)
             .enable_background(beach_background_id)
-            .set_pos(Rect::new(pos.floor(), vec2(64, 64)));
+            .set_pos(rect(pos.floor(), vec2(64, 64)));
 
         window.win_out().enable_background(logo_background_id);
 

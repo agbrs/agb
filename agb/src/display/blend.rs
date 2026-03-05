@@ -349,7 +349,7 @@ mod test {
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
             },
         },
-        fixnum::{Rect, num, vec2},
+        fixnum::{num, rect, vec2},
         include_aseprite, include_background_gfx,
         test_runner::assert_image_output,
     };
@@ -409,7 +409,7 @@ mod test {
             .win_in(WinIn::Win0)
             .enable_background(bg_id)
             .enable_blending()
-            .set_pos(Rect::new(vec2(20, 20), vec2(100, 100)));
+            .set_pos(rect(vec2(20, 20), vec2(100, 100)));
 
         frame.windows.win_out().enable_background(bg_id);
 

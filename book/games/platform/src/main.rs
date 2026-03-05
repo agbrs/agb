@@ -20,7 +20,7 @@ use agb::{
             VRAM_MANAGER,
         },
     },
-    fixnum::{Num, Rect, Vector2D, num, vec2},
+    fixnum::{Num, Rect, Vector2D, num, rect, vec2},
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
@@ -29,7 +29,7 @@ extern crate alloc;
 
 impl Level {
     fn bounds(&self) -> Rect<i32> {
-        Rect::new(
+        rect(
             vec2(0, 0),
             vec2(self.width as i32 - 1, self.height as i32 - 1),
         )

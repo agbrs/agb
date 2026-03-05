@@ -15,7 +15,7 @@ pub const fn rect<T>(position: Vector2D<T>, size: Vector2D<T>) -> Rect<T> {
     Rect::new(position, size)
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// A rectangle with a position in 2d space and a 2d size
 pub struct Rect<T> {
@@ -183,7 +183,7 @@ where
         let top_left = self.position.max(other.position);
         let bottom_right = self.bottom_right().min(other.bottom_right());
 
-        Some(rect(top_left, bottom_right - top_left))
+        Some(Rect::from_corners(top_left, bottom_right))
     }
 
     /// Clamps the given point to be within the rectangle.

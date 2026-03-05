@@ -71,8 +71,10 @@ fn main(mut gba: agb::Gba) -> ! {
         position.x += button.x_tri() as i32;
         position.y += button.y_tri() as i32;
 
-        position.x = position.x.clamp(0.into(), (WIDTH - 32).into());
-        position.y = position.y.clamp(0.into(), (HEIGHT - 32).into());
+        position = position.clamp(
+            vec2(0.into(), 0.into()),
+            vec2((WIDTH - 32).into(), (HEIGHT - 32).into()),
+        );
 
         // Save the current position
         let save_data = SaveData::from_position(position);
