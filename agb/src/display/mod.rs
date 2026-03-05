@@ -37,7 +37,7 @@
 //! ```
 //!
 //! The [`GraphicsFrame`] is the key mechanism for displaying anything on the screen (the `frame` variable you see above).
-//! Further sections e.g. [`Blend`], [`Windows`] and [`dma`](crate::dma) will go into more detail about other effects you can apply once
+//! Further sections e.g. [`Blend`], [`Windows`] and [`dma`] will go into more detail about other effects you can apply once
 //! you've mastered the content of this article.
 //!
 //! ## `.show(frame: &mut GraphicsFrame)`
@@ -261,7 +261,7 @@ impl GraphicsFrame<'_> {
     /// can have at most 16 palettes loaded at once, so only the first 16 will be loaded (although this
     /// array can be shorter if you don't need all 16).
     ///
-    /// Unlike [`VRAM_MANAGER.set_background_palettes()`](VRamManager::set_background_palettes) which
+    /// Unlike [`VRAM_MANAGER.set_background_palettes()`](crate::display::tiled::VRamManager::set_background_palettes) which
     /// takes effect immediately, this version takes effect on [`.commit()`](GraphicsFrame::commit).
     /// This ensures that palette changes are synchronised with background and other graphical updates.
     pub fn set_background_palettes(&mut self, palettes: &[Palette16]) {
