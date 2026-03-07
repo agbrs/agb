@@ -3,7 +3,11 @@
 
 use agb_fixnum::Vector2D;
 
-use crate::{dma, fixnum::Rect, memory_mapped::MemoryMapped};
+use crate::{
+    dma,
+    fixnum::{Rect, rect, vec2},
+    memory_mapped::MemoryMapped,
+};
 
 use super::{DISPLAY_CONTROL, HEIGHT, WIDTH, tiled::BackgroundId};
 
@@ -150,7 +154,7 @@ impl MovableWindow {
     fn new(id: usize) -> Self {
         Self {
             inner: Window::new(),
-            rect: Rect::new((0, 0).into(), (0, 0).into()),
+            rect: Rect::default(),
             id,
         }
     }
@@ -187,11 +191,9 @@ impl MovableWindow {
     fn commit(&self) {
         self.inner.commit(self.id);
 
-        let left_right =
-            ((self.rect.position.x as u16) << 8) | (self.rect.position.x + self.rect.size.x) as u16;
+        let left_right = ((self.rect.left() as u16) << 8) | self.rect.right() as u16;
 
-        let top_bottom =
-            ((self.rect.position.y as u16) << 8) | (self.rect.position.y + self.rect.size.y) as u16;
+        let top_bottom = ((self.rect.top() as u16) << 8) | self.rect.bottom() as u16;
         unsafe {
             REG_HORIZONTAL_BASE.add(self.id).write_volatile(left_right);
             REG_VERTICAL_BASE.add(self.id).write_volatile(top_bottom);
@@ -207,14 +209,13 @@ impl MovableWindow {
 
     /// Sets the position of the area that is inside the window.
     #[inline(always)]
-    pub fn set_pos(&mut self, rect: Rect<i32>) -> &mut Self {
-        let new_rect = Rect::new(
-            (
-                rect.position.x.clamp(0, WIDTH) as u8,
-                rect.position.y.clamp(0, HEIGHT) as u8,
-            )
-                .into(),
-            (rect.size.x as u8, rect.size.y as u8).into(),
+    pub fn set_pos(&mut self, area: Rect<i32>) -> &mut Self {
+        let new_rect = rect(
+            vec2(
+                area.left().clamp(0, WIDTH) as u8,
+                area.top().clamp(0, HEIGHT) as u8,
+            ),
+            vec2(area.width() as u8, area.height() as u8),
         );
         self.set_pos_u8(new_rect)
     }
@@ -244,7 +245,7 @@ mod test {
                 RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
             },
         },
-        fixnum::{Num, num, vec2},
+        fixnum::{Num, num, rect, vec2},
         include_background_gfx,
         test_runner::assert_image_output,
     };
@@ -274,7 +275,7 @@ mod test {
             .windows()
             .win_in(WinIn::Win0)
             .enable_background(bg_id)
-            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+            .set_pos(rect(vec2(40, 40), vec2(100, 100)));
 
         frame.commit();
 
@@ -300,11 +301,11 @@ mod test {
         frame
             .windows()
             .win_in(WinIn::Win0)
-            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+            .set_pos(rect(vec2(40, 40), vec2(100, 100)));
         frame
             .windows()
             .win_in(WinIn::Win1)
-            .set_pos(Rect::new(vec2(130, 70), vec2(50, 50)));
+            .set_pos(rect(vec2(130, 70), vec2(50, 50)));
         frame.windows().win_out().enable_background(bg_id);
 
         frame.commit();
@@ -341,11 +342,11 @@ mod test {
         frame
             .windows()
             .win_in(WinIn::Win0)
-            .set_pos(Rect::new(vec2(40, 40), vec2(100, 100)));
+            .set_pos(rect(vec2(40, 40), vec2(100, 100)));
         frame
             .windows()
             .win_in(WinIn::Win1)
-            .set_pos(Rect::new(vec2(130, 70), vec2(50, 50)));
+            .set_pos(rect(vec2(130, 70), vec2(50, 50)));
         frame.windows().win_out().enable_background(bg_id);
 
         frame.commit();

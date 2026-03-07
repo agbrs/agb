@@ -38,7 +38,7 @@ struct ToPlay {
 }
 
 fn convert_to_real_space(p: Vector2D<i32>) -> Vector2D<Num<i32, 10>> {
-    p.change_base() * 16
+    p.change_base::<Num<i32, 10>>() * 16
 }
 
 impl ToPlay {

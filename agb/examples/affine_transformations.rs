@@ -99,7 +99,7 @@ impl AffineDemonstration {
             self.position = self.demonstration.start_position();
         }
 
-        self.position += btn.vector() * self.demonstration.values_step();
+        self.position += btn.vector::<Num<i32, 8>>() * self.demonstration.values_step();
 
         if let Some(layout) = self.text.as_mut() {
             if let Some(lg) = layout.next() {

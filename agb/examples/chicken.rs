@@ -12,7 +12,7 @@ use agb::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
         },
     },
-    fixnum::{Num, Rect, Vector2D, num, vec2},
+    fixnum::{Num, Vector2D, num, rect, vec2},
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
@@ -188,7 +188,7 @@ impl Chicken {
     }
 
     fn restrict_to_screen(&mut self) {
-        let bounding_rect = Rect::new(
+        let bounding_rect = rect(
             vec2(num!(4), num!(4)),
             vec2(num!(MAP_WIDTH * 8 - 8), num!(HEIGHT - 8)),
         );

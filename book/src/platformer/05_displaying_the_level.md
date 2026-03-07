@@ -19,7 +19,7 @@ use agb::{
             TileFormat, TileSetting, VRAM_MANAGER,
         },
     },
-    fixnum::{Rect, Vector2D, vec2},
+    fixnum::{Rect, Vector2D, rect, vec2},
     include_background_gfx,
 };
 
@@ -34,7 +34,7 @@ Add this after the `Level` struct definition:
 ```rust
 impl Level {
     fn bounds(&self) -> Rect<i32> {
-        Rect::new(
+        rect(
             vec2(0, 0),
             // Rect's size is inclusive of the edge, so a size of (width - 1)
             // covers tile coordinates 0 through width - 1.

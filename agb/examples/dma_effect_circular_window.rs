@@ -12,7 +12,7 @@ use agb::{
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     dma::HBlankDma,
-    fixnum::{Num, Rect, Vector2D, vec2},
+    fixnum::{Num, Vector2D, rect, vec2},
     include_background_gfx,
 };
 
@@ -76,7 +76,7 @@ fn main(mut gba: agb::Gba) -> ! {
         window
             .win_in(WinIn::Win0)
             .enable_background(background_id)
-            .set_pos(Rect::new(pos.floor(), (64, 65).into()));
+            .set_pos(rect(pos.floor(), vec2(64, 65)));
 
         let dma_controllable = window.win_in(WinIn::Win0).horizontal_pos_dma();
         HBlankDma::new(dma_controllable, &circle_poses).show(&mut frame);

@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 use crate::{
     display::{GraphicsFrame, HEIGHT, Priority, WIDTH},
-    fixnum::{Number, Rect, Vector2D, vec2},
+    fixnum::{Number, Rect, Vector2D, rect, vec2},
 };
 
 use super::{RegularBackground, RegularBackgroundId, TileSet, TileSetting};
@@ -139,7 +139,7 @@ impl InfiniteScrolledMap {
 
         if old_working.x > new_working.x {
             self.update_rectangle(
-                Rect::new(
+                rect(
                     new_working,
                     vec2(old_working.x - new_working.x, ONE_MORE_THAN_SCREEN_HEIGHT),
                 ),
@@ -149,7 +149,7 @@ impl InfiniteScrolledMap {
 
         if old_working.x < new_working.x {
             self.update_rectangle(
-                Rect::new(
+                rect(
                     old_working + vec2(ONE_MORE_THAN_SCREEN_WIDTH, 0),
                     vec2(new_working.x - old_working.x, ONE_MORE_THAN_SCREEN_HEIGHT),
                 ),
@@ -159,7 +159,7 @@ impl InfiniteScrolledMap {
 
         if old_working.y > new_working.y {
             self.update_rectangle(
-                Rect::new(
+                rect(
                     new_working,
                     vec2(ONE_MORE_THAN_SCREEN_WIDTH, old_working.y - new_working.y),
                 ),
@@ -169,7 +169,7 @@ impl InfiniteScrolledMap {
 
         if old_working.y < new_working.y {
             self.update_rectangle(
-                Rect::new(
+                rect(
                     old_working + vec2(0, ONE_MORE_THAN_SCREEN_HEIGHT),
                     vec2(ONE_MORE_THAN_SCREEN_WIDTH, new_working.y - old_working.y),
                 ),

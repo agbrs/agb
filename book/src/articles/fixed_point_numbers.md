@@ -195,11 +195,11 @@ It is represented as a position and a size.
 For the purpose of hit boxes, the most useful method is the `touches` method that is true if the two rectangles are overlapping.
 
 ```rust
-use agb::fixnum::{Rect, vec2};
+use agb::fixnum::{Rect, rect, vec2};
 
-let r1 = Rect::new(vec2(1, 1), vec2(3, 3));
-let r2 = Rect::new(vec2(2, 2), vec2(3, 3));
-let r3 = Rect::new(vec2(-10, 2), vec2(3, 3));
+let r1 = rect(vec2(1, 1), vec2(3, 3));
+let r2 = rect(vec2(2, 2), vec2(3, 3));
+let r3 = rect(vec2(-10, 2), vec2(3, 3));
 
 assert!(r1.touches(r2));
 assert!(!r1.touches(r3));

@@ -33,7 +33,7 @@ impl Ball {
         // edge of the map or a paddle.
         let potential_ball_pos = self.pos + self.velocity;
 
-        let ball_rect = Rect::new(potential_ball_pos, vec2(16, 16));
+        let ball_rect = rect(potential_ball_pos, vec2(16, 16));
         if paddle_a.collision_rect().touches(ball_rect) {
             self.velocity.x = 1;
         }
@@ -110,7 +110,7 @@ pub fn move_by(&mut self, y: Fixed) {
 
 pub fn collision_rect(&self) -> Rect<Fixed> {
     // Same idea here with creating a fixed point rectangle
-    Rect::new(self.pos, vec2(num!(16), num!(16 * 3)))
+    rect(self.pos, vec2(num!(16), num!(16 * 3)))
 }
 ```
 
