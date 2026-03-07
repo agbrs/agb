@@ -104,6 +104,10 @@ SECTIONS {
 
     .debug_ranges   0 : { *(.debug_ranges) }
 
+    /* Symbol tables for debuggers */
+    .symtab : { *(.symtab) }
+    .strtab : { *(.strtab) }
+
     /* discard anything not already mentioned */
     /DISCARD/ : { *(*) }
 }
