@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Moved background colour DMA control from `VRAM_MANAGER` to `GraphicsFrame`.
 
+### Changed
+
+- `Tag::animation_frame` now increments the provided frame.
+
 ## [0.23.1] - 2026/02/07
 
 - Minor release to fix problems with publishing 0.23.0.

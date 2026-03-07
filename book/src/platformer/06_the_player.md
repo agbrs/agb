@@ -161,8 +161,6 @@ We need to update the sprite based on the player's state:
 ```rust
 impl Player {
     fn update_sprite(&mut self) {
-        self.frame += 1;
-
         // We need to keep track of the facing direction rather than
         // deriving it because the zero velocity case needs to keep
         // facing the same direction.
