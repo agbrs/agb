@@ -12,7 +12,7 @@ use agb::{
     display::{
         GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::Object,
-        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting},
     },
     dma::HBlankDma,
     fixnum::{Num, Vector2D, num, vec2},
@@ -31,9 +31,9 @@ include_aseprite!(mod sprites, "examples/gfx/monster-features.aseprite");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
-
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(backgrounds::PALETTES);
+
     let mut monster = BlobMonster::new();
 
     loop {

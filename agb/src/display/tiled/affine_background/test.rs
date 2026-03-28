@@ -4,7 +4,6 @@ use crate::{
         Priority, Rgb, Rgb15,
         tiled::{
             AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, DynamicTile256,
-            VRAM_MANAGER,
         },
     },
     interrupt::VBlank,
@@ -53,7 +52,7 @@ fn test_affine_dynamic_tile_256_checkerboard(gba: &mut Gba) {
                 Rgb::new(r, g, b).to_rgb15()
             }
         };
-        VRAM_MANAGER.set_background_palette_colour_256(i, colour);
+        graphics.set_background_palette_colour_256(i, colour);
     }
 
     let mut bg = AffineBackground::new(
@@ -105,7 +104,7 @@ fn test_affine_dynamic_tile_256_gradient(gba: &mut Gba) {
         let r = ((i % 32) * 8) as u8;
         let g = (((i / 4) % 32) * 8) as u8;
         let b = (((i / 2) % 32) * 8) as u8;
-        VRAM_MANAGER.set_background_palette_colour_256(i, Rgb::new(r, g, b).to_rgb15());
+        graphics.set_background_palette_colour_256(i, Rgb::new(r, g, b).to_rgb15());
     }
 
     let mut bg = AffineBackground::new(
@@ -156,14 +155,14 @@ fn test_affine_dynamic_tile_256_border_pattern(gba: &mut Gba) {
     const MAGENTA: Rgb15 = Rgb::new(255, 0, 255).to_rgb15();
 
     // Set up palette with distinct colours
-    VRAM_MANAGER.set_background_palette_colour_256(0, Rgb15::BLACK);
-    VRAM_MANAGER.set_background_palette_colour_256(1, RED);
-    VRAM_MANAGER.set_background_palette_colour_256(2, GREEN);
-    VRAM_MANAGER.set_background_palette_colour_256(3, BLUE);
-    VRAM_MANAGER.set_background_palette_colour_256(4, Rgb15::WHITE);
-    VRAM_MANAGER.set_background_palette_colour_256(5, YELLOW);
-    VRAM_MANAGER.set_background_palette_colour_256(6, CYAN);
-    VRAM_MANAGER.set_background_palette_colour_256(7, MAGENTA);
+    graphics.set_background_palette_colour_256(0, Rgb15::BLACK);
+    graphics.set_background_palette_colour_256(1, RED);
+    graphics.set_background_palette_colour_256(2, GREEN);
+    graphics.set_background_palette_colour_256(3, BLUE);
+    graphics.set_background_palette_colour_256(4, Rgb15::WHITE);
+    graphics.set_background_palette_colour_256(5, YELLOW);
+    graphics.set_background_palette_colour_256(6, CYAN);
+    graphics.set_background_palette_colour_256(7, MAGENTA);
 
     let mut bg = AffineBackground::new(
         Priority::P0,

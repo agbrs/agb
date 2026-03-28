@@ -9,7 +9,7 @@ use agb::{
     display::{
         Graphics,
         object::{Object, SpriteVram},
-        tiled::{RegularBackground, VRAM_MANAGER},
+        tiled::RegularBackground,
     },
     fixnum::{Num, Vector2D, vec2},
     include_aseprite, include_background_gfx,
@@ -99,7 +99,7 @@ fn main(mut gba: agb::Gba) -> ! {
         agb::display::tiled::TileFormat::FourBpp,
     );
 
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
     bg.fill_with(&background::bg);
 
     let mut position = vec2(80, 80);

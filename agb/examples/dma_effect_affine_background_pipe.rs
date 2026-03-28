@@ -10,7 +10,7 @@ use agb::{
         AffineMatrix, Priority, WIDTH,
         tiled::{
             AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
-            AffineMatrixBackground, RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
+            AffineMatrixBackground, RegularBackground, RegularBackgroundSize,
         },
     },
     dma::HBlankDma,
@@ -29,7 +29,7 @@ agb::include_background_gfx!(mod backgrounds,
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     let bg = grid_background();
     let help = help_background();

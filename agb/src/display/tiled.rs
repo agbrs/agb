@@ -4,7 +4,7 @@
 //! You can create and manage regular backgrounds using the [`RegularBackground`] struct,
 //! and affine backgrounds using the [`AffineBackground`] struct.
 //!
-//! Palettes are managed using the [`VRAM_MANAGER`] global value.
+//! Palettes are managed using the [`Graphics`](crate::display::Graphics) struct.
 //!
 //! See the [background deep dive](https://agbrs.dev/book/articles/backgrounds.html) for further details about backgrounds.
 #![warn(missing_docs)]
@@ -23,11 +23,9 @@ use alloc::rc::Rc;
 pub use infinite_scrolled_map::{InfiniteScrolledMap, PartialUpdateStatus};
 pub use regular_background::{RegularBackground, RegularBackgroundSize};
 use tiles::Tiles;
-pub use vram_manager::{
-    DynamicTile16, DynamicTile256, TileFormat, TileSet, VRAM_MANAGER, VRamManager,
-};
+pub use vram_manager::{DynamicTile16, DynamicTile256, TileFormat, TileSet};
 
-pub(crate) use vram_manager::TileIndex;
+pub(crate) use vram_manager::{TileIndex, VRAM_MANAGER};
 
 pub(crate) use registers::*;
 
@@ -151,7 +149,6 @@ impl TileSetting {
     ///     display::Priority,
     ///     display::tiled::{
     ///         RegularBackground, RegularBackgroundSize, TileEffect, TileSetting,
-    ///         VRAM_MANAGER,
     ///     },
     ///     include_background_gfx,
     /// };
@@ -222,7 +219,7 @@ impl TileSetting {
     /// The main use case for this is checking which tile_id was assigned when using the `deduplicate`
     /// option in [`include_background_gfx!()`](crate::include_background_gfx).
     ///
-    /// Be careful when passing this ID to [`VRAM_MANAGER.replace_tile()`](crate::display::tiled::VRamManager::replace_tile)
+    /// Be careful when passing this ID to [`Graphics.replace_tile()`](crate::display::Graphics::replace_tile)
     /// if you've generated this tile set with the `deduplicate` option, since tiles may be flipped or
     /// reused meaning replacing IDs could result in strange display behaviour.
     #[must_use]

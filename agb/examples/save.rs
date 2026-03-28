@@ -4,7 +4,7 @@
 #![no_main]
 
 use agb::{
-    display::{HEIGHT, Palette16, Rgb15, WIDTH, object::Object, tiled::VRAM_MANAGER},
+    display::{HEIGHT, Palette16, Rgb15, WIDTH, object::Object},
     fixnum::{Num, Vector2D, vec2},
     include_aseprite,
     input::ButtonController,
@@ -59,7 +59,7 @@ fn main(mut gba: agb::Gba) -> ! {
         .map(|data| data.position())
         .unwrap_or_else(|| vec2(WIDTH / 2, HEIGHT / 2).change_base());
 
-    VRAM_MANAGER.set_background_palette(
+    gfx.set_background_palette(
         0,
         &Palette16::new([0xffff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].map(Rgb15::new)),
     );

@@ -6,7 +6,7 @@ use agb::{
     display::{
         Priority, Rgb, Rgb15,
         font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     include_font,
 };
@@ -17,9 +17,9 @@ static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
-    VRAM_MANAGER.set_background_palette_colour(0, 1, Rgb15::WHITE);
-    VRAM_MANAGER.set_background_palette_colour(0, 2, Rgb15::BLACK);
+    gfx.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
+    gfx.set_background_palette_colour(0, 1, Rgb15::WHITE);
+    gfx.set_background_palette_colour(0, 2, Rgb15::BLACK);
 
     let mut bg = RegularBackground::new(
         Priority::P0,

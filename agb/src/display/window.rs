@@ -242,7 +242,7 @@ mod test {
             AffineMatrix, Priority,
             tiled::{
                 AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
-                RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
+                RegularBackground, RegularBackgroundSize,
             },
         },
         fixnum::{Num, num, rect, vec2},
@@ -257,8 +257,8 @@ mod test {
 
     #[test_case]
     fn can_draw_window_box(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -284,8 +284,8 @@ mod test {
 
     #[test_case]
     fn can_draw_inverse_window_box(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -315,8 +315,8 @@ mod test {
 
     #[test_case]
     fn can_do_affine_background_windows(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = AffineBackground::new(
             Priority::P0,

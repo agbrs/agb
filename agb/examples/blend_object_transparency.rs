@@ -7,7 +7,7 @@ use agb::{
     display::{
         Priority,
         object::{GraphicsMode, Object},
-        tiled::{RegularBackground, RegularBackgroundSize, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize},
     },
     fixnum::{Num, num},
     include_aseprite, include_background_gfx,
@@ -18,9 +18,8 @@ include_background_gfx!(mod background, BEACH => deduplicate "examples/gfx/beach
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
-
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(background::PALETTES);
 
     let mut bg = RegularBackground::new(
         Priority::P0,

@@ -6,7 +6,7 @@
 use agb::{
     display::{
         HEIGHT, WIDTH, WinIn,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, Vector2D, rect, vec2},
     include_background_gfx,
@@ -26,9 +26,8 @@ fn entry(mut gba: agb::Gba) -> ! {
 }
 
 fn main(mut gba: agb::Gba) -> ! {
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
-
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     let logo_bg = get_logo();
     let beach_bg = get_beach();

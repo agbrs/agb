@@ -109,7 +109,7 @@
 //! use agb::display::{
 //!     Palette16, Rgb15, Priority,
 //!     font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
-//!     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
+//!     tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
 //! };
 //!
 //! static SIMPLE_PALETTE: &Palette16 = {
@@ -121,7 +121,6 @@
 //!
 //! # #[agb::doctest]
 //! # fn test(mut gba: agb::Gba) {
-//! VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
 //! let mut bg = RegularBackground::new(
 //!     Priority::P0,
 //!     RegularBackgroundSize::Background32x32,
@@ -140,6 +139,7 @@
 //! // display the background in the usual means
 //!
 //! let mut gfx = gba.graphics.get();
+//! gfx.set_background_palette(0, SIMPLE_PALETTE);
 //! let mut frame = gfx.frame();
 //!
 //! bg.show(&mut frame);

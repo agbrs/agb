@@ -6,9 +6,7 @@
 use agb::{
     display::{
         GraphicsFrame, Priority,
-        tiled::{
-            RegularBackground, RegularBackgroundId, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
-        },
+        tiled::{RegularBackground, RegularBackgroundId, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, num},
     include_aseprite, include_background_gfx, include_wav, rng,
@@ -29,11 +27,11 @@ static THUNDER: SoundData = include_wav!("examples/sfx/thunder.wav");
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    // Set up the background palettes as needed. These are produced by the include_background_gfx! macro call above.
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
-
     // Get access to the graphics struct which is used to manage the frame lifecycle
     let mut gfx = gba.graphics.get();
+
+    // Set up the background palettes as needed. These are produced by the include_background_gfx! macro call above.
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     let mut bg_tiles = RegularBackground::new(
         Priority::P3,

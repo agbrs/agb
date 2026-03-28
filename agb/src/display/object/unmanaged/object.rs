@@ -455,7 +455,7 @@ impl ObjectAffine {
 #[cfg(test)]
 mod tests {
     use crate::{
-        display::{Palette16, Rgb, Rgb15, tiled::VRAM_MANAGER},
+        display::{Palette16, Rgb, Rgb15},
         include_aseprite,
         test_runner::assert_image_output,
     };
@@ -489,11 +489,10 @@ mod tests {
             "examples/gfx/crab.aseprite",
         );
 
-        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0x80, 0x80, 0x80).to_rgb15());
-
         static WHITE_PALETTE: Palette16 = Palette16::new([Rgb15::WHITE; 16]);
 
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palette_colour(0, 0, Rgb::new(0x80, 0x80, 0x80).to_rgb15());
 
         let mut frame = gfx.frame();
         Object::new(sprites::IDLE.sprite(0))

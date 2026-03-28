@@ -11,7 +11,6 @@ use agb::{
         AffineMatrix, GraphicsFrame, HEIGHT, Palette16, Rgb15, WIDTH,
         font::{AlignmentKind, Font, Layout, LayoutSettings, ObjectTextRenderer},
         object::{AffineMatrixObject, AffineMode, Object, ObjectAffine, Size, SpriteVram},
-        tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_font,
@@ -32,8 +31,7 @@ fn entry(gba: agb::Gba) -> ! {
 
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb15::WHITE);
+    gfx.set_background_palette_colour(0, 0, Rgb15::WHITE);
 
     let mut demonstration = AffineDemonstration::new();
     let mut button_controller = ButtonController::new();

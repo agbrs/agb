@@ -93,7 +93,6 @@ mod tests {
             Rgb, Rgb15,
             font::{ChangeColour, Font, Layout, layout::LayoutSettings},
             palette16::Palette16,
-            tiled::VRAM_MANAGER,
         },
         test_runner::assert_image_output,
     };
@@ -105,7 +104,7 @@ mod tests {
     fn check_font_rendering_simple(gba: &mut crate::Gba) {
         let mut gfx = gba.graphics.get();
 
-        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
+        gfx.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
 
         static PALETTE: Palette16 = const {
             let mut palette = [Rgb15::BLACK; 16];
@@ -141,7 +140,7 @@ mod tests {
     fn check_japanese_rendering(gba: &mut crate::Gba) {
         let mut gfx = gba.graphics.get();
 
-        VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
+        gfx.set_background_palette_colour(0, 0, Rgb::new(0xff, 0, 0xff).to_rgb15());
 
         static PALETTE: Palette16 = const {
             let mut palette = [Rgb15::BLACK; 16];

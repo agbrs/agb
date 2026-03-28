@@ -10,16 +10,20 @@ use alloc::{boxed::Box, vec::Vec};
 use agb::{
     display::{
         HEIGHT,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     dma::HBlankDma,
     fixnum::Num,
     include_background_gfx,
 };
 
+include_background_gfx!(mod backgrounds, LOGO => "examples/gfx/test_logo.aseprite");
+
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(backgrounds::PALETTES);
+
     let map = get_logo();
 
     // Create sine wave through as the offset to create the stretchy wave.
@@ -51,15 +55,12 @@ fn main(mut gba: agb::Gba) -> ! {
 }
 
 fn get_logo() -> RegularBackground {
-    include_background_gfx!(mod backgrounds, LOGO => "examples/gfx/test_logo.aseprite");
-
     let mut map = RegularBackground::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
     map.fill_with(&backgrounds::LOGO);
 
     map

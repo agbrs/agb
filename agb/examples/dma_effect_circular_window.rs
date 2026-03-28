@@ -9,7 +9,7 @@ extern crate alloc;
 use agb::{
     display::{
         HEIGHT, WIDTH, WinIn,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     dma::HBlankDma,
     fixnum::{Num, Vector2D, rect, vec2},
@@ -18,6 +18,8 @@ use agb::{
 
 use alloc::{boxed::Box, vec};
 
+include_background_gfx!(mod backgrounds, "000000", LOGO => "examples/gfx/test_logo.aseprite");
+
 #[agb::entry]
 fn entry(mut gba: agb::Gba) -> ! {
     main(gba)
@@ -25,6 +27,7 @@ fn entry(mut gba: agb::Gba) -> ! {
 
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     let map = get_logo();
 
@@ -86,15 +89,12 @@ fn main(mut gba: agb::Gba) -> ! {
 }
 
 fn get_logo() -> RegularBackground {
-    include_background_gfx!(mod backgrounds, "000000", LOGO => "examples/gfx/test_logo.aseprite");
-
     let mut map = RegularBackground::new(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
         TileFormat::FourBpp,
     );
 
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
     map.fill_with(&backgrounds::LOGO);
 
     map
