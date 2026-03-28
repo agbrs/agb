@@ -134,7 +134,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
         agb.sfx.title_screen();
 
         {
-            let title_screen_bg = show_title_screen(&mut agb.sfx);
+            let title_screen_bg = show_title_screen(&mut agb.gfx, &mut agb.sfx);
             let mut score_display = NumberDisplay::new((216, 9).into());
             score_display.set_value(Some(save::load_high_score()));
 
@@ -157,7 +157,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
 
         agb.sfx.frame();
 
-        background::load_palettes();
+        background::load_palettes(&mut agb.gfx);
 
         loop {
             dice = customise::customise_screen(&mut agb, dice.clone(), current_level);
