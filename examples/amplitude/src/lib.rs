@@ -13,7 +13,6 @@ use agb::{
     display::{
         self, AffineMatrix, GraphicsFrame, Palette16, Rgb15,
         object::{AffineMatrixObject, AffineMode, Object, ObjectAffine, SpriteVram, Tag},
-        tiled::VRAM_MANAGER,
     },
     fixnum::{Num, Vector2D, num},
     include_aseprite,
@@ -365,7 +364,7 @@ pub fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
     let sprite_cache = SpriteCache::new();
 
-    VRAM_MANAGER.set_background_palettes(&[Palette16::new([Rgb15::WHITE; 16])]);
+    gfx.set_background_palettes(&[Palette16::new([Rgb15::WHITE; 16])]);
 
     let mut max_score = 0;
 

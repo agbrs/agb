@@ -8,7 +8,7 @@ use agb::{
     Gba,
     display::{
         Priority,
-        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileFormat},
     },
     fixnum::{num, vec2},
     include_aseprite, include_background_gfx,
@@ -42,8 +42,6 @@ fn entry(gba: Gba) -> ! {
 }
 
 fn main(mut gba: Gba) -> ! {
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
-
     let mut floor_bg = RegularBackground::new(
         Priority::P3,
         RegularBackgroundSize::Background32x32,
@@ -58,6 +56,7 @@ fn main(mut gba: Gba) -> ! {
     wall_bg.set_scroll_pos((0, 7));
 
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(tiles::PALETTES);
 
     let mut tile_cache = TileCache::default();
 

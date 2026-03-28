@@ -9,9 +9,7 @@ use agb::{
     display::{
         Priority,
         tile_data::TileData,
-        tiled::{
-            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
-        },
+        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, Vector2D},
     include_background_gfx,
@@ -52,8 +50,7 @@ fn get_game(gba: &mut agb::Gba) -> Game {
     let mut input = agb::input::ButtonController::new();
 
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(games::PALETTES);
+    gfx.set_background_palettes(games::PALETTES);
 
     let mut bg = InfiniteScrolledMap::new(RegularBackground::new(
         Priority::P0,

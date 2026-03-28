@@ -1,7 +1,7 @@
 use agb::{
     display::{
-        GraphicsFrame, Priority,
-        tiled::{RegularBackground, RegularBackgroundSize, TileSet, TileSetting, VRAM_MANAGER},
+        Graphics, GraphicsFrame, Priority,
+        tiled::{RegularBackground, RegularBackgroundSize, TileSet, TileSetting},
     },
     include_background_gfx, rng,
 };
@@ -16,8 +16,8 @@ include_background_gfx!(mod backgrounds, "121105",
     descriptions2 => deduplicate "gfx/descriptions2.png",
 );
 
-pub fn load_palettes() {
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+pub fn load_palettes(gfx: &mut Graphics) {
+    gfx.set_background_palettes(backgrounds::PALETTES);
 }
 
 pub(crate) fn load_help_text(
@@ -85,14 +85,14 @@ fn create_background_map(stars_tileset: &TileSet) -> RegularBackground {
     map
 }
 
-pub fn show_title_screen(sfx: &mut Sfx) -> RegularBackground {
+pub fn show_title_screen(gfx: &mut Graphics, sfx: &mut Sfx) -> RegularBackground {
     let mut background = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
         backgrounds::title.tiles.format(),
     );
     background.set_scroll_pos((0i16, 0));
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     background.fill_with(&backgrounds::title);
     sfx.frame();
