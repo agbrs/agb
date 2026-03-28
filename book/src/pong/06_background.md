@@ -60,13 +60,11 @@ To show the background on the screen, you'll need to do 3 things:
 
 ## 1. Register the palettes
 
-The palettes will need registering which you do with a call to [`VRAM_MANAGER.set_background_palettes()`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.set_background_palettes).
+The palettes will need registering which you do with a call to [`gfx.set_background_palettes()`](https://docs.rs/agb/latest/agb/display/struct.Graphics.html#method.set_background_palettes).
 
 ```rust
-use agb::display::tiled::VRAM_MANAGER;
-
 // near the top of main()
-VRAM_MANAGER.set_background_palettes(background::PALETTES);
+gfx.set_background_palettes(background::PALETTES);
 ```
 
 ## 2. Creating the background tiles

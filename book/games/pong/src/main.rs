@@ -15,17 +15,17 @@ extern crate alloc;
 
 use agb::{
     display::{
-        GraphicsFrame, Priority, WIDTH,
         object::Object,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
+        GraphicsFrame, Priority, WIDTH,
     },
-    fixnum::{Num, Rect, Vector2D, num, rect, vec2},
+    fixnum::{num, rect, vec2, Num, Rect, Vector2D},
     include_aseprite, include_background_gfx, include_wav,
     input::ButtonController,
     sound::mixer::{Frequency, Mixer, SoundChannel, SoundData},
 };
 
-use agb_tracker::{Track, Tracker, include_xm};
+use agb_tracker::{include_xm, Track, Tracker};
 
 type Fixed = Num<i32, 8>;
 
@@ -155,7 +155,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 
     // Make sure the background palettes are set up
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     let mut bg = RegularBackground::new(
         Priority::P3,
