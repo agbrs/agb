@@ -13,13 +13,13 @@
 
 use agb::{
     display::{
+        GraphicsFrame, Priority,
         object::{Object, SpriteVram},
         tiled::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, TileSetting,
         },
-        GraphicsFrame, Priority,
     },
-    fixnum::{num, rect, vec2, Num, Rect, Vector2D},
+    fixnum::{Num, Rect, Vector2D, num, rect, vec2},
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
 };
