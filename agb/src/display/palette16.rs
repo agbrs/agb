@@ -6,7 +6,8 @@ use super::Rgb15;
 /// The Game Boy Advance can have up to 16, 16 colour palettes active at once. For
 /// objects, these are loaded dynamically as needed, but for backgrounds you will
 /// need to manually load the palettes using
-/// [`VRamManager::set_background_palette`](crate::display::tiled::VRamManager::set_background_palette)
+/// [`Graphics::set_background_palette`](crate::display::Graphics::set_background_palette)
+/// or [`GraphicsFrame::set_background_palette`](crate::display::GraphicsFrame::set_background_palette)
 #[repr(C)]
 #[derive(Clone)]
 pub struct Palette16 {
