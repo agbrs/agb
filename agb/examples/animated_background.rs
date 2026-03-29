@@ -9,7 +9,7 @@ use core::cmp::Ordering;
 use agb::{
     display::{
         Priority,
-        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileEffect, TileSetting},
     },
     include_background_gfx,
 };
@@ -35,7 +35,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let tileset = &background::platformer.tiles;
 
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     let mut bg = RegularBackground::new(
         Priority::P3,
@@ -95,7 +95,7 @@ fn main(mut gba: agb::Gba) -> ! {
         if frame_skip == 0 {
             // note that we're not even showing the frames again, we're replacing the tile data
             // in video RAM which will show up when that frame needs to be shown
-            VRAM_MANAGER.replace_tile(
+            gfx.replace_tile(
                 tileset,
                 background_tile_ids::SUNFLOWER.start,
                 tileset,

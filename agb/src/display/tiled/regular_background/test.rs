@@ -17,7 +17,7 @@ fn test_commit_in_basic_case(gba: &mut Gba) {
     vblank.wait_for_vblank();
 
     let mut graphics = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
+    graphics.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackground::new(
         Priority::P0,
@@ -46,7 +46,7 @@ fn test_commit_when_background_tiles_are_modified_after_show(gba: &mut Gba) {
     vblank.wait_for_vblank();
 
     let mut graphics = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
+    graphics.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackground::new(
         Priority::P0,
@@ -83,7 +83,7 @@ fn test_commit_when_background_tiles_are_dropped_after_show(gba: &mut Gba) {
     vblank.wait_for_vblank();
 
     let mut graphics = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
+    graphics.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackground::new(
         Priority::P0,
@@ -116,7 +116,7 @@ fn test_commit_when_background_tiles_rendered_twice(gba: &mut Gba) {
     vblank.wait_for_vblank();
 
     let mut graphics = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(agb_logo::PALETTES);
+    graphics.set_background_palettes(agb_logo::PALETTES);
 
     let mut bg_data = RegularBackground::new(
         Priority::P0,
@@ -176,7 +176,7 @@ fn test_dynamic_tile_16_checkerboard(gba: &mut Gba) {
     const YELLOW: Rgb15 = Rgb::new(255, 255, 0).to_rgb15();
     const GREY: Rgb15 = Rgb::new(128, 128, 128).to_rgb15();
 
-    VRAM_MANAGER.set_background_palette(
+    graphics.set_background_palette(
         0,
         &Palette16::new([
             RED,
@@ -240,7 +240,7 @@ fn test_dynamic_tile_256_gradient(gba: &mut Gba) {
         let red = ((i % 32) * 8) as u8;
         let green = (((i / 8) % 32) * 8) as u8;
         let blue = (((i / 4) % 32) * 8) as u8;
-        VRAM_MANAGER.set_background_palette_colour_256(i, Rgb::new(red, green, blue).to_rgb15());
+        graphics.set_background_palette_colour_256(i, Rgb::new(red, green, blue).to_rgb15());
     }
 
     let mut bg = RegularBackground::new(
@@ -286,7 +286,7 @@ fn test_dynamic_tile_16_multiple_tiles(gba: &mut Gba) {
     const CYAN: Rgb15 = Rgb::new(0, 255, 255).to_rgb15();
     const MAGENTA: Rgb15 = Rgb::new(255, 0, 255).to_rgb15();
 
-    VRAM_MANAGER.set_background_palette(
+    graphics.set_background_palette(
         0,
         &Palette16::new([
             Rgb15::BLACK, // 0 - transparent/black

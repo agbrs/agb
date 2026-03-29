@@ -44,11 +44,10 @@ Although the Game Boy Advance can display 32,768 colours, the background tiles a
 You will need to tell the video hardware what colour to use for each of the pixels in the `TileSet`.
 
 This is stored in the palette, which is also included in the module created by `include_background_gfx!`.
-To set the palettes available for backgrounds, use the [`set_background_palettes`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.set_background_palettes) method on the `VRAM_MANAGER` instance.
+To set the palettes available for backgrounds, use the [`set_background_palettes`](https://docs.rs/agb/latest/agb/display/struct.Graphics.html#method.set_background_palettes) method on the `Graphics` instance.
 
 ```rust
 use agb::{
-    display::tiled::VRAM_MANAGER,
     include_background_gfx,
 };
 
@@ -58,8 +57,9 @@ include_background_gfx!(
 );
 
 #[agb::entry]
-fn main() -> ! {
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+fn main(mut gba: agb::Gba) -> ! {
+    let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(background::PALETTES);
 
     loop {}
 }
@@ -93,7 +93,6 @@ use agb::{
     display::Priority,
     display::tiled::{
         RegularBackground, RegularBackgroundSize,
-        VRAM_MANAGER,
     },
     include_background_gfx,
 };
@@ -104,8 +103,9 @@ include_background_gfx!(
 );
 
 #[agb::entry]
-fn main() -> ! {
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+fn main(mut gba: agb::Gba) -> ! {
+    let mut gfx = gba.graphics.get();
+    gfx.set_background_palettes(background::PALETTES);
 
     // Create the background tiles ready for us to display on the screen
     let mut tiles = RegularBackground::new(
@@ -195,7 +195,6 @@ You can alter what colour this is in the [`include_background_gfx!`](https://doc
 
 ```rust
 use agb::{
-    display::tiled::VRAM_MANAGER,
     include_background_gfx,
 };
 
@@ -206,11 +205,12 @@ include_background_gfx!(
 );
 
 #[agb::entry]
-fn main() -> ! {
+fn main(mut gba: &mut agb::Gba) -> ! {
+    let mut gfx = gba.graphics.get();
     // by setting the background colour here, the first colour will be the sky colour,
     // so rather than filling the screen with black you will now instead have it
     // filled with blue. Even though we don't show anything yet.
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     loop {}
 }
@@ -291,10 +291,10 @@ But for backgrounds imported using `include_background_gfx!()` you probably don'
 If you have some tiles you'd like to animate (such as some flowing water, or flowers blowing in the breeze), it can be quite inefficient to replace every instance of a tile with the animation every frame.
 What's much faster is just replacing the one copy of the tile that's been repeated across the background 10s or even 100s of times rather than resetting the entire tile data.
 
-To change which tile is being used, use the [`replace_tile`](https://docs.rs/agb/latest/agb/display/tiled/struct.VRamManager.html#method.replace_tile) method on the `VRAM_MANAGER` instance.
+To change which tile is being used, use the [`replace_tile`](https://docs.rs/agb/latest/agb/display/struct.Graphics.html#method.replace_tile) method on the `Graphics` instance.
 
 ```rust
-VRAM_MANAGER.replace_tile(
+gfx.replace_tile(
     tileset1, 4, tileset2, 5
 );
 ```
@@ -397,9 +397,7 @@ include_background_gfx!(
 Palette setup works in exactly the same way as [regular backgrounds](./backgrounds.md#palette-setup).
 
 ```rust
-use agb::display::tiled::VRAM_MANAGER;
-
-VRAM_MANAGER.set_backgroud_palettes(background::PALETTES);
+gfx.set_backgroud_palettes(background::PALETTES);
 ```
 
 ### Create the `AffineBackground`

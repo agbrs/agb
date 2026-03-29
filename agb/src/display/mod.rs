@@ -61,7 +61,7 @@
 //!
 //! This method takes ownership of the current `frame` instance, so you won't be able to use it for any further calls once this is done.
 //! You will need to create a new frame object from the `gfx` instance.
-use crate::{dma, interrupt::VBlank, memory_mapped::MemoryMapped};
+use crate::{display::tiled::TileSet, dma, interrupt::VBlank, memory_mapped::MemoryMapped};
 
 use alloc::{borrow::Cow, boxed::Box};
 use bilge::prelude::*;
@@ -132,7 +132,7 @@ impl GraphicsDist {
 /// # fn test(mut gba: Gba) {
 /// use agb::display::{
 ///     Priority,
-///     tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+///     tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
 /// };
 ///
 /// // This is an instance of Graphics
@@ -192,6 +192,97 @@ impl<'gba> Graphics<'gba> {
 
             background_palette: Cow::Borrowed(VRAM_MANAGER.vram_background_palette()),
         }
+    }
+
+    /// Sets all background palettes based on the entries given in `palettes`. Note that the GameBoy Advance
+    /// can have at most 16 palettes loaded at once, so only the first 16 will be loaded (although this
+    /// array can be shorter if you don't need all 16).
+    pub fn set_background_palettes(&mut self, palettes: &[Palette16]) {
+        VRAM_MANAGER.set_background_palettes(palettes);
+    }
+
+    /// Sets a single colour for a given background palette. Takes effect immediately
+    pub fn set_background_palette_colour(
+        &mut self,
+        pal_index: usize,
+        colour_index: usize,
+        colour: Rgb15,
+    ) {
+        VRAM_MANAGER.set_background_palette_colour(pal_index, colour_index, colour);
+    }
+
+    /// Sets a single colour in a 256 colour palette. `colour_index` must be less than 256.
+    pub fn set_background_palette_colour_256(&mut self, colour_index: usize, colour: Rgb15) {
+        assert!(colour_index < 256);
+        self.set_background_palette_colour(colour_index / 16, colour_index % 16, colour);
+    }
+
+    /// Gets the index of the colour for a given background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_16(&self, palette_index: usize, colour: Rgb15) -> Option<usize> {
+        VRAM_MANAGER.find_colour_index_16(palette_index, colour)
+    }
+
+    /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
+    /// Note that `pal_index` must be in the range 0..=15 as there are only 16 palettes available on
+    /// the GameBoy Advance.
+    pub fn set_background_palette(&self, pal_index: u8, palette: &Palette16) {
+        VRAM_MANAGER.set_background_palette(pal_index, palette);
+    }
+
+    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
+    #[must_use]
+    pub fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
+        for i in 0..16 {
+            if let Some(index) = self.find_colour_index_16(i, colour) {
+                return Some(i * 16 + index);
+            }
+        }
+
+        None
+    }
+
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _regular_ backgrounds. Tiles in affine backgrounds should use
+    /// [`replace_tile_affine()`](Self::replace_tile_affine).
+    pub fn replace_tile(
+        &self,
+        source_tile_set: &TileSet,
+        source_tile: u16,
+        target_tile_set: &TileSet,
+        target_tile: u16,
+    ) {
+        VRAM_MANAGER.replace_tile(source_tile_set, source_tile, target_tile_set, target_tile);
+    }
+
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _affine_ backgrounds. Tiles in regular backgrounds should use
+    /// [`replace_tile()`](Self::replace_tile).
+    pub fn replace_tile_affine(
+        &self,
+        source_tile_set: &TileSet,
+        source_tile: u16,
+        target_tile_set: &TileSet,
+        target_tile: u16,
+    ) {
+        VRAM_MANAGER.replace_tile_affine(
+            source_tile_set,
+            source_tile,
+            target_tile_set,
+            target_tile,
+        );
     }
 }
 
@@ -261,7 +352,7 @@ impl GraphicsFrame<'_> {
     /// can have at most 16 palettes loaded at once, so only the first 16 will be loaded (although this
     /// array can be shorter if you don't need all 16).
     ///
-    /// Unlike [`VRAM_MANAGER.set_background_palettes()`](crate::display::tiled::VRamManager::set_background_palettes) which
+    /// Unlike [`Graphics.set_background_palettes()`](crate::display::Graphics::set_background_palettes) which
     /// takes effect immediately, this version takes effect on [`.commit()`](GraphicsFrame::commit).
     /// This ensures that palette changes are synchronised with background and other graphical updates.
     pub fn set_background_palettes(&mut self, palettes: &[Palette16]) {

@@ -8,7 +8,7 @@ use agb::{
         HEIGHT, Priority, WIDTH,
         tiled::{
             AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
-            AffineMatrixBackground, VRAM_MANAGER,
+            AffineMatrixBackground,
         },
     },
     fixnum::{Num, Vector2D, num, vec2},
@@ -25,8 +25,7 @@ include_background_gfx!(mod backgrounds,
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+    gfx.set_background_palettes(backgrounds::PALETTES);
 
     let mut bg = create_background();
 

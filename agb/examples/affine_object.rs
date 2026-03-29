@@ -7,7 +7,6 @@ use agb::{
     display::{
         AffineMatrix, GraphicsFrame, HEIGHT, Rgb15, WIDTH,
         object::{AffineMatrixObject, AffineMode, Object, ObjectAffine, SpriteVram},
-        tiled::VRAM_MANAGER,
     },
     fixnum::{Num, num, vec2},
     include_aseprite,
@@ -48,8 +47,7 @@ fn show_with_boxes(matrix: AffineMatrix, height: i32, frame: &mut GraphicsFrame)
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb15::WHITE);
+    gfx.set_background_palette_colour(0, 0, Rgb15::WHITE);
 
     let mut angle: Num<i32, 8> = num!(0);
 

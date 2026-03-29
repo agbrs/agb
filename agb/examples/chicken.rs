@@ -8,9 +8,7 @@ use agb::{
     display::{
         GraphicsFrame, HEIGHT, WIDTH,
         object::{Object, Sprite},
-        tiled::{
-            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
-        },
+        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, Vector2D, num, rect, vec2},
     include_aseprite, include_background_gfx,
@@ -75,7 +73,7 @@ fn entry(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
     let mut input = agb::input::ButtonController::new();
 
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     let background = RegularBackground::new(
         agb::display::Priority::P0,

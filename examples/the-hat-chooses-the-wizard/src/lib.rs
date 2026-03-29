@@ -10,9 +10,7 @@ use agb::{
     display::{
         GraphicsFrame, HEIGHT, Priority, WIDTH,
         object::Object,
-        tiled::{
-            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
-        },
+        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{FixedNum, Vector2D, vec2},
     input::{self, Button, ButtonController},
@@ -749,7 +747,7 @@ impl<'a> PlayingLevel<'a> {
 
 pub fn main(mut agb: agb::Gba) -> ! {
     let mut gfx = agb.graphics.get();
-    VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
+    gfx.set_background_palettes(tile_sheet::PALETTES);
 
     let tileset = &tile_sheet::background.tiles;
     let mut mixer = agb.mixer.mixer(Frequency::Hz10512);
@@ -761,7 +759,7 @@ pub fn main(mut agb: agb::Gba) -> ! {
     splash_screen::show_splash_screen(&mut gfx, splash_screen::SplashScreen::Start, &mut sfx);
 
     loop {
-        VRAM_MANAGER.set_background_palettes(tile_sheet::PALETTES);
+        gfx.set_background_palettes(tile_sheet::PALETTES);
 
         let mut current_level = 0;
 

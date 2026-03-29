@@ -85,8 +85,7 @@ Update the `main` function to create and show the player:
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    gfx.set_background_palettes(tiles::PALETTES);
 
     let level = levels::LEVELS[0];
     let mut bg = World::new(level);
@@ -241,8 +240,7 @@ Update the main loop to call `update`:
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    gfx.set_background_palettes(tiles::PALETTES);
 
     let level = levels::LEVELS[0];
     let mut bg = World::new(level);

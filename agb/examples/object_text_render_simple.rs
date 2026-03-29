@@ -9,7 +9,6 @@ use agb::{
         Palette16, Rgb, Rgb15,
         font::{Font, Layout, LayoutSettings, ObjectTextRenderer},
         object::Size,
-        tiled::VRAM_MANAGER,
     },
     fixnum::vec2,
     include_font,
@@ -35,7 +34,7 @@ fn entry(gba: agb::Gba) -> ! {
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
+    gfx.set_background_palette_colour(0, 0, Rgb::new(0, 97, 132).into());
 
     let layout = Layout::new(
         "Hello, this is some text that I want to display!",

@@ -49,10 +49,11 @@ This only works when running the unit test under the `mgba-test-runner` installe
 ```rust
 #[test_case]
 fn test_background_shows_correctly(gba: &mut Gba) {
-    // you should never assume that the palettes are set up correctly in a test
-    VRAM_MANAGER.set_background_palettes(...);
-
     let mut gfx = gba.graphics.get();
+
+    // you should never assume that the palettes are set up correctly in a test
+    gfx.set_background_palettes(...);
+
     let mut frame = gfx.frame();
     show_some_background(&mut frame);
     frame.commit();

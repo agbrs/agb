@@ -1,5 +1,5 @@
 use agb::{
-    display::tiled::{RegularBackground, VRAM_MANAGER},
+    display::{Graphics, tiled::RegularBackground},
     include_background_gfx,
 };
 
@@ -14,8 +14,8 @@ mod tilemaps {
     include!(concat!(env!("OUT_DIR"), "/tilemaps.rs"));
 }
 
-pub fn load_palettes() {
-    VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+pub fn load_palettes(gfx: &mut Graphics) {
+    gfx.set_background_palettes(backgrounds::PALETTES);
 }
 
 pub fn load_ui(map: &mut RegularBackground) {

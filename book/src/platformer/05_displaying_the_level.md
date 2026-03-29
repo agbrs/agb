@@ -16,7 +16,7 @@ use agb::{
         GraphicsFrame, Priority,
         tiled::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize,
-            TileFormat, TileSetting, VRAM_MANAGER,
+            TileFormat, TileSetting,
         },
     },
     fixnum::{Rect, Vector2D, rect, vec2},
@@ -104,7 +104,7 @@ Now we can write the main function to use our `World`:
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
 
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    gfx.set_background_palettes(tiles::PALETTES);
     let mut bg = World::new(levels::LEVELS[0]);
 
     loop {

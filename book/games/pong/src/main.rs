@@ -17,7 +17,7 @@ use agb::{
     display::{
         GraphicsFrame, Priority, WIDTH,
         object::Object,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, Rect, Vector2D, num, rect, vec2},
     include_aseprite, include_background_gfx, include_wav,
@@ -155,7 +155,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 
     // Make sure the background palettes are set up
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     let mut bg = RegularBackground::new(
         Priority::P3,

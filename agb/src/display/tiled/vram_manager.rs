@@ -521,14 +521,14 @@ impl Drop for DynamicTile256 {
 /// memory managed by the `VRamManager` and are freed when no longer in use.
 ///
 /// All interactions for the VRamManager is done via the static [`VRAM_MANAGER`] instance.
-pub struct VRamManager {
+pub(crate) struct VRamManager {
     inner: SyncUnsafeCell<VRamManagerInner>,
 }
 
 /// The global instance of the VRamManager. You should always use this and never attempt to
 /// construct one yourself.
 // SAFETY: This is the _only_ one and `init()` is called in `new_in_entry` on the GBA struct
-pub static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
+pub(crate) static VRAM_MANAGER: VRamManager = unsafe { VRamManager::new() };
 
 impl VRamManager {
     const unsafe fn new() -> Self {
@@ -693,22 +693,10 @@ impl VRamManager {
         self.with(|inner| inner.set_background_palette_colour(pal_index, colour_index, colour));
     }
 
-    /// Sets a single colour in a 256 colour palette. `colour_index` must be less than 256.
-    pub fn set_background_palette_colour_256(&self, colour_index: usize, colour: Rgb15) {
-        assert!(colour_index < 256);
-        self.set_background_palette_colour(colour_index / 16, colour_index % 16, colour);
-    }
-
     /// Gets the index of the colour for a given background palette, or None if it doesn't exist
     #[must_use]
     pub fn find_colour_index_16(&self, palette_index: usize, colour: Rgb15) -> Option<usize> {
         self.with(|inner| inner.find_colour_index_16(palette_index, colour))
-    }
-
-    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
-    #[must_use]
-    pub fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
-        self.with(|inner| inner.find_colour_index_256(colour))
     }
 }
 
@@ -1042,12 +1030,6 @@ impl VRamManagerInner {
         assert!(palette_index < 16);
 
         (0..16).find(|i| PALETTE_BACKGROUND.get(palette_index * 16 + i) == colour)
-    }
-
-    /// Gets the index of the colour in the entire background palette, or None if it doesn't exist
-    #[must_use]
-    fn find_colour_index_256(&self, colour: Rgb15) -> Option<usize> {
-        (0..256).find(|&i| PALETTE_BACKGROUND.get(i) == colour)
     }
 }
 

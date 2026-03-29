@@ -10,7 +10,7 @@ use agb::{
     display::{
         Priority,
         object::Object,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
@@ -25,7 +25,7 @@ include_background_gfx!(mod bg, BG => "examples/gfx/object_z_order_background.as
 #[agb::entry]
 fn entry(mut gba: Gba) -> ! {
     let mut gfx = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(bg::PALETTES);
+    gfx.set_background_palettes(bg::PALETTES);
 
     let mut background = RegularBackground::new(
         Priority::P0,

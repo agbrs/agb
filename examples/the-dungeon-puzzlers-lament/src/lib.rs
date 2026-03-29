@@ -55,7 +55,7 @@ impl<'gba> Agb<'gba> {
 pub fn entry(mut gba: agb::Gba) -> ! {
     let mut save_manager = save::init_save(&mut gba).expect("Failed to init save");
 
-    let gfx = gba.graphics.get();
+    let mut gfx = gba.graphics.get();
     let mut ui_bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
@@ -69,7 +69,7 @@ pub fn entry(mut gba: agb::Gba) -> ! {
     );
     backgrounds::load_ending_page(&mut ending_bg);
 
-    backgrounds::load_palettes();
+    backgrounds::load_palettes(&mut gfx);
     backgrounds::load_ui(&mut ui_bg);
 
     let mut input = agb::input::ButtonController::new();

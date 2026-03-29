@@ -7,7 +7,7 @@ use agb::{
     display::{
         GraphicsFrame, Priority,
         object::{Object, SpriteVram},
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{Num, Vector2D, num, vec2},
     include_aseprite, include_background_gfx,
@@ -46,11 +46,11 @@ impl Player {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    // Set up the background palettes as needed. These are produced by the include_background_gfx! macro call above.
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
-
     // Get access to the graphics struct which is used to manage the frame lifecycle
     let mut gfx = gba.graphics.get();
+
+    // Set up the background palettes as needed. These are produced by the include_background_gfx! macro call above.
+    gfx.set_background_palettes(background::PALETTES);
 
     let mut player = Player::new(vec2(num!(100.), num!(100.)));
     let mut button_controller = ButtonController::new();

@@ -346,7 +346,7 @@ mod test {
             object::{AffineMatrixObject, AffineMode, GraphicsMode, Object, ObjectAffine},
             tiled::{
                 AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour,
-                RegularBackground, RegularBackgroundSize, VRAM_MANAGER,
+                RegularBackground, RegularBackgroundSize,
             },
         },
         fixnum::{num, rect, vec2},
@@ -366,8 +366,8 @@ mod test {
 
     #[test_case]
     fn can_blend_to_white(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -389,8 +389,8 @@ mod test {
 
     #[test_case]
     fn can_blend_to_white_in_window(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -420,8 +420,8 @@ mod test {
 
     #[test_case]
     fn can_blend_two_layers_into_each_other(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -450,8 +450,8 @@ mod test {
 
     #[test_case]
     fn can_blend_affine_backgrounds(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = AffineBackground::new(
             Priority::P0,
@@ -483,8 +483,8 @@ mod test {
 
     #[test_case]
     fn can_blend_objects_to_create_transparency_effects(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -514,8 +514,8 @@ mod test {
 
     #[test_case]
     fn can_blend_object_to_white(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -542,8 +542,8 @@ mod test {
 
     #[test_case]
     fn can_blend_object_to_black(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -570,8 +570,8 @@ mod test {
 
     #[test_case]
     fn can_blend_object_shape_to_black(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -604,8 +604,8 @@ mod test {
 
     #[test_case]
     fn can_blend_affine_object_to_black(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -634,8 +634,8 @@ mod test {
 
     #[test_case]
     fn can_fade_and_have_object_transparency(gba: &mut Gba) {
-        VRAM_MANAGER.set_background_palettes(background::PALETTES);
         let mut gfx = gba.graphics.get();
+        gfx.set_background_palettes(background::PALETTES);
 
         let mut bg = RegularBackground::new(
             Priority::P0,

@@ -17,7 +17,6 @@ use agb::{
         object::{Object, SpriteVram},
         tiled::{
             InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, TileSetting,
-            VRAM_MANAGER,
         },
     },
     fixnum::{Num, Rect, Vector2D, num, rect, vec2},
@@ -261,8 +260,7 @@ impl World {
 // and interrupt handlers correctly.
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    gfx.set_background_palettes(tiles::PALETTES);
 
     let mut level = 0;
     let mut world = World::new(levels::LEVELS[level]);

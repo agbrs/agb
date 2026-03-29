@@ -197,7 +197,7 @@ extern crate self as agb;
 /// # #![no_main]
 /// use agb::{
 ///     display::{
-///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackground, VRAM_MANAGER},
+///         tiled::{RegularBackgroundSize, TileFormat, TileSet, TileSetting, RegularBackground},
 ///         Priority,
 ///     },
 ///     include_background_gfx,
@@ -209,8 +209,9 @@ extern crate self as agb;
 /// );
 ///
 /// # #[agb::doctest]
-/// # fn test(_: agb::Gba) {
-/// VRAM_MANAGER.set_background_palettes(backgrounds::PALETTES);
+/// # fn test(mut gba: agb::Gba) {
+/// let mut gfx = gba.graphics.get();
+/// gfx.set_background_palettes(backgrounds::PALETTES);
 ///
 /// let mut bg = RegularBackground::new(
 ///     Priority::P0,

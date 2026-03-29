@@ -155,8 +155,7 @@ Update the main function to pass the level to `update`:
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-
-    VRAM_MANAGER.set_background_palettes(tiles::PALETTES);
+    gfx.set_background_palettes(tiles::PALETTES);
 
     let level = levels::LEVELS[0];
     let mut bg = World::new(level);

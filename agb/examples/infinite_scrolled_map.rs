@@ -6,7 +6,7 @@
 use agb::{
     display::{
         Priority,
-        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, VRAM_MANAGER},
+        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize},
     },
     fixnum::vec2,
     include_background_gfx,
@@ -23,7 +23,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let tileset = &big_map::big_map.tiles;
 
-    VRAM_MANAGER.set_background_palettes(big_map::PALETTES);
+    gfx.set_background_palettes(big_map::PALETTES);
 
     let bg = RegularBackground::new(
         Priority::P0,

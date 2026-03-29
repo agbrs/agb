@@ -11,7 +11,7 @@ extern crate alloc;
 use agb::{
     display::{
         Rgb, Rgb15,
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     dma::HBlankDma,
     include_background_gfx, include_colours,
@@ -36,9 +36,9 @@ fn main(mut gba: agb::Gba) -> ! {
     );
 
     map.fill_with(&sky_background::SKY);
-    VRAM_MANAGER.set_background_palettes(sky_background::PALETTES);
+    gfx.set_background_palettes(sky_background::PALETTES);
 
-    let background_colour_index = VRAM_MANAGER
+    let background_colour_index: usize = gfx
         .find_colour_index_16(0, DARKEST_SKY_BLUE.to_rgb15())
         .expect("Should contain darkest sky blue colour");
 

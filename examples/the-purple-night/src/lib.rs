@@ -16,9 +16,7 @@ use agb::{
     display::{
         GraphicsFrame, HEIGHT, Priority, Rgb15, WIDTH,
         object::{Object, Sprite, Tag},
-        tiled::{
-            InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER,
-        },
+        tiled::{InfiniteScrolledMap, RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::{FixedNum, Rect, Vector2D, num, vec2},
     input::{Button, ButtonController, Tri},
@@ -1762,7 +1760,7 @@ impl Game {
                 self.offset.x = (tilemap::WIDTH * 8 - 248).into();
             }
             MoveState::FollowingPlayer => {
-                Game::update_sunrise(self.sunrise_timer);
+                Game::update_sunrise(self.sunrise_timer, frame);
                 if self.sunrise_timer < 120 {
                     self.sunrise_timer += 1;
                 } else {
@@ -1784,7 +1782,7 @@ impl Game {
                     if boss.gone {
                         self.fade_count += 1;
                         self.fade_count = self.fade_count.min(600);
-                        Game::update_fade_out(self.fade_count);
+                        Game::update_fade_out(self.fade_count, frame);
                     }
                 }
             }
@@ -2020,7 +2018,7 @@ impl Game {
         }
     }
 
-    fn update_sunrise(time: u16) {
+    fn update_sunrise(time: u16, frame: &mut GraphicsFrame) {
         let mut modified_palette = background::PALETTES[0].clone();
 
         let a = modified_palette.colour(0);
@@ -2031,10 +2029,10 @@ impl Game {
 
         let modified_palettes = [modified_palette];
 
-        VRAM_MANAGER.set_background_palettes(&modified_palettes);
+        frame.set_background_palettes(&modified_palettes);
     }
 
-    fn update_fade_out(time: u16) {
+    fn update_fade_out(time: u16, frame: &mut GraphicsFrame) {
         let mut modified_palette = background::PALETTES[0].clone();
 
         let c = modified_palette.colour(1);
@@ -2051,7 +2049,7 @@ impl Game {
 
         let modified_palettes = [modified_palette];
 
-        VRAM_MANAGER.set_background_palettes(&modified_palettes);
+        frame.set_background_palettes(&modified_palettes);
     }
 
     fn new(level: Level, start_at_boss: bool) -> Self {
@@ -2091,7 +2089,7 @@ fn game_with_level(gba: &mut agb::Gba) {
     let mut start_at_boss = false;
 
     let mut gfx = gba.graphics.get();
-    VRAM_MANAGER.set_background_palettes(background::PALETTES);
+    gfx.set_background_palettes(background::PALETTES);
 
     loop {
         let backdrop = InfiniteScrolledMap::new(RegularBackground::new(

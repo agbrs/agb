@@ -98,7 +98,7 @@ impl AffineBackgroundSize {
 /// # fn foo(gba: &mut Gba) {
 /// use agb::display::{
 ///     Priority,
-///     tiled::{AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, VRAM_MANAGER},
+///     tiled::{AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour},
 /// };
 ///
 /// let mut gfx = gba.graphics.get();

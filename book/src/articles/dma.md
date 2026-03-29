@@ -75,7 +75,6 @@ The `DmaControllable` for this is over a single [`Rgb15`](https://docs.rs/agb/la
 ```rust
 use agb::{
     include_colours,
-    display::tiled::VRAM_MANAGER,
     dma::HBlankDma,
 };
 
@@ -89,7 +88,7 @@ const DARKEST_SKY_BLUE: Rgb = Rgb::new(0x00, 0xbd, 0xff);
 
 // Find the index of the colour because it could be anywhere in the palette
 // (since the palette was created via `include_background_gfx!`).
-let background_colour_index = VRAM_MANAGER
+let background_colour_index = frame
     .find_colour_index_16(0, DARKEST_SKY_BLUE.to_rgb15())
     .expect("Should contain the dark sky blue colour");
 

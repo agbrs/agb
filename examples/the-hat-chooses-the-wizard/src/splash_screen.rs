@@ -1,7 +1,7 @@
 use super::sfx::SfxPlayer;
 use agb::display::{
     Graphics, Priority,
-    tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+    tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
 };
 
 agb::include_background_gfx!(mod splash_screens,
@@ -33,7 +33,7 @@ pub fn show_splash_screen(gfx: &mut Graphics, which: SplashScreen, sfx: &mut Sfx
 
     map.fill_with(tile_data);
 
-    VRAM_MANAGER.set_background_palettes(splash_screens::PALETTES);
+    gfx.set_background_palettes(splash_screens::PALETTES);
 
     loop {
         let mut frame = gfx.frame();

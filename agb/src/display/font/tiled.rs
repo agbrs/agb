@@ -18,7 +18,7 @@ use crate::{
 /// use agb::display::{
 ///     Palette16, Rgb15, Priority,
 ///     font::{Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
-///     tiled::{RegularBackground, VRAM_MANAGER, RegularBackgroundSize, TileFormat},
+///     tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
 /// };
 ///
 /// static SIMPLE_PALETTE: &Palette16 = {
@@ -30,7 +30,6 @@ use crate::{
 ///
 /// # #[agb::doctest]
 /// # fn test(mut gba: agb::Gba) {
-/// VRAM_MANAGER.set_background_palette(0, SIMPLE_PALETTE);
 /// let mut bg = RegularBackground::new(
 ///     Priority::P0,
 ///     RegularBackgroundSize::Background32x32,
@@ -50,7 +49,9 @@ use crate::{
 /// // display the background in the usual means
 ///
 /// let mut gfx = gba.graphics.get();
-/// let mut frame = gfx.frame();
+/// gfx.set_background_palette(0, SIMPLE_PALETTE);
+///
+///  let mut frame = gfx.frame();
 ///
 /// bg.show(&mut frame);
 /// # }
@@ -152,7 +153,7 @@ mod test {
             Priority, Rgb15,
             font::{ChangeColour, Font, Layout, layout::LayoutSettings},
             palette16::Palette16,
-            tiled::{RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+            tiled::{RegularBackgroundSize, TileFormat},
         },
         test_runner::assert_image_output,
         timer::Divider,
@@ -173,7 +174,7 @@ mod test {
             Palette16::new(palette)
         };
 
-        VRAM_MANAGER.set_background_palette(0, &PALETTE);
+        gfx.set_background_palette(0, &PALETTE);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -216,7 +217,7 @@ mod test {
             Palette16::new(palette)
         };
 
-        VRAM_MANAGER.set_background_palette(0, &PALETTE);
+        gfx.set_background_palette(0, &PALETTE);
 
         let mut bg = RegularBackground::new(
             Priority::P0,
@@ -244,15 +245,6 @@ mod test {
 
     #[test_case]
     fn background_text_single_group(gba: &mut Gba) {
-        static PALETTE: Palette16 = const {
-            let mut palette = [Rgb15::BLACK; 16];
-            palette[1] = Rgb15::WHITE;
-            palette[2] = Rgb15(0x10_7C);
-            Palette16::new(palette)
-        };
-
-        VRAM_MANAGER.set_background_palette(0, &PALETTE);
-
         let mut bg = RegularBackground::new(
             Priority::P0,
             RegularBackgroundSize::Background32x64,

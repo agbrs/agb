@@ -7,7 +7,7 @@ use agb::{
     display::{
         Priority, Rgb15, WIDTH,
         font::{AlignmentKind, Font, Layout, LayoutSettings, RegularBackgroundTextRenderer},
-        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat},
     },
     fixnum::num,
     include_font, include_wav,
@@ -23,6 +23,8 @@ fn main(mut gba: Gba) -> ! {
     let mut input = ButtonController::new();
 
     let mut gfx = gba.graphics.get();
+    gfx.set_background_palette_colour(0, 1, Rgb15::WHITE);
+
     let mut bg = RegularBackground::new(
         Priority::P0,
         RegularBackgroundSize::Background32x32,
@@ -81,8 +83,6 @@ fn main(mut gba: Gba) -> ! {
 
 fn init_background(bg: &mut RegularBackground) {
     static FONT: Font = include_font!("examples/font/ark-pixel-10px-proportional-ja.ttf", 10);
-
-    VRAM_MANAGER.set_background_palette_colour(0, 1, Rgb15::WHITE);
 
     let text_layout = Layout::new(
         "Dead code by Josh Woodward\njoshwoodward.com\n
