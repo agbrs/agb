@@ -333,7 +333,7 @@ impl Tag {
     /// animating sprites efficiently.
     pub fn animation_frame(&self, idx: &mut usize, divider: u32) -> &'static Sprite {
         let divided = *idx >> divider;
-        let idx = match self.direction {
+        let frame = match self.direction {
             Direction::Forward => {
                 if divided >= self.sprites.len() {
                     *idx = 0;
@@ -362,7 +362,9 @@ impl Tag {
             }
         };
 
-        &self.sprites[idx]
+        *idx += 1;
+
+        &self.sprites[frame]
     }
 
     #[doc(hidden)]
