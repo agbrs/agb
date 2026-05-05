@@ -88,7 +88,7 @@ jobs:
       - name: Build website
         run: just podman_command=docker _build-site-ci
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "website/build"
   deploy:
