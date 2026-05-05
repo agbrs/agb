@@ -1,4 +1,4 @@
-use core::ops::Range;
+use core::{num::NonZeroUsize, ops::Range};
 
 use alloc::rc::Rc;
 
@@ -51,6 +51,7 @@ pub struct Layout {
     tag: u16,
 
     max_group_width: i32,
+    max_chars_per_group: Option<NonZeroUsize>,
 }
 
 /// Control how the text is laid out.
@@ -75,6 +76,7 @@ pub struct LayoutSettings {
     drop_shadow_palette_index: Option<u8>,
     max_group_width: i32,
     max_line_length: i32,
+    max_group_chars: Option<NonZeroUsize>,
 }
 
 impl Default for LayoutSettings {
@@ -100,6 +102,7 @@ impl LayoutSettings {
             drop_shadow_palette_index: None,
             max_group_width: 16,
             max_line_length: 0,
+            max_group_chars: None,
         }
     }
 
@@ -109,6 +112,13 @@ impl LayoutSettings {
     #[must_use]
     pub const fn with_alignment(mut self, alignment: AlignmentKind) -> Self {
         self.alignment = alignment;
+        self
+    }
+
+    /// Sets the maximum number of characters per group. 0 which means unlimited.
+    #[must_use]
+    pub const fn with_max_chars_per_group(mut self, max_chars: usize) -> Self {
+        self.max_group_chars = NonZeroUsize::new(max_chars);
         self
     }
 
@@ -177,6 +187,7 @@ impl Layout {
             drop_shadow_palette_index: settings.drop_shadow_palette_index,
             tag: 0,
             max_group_width: settings.max_group_width,
+            max_chars_per_group: settings.max_group_chars,
         }
     }
 }
@@ -186,6 +197,7 @@ pub struct LetterGroup {
     tag: u16,
     str: Rc<str>,
     range: Range<usize>,
+    char_count: usize,
     palette_index: u8,
     drop_shadow_palette_index: Option<u8>,
     width: i32,
@@ -461,9 +473,16 @@ impl Iterator for Layout {
             line: self.line_number,
             font: self.font,
             width: 0,
+            char_count: 0,
         };
 
         for (char_index, char) in self.text[self.grouper.current_idx..].char_indices() {
+            if let Some(max_chars) = self.max_chars_per_group
+                && max_chars.get() <= letter_group.char_count
+            {
+                break;
+            }
+
             let char_index = char_index + start;
 
             // Did we finish the line?
@@ -558,6 +577,7 @@ impl Iterator for Layout {
             letter_group.width += this_letter_width;
             letter_group.position.x = letter_group.position.x.min(letter_x);
             letter_group.range.end = char_index + char.len_utf8();
+            letter_group.char_count += 1;
 
             self.grouper.add_char(char, letter, kerning);
         }
