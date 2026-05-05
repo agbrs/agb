@@ -66,7 +66,8 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
         &FONT,
         &LayoutSettings::new()
             .with_max_line_length(200)
-            .with_alignment(AlignmentKind::Centre),
+            .with_alignment(AlignmentKind::Centre)
+            .with_max_chars_per_group(2),
     );
     let text_render = ObjectTextRenderer::new((&PALETTE).into(), Size::S16x16);
 
@@ -112,8 +113,8 @@ This uses{start_slow}.{start_slow}.{start_slow}.{end_slow} objects.
                 object.set_pos(
                     *resting
                         + vec2(
-                            Num::<i32, 12>::from_raw(next_i32()) % num!(1),
-                            Num::from_raw(next_i32()) % num!(1),
+                            Num::<i32, 12>::from_raw(next_i32()).rem_euclid(num!(1.0)),
+                            Num::from_raw(next_i32()).rem_euclid(num!(1.0)),
                         )
                         .round(),
                 );
