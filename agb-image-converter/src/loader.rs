@@ -4,6 +4,7 @@ use image::DynamicImage;
 
 mod aseprite;
 mod gif;
+mod other;
 
 #[derive(Debug, Clone)]
 pub struct Tag {
@@ -25,7 +26,9 @@ pub fn generate_from_file(filename: &Path) -> (Vec<DynamicImage>, Vec<Tag>) {
 
     match extension {
         Some("gif") => gif::generate_from_file(filename),
-        _ => aseprite::generate_from_file(filename),
+        Some("aseprite") => aseprite::generate_from_file(filename),
+        Some(_) => other::generate_from_file(filename),
+        _ => panic!("No or unrecognised image extension"),
     }
 }
 
