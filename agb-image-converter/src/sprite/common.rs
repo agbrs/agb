@@ -1,11 +1,12 @@
 use std::error::Error;
 
-use asefile::AnimationDirection;
 use image::{DynamicImage, GenericImageView};
 use snafu::{Snafu, ensure};
 use syn::{LitInt, LitStr, Token, parse::Parse};
 
-use crate::{OUT_DIR_TOKEN, aseprite, colour::Colour, get_out_dir, palette16::Palette16};
+use crate::loader::{self, AnimationDirection};
+
+use crate::{OUT_DIR_TOKEN, colour::Colour, get_out_dir, palette16::Palette16};
 
 pub const TRANSPARENT_COLOUR: Colour = Colour::from_rgb(255, 0, 255, 0);
 
@@ -176,7 +177,7 @@ impl Input {
             .collect();
 
         for (resolved_path, size_override) in &resolved_files {
-            let (images, file_tags) = aseprite::generate_from_file(resolved_path);
+            let (images, file_tags) = loader::generate_from_file(resolved_path);
 
             let split_factor = if let &Some((target_w, target_h)) = size_override
                 && let Some(first) = images.first()
@@ -206,10 +207,10 @@ impl Input {
 
             for tag in &file_tags {
                 tags.push(Tag {
-                    name: tag.name().to_string(),
-                    from: tag.from_frame() * split_factor + tag_index,
-                    to: (tag.to_frame() + 1) * split_factor - 1 + tag_index,
-                    animation_type: tag.animation_direction(),
+                    name: tag.name.clone(),
+                    from: tag.from_frame * split_factor + tag_index,
+                    to: (tag.to_frame + 1) * split_factor - 1 + tag_index,
+                    animation_type: tag.animation_direction,
                 });
             }
 

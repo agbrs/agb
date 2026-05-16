@@ -11,12 +11,12 @@ use std::{path::Path, str};
 
 use quote::{ToTokens, quote};
 
-mod aseprite;
 mod colour;
 mod config;
 mod deduplicator;
 mod font_loader;
 mod image_loader;
+mod loader;
 mod palette16;
 mod palette256;
 mod rust_generator;
