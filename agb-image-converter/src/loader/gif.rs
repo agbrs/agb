@@ -9,10 +9,7 @@ use super::Tag;
 pub fn generate_from_file(filename: &Path) -> (Vec<DynamicImage>, Vec<Tag>) {
     let file = File::open(filename).expect("Given file should be openable");
     let image = image::codecs::gif::GifDecoder::new(file).expect("Gif should be decodable");
-    let tag_name = filename
-        .file_stem()
-        .and_then(|x| x.to_str())
-        .expect("Given filename should have name representable as a string");
+    let tag_name = super::create_tag_name(filename);
 
     let frames = image
         .into_frames()

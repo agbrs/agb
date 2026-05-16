@@ -28,3 +28,10 @@ pub fn generate_from_file(filename: &Path) -> (Vec<DynamicImage>, Vec<Tag>) {
         _ => aseprite::generate_from_file(filename),
     }
 }
+
+fn create_tag_name(filename: &Path) -> &str {
+    filename
+        .file_stem()
+        .and_then(|x| x.to_str())
+        .expect("Given filename should have name representable as a string")
+}
