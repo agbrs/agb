@@ -296,7 +296,7 @@ unsafe impl Sync for Tag {}
 impl Tag {
     /// The individual sprites that make up the animation themselves.
     #[must_use]
-    pub fn sprites(&self) -> &'static [Sprite] {
+    pub const fn sprites(&self) -> &'static [Sprite] {
         self.sprites
     }
 
@@ -316,7 +316,7 @@ impl Tag {
     /// following these requirements.
     #[inline]
     #[must_use]
-    pub fn animation_sprite(&self, idx: usize) -> &'static Sprite {
+    pub const fn animation_sprite(&self, idx: usize) -> &'static Sprite {
         let len_sub_1 = self.sprites.len() - 1;
         match self.direction {
             Direction::Forward => self.sprite(idx % self.sprites.len()),
@@ -331,7 +331,7 @@ impl Tag {
     /// Takes an index shifts by the divider, if the index is out of bounds of
     /// the Tag then it will be reset to zero. This is incredibly useful for
     /// animating sprites efficiently.
-    pub fn animation_frame(&self, idx: &mut usize, divider: u32) -> &'static Sprite {
+    pub const fn animation_frame(&self, idx: &mut usize, divider: u32) -> &'static Sprite {
         let divided = *idx >> divider;
         let idx = match self.direction {
             Direction::Forward => {
