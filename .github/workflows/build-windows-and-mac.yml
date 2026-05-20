@@ -1,0 +1,49 @@
+name: Rust
+
+on:
+  merge_group:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "10 6 * * *"
+
+env:
+  CARGO_TERM_COLOR: always
+  # RUSTUP_TOOLCHAIN: ${{ !github.event.schedule && 'nightly-2025-04-25' || 'nightly' }}
+  # RUSTUP_TOOLCHAIN: "nightly"
+
+jobs:
+  cross-platform:
+    name: Build and test on windows and mac
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri, clippy, rustfmt
+
+      - name: Cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: extractions/setup-just@v4
+
+      - name: Install mgba-test-runner
+        run: cargo install --path emulator/test-runner --verbose
+
+      - name: Make sure agb can be built
+        run: just test
