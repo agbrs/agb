@@ -98,7 +98,7 @@ pub struct MovableWindow {
 }
 
 impl Window {
-    fn new() -> Window {
+    const fn new() -> Window {
         Self { window_bits: 0 }
     }
 
@@ -108,7 +108,7 @@ impl Window {
         self
     }
 
-    fn is_enabled(&self) -> bool {
+    const fn is_enabled(&self) -> bool {
         (self.window_bits >> 7) != 0
     }
 
@@ -165,7 +165,7 @@ impl MovableWindow {
         self
     }
 
-    fn is_enabled(&self) -> bool {
+    const fn is_enabled(&self) -> bool {
         self.inner.is_enabled()
     }
 

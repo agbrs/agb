@@ -44,7 +44,7 @@ pub enum AffineBackgroundWrapBehaviour {
 }
 
 impl AffineBackgroundSize {
-    fn width(self) -> usize {
+    const fn width(self) -> usize {
         match self {
             AffineBackgroundSize::Background16x16 => 16,
             AffineBackgroundSize::Background32x32 => 32,
@@ -53,7 +53,7 @@ impl AffineBackgroundSize {
         }
     }
 
-    pub(crate) fn num_tiles(self) -> usize {
+    pub(crate) const fn num_tiles(self) -> usize {
         self.width() * self.width()
     }
 
@@ -62,7 +62,7 @@ impl AffineBackgroundSize {
             .expect("Failed to create layout, should never happen")
     }
 
-    fn gba_offset(self, pos: Vector2D<i32>) -> usize {
+    const fn gba_offset(self, pos: Vector2D<i32>) -> usize {
         let x_mod = pos.x & (self.width() as i32 - 1);
         let y_mod = pos.y & (self.width() as i32 - 1);
 
@@ -173,7 +173,7 @@ impl AffineBackground {
 
     /// Get the current scroll position.
     #[must_use]
-    pub fn scroll_pos(&self) -> Vector2D<Num<i32, 8>> {
+    pub const fn scroll_pos(&self) -> Vector2D<Num<i32, 8>> {
         self.scroll
     }
 
@@ -234,14 +234,14 @@ impl AffineBackground {
 
     /// Get the current transformation matrix.
     #[must_use]
-    pub fn transform(&self) -> AffineMatrixBackground {
+    pub const fn transform(&self) -> AffineMatrixBackground {
         self.transform
     }
 
     /// Set the wrapping behaviour.
     ///
     /// Returns self so you can chain with other `set_` calls.
-    pub fn set_wrap_behaviour(
+    pub const fn set_wrap_behaviour(
         &mut self,
         wrap_behaviour: AffineBackgroundWrapBehaviour,
     ) -> &mut Self {
@@ -251,7 +251,7 @@ impl AffineBackground {
 
     /// Gets the wrapping behaviour.
     #[must_use]
-    pub fn wrap_behaviour(&self) -> AffineBackgroundWrapBehaviour {
+    pub const fn wrap_behaviour(&self) -> AffineBackgroundWrapBehaviour {
         self.wrap_behaviour
     }
 
@@ -334,14 +334,14 @@ impl AffineBackground {
     ///
     /// This won't take effect until the next time you call [`show()`](AffineBackground::show()).
     /// Returns self so you can chain with other `set_` calls.
-    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+    pub const fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self
     }
 
     /// Gets the current priority for the background.
     #[must_use]
-    pub fn priority(&self) -> Priority {
+    pub const fn priority(&self) -> Priority {
         self.priority
     }
 }

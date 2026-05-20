@@ -134,7 +134,7 @@ impl TileIndex {
         }
     }
 
-    fn refcount_key(self) -> usize {
+    const fn refcount_key(self) -> usize {
         match self {
             TileIndex::FourBpp(x) => x as usize,
             TileIndex::EightBpp(x) => x as usize * 2,
@@ -153,7 +153,7 @@ struct TileInTileSetReference {
 }
 
 impl TileInTileSetReference {
-    fn new(tileset: *const [u8], tile: u16, is_affine: bool) -> Self {
+    const fn new(tileset: *const [u8], tile: u16, is_affine: bool) -> Self {
         Self {
             tileset,
             tile,
@@ -169,7 +169,7 @@ struct TileReferenceCount {
 }
 
 impl TileReferenceCount {
-    fn new(tile_in_tile_set: TileInTileSetReference) -> Self {
+    const fn new(tile_in_tile_set: TileInTileSetReference) -> Self {
         Self {
             reference_count: 1,
             tile_in_tile_set: Some(tile_in_tile_set),
@@ -194,12 +194,12 @@ impl TileReferenceCount {
         self.reference_count
     }
 
-    fn clear(&mut self) {
+    const fn clear(&mut self) {
         self.reference_count = 0;
         self.tile_in_tile_set = None;
     }
 
-    fn current_count(&self) -> u16 {
+    const fn current_count(&self) -> u16 {
         self.reference_count
     }
 }
@@ -271,18 +271,18 @@ impl DynamicTile16 {
     /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
     /// and must write to it in at least 16-bit chunks.
     #[must_use]
-    pub fn data_mut(&mut self) -> &mut [u32] {
+    pub const fn data_mut(&mut self) -> &mut [u32] {
         self.tile_data
     }
 
     /// Returns an immutable reference to the underlying tile data.
     #[must_use]
-    pub fn data(&self) -> &[u32] {
+    pub const fn data(&self) -> &[u32] {
         self.tile_data
     }
 
     #[must_use]
-    pub(crate) fn tile_set(&self) -> TileSet {
+    pub(crate) const fn tile_set(&self) -> TileSet {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
                 VRAM_START as *mut u8,
@@ -432,18 +432,18 @@ impl DynamicTile256 {
     /// Returns a reference to the underlying tile data. Note that you cannot write to this in 8-bit chunks
     /// and must write to it in at least 16-bit chunks.
     #[must_use]
-    pub fn data_mut(&mut self) -> &mut [u32] {
+    pub const fn data_mut(&mut self) -> &mut [u32] {
         self.tile_data
     }
 
     /// Returns an immutable reference to the underlying tile data.
     #[must_use]
-    pub fn data(&self) -> &[u32] {
+    pub const fn data(&self) -> &[u32] {
         self.tile_data
     }
 
     #[must_use]
-    pub(crate) fn tile_set(&self) -> TileSet {
+    pub(crate) const fn tile_set(&self) -> TileSet {
         let tiles = unsafe {
             slice::from_raw_parts_mut(
                 VRAM_START as *mut u8,
@@ -733,7 +733,7 @@ impl VRamManagerInner {
         TileIndex::new(difference / format.tile_size(), format)
     }
 
-    fn reference_from_index(index: TileIndex) -> TileReference {
+    const fn reference_from_index(index: TileIndex) -> TileReference {
         let ptr = (index.raw_index() as usize * index.format().tile_size()) + VRAM_START;
         TileReference(NonNull::new(ptr as *mut _).unwrap())
     }

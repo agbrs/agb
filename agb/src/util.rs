@@ -11,7 +11,7 @@ impl<T> SyncUnsafeCell<T> {
         Self(UnsafeCell::new(t))
     }
 
-    pub unsafe fn get(&self) -> *mut T {
+    pub const unsafe fn get(&self) -> *mut T {
         self.0.get()
     }
 }

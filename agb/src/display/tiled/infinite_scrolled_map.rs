@@ -59,7 +59,7 @@ impl InfiniteScrolledMap {
     /// You need to call [`set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos) in order to actually render something to the
     /// map.
     #[must_use]
-    pub fn new(map: RegularBackground) -> Self {
+    pub const fn new(map: RegularBackground) -> Self {
         Self {
             map,
 
@@ -232,7 +232,7 @@ impl InfiniteScrolledMap {
     /// Will return the same value as whatever [`.set_scroll_pos()`](InfiniteScrolledMap::set_scroll_pos)
     /// returned last time.
     #[must_use]
-    pub fn partial_update_status(&self) -> PartialUpdateStatus {
+    pub const fn partial_update_status(&self) -> PartialUpdateStatus {
         match self.current_pos {
             Position::Current(_) => PartialUpdateStatus::Done,
             Position::Working { .. } | Position::None => PartialUpdateStatus::Continue,
@@ -243,14 +243,14 @@ impl InfiniteScrolledMap {
     ///
     /// See [`RegularBackground::scroll_pos`] for more details
     #[must_use]
-    pub fn scroll_pos(&self) -> Vector2D<i32> {
+    pub const fn scroll_pos(&self) -> Vector2D<i32> {
         self.map.scroll_pos()
     }
 
     /// Sets the priority of the underlying map.
     ///
     /// See [`RegularBackground::set_priority`] for more details
-    pub fn set_priority(&mut self, priority: Priority) {
+    pub const fn set_priority(&mut self, priority: Priority) {
         self.map.set_priority(priority);
     }
 
@@ -258,7 +258,7 @@ impl InfiniteScrolledMap {
     ///
     /// See [`RegularBackground::priority`] for more details.
     #[must_use]
-    pub fn priority(&self) -> Priority {
+    pub const fn priority(&self) -> Priority {
         self.map.priority()
     }
 

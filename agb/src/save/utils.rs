@@ -18,7 +18,7 @@ impl Timeout {
     ///
     /// If another timeout has already been created.
     #[inline(never)]
-    pub fn new(timer: Option<Timer>) -> Self {
+    pub const fn new(timer: Option<Timer>) -> Self {
         Timeout { timer }
     }
 

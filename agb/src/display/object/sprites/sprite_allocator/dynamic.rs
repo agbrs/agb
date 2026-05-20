@@ -38,7 +38,7 @@ pub struct DynamicSprite16<A: Allocator = InternalAllocator> {
 }
 
 impl<A: Allocator> DynamicSprite16<A> {
-    fn allocation_size(size: Size) -> usize {
+    const fn allocation_size(size: Size) -> usize {
         size.size_bytes_16()
     }
 
@@ -126,7 +126,7 @@ pub struct DynamicSprite256<A: Allocator = InternalAllocator> {
 }
 
 impl<A: Allocator> DynamicSprite256<A> {
-    fn allocation_size(size: Size) -> usize {
+    const fn allocation_size(size: Size) -> usize {
         size.size_bytes_256()
     }
 

@@ -48,7 +48,7 @@ pub struct SpriteVram {
 
 impl SpriteVram {
     #[must_use]
-    pub(crate) fn new(sprite: SpriteVramInner, palette: PaletteVram) -> Self {
+    pub(crate) const fn new(sprite: SpriteVramInner, palette: PaletteVram) -> Self {
         Self { sprite, palette }
     }
 
@@ -86,13 +86,13 @@ impl SpriteLocation {
         Self((((ptr.as_ptr() as usize) - TILE_SPRITE) / BYTES_PER_TILE_4BPP) as u16)
     }
 
-    pub fn to_ptr(self) -> NonNull<u8> {
+    pub const fn to_ptr(self) -> NonNull<u8> {
         unsafe {
             NonNull::new_unchecked((self.0 as usize * BYTES_PER_TILE_4BPP + TILE_SPRITE) as *mut u8)
         }
     }
 
-    pub(crate) fn idx(self) -> u16 {
+    pub(crate) const fn idx(self) -> u16 {
         self.0
     }
 }

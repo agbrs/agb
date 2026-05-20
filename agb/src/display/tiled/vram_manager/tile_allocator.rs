@@ -270,25 +270,25 @@ impl TileAllocatorInner {
 struct UsageMaskIndex(usize);
 
 impl UsageMaskIndex {
-    fn mask(self) -> u16 {
+    const fn mask(self) -> u16 {
         1 << (self.0 % 16)
     }
 
-    fn buddy(self) -> Self {
+    const fn buddy(self) -> Self {
         Self(self.0 ^ 1)
     }
 
-    fn index(self) -> usize {
+    const fn index(self) -> usize {
         self.0 / 16
     }
 
-    fn ptr(self, base_ptr: *const u32) -> NonNull<u32> {
+    const fn ptr(self, base_ptr: *const u32) -> NonNull<u32> {
         let ptr = base_ptr.wrapping_byte_add(self.0 * TileFormat::FourBpp.tile_size());
 
         NonNull::new(ptr.cast_mut()).unwrap()
     }
 
-    fn eight_bpp_block(self) -> Self {
+    const fn eight_bpp_block(self) -> Self {
         Self(self.0 & !1)
     }
 }

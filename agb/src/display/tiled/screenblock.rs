@@ -48,7 +48,7 @@ where
         }
     }
 
-    pub(crate) fn size(&self) -> Size {
+    pub(crate) const fn size(&self) -> Size {
         self.size
     }
 
@@ -57,7 +57,7 @@ where
         ((screenblock_location - VRAM_START) / SCREENBLOCK_SIZE) as u16
     }
 
-    pub(crate) fn ptr(&self) -> NonNull<u8> {
+    pub(crate) const fn ptr(&self) -> NonNull<u8> {
         self.ptr
     }
 }

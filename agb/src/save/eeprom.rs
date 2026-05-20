@@ -40,7 +40,7 @@ union BufferContents {
     words: [u32; 41],
 }
 impl BufferData {
-    fn new() -> Self {
+    const fn new() -> Self {
         BufferData {
             idx: 0,
             data: BufferContents { uninit: () },
@@ -183,7 +183,7 @@ impl EepromProperties {
     }
 
     /// Checks whether an offset is in range.
-    fn check_offset(&self, offset: usize, len: usize) -> Result<(), StorageError> {
+    const fn check_offset(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_none() && (offset + len) > self.byte_len {
             Err(StorageError::OutOfBounds)
         } else {

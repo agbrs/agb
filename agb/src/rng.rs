@@ -30,7 +30,7 @@ impl RandomNumberGenerator {
     }
 
     /// Returns the next value for the random number generator
-    pub fn next_i32(&mut self) -> i32 {
+    pub const fn next_i32(&mut self) -> i32 {
         let result = (self.state[0].wrapping_add(self.state[3]))
             .rotate_left(7)
             .wrapping_mul(9);

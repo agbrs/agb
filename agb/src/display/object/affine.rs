@@ -61,7 +61,7 @@ impl AffineMatrixObjectElements {
         }
     }
 
-    pub(crate) fn components(self) -> [u16; 4] {
+    pub(crate) const fn components(self) -> [u16; 4] {
         [
             self.a.to_raw() as u16,
             self.b.to_raw() as u16,

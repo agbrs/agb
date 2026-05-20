@@ -181,7 +181,7 @@ impl RegularBackground {
     ///
     /// To set the current scroll position, you can call [`set_scroll_pos()`](RegularBackground::set_scroll_pos()).
     #[must_use]
-    pub fn scroll_pos(&self) -> Vector2D<i32> {
+    pub const fn scroll_pos(&self) -> Vector2D<i32> {
         self.scroll
     }
 
@@ -400,7 +400,7 @@ impl RegularBackground {
 
     /// Gets the [`Priority`] of this background.
     #[must_use]
-    pub fn priority(&self) -> Priority {
+    pub const fn priority(&self) -> Priority {
         self.priority
     }
 
@@ -409,7 +409,7 @@ impl RegularBackground {
     /// This won't take effect until the next call to [`show()`](RegularBackground::show()).
     ///
     /// Returns self so you can chain with other `set_` calls.
-    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+    pub const fn set_priority(&mut self, priority: Priority) -> &mut Self {
         self.priority = priority;
         self
     }
