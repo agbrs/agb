@@ -79,7 +79,7 @@ impl Logger {
 extern "C" fn log_string_wrapper(
     logger: *mut mgba_sys::mLogger,
     category: i32,
-    level: u32,
+    level: mgba_sys::mLogLevel,
     format: *const i8,
     args: VaArgs,
 ) {
@@ -105,10 +105,10 @@ extern "C" fn log_string_wrapper(
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 type VaArgs = *mut mgba_sys::__va_list_tag;
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 type VaArgs = mgba_sys::va_list;
 
 unsafe extern "C" {
@@ -141,7 +141,7 @@ fn convert_to_string(format: *const i8, var_args: VaArgs) -> Option<String> {
 extern "C" fn no_log(
     _l: *mut mgba_sys::mLogger,
     _category: i32,
-    _level: u32,
+    _level: mgba_sys::mLogLevel,
     _format: *const i8,
     _var_args: VaArgs,
 ) {
