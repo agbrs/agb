@@ -14,9 +14,18 @@ fn main() -> MyError {
 
     compile()?;
 
-    // Seems mac needs core foundation?
-    if env::var("CARGO_CFG_TARGET_OS").unwrap() == "macos" {
-        println!("cargo:rustc-link-lib=framework=CoreFoundation");
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    match target_os.as_str() {
+        "macos" => {
+            println!("cargo:rustc-link-lib=framework=CoreFoundation");
+        }
+        "windows" => {
+            println!("cargo:rustc-link-lib=shell32");
+            println!("cargo:rustc-link-lib=shlwapi");
+            println!("cargo:rustc-link-lib=ole32");
+        }
+        _ => {}
     }
 
     Ok(())
