@@ -88,7 +88,7 @@ impl FlashChipType {
     }
 
     /// Determines the flash chip type from an ID.
-    pub fn from_id(id: u16) -> Self {
+    pub const fn from_id(id: u16) -> Self {
         match id {
             0xD4BF => FlashChipType::Sst64K,
             0x1CC2 => FlashChipType::Macronix64K,
@@ -257,12 +257,12 @@ fn cached_chip_info() -> Result<&'static ChipInfo, StorageError> {
 /// Actual implementation of the ChipInfo functions.
 impl ChipInfo {
     /// Returns the total length of this chip.
-    fn total_len(&self) -> usize {
+    const fn total_len(&self) -> usize {
         self.info.sector_count << self.info.sector_shift
     }
 
     // Checks whether a byte offset is in bounds.
-    fn check_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
+    const fn check_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_some() && offset + len <= self.total_len() {
             Ok(())
         } else {
@@ -271,7 +271,7 @@ impl ChipInfo {
     }
 
     // Checks whether a sector offset is in bounds.
-    fn check_sector_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
+    const fn check_sector_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         if offset.checked_add(len).is_some() && offset + len <= self.info.sector_count {
             Ok(())
         } else {

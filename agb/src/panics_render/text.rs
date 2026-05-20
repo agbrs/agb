@@ -16,7 +16,7 @@ pub struct BitmapTextRender<'bitmap, 'gba> {
 }
 
 impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
-    pub fn new(
+    pub const fn new(
         bitmap: &'bitmap mut Bitmap3<'gba>,
         position: Vector2D<i32>,
         start_colour: u16,
@@ -30,7 +30,7 @@ impl<'bitmap, 'gba> BitmapTextRender<'bitmap, 'gba> {
         }
     }
 
-    pub fn head_y_position(&self) -> i32 {
+    pub const fn head_y_position(&self) -> i32 {
         self.head_position.y
     }
 

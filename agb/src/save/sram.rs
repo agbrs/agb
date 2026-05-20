@@ -10,7 +10,7 @@ use crate::save::{MediaInfo, MediaType, RawSaveAccess, StorageError};
 const SRAM_SIZE: usize = 32 * 1024; // 32 KiB
 
 /// Checks whether an offset is contained within the bounds of the SRAM.
-fn check_bounds(offset: usize, len: usize) -> Result<(), StorageError> {
+const fn check_bounds(offset: usize, len: usize) -> Result<(), StorageError> {
     if offset.checked_add(len).is_none() || offset + len > SRAM_SIZE {
         return Err(StorageError::OutOfBounds);
     }

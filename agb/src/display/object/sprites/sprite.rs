@@ -18,7 +18,7 @@ pub enum Palette {
 }
 
 impl Palette {
-    pub(crate) fn is_multi(self) -> bool {
+    pub(crate) const fn is_multi(self) -> bool {
         matches!(self, Palette::Multi(_))
     }
 }
@@ -408,13 +408,13 @@ impl Size {
 
     /// The size in bytes for a sprite of this size in 16 colour mode
     #[must_use]
-    pub fn size_bytes_16(self) -> usize {
+    pub const fn size_bytes_16(self) -> usize {
         self.number_of_tiles() * BYTES_PER_TILE_4BPP
     }
 
     /// The size in bytes for a sprite of this size in 256 colour mode
     #[must_use]
-    pub fn size_bytes_256(self) -> usize {
+    pub const fn size_bytes_256(self) -> usize {
         self.number_of_tiles() * BYTES_PER_TILE_8BPP
     }
 

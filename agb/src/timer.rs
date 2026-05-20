@@ -27,7 +27,7 @@ pub enum Divider {
 }
 
 impl Divider {
-    fn as_bits(self) -> u16 {
+    const fn as_bits(self) -> u16 {
         use Divider::*;
 
         match self {
@@ -151,15 +151,15 @@ impl Timer {
         self
     }
 
-    fn data_register(&self) -> MemoryMapped<u16> {
+    const fn data_register(&self) -> MemoryMapped<u16> {
         timer_data(self.timer_number())
     }
 
-    fn control_register(&self) -> MemoryMapped<u16> {
+    const fn control_register(&self) -> MemoryMapped<u16> {
         timer_control(self.timer_number())
     }
 
-    fn timer_number(&self) -> usize {
+    const fn timer_number(&self) -> usize {
         self.timer_number as usize
     }
 

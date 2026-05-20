@@ -136,14 +136,14 @@ impl MediaInfo {
     /// Returns the sector size of the save media. It is generally optimal to
     /// write data in blocks that are aligned to the sector size.
     #[must_use]
-    pub fn sector_size(&self) -> usize {
+    pub const fn sector_size(&self) -> usize {
         1 << self.sector_shift
     }
 
     /// Returns the total length of this save media.
     #[must_use]
     #[allow(clippy::len_without_is_empty)] // is_empty() would always be false
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.sector_count << self.sector_shift
     }
 }
@@ -229,7 +229,7 @@ impl SaveData {
         }
     }
 
-    fn check_bounds(&self, range: Range<usize>) -> Result<(), StorageError> {
+    const fn check_bounds(&self, range: Range<usize>) -> Result<(), StorageError> {
         let len = self.info.len();
         if range.start >= len || range.end > len {
             Err(StorageError::OutOfBounds)
@@ -238,7 +238,7 @@ impl SaveData {
         }
     }
 
-    fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
+    const fn check_bounds_len(&self, offset: usize, len: usize) -> Result<(), StorageError> {
         self.check_bounds(offset..(offset + len))
     }
 }

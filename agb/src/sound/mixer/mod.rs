@@ -146,7 +146,7 @@ pub enum Frequency {
 
 // list here: http://deku.gbadev.org/program/sound1.html
 impl Frequency {
-    pub(crate) fn frequency(self) -> i32 {
+    pub(crate) const fn frequency(self) -> i32 {
         use Frequency::*;
 
         match self {
@@ -156,7 +156,7 @@ impl Frequency {
         }
     }
 
-    pub(crate) fn buffer_size(self) -> usize {
+    pub(crate) const fn buffer_size(self) -> usize {
         use Frequency::*;
 
         match self {

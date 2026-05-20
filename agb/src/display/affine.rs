@@ -134,7 +134,7 @@ impl<T: SignedNumber> AffineMatrix<T> {
 
     #[must_use]
     /// The position fields of the matrix
-    pub fn position(&self) -> Vector2D<T> {
+    pub const fn position(&self) -> Vector2D<T> {
         vec2(self.x, self.y)
     }
 

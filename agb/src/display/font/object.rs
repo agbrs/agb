@@ -61,7 +61,7 @@ impl ObjectTextRenderer {
     /// [`Size`] is the size of each sprite used by each [`Object`], the
     /// [`Size`] should be larger than the letter group size given to the
     /// [`Layout`][super::Layout].
-    pub fn new(palette: PaletteVramSingle, size: Size) -> Self {
+    pub const fn new(palette: PaletteVramSingle, size: Size) -> Self {
         Self { palette, size }
     }
 

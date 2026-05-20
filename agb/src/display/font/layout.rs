@@ -242,23 +242,23 @@ impl LetterGroup {
     /// assert!(!layout.next().unwrap().has_tag(MY_TAG));
     /// # }
     /// ```
-    pub fn has_tag(&self, tag: Tag) -> bool {
+    pub const fn has_tag(&self, tag: Tag) -> bool {
         (self.tag >> tag.0) & 1 == 1
     }
 
-    pub(crate) fn font(&self) -> &Font {
+    pub(crate) const fn font(&self) -> &Font {
         self.font
     }
 
     #[must_use]
     /// The full precision position the letters should be drawn to
-    pub fn position(&self) -> Vector2D<i32> {
+    pub const fn position(&self) -> Vector2D<i32> {
         self.position
     }
 
     #[must_use]
     /// The line count of the text
-    pub fn line(&self) -> i32 {
+    pub const fn line(&self) -> i32 {
         self.line
     }
 

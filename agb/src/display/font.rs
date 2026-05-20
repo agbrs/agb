@@ -260,13 +260,13 @@ impl Font {
         }
     }
 
-    pub(crate) fn ascent(&self) -> i32 {
+    pub(crate) const fn ascent(&self) -> i32 {
         self.ascent
     }
 
     #[must_use]
     /// The height of a line for this font
-    pub fn line_height(&self) -> i32 {
+    pub const fn line_height(&self) -> i32 {
         self.line_height
     }
 }

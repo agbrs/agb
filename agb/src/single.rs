@@ -10,7 +10,7 @@ impl<T> Singleton<T> {
     pub const fn empty() -> Self {
         Singleton { single: None }
     }
-    pub fn take(&mut self) -> T {
+    pub const fn take(&mut self) -> T {
         self.single.take().unwrap()
     }
 }

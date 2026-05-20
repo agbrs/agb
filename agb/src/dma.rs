@@ -19,7 +19,7 @@ pub(crate) struct Dma {
 }
 
 impl Dma {
-    pub(crate) unsafe fn new(number: usize) -> Self {
+    pub(crate) const unsafe fn new(number: usize) -> Self {
         Self {
             number,
             source_addr: unsafe { MemoryMapped::new(dma_source_addr(number)) },
@@ -41,7 +41,7 @@ pub struct DmaControllable<Item> {
 }
 
 impl<Item> DmaControllable<Item> {
-    pub(crate) unsafe fn new(memory_location: *mut Item) -> Self {
+    pub(crate) const unsafe fn new(memory_location: *mut Item) -> Self {
         Self { memory_location }
     }
 }
