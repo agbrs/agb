@@ -105,10 +105,10 @@ extern "C" fn log_string_wrapper(
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 type VaArgs = *mut mgba_sys::__va_list_tag;
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 type VaArgs = mgba_sys::va_list;
 
 unsafe extern "C" {
