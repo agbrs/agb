@@ -223,10 +223,12 @@ mod vfile_extern {
     ) -> *mut ::std::os::raw::c_void {
         unsafe {
             with_inner::<V, _, _>(vf, |vf| {
-                let map_type = match flags as u32 {
-                    mgba_sys::MAP_WRITE => super::MapFlag::Write,
-                    _ => super::MapFlag::Read,
+                let map_type = if flags == mgba_sys::MAP_WRITE as ::std::os::raw::c_int {
+                    super::MapFlag::Write
+                } else {
+                    super::MapFlag::Read
                 };
+
                 vf.map(size, map_type)
                     .map(|x| Box::leak(x).as_mut_ptr().cast())
                     .unwrap_or(std::ptr::null_mut())
