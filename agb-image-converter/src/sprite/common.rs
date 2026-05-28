@@ -12,7 +12,7 @@ pub const TRANSPARENT_COLOUR: Colour = Colour::from_rgb(255, 0, 255, 0);
 
 pub struct FileEntry {
     pub path: String,
-    pub size_override: Option<(u32, u32)>,
+    pub size_override: Option<(u32, Option<u32>)>,
 }
 
 impl Parse for Input {
@@ -25,7 +25,7 @@ impl Parse for Input {
                 let digits = lit.base10_digits();
                 let suffix = lit.suffix();
 
-                if !suffix.starts_with('x') {
+                if !suffix.is_empty() && !suffix.starts_with('x') {
                     return Err(syn::Error::new(
                         lit.span(),
                         format!(
@@ -37,9 +37,13 @@ impl Parse for Input {
                 let width: u32 = digits
                     .parse()
                     .map_err(|_| syn::Error::new(lit.span(), "invalid width in size override"))?;
-                let height: u32 = suffix[1..]
-                    .parse()
-                    .map_err(|_| syn::Error::new(lit.span(), "invalid height in size override"))?;
+                let height: Option<u32> = if !suffix.is_empty() {
+                    Some(suffix[1..].parse().map_err(|_| {
+                        syn::Error::new(lit.span(), "invalid height in size override")
+                    })?)
+                } else {
+                    None
+                };
 
                 Some((width, height))
             } else {
@@ -183,6 +187,7 @@ impl Input {
                 && let Some(first) = images.first()
             {
                 let (frame_w, frame_h) = first.dimensions();
+                let target_h = target_h.unwrap_or(frame_h);
 
                 ensure!(
                     valid_sprite_size(target_w, target_h),
@@ -220,6 +225,7 @@ impl Input {
             for image in &images {
                 if split_factor > 1 {
                     let (target_w, target_h) = size_override.unwrap();
+                    let target_h = target_h.unwrap_or(image.dimensions().1);
                     for sub_frame in split_frame(image, target_w, target_h) {
                         sprites.push(sub_frame);
                     }
