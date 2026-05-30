@@ -144,15 +144,15 @@ macro_rules! align_bytes {
     }};
 }
 
-/// Includes sprites found in the referenced aseprite files.
+/// Includes sprites found in the referenced aseprite, gif, png, and bmp files.
 ///
 /// Can include multiple at once and optimises palettes of all included in the
 /// single call together. See [Size] for supported sizes.
 ///
 /// This generates a module given by the first argument, you can control the
 /// visibility of the module using the normal means. The generated module
-/// exports each Tag in the aseprite file as a static, the static will be all
-/// caps and have spaces and dashes converted to underscores.
+/// exports each Tag in the aseprite file and each other file as a static, the
+/// static will be all caps and have spaces and dashes converted to underscores.
 ///
 /// ```rust,no_run
 /// # #![no_std]
@@ -181,7 +181,7 @@ macro_rules! align_bytes {
 /// );
 /// ```
 ///
-/// You may pass multiple aseprite files in. This is particularly useful if you
+/// You may pass multiple files in. This is particularly useful if you
 /// have multiple sprites with different sizes since aseprite files require
 /// that every frame has the same size.
 ///
@@ -198,8 +198,8 @@ macro_rules! align_bytes {
 ///
 /// You can optionally specify a target sprite size before a file path to split
 /// each frame into multiple smaller sprites. The size is given as `WIDTHxHEIGHT`
-/// and must be a valid GBA sprite size. The frame dimensions must be evenly
-/// divisible by the target size.
+/// or `WIDTH` and must be a valid GBA sprite size. The frame dimensions must be
+/// evenly divisible by the target size.
 ///
 /// Sub-frames are generated in row-major order (left-to-right, top-to-bottom),
 /// and tags are automatically adjusted to cover all sub-frames. Note that
@@ -232,7 +232,7 @@ macro_rules! include_aseprite {
     };
 }
 
-/// Includes sprites found in the referenced aseprite files.
+/// Includes sprites found in the referenced aseprite, gif, png, and bmp files.
 ///
 /// This will optimise to a single multi palette, 256 colour sprites.
 ///
