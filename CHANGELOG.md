@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `set_palette` on `Object` and `ObjectAffine` to change the palette used by the sprite, this uses the same sprite data in vram just swapping out the palette. `SpriteVram` has a similar `with_palette` method.
 - Added palette manipulation to `GraphicsFrame` so you can synchronize palette swaps with background swaps.
 - You can set the maximum number of characters that will be printed at once when using the text renderers with `.with_max_chars_per_group`.
+- The `include_aseprite!` and `include_aseprite_256!` macros can now include `.gif`, `.png`, and `.bmp`.
+- You can now specify just the width in `include_aseprite!` and `include_aseprite_256!` allowing you to write `32 strip.png` to import a horizontal sprite strip.
 
 ### Changed
 
