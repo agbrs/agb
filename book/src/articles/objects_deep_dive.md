@@ -27,12 +27,26 @@ You have 15 colour and 255 colours because the 0th index of the palette is alway
 
 Similar to backgrounds, 255 colour sprites take twice the amount of video RAM and cartridge ROM space, so prefer using 15 colour sprites as they are faster to copy and you will be able to have more of them on screen at once.
 
+## Importing other image formats
+
+You can also import `gif`, `png`, and `bmp` files.
+The name of the `static` corresponds to the name of the file and is formatted in all capitals with hyphens replaced by underscores.
+
+```rust
+agb::include_aseprite!(mod sprites, "my_sprite.png", "other-image.bmp");
+```
+
+This would produce 2 statics, `sprites::MY_SPRITE` and `sprites::OTHER_IMAGE`.
+`gif` files produce a [`Tag`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html) with multiple frames.
+To produce multiple frames from a `png` or `bmp` file you should use sprite splitting.
+
 ## Splitting large frames into smaller sprites
 
 The GBA only supports specific sprite sizes (up to 64x64).
 If your aseprite file has frames larger than you'd like for individual OAM objects, you can specify a target sprite size before the file path to automatically split each frame into multiple smaller sprites.
 
 The size is written as `WIDTHxHEIGHT` and must be a valid GBA sprite size.
+You may also specify just the width and the height is then inferred.
 The frame dimensions must be evenly divisible by the target size.
 Sub-frames are generated in row-major order (left-to-right, top-to-bottom), and tags are automatically adjusted to cover all sub-frames.
 
@@ -40,11 +54,12 @@ Sub-frames are generated in row-major order (left-to-right, top-to-bottom), and 
 agb::include_aseprite!(
     mod sprites,
     32x16 "big_character.aseprite",
+    16 "character_strip.png",
     "small_item.aseprite"
 );
 ```
 
-In this example, each frame of `big_character.aseprite` is split into 32x16 sub-sprites, while `small_item.aseprite` is imported at its native size.
+In this example, each frame of `big_character.aseprite` is split into 32x16 sub-sprites, `character_strip.png` has a width of 16 with an inferred height, and `small_item.aseprite` is imported at its native size.
 
 Note that the animation helpers on [`Tag`](https://docs.rs/agb/latest/agb/display/object/struct.Tag.html) (such as `.animation_sprite()` and `.animation_frame()`) will iterate over individual sub-frames, not complete original frames.
 You will likely want to use `.sprite()` directly to display all the sub-frames that make up a single original frame yourself.
