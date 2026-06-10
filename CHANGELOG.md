@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026/06/10
+
 ### Added
 
 - You can now import [yal.cc](https://yal.cc/tools/pixel-font/) fonts directly from the json + png / aseprite file without having to go via ttf.
