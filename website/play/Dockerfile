@@ -11,6 +11,11 @@ RUN cargo build --release
 
 FROM debian:trixie
 
+RUN set -eux; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /usr/bin/docker /usr/bin/docker
 COPY --from=builder /build/target/release/play /bin/play
 
