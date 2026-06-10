@@ -625,7 +625,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Num<I, N> {
         }
 
         // there is a small difference, so linearly interpolate the last bit
-        let next_x: i16 = lut::COS[(n + 1) & 0xFF];
+        let next_x: i16 = lut::COS[(n.wrapping_add(1)) & 0xFF];
         let next_x: Num<I, 11> = Num::from_raw(I::from_as_i32(i32::from(next_x)));
 
         let x: Self = x.change_base();
@@ -1127,6 +1127,12 @@ mod test {
                 }
             }
         };
+    }
+
+    #[test]
+    fn check_near_0_25_sin() {
+        let n: Num<i32, 12> = num!(0.249755859375);
+        assert!(n.sin() > num!(0.99));
     }
 
     cos_test!(cos_is_reasonably_close_14, 14, 0.0011);
