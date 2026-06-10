@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
     let (tx, rx) = mpsc::sync_channel(32768 * 3);
 
     let stream = device.build_output_stream(
-        &config.into(),
+        config.into(),
         move |data: &mut [f32], _| {
             for val in data.iter_mut() {
                 *val = rx.try_recv().unwrap_or(0.0);
