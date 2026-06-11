@@ -9,7 +9,7 @@ ADD src /build/src
 
 RUN cargo build --release
 
-FROM debian:trixie
+FROM debian:trixie-20260610
 
 RUN set -eux; \
     apt-get update; \
