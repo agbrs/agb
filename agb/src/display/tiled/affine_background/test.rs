@@ -6,9 +6,15 @@ use crate::{
             AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, DynamicTile256,
         },
     },
+    include_background_gfx,
     interrupt::VBlank,
     test_runner::assert_image_output,
 };
+
+include_background_gfx!(mod agb_logo, test_logo => 256 "gfx/test_logo.aseprite");
+
+const WIZARD_FACE_TILE: u16 = 19 + 4 * 30;
+const WIZARD_BODY_TILE: u16 = 19 + 5 * 30;
 
 #[test_case]
 fn can_create_100_affine_backgrounds_one_at_a_time(gba: &mut Gba) {
@@ -199,4 +205,34 @@ fn test_affine_dynamic_tile_256_border_pattern(gba: &mut Gba) {
     assert_image_output(
         "gfx/test_output/affine_background/test_affine_dynamic_tile_256_border_pattern.png",
     );
+}
+
+#[test_case]
+fn test_swap_tiles(gba: &mut Gba) {
+    let vblank = VBlank::get();
+    vblank.wait_for_vblank();
+
+    let mut graphics = gba.graphics.get();
+    graphics.set_background_palettes(agb_logo::PALETTES);
+
+    let mut bg_data = AffineBackground::new(
+        Priority::P0,
+        AffineBackgroundSize::Background32x32,
+        AffineBackgroundWrapBehaviour::NoWrap,
+    );
+
+    bg_data.set_tile((0, 0), &agb_logo::test_logo.tiles, WIZARD_FACE_TILE);
+    bg_data.set_tile((1, 0), &agb_logo::test_logo.tiles, WIZARD_BODY_TILE);
+
+    bg_data.swap_tiles((0, 0), (1, 0));
+    bg_data.swap_tiles((0, 0), (2, 1));
+    bg_data.swap_tiles((2, 0), (1, 0));
+
+    let mut frame = graphics.frame();
+    bg_data.show(&mut frame);
+
+    frame.commit();
+    vblank.wait_for_vblank();
+
+    assert_image_output("gfx/test_output/affine_background/test_swap_tiles.png");
 }

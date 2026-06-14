@@ -10,6 +10,7 @@ use crate::{
 include_background_gfx!(mod agb_logo, test_logo => deduplicate "gfx/test_logo.aseprite");
 
 const WIZARD_FACE_TILE: usize = 19 + 4 * 30;
+const WIZARD_BODY_TILE: usize = 19 + 5 * 30;
 
 #[test_case]
 fn test_commit_in_basic_case(gba: &mut Gba) {
@@ -344,4 +345,42 @@ fn test_dynamic_tile_16_multiple_tiles(gba: &mut Gba) {
     assert_image_output(
         "gfx/test_output/regular_background/test_dynamic_tile_16_multiple_tiles.png",
     );
+}
+
+#[test_case]
+fn test_swap_tiles(gba: &mut Gba) {
+    let vblank = VBlank::get();
+    vblank.wait_for_vblank();
+
+    let mut graphics = gba.graphics.get();
+    graphics.set_background_palettes(agb_logo::PALETTES);
+
+    let mut bg_data = RegularBackground::new(
+        Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    bg_data.set_tile(
+        (0, 0),
+        &agb_logo::test_logo.tiles,
+        agb_logo::test_logo.tile_settings[WIZARD_FACE_TILE],
+    );
+    bg_data.set_tile(
+        (1, 0),
+        &agb_logo::test_logo.tiles,
+        agb_logo::test_logo.tile_settings[WIZARD_BODY_TILE],
+    );
+
+    bg_data.swap_tiles((0, 0), (1, 0));
+    bg_data.swap_tiles((0, 0), (2, 1));
+    bg_data.swap_tiles((2, 0), (1, 0));
+
+    let mut frame = graphics.frame();
+    bg_data.show(&mut frame);
+
+    frame.commit();
+    vblank.wait_for_vblank();
+
+    assert_image_output("gfx/test_output/regular_background/test_swap_tiles.png");
 }
