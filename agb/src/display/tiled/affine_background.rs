@@ -224,6 +224,29 @@ impl AffineBackground {
         self
     }
 
+    /// Swaps the tiles at the given positions.
+    ///
+    /// This will not require allocating or deallocating any tile data.
+    ///
+    /// Returns self so you can chain with other `set_` calls.
+    pub fn swap_tiles(
+        &mut self,
+        pos1: impl Into<Vector2D<i32>>,
+        pos2: impl Into<Vector2D<i32>>,
+    ) -> &mut Self {
+        let pos1 = self.screenblock.size().gba_offset(pos1.into());
+        let pos2 = self.screenblock.size().gba_offset(pos2.into());
+
+        if pos1 != pos2 {
+            let pos1_tile = self.tiles.get(pos1);
+            let pos2_tile = self.tiles.get(pos2);
+            self.tiles.set_tile(pos1, pos2_tile);
+            self.tiles.set_tile(pos2, pos1_tile);
+        }
+
+        self
+    }
+
     /// Set the current transformation matrix.
     ///
     /// Returns self so you can chain with other `set_` calls.
