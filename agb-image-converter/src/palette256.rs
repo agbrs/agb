@@ -42,10 +42,7 @@ impl Palette256 {
             .collect();
 
         let current_colours_set = BTreeSet::from_iter(optimised_palette_colours.iter().cloned());
-        let new_colours: BTreeSet<_> = self
-            .colours
-            .symmetric_difference(&current_colours_set)
-            .collect();
+        let new_colours: BTreeSet<_> = self.colours.difference(&current_colours_set).collect();
 
         assert!(
             new_colours.len() + optimised_palette_colours.len() <= 256,
