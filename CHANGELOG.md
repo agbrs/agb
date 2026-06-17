@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `swap_tiles` to `RegularBackground` and `AffineBackground` for cheaply moving around tiles.
 
+### Fixed
+
+- Reduced palette colour duplication when `include_background_gfx!`ing 16 or 256 colour images with unique colours.
+
 ## [0.24.0] - 2026/06/10
 
 ### Added
