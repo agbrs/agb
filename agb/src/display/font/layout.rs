@@ -310,8 +310,8 @@ impl LetterGroup {
 
             previous_char = Some(c);
 
-            let x_offset_this = x_offset;
-            x_offset += kern + letter.advance_width as i32;
+            let x_offset_this = x_offset + kern;
+            x_offset = x_offset_this + letter.advance_width as i32;
 
             let palette_index: u32 = self.palette_index.into();
 
