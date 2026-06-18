@@ -408,8 +408,8 @@ impl LetterGroup {
 
             let y_position = font.ascent() - letter.height as i32 - letter.ymin as i32;
 
-            let x_offset_this = x_offset;
-            x_offset += kern + letter.advance_width as i32;
+            let x_offset_this = x_offset + kern;
+            x_offset = x_offset_this + letter.advance_width as i32;
 
             (0..letter.height as usize).flat_map(move |y| {
                 (0..letter.width as usize)
