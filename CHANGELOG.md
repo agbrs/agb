@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Reduced palette colour duplication when `include_background_gfx!`ing 16 or 256 colour images with unique colours.
 - Fixed text rendering with kerning applying the kerning to the wrong character.
+- Fixed crash when calaulating the cos of a near zero or sin of a near quarter turn value.
 
 ## [0.24.0] - 2026/06/10
 
