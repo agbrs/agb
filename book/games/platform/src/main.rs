@@ -154,8 +154,6 @@ impl Player {
     }
 
     fn update_sprite(&mut self) {
-        self.frame += 1;
-
         if self.velocity.x > num!(0.1) {
             self.flipped = false;
         }
