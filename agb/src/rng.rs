@@ -33,8 +33,8 @@ impl RandomNumberGenerator {
     pub const fn next_i32(&mut self) -> i32 {
         let result = (self.state[0].wrapping_add(self.state[3]))
             .rotate_left(7)
-            .wrapping_mul(9);
-        let t = self.state[1].wrapping_shr(9);
+            .wrapping_add(self.state[0]);
+        let t = self.state[1].wrapping_shl(9);
 
         self.state[2] ^= self.state[0];
         self.state[3] ^= self.state[1];
