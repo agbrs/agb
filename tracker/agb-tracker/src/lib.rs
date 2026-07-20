@@ -120,6 +120,19 @@ pub struct TrackerInner<'track, TChannelId> {
     current_row: usize,
     current_pattern: usize,
     current_jump: Option<Jump>,
+
+    should_loop: bool,
+    has_finished: bool,
+}
+
+/// A opaque position in a [`Track`], as returned by [`position`](TrackerInner::position) and
+/// accepted by [`set_position`](TrackerInner::set_position).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrackerPosition {
+    /// The index into the track's list of patterns to play.
+    pub pattern: usize,
+    /// The row within the currently playing pattern.
+    pub row: usize,
 }
 
 #[derive(Default)]
@@ -217,15 +230,90 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             current_pattern: 0,
             current_row: 0,
             current_jump: None,
+
+            should_loop: true,
+            has_finished: false,
         }
+    }
+
+    /// Sets whether the tracker will continue playing once it reaches the end of the track (defaults to `true`).
+    ///
+    /// If set to `false`, playback will stop once the end of the track is reached and
+    /// [`has_finished`](Self::has_finished) will return `true`. Since tracks which are
+    /// intended to loop forever often do so by jumping back to an earlier position,
+    /// a backwards jump is also treated as the end of the track when looping is disabled.
+    ///
+    /// Setting this back to `true` after the track has finished will resume playback.
+    pub fn set_should_loop(&mut self, should_loop: bool) {
+        self.should_loop = should_loop;
+        if should_loop {
+            self.has_finished = false;
+        }
+    }
+
+    /// Returns `true` if the tracker is set not to loop (see [`set_should_loop`](Self::set_should_loop))
+    /// and playback has reached the end of the track.
+    ///
+    /// Once this returns `true`, all of the tracker's channels are stopped and calling
+    /// [`step`](Self::step) does nothing until the position is changed with
+    /// [`set_position`](Self::set_position) or looping is re-enabled.
+    #[must_use]
+    pub fn has_finished(&self) -> bool {
+        self.has_finished
+    }
+
+    /// The current position in the track.
+    #[must_use]
+    pub fn position(&self) -> TrackerPosition {
+        TrackerPosition {
+            pattern: self.current_pattern,
+            row: self.current_row,
+        }
+    }
+
+    /// Moves playback to the given position in the track, taking effect from the next call to [`step`](Self::step).
+    ///
+    /// If the pattern is beyond the end of the track, playback moves to the track's restart point,
+    /// and if the row is beyond the end of that pattern, playback starts at the beginning of the pattern.
+    /// This also resets [`has_finished`](Self::has_finished).
+    ///
+    /// Note that any notes which are currently playing will continue to play across the position change.
+    pub fn set_position(&mut self, position: TrackerPosition) {
+        self.current_pattern = position.pattern;
+        self.current_row = position.row;
+
+        if self.current_pattern >= self.track.patterns_to_play.len() {
+            self.current_pattern = self.track.repeat;
+        }
+
+        if self.current_row
+            >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
+        {
+            self.current_row = 0;
+        }
+
+        self.frame = 0.into();
+        self.tick = 0;
+        self.first = true;
+        self.current_jump = None;
+        self.has_finished = false;
     }
 
     /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
     /// See the [example](crate#example) for how to use the tracker.
     pub fn step<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
+        if self.has_finished {
+            return;
+        }
+
         self.frame += 1;
 
         while self.increment_frame() {
+            if self.has_finished {
+                self.stop(mixer);
+                return;
+            }
+
             self.inner_step(mixer);
         }
 
@@ -419,6 +507,10 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
                         if self.current_pattern >= self.track.patterns_to_play.len() {
                             self.current_pattern = self.track.repeat;
+
+                            if !self.should_loop {
+                                self.has_finished = true;
+                            }
                         }
                     }
                 }
@@ -433,6 +525,9 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     }
 
     fn handle_jump(&mut self, jump: Jump) {
+        let old_pattern = self.current_pattern;
+        let old_row = self.current_row;
+
         match jump {
             Jump::Position { pattern } => {
                 self.current_pattern = pattern as usize;
@@ -447,8 +542,20 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 self.current_row = row as usize;
             }
         };
+
+        if !self.should_loop
+            && (self.current_pattern < old_pattern
+                || (self.current_pattern == old_pattern && self.current_row <= old_row))
+        {
+            self.has_finished = true;
+        }
+
         if self.current_pattern >= self.track.patterns_to_play.len() {
             self.current_pattern = self.track.repeat;
+
+            if !self.should_loop {
+                self.has_finished = true;
+            }
         }
         if self.current_row
             >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
