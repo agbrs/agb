@@ -123,6 +123,8 @@ pub struct TrackerInner<'track, TChannelId> {
 
     should_loop: bool,
     has_finished: bool,
+
+    master_volume: Num<i32, 8>,
 }
 
 /// A opaque position in a [`Track`], as returned by [`position`](TrackerInner::position) and
@@ -233,7 +235,27 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
             should_loop: true,
             has_finished: false,
+
+            master_volume: 1.into(),
         }
+    }
+
+    /// Sets the master volume for this tracker (defaults to `1`).
+    ///
+    /// Every channel volume the tracker writes to the mixer is scaled by this,
+    /// so changes take effect immediately, including for notes which are
+    /// already playing. This is independent of the track's own global volume
+    /// effects, which compose with it multiplicatively.
+    ///
+    /// Values above `1` amplify and may clip. Negative values are clamped to `0`.
+    pub fn set_volume(&mut self, volume: impl Into<Num<i32, 8>>) {
+        self.master_volume = volume.into().max(0.into());
+    }
+
+    /// The current master volume (see [`set_volume`](Self::set_volume)).
+    #[must_use]
+    pub fn volume(&self) -> Num<i32, 8> {
+        self.master_volume
     }
 
     /// Sets whether the tracker will continue playing once it reaches the end of the track (defaults to `true`).
@@ -434,7 +456,11 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 }
 
                 channel.playback(current_speed.change_base());
-                channel.volume(tracker_channel.current_volume.try_change_base().unwrap());
+                channel.volume(
+                    (tracker_channel.current_volume * self.master_volume)
+                        .try_change_base()
+                        .unwrap(),
+                );
                 channel.panning(tracker_channel.current_panning.try_change_base().unwrap());
 
                 if let Some(offset) = tracker_channel.current_pos.take() {
