@@ -17,16 +17,14 @@ impl RandomNumberGenerator {
     }
 
     /// Produces a random number generator with the given initial state / seed.
-    /// None of the values can be 0.
+    /// If all the values are 0, then it'll use the same seed as for new()
     #[must_use]
     pub const fn new_with_seed(seed: [u32; 4]) -> Self {
-        // this can't be in a loop because const
-        assert!(seed[0] != 0, "seed must not be 0");
-        assert!(seed[1] != 0, "seed must not be 0");
-        assert!(seed[2] != 0, "seed must not be 0");
-        assert!(seed[3] != 0, "seed must not be 0");
-
-        Self { state: seed }
+        if seed[0] == 0 && seed[1] == 0 && seed[2] == 0 && seed[3] == 0 {
+            Self::new()
+        } else {
+            Self { state: seed }
+        }
     }
 
     /// Returns the next value for the random number generator
