@@ -16,7 +16,7 @@ image = { version = "0.24", default-features = false, features = [
     "bmp",
     "gif",
 ] }
-syn = { version = "2", features = ["proc-macro", "parsing"] }
+syn = { version = "3", features = ["proc-macro", "parsing"] }
 proc-macro2 = "1"
 quote = "1"
 asefile = "0.3.8"
