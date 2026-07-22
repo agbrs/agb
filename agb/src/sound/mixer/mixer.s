@@ -11,15 +11,50 @@ agb_arm_func \fn_name
     @ Stack position 4 - the amount to multiply by
     @
     @ Returns the new channel position
-    push {{r4-r11}}
+    push {{r4-r11,lr}}
 
-    ldr r4, [sp, #(8*4)] @ load the channel length into r4
-    ldr r5, [sp, #(9*4)] @ load the current channel position into r5
-    ldr r6, [sp, #(10*4)] @ load the playback speed into r6
-    ldr r12, [sp, #(11*4)] @ load the amount to multiply by into r12
+    ldr r4, [sp, #(9*4)] @ load the channel length into r4
+    ldr r5, [sp, #(10*4)] @ load the current channel position into r5
+    ldr r6, [sp, #(11*4)] @ load the playback speed into r6
+    ldr r12, [sp, #(12*4)] @ load the amount to multiply by into r12
+
+    @ Precompute the fast path threshold
+    @ lr = (channel_length << 8) - 3 * playback_speed
+    @
+    @ Lets us skip checking each sample and instead check every 4 samples if we know we can't
+    @ overflow.
+    add lr, r6, r6, lsl #1      @ lr = 3 * speed
+    rsbs lr, lr, r4, lsl #8     @ lr = (length << 8) - 3 * speed
+    movlo lr, #0                @ underflowed so set it to 0 so we always do the slower check
+
 
 @ The core loop
 1:
+    cmp r5, lr                  @ we're within 3 reads of the end, so take the slow path
+    bhs 9f
+
+.ifc \is_first,false
+    ldm r1, {{r7-r10}}
+.endif
+
+.irp reg, r7,r8,r9,r10
+    mov r11, r5, lsr #8         @ calculate the next location to get the value from
+    ldrsb r11, [r0, r11]        @ load a single value
+.ifc \is_first,true             @ multiply the sample value, but only add if not the first call
+    mul \reg, r12, r11
+.else
+    mla \reg, r12, r11, \reg
+.endif
+    add r5, r5, r6
+.endr
+
+    stmia r1!, {{r7-r10}}
+
+    subs r2, r2, #4
+    bne 1b
+    b 3f
+
+9:
 .ifc \is_first,false
     ldm r1, {{r7-r10}}
 .endif
@@ -79,7 +114,7 @@ agb_arm_func \fn_name
 .endif
 
     mov r0, r5 @ return the playback position
-    pop {{r4-r11}}
+    pop {{r4-r11, lr}}
 
     bx lr
 agb_arm_end \fn_name
