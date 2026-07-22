@@ -20,6 +20,11 @@
         "patch",
         "minor"
       ]
+    },
+    {
+      "groupName": "Elf file handling",
+      "groupSlug": "elf-updates",
+      "matchPackageNames": ["gimli", "addr2line"]
     }
   ]
 }
