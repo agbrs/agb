@@ -27,7 +27,7 @@ jobs:
         run: |
           rustup component add miri clippy rustfmt --toolchain=nightly
           cargo +nightly miri setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Cache
         uses: actions/cache@v6
         with:
