@@ -35,9 +35,9 @@ agb_arm_func \fn_name
     mov r11, r5, lsr #8         @ calculate the next location to get a value from
     ldrsb r11, [r0, r11]        @ load a single value
 .ifc \is_first,true             @ multiply the sample value, but only add if not the first call
-    mul \reg, r11, r12
+    mul \reg, r12, r11
 .else
-    mla \reg, r11, r12, \reg
+    mla \reg, r12, r11, \reg
 .endif
 
     add r5, r5, r6              @ calculate the next sample read location
