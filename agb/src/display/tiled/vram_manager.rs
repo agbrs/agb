@@ -1,5 +1,8 @@
 #![warn(missing_docs)]
-use core::{fmt::Debug, ptr::NonNull};
+use core::{
+    fmt::Debug,
+    ptr::{self, NonNull},
+};
 
 use alloc::{slice, vec::Vec};
 use tile_allocator::TileAllocator;
@@ -147,7 +150,7 @@ struct TileReference(NonNull<u32>);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct TileInTileSetReference {
-    tileset: *const [u8],
+    tileset: *const u8,
     tile: u16,
     is_affine: bool,
 }
@@ -155,7 +158,7 @@ struct TileInTileSetReference {
 impl TileInTileSetReference {
     const fn new(tileset: *const [u8], tile: u16, is_affine: bool) -> Self {
         Self {
-            tileset,
+            tileset: tileset.cast(),
             tile,
             is_affine,
         }
@@ -704,10 +707,21 @@ struct VRamManagerInner {
     tile_set_to_vram: HashMap<TileInTileSetReference, TileReference>,
     reference_counts: Vec<TileReferenceCount>,
 
+    lookup_cache: [(TileInTileSetReference, TileReference); 8],
+
     tile_allocator: TileAllocator,
 
     indices_to_gc: Vec<TileIndex>,
 }
+
+const EMPTY_CACHE_ENTRY: (TileInTileSetReference, TileReference) = (
+    TileInTileSetReference {
+        tileset: ptr::null(),
+        tile: 0,
+        is_affine: false,
+    },
+    TileReference(NonNull::dangling()),
+);
 
 impl VRamManagerInner {
     const unsafe fn new() -> Self {
@@ -717,6 +731,8 @@ impl VRamManagerInner {
             tile_set_to_vram,
             reference_counts: Vec::new(),
             indices_to_gc: Vec::new(),
+
+            lookup_cache: [EMPTY_CACHE_ENTRY; _],
 
             tile_allocator: unsafe { TileAllocator::new() },
         }
@@ -836,10 +852,21 @@ impl VRamManagerInner {
     fn add_tile(&mut self, tile_set: &TileSet, tile: u16, is_affine: bool) -> TileIndex {
         let tileset_reference =
             TileInTileSetReference::new(tile_set.reference().as_ptr(), tile, is_affine);
+
+        let lookup_cache_index = tile as usize & (self.lookup_cache.len() - 1);
+        let cached_lookup = &self.lookup_cache[lookup_cache_index];
+        if cached_lookup.0 == tileset_reference {
+            let tile_index = Self::index_from_reference(cached_lookup.1, tile_set.format);
+            self.increase_reference(tile_index);
+
+            return tile_index;
+        }
+
         let reference = self.tile_set_to_vram.entry(tileset_reference);
 
         if let Entry::Occupied(reference) = reference {
             let tile_index = Self::index_from_reference(*reference.get(), tile_set.format);
+            self.lookup_cache[lookup_cache_index] = (tileset_reference, *reference.get());
             self.increase_reference(tile_index);
 
             return tile_index;
@@ -863,6 +890,8 @@ impl VRamManagerInner {
 
         self.reference_counts[key] = TileReferenceCount::new(tileset_reference);
 
+        self.lookup_cache[lookup_cache_index] = (tileset_reference, tile_reference);
+
         index
     }
 
@@ -884,6 +913,8 @@ impl VRamManagerInner {
     }
 
     fn gc(&mut self) {
+        self.lookup_cache.fill(EMPTY_CACHE_ENTRY);
+
         for tile_index in self.indices_to_gc.drain(..) {
             let key = tile_index.refcount_key();
             if self.reference_counts[key].current_count() > 0 {
