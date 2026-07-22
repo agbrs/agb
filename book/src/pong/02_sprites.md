@@ -65,17 +65,15 @@ fn main(mut gba: agb::Gba) -> ! {
     // Place this at some point on the screen, (50, 50) for example
     ball.set_pos((50, 50));
 
-    // Start a frame and add the one object to it
-    let mut frame = gfx.frame();
-
-    // Actually show this object on the screen
-    ball.show(&mut frame);
-
-    // Until the call to `frame.commit()`, nothing will be displayed
-    frame.commit();
-
     loop {
-        agb::halt();
+        // Start a frame and add the one object to it
+        let mut frame = gfx.frame();
+    
+        // Actually show this object on the screen
+        ball.show(&mut frame);
+    
+        // Until the call to `frame.commit()`, nothing will be displayed
+        frame.commit();
     }
 }
 ```
@@ -92,6 +90,7 @@ There is also a 'horizontal blanking interval', but that is outside of the scope
 [^hblank]: Timing this can give you some really cool effects allowing you to push the hardware. `agb` provides support for this by using `dma`, this is an advanced technique that is out of scope of this tutorial.
 
 The `frame.commit()` method automatically waits for this `vblank` state before rendering your sprites to avoid moving a sprite while it is being rendered which could cause tearing of your objects.
+This automatically handles switching the GBA's CPU to a low power state, so you don't have to include `agb::halt()` any more.
 
 Making the sprite move 1 pixel every frame (so 60 pixels per second) can be done as follows:
 
