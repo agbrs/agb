@@ -38,7 +38,7 @@
 //!     let vblank_provider = agb::interrupt::VBlank::get();
 //!
 //!     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
-//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC);
+//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC, mixer.frequency());
 //!
 //!     loop {
 //!         tracker.step(&mut mixer);
@@ -49,8 +49,9 @@
 //! }
 //! ```
 //!
-//! Note that currently you have to select 32768Hz as the frequency for the mixer.
-//! This restriction will be lifted in a future version.
+//! The tracker works with any mixer [`Frequency`](agb::sound::mixer::Frequency).
+//! Lower frequencies reduce the CPU cost of the mixing at the cost of some
+//! sound quality.
 //!
 //! # Concepts
 //!
@@ -125,6 +126,8 @@ pub struct TrackerInner<'track, TChannelId> {
     has_finished: bool,
 
     master_volume: Num<i32, 8>,
+
+    speed_correction: Num<u32, 16>,
 }
 
 /// A opaque position in a [`Track`], as returned by [`position`](TrackerInner::position) and
@@ -200,8 +203,10 @@ struct GlobalSettings {
 }
 
 impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
-    /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
-    pub fn new(track: &'track Track) -> Self {
+    /// Create a new tracker playing a specified track, to be played on a mixer
+    /// running at `mixer_frequency` Hz. When using `agb`, pass the mixer's
+    /// `frequency()`. See the [example](crate#example) for how to use the tracker.
+    pub fn new(track: &'track Track, mixer_frequency: impl Into<u32>) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, Default::default);
 
@@ -210,6 +215,10 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
         let mut mixer_channels = Vec::new();
         mixer_channels.resize_with(track.num_channels, || None);
+
+        // Speeds in the track data are relative to a 32768Hz mixer
+        let speed_correction =
+            Num::from_raw(((32768u64 << 16) / u64::from(mixer_frequency.into())) as u32);
 
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
@@ -237,6 +246,8 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             has_finished: false,
 
             master_volume: 1.into(),
+
+            speed_correction,
         }
     }
 
@@ -455,7 +466,7 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                     }
                 }
 
-                channel.playback(current_speed.change_base());
+                channel.playback((current_speed * self.speed_correction).change_base());
                 channel.volume(
                     (tracker_channel.current_volume * self.master_volume)
                         .try_change_base()

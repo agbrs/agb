@@ -368,6 +368,12 @@ impl Mixer<'_> {
 
         None
     }
+
+    /// The [`Frequency`] this mixer was created with.
+    #[must_use]
+    pub fn frequency(&self) -> Frequency {
+        self.frequency
+    }
 }
 
 struct SoundBuffer(Box<[i8], InternalAllocator>);

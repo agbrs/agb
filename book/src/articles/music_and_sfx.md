@@ -181,7 +181,7 @@ For each track you want to play at once, you need an instance of the [`Tracker`]
 ```rust
 use agb_tracker::Tracker;
 
-let mut bgm_tracker = Tracker::new(&BGM);
+let mut bgm_tracker = Tracker::new(&BGM, mixer.frequency());
 ```
 
 You can now play this background music using the `step()` function which you would call at some point before the `.frame()` function on the mixer.
