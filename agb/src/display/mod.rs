@@ -64,8 +64,8 @@
 use crate::{display::tiled::TileSet, dma, interrupt::VBlank, memory_mapped::MemoryMapped};
 
 use alloc::{borrow::Cow, boxed::Box};
-use bilge::prelude::*;
 
+use bitbybit::bitenum;
 use tiled::{BackgroundFrame, DisplayControlRegister, VRAM_MANAGER};
 
 use object::{Oam, OamFrame, initilise_oam};
@@ -452,9 +452,9 @@ pub fn busy_wait_for_vblank() {
 /// thought of as rendering first, and so is behind that of a lower priority.
 /// For an equal priority background layer and object, the background has a
 /// higher priority and therefore is behind the object.
-#[bitsize(2)]
+#[bitenum(u2, exhaustive = true)]
 #[allow(missing_docs)]
-#[derive(FromBits, PartialEq, Eq, Clone, Copy, Debug, Default)]
+#[derive(PartialEq, Eq, Debug, Default)]
 pub enum Priority {
     #[default]
     P0 = 0,
