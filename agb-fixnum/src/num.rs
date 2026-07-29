@@ -667,7 +667,7 @@ impl<I: FixedWidthSignedInteger, const N: usize> Signed for Num<I, N> {
     }
 
     fn signum(&self) -> Self {
-        Self(self.0.signum())
+        Self::new(self.0.signum())
     }
 
     fn is_positive(&self) -> bool {
@@ -1138,4 +1138,12 @@ mod test {
     cos_test!(cos_is_reasonably_close_14, 14, 0.0011);
     cos_test!(cos_is_reasonably_close_8, 8, 0.004);
     cos_test!(cos_is_reasonably_close_4, 4, 0.07);
+
+    #[test]
+    fn check_signum() {
+        type N = Num<i32, 8>;
+        assert_eq!(num!(0.444).signum(), N::new(1));
+        assert_eq!(num!(-20.4).signum(), N::new(-1));
+        assert_eq!(num!(0.0).signum(), N::new(0));
+    }
 }
