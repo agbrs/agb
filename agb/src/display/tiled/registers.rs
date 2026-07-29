@@ -1,4 +1,5 @@
-use bilge::prelude::*;
+use arbitrary_int::*;
+use bitbybit::{bitenum, bitfield};
 
 use crate::display::Priority;
 
@@ -6,24 +7,33 @@ use super::{
     AffineBackgroundSize, AffineBackgroundWrapBehaviour, RegularBackgroundSize, TileFormat,
 };
 
-#[bitsize(16)]
-#[derive(FromBits, Clone, Copy, Default)]
+#[bitfield(u16)]
+#[derive(Default)]
 pub(crate) struct DisplayControlRegister {
+    #[bits(0..=2, rw)]
     pub video_mode: u3,
-    _reserved: u1,
+    #[bits(4..=4, rw)]
     _display_frame_select: u1,
+    #[bits(5..=5, rw)]
     hblank_interval_free: bool,
+    #[bits(6..=6, rw)]
     pub obj_character_mapping: bool,
+    #[bits(7..=7, rw)]
     pub forced_blank: bool,
+    #[bits(8..=11, rw)]
     pub enabled_backgrounds: u4,
+    #[bits(12..=12, rw)]
     pub obj_display: bool,
+    #[bits(13..=13, rw)]
     pub window0_display: bool,
+    #[bits(14..=14, rw)]
     pub window1_display: bool,
+    #[bits(15..=15, rw)]
     pub obj_window_display: bool,
 }
 
-#[bitsize(1)]
-#[derive(Clone, Copy, FromBits, Default)]
+#[bitenum(u1, exhaustive = true)]
+#[derive(Default)]
 pub(crate) enum BackgroundControlTileFormat {
     #[default]
     FourBpp = 0,
@@ -39,8 +49,8 @@ impl From<TileFormat> for BackgroundControlTileFormat {
     }
 }
 
-#[bitsize(1)]
-#[derive(Clone, Copy, FromBits, Default)]
+#[bitenum(u1, exhaustive = true)]
+#[derive(Default)]
 pub(crate) enum BackgroundControlAffineOverflowBehaviour {
     #[default]
     Transparent = 0,
@@ -56,24 +66,27 @@ impl From<AffineBackgroundWrapBehaviour> for BackgroundControlAffineOverflowBeha
     }
 }
 
-#[bitsize(2)]
-#[derive(Clone, Copy, FromBits, Default)]
-pub(crate) struct BackgroundControlScreenSize(u2);
+#[bitfield(u2)]
+#[derive(Default)]
+pub(crate) struct BackgroundControlScreenSize {
+    #[bits(0..=1, rw)]
+    pub value: u2,
+}
 
 impl From<RegularBackgroundSize> for BackgroundControlScreenSize {
     fn from(value: RegularBackgroundSize) -> Self {
-        Self::new(u2::new(value as u8))
+        Self::builder().with_value(u2::new(value as u8)).build()
     }
 }
 
 impl From<AffineBackgroundSize> for BackgroundControlScreenSize {
     fn from(value: AffineBackgroundSize) -> Self {
-        Self::new(u2::new(value as u8))
+        Self::builder().with_value(u2::new(value as u8)).build()
     }
 }
 
-#[bitsize(2)]
-#[derive(Clone, Copy, FromBits, Default)]
+#[bitenum(u2, exhaustive = true)]
+#[derive(Default)]
 pub(crate) enum BackgroundControlPriority {
     #[default]
     P0,
@@ -93,15 +106,21 @@ impl From<Priority> for BackgroundControlPriority {
     }
 }
 
-#[bitsize(16)]
-#[derive(Clone, Copy, FromBits, Default)]
+#[bitfield(u16)]
+#[derive(Default)]
 pub(crate) struct BackgroundControlRegister {
+    #[bits(0..=1, rw)]
     pub priority: BackgroundControlPriority,
+    #[bits(2..=3, rw)]
     pub char_base_block: u2,
-    _zero: u2,
+    #[bits(6..=6, rw)]
     pub mosaic: bool,
+    #[bits(7..=7, rw)]
     pub tile_format: BackgroundControlTileFormat,
+    #[bits(8..=12, rw)]
     pub screen_base_block: u5,
+    #[bits(13..=13, rw)]
     pub overflow_behaviour: BackgroundControlAffineOverflowBehaviour,
+    #[bits(14..=15, rw)]
     pub screen_size: BackgroundControlScreenSize,
 }

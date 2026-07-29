@@ -16,6 +16,8 @@ mod screenblock;
 mod tiles;
 mod vram_manager;
 
+use arbitrary_int::{u3, u4};
+
 pub use affine_background::{
     AffineBackground, AffineBackgroundSize, AffineBackgroundWrapBehaviour, AffineMatrixBackground,
 };
@@ -28,8 +30,6 @@ pub use vram_manager::{DynamicTile16, DynamicTile256, TileFormat, TileSet};
 pub(crate) use vram_manager::{TileIndex, VRAM_MANAGER};
 
 pub(crate) use registers::*;
-
-use bilge::prelude::*;
 
 use crate::{
     agb_alloc::{block_allocator::BlockAllocator, bump_allocator::StartEnd, impl_zst_allocator},

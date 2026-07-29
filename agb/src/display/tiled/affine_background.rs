@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 use agb_fixnum::FixedWidthSignedInteger;
 use alloc::rc::Rc;
-use bilge::prelude::*;
+use arbitrary_int::u5;
 use core::alloc::Layout;
 
 use crate::{

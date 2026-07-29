@@ -1,4 +1,6 @@
 #![warn(missing_docs)]
+use arbitrary_int::u5;
+use bitbybit::bitenum;
 use core::{alloc::Layout, mem};
 
 use alloc::rc::Rc;
@@ -18,8 +20,6 @@ use super::{
     TileEffect, TileFormat, TileSet, TileSetting, VRAM_MANAGER,
 };
 
-use bilge::prelude::*;
-
 /// The backgrounds in the GameBoy Advance are made of 8x8 tiles. Each different background option lets
 /// you decide how big the background should be before it wraps. Ideally, you should use the smallest background
 /// size you can while minimising the number of times you have to redraw tiles.
@@ -27,8 +27,8 @@ use bilge::prelude::*;
 /// If you want more space than can be provided here, or want to keep more video ram free, then you should use
 /// the [`InfiniteScrolledMap`](super::InfiniteScrolledMap) which will dynamically load tile data for any size
 /// as you scroll around.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u16)]
+#[bitenum(u2, exhaustive = true)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RegularBackgroundSize {
     /// 32x32 tiles (256x256 pixels)
     Background32x32 = 0,
