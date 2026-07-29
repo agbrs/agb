@@ -136,10 +136,6 @@ agb_arm_func \fn_name
     @ The sound buffer must be SOUND_BUFFER_SIZE * 2 in size = 176 * 2
     push {{r4-r11}}
 
-    ldr r5, =0x00000FFF
-
-    mov r8, r3
-
 .macro add_stereo_sample sample_reg:req
     ldrsh r6, [r0], #2        @ load the current sound sample to r6
 
@@ -157,10 +153,9 @@ agb_arm_func \fn_name
     @
     @ At this point
     @                        r6 = | 1 | 1 | L | R | where the upper bytes are 1s if L is negative. No care about R
-                         @ asr #8 | 1 | 1 | 1 | L | drop R off the right hand side
-    and r7, r5, r6, asr #8 @ r7 = | 0 | 0 | 1 | L | exactly what we want this to be. The mask puts the 1 as 00001111 ready for the shift later
+    mov r7, r6, asr #8     @ r7 = | 1 | 1 | 1 | L | drop R off the right hand side
     lsl r6, r6, #24        @ r6 = | R | 0 | 0 | 0 | drop everything except the right sample
-    orr r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
+    add r6, r7, r6, asr #8 @ r6 = | 1 | R | 1 | L | now we have it perfectly set up
 
 .ifc \is_first,true
     mul \sample_reg, r6, r2
@@ -183,7 +178,7 @@ agb_arm_func \fn_name
 
     stmia r1!, {{r9-r12}}         @ store the new value, and increment the pointer
 
-    subs r8, r8, #4          @ loop counter
+    subs r3, r3, #4          @ loop counter
     bne 1b                   @ jump back if we're done with the loop
 
     pop {{r4-r11}}
