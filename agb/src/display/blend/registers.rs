@@ -1,13 +1,17 @@
 use agb_fixnum::Num;
-use bilge::prelude::*;
+use arbitrary_int::*;
+use bitbybit::{bitenum, bitfield};
 
 use crate::display::tiled::BackgroundId;
 
-#[bitsize(6)]
-#[derive(FromBits, Default, Clone, Copy)]
+#[bitfield(u6)]
+#[derive(Default)]
 pub(crate) struct BlendTarget {
+    #[bits(0..=3, rw)]
     backgrounds: u4,
+    #[bits(4..=4, rw)]
     object: bool,
+    #[bits(5..=5, rw)]
     backdrop: bool,
 }
 
@@ -25,8 +29,8 @@ impl BlendTarget {
     }
 }
 
-#[bitsize(2)]
-#[derive(FromBits, Default, Clone, Copy)]
+#[bitenum(u2, exhaustive = true)]
+#[derive(Default)]
 pub(crate) enum Effect {
     #[default]
     None,
@@ -35,22 +39,24 @@ pub(crate) enum Effect {
     Decrease,
 }
 
-#[bitsize(16)]
-#[derive(Default, Clone, Copy)]
+#[bitfield(u16)]
+#[derive(Default)]
 pub(crate) struct BlendControlRegister {
-    pub(crate) first_target: BlendTarget,
-    pub(crate) colour_effect: Effect,
-    pub(crate) second_target: BlendTarget,
-    _unused: u2,
+    #[bits(0..=5, rw)]
+    first_target: BlendTarget,
+    #[bits(6..=7, rw)]
+    colour_effect: Effect,
+    #[bits(8..=13, rw)]
+    second_target: BlendTarget,
 }
 
-#[bitsize(16)]
-#[derive(Default, Clone, Copy)]
+#[bitfield(u16)]
+#[derive(Default)]
 pub(crate) struct BlendControlAlpha {
+    #[bits(0..=4, rw)]
     first: u5,
-    _unused: u3,
+    #[bits(8..=12, rw)]
     second: u5,
-    _unused2: u3,
 }
 
 impl BlendControlAlpha {
@@ -63,11 +69,11 @@ impl BlendControlAlpha {
     }
 }
 
-#[bitsize(16)]
-#[derive(Default, Clone, Copy)]
+#[bitfield(u16)]
+#[derive(Default)]
 pub(crate) struct BlendControlBrightness {
+    #[bits(0..=4, rw)]
     brightness: u5,
-    _unused: u11,
 }
 
 impl BlendControlBrightness {

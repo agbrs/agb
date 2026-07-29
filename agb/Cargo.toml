@@ -25,11 +25,13 @@ agb_fixnum = { version = "0.25.0", path = "../agb-fixnum", features = ["serde"] 
 agb_hashmap = { version = "0.25.0", path = "../agb-hashmap", features = ["allocator_api", "serde"] }
 agb_save = { version = "0.25.0", path = "../agb-save" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
-bilge = "0.3"
 qrcodegen-no-heap = { version = "1.8", optional = true }
 portable-atomic = { version = "1.6.0", default-features = false, features = ["unsafe-assume-single-core", "fallback"] }
 once_cell = { version = "1.20.1", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
+bitbybit = "2.0.0"
+arbitrary-int = "2.1.0"
+bilge = "0.3"
 
 [package.metadata.docs.rs]
 default-target = "thumbv4t-none-eabi"
