@@ -630,7 +630,7 @@ mod playback_buffer {
             //
             // If increasing this size, make sure to also increase the size of the temp_storage
             // allocation since this guards overrunning that.
-            if channel.playback_speed > num!(1.5) && channel.data.len() > temp_storage.len() {
+            if channel.playback_speed >= num!(1.5) && channel.data.len() > temp_storage.len() {
                 return PlaybackBuffer::Rom(channel.data);
             }
 
