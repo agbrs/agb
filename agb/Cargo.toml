@@ -31,7 +31,6 @@ once_cell = { version = "1.20.1", default-features = false, features = ["critica
 critical-section = { version = "1.1.2", features = ["restore-state-u16"] }
 bitbybit = "2.0.0"
 arbitrary-int = "2.1.0"
-bilge = "0.3"
 
 [package.metadata.docs.rs]
 default-target = "thumbv4t-none-eabi"
