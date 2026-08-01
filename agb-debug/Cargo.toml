@@ -10,7 +10,7 @@ repository = "https://github.com/agbrs/agb"
 [dependencies]
 addr2line = { version = "0.27", default-features = false, features = ["rustc-demangle"] }
 gimli = { version = "0.34", default-features = false, features = ["endian-reader", "std"] }
-object = { version = "0.39", default-features = false, features = ["read"] }
+object = { version = "0.40", default-features = false, features = ["read"] }
 
 thiserror = "2"
 clap = { version = "4", features = ["derive"] }
