@@ -14,7 +14,7 @@ fn main(mut gba: Gba) -> ! {
     let vblank_provider = agb::interrupt::VBlank::get();
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
-    let mut tracker = Tracker::new(&SPECTRUM);
+    let mut tracker = Tracker::new(&SPECTRUM, mixer.frequency());
 
     loop {
         tracker.step(&mut mixer);

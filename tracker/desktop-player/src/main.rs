@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let track = agb_xm_core::parse_module(&module);
 
     let mut mixer = Mixer::new();
-    let mut tracker = agb_tracker::TrackerInner::new(&track);
+    let mut tracker = agb_tracker::TrackerInner::new(&track, 32768u32);
 
     let host = cpal::default_host();
     let device = host

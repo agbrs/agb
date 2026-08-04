@@ -146,7 +146,9 @@ pub enum Frequency {
 
 // list here: http://deku.gbadev.org/program/sound1.html
 impl Frequency {
-    pub(crate) const fn frequency(self) -> i32 {
+    /// The frequency in Hz
+    #[must_use]
+    pub const fn frequency(self) -> i32 {
         use Frequency::*;
 
         match self {
@@ -164,6 +166,13 @@ impl Frequency {
             Hz18157 => 304,
             Hz32768 => 560,
         }
+    }
+}
+
+impl From<Frequency> for u32 {
+    /// The frequency in Hz
+    fn from(value: Frequency) -> Self {
+        value.frequency() as u32
     }
 }
 

@@ -38,7 +38,7 @@
 //!     let vblank_provider = agb::interrupt::VBlank::get();
 //!
 //!     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
-//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC);
+//!     let mut tracker = Tracker::new(&BACKGROUND_MUSIC, mixer.frequency());
 //!
 //!     loop {
 //!         tracker.step(&mut mixer);
@@ -49,8 +49,9 @@
 //! }
 //! ```
 //!
-//! Note that currently you have to select 32768Hz as the frequency for the mixer.
-//! This restriction will be lifted in a future version.
+//! The tracker works with any mixer [`Frequency`](agb::sound::mixer::Frequency).
+//! Lower frequencies reduce the CPU cost of the mixing at the cost of some
+//! sound quality.
 //!
 //! # Concepts
 //!
@@ -120,6 +121,23 @@ pub struct TrackerInner<'track, TChannelId> {
     current_row: usize,
     current_pattern: usize,
     current_jump: Option<Jump>,
+
+    should_loop: bool,
+    has_finished: bool,
+
+    master_volume: Num<i32, 8>,
+
+    speed_correction: Num<u32, 16>,
+}
+
+/// A opaque position in a [`Track`], as returned by [`position`](TrackerInner::position) and
+/// accepted by [`set_position`](TrackerInner::set_position).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrackerPosition {
+    /// The index into the track's list of patterns to play.
+    pub pattern: usize,
+    /// The row within the currently playing pattern.
+    pub row: usize,
 }
 
 #[derive(Default)]
@@ -185,8 +203,10 @@ struct GlobalSettings {
 }
 
 impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
-    /// Create a new tracker playing a specified track. See the [example](crate#example) for how to use the tracker.
-    pub fn new(track: &'track Track) -> Self {
+    /// Create a new tracker playing a specified track, to be played on a mixer
+    /// running at `mixer_frequency` Hz. When using `agb`, pass the mixer's
+    /// `frequency()`. See the [example](crate#example) for how to use the tracker.
+    pub fn new(track: &'track Track, mixer_frequency: impl Into<u32>) -> Self {
         let mut channels = Vec::new();
         channels.resize_with(track.num_channels, Default::default);
 
@@ -195,6 +215,10 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
         let mut mixer_channels = Vec::new();
         mixer_channels.resize_with(track.num_channels, || None);
+
+        // Speeds in the track data are relative to a 32768Hz mixer
+        let speed_correction =
+            Num::from_raw(((32768u64 << 16) / u64::from(mixer_frequency.into())) as u32);
 
         let global_settings = GlobalSettings {
             ticks_per_step: track.ticks_per_step,
@@ -217,15 +241,112 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
             current_pattern: 0,
             current_row: 0,
             current_jump: None,
+
+            should_loop: true,
+            has_finished: false,
+
+            master_volume: 1.into(),
+
+            speed_correction,
         }
+    }
+
+    /// Sets the master volume for this tracker (defaults to `1`).
+    ///
+    /// Every channel volume the tracker writes to the mixer is scaled by this,
+    /// so changes take effect immediately, including for notes which are
+    /// already playing. This is independent of the track's own global volume
+    /// effects, which compose with it multiplicatively.
+    ///
+    /// Values above `1` amplify and may clip. Negative values are clamped to `0`.
+    pub fn set_volume(&mut self, volume: impl Into<Num<i32, 8>>) {
+        self.master_volume = volume.into().max(0.into());
+    }
+
+    /// The current master volume (see [`set_volume`](Self::set_volume)).
+    #[must_use]
+    pub fn volume(&self) -> Num<i32, 8> {
+        self.master_volume
+    }
+
+    /// Sets whether the tracker will continue playing once it reaches the end of the track (defaults to `true`).
+    ///
+    /// If set to `false`, playback will stop once the end of the track is reached and
+    /// [`has_finished`](Self::has_finished) will return `true`. Since tracks which are
+    /// intended to loop forever often do so by jumping back to an earlier position,
+    /// a backwards jump is also treated as the end of the track when looping is disabled.
+    ///
+    /// Setting this back to `true` after the track has finished will resume playback.
+    pub fn set_should_loop(&mut self, should_loop: bool) {
+        self.should_loop = should_loop;
+        if should_loop {
+            self.has_finished = false;
+        }
+    }
+
+    /// Returns `true` if the tracker is set not to loop (see [`set_should_loop`](Self::set_should_loop))
+    /// and playback has reached the end of the track.
+    ///
+    /// Once this returns `true`, all of the tracker's channels are stopped and calling
+    /// [`step`](Self::step) does nothing until the position is changed with
+    /// [`set_position`](Self::set_position) or looping is re-enabled.
+    #[must_use]
+    pub fn has_finished(&self) -> bool {
+        self.has_finished
+    }
+
+    /// The current position in the track.
+    #[must_use]
+    pub fn position(&self) -> TrackerPosition {
+        TrackerPosition {
+            pattern: self.current_pattern,
+            row: self.current_row,
+        }
+    }
+
+    /// Moves playback to the given position in the track, taking effect from the next call to [`step`](Self::step).
+    ///
+    /// If the pattern is beyond the end of the track, playback moves to the track's restart point,
+    /// and if the row is beyond the end of that pattern, playback starts at the beginning of the pattern.
+    /// This also resets [`has_finished`](Self::has_finished).
+    ///
+    /// Note that any notes which are currently playing will continue to play across the position change.
+    pub fn set_position(&mut self, position: TrackerPosition) {
+        self.current_pattern = position.pattern;
+        self.current_row = position.row;
+
+        if self.current_pattern >= self.track.patterns_to_play.len() {
+            self.current_pattern = self.track.repeat;
+        }
+
+        if self.current_row
+            >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length
+        {
+            self.current_row = 0;
+        }
+
+        self.frame = 0.into();
+        self.tick = 0;
+        self.first = true;
+        self.current_jump = None;
+        self.has_finished = false;
     }
 
     /// Call this once per frame before calling [`mixer.frame`](agb::sound::mixer::Mixer::frame()).
     /// See the [example](crate#example) for how to use the tracker.
     pub fn step<M: Mixer<ChannelId = TChannelId>>(&mut self, mixer: &mut M) {
+        if self.has_finished {
+            return;
+        }
+
         self.frame += 1;
 
         while self.increment_frame() {
+            if self.has_finished {
+                self.stop(mixer);
+                return;
+            }
+
             self.inner_step(mixer);
         }
 
@@ -345,8 +466,12 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                     }
                 }
 
-                channel.playback(current_speed.change_base());
-                channel.volume(tracker_channel.current_volume.try_change_base().unwrap());
+                channel.playback((current_speed * self.speed_correction).change_base());
+                channel.volume(
+                    (tracker_channel.current_volume * self.master_volume)
+                        .try_change_base()
+                        .unwrap(),
+                );
                 channel.panning(tracker_channel.current_panning.try_change_base().unwrap());
 
                 if let Some(offset) = tracker_channel.current_pos.take() {
@@ -419,6 +544,10 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
 
                         if self.current_pattern >= self.track.patterns_to_play.len() {
                             self.current_pattern = self.track.repeat;
+
+                            if !self.should_loop {
+                                self.has_finished = true;
+                            }
                         }
                     }
                 }
@@ -433,6 +562,9 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
     }
 
     fn handle_jump(&mut self, jump: Jump) {
+        let old_pattern = self.current_pattern;
+        let old_row = self.current_row;
+
         match jump {
             Jump::Position { pattern } => {
                 self.current_pattern = pattern as usize;
@@ -447,8 +579,20 @@ impl<'track, TChannelId> TrackerInner<'track, TChannelId> {
                 self.current_row = row as usize;
             }
         };
+
+        if !self.should_loop
+            && (self.current_pattern < old_pattern
+                || (self.current_pattern == old_pattern && self.current_row <= old_row))
+        {
+            self.has_finished = true;
+        }
+
         if self.current_pattern >= self.track.patterns_to_play.len() {
             self.current_pattern = self.track.repeat;
+
+            if !self.should_loop {
+                self.has_finished = true;
+            }
         }
         if self.current_row
             >= self.track.patterns[self.track.patterns_to_play[self.current_pattern]].length

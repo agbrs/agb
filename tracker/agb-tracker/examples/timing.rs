@@ -20,7 +20,7 @@ fn main(mut gba: Gba) -> ! {
     timer2.set_cascade(true).set_enabled(true);
 
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
-    let mut tracker = Tracker::new(&SPECTRUM);
+    let mut tracker = Tracker::new(&SPECTRUM, mixer.frequency());
 
     loop {
         let before_mixing_cycles_high = timer2.value();

@@ -109,7 +109,7 @@ You can create the tracker near where you enable the mixer:
 ```rust
 use agb_tracker::Tracker;
 
-let mut tracker = Tracker::new(&BGM);
+let mut tracker = Tracker::new(&BGM, mixer.frequency());
 ```
 
 and then to actually play the tracker, every frame you need to call `.step(&mut mixer)`.

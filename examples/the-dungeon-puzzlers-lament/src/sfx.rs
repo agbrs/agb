@@ -25,7 +25,7 @@ pub struct Sfx<'a> {
 
 impl<'a> Sfx<'a> {
     pub fn new(mixer: &'a mut Mixer<'a>) -> Self {
-        let tracker = Tracker::new(&MUSIC);
+        let tracker = Tracker::new(&MUSIC, mixer.frequency());
 
         Self { mixer, tracker }
     }
