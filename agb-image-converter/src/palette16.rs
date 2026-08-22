@@ -60,8 +60,8 @@ impl Palette16 {
             }) as u8
     }
 
-    pub fn colours(&self) -> impl Iterator<Item = &Colour> {
-        self.colours.iter()
+    pub fn colours(&self) -> impl Iterator<Item = Colour> {
+        self.colours.iter().copied()
     }
 
     fn with_transparent(&self, transparent_colour: Colour) -> Self {
