@@ -38,7 +38,6 @@ impl Palette256 {
             .optimised_palettes
             .iter()
             .flat_map(|p| p.colours())
-            .cloned()
             .collect();
 
         let current_colours_set = BTreeSet::from_iter(optimised_palette_colours.iter().cloned());

@@ -7,6 +7,7 @@ use syn::{Expr, ExprLit, Lit, Token};
 use syn::{parse_macro_input, punctuated::Punctuated};
 
 use std::collections::HashMap;
+use std::iter;
 use std::{path::Path, str};
 
 use quote::{ToTokens, quote};
@@ -422,7 +423,11 @@ fn add_image_256_to_tile_data(
     let all_colours: Vec<_> = optimiser
         .optimised_palettes
         .iter()
-        .flat_map(|p| p.colours())
+        .flat_map(|p| {
+            p.colours()
+                .chain(iter::repeat(Colour::from_rgb(0, 0, 0, 0)))
+                .take(16)
+        })
         .collect();
 
     for y in 0..tiles_y {
@@ -432,7 +437,8 @@ fn add_image_256_to_tile_data(
                     for j in inner_y * 8..inner_y * 8 + 8 {
                         for i in inner_x * 8..inner_x * 8 + 8 {
                             let colour = image.colour(x * tile_size + i, y * tile_size + j);
-                            tile_data.push(all_colours.iter().position(|c| **c == colour).unwrap() as u8);
+                            tile_data
+                                .push(all_colours.iter().position(|c| *c == colour).unwrap() as u8);
                         }
                     }
                 }
