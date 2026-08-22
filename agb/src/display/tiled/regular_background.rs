@@ -295,10 +295,10 @@ impl RegularBackground {
 
     /// Fills the screen with the data given in `tile_data`.
     ///
-    /// This is useful mainly e.g. title screens or other full screen backgrounds.
+    /// This is useful mainly e.g. title screens or other full screen backgrounds. Uses as many of the tiles as possible to fill
+    /// the background you currently have.
     ///
-    /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx) and
-    /// that it is at least the size of the Game Boy Advance's screen resolution of 240x160 pixels (or 20x30 tiles).
+    /// This method assumes that `tile_data` was loaded via [`include_background_gfx!`](crate::include_background_gfx).
     ///
     /// ## Example
     ///
@@ -327,16 +327,6 @@ impl RegularBackground {
     ///
     /// Returns self so you can chain with other `set_` calls.
     pub fn fill_with(&mut self, tile_data: &TileData) -> &mut Self {
-        assert!(
-            tile_data.width >= 30,
-            "Don't have a full screen's width of tile data, got: {}",
-            tile_data.width
-        );
-        assert!(
-            tile_data.height >= 20,
-            "Don't have a full screen's height worth of tile data, got: {}",
-            tile_data.height
-        );
         assert_eq!(
             tile_data.tiles.format(),
             self.tiles.colours(),
@@ -345,10 +335,12 @@ impl RegularBackground {
             self.tiles.colours()
         );
 
-        for y in 0..20 {
-            for x in 0..30 {
+        let size = self.size();
+
+        for y in 0..tile_data.height.min(size.height()) {
+            for x in 0..tile_data.width.min(size.width()) {
                 let tile_id = y * tile_data.width + x;
-                let tile_pos = y * 32 + x;
+                let tile_pos = y * size.width() + x;
                 self.set_tile_at_pos(tile_pos, &tile_data.tiles, tile_data.tile_settings[tile_id]);
             }
         }

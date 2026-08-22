@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - You can now modify the volume of `Tracker`, watch for loops, set the position, and use it with any frequency.
 
+### Changed
+
+- `RegularBackground::fill_with()` can take any sized TileData and fills as much as possible.
+
 ### Fixed
 
 - Fixed Num<_, _>'s signum implementation to return `num!(1)` rather than `Num::from_raw(1)`.
