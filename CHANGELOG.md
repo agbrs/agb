@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Num<_, _>'s signum implementation to return `num!(1)` rather than `Num::from_raw(1)`.
 - Fixed crash when playing a mono sample at exactly 1.5x speed.
 - Fixed clipping when changing the volume of a stereo sound.
+- Fixed incorrect colours in the palette when importing both 256 and 16 colour backgrounds.
 
 ## [0.25.0] - 2026/07/22
 
