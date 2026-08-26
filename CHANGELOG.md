@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - You can now modify the volume of `Tracker`, watch for loops, set the position, and use it with any frequency.
+- New methods `GraphicsFrame::replace_tile` and `GraphicsFrame::replace_tile_affine` which let you handle tile replacements while frame processing.
 
 ### Changed
 

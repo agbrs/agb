@@ -31,7 +31,6 @@ mod background_tile_ids {
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let mut gfx = gba.graphics.get();
-    let vblank = agb::interrupt::VBlank::get();
 
     let tileset = &background::platformer.tiles;
 
@@ -82,20 +81,17 @@ fn main(mut gba: agb::Gba) -> ! {
         }
     }
 
-    let mut frame = gfx.frame();
-    bg.show(&mut frame);
-    foreground.show(&mut frame);
-    frame.commit();
-
     let mut frame_skip = 0;
     let mut sunflower_frame = background_tile_ids::SUNFLOWER
         .chain(background_tile_ids::SUNFLOWER.rev())
         .cycle();
     loop {
+        let mut frame = gfx.frame();
+        bg.show(&mut frame);
+        foreground.show(&mut frame);
+
         if frame_skip == 0 {
-            // note that we're not even showing the frames again, we're replacing the tile data
-            // in video RAM which will show up when that frame needs to be shown
-            gfx.replace_tile(
+            frame.replace_tile(
                 tileset,
                 background_tile_ids::SUNFLOWER.start,
                 tileset,
@@ -106,6 +102,6 @@ fn main(mut gba: agb::Gba) -> ! {
             frame_skip -= 1;
         }
 
-        vblank.wait_for_vblank();
+        frame.commit();
     }
 }
