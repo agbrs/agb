@@ -83,9 +83,7 @@ impl TestStorage {
     ///
     /// Useful for testing that code properly erases before writing.
     pub fn reset_erase_state(&mut self) {
-        for block in &mut self.erased_blocks {
-            *block = false;
-        }
+        self.erased_blocks.fill(false);
     }
 
     /// Configure the storage to fail writes after a given number of successful writes.
