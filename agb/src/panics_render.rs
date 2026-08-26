@@ -5,7 +5,9 @@ use qrcodegen_no_heap::DataTooLong;
 
 use crate::{
     ExternalAllocator, backtrace,
-    display::{HEIGHT, WIDTH, bitmap3::Bitmap3, busy_wait_for_vblank},
+    display::{
+        HEIGHT, WIDTH, bitmap3::Bitmap3, busy_wait_for_vblank, tiled::AffineMatrixBackground,
+    },
     dma::dma3_exclusive,
     mgba,
 };
@@ -22,11 +24,37 @@ static WEBSITE: &str = {
 pub fn render_backtrace(trace: &backtrace::Frames, info: &PanicInfo) -> ! {
     dma3_exclusive(|| {
         // SAFETY: This is not fine, but we're crashing anyway. The loop at the end should stop anything bad happening
+        unsafe { crate::dma::Dma::new(0) }.disable();
+        unsafe { crate::dma::Dma::new(1) }.disable();
+        unsafe { crate::dma::Dma::new(2) }.disable();
         unsafe { crate::dma::Dma::new(3) }.disable();
 
         // SAFETY: Again, not fine, but we're crashing anyway so we can clobber VRam if we need to
         let mut gfx = unsafe { Bitmap3::new() };
         gfx.clear(0xFFFF);
+
+        for address in 0x0400_0010usize..=0x0400_003cusize {
+            if !address.is_multiple_of(2) {
+                continue;
+            }
+
+            // SAFETY: Still not fine. Reset all offsets and scaling
+            unsafe {
+                (address as *mut u16).write_volatile(0);
+            }
+        }
+
+        // Set the correct scaling matrix
+        unsafe {
+            (0x0400_0020 as *mut AffineMatrixBackground)
+                .write_volatile(AffineMatrixBackground::default());
+        }
+
+        // let bg_ctrl = BackgroundControlRegister::new_with_raw_value(0);
+        // SAFETY: Ensure this background's control is reset to default
+        // unsafe {
+        //     (0x0400_000c as *mut u16).write_volatile(bg_ctrl.raw_value());
+        // }
 
         let qrcode_string_data = if WEBSITE.is_empty() {
             format!("{trace}")
