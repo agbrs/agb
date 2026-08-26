@@ -63,7 +63,7 @@
 //! You will need to create a new frame object from the `gfx` instance.
 use crate::{display::tiled::TileSet, dma, interrupt::VBlank, memory_mapped::MemoryMapped};
 
-use alloc::{borrow::Cow, boxed::Box};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 
 use bitbybit::bitenum;
 use tiled::{BackgroundFrame, DisplayControlRegister, VRAM_MANAGER};
@@ -157,6 +157,22 @@ impl GraphicsDist {
 pub struct Graphics<'gba> {
     oam: Oam<'gba>,
     others: Others,
+
+    tiles_to_replace: Vec<TileToReplace>,
+}
+
+#[derive(Clone, Copy)]
+enum TileToReplaceKind {
+    Affine,
+    Regular,
+}
+
+struct TileToReplace {
+    kind: TileToReplaceKind,
+    source_tile_set: &'static TileSet,
+    source_tile: u16,
+    target_tile_set: &'static TileSet,
+    target_tile: u16,
 }
 
 pub(crate) trait DmaFrame {
@@ -174,6 +190,8 @@ impl<'gba> Graphics<'gba> {
         Self {
             oam,
             others: Others { vblank, dma: None },
+
+            tiles_to_replace: Vec::new(),
         }
     }
 
@@ -182,6 +200,8 @@ impl<'gba> Graphics<'gba> {
     /// See the [display module level documentation](crate::display) for details on how to use
     /// the graphics frame.
     pub fn frame(&mut self) -> GraphicsFrame<'_> {
+        self.tiles_to_replace.clear();
+
         GraphicsFrame {
             oam_frame: self.oam.frame(),
             bg_frame: BackgroundFrame::default(),
@@ -189,6 +209,8 @@ impl<'gba> Graphics<'gba> {
             windows: Windows::new(),
             next_dma: None,
             others: &mut self.others,
+
+            tiles_to_replace: &mut self.tiles_to_replace,
 
             background_palette: Cow::Borrowed(VRAM_MANAGER.vram_background_palette()),
         }
@@ -302,6 +324,7 @@ pub struct GraphicsFrame<'frame> {
     next_dma: Option<Box<dyn DmaFrame>>,
 
     others: &'frame mut Others,
+    tiles_to_replace: &'frame mut Vec<TileToReplace>,
 
     background_palette: Cow<'static, [Palette16]>,
 }
@@ -339,6 +362,30 @@ impl GraphicsFrame<'_> {
         // is actually still visible, but will remove as much as possible to leave room for
         // the next frame's graphics.
         VRAM_MANAGER.gc();
+
+        for TileToReplace {
+            kind,
+            source_tile_set,
+            source_tile,
+            target_tile_set,
+            target_tile,
+        } in self.tiles_to_replace.drain(..)
+        {
+            match kind {
+                TileToReplaceKind::Regular => VRAM_MANAGER.replace_tile(
+                    source_tile_set,
+                    source_tile,
+                    target_tile_set,
+                    target_tile,
+                ),
+                TileToReplaceKind::Affine => VRAM_MANAGER.replace_tile_affine(
+                    source_tile_set,
+                    source_tile,
+                    target_tile_set,
+                    target_tile,
+                ),
+            }
+        }
     }
 
     /// Sets the `pal_index` background palette to the 4bpp one given in `palette`.
@@ -437,6 +484,60 @@ impl GraphicsFrame<'_> {
 
     pub(crate) fn add_dma<C: DmaFrame + 'static>(&mut self, c: C) {
         self.next_dma = Some(Box::new(c));
+    }
+
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _regular_ backgrounds. Tiles in affine backgrounds should use
+    /// [`replace_tile_affine()`](Self::replace_tile_affine).
+    pub fn replace_tile(
+        &mut self,
+        source_tile_set: &'static TileSet,
+        source_tile: u16,
+        target_tile_set: &'static TileSet,
+        target_tile: u16,
+    ) -> &mut Self {
+        self.tiles_to_replace.push(TileToReplace {
+            kind: TileToReplaceKind::Regular,
+            source_tile_set,
+            source_tile,
+            target_tile_set,
+            target_tile,
+        });
+
+        self
+    }
+
+    /// Replaces all instances of the tile found in the `source_tile_set` `source_tile` combination with
+    /// the one in `target_tile_set` `target_tile`. This will just do nothing if don't have any occurrences
+    /// of the `source_tile_set` `source_tile` combination.
+    ///
+    /// This is primarily intended for use with animated backgrounds since it is incredibly efficient, only
+    /// modifying the tile data once.
+    ///
+    /// Note that this only works with tiles in _affine_ backgrounds. Tiles in regular backgrounds should use
+    /// [`replace_tile()`](Self::replace_tile).
+    pub fn replace_tile_affine(
+        &mut self,
+        source_tile_set: &'static TileSet,
+        source_tile: u16,
+        target_tile_set: &'static TileSet,
+        target_tile: u16,
+    ) -> &mut Self {
+        self.tiles_to_replace.push(TileToReplace {
+            kind: TileToReplaceKind::Affine,
+            source_tile_set,
+            source_tile,
+            target_tile_set,
+            target_tile,
+        });
+
+        self
     }
 }
 
