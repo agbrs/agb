@@ -1,4 +1,4 @@
-use std::{slice::ChunksExact, sync::OnceLock};
+use std::{slice, sync::OnceLock};
 
 use thiserror::Error;
 
@@ -19,7 +19,7 @@ pub fn gwilym_decode(input: &str) -> Result<GwilymDecodeIter<'_>, GwilymDecodeEr
 }
 
 pub struct GwilymDecodeIter<'a> {
-    chunks: ChunksExact<'a, u8>,
+    chunks: slice::Iter<'a, [u8; 3]>,
 }
 
 impl<'a> GwilymDecodeIter<'a> {
@@ -41,7 +41,7 @@ impl<'a> GwilymDecodeIter<'a> {
         }
 
         Ok(Self {
-            chunks: input.as_bytes().chunks_exact(3),
+            chunks: input.as_bytes().as_chunks::<3>().0.iter(),
         })
     }
 }
