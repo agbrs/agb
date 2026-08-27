@@ -340,8 +340,11 @@ impl RegularBackground {
         for y in 0..tile_data.height.min(size.height()) {
             for x in 0..tile_data.width.min(size.width()) {
                 let tile_id = y * tile_data.width + x;
-                let tile_pos = y * size.width() + x;
-                self.set_tile_at_pos(tile_pos, &tile_data.tiles, tile_data.tile_settings[tile_id]);
+                self.set_tile(
+                    (x as i32, y as i32),
+                    &tile_data.tiles,
+                    tile_data.tile_settings[tile_id],
+                );
             }
         }
 
