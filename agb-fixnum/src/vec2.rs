@@ -428,6 +428,26 @@ impl<T: Neg<Output = T>> Neg for Vector2D<T> {
     }
 }
 
+impl<T: Signed> Vector2D<T> {
+    /// Returns a new vec with each component set to `-1`, `0` or `1` depending on the sign of the original value
+    ///
+    /// ```
+    /// # use agb_fixnum::*;
+    /// let v = vec2(-5, 15);
+    /// assert_eq!(v.signum(), vec2(-1, 1));
+    ///
+    /// let v2 = vec2(0, 5);
+    /// assert_eq!(v2.signum(), vec2(0, 1));
+    ///
+    /// let v3: Vector2D<Num<i32, 8>> = vec2(num!(1.2), num!(-3.1));
+    /// assert_eq!(v3.signum(), vec2(num!(1), num!(-1)));
+    /// ```
+    #[must_use]
+    pub fn signum(self) -> Self {
+        vec2(self.x.signum(), self.y.signum())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::FixedNum;
