@@ -151,7 +151,7 @@ mod test {
         Gba,
         display::{
             Priority, Rgb15,
-            font::{ChangeColour, Font, Layout, layout::LayoutSettings},
+            font::{AlignmentKind, ChangeColour, Font, Layout, layout::LayoutSettings},
             palette16::Palette16,
             tiled::{RegularBackgroundSize, TileFormat},
         },
@@ -163,16 +163,16 @@ mod test {
 
     static FONT: Font = include_font!("fnt/ark-pixel-10px-proportional-latin.ttf", 10);
 
+    static PALETTE: Palette16 = const {
+        let mut palette = [Rgb15::BLACK; 16];
+        palette[1] = Rgb15::WHITE;
+        palette[2] = Rgb15(0x10_7C);
+        Palette16::new(palette)
+    };
+
     #[test_case]
     fn background_text_render_english(gba: &mut Gba) {
         let mut gfx = gba.graphics.get();
-
-        static PALETTE: Palette16 = const {
-            let mut palette = [Rgb15::BLACK; 16];
-            palette[1] = Rgb15::WHITE;
-            palette[2] = Rgb15(0x10_7C);
-            Palette16::new(palette)
-        };
 
         gfx.set_background_palette(0, &PALETTE);
 
@@ -275,5 +275,38 @@ mod test {
         let total = u32::from(after_show.wrapping_sub(before_show)) * 256;
 
         crate::println!("rendering time: {total}");
+    }
+
+    #[test_case]
+    fn background_centre_aligned_long_word(gba: &mut Gba) {
+        let mut bg = RegularBackground::new(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
+
+        let layout = Layout::new(
+            "ThisIsAVeryLongWord",
+            &FONT,
+            &LayoutSettings::new()
+                .with_max_line_length(32)
+                .with_max_group_width(32)
+                .with_alignment(AlignmentKind::Centre),
+        );
+        let mut bg_text_renderer = RegularBackgroundTextRenderer::new((16, 16), 0);
+
+        for lg in layout {
+            bg_text_renderer.show(&mut bg, &lg);
+        }
+
+        let mut gfx = gba.graphics.get();
+        let mut frame = gfx.frame();
+
+        frame.set_background_palette(0, &PALETTE);
+        bg.show(&mut frame);
+
+        frame.commit();
+
+        assert_image_output("gfx/test_output/long_word_background_renderer.png");
     }
 }
