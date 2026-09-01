@@ -145,7 +145,8 @@ impl Align {
                 } else {
                     self.processed = current_word_start_index;
                     current_width_of_words_in_line + (spaces_in_line - 1) * self.default_space_width
-                };
+                }
+                .min(self.max_line_length);
 
                 return Some(match self.kind {
                     AlignmentKind::Left => Line {

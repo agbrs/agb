@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed clipping when changing the volume of a stereo sound.
 - Fixed incorrect colours in the palette when importing both 256 and 16 colour backgrounds.
 - Fixed building mgba-test-runner on some linux distributions.
+- Fixed crash if you try to centre align a long single word.
 
 ## [0.25.0] - 2026/07/22
 
