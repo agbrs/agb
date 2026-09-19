@@ -210,7 +210,7 @@ impl Drop for InterruptInner {
             inner_drop(unsafe { Pin::new_unchecked(self) });
         });
 
-        #[allow(clippy::needless_pass_by_value)] // needed for safety reasons
+        #[expect(clippy::needless_pass_by_value)] // needed for safety reasons
         fn inner_drop(this: Pin<&mut InterruptInner>) {
             // drop the closure allocation safely
             let _closure_box =
