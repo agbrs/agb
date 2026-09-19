@@ -206,7 +206,10 @@ unsafe fn create_interrupt_inner(
 
 impl Drop for InterruptInner {
     fn drop(&mut self) {
-        inner_drop(unsafe { Pin::new_unchecked(self) });
+        critical_section::with(|_cs| {
+            inner_drop(unsafe { Pin::new_unchecked(self) });
+        });
+
         #[allow(clippy::needless_pass_by_value)] // needed for safety reasons
         fn inner_drop(this: Pin<&mut InterruptInner>) {
             // drop the closure allocation safely
