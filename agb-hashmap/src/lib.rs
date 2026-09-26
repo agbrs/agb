@@ -5,7 +5,7 @@
 //! A lot of the documentation for this module was copied straight out of the rust
 //! standard library. The implementation however is not.
 #![no_std]
-#![cfg_attr(feature = "allocator_api", feature(allocator_api))]
+#![cfg_attr(feature = "allocator_api", feature(allocator_ext))]
 #![deny(clippy::all)]
 #![deny(clippy::must_use_candidate)]
 #![deny(missing_docs)]

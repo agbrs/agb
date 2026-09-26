@@ -10,7 +10,7 @@
     any(test, feature = "testing"),
     reexport_test_harness_main = "test_main"
 )]
-#![feature(allocator_api)]
+#![feature(allocator_ext)]
 #![warn(clippy::all)]
 #![allow(clippy::needless_pass_by_ref_mut)]
 #![deny(clippy::must_use_candidate)]
