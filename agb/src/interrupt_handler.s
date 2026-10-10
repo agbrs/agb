@@ -103,10 +103,3 @@ InterruptHandler:
 
     bx lr @ return to bios
 .pool
-
-
-.section .iwram.program_counter
-    .global agb_rs__program_counter
-    .balign 4
-agb_rs__program_counter:
-    .word 0
