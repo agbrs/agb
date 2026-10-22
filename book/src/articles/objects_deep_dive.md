@@ -7,8 +7,8 @@ All objects can be flipped and affine objects can have an [affine](./affine.md) 
 # Importing sprites
 
 Sprites are imported from aseprite files.
-[Aseprite](https://www.aseprite.org) is an excellent pixel sprite editor that can be acquired for around $20 or compiled yourself for free.
-It also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
+[Aseprite](https://www.aseprite.org) is an excellent pixel sprite editor. If you prefer a free alternative, [LibreSprite](https://libresprite.github.io/) can edit `.aseprite` files too.
+Aseprite also provides features around adding tags for grouping sprites to form animations and dictating how an animation is performed.
 [The aseprite documentation contains detail on tags.](https://www.aseprite.org/docs/tags/)
 This makes it very useful for creating art for use by agb.
 

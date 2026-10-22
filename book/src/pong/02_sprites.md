@@ -22,7 +22,7 @@ For now, we will only be dealing with regular sprites.
 # Import the sprite
 
 Firstly, you're going to need to import the sprites into your project.
-`agb` requires the use of [aseprite](https://www.aseprite.org/) sprite editor which can be bought for $20 or you can compile it yourself for free.
+`agb` imports Aseprite-format files, but you do not need to use the paid Aseprite editor: [LibreSprite](https://libresprite.github.io/) is a free alternative that can edit `.aseprite` files.
 Aseprite files can be natively imported by `agb`.
 Below is the sprite sheet we will use as a png, but you should [download the aseprite file](sprites.aseprite) and place it in `gfx/sprites.aseprite`.
 
