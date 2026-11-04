@@ -45,7 +45,7 @@ mod allocate {
 #[cfg(feature = "allocator_api")]
 mod allocate {
     pub(crate) use alloc::alloc::Global;
-    pub(crate) use core::alloc::Allocator;
+    pub(crate) use core::alloc::AllocatorNightly as Allocator;
 }
 
 #[cfg(feature = "serde")]

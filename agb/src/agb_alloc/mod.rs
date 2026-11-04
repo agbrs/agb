@@ -45,6 +45,8 @@ static GLOBAL_ALLOC: BlockAllocator = unsafe {
 
 macro_rules! impl_zst_allocator {
     ($name_of_struct: ty, $name_of_static: ident) => {
+        impl core::alloc::AllocatorNightly for $name_of_struct {}
+
         unsafe impl core::alloc::Allocator for $name_of_struct {
             fn allocate(
                 &self,
