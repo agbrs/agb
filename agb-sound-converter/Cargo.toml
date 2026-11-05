@@ -12,6 +12,6 @@ proc-macro = true
 
 [dependencies]
 hound = "3.5"
-syn = "2"
+syn = "3"
 proc-macro2 = "1"
 quote = "1"
