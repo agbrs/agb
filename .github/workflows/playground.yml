@@ -11,7 +11,7 @@ on:
 jobs:
   build_playground_builder:
     name: Build playground builder image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: extractions/setup-just@v4
       - uses: actions/checkout@v7
@@ -34,7 +34,7 @@ jobs:
           path: "playground-builder.tar.zstd"
   build_playground_server:
     name: Build playground server image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: extractions/setup-just@v4
       - uses: actions/checkout@v7
@@ -55,7 +55,7 @@ jobs:
     needs: [build_playground_builder, build_playground_server]
     permissions:
       packages: write
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Download playground builder
         uses: actions/download-artifact@v8
@@ -90,7 +90,7 @@ jobs:
     name: Deploy to digital ocean
     if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' }}
     needs: deploy_playground_builder
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
